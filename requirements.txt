@@ -1,2 +1,5 @@
 Django==1.4
+gunicorn==0.14.2
+meld3==0.6.8
+supervisor==3.0a12
 wsgiref==0.1.2
