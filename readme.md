@@ -1,28 +1,33 @@
 # ADL LRS
 
 ## Installiation
+Clone the git repository
 
-    virtualenv --no-site-packages adl_lrs
+    git clone https://github.com/adlnet/ADL_LRS.git
+    
 
-    . adl_lrs/bin/activate
+Install fabric at the machine level
 
-    git clone https://github.com/adlnet/adl_lrs
+    sudo apt-get install fabric
 
-    cd adl_lrs
+Then run our fabric file to install all local dependencies
 
-    pip install -r requirements.txt
+    cd ADL_LRS
+
+    fabric deps_local
+
 
 ## Starting
 
-    cd adl_lrs
+    cd ADL_LRS
 
     supervisord
 
- To verify it's running
+To verify it's running
 
      supervisorctl
 
- you should see a task named web running
+you should see a task named web running
 
 
 This will host the application using gunicorn with 2 worker processes
