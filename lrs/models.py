@@ -26,5 +26,5 @@ class statement(models.Model):
 	result = models.ForeignKey(result)
 	timestamp = models.DateTimeField()
 	stored = models.DateTimeField()
-	authority = models.ForeignKey(actor)
+	#authority = models.ForeignKey(actor)
 	voided = models.BooleanField()
