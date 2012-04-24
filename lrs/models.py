@@ -117,6 +117,7 @@ class person(models.Model):
 
 class person_givenName(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)
+<<<<<<< HEAD
 	givenName = models.CharField(max_length=200)	
 	person = models.ForeignKey(person)
 
@@ -131,6 +132,26 @@ class person_firstName(models.Model):
 	person = models.ForeignKey(person)
 
 class person_lastName(models.Model):
+=======
+	stmt = models.ForeignKey(statement)
+	weblog=models.CharField(max_length=200)
+	icqChatID=models.CharField(max_length=200)
+	account=models.CharField(max_length=200)
+	age=models.PositiveIntegerField()
+	mbox=models.CharField(max_length=200)
+	yahooChatID=models.CharField(max_length=200)
+	tipjar=models.CharField(max_length=200)
+	jabberID=models.CharField(max_length=200)
+	status=models.CharField(max_length=200)
+	openid=models.CharField(max_length=200)
+	gender=models.CharField(max_length=6)
+	interest=models.CharField(max_length=200)
+	holdsAccount=models.CharField(max_length=200)
+	interest=models.CharField(max_length=200)
+class onlineAccount(models.Model):
+	id = models.PositiveIntegerField(primary_key=True)
+class context_actor(models.Model):
+>>>>>>> 1725e09f743dd2152df254aa9f5bf697518957cb
 	id = models.PositiveIntegerField(primary_key=True)
 	lastName = models.CharField(max_length=200)
 	person = models.ForeignKey(person)
