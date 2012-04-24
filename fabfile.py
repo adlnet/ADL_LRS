@@ -1,5 +1,5 @@
 from fabric.api import local,run
-INSTALL_STEPS = ['yes | sudo apt-get install libmysqlclient-dev python-dev python-mysqldb python-virtualenv',
+INSTALL_STEPS = ['yes | sudo apt-get install libmysqlclient-dev	 python-dev python-mysqldb python-virtualenv',
                  'virtualenv --no-site-packages env',
                  '. env/bin/activate;pip install -r requirements.txt']
 def deps_local():
