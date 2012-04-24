@@ -60,7 +60,22 @@ class result_extension(models.Model):
 class statement_actor(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)
 	stmt = models.ForeignKey(statement)
-
+	weblog=models.CharField(max_length=200)
+	icqChatID=models.CharField(max_length=200)
+	account=models.CharField(max_length=200)
+	age=models.PositiveIntegerField()
+	mbox=models.CharField(max_length=200)
+	yahooChatID=models.CharField(max_length=200)
+	tipjar=models.CharField(max_length=200)
+	jabberID=models.CharField(max_length=200)
+	status=models.CharField(max_length=200)
+	openid=models.CharField(max_length=200)
+	gender=models.CharField(max_length=6)
+	interest=models.CharField(max_length=200)
+	holdsAccount=models.CharField(max_length=200)
+	interest=models.CharField(max_length=200)
+class onlineAccount(models.Model):
+	id = models.PositiveIntegerField(primary_key=True)
 class context_actor(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)
 	ctx = models.ForeignKey(context)	
