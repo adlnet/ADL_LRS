@@ -3,30 +3,11 @@ from uuidfield import UUIDField
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 #needs object
-class statement(models.Model):
-	id = UUIDField(primary_key=True)	
-	verb = models.CharField(max_length=200)
-	inProgress = models.BooleanField(blank=True)	
-	result = models.ForeignKey(result, blank=True)
-	timestamp = models.DateTimeField(blank=True)
-	stored = models.DateTimeField(blank=True)	
-	authority = models.ForeignKey(agent, blank=True)
-	voided = models.BooleanField(blank=True)
-
-class statement_actor(models.Model):
-	id = models.PositiveIntegerField(primary_key=True)
-	actor = models.ForeignKey(agent)
-	statement = models.ForeignKey(statement)
-
-class statement_context(models.Model):
-	id = models.PositiveIntegerField(primary_key=True)
-	context = models.ForeignKey(context)
-	statement = models.ForeignKey(statement)		
 
 class result(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)	
 	score = models.PositiveIntegerField(blank=True)
-	success = models.CharField(max_length=200, blank=True)
+	success = models.CharField(max_length=200, blank=True,null=True)
 	completion = models.BooleanField(blank=True)
 	response = models.CharField(max_length=200)
 	duration = models.DateTimeField()
@@ -47,16 +28,6 @@ class context(models.Model):
 	language = models.CharField(max_length=200)
 	statement = models.CharField(max_length=200)
 
-class context_instructor(models.Model):
-	id = models.PositiveIntegerField(primary_key=True)
-	instructor = models.ForeignKey(agent)
-	context = models.ForeignKey(context)
-
-class context_extentions(models.Model):
-	id = models.PositiveIntegerField(primary_key=True)
-	key=models.CharField(max_length=200)
-	value=models.CharField(max_length=200)
-	context = models.ForeignKey(context)
 
 class score(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)
@@ -123,7 +94,7 @@ class agent_account(models.Model):
 
 class person(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)
-	agent = ForeignKey(agent)
+	agent = models.ForeignKey(agent)
 
 class person_givenName(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)
@@ -153,11 +124,6 @@ class group_member(models.Model):
 	agent = models.ForeignKey(agent)
 	member = models.ForeignKey(group)
 
-class activity(models.Model):
-	key = models.PositiveIntegerField(primary_key=True)
-	id = models.CharField(max_length=200)
-	objectType = models.ForeignKey(statement)
-	definition = models.ForeignKey(activity_definition)
 
 class activity_definition(models.Model):
 	id = models.PositiveIntegerField(primary_key=True)
@@ -172,4 +138,39 @@ class activity_extentions(models.Model):
 	value = models.CharField(max_length=200)
 	activity_definition = models.ForeignKey(activity_definition)
 
-	
+class statement(models.Model):
+	id = UUIDField(primary_key=True)	
+	verb = models.CharField(max_length=200)
+	inProgress = models.BooleanField(blank=True)	
+	result = models.ForeignKey(result, blank=True,null=True)
+	timestamp = models.DateTimeField(blank=True,null=True)
+	stored = models.DateTimeField(blank=True,null=True)	
+	authority = models.ForeignKey(agent, blank=True,null=True)
+	voided = models.BooleanField(blank=True)
+
+class statement_actor(models.Model):
+	id = models.PositiveIntegerField(primary_key=True)
+	actor = models.ForeignKey(agent)
+	statement = models.ForeignKey(statement)
+
+class statement_context(models.Model):
+	id = models.PositiveIntegerField(primary_key=True)
+	context = models.ForeignKey(context)
+	statement = models.ForeignKey(statement)		
+
+class context_instructor(models.Model):
+	id = models.PositiveIntegerField(primary_key=True)
+	instructor = models.ForeignKey(agent)
+	context = models.ForeignKey(context)
+
+class context_extentions(models.Model):
+	id = models.PositiveIntegerField(primary_key=True)
+	key=models.CharField(max_length=200)
+	value=models.CharField(max_length=200)
+	context = models.ForeignKey(context)
+
+class activity(models.Model):
+	key = models.PositiveIntegerField(primary_key=True)
+	id = models.CharField(max_length=200)
+	objectType = models.ForeignKey(statement)
+	definition = models.ForeignKey(activity_definition)
