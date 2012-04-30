@@ -39,8 +39,14 @@ class ActivitiesTest(TestCase):
 
 class ActorProfileTest(TestCase):
     def test_put(self):
-        response = self.client.put(reverse(views.actor_profile), {'actor':'bob','profileId':'10'},content_type='application/json')#x-www-form-urlencoded')
+        response = self.client.put(reverse(views.actor_profile), {'actor':'bob','profileId':'10'},content_type='x-www-form-urlencoded')
         #print 'basic put test, line 43: %s' % response.content
+        self.assertContains(response, 'Success')
+        self.assertContains(response, 'bob')
+        self.assertContains(response, '10')
+        
+    def test_put_curious(self):
+        response = self.client.put(reverse(views.actor_profile), {"actor":"bob","profileId":"10"},content_type='application/json')#x-www-form-urlencoded')
         self.assertContains(response, 'Success')
         self.assertContains(response, 'bob')
         self.assertContains(response, '10')

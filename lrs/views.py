@@ -136,13 +136,16 @@ def activities(request):
     return HttpResponse("Success -- activities - method = %s - activityId = %s" % (request.method, activityId))
 
 
-@require_http_methods(["PUT","GET","DELETE"])    
+#@require_http_methods(["PUT","GET","DELETE"])    
 def actor_profile(request):
+    #print_req_details(request)
     req_dict = get_dict(request)
+    mybody = req_dict.get('body', None)
+    if mybody:
+        print type(mybody)
+        print mybody.keys()
+    #print req_dict
     if request.method == 'PUT':
-        #print_req_details(request)
-        #print 'dict: %s' % req_dict
-        #print type(req_dict)
         try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
             actor = req_dict['actor']
         except KeyError:
@@ -154,7 +157,7 @@ def actor_profile(request):
         return HttpResponse("Success -- actor_profile - method = %s - actor = %s - profileId = %s" % (request.method, actor, profileId))
     
     if request.method == 'GET':
-        try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
+        try: 
             actor = req_dict['actor']
             profileId = req_dict.get('profileId', None)
             if profileId:
@@ -167,7 +170,7 @@ def actor_profile(request):
         return HttpResponse("Success -- actor_profile - method = %s - actor = %s" % (request.method, actor))
     
     if request.method == 'DELETE':
-        try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
+        try: 
             actor = req_dict['actor']
         except KeyError:
             return HttpResponse("Error -- actor_profile - method = %s, but no actor parameter.. the actor parameter is required" % request.method)
@@ -185,9 +188,8 @@ def actor_profile(request):
 @require_GET
 def actors(request):
     req_dict = get_dict(request)
-    try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
+    try: 
         actor = req_dict['actor']
-        # load full actor object
         return HttpResponse("Success -- you hit the actors url of the ADL example LRS. actor: %s" % actor)
     except KeyError:
         return HttpResponse("Error -- actors url, but no actor parameter.. the actor parameter is required")
@@ -215,16 +217,25 @@ def print_req_details(request):
     print '==========================================='
 
 def get_dict(request):
-    if request.method == 'GET':
-        return request.GET
-    if request.method == 'POST':
-        return request.POST
-    if request.method == 'DELETE':
+    if request.method == 'GET' or request.method == 'DELETE':
         return request.GET
     # puts seem to have the parameters in the body..
-    if request.method == 'PUT':
+    if request.method == 'POST' or request.method == 'PUT':
+        ret_dict = {}
+        if request.GET: # looking for parameters
+            ret_dict = dict(request.GET.items())
+        # looking to see if this is a form.. most likely not
+        if request.META['CONTENT_TYPE'] == 'multipart/form-data':
+            ret_dict.update(request.POST)
+        
         body = request.body
         jsn = body.replace("'", "\"")
-        return json.loads(jsn)
+        if request.META['CONTENT_TYPE'] == 'x-www-form-urlencoded':
+            ret_dict.update(json.loads(jsn))
+        else:
+            ret_dict['body'] = json.loads(jsn)
+        
+        print ret_dict
+        return ret_dict
     return {}
     
