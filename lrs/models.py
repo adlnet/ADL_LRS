@@ -93,7 +93,7 @@ class person_lastName(models.Model):
 	person = models.ForeignKey(person)		
 
 class group(agent):
-	agent = models.ForeignKey(agent,related_name="agent_group")
+	member = models.ForeignKey(agent,related_name="agent_group")
 
 class activity_definition(models.Model):
 	name = models.CharField(max_length=200)
