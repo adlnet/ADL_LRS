@@ -18,19 +18,8 @@ class result_extensions(models.Model):
 	value=models.CharField(max_length=200)
 	result = models.ForeignKey(result)
 
-class context(models.Model):
-	
-	registration = UUIDField()
-	team = models.CharField(max_length=200)
-	contextActivities = models.CharField(max_length=200)
-	revision = models.CharField(max_length=200)
-	platform = models.CharField(max_length=200)
-	language = models.CharField(max_length=200)
-	statement = models.CharField(max_length=200)
 
-
-class score(models.Model):
-	
+class score(models.Model):	
 	scaled = models.BooleanField()
 	raw = models.PositiveIntegerField()
 	min = models.PositiveIntegerField()
@@ -42,8 +31,7 @@ class state(models.Model):
 	updated = models.DateTimeField()
 	contents = models.CharField(max_length=200)
 
-class agent(models.Model):
-	
+class agent(models.Model):	
 	objectType = models.CharField(max_length=200)
 	weblog = models.CharField(max_length=200)
 	icqChatID = models.CharField(max_length=200)
@@ -63,46 +51,36 @@ class agent(models.Model):
 	skypeID = models.CharField(max_length=200)
 
 class agent_name(models.Model):
-	
 	name = models.CharField(max_length=200)
 	agent = models.ForeignKey(agent)
 
 class agent_mbox(models.Model):
-	
 	mbox = models.CharField(max_length=200)
 	agent = models.ForeignKey(agent)
 
 class agent_mbox_sha1sum(models.Model):
-	
 	mbox_sha1sum = models.CharField(max_length=200)
 	agent = models.ForeignKey(agent)		
 
 class agent_openid(models.Model):
-	
 	openid = models.CharField(max_length=200)
 	agent = models.ForeignKey(agent)		
 
 class account(models.Model):
-	
 	accountServiceHomePage = models.CharField(max_length=200)
 	accountName = models.CharField(max_length=200)
 
-class agent_account(models.Model):
-	
-	account = models.ForeignKey(account)
-	agent = models.ForeignKey(agent)		
+class agent_account(models.Model):	
+	account = models.OneToOneField(account)
+	agent = models.OneToOneField(agent)		
 
-class person(models.Model):
-	
-	agent = models.ForeignKey(agent)
-
+class person(agent):	
+	pass
 class person_givenName(models.Model):
-	
 	givenName = models.CharField(max_length=200)
 	person = models.ForeignKey(person)	
 
 class person_familyName(models.Model):
-	
 	familyName = models.CharField(max_length=200)
 	person = models.ForeignKey(person)	
 
@@ -114,13 +92,8 @@ class person_lastName(models.Model):
 	lastName = models.CharField(max_length=200)
 	person = models.ForeignKey(person)		
 
-class group(models.Model):
-	pass
-
-class group_member(models.Model):
-	agent = models.ForeignKey(agent)
-	member = models.ForeignKey(group)
-
+class group(agent):
+	agent = models.ForeignKey(agent,related_name="agent_group")
 
 class activity_definition(models.Model):
 	name = models.CharField(max_length=200)
@@ -133,33 +106,29 @@ class activity_extentions(models.Model):
 	value = models.CharField(max_length=200)
 	activity_definition = models.ForeignKey(activity_definition)
 
+class context(models.Model):	
+	registration = UUIDField()
+	instructor = models.OneToOneField(agent)
+	team = models.CharField(max_length=200)
+	contextActivities = models.CharField(max_length=200)
+	revision = models.CharField(max_length=200)
+	platform = models.CharField(max_length=200)
+	language = models.CharField(max_length=200)
+	statement = models.CharField(max_length=200)
+
 class statement(models.Model):
 	id = UUIDField(primary_key=True)	
 	verb = models.CharField(max_length=200)
 	inProgress = models.BooleanField(blank=True)	
-	result = models.ForeignKey(result, blank=True,null=True)
+	result = models.OneToOneField(result, blank=True,null=True)
 	timestamp = models.DateTimeField(blank=True,null=True)
 	stored = models.DateTimeField(blank=True,null=True)	
-	authority = models.ForeignKey(agent, blank=True,null=True)
+	authority = models.OneToOneField(agent, blank=True,null=True,related_name="authority_statement")
 	voided = models.BooleanField(blank=True)
-
-class statement_actor(models.Model):
-	
-	actor = models.ForeignKey(agent)
-	statement = models.ForeignKey(statement)
-
-class statement_context(models.Model):
-	
-	context = models.ForeignKey(context)
-	statement = models.ForeignKey(statement)		
-
-class context_instructor(models.Model):
-	
-	instructor = models.ForeignKey(agent)
-	context = models.ForeignKey(context)
+	actor = models.OneToOneField(agent,related_name="actor_statement")
+	context = models.OneToOneField(context, related_name="context_statement")
 
 class context_extentions(models.Model):
-
 	key=models.CharField(max_length=200)
 	value=models.CharField(max_length=200)
 	context = models.ForeignKey(context)
