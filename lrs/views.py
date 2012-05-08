@@ -2,6 +2,10 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from lrs.util import req_parse, req_process
+from django.shortcuts import render_to_response
+import logging
+
+logger = logging.getLogger(__name__)
 
 def home(request):
     rsp = """
@@ -11,8 +15,7 @@ def home(request):
     <input type="submit" value="Submit"/>
     </form>
     """
-    return HttpResponse(rsp)
-
+    return render_to_response('home.html')
 
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):
@@ -25,7 +28,7 @@ def statements(request):
     return resp
 
     raise Http404
-
+    
 
 @require_http_methods(["PUT","GET","DELETE"])
 def activity_state(request):
@@ -36,9 +39,9 @@ def activity_state(request):
     except req_process.ProcessError as err:
         return HttpResponse(err.message)
     return resp
-  
-    raise Http404
 
+    raise Http404
+    
 
 @require_http_methods(["PUT","GET","DELETE"])
 def activity_profile(request):
