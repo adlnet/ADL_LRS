@@ -1,0 +1,40 @@
+<html>
+<head>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript">
+     $(document).ready(function(){
+     	
+       $('#post_form').submit(function(event){
+       		event.preventDefault();
+       		var verb = $("#verb").val();
+       		var requestType = $('form input[type=radio]:checked').val();
+       		var data = {verb: verb, statementId: 1};
+
+       		$.ajax({
+          			url: '/TCAPI/statements/',
+          			type: requestType,
+          			data: JSON.stringify(data),
+          			contentType: 'application/json; charset=UTF-8',
+          			success: function(data) {
+ 	     				alert(data);
+          			},
+          			error: function(xhr, result, error){
+          				alert(error);
+          			}
+				});
+       			
+     	});
+     });
+   </script>
+</head>
+<body>
+	<form id="post_form" method="post" action="/TCAPI/statements/">
+		verb: <input id="verb" type="text" name="verb"/><br/>
+		post<input type="radio" name="group1" value="post"><br/>
+		get<input type="radio" name="group1" value="get"><br/>
+		put<input type="radio" name="group1" value="put"><br/>
+		delete<input type="radio" name="group1" value="delete"><br/>
+    	<input id="submitbutton" type="submit" value="Submit"/>
+	</form>
+</html>    
+
