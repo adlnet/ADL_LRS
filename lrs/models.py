@@ -6,7 +6,6 @@ from uuidfield import UUIDField
 
 class result(models.Model):
 	
-	score = models.PositiveIntegerField(blank=True)
 	success = models.CharField(max_length=200, blank=True,null=True)
 	completion = models.BooleanField(blank=True)
 	response = models.CharField(max_length=200)
@@ -22,12 +21,13 @@ class result_extensions(models.Model):
 class score(models.Model):	
 	scaled = models.BooleanField()
 	raw = models.PositiveIntegerField()
-	min = models.PositiveIntegerField()
-	max = models.PositiveIntegerField()
+	score_min = models.PositiveIntegerField()
+	score_max = models.PositiveIntegerField()
+	result = models.ForeignKey(result)
 
 class state(models.Model):
 	key = models.PositiveIntegerField(primary_key=True)
-	id = models.CharField(max_length=200)
+	state_id = models.CharField(max_length=200)
 	updated = models.DateTimeField()
 	contents = models.CharField(max_length=200)
 
@@ -98,7 +98,7 @@ class group(agent):
 class activity_definition(models.Model):
 	name = models.CharField(max_length=200)
 	description = models.CharField(max_length=200)
-	type = 	models.CharField(max_length=200)
+	activity_definition_type = 	models.CharField(max_length=200)
 	interactionType = models.CharField(max_length=200)
 
 class activity_extentions(models.Model):
@@ -135,6 +135,6 @@ class context_extentions(models.Model):
 
 class activity(models.Model):
 	key = models.PositiveIntegerField(primary_key=True)
-	id = models.CharField(max_length=200)
+	activity_id = models.CharField(max_length=200)
 	objectType = models.ForeignKey(statement)
 	definition = models.ForeignKey(activity_definition)
