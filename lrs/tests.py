@@ -4,6 +4,7 @@ from lrs import views
 import json
 import time
 import hashlib
+import models
 
 class StatementsTest(TestCase):
     def test_post_but_really_get(self):
@@ -29,7 +30,11 @@ class StatementsTest(TestCase):
         #print "\nTesting post with json type\n %s \n-----done----" % response.content
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'method = POST')
-        
+
+        statement = models.Statement()
+        statement.save()
+        self.assertEqual(statement.verb, 'created')
+
     def test_get(self):
         response = self.client.get(reverse(views.statements), {'statementId':'stmtid'})
         self.assertEqual(response.status_code, 200)
@@ -316,7 +321,7 @@ class ActivitiesTest(TestCase):
         response = self.client.get(reverse(views.activities), {'activityId':'my_activity'})
         self.assertContains(response, 'Success')
         self.assertContains(response, 'my_activity')
-    
+        
     def test_get_no_activity(self):
         response = self.client.get(reverse(views.activities))
         self.assertContains(response, 'Error')
