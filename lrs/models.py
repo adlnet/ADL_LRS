@@ -3,138 +3,142 @@ from uuidfield import UUIDField
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 #needs object
+ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
-class result(models.Model):
-	
-	success = models.CharField(max_length=200, blank=True,null=True)
-	completion = models.BooleanField(blank=True)
-	response = models.CharField(max_length=200)
-	duration = models.DateTimeField()
+class score(models.Model):  
+    scaled = models.NullBooleanField(blank=True)
+    raw = models.PositiveIntegerField(blank=True, null=True)
+    score_min = models.PositiveIntegerField(blank=True, null=True)
+    score_max = models.PositiveIntegerField(blank=True, null=True)
+
+class result(models.Model): 
+    success = models.CharField(max_length=200, blank=True,null=True)
+    completion = models.NullBooleanField(blank=True)
+    response = models.CharField(max_length=200, blank=True, null=True)
+    duration = models.DateTimeField(blank=True, null=True)
+    score = models.OneToOneField(score, blank=True, null=True)
 
 class result_extensions(models.Model):
-	
-	key=models.CharField(max_length=200)
-	value=models.CharField(max_length=200)
-	result = models.ForeignKey(result)
-
-
-class score(models.Model):	
-	scaled = models.BooleanField()
-	raw = models.PositiveIntegerField()
-	score_min = models.PositiveIntegerField()
-	score_max = models.PositiveIntegerField()
-	result = models.ForeignKey(result)
+    key=models.CharField(max_length=200)
+    value=models.CharField(max_length=200)
+    result = models.ForeignKey(result)
 
 class state(models.Model):
-	key = models.PositiveIntegerField(primary_key=True)
-	state_id = models.CharField(max_length=200)
-	updated = models.DateTimeField()
-	contents = models.CharField(max_length=200)
+    key = models.PositiveIntegerField(primary_key=True)
+    state_id = models.CharField(max_length=200)
+    updated = models.DateTimeField(auto_now_add=True, blank=True)
+    contents = models.CharField(max_length=200)
 
-class agent(models.Model):	
-	objectType = models.CharField(max_length=200)
-	weblog = models.CharField(max_length=200)
-	icqChatID = models.CharField(max_length=200)
-	msnChatID = models.CharField(max_length=200)
-	age = models.PositiveIntegerField()
-	yahooChatID = models.CharField(max_length=200)
-	tipjar = models.CharField(max_length=200)
-	jabberID = models.CharField(max_length=200)
-	status = models.CharField(max_length=200)
-	gender = models.CharField(max_length=6)
-	interest = models.CharField(max_length=200)
-	holdsAccount = models.CharField(max_length=200)
-	topic_interest = models.CharField(max_length=200)
-	aimChatID = models.CharField(max_length=200)
-	birthday = models.CharField(max_length=10)
-	made = models.CharField(max_length=200)
-	skypeID = models.CharField(max_length=200)
+class statement_object(models.Model):
+    pass
+
+class agent(statement_object):  
+    objectType = models.CharField(max_length=200)
+    
+    def __unicode__(self):
+        return ': '.join([str(self.id), self.objectType])
 
 class agent_name(models.Model):
-	name = models.CharField(max_length=200)
-	agent = models.ForeignKey(agent)
+    name = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    agent = models.ForeignKey(agent)
 
 class agent_mbox(models.Model):
-	mbox = models.CharField(max_length=200)
-	agent = models.ForeignKey(agent)
+    mbox = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    agent = models.ForeignKey(agent)
 
 class agent_mbox_sha1sum(models.Model):
-	mbox_sha1sum = models.CharField(max_length=200)
-	agent = models.ForeignKey(agent)		
+    mbox_sha1sum = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    agent = models.ForeignKey(agent)        
 
 class agent_openid(models.Model):
-	openid = models.CharField(max_length=200)
-	agent = models.ForeignKey(agent)		
+    openid = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    agent = models.ForeignKey(agent)        
 
 class account(models.Model):
-	accountServiceHomePage = models.CharField(max_length=200)
-	accountName = models.CharField(max_length=200)
+    accountServiceHomePage = models.CharField(max_length=200)
+    accountName = models.CharField(max_length=200)
 
-class agent_account(models.Model):	
-	account = models.OneToOneField(account)
-	agent = models.OneToOneField(agent)		
+class agent_account(models.Model):  
+    account = models.OneToOneField(account)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    agent = models.OneToOneField(agent)     
 
-class person(agent):	
-	pass
+class person(agent):    
+    pass
+
 class person_givenName(models.Model):
-	givenName = models.CharField(max_length=200)
-	person = models.ForeignKey(person)	
+    givenName = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    person = models.ForeignKey(person)  
 
 class person_familyName(models.Model):
-	familyName = models.CharField(max_length=200)
-	person = models.ForeignKey(person)	
+    familyName = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    person = models.ForeignKey(person)  
 
 class person_firstName(models.Model):
-	firstName = models.CharField(max_length=200)
-	person = models.ForeignKey(person)
-
+    firstName = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    person = models.ForeignKey(person)
+    def __unicode__(self):
+        return self.firstName
+    def __str__(self):
+        return self.firstName
+    
 class person_lastName(models.Model):
-	lastName = models.CharField(max_length=200)
-	person = models.ForeignKey(person)		
+    lastName = models.CharField(max_length=200)
+    date_added = models.DateTimeField(auto_now_add=True, blank=True)
+    person = models.ForeignKey(person)      
 
 class group(agent):
-	member = models.ForeignKey(agent,related_name="agent_group")
+    member = models.ForeignKey(agent,related_name="agent_group")
+
+class activity(statement_object):
+    key = models.PositiveIntegerField(primary_key=True)
+    activity_id = models.CharField(max_length=200)
+    objectType = models.CharField(max_length=200,blank=True, null=True) 
 
 class activity_definition(models.Model):
-	name = models.CharField(max_length=200)
-	description = models.CharField(max_length=200)
-	activity_definition_type = 	models.CharField(max_length=200)
-	interactionType = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
+    description = models.CharField(max_length=200)
+    activity_definition_type = models.CharField(max_length=200)
+    interactionType = models.CharField(max_length=200)
+    activity = models.ForeignKey(activity)
 
 class activity_extentions(models.Model):
-	key = models.CharField(max_length=200)
-	value = models.CharField(max_length=200)
-	activity_definition = models.ForeignKey(activity_definition)
+    key = models.CharField(max_length=200)
+    value = models.CharField(max_length=200)
+    activity_definition = models.ForeignKey(activity_definition)
 
-class context(models.Model):	
-	registration = UUIDField()
-	instructor = models.OneToOneField(agent)
-	team = models.CharField(max_length=200)
-	contextActivities = models.CharField(max_length=200)
-	revision = models.CharField(max_length=200)
-	platform = models.CharField(max_length=200)
-	language = models.CharField(max_length=200)
-	statement = models.CharField(max_length=200)
-
-class statement(models.Model):
-	id = UUIDField(primary_key=True)	
-	verb = models.CharField(max_length=200)
-	inProgress = models.BooleanField(blank=True)	
-	result = models.OneToOneField(result, blank=True,null=True)
-	timestamp = models.DateTimeField(blank=True,null=True)
-	stored = models.DateTimeField(blank=True,null=True)	
-	authority = models.OneToOneField(agent, blank=True,null=True,related_name="authority_statement")
-	voided = models.BooleanField(blank=True)
-	actor = models.OneToOneField(agent,related_name="actor_statement")
-	context = models.OneToOneField(context, related_name="context_statement")
+class context(models.Model):    
+    registration = UUIDField()
+    instructor = models.OneToOneField(agent,blank=True, null=True)
+    team = models.CharField(max_length=200,blank=True, null=True)
+    contextActivities = models.CharField(max_length=200)
+    revision = models.CharField(max_length=200,blank=True, null=True)
+    platform = models.CharField(max_length=200,blank=True, null=True)
+    language = models.CharField(max_length=200,blank=True, null=True)
+    statement = models.CharField(max_length=200,blank=True, null=True)
 
 class context_extentions(models.Model):
-	key=models.CharField(max_length=200)
-	value=models.CharField(max_length=200)
-	context = models.ForeignKey(context)
+    key=models.CharField(max_length=200)
+    value=models.CharField(max_length=200)
+    context = models.ForeignKey(context)
 
-class activity(models.Model):
-	key = models.PositiveIntegerField(primary_key=True)
-	activity_id = models.CharField(max_length=200)
-	objectType = models.ForeignKey(statement)
-	definition = models.ForeignKey(activity_definition)
+class statement(statement_object):
+    statement_id = UUIDField(primary_key=True)  
+    actor = models.OneToOneField(agent,related_name="actor_statement", blank=True, null=True)
+    verb = models.CharField(max_length=200)
+    inProgress = models.NullBooleanField(blank=True)    
+    result = models.OneToOneField(result, blank=True,null=True)
+    timestamp = models.DateTimeField(blank=True,null=True)
+    stored = models.DateTimeField(auto_now_add=True,blank=True) 
+    authority = models.OneToOneField(agent, blank=True,null=True,related_name="authority_statement")
+    voided = models.NullBooleanField(blank=True)
+    context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
+    stmt_object = models.OneToOneField(statement_object)
+
