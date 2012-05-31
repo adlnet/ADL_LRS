@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
+from lrs import models
 from lrs import views
 import json
 import time
@@ -74,6 +75,7 @@ class ActivityStateTest(TestCase):
         self.assertContains(response, stateId)
         self.assertContains(response, regId)
         
+
     def test_put_without_activityid(self):
         actor = self.actor
         stateId = "test_put_without_activityid" 
@@ -411,3 +413,10 @@ class ActorsTest(TestCase):
         response = self.client.post(reverse(views.actors), {'actor':'bob'},content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 405)
 
+class Models_ActorTest(TestCase):
+    def setUp(self):
+        self.actor = models.person(name='bob')
+        self.actor.save()
+    
+    def test_actor(self):
+        self.assertEqual(self.actor.name, 'bob')
