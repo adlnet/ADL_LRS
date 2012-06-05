@@ -40,6 +40,7 @@ class Actor():
         # if so then that agent is the agent for this actor object
         # if not, then i need to make a new agent and have __populate fill in the info
         agent = {}
+        agents = []
         for ifp in the_ifps: 
             if agent: # if i have an agent, stop this loop
                 break
@@ -48,7 +49,7 @@ class Actor():
                 args = {qry:val} #ex. {'agent_mbox__mbox':'me@example.com'}
                 try:
                     agent = models.agent.objects.get(**args)
-                    break # we got an agent.. good enough for now
+                    agents.append(agent)
                 except models.agent.DoesNotExist: # the get didn't return an agent... that's ok
                     pass
                 except (ValueError, FieldError): # agent_n__n didn't work, try account
@@ -59,6 +60,9 @@ class Actor():
                         break
                     except Exception as fail:
                         pass
+        agent_set = set(agents)
+        if len(agent_set) > 1:
+            agent = models.merge_model_objects(agent_set.pop(), list(agent_set))
         return agent
 
     
@@ -82,11 +86,10 @@ class Actor():
 
         for k, v in the_object.items():
             # skipping string values.. only dealing with arrays
-            # this is because the only string value would have 
-            # been the objectType.. and i just set that
+            # this is because the only string value is objectType.. 
+            # and i just set that
             if isinstance(v, types.StringTypes): continue
             for val in v:
-                print 'val in v: %s' % val
                 try:
                     # get agent_
                     fun = 'agent_%s_set' % k

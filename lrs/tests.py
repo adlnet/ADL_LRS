@@ -419,3 +419,6 @@ class Models_ActorTest(py_tc):
         self.assertEqual(actor.agent.objectType, 'Person')
         self.assertIn('freakshow', actor.agent.agent_name_set.values_list('name', flat=True))
         self.assertIn('freakshow@adlnet.gov', actor.agent.agent_mbox_set.values_list('mbox', flat=True))
+
+    def test_actor_merge(self):
+        actor = objects.Actor(json.dumps({'mbox':['freakshow@adnet.gov','']}))
