@@ -1,10 +1,10 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from lrs import models
-from lrs import views
+from lrs import models, views, objects
 import json
 import time
 import hashlib
+from unittest import TestCase as py_tc
 
 class StatementsTest(TestCase):
     def test_post_but_really_get(self):
@@ -413,10 +413,9 @@ class ActorsTest(TestCase):
         response = self.client.post(reverse(views.actors), {'actor':'bob'},content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 405)
 
-class Models_ActorTest(TestCase):
-    def setUp(self):
-        self.actor = models.person(name='bob')
-        self.actor.save()
-    
+class Models_ActorTest(py_tc):
     def test_actor(self):
-        self.assertEqual(self.actor.name, 'bob')
+        actor = objects.Actor(json.dumps({'objectType':'Person','name':['freakshow'],'mbox':['freakshow@adlnet.gov']}))
+        self.assertEqual(actor.agent.objectType, 'Person')
+        self.assertIn('freakshow', actor.agent.agent_name_set.values_list('name', flat=True))
+        self.assertIn('freakshow@adlnet.gov', actor.agent.agent_mbox_set.values_list('mbox', flat=True))

@@ -58,14 +58,11 @@ class agent_openid(models.Model):
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(agent)        
 
-class account(models.Model):
-    accountServiceHomePage = models.CharField(max_length=200)
-    accountName = models.CharField(max_length=200)
-
 class agent_account(models.Model):  
-    account = models.OneToOneField(account)
+    accountServiceHomePage = models.CharField(max_length=200, blank=True, null=True)
+    accountName = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.OneToOneField(agent)     
+    agent = models.ForeignKey(agent)     
 
 class person(agent):    
     pass
