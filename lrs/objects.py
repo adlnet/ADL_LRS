@@ -2,10 +2,12 @@ import json
 import types
 from lrs import models
 from django.core.exceptions import FieldError
+from django.db import transaction
 
 class Actor():
     IFPs = ['account','mbox','openid','mbox_sha1sum']
     
+    @transaction.commit_on_success
     def __init__(self, initial=None):
         self.initial = initial
         self.obj = self.__parse(initial)
@@ -42,10 +44,8 @@ class Actor():
         agent = {}
         agents = []
         for ifp in the_ifps: 
-            if agent: # if i have an agent, stop this loop
-                break
-            qry = 'agent_%s__%s' % (ifp, ifp) #ex. agent_mbox__mbox
             for val in the_object[ifp]: #ex. mbox: ['me@example.com', 'me@gmail.com']
+                qry = 'agent_%s__%s' % (ifp, ifp) #ex. agent_mbox__mbox
                 args = {qry:val} #ex. {'agent_mbox__mbox':'me@example.com'}
                 try:
                     agent = models.agent.objects.get(**args)
@@ -57,10 +57,12 @@ class Actor():
                         qry = 'agent_account__accountName'
                         accountname = val['accountName']
                         agent = models.agent.objects.get(**{qry:accountname})
-                        break
+                        agents.append(agent)
                     except Exception as fail:
                         pass
         agent_set = set(agents)
+        # if i found more than one agent,
+        # i need to merge them
         if len(agent_set) > 1:
             agent = models.merge_model_objects(agent_set.pop(), list(agent_set))
         return agent
@@ -83,6 +85,12 @@ class Actor():
         else:
             if not the_agent.objectType:
                 the_agent.objectType = objtype
+        
+        if the_agent.objectType == 'Group':
+            for member in the_object['member']:
+                a = Actor(json.dumps(member))
+                print dir(the_agent)
+                #the_agent.group.agent_group.get_or_create(a.agent)
 
         for k, v in the_object.items():
             # skipping string values.. only dealing with arrays
@@ -97,26 +105,104 @@ class Actor():
                     vals = the_set.values_list(k, flat=True) # gets me an array of values for the agent_n_set
                     if not vals or val not in vals: # is the value list empty or doesn't have the ifp value
                         the_set.create(**{k:val})
-                # get agent_account__account__accountName?
                 except:
                     try: 
-                        fun = 'person_%s_set' % k.lower
-                        the_set = getattr(the_agent, fun)
+                        fun = 'person_%s_set' % k.lower()
+                        the_set = getattr(the_agent.person, fun)
                         vals = the_set.values_list(k, flat=True) # gets me an array of values for the agent_n_set
                         if not vals or val not in vals: # is the value list empty or doesn't have the ifp value
                             the_set.create(**{k:val})
-                    except Exception as fail:
+                    except:
                         to_create = {}
                         account_obj = val
                         if 'accountName' in val:
                             to_create['accountName'] = val['accountName']
                         if 'accountServiceHomePage' in val:
                             to_create['accountServiceHomePage'] = val['accountServiceHomePage']
-                        the_set.create(**to_create)  
+                        vals = the_agent.agent_account_set.all()
+                        the_agent.agent_account_set.get_or_create(**to_create)  
         return the_agent     
     
-    def __unicode__(self):
-        return json.dumps(self.agent)
-    
-    def __str__(self):
-        return json.dumps(self.agent)
+    def get_objectType(self):
+        return self.agent.objectType
+
+    def get_name(self):
+        return self.agent.agent_name_set.values_list('name',flat=True).order_by('-date_added')
+
+    def get_mbox(self):
+        return self.agent.agent_mbox_set.values_list('mbox',flat=True).order_by('-date_added')
+
+    def get_mbox_sha1sum(self):
+        return self.agent.agent_mbox_sha1sum_set.values_list('mbox_sha1sum',flat=True).order_by('-date_added')
+
+    def get_openid(self):
+        return self.agent.agent_openid_set.values_list('openid',flat=True).order_by('-date_added')
+
+    def get_account(self):
+        accounts = []
+        for acc in self.agent.agent_account_set.all().order_by('-date_added'):
+            a = {}
+            a['accountName'] = acc.accountName
+            if acc.accountServiceHomePage:
+                a['accountServiceHomePage'] = acc.accountServiceHomePage
+            accounts.append(a)
+        return accounts
+
+    def get_givenName(self):
+        return self.agent.person.person_givenname_set.values_list('givenName',flat=True).order_by('-date_added')
+
+    def get_familyName(self):
+        return self.agent.person.person_familyname_set.values_list('familyName',flat=True).order_by('-date_added')
+
+    def get_firstName(self):
+        return self.agent.person.person_firstname_set.values_list('firstName',flat=True).order_by('-date_added')
+
+    def get_lastName(self):
+        return self.agent.person.person_lastname_set.values_list('lastName',flat=True).order_by('-date_added')
+
+    def get_member(self):
+        return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
+
+    def original_actor_json(self):
+        return json.dumps(self.obj)
+
+    def full_actor_json(self):
+        ret = {}
+        ret['objectType'] = self.get_objectType()
+        names = self.get_name()
+        if names:
+            ret['name'] = [k for k in names] # i don't like this.. it's done due to serialization issues. better solutions are welcomed
+        mboxes = self.get_mbox()
+        if mboxes:
+            ret['mbox'] =[k for k in  mboxes]
+        mbox_shas = self.get_mbox_sha1sum()
+        if mbox_shas:
+            ret['mbox_sha1sum'] = [k for k in mbox_shas]
+        openids = self.get_openid()
+        if openids:
+            ret['openid'] = [k for k in openids]
+        accounts = self.get_account()
+        if accounts:
+            ret['account'] = [k for k in accounts]
+
+        if self.get_objectType == 'Person':
+            givennames = self.get_givenName()
+            if givennames:
+                ret['givenName'] = [k for k in givennames]
+            familynames = self.get_familyName()
+            if familynames:
+                ret['familyName'] = [k for k in familynames]
+            firstnames = self.get_firstName()
+            if firstnames:
+                ret['firstName'] = [k for k in firstnames]
+            lastnames = self.get_lastName()
+            if lastnames:
+                ret['lastName'] = [k for k in lastnames]
+
+        if self.get_objectType == 'Group':
+            members = self.get_member()
+            if members:
+                ret['member'] = [k for k in members]
+
+        return json.dumps(ret, sort_keys=True)
+

@@ -46,26 +46,51 @@ class agent_name(models.Model):
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(agent)
 
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.name == other.name
+
 class agent_mbox(models.Model):
     mbox = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(agent)
 
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.mbox == other.mbox
+
 class agent_mbox_sha1sum(models.Model):
     mbox_sha1sum = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)        
+    agent = models.ForeignKey(agent)
+
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.mbox_sha1sum == other.mbox_sha1sum        
 
 class agent_openid(models.Model):
     openid = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)        
+    agent = models.ForeignKey(agent)
+
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.openid == other.openid        
 
 class agent_account(models.Model):  
     accountServiceHomePage = models.CharField(max_length=200, blank=True, null=True)
     accountName = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)     
+    agent = models.ForeignKey(agent)
+
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.accountName == other.accountName and self.accountServiceHomePage == other.accountServiceHomePage  
 
 class person(agent):    
     pass
@@ -73,29 +98,45 @@ class person(agent):
 class person_givenName(models.Model):
     givenName = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    person = models.ForeignKey(person)  
+    person = models.ForeignKey(person)
+
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.givenName == other.givenName  
 
 class person_familyName(models.Model):
     familyName = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    person = models.ForeignKey(person)  
+    person = models.ForeignKey(person)
+
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.familyName == other.familyName  
 
 class person_firstName(models.Model):
     firstName = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
     person = models.ForeignKey(person)
-    def __unicode__(self):
-        return self.firstName
-    def __str__(self):
-        return self.firstName
+
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.firstName == other.firstName
     
 class person_lastName(models.Model):
     lastName = models.CharField(max_length=200)
     date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    person = models.ForeignKey(person)      
+    person = models.ForeignKey(person)
+
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.lastName == other.lastName
 
 class group(agent):
-    member = models.ForeignKey(agent,related_name="agent_group")
+    member = models.ForeignKey(agent,related_name="agent_group", blank=True, null=True)
 
 class activity(statement_object):
     key = models.PositiveIntegerField(primary_key=True)
@@ -188,23 +229,15 @@ def merge_model_objects(primary_object, alias_objects=[], keep_old=False):
             alias_varname = related_object.get_accessor_name()
             # The variable name on the related model.
             obj_varname = related_object.field.name
-            print 'alias_object: %s -- alias_varname: %s' % (alias_object, alias_varname)
             try:
                 related_objects = getattr(alias_object, alias_varname)
-
                 for obj in related_objects.all():
-                    fun = '%s_set' % obj.field_name
-                    the_set = getattr(primary_object, fun)
-                    try:
-                        k = obj.field_name.split('_')[1]
-                    except:
-                        k = obj.field_name
-                    vals = the_set.values_list(k, flat=True)
-                    print 'the obj val: %s - obj varname: %s' % (obj, obj_varname)
-                    if getattr(obj, k) not in vals:
+                    primary_objects = getattr(primary_object, alias_varname)
+                    found = [hit for hit in primary_objects.all() if hit.equals(obj)]
+                    if not found:
                         setattr(obj, obj_varname, primary_object)
                         obj.save()
-            except:
+            except Exception as e:
                 pass # didn't have any of that related object
 
         # Migrate all many to many references from alias object to primary object.

@@ -25,12 +25,17 @@ class Agent_Openid_Admin(admin.TabularInline):
     model = models.agent_openid
     extra = 0
 
+class Agent_Account_Admin(admin.TabularInline):
+    model = models.agent_account
+    extra = 0
+
 class AgentAdmin(admin.ModelAdmin):
     inlines = [
         Agent_Names_Admin,
         Agent_Mbox_Admin,
         Agent_Mbox_Sha1sum_Admin,
-        Agent_Openid_Admin
+        Agent_Openid_Admin,
+        Agent_Account_Admin
     ]
 
 class Person_GivenName_Admin(admin.TabularInline):
@@ -55,6 +60,7 @@ class PersonAdmin(AgentAdmin):
         Agent_Mbox_Admin,
         Agent_Mbox_Sha1sum_Admin,
         Agent_Openid_Admin,
+        Agent_Account_Admin,
         Person_GivenName_Admin,
         Person_FamilyName_Admin,
         Person_FirstName_Admin,
