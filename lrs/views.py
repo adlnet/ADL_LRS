@@ -15,7 +15,7 @@ def home(request):
     <input type="submit" value="Submit"/>
     </form>
     """
-    return rsp
+    return HttpResponse(rsp)
     #return render_to_response('home.html')
 
 @require_http_methods(["PUT","GET","POST"])
