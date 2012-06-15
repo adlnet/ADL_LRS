@@ -1,0 +1,49 @@
+<html>
+<head>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript">
+     $(document).ready(function(){
+
+     	function uuid() {
+			var result='';
+			for(var i=0; i<32; i++){
+				result += Math.floor(Math.random()*16).toString(16).toUpperCase();
+			}
+			return result
+		}
+     	
+       $('#tcapi_form').submit(function(event){
+       		event.preventDefault();
+       		var verb = $("#verb").val();
+       		var requestType = $('form input[type=radio]:checked').val();
+       		var statementId = uuid();
+       		var data = JSON.stringify({verb: verb, statementId: statementId});
+
+       		$.ajax({
+          			url: '/TCAPI/statements/',
+          			type: requestType,
+          			data: data,
+          			contentType: 'application/json; charset=UTF-8',
+          			success: function(data) {
+ 	     				alert(data);
+          			},
+          			error: function(xhr, result, error){
+          				alert(error);
+          			}
+				});
+       			
+     	});
+     });
+   </script>
+</head>
+<body>
+	<form id="tcapi_form">
+		verb: <input id="verb" type="text" name="verb"/><br/>
+		post<input type="radio" name="group1" value="post"><br/>
+		get<input type="radio" name="group1" value="get"><br/>
+		put<input type="radio" name="group1" value="put"><br/>
+		delete<input type="radio" name="group1" value="delete"><br/>
+    	<input id="submitbutton" type="submit" value="Submit"/>
+	</form>
+</html>    
+
