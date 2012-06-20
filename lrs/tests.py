@@ -18,13 +18,15 @@ class StatementsTest(TestCase):
         #print "\nTesting post with no content type\n %s \n-----done----" % response.content
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'weird POST/GET')
+    
         
     def test_post_but_really_get_with_no_valid_params(self):
         response = self.client.post(reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post_but_really_get"}},content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Error')
         self.assertContains(response, 'could not find a valid parameter')
-        
+    
+
     def test_post(self):
         response = self.client.post(reverse(views.statements), {"verb":"created","object": {"id":"http://example.com/test_post"}},content_type='application/json')
         #print "\nTesting post with json type\n %s \n-----done----" % response.content
@@ -412,6 +414,40 @@ class ActorsTest(TestCase):
     def test_post(self):
         response = self.client.post(reverse(views.actors), {'actor':'bob'},content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 405)
+
+class Models_ActivityTest(py_tc):
+    def test_activity(self):
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'activity_id':'http://some_specific_URI', }))
+        self.assertEqual(act.activity_id, 'http://some_specific_URI')
+        self.assertEqual(act.objectType, 'Activity')
+        
+    def test_activity_definition(self):
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://some_specific_URI2',
+                'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
+                'interactionType': 'intType'}}))
+        
+        self.assertEqual(act.activity_id, 'http://some_specific_URI2')
+        self.assertEqual(act.objectType, 'Activity')
+        self.assertEqual(act.activity_definition['name'], 'testname')
+        self.assertEqual(act.activity_definition['description'], 'testdesc')
+        self.assertEqual(act.activity_definition['type'], 'course')
+        self.assertEqual(act.activity_definition['interactionType'], 'intType')
+    
+    def test_activity_definition_extensions(self):
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://some_specific_URI3',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'course',
+                'interactionType': 'intType2', 'extensions': {'key1': 'value1', 'key2': 'value2',
+                'key3': 'value3'}}}))
+        
+        self.assertEqual(act.activity_id, 'http://some_specific_URI3')
+        self.assertEqual(act.objectType, 'Activity')
+        self.assertEqual(act.activity_definition['name'], 'testname2')
+        self.assertEqual(act.activity_definition['description'], 'testdesc2')
+        self.assertEqual(act.activity_definition['type'], 'course')
+        self.assertEqual(act.activity_definition['interactionType'], 'intType2')
+        self.assertEqual(act.activity_definition['extensions']['key1'], 'value1')    
+        self.assertEqual(act.activity_definition['extensions']['key2'], 'value2')
+        self.assertEqual(act.activity_definition['extensions']['key3'], 'value3')
 
 class Models_ActorTest(py_tc):
     def test_actor(self):
