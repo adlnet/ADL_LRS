@@ -3,7 +3,18 @@ import types
 from lrs import models
 from django.core.exceptions import FieldError
 from django.db import transaction
-
+from functools import wraps
+class default_on_exception(object):
+    def __init__(self,default):
+        self.default = default
+    def __call__(self,f):
+        @wraps(f)
+        def closure(obj,*args,**kwargs):
+            try:
+                f(obj,*args,**kwargs)
+            except:
+                return self.default
+        return closure
 class Actor():
     IFPs = ['account','mbox','openid','mbox_sha1sum']
     
@@ -171,22 +182,21 @@ class Actor():
                 a['accountServiceHomePage'] = acc.accountServiceHomePage
             accounts.append(a)
         return accounts
-
+    @default_on_exception([])
     def get_givenName(self):
         return self.agent.person.person_givenname_set.values_list('givenName',flat=True).order_by('-date_added')
-
+    @default_on_exception([])
     def get_familyName(self):
         return self.agent.person.person_familyname_set.values_list('familyName',flat=True).order_by('-date_added')
-
+    @default_on_exception([])
     def get_firstName(self):
         return self.agent.person.person_firstname_set.values_list('firstName',flat=True).order_by('-date_added')
-
+    @default_on_exception([])
     def get_lastName(self):
         return self.agent.person.person_lastname_set.values_list('lastName',flat=True).order_by('-date_added')
 
     def get_member(self):
         return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
-
     def original_actor_json(self):
         return json.dumps(self.obj)
 
@@ -342,3 +352,8 @@ class Activity():
             print 'ade ' + str(ade)
             '''
             
+class MultipleActorError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
