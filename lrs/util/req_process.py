@@ -1,5 +1,7 @@
 from django.http import HttpResponse
+from lrs import objects
 from lrs.util import etag
+import json
 
 def statements_post(req_dict):
     if req_dict['is_get']:
@@ -103,12 +105,14 @@ def activities_get(req_dict):
 def actor_profile_put(req_dict):
     # test ETag for concurrency
     actor = req_dict['actor']
+    a = objects.Actor(actor)
     profileId = req_dict['profileId']
     return HttpResponse("Success -- actor_profile - method = PUT - actor = %s - profileId = %s" % ( actor, profileId))
 
 def actor_profile_get(req_dict):
     # add ETag for concurrency
     actor = req_dict['actor']
+    a = objects.Actor(actor)
     profileId = req_dict.get('profileId', None)
     if profileId:
         resource = "Success -- actor_profile - method = GET - actor = %s - profileId = %s" % (actor, profileId)
@@ -124,13 +128,16 @@ def actor_profile_get(req_dict):
 
 def actor_profile_delete(req_dict):
     actor = req_dict['actor']
+    a = objects.Actor(actor)
     profileId = req_dict['profileId']
+    a.delete_profile(profileId)
     return HttpResponse("Success -- actor_profile - method = DELETE - actor = %s - profileId = %s" % (actor, profileId))
 
 
 def actors_get(req_dict):
     actor = req_dict['actor']
-    return HttpResponse("Success -- actors - method = GET - actor: %s" % actor)
+    a = objects.Actor(actor)
+    return HttpResponse(a.full_actor_json(), mimetype="application/json")
 
 
 # so far unnecessary

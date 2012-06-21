@@ -136,7 +136,13 @@ class person_lastName(models.Model):
         return self.lastName == other.lastName
 
 class group(agent):
-    member = models.ForeignKey(agent,related_name="agent_group", blank=True, null=True)
+    member = models.TextField()
+
+class actor_profile(models.Model):
+    profileId = UUIDField(primary_key=True,auto=True)
+    stored = models.DateTimeField(auto_now_add=True, blank=True)
+    actor = models.ForeignKey(agent)
+    profile = models.TextField()
 
 class activity(statement_object):
     key = models.PositiveIntegerField(primary_key=True)

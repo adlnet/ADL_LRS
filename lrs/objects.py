@@ -8,11 +8,15 @@ class Actor():
     IFPs = ['account','mbox','openid','mbox_sha1sum']
     
     @transaction.commit_on_success
-    def __init__(self, initial=None):
+    def __init__(self, initial=None, create=False):
         self.initial = initial
         self.obj = self.__parse(initial)
-        if self.obj: 
-            self.agent, self.ifps = self.__get_or_create_agent(self.obj)
+        if self.obj:
+            if create: 
+                self.agent, self.ifps = self.__get_or_create_agent(self.obj)
+            else:
+                self.ifps = self.__validate(self.obj)
+                self.agent = self.__get_agent(self.obj, self.ifps)
     
     def __parse(self,initial):
         if initial:
@@ -24,7 +28,7 @@ class Actor():
 
     def __get_or_create_agent(self,the_object):
         the_ifps = self.__validate(the_object)
-        the_agent = self.__get_agent(the_object, the_ifps)
+        the_agent = self.__get_agent(the_object, the_ifps, modify=True)
         the_agent = self.__populate(the_agent, the_object)
         the_agent.save()
         return the_agent, the_ifps
@@ -37,7 +41,7 @@ class Actor():
             raise Exception("Actor object validation issue. Actor object did not contain an Inverse Functional Property. Acceptable properties are: %s" % ifp)
         return ifps
     
-    def __get_agent(self, the_object, the_ifps):
+    def __get_agent(self, the_object, the_ifps, modify=False):
         # i need to see if any of these ifps is already associated with an existing agent
         # if so then that agent is the agent for this actor object
         # if not, then i need to make a new agent and have __populate fill in the info
@@ -64,9 +68,13 @@ class Actor():
         # if i found more than one agent,
         # i need to merge them
         if len(agent_set) > 1:
-            agent = models.merge_model_objects(agent_set.pop(), list(agent_set))
+            if modify:
+                agent = models.merge_model_objects(agent_set.pop(), list(agent_set))
+            else:
+                #raise MultipleActorError("Found multiple actors for actor parameter: %s" % self.initial)
+                #still need to merge
+                agent = models.merge_model_objects(agent_set.pop(), list(agent_set), save=False, keep_old=True)
         return agent
-
     
     def __populate(self, the_agent, the_object):
         try:
@@ -86,11 +94,11 @@ class Actor():
             if not the_agent.objectType:
                 the_agent.objectType = objtype
         
-        if the_agent.objectType == 'Group':
-            for member in the_object['member']:
-                a = Actor(json.dumps(member))
-                print dir(the_agent)
-                #the_agent.group.agent_group.get_or_create(a.agent)
+        #if the_agent.objectType == 'Group':
+        #    for member in the_object['member']:
+        #        a = Actor(json.dumps(member))
+        #        print dir(the_agent)
+        #        #the_agent.group.agent_group.get_or_create(a.agent)
 
         for k, v in the_object.items():
             # skipping string values.. only dealing with arrays
@@ -124,19 +132,34 @@ class Actor():
         return the_agent     
     
     def get_objectType(self):
-        return self.agent.objectType
+        try:
+            return self.agent.objectType
+        except:
+            return ""
 
     def get_name(self):
-        return self.agent.agent_name_set.values_list('name',flat=True).order_by('-date_added')
+        try:
+            return self.agent.agent_name_set.values_list('name',flat=True).order_by('-date_added')
+        except:
+            return []
 
     def get_mbox(self):
-        return self.agent.agent_mbox_set.values_list('mbox',flat=True).order_by('-date_added')
+        try:
+            return self.agent.agent_mbox_set.values_list('mbox',flat=True).order_by('-date_added')
+        except:
+            return []
 
     def get_mbox_sha1sum(self):
-        return self.agent.agent_mbox_sha1sum_set.values_list('mbox_sha1sum',flat=True).order_by('-date_added')
+        try:
+            return self.agent.agent_mbox_sha1sum_set.values_list('mbox_sha1sum',flat=True).order_by('-date_added')
+        except:
+            return []
 
     def get_openid(self):
-        return self.agent.agent_openid_set.values_list('openid',flat=True).order_by('-date_added')
+        try:
+            return self.agent.agent_openid_set.values_list('openid',flat=True).order_by('-date_added')
+        except:
+            return []
 
     def get_account(self):
         accounts = []
@@ -149,19 +172,31 @@ class Actor():
         return accounts
 
     def get_givenName(self):
-        return self.agent.person.person_givenname_set.values_list('givenName',flat=True).order_by('-date_added')
+        try:
+            return self.agent.person.person_givenname_set.values_list('givenName',flat=True).order_by('-date_added')
+        except:
+            return []
 
     def get_familyName(self):
-        return self.agent.person.person_familyname_set.values_list('familyName',flat=True).order_by('-date_added')
+        try:
+            return self.agent.person.person_familyname_set.values_list('familyName',flat=True).order_by('-date_added')
+        except:
+            return []
 
     def get_firstName(self):
-        return self.agent.person.person_firstname_set.values_list('firstName',flat=True).order_by('-date_added')
+        try:
+            return self.agent.person.person_firstname_set.values_list('firstName',flat=True).order_by('-date_added')
+        except:
+            return []
 
     def get_lastName(self):
-        return self.agent.person.person_lastname_set.values_list('lastName',flat=True).order_by('-date_added')
+        try:
+            return self.agent.person.person_lastname_set.values_list('lastName',flat=True).order_by('-date_added')
+        except:
+            return []
 
-    def get_member(self):
-        return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
+    #def get_member(self):
+    #    return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
 
     def original_actor_json(self):
         return json.dumps(self.obj)
@@ -199,10 +234,15 @@ class Actor():
             if lastnames:
                 ret['lastName'] = [k for k in lastnames]
 
-        if self.get_objectType == 'Group':
-            members = self.get_member()
-            if members:
-                ret['member'] = [k for k in members]
+        #if self.get_objectType == 'Group':
+        #    members = self.get_member()
+        #    if members:
+        #        ret['member'] = [k for k in members]
 
         return json.dumps(ret, sort_keys=True)
 
+class MultipleActorError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)

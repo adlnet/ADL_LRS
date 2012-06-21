@@ -87,10 +87,8 @@ def actor_profile(request):
 def actors(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
 
 def handle_request(request):
