@@ -11,7 +11,7 @@ class default_on_exception(object):
         @wraps(f)
         def closure(obj,*args,**kwargs):
             try:
-                f(obj,*args,**kwargs)
+                return f(obj,*args,**kwargs)
             except:
                 return self.default
         return closure
