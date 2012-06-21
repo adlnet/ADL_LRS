@@ -73,6 +73,8 @@ class Actor():
             else:
                 #raise MultipleActorError("Found multiple actors for actor parameter: %s" % self.initial)
                 #still need to merge
+                #but if i'm here, then it was a get request that asked for the agent
+                #and we can't change the data.. no saving the merged agent or removing the others
                 agent = models.merge_model_objects(agent_set.pop(), list(agent_set), save=False, keep_old=True)
         return agent
     
@@ -197,6 +199,9 @@ class Actor():
 
     #def get_member(self):
     #    return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
+
+    def add_profile(self, profileId, profile):
+        pass
 
     def original_actor_json(self):
         return json.dumps(self.obj)

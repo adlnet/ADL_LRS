@@ -107,7 +107,9 @@ def actor_profile_put(req_dict):
     actor = req_dict['actor']
     a = objects.Actor(actor)
     profileId = req_dict['profileId']
-    return HttpResponse("Success -- actor_profile - method = PUT - actor = %s - profileId = %s" % ( actor, profileId))
+
+    #return HttpResponse("Success -- actor_profile - method = PUT - actor = %s - profileId = %s" % ( actor, profileId))
+    return HttpResponse(json.dumps(req_dict['obj']))#, status=204)
 
 def actor_profile_get(req_dict):
     # add ETag for concurrency

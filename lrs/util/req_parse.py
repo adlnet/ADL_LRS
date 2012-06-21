@@ -125,6 +125,7 @@ def activities_get(request):
 
 
 def actor_profile_put(request):
+    print "req_parse.py actor_profile_put body: %s" % request.body
     req_dict = get_dict(request)
     try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
         req_dict['actor']
