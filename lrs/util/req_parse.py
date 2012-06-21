@@ -9,7 +9,7 @@ def statements_post(request):
     body = request.body
     jsn = body.replace("'", "\"")
     # spec not quite clear, i'm assuming if the type is json it's a real POST
-    if request.META['CONTENT_TYPE'] == 'application/json': 
+    if request.META['CONTENT_TYPE'] == 'application/json; charset=UTF-8': 
         req_dict['body'] = deepcopy(json.loads(jsn))
         req_dict['is_get'] = False
     else: # if not, then it must be form data
@@ -20,7 +20,7 @@ def statements_post(request):
             req_dict.update(request.POST.dict())
         # test if one of the request keys is a valid paramter
         if not [k for k,v in req_dict.items() if k in valid_params]:
-            raise ParamError("Error -- could not find a valid parameter")
+            raise ParamError("Error -- could not find a valid parameter" + req_dict['body'])
         req_dict['is_get'] = True
     return req_dict
 

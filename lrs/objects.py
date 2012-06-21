@@ -3,7 +3,18 @@ import types
 from lrs import models
 from django.core.exceptions import FieldError
 from django.db import transaction
-
+from functools import wraps
+class default_on_exception(object):
+    def __init__(self,default):
+        self.default = default
+    def __call__(self,f):
+        @wraps(f)
+        def closure(obj,*args,**kwargs):
+            try:
+                f(obj,*args,**kwargs)
+            except:
+                return self.default
+        return closure
 class Actor():
     IFPs = ['account','mbox','openid','mbox_sha1sum']
     
@@ -77,6 +88,7 @@ class Actor():
                 #and we can't change the data.. no saving the merged agent or removing the others
                 agent = models.merge_model_objects(agent_set.pop(), list(agent_set), save=False, keep_old=True)
         return agent
+
     
     def __populate(self, the_agent, the_object):
         try:
@@ -133,35 +145,25 @@ class Actor():
                         the_agent.agent_account_set.get_or_create(**to_create)  
         return the_agent     
     
+    @default_on_exception("")
     def get_objectType(self):
-        try:
-            return self.agent.objectType
-        except:
-            return ""
+        return self.agent.objectType
 
+    @default_on_exception([])
     def get_name(self):
-        try:
-            return self.agent.agent_name_set.values_list('name',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_name_set.values_list('name',flat=True).order_by('-date_added')
 
+    @default_on_exception([])
     def get_mbox(self):
-        try:
-            return self.agent.agent_mbox_set.values_list('mbox',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_mbox_set.values_list('mbox',flat=True).order_by('-date_added')
 
+    @default_on_exception([])
     def get_mbox_sha1sum(self):
-        try:
-            return self.agent.agent_mbox_sha1sum_set.values_list('mbox_sha1sum',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_mbox_sha1sum_set.values_list('mbox_sha1sum',flat=True).order_by('-date_added')
 
+    @default_on_exception([])
     def get_openid(self):
-        try:
-            return self.agent.agent_openid_set.values_list('openid',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_openid_set.values_list('openid',flat=True).order_by('-date_added')
 
     def get_account(self):
         accounts = []
@@ -172,33 +174,25 @@ class Actor():
                 a['accountServiceHomePage'] = acc.accountServiceHomePage
             accounts.append(a)
         return accounts
-
+   
+    @default_on_exception([])
     def get_givenName(self):
-        try:
-            return self.agent.person.person_givenname_set.values_list('givenName',flat=True).order_by('-date_added')
-        except:
-            return []
-
+        return self.agent.person.person_givenname_set.values_list('givenName',flat=True).order_by('-date_added')
+   
+    @default_on_exception([])
     def get_familyName(self):
-        try:
-            return self.agent.person.person_familyname_set.values_list('familyName',flat=True).order_by('-date_added')
-        except:
-            return []
-
+        return self.agent.person.person_familyname_set.values_list('familyName',flat=True).order_by('-date_added')
+    
+    @default_on_exception([])
     def get_firstName(self):
-        try:
-            return self.agent.person.person_firstname_set.values_list('firstName',flat=True).order_by('-date_added')
-        except:
-            return []
-
+        return self.agent.person.person_firstname_set.values_list('firstName',flat=True).order_by('-date_added')
+    
+    @default_on_exception([])
     def get_lastName(self):
-        try:
-            return self.agent.person.person_lastname_set.values_list('lastName',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.person.person_lastname_set.values_list('lastName',flat=True).order_by('-date_added')
 
-    #def get_member(self):
-    #    return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
+    def get_member(self):
+        return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
 
     def add_profile(self, profileId, profile):
         pass
@@ -246,6 +240,118 @@ class Actor():
 
         return json.dumps(ret, sort_keys=True)
 
+class Activity():
+    #activity definition types
+    ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
+            'interaction', 'cmi.interaction', 'question', 'objective', 'link']
+
+    @transaction.commit_on_success
+    def __init__(self, initial=None):
+        self.initial = initial
+        self.obj = self.__parse(initial)
+        self.__populate(self.obj)
+
+    #Make sure initial data being received is JSON
+    def __parse(self,initial):
+        if initial:
+            try:
+                return json.loads(initial)
+            except Exception as e:
+                raise Exception("Error parsing the Activity object. Expecting json. Received: %s" % initial)
+        return {}
+
+    #Once JSON is verified, populate the activity objects
+    def __populate(self, the_object):
+        #Must include activity_id, default objectType is Activity - set object's activity_id and objectType
+        try:
+            self.activity_id = the_object['activity_id']
+        except KeyError:
+            raise Exception("No activity_id provided, must provide activity_id")
+        try:
+            self.objectType = the_object['objectType']
+        except KeyError:
+            self.objectType = 'Activity'
+        
+        #Save activity to DB
+        the_act = models.activity(activity_id=self.activity_id, objectType=self.objectType)
+        the_act.save()
+
+        '''
+        ot = models.activity.objects.get(activity_id=self.activity_id).objectType
+        ai = models.activity.objects.get(activity_id=self.activity_id).activity_id
+        aid = models.activity.objects.get(activity_id=self.activity_id).id
+        print 'act_objType ' + str(ot)
+        print 'act_act_id ' + str(ai)
+        print 'act_id ' + str(aid)
+        '''
+
+        #See if activity has definition included
+        try:   
+            the_act_def = the_object['definition']
+        except KeyError:
+            the_act_def = None        
+        
+        #If definition is included, populate the activity definition
+        if the_act_def:
+            self.__populate_definition(the_act, the_act_def, the_object)
+
+
+    def __populate_definition(self, act, definition, the_object):
+            #Initialize object's activity definition
+            self.activity_definition = {}
+
+            #Name, description, type, and interactionType are all required - extensions optional
+            try:
+                self.activity_definition['name'] = definition['name']
+            except KeyError:
+                raise Exception("No activity definition name provided, must provide name")
+            try:
+                self.activity_definition['description'] = definition['description']
+            except KeyError:
+                raise Exception("No activity definition description provided, must provide description")
+            try:
+                self.activity_definition['type'] = definition['type']
+            except KeyError:
+                raise Exception("No activity definition type provided, must provide type")
+            try:
+                self.activity_definition['interactionType'] = definition['interactionType']
+            except KeyError:
+                raise Exception("No activity definition interactionType provided, must provide interactionType")    
+            try:
+                self.activity_definition['extensions'] = definition['extensions']
+            except KeyError:
+                self.activity_definition['extensions'] = None
+
+            #Save activity definition to DB
+            the_act_def = models.activity_definition(name=self.activity_definition['name'],
+                description=self.activity_definition['description'], activity_definition_type=self.activity_definition['type'],
+                interactionType=self.activity_definition['interactionType'], activity=act)
+            the_act_def.save()
+
+            '''
+            adn = models.activity_definition.objects.get(activity=act).name
+            print 'act_def_name ' + str(adn) 
+            add = models.activity_definition.objects.get(activity=act).description
+            print 'act_def_desc ' + str(add)
+            adt = models.activity_definition.objects.get(activity=act).activity_definition_type
+            print 'act_def_type ' + str(adt)
+            adi = models.activity_definition.objects.get(activity=act).interactionType
+            print 'act_def_intType ' + str(adi)
+            adid = models.activity_definition.objects.get(activity=act).activity
+            print 'act_def_act_id ' + str(adid)        
+            '''
+
+            # If there are extensions, save each one to the DB
+            if self.activity_definition['extensions']:
+                for k, v in self.activity_definition['extensions'].items():
+                    the_act_def_ext = models.activity_extentions(key=k, value=v,
+                        activity_definition=the_act_def)
+                    the_act_def_ext.save()
+            '''
+            ade = models.activity_extentions.objects.values_list().filter(activity_definition=the_act_def)
+            print 'ade ' + str(ade)
+            '''
+            
 class MultipleActorError(Exception):
     def __init__(self, msg):
         self.message = msg

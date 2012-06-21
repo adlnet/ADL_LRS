@@ -150,7 +150,6 @@ class actor_profile(models.Model):
     profile = models.FileField(upload_to=filename)
 
 class activity(statement_object):
-    key = models.PositiveIntegerField(primary_key=True)
     activity_id = models.CharField(max_length=200)
     objectType = models.CharField(max_length=200,blank=True, null=True) 
 
@@ -159,7 +158,7 @@ class activity_definition(models.Model):
     description = models.CharField(max_length=200)
     activity_definition_type = models.CharField(max_length=200)
     interactionType = models.CharField(max_length=200)
-    activity = models.ForeignKey(activity)
+    activity = models.OneToOneField(activity)
 
 class activity_extentions(models.Model):
     key = models.CharField(max_length=200)

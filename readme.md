@@ -14,8 +14,9 @@ Then run our fabric file to install all local dependencies
 
     cd ADL_LRS
 
-    fabric deps_local
+    fab deps_local
 
+**Be sure to change your username and password to match your DB credentials on your machine in the adl_lrs/settings.py file**
 
 ## Starting
 
