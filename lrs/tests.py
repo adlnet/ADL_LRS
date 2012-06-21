@@ -401,28 +401,40 @@ class ActorProfileTest(TestCase):
         
 class ActorsTest(TestCase):
     def test_get(self):
-        response = self.client.get(reverse(views.actors), {'actor':'bob'})
-        self.assertContains(response, 'Success')
-        self.assertContains(response, 'bob')
+        actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+        me = objects.Actor(actor,create=True)
+        response = self.client.get(reverse(views.actors), {'actor':actor})
+        #print response
+        self.assertContains(response, 'mailto:me@example.com')
+
+    #def test_get_merge(self):
+    #    actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+    #    response = self.client.get(reverse(views.actors), {'actor':actor})
+    #    actor = json.dumps({"mbox":["mailto:me@example.com"]})
+    #    response = self.client.get(reverse(views.actors), {'actor':actor})
+    #    self.assertContains(response, 'mailto:me@example.com')
+    #    self.assertContains(response, 'name')
+    #    self.assertContains(response, 'me')
     
     def test_get_no_actor(self):
         response = self.client.get(reverse(views.actors))
-        self.assertContains(response, 'Error')
+        self.assertEqual(response.status_code, 400)
     
     def test_post(self):
-        response = self.client.post(reverse(views.actors), {'actor':'bob'},content_type='application/x-www-form-urlencoded')
+        actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 405)
 
 class Models_ActorTest(py_tc):
     def test_actor(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}))
+        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
         self.assertEqual(bob.agent.objectType, 'Person')
         self.assertIn('bob', bob.agent.agent_name_set.values_list('name', flat=True))
         self.assertIn('bob@example.com', bob.agent.agent_mbox_set.values_list('mbox', flat=True))
 
     def test_actor_merge(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}))
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}))
+        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}),create=True)
         names = robert.agent.agent_name_set.values_list('name', flat=True)
         mboxes = robert.agent.agent_mbox_set.values_list('mbox', flat=True)
         self.assertIn('robert', names)
@@ -431,9 +443,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('bob@example.com', mboxes)
 
     def test_actor_double_merge(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}))
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}))
-        magicman = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com','magicman@example.com'],'name':['magic man']}))
+        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}),create=True)
+        magicman = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com','magicman@example.com'],'name':['magic man']}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         mboxes = magicman.agent.agent_mbox_set.values_list('mbox', flat=True)
         self.assertIn('robert', names)
@@ -444,9 +456,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('magicman@example.com', mboxes)
 
     def test_actor_double_merge_different_ifp(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}))
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}))
-        magicman = objects.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man']}))
+        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}),create=True)
+        magicman = objects.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man']}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         mboxes = magicman.agent.agent_mbox_set.values_list('mbox', flat=True)
         openids = magicman.agent.agent_openid_set.values_list('openid', flat=True)
@@ -460,9 +472,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('mgkmn@openid.com', openids)
 
     def test_actor_double_merge_different_ifp_with_person_stuff(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com'], 'firstName':['bob', 'robert'], 'lastName':['tester']}))
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}))
-        magicman = objects.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man'], 'firstName':['magic']}))
+        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com'], 'firstName':['bob', 'robert'], 'lastName':['tester']}),create=True)
+        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}),create=True)
+        magicman = objects.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man'], 'firstName':['magic']}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         mboxes = magicman.agent.agent_mbox_set.values_list('mbox', flat=True)
         openids = magicman.agent.agent_openid_set.values_list('openid', flat=True)
@@ -482,13 +494,13 @@ class Models_ActorTest(py_tc):
         self.assertIn('tester', lastNames)
 
     def test_actor_agent_account(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}))
+        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
         self.assertIn('bob', bob.agent.agent_name_set.values_list('name', flat=True))
         self.assertIn('bobaccnt', bob.agent.agent_account_set.values_list('accountName', flat=True))
 
     def test_actor_agent_account_merge(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}))
-        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'bobaccnt'}],'mbox':['robert@example.com']}))
+        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
+        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'bobaccnt'}],'mbox':['robert@example.com']}),create=True)
         names = robert.agent.agent_name_set.values_list('name', flat=True)
         accounts = robert.agent.agent_account_set.values_list('accountName', flat=True)
         mboxs = robert.agent.agent_mbox_set.values_list('mbox', flat=True)
@@ -498,9 +510,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('robert@example.com', mboxs)
 
     def test_actor_agent_account_double_merge(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}))
-        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}))
-        magicman = objects.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}))
+        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
+        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}),create=True)
+        magicman = objects.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         accounts = magicman.agent.agent_account_set.values_list('accountName', flat=True)
         acchp = magicman.agent.agent_account_set.values_list('accountServiceHomePage', flat=True)
@@ -514,9 +526,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('http://accounts.example.com', acchp)
 
     def test_actor_agent_account_double_merge_extra_accounts(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'},{'accountName':'otherbobaccnt','accountServiceHomePage':'http://otheraccounts.example.com'}]}))
-        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}))
-        magicman = objects.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}))
+        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'},{'accountName':'otherbobaccnt','accountServiceHomePage':'http://otheraccounts.example.com'}]}),create=True)
+        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}),create=True)
+        magicman = objects.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         accounts = magicman.agent.agent_account_set.values_list('accountName', flat=True)
         acchp = magicman.agent.agent_account_set.values_list('accountServiceHomePage', flat=True)
@@ -531,15 +543,13 @@ class Models_ActorTest(py_tc):
         self.assertIn('magicman', accounts)
         self.assertIn('http://accounts.example.com', acchp)
 
-    def test_actor_group(self):
-        fooz = {}
-        fooz["objectType"] = "Group"
-        fooz["name"] = ["foozles"]
-        fooz["mbox"] = ["foozles@example.com"]
-        fooz["member"] = [{"mbox":["fooz1@example.com"]},{"mbox":["fooz2@example.com"],"name":["fooz2"]}]
-        foozles = objects.Actor(json.dumps(fooz))
-        names = foozles.agent.agent_name_set.values_list('name', flat=True)
-        mboxs = foozles.agent.agent_mbox_set.values_list('mbox', flat=True)
-        print 'foozle members: %s' % foozles.agent.group_member_set.values()
-        self.assertIn('foozles', names)
-        self.assertIn('foozles@example.com', mboxs)
+    def test_actor_no_create(self):
+        me = objects.Actor(json.dumps({"name":["me"], "mbox":["mailto:me@example.com"]}))
+        self.assertNotIn("me", me.get_name())
+        me = objects.Actor(json.dumps({"name":["me"], "mbox":["mailto:me@example.com"]}),create=True)
+        self.assertIn("me", me.get_name())
+        self.assertIn("mailto:me@example.com", me.get_mbox())
+        anotherme = objects.Actor(json.dumps({"mbox":["mailto:me@example.com","mailto:anotherme@example.com"]}))
+        self.assertIn("me", me.get_name())
+        self.assertIn("mailto:me@example.com", me.get_mbox())
+        self.assertNotIn("mailto:anotherme@example.com", me.get_mbox())
