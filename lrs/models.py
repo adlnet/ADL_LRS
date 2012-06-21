@@ -144,10 +144,10 @@ class group(agent):
     member = models.TextField()
 
 class actor_profile(models.Model):
-    profileId = UUIDField(primary_key=True,auto=True)
+    profileId = UUIDField(auto=True)
     stored = models.DateTimeField(auto_now_add=True, blank=True)
     actor = models.ForeignKey(agent)
-    profile = models.FileField(upload_to=filename)
+    profile = models.FileField(upload_to="actor_profile")
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)

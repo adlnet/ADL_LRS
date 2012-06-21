@@ -105,11 +105,15 @@ def activities_get(req_dict):
 def actor_profile_put(req_dict):
     # test ETag for concurrency
     actor = req_dict['actor']
-    a = objects.Actor(actor)
+    a = objects.Actor(actor, create=True)
     profileId = req_dict['profileId']
-
-    #return HttpResponse("Success -- actor_profile - method = PUT - actor = %s - profileId = %s" % ( actor, profileId))
-    return HttpResponse(json.dumps(req_dict['obj']))#, status=204)
+    profile = req_dict['body']
+    try:
+        a.add_profile(profileId,profile)
+    except:
+        raise
+    return HttpResponse("Success -- actor_profile - method = PUT - actor = %s - profileId = %s - profile = %s" % ( actor, profileId, profile))
+    #return HttpResponse("", status=204)
 
 def actor_profile_get(req_dict):
     # add ETag for concurrency

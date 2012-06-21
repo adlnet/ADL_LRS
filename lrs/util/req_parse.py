@@ -20,7 +20,7 @@ def statements_post(request):
             req_dict.update(request.POST.dict())
         # test if one of the request keys is a valid paramter
         if not [k for k,v in req_dict.items() if k in valid_params]:
-            raise ParamError("Error -- could not find a valid parameter" + req_dict['body'])
+            raise ParamError("Error -- could not find a valid parameter")
         req_dict['is_get'] = True
     return req_dict
 
@@ -88,11 +88,15 @@ def activity_profile_put(request):
     try: # not using request.GET.get('param', 'default val') cuz activityId is mandatory
         req_dict['activityId']
     except KeyError:
-         raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % request.method)
+        raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % request.method)
     try:
         req_dict['profileId']
     except KeyError:
-         raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % request.method)
+        raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % request.method)
+    try:
+        req_dict['body'] = request.body
+    except:
+        raise ParamError("Error -- no profile in request body")
     return req_dict
 
 
@@ -125,7 +129,6 @@ def activities_get(request):
 
 
 def actor_profile_put(request):
-    print "req_parse.py actor_profile_put body: %s" % request.body
     req_dict = get_dict(request)
     try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
         req_dict['actor']
@@ -135,6 +138,10 @@ def actor_profile_put(request):
         req_dict['profileId']
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % request.method)
+    try:
+        req_dict['body'] = request.body
+    except:
+        raise ParamError("Error -- no profile in request body")
     return req_dict
 
 

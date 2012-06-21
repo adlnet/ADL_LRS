@@ -1,9 +1,12 @@
 import json
 import types
+import urllib
 from lrs import models
 from django.core.exceptions import FieldError
+from django.core.files.base import ContentFile
 from django.db import transaction
 from functools import wraps
+
 class default_on_exception(object):
     def __init__(self,default):
         self.default = default
@@ -11,10 +14,11 @@ class default_on_exception(object):
         @wraps(f)
         def closure(obj,*args,**kwargs):
             try:
-                f(obj,*args,**kwargs)
+                return f(obj,*args,**kwargs)
             except:
                 return self.default
         return closure
+
 class Actor():
     IFPs = ['account','mbox','openid','mbox_sha1sum']
     
@@ -195,7 +199,17 @@ class Actor():
         return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
 
     def add_profile(self, profileId, profile):
-        pass
+        if type(profile) is not file:
+            try:
+                f = ContentFile(json.dumps(profile))
+            except:
+                f = ContentFile(str(profile))
+            profile = f
+        p,created = models.actor_profile.objects.get_or_create(profileId=profileId,actor=self.agent)
+        if created:
+            p.save()
+        p.profile.save(str(p.id), profile)
+        
 
     def original_actor_json(self):
         return json.dumps(self.obj)
