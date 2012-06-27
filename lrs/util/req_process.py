@@ -106,30 +106,27 @@ def actor_profile_put(req_dict):
     # test ETag for concurrency
     actor = req_dict['actor']
     a = objects.Actor(actor, create=True)
-    profileId = req_dict['profileId']
-    profile = req_dict['body']
     try:
-        a.add_profile(profileId,profile)
+        a.put_profile(req_dict)
     except:
         raise
-    return HttpResponse("Success -- actor_profile - method = PUT - actor = %s - profileId = %s - profile = %s" % ( actor, profileId, profile))
-    #return HttpResponse("", status=204)
+    return HttpResponse("", status=204)
 
 def actor_profile_get(req_dict):
     # add ETag for concurrency
     actor = req_dict['actor']
     a = objects.Actor(actor)
+    
     profileId = req_dict.get('profileId', None)
     if profileId:
-        resource = "Success -- actor_profile - method = GET - actor = %s - profileId = %s" % (actor, profileId)
-    else:
-        since = req_dict.get('since', None)
-        if since:
-            resource = "Success -- actor_profile - method = GET - actor = %s - since = %s" % (actor, since)
-        else:
-            resource = "Success -- actor_profile - method = GET - actor = %s" % actor
+        resource = a.get_profile(profileId)
+        response = HttpResponse(resource)
+        response['ETag'] = etag.create_tag(resource)
+        return response
+
+    since = req_dict.get('since', None)
+    resource = a.get_profile_ids(since)
     response = HttpResponse(resource)
-    response['ETag'] = etag.create_tag(resource)
     return response
 
 def actor_profile_delete(req_dict):

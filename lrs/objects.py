@@ -2,6 +2,7 @@ import json
 import types
 import urllib
 from lrs import models
+from lrs.util import etag
 from django.core.exceptions import FieldError
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -198,18 +199,28 @@ class Actor():
     def get_member(self):
         return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
 
-    def add_profile(self, profileId, profile):
-        if type(profile) is not file:
+    def put_profile(self, request_dict):
+        try:
+            profile = ContentFile(request_dict['profile'].read())
+        except:
             try:
-                f = ContentFile(json.dumps(profile))
+                profile = ContentFile(request_dict['profile'])
             except:
-                f = ContentFile(str(profile))
-            profile = f
-        p,created = models.actor_profile.objects.get_or_create(profileId=profileId,actor=self.agent)
+                profile = ContentFile(str(request_dict['profile']))
+
+        p,created = models.actor_profile.objects.get_or_create(profileId=request_dict['profileId'],actor=self.agent)
         if created:
             p.save()
-        p.profile.save(str(p.id), profile)
-        
+
+        fn = "%s_%s" % (p.actor_id,request_dict.get('filename', p.id))
+        p.profile.save(fn, profile)
+        print 'saved with hash: %s' % etag.create_tag(p.profile.read())
+    
+    def get_profile(self, profileId):
+        pass
+
+    def get_profile_ids(self, since=None):
+        ids = []
 
     def original_actor_json(self):
         return json.dumps(self.obj)

@@ -1,5 +1,8 @@
 from copy import deepcopy # runs slow.. we should only use if necessary
 import json
+from lrs.util import etag
+from django.http import MultiPartParser
+import StringIO
 
 def statements_post(request):
     req_dict = {}
@@ -139,9 +142,15 @@ def actor_profile_put(request):
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % request.method)
     try:
-        req_dict['body'] = request.body
+        thefile = req_dict['files']['file']
+        req_dict['filename'] = thefile.name
+        req_dict['profile'] = thefile.read()
     except:
-        raise ParamError("Error -- no profile in request body")
+        req_dict['profile'] = req_dict.get('body', '')
+        if not req_dict['profile']:
+            raise ParamError("Could not find the profile")
+    req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
+    req_dict['ETAG'] = etag.get_etag_info(request, required=False)
     return req_dict
 
 
@@ -179,21 +188,19 @@ def get_dict(request):
         ret_dict = {}
         if request.GET: # looking for parameters
             ret_dict.update(request.GET.dict())
-        # looking to see if this is a form.. most likely not
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             ret_dict.update(request.POST.dict())
-        
-        body = request.body
-        jsn = body.replace("'", "\"")
-        
-        if request.META['CONTENT_TYPE'] == 'application/x-www-form-urlencoded':
-            ret_dict.update(json.loads(jsn))
-        elif request.META['CONTENT_TYPE'] == 'application/json':
+            parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
+            post, files = parser.parse()
+            ret_dict['files'] = files
+        else:
+            body = request.body
+            jsn = body.replace("'", "\"")
             ret_dict['body'] = json.loads(jsn)
         
         return ret_dict
     return {}
-    
+
 class ParamError(Exception):
     def __init__(self, msg):
         self.message = msg
