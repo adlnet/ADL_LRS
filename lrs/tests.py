@@ -429,37 +429,100 @@ class ActorsTest(TestCase):
 
 class Models_ActivityTest(py_tc):
     def test_activity(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'activity_id':'http://some_specific_URI', }))
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'ACtivity_id':'http://some_specific_URI', }))
+        
         self.assertEqual(act.activity_id, 'http://some_specific_URI')
         self.assertEqual(act.objectType, 'Activity')
         
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://some_specific_URI')
+
+    def test_activity_not_json(self):
+        self.assertRaises(Exception, objects.Activity,"This string should throw exception since it's not JSON")
+
+    def test_activity_no_objectType(self):
+        act = objects.Activity(json.dumps({'activity_id':'http://foo'}))
+        
+        self.assertEqual(act.activity_id, 'http://foo')
+        self.assertEqual(act.objectType, 'Activity')
+        
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://foo')
+
+
+    def test_activity_wrong_objectType(self):
+        act = objects.Activity(json.dumps({'activity_id': 'http://bar', 'objectType':'Wrong'}))    
+        
+        self.assertEqual(act.activity_id, 'http://bar')
+        self.assertEqual(act.objectType, 'Activity')
+        
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://bar')
+
     def test_activity_definition(self):
         act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://some_specific_URI2',
-                'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
+                'definition': {'NAME': 'testname','descripTION': 'testdesc', 'tYpe': 'course',
                 'interactionType': 'intType'}}))
-        
+
         self.assertEqual(act.activity_id, 'http://some_specific_URI2')
         self.assertEqual(act.objectType, 'Activity')
         self.assertEqual(act.activity_definition['name'], 'testname')
         self.assertEqual(act.activity_definition['description'], 'testdesc')
         self.assertEqual(act.activity_definition['type'], 'course')
-        self.assertEqual(act.activity_definition['interactionType'], 'intType')
+        self.assertEqual(act.activity_definition['interactiontype'], 'intType')
+
+        PK = models.activity.objects.get(activity_id=act.activity_id)
+
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://some_specific_URI2')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).name, 'testname')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).description, 'testdesc')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).activity_definition_type, 'course')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).interactionType, 'intType')
+
+    def test_activity_definition_wrong_type(self):
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity',
+                'activity_id':'http://some_specific_URI3','definition': {'NAME': 'testname',
+                'descripTION': 'testdesc', 'tYpe': 'wrong','interactionType': 'intType'}}))
+
     
     def test_activity_definition_extensions(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://some_specific_URI3',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://some_specific_URI4',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'course',
                 'interactionType': 'intType2', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
         
-        self.assertEqual(act.activity_id, 'http://some_specific_URI3')
+        self.assertEqual(act.activity_id, 'http://some_specific_URI4')
         self.assertEqual(act.objectType, 'Activity')
         self.assertEqual(act.activity_definition['name'], 'testname2')
         self.assertEqual(act.activity_definition['description'], 'testdesc2')
         self.assertEqual(act.activity_definition['type'], 'course')
-        self.assertEqual(act.activity_definition['interactionType'], 'intType2')
+        self.assertEqual(act.activity_definition['interactiontype'], 'intType2')
         self.assertEqual(act.activity_definition['extensions']['key1'], 'value1')    
         self.assertEqual(act.activity_definition['extensions']['key2'], 'value2')
         self.assertEqual(act.activity_definition['extensions']['key3'], 'value3')
+
+        PK = models.activity.objects.get(activity_id=act.activity_id)
+
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://some_specific_URI4')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).name, 'testname2')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).description, 'testdesc2')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).activity_definition_type, 'course')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).interactionType, 'intType2')
+
+        defPK = models.activity_definition.objects.get(activity=PK)
+
+        extList = models.activity_extentions.objects.values_list().filter(activity_definition=defPK)
+        extKeys = [ext[1] for ext in extList]
+        extVals = [ext[2] for ext in extList]
+        
+        self.assertIn('key1', extKeys)
+        self.assertIn('key2', extKeys)
+        self.assertIn('key3', extKeys)
+        self.assertIn('value1', extVals)
+        self.assertIn('value2', extVals)
+        self.assertIn('value3', extVals)
 
 class Models_ActorTest(py_tc):
     def test_actor(self):

@@ -4,6 +4,7 @@ from lrs import models
 from django.core.exceptions import FieldError
 from django.db import transaction
 from functools import wraps
+
 class default_on_exception(object):
     def __init__(self,default):
         self.default = default
@@ -15,6 +16,7 @@ class default_on_exception(object):
             except:
                 return self.default
         return closure
+
 class Actor():
     IFPs = ['account','mbox','openid','mbox_sha1sum']
     
@@ -240,7 +242,17 @@ class Actor():
 
         return json.dumps(ret, sort_keys=True)
 
+class MultipleActorError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
 class Activity():
+
+    #activity definition required fields
+    ADRFs = ['name', 'description', 'type', 'interactiontype']
+
     #activity definition types
     ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
             'interaction', 'cmi.interaction', 'question', 'objective', 'link']
@@ -257,103 +269,76 @@ class Activity():
             try:
                 return json.loads(initial)
             except Exception as e:
-                raise Exception("Error parsing the Activity object. Expecting json. Received: %s" % initial)
+                raise Exception("Error parsing the Activity object. Expecting json. Received: %s" % initial) 
         return {}
+
+    #Lower all incoming keys
+    def __to_lower(self,dic):
+        if isinstance(dic, dict):
+            return dict((k.lower(),v) for k,v in dic.iteritems())
+        return dic
 
     #Once JSON is verified, populate the activity objects
     def __populate(self, the_object):
+        #Lower keys to be sure they're not in a different case
+        lower_object = self.__to_lower(the_object)
+        
         #Must include activity_id, default objectType is Activity - set object's activity_id and objectType
         try:
-            self.activity_id = the_object['activity_id']
+            self.activity_id = lower_object['activity_id']
         except KeyError:
             raise Exception("No activity_id provided, must provide activity_id")
         try:
-            self.objectType = the_object['objectType']
+            self.objectType = lower_object['objecttype']
         except KeyError:
             self.objectType = 'Activity'
+
+        #Set objectType to Activity if given different value (I think)
+        self.objectType = 'Activity' if self.objectType != 'Activity' else 'Activity'   
         
         #Save activity to DB
         the_act = models.activity(activity_id=self.activity_id, objectType=self.objectType)
         the_act.save()
 
-        '''
-        ot = models.activity.objects.get(activity_id=self.activity_id).objectType
-        ai = models.activity.objects.get(activity_id=self.activity_id).activity_id
-        aid = models.activity.objects.get(activity_id=self.activity_id).id
-        print 'act_objType ' + str(ot)
-        print 'act_act_id ' + str(ai)
-        print 'act_id ' + str(aid)
-        '''
-
         #See if activity has definition included
         try:   
-            the_act_def = the_object['definition']
+            self.activity_definition = self.__to_lower(lower_object['definition'])
         except KeyError:
-            the_act_def = None        
+            self.activity_definition = {}      
         
         #If definition is included, populate the activity definition
-        if the_act_def:
-            self.__populate_definition(the_act, the_act_def, the_object)
+        if self.activity_definition:
+            self.__populate_definition(the_act)
 
 
-    def __populate_definition(self, act, definition, the_object):
-            #Initialize object's activity definition
-            self.activity_definition = {}
+    def __populate_definition(self, act):
+            #Check if all activity definition required fields are present
+            for k in Activity.ADRFs:
+                if k not in self.activity_definition.keys() and k != 'definition':
+                    raise Exception("Activity definition error with key: %s" % k)
 
-            #Name, description, type, and interactionType are all required - extensions optional
-            try:
-                self.activity_definition['name'] = definition['name']
-            except KeyError:
-                raise Exception("No activity definition name provided, must provide name")
-            try:
-                self.activity_definition['description'] = definition['description']
-            except KeyError:
-                raise Exception("No activity definition description provided, must provide description")
-            try:
-                self.activity_definition['type'] = definition['type']
-            except KeyError:
-                raise Exception("No activity definition type provided, must provide type")
-            try:
-                self.activity_definition['interactionType'] = definition['interactionType']
-            except KeyError:
-                raise Exception("No activity definition interactionType provided, must provide interactionType")    
-            try:
-                self.activity_definition['extensions'] = definition['extensions']
-            except KeyError:
-                self.activity_definition['extensions'] = None
-
+            #Check definition type
+            if self.activity_definition['type'] not in Activity.ADTs:
+                raise Exception("Activity definition type not valid")
+            
             #Save activity definition to DB
             the_act_def = models.activity_definition(name=self.activity_definition['name'],
                 description=self.activity_definition['description'], activity_definition_type=self.activity_definition['type'],
-                interactionType=self.activity_definition['interactionType'], activity=act)
+                interactionType=self.activity_definition['interactiontype'], activity=act)
             the_act_def.save()
 
-            '''
-            adn = models.activity_definition.objects.get(activity=act).name
-            print 'act_def_name ' + str(adn) 
-            add = models.activity_definition.objects.get(activity=act).description
-            print 'act_def_desc ' + str(add)
-            adt = models.activity_definition.objects.get(activity=act).activity_definition_type
-            print 'act_def_type ' + str(adt)
-            adi = models.activity_definition.objects.get(activity=act).interactionType
-            print 'act_def_intType ' + str(adi)
-            adid = models.activity_definition.objects.get(activity=act).activity
-            print 'act_def_act_id ' + str(adid)        
-            '''
+            #See if activity definition has extensions
+            try:   
+                self.activity_definition_extensions = self.activity_definition['extensions']
+            except KeyError:
+                self.activity_definition_extensions = {}
 
             # If there are extensions, save each one to the DB
-            if self.activity_definition['extensions']:
-                for k, v in self.activity_definition['extensions'].items():
+            if self.activity_definition_extensions:
+                for k, v in self.activity_definition_extensions.items():
                     the_act_def_ext = models.activity_extentions(key=k, value=v,
                         activity_definition=the_act_def)
                     the_act_def_ext.save()
-            '''
-            ade = models.activity_extentions.objects.values_list().filter(activity_definition=the_act_def)
-            print 'ade ' + str(ade)
-            '''
+
             
-class MultipleActorError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
+
