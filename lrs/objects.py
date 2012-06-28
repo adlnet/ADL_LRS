@@ -214,7 +214,6 @@ class Actor():
 
         fn = "%s_%s" % (p.actor_id,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
-        print 'saved with hash: %s' % etag.create_tag(p.profile.read())
     
     def get_profile(self, profileId):
         pass
