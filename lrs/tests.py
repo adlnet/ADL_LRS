@@ -5,6 +5,7 @@ import json
 import time
 import hashlib
 from unittest import TestCase as py_tc
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 class StatementsTest(TestCase):
     def test_post_but_really_get(self):
@@ -429,83 +430,110 @@ class ActorsTest(TestCase):
 
 class Models_ActivityTest(py_tc):
     def test_activity(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'ACtivity_id':'http://some_specific_URI', }))
+        #Test basic activity
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'ACtivity_id':'http://tincanapi.wikispaces.com/', }))
         
-        self.assertEqual(act.activity_id, 'http://some_specific_URI')
-        self.assertEqual(act.objectType, 'Activity')
+        self.assertEqual(act.activity.activity_id, 'http://tincanapi.wikispaces.com/')
+        self.assertEqual(act.activity.objectType, 'Activity')
         
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://some_specific_URI')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).activity_id, 'http://tincanapi.wikispaces.com/')
 
     def test_activity_not_json(self):
+        #Given wrong data format
         self.assertRaises(Exception, objects.Activity,"This string should throw exception since it's not JSON")
 
     def test_activity_no_objectType(self):
-        act = objects.Activity(json.dumps({'activity_id':'http://foo'}))
+        #Not given an objectType
+        act = objects.Activity(json.dumps({'activity_id':'http://tincanapi.wikispaces.com/Tin+Can+API+Specification'}))
         
-        self.assertEqual(act.activity_id, 'http://foo')
-        self.assertEqual(act.objectType, 'Activity')
+        self.assertEqual(act.activity.activity_id, 'http://tincanapi.wikispaces.com/Tin+Can+API+Specification')
+        self.assertEqual(act.activity.objectType, None)
         
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://foo')
-
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).objectType, None)
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).activity_id, 'http://tincanapi.wikispaces.com/Tin+Can+API+Specification')
 
     def test_activity_wrong_objectType(self):
-        act = objects.Activity(json.dumps({'activity_id': 'http://bar', 'objectType':'Wrong'}))    
+        #Given invalid objectType
+        act = objects.Activity(json.dumps({'activity_id': 'http://tincanapi.wikispaces.com/Best+Practices', 'objectType':'Wrong'}))    
         
-        self.assertEqual(act.activity_id, 'http://bar')
-        self.assertEqual(act.objectType, 'Activity')
+        self.assertEqual(act.activity.activity_id, 'http://tincanapi.wikispaces.com/Best+Practices')
+        self.assertEqual(act.activity.objectType, 'Activity')
         
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://bar')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).activity_id, 'http://tincanapi.wikispaces.com/Best+Practices')
+
+    def test_activity_invalid_activity_id(self):
+        #Given URL that doesn't resolve
+        self.assertRaises(ValidationError, objects.Activity, json.dumps({'activity_id': 'http://foo', 'objectType':'Activity'}))
 
     def test_activity_definition(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://some_specific_URI2',
+        #Test activity with definition - must retrieve activity object in order to test definition from DB
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://tincanapi.wikispaces.com/TinCan+Use+Cases',
                 'definition': {'NAME': 'testname','descripTION': 'testdesc', 'tYpe': 'course',
                 'interactionType': 'intType'}}))
 
-        self.assertEqual(act.activity_id, 'http://some_specific_URI2')
-        self.assertEqual(act.objectType, 'Activity')
-        self.assertEqual(act.activity_definition['name'], 'testname')
-        self.assertEqual(act.activity_definition['description'], 'testdesc')
-        self.assertEqual(act.activity_definition['type'], 'course')
-        self.assertEqual(act.activity_definition['interactiontype'], 'intType')
+        self.assertEqual(act.activity.activity_id, 'http://tincanapi.wikispaces.com/TinCan+Use+Cases')
+        self.assertEqual(act.activity.objectType, 'Activity')
+        self.assertEqual(act.activity.activity_definition.name, 'testname')
+        self.assertEqual(act.activity.activity_definition.description, 'testdesc')
+        self.assertEqual(act.activity.activity_definition.activity_definition_type, 'course')
+        self.assertEqual(act.activity.activity_definition.interactionType, 'intType')
 
-        PK = models.activity.objects.get(activity_id=act.activity_id)
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
 
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://some_specific_URI2')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).activity_id, 'http://tincanapi.wikispaces.com/TinCan+Use+Cases')
+        
         self.assertEqual(models.activity_definition.objects.get(activity=PK).name, 'testname')
         self.assertEqual(models.activity_definition.objects.get(activity=PK).description, 'testdesc')
         self.assertEqual(models.activity_definition.objects.get(activity=PK).activity_definition_type, 'course')
         self.assertEqual(models.activity_definition.objects.get(activity=PK).interactionType, 'intType')
 
     def test_activity_definition_wrong_type(self):
+        #Given wrong type
         self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity',
-                'activity_id':'http://some_specific_URI3','definition': {'NAME': 'testname',
+                'activity_id':'http://tincanapi.wikispaces.com/Wish+List','definition': {'NAME': 'testname',
                 'descripTION': 'testdesc', 'tYpe': 'wrong','interactionType': 'intType'}}))
 
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://tincanapi.wikispaces.com/Wish+List')
     
+    def test_activity_definition_required_fields(self):
+        #Missing name in definition
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity',
+                'activity_id':'http://google.com','definition': {'descripTION': 'testdesc',
+                'tYpe': 'wrong','interactionType': 'intType'}}))
+
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://google.com')
+
     def test_activity_definition_extensions(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://some_specific_URI4',
+        #Test extensions - need to retrieve activity and activity definition objects in order to test extenstions
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://tincanapi.wikispaces.com/Verbs+and+Activities',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'course',
                 'interactionType': 'intType2', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
         
-        self.assertEqual(act.activity_id, 'http://some_specific_URI4')
-        self.assertEqual(act.objectType, 'Activity')
-        self.assertEqual(act.activity_definition['name'], 'testname2')
-        self.assertEqual(act.activity_definition['description'], 'testdesc2')
-        self.assertEqual(act.activity_definition['type'], 'course')
-        self.assertEqual(act.activity_definition['interactiontype'], 'intType2')
-        self.assertEqual(act.activity_definition['extensions']['key1'], 'value1')    
-        self.assertEqual(act.activity_definition['extensions']['key2'], 'value2')
-        self.assertEqual(act.activity_definition['extensions']['key3'], 'value3')
+        self.assertEqual(act.activity.activity_id, 'http://tincanapi.wikispaces.com/Verbs+and+Activities')
+        self.assertEqual(act.activity.objectType, 'Activity')
+        
+        self.assertEqual(act.activity_definition.name, 'testname2')
+        self.assertEqual(act.activity_definition.description, 'testdesc2')
+        self.assertEqual(act.activity_definition.activity_definition_type, 'course')
+        self.assertEqual(act.activity_definition.interactionType, 'intType2')
+        
+        self.assertEqual(act.activity_definition_extensions[0].key, 'key3')
+        self.assertEqual(act.activity_definition_extensions[1].key, 'key2')
+        self.assertEqual(act.activity_definition_extensions[2].key, 'key1')
 
-        PK = models.activity.objects.get(activity_id=act.activity_id)
+        self.assertEqual(act.activity_definition_extensions[0].value, 'value3')    
+        self.assertEqual(act.activity_definition_extensions[1].value, 'value2')
+        self.assertEqual(act.activity_definition_extensions[2].value, 'value1')
 
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).objectType, 'Activity')
-        self.assertEqual(models.activity.objects.get(activity_id=act.activity_id).activity_id, 'http://some_specific_URI4')
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).activity_id, 'http://tincanapi.wikispaces.com/Verbs+and+Activities')
+        
         self.assertEqual(models.activity_definition.objects.get(activity=PK).name, 'testname2')
         self.assertEqual(models.activity_definition.objects.get(activity=PK).description, 'testdesc2')
         self.assertEqual(models.activity_definition.objects.get(activity=PK).activity_definition_type, 'course')
@@ -516,13 +544,39 @@ class Models_ActivityTest(py_tc):
         extList = models.activity_extentions.objects.values_list().filter(activity_definition=defPK)
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
-        
+
         self.assertIn('key1', extKeys)
         self.assertIn('key2', extKeys)
         self.assertIn('key3', extKeys)
         self.assertIn('value1', extVals)
         self.assertIn('value2', extVals)
         self.assertIn('value3', extVals)
+
+    def test_activity_definition_wrong_interactionType(self):
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'activity_id':'http://yahoo.com',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'intType2', 'correctResponsesPatteRN': 'response', 'extensions': {'key1': 'value1', 'key2': 'value2',
+                'key3': 'value3'}}}))
+     
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://yahoo.com')
+
+    def test_activity_definition_no_correctResponsesPattern(self):
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'activity_id':'http://msn.com',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'true-false', 'extensions': {'key1': 'value1', 'key2': 'value2',
+                'key3': 'value3'}}}))
+     
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://msn.com')
+
+    
+    def test_activity_definition_cmiInteration_true_false(self):
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://microsoft.com',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'true-false','correctResponsesPattern': ['true'] ,'extensions': {'key1': 'value1', 'key2': 'value2',
+                'key3': 'value3'}}}))
+        #self.assertEqual(act.activity_definition.definition.correctResponsesPattern, 'true')
+
+
 
 class Models_ActorTest(py_tc):
     def test_actor(self):

@@ -1,7 +1,8 @@
 import json
 import types
 from lrs import models
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError, ValidationError
+from django.core.validators import URLValidator
 from django.db import transaction
 from functools import wraps
 
@@ -278,67 +279,155 @@ class Activity():
             return dict((k.lower(),v) for k,v in dic.iteritems())
         return dic
 
+    def __save_actvity_to_db(self, act_id, objType):
+        #Save activity to DB
+        act = models.activity(activity_id=act_id, objectType=objType)
+        act.save()
+        return act
+
+    def __save_activity_definition_to_db(self, act, name, desc, act_def_type, intType):
+        #Save activity definition to DB
+        act_def = models.activity_definition(name=name,description=desc, activity_definition_type=act_def_type,
+                  interactionType=intType, activity=act)
+        act_def.save()
+        return act_def    
+
     #Once JSON is verified, populate the activity objects
     def __populate(self, the_object):
         #Lower keys to be sure they're not in a different case
         lower_object = self.__to_lower(the_object)
         
-        #Must include activity_id, default objectType is Activity - set object's activity_id and objectType
+        #Must include activity_id - set object's activity_id
         try:
-            self.activity_id = lower_object['activity_id']
+            activity_id = lower_object['activity_id']
         except KeyError:
             raise Exception("No activity_id provided, must provide activity_id")
-        try:
-            self.objectType = lower_object['objecttype']
-        except KeyError:
-            self.objectType = 'Activity'
-
-        #Set objectType to Activity if given different value (I think)
-        self.objectType = 'Activity' if self.objectType != 'Activity' else 'Activity'   
         
-        #Save activity to DB
-        the_act = models.activity(activity_id=self.activity_id, objectType=self.objectType)
-        the_act.save()
+        #Set objectType to nothing
+        objectType = None
+
+        #ObjectType should always be Activity when present
+        if 'objecttype' in lower_object.keys():
+            objectType = 'Activity'
+
+        #Verify the given activity_id exists
+        validator = URLValidator(verify_exists=True)
+        try:
+            validator(activity_id)
+        except ValidationError, e:
+            raise e
+
+        #Instantiate activity definition
+        activity_definition = {}
 
         #See if activity has definition included
-        try:   
-            self.activity_definition = self.__to_lower(lower_object['definition'])
-        except KeyError:
-            self.activity_definition = {}      
-        
-        #If definition is included, populate the activity definition
-        if self.activity_definition:
-            self.__populate_definition(the_act)
+        if 'definition' in lower_object.keys():
+            activity_definition = self.__to_lower(lower_object['definition'])
+            self.__populate_definition(activity_definition, activity_id, objectType)
+        else:
+            self.activity = self.__save_actvity_to_db(activity_id, objectType)    
 
+    def __populate_definition(self, act_def, act_id, objType):
+            #Needed for cmi.interaction args?
+            interactionType_args = {}
 
-    def __populate_definition(self, act):
-            #Check if all activity definition required fields are present
+            #Check if all activity definition required fields are present - delete existing activity model
+            #if error with required activity definition fields
             for k in Activity.ADRFs:
-                if k not in self.activity_definition.keys() and k != 'definition':
+                if k not in act_def.keys() and k != 'extensions':
                     raise Exception("Activity definition error with key: %s" % k)
 
             #Check definition type
-            if self.activity_definition['type'] not in Activity.ADTs:
+            if act_def['type'] not in Activity.ADTs:
                 raise Exception("Activity definition type not valid")
+
+            #If the type is cmi.interaction, have to check interactionType
+            if act_def['type'] == 'cmi.interaction':
+
+                scormInteractionTypes = ['true-false', 'multiple-choice', 'fill-in', 'long-fill-in',
+                                         'matching', 'performance', 'sequencing', 'likert', 'numeric',
+                                         'other']
             
+                #Check if valid SCORM interactionType
+                if act_def['interactiontype'] not in scormInteractionTypes:
+                    raise Exception("Activity definition interactionType not valid")
+
+                #Must have correctResponsesPattern if they have a valid interactionType
+                try:
+                    act_def['correctresponsespattern']
+                except KeyError:    
+                    raise Exception("Activity definition missing correctResponsesPattern")
+
+                if act_def['interactiontype'] == 'true-false':
+                    correct_response = json.dumps(act_def['correctresponsespattern'])
+                    interactionType_args['crp'] = correct_response
+
+                if act_def['interactiontype'] == 'multiple-choice':
+                    try:
+                        act_def['choices']
+                    except KeyError:
+                        raise Exception("Activity definition missing choices for multiple-choice")
+
+                if act_def['interactiontype'] == 'fill-in':
+                    correct_response = json.dumps(act_def['correctresponsespattern'])
+                    interactionType_args['crp'] = correct_response
+                
+                if act_def['interactiontype'] == 'long-fill-in':
+                    correct_response = json.dumps(act_def['correctresponsespattern'])
+                    interactionType_args['crp'] = correct_response
+                
+                if act_def['interactiontype'] == 'matching':
+                    try:
+                        act_def['source']
+                        act_def['target']
+                    except KeyError:
+                        raise Exception("Activity definition missing source/target for matching")
+                
+                if act_def['interactiontype'] == 'performance':
+                    try:
+                        act_def['steps']
+                    except KeyError:
+                        raise Exception("Activity definition missing steps for performance")    
+                
+                if act_def['interactiontype'] == 'sequencing':
+                    try:
+                        act_def['choices']
+                    except KeyError:
+                        raise Exception("Activity definition missing choices for sequencing")
+                
+                if act_def['interactiontype'] == 'likert':
+                    try:
+                        act_def['scale']
+                    except KeyError:
+                        raise Exception("Activity definition missing scale for likert")
+                
+                if act_def['interactiontype'] == 'numeric':
+                    correct_response = json.dumps(act_def['correctresponsespattern'])
+                    interactionType_args['crp'] = correct_respons
+                
+                if act_def['interactiontype'] == 'other':
+                    correct_response = json.dumps(act_def['correctresponsespattern'])
+                    interactionType_args['crp'] = correct_respons
+
+            #Save activity to DB
+            self.activity = self.__save_actvity_to_db(act_id, objType)
+
             #Save activity definition to DB
-            the_act_def = models.activity_definition(name=self.activity_definition['name'],
-                description=self.activity_definition['description'], activity_definition_type=self.activity_definition['type'],
-                interactionType=self.activity_definition['interactiontype'], activity=act)
-            the_act_def.save()
+            self.activity_definition = self.__save_activity_definition_to_db(self.activity, act_def['name'],
+                                            act_def['description'], act_def['type'], act_def['interactiontype'])
+
+            #If there are args then save individually?
+            if interactionType_args:
+                pass
+
+            #Instantiate activity definition extensions
+            self.activity_definition_extensions = []
 
             #See if activity definition has extensions
-            try:   
-                self.activity_definition_extensions = self.activity_definition['extensions']
-            except KeyError:
-                self.activity_definition_extensions = {}
-
-            # If there are extensions, save each one to the DB
-            if self.activity_definition_extensions:
-                for k, v in self.activity_definition_extensions.items():
-                    the_act_def_ext = models.activity_extentions(key=k, value=v,
-                        activity_definition=the_act_def)
-                    the_act_def_ext.save()
-
-            
+            if 'extensions' in act_def.keys():
+                for k, v in act_def['extensions'].items():
+                    act_def_ext = models.activity_extentions(key=k, value=v,
+                        activity_definition=self.activity_definition)
+                    act_def_ext.save()
+                    self.activity_definition_extensions.append(act_def_ext)    
 
