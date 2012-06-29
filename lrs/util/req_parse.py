@@ -141,14 +141,15 @@ def actor_profile_put(request):
         req_dict['profileId']
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % request.method)
-    try:
-        thefile = req_dict['files']['file']
-        req_dict['filename'] = thefile.name
-        req_dict['profile'] = thefile.read()
-    except:
-        req_dict['profile'] = req_dict.get('body', '')
-        if not req_dict['profile']:
-            raise ParamError("Could not find the profile")
+    #try:
+    #    thefile = req_dict['files']['file']
+    #    req_dict['filename'] = thefile.name
+    #    req_dict['profile'] = thefile.read()
+    #except:
+    #    req_dict['profile'] = req_dict.get('body', '')
+    #    if not req_dict['profile']:
+    #        raise ParamError("Could not find the profile")
+    req_dict['profile'] = request.raw_post_data
     req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
     req_dict['ETAG'] = etag.get_etag_info(request, required=False)
     return req_dict
