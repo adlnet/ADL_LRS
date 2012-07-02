@@ -144,7 +144,7 @@ class group(agent):
     member = models.TextField()
 
 class actor_profile(models.Model):
-    profileId = UUIDField(auto=True)
+    profileId = models.CharField(max_length=200)
     stored = models.DateTimeField(auto_now_add=True, blank=True)
     actor = models.ForeignKey(agent)
     profile = models.FileField(upload_to="actor_profile")

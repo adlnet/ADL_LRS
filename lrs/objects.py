@@ -209,6 +209,8 @@ class Actor():
                 profile = ContentFile(str(request_dict['profile']))
 
         p,created = models.actor_profile.objects.get_or_create(profileId=request_dict['profileId'],actor=self.agent)
+        if not created:
+            etag.check_preconditions(request_dict,p)
         p.content_type = request_dict['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
         profile.seek(0)
