@@ -210,6 +210,8 @@ class Actor():
 
         p,created = models.actor_profile.objects.get_or_create(profileId=request_dict['profileId'],actor=self.agent)
         p.content_type = request_dict['CONTENT_TYPE']
+        p.etag = etag.create_tag(profile.read())
+        profile.seek(0)
         if created:
             p.save()
 
@@ -217,7 +219,10 @@ class Actor():
         p.profile.save(fn, profile)
     
     def get_profile(self, profileId):
-        pass
+        try:
+            return self.agent.actor_profile_set.get(profileId=profileId)
+        except models.actor_profile.DoesNotExist:
+            raise IDNotFoundError('There is no profile associated with the id: %s' % profileId)
 
     def get_profile_ids(self, since=None):
         ids = []
@@ -378,6 +383,12 @@ class Activity():
             '''
             
 class MultipleActorError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+class IDNotFoundError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):

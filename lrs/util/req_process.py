@@ -114,14 +114,16 @@ def actor_profile_put(req_dict):
 
 def actor_profile_get(req_dict):
     # add ETag for concurrency
+    print 'in actor_profile_get'
     actor = req_dict['actor']
     a = objects.Actor(actor)
     
     profileId = req_dict.get('profileId', None)
     if profileId:
+        print 'got profile.. gonna send it back now'
         resource = a.get_profile(profileId)
-        response = HttpResponse(resource)
-        response['ETag'] = etag.create_tag(resource)
+        response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+        response['ETag'] = '"%s"' % resource.etag
         return response
 
     since = req_dict.get('since', None)

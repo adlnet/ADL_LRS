@@ -149,6 +149,9 @@ def actor_profile_put(request):
     #    req_dict['profile'] = req_dict.get('body', '')
     #    if not req_dict['profile']:
     #        raise ParamError("Could not find the profile")
+    
+    if request.raw_post_data == '':
+        raise ParamError("Could not find the profile")
     req_dict['profile'] = request.raw_post_data
     req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
     req_dict['ETAG'] = etag.get_etag_info(request, required=False)
@@ -195,9 +198,10 @@ def get_dict(request):
             post, files = parser.parse()
             ret_dict['files'] = files
         else:
-            body = request.body
-            jsn = body.replace("'", "\"")
-            ret_dict['body'] = json.loads(jsn)
+            if request.body:
+                body = request.body
+                jsn = body.replace("'", "\"")
+                ret_dict['body'] = json.loads(jsn)
         
         return ret_dict
     return {}

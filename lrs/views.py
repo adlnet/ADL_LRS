@@ -76,8 +76,8 @@ def actor_profile(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
+    #except Exception as err:
+    #    return HttpResponse(err.message, status=400)
     return resp
 
 # returns a 405 (Method Not Allowed) if not a GET
@@ -86,6 +86,8 @@ def actor_profile(request):
 def actors(request):
     try: 
         resp = handle_request(request)
+    except objects.IDNotFoundError as iderr:
+        return HttpResponse(iderr, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
