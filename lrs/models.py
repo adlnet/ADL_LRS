@@ -8,6 +8,11 @@ from django.contrib.contenttypes.generic import GenericForeignKey
 #needs object
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
+import time
+def filename(instance, filename):
+    print filename
+    return filename
+
 class score(models.Model):  
     scaled = models.NullBooleanField(blank=True)
     raw = models.PositiveIntegerField(blank=True, null=True)
@@ -139,10 +144,12 @@ class group(agent):
     member = models.TextField()
 
 class actor_profile(models.Model):
-    profileId = UUIDField(primary_key=True,auto=True)
+    profileId = models.CharField(max_length=200)
     stored = models.DateTimeField(auto_now_add=True, blank=True)
     actor = models.ForeignKey(agent)
-    profile = models.TextField()
+    profile = models.FileField(upload_to="actor_profile")
+    content_type = models.CharField(max_length=200,blank=True,null=True)
+    etag = models.CharField(max_length=200,blank=True,null=True)
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)
@@ -190,7 +197,7 @@ class statement(statement_object):
 
 # - from http://djangosnippets.org/snippets/2283/
 @transaction.commit_on_success
-def merge_model_objects(primary_object, alias_objects=[], keep_old=False):
+def merge_model_objects(primary_object, alias_objects=[], save=True, keep_old=False):
     """
     Use this function to merge model objects (i.e. Users, Organizations, Polls,
     etc.) and migrate all of the related fields from the alias objects to the
@@ -280,5 +287,6 @@ def merge_model_objects(primary_object, alias_objects=[], keep_old=False):
             
         if not keep_old:
             alias_object.delete()
-    primary_object.save()
+    if save:
+        primary_object.save()
     return primary_object

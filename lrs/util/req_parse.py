@@ -1,5 +1,8 @@
 from copy import deepcopy # runs slow.. we should only use if necessary
 import json
+from lrs.util import etag
+from django.http import MultiPartParser
+import StringIO
 
 def statements_post(request):
     req_dict = {}
@@ -20,7 +23,7 @@ def statements_post(request):
             req_dict.update(request.POST.dict())
         # test if one of the request keys is a valid paramter
         if not [k for k,v in req_dict.items() if k in valid_params]:
-            raise ParamError("Error -- could not find a valid parameter" + req_dict['body'])
+            raise ParamError("Error -- could not find a valid parameter")
         req_dict['is_get'] = True
     return req_dict
 
@@ -88,11 +91,15 @@ def activity_profile_put(request):
     try: # not using request.GET.get('param', 'default val') cuz activityId is mandatory
         req_dict['activityId']
     except KeyError:
-         raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % request.method)
+        raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % request.method)
     try:
         req_dict['profileId']
     except KeyError:
-         raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % request.method)
+        raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % request.method)
+    try:
+        req_dict['body'] = request.body
+    except:
+        raise ParamError("Error -- no profile in request body")
     return req_dict
 
 
@@ -134,6 +141,20 @@ def actor_profile_put(request):
         req_dict['profileId']
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % request.method)
+    #try:
+    #    thefile = req_dict['files']['file']
+    #    req_dict['filename'] = thefile.name
+    #    req_dict['profile'] = thefile.read()
+    #except:
+    #    req_dict['profile'] = req_dict.get('body', '')
+    #    if not req_dict['profile']:
+    #        raise ParamError("Could not find the profile")
+    
+    if request.raw_post_data == '':
+        raise ParamError("Could not find the profile")
+    req_dict['profile'] = request.raw_post_data
+    req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
+    req_dict['ETAG'] = etag.get_etag_info(request, required=False)
     return req_dict
 
 
@@ -171,21 +192,20 @@ def get_dict(request):
         ret_dict = {}
         if request.GET: # looking for parameters
             ret_dict.update(request.GET.dict())
-        # looking to see if this is a form.. most likely not
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             ret_dict.update(request.POST.dict())
-        
-        body = request.body
-        jsn = body.replace("'", "\"")
-        
-        if request.META['CONTENT_TYPE'] == 'application/x-www-form-urlencoded':
-            ret_dict.update(json.loads(jsn))
-        elif request.META['CONTENT_TYPE'] == 'application/json':
-            ret_dict['body'] = json.loads(jsn)
+            parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
+            post, files = parser.parse()
+            ret_dict['files'] = files
+        else:
+            if request.body:
+                body = request.body
+                jsn = body.replace("'", "\"")
+                ret_dict['body'] = json.loads(jsn)
         
         return ret_dict
     return {}
-    
+
 class ParamError(Exception):
     def __init__(self, msg):
         self.message = msg

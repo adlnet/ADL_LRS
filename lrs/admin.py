@@ -66,6 +66,11 @@ class PersonAdmin(AgentAdmin):
         Person_FirstName_Admin,
         Person_LastName_Admin
     ]
+
+class ActorProfileAdmin(admin.ModelAdmin):
+    model = models.actor_profile
+    readonly_fields = ('profileId','stored','etag')
+
 admin.site.register(models.result, ResultAdmin)
 admin.site.register(models.result_extensions)
 admin.site.register(models.score)
@@ -83,7 +88,7 @@ admin.site.register(models.person_familyName)
 admin.site.register(models.person_firstName)
 admin.site.register(models.person_lastName)
 admin.site.register(models.group)
-admin.site.register(models.actor_profile)
+admin.site.register(models.actor_profile, ActorProfileAdmin)
 admin.site.register(models.activity)
 admin.site.register(models.activity_definition)
 admin.site.register(models.activity_extentions)
