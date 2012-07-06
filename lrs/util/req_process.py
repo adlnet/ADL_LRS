@@ -126,7 +126,7 @@ def actor_profile_get(req_dict):
 
     since = req_dict.get('since', None)
     resource = a.get_profile_ids(since)
-    response = HttpResponse(resource)
+    response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     return response
 
 def actor_profile_delete(req_dict):

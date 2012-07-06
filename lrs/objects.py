@@ -1,9 +1,10 @@
 import json
 import types
 import urllib
+import datetime
 from lrs import models
 from lrs.util import etag
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError,ValidationError
 from django.core.files.base import ContentFile
 from django.db import transaction
 from functools import wraps
@@ -228,6 +229,17 @@ class Actor():
 
     def get_profile_ids(self, since=None):
         ids = []
+        if since: #filter(stored__gte = since)
+            try:
+                profs = self.agent.actor_profile_set.filter(stored__gte=since)
+            except ValidationError:
+                since_i = int(float(since))
+                since_dt = datetime.datetime.fromtimestamp(since_i)
+                profs = self.agent.actor_profile_set.filter(stored__gte=since_dt)
+            ids = [p.profileId for p in profs]
+        else:
+            ids = self.agent.actor_profile_set.values_list('profileId', flat=True)
+        return ids
 
     def original_actor_json(self):
         return json.dumps(self.obj)

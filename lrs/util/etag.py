@@ -15,20 +15,17 @@ def get_etag_info(request, required=True):
 	return etag
 
 def check_preconditions(request, contents):
-	print 'checking preconditions'
 	try:
 		request_etag = request['ETAG']
 	except KeyError:
 		return
 	if request_etag[IF_NONE_MATCH]:
-		print 'in if none match'
 		if request_etag[IF_NONE_MATCH] == "*" and contents:
 			raise EtagPreconditionFail("Resource detected")
 		elif contents:
 			if contents.etag in request_etag[IF_NONE_MATCH]:
 				raise EtagPreconditionFail("Resource detected")
 	if request_etag[IF_MATCH]:
-		print 'in if match'
 		if request_etag[IF_MATCH] != "*":
 			if contents.etag in request_etag[IF_MATCH]:
 				return
