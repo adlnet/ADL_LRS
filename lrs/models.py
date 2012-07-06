@@ -155,6 +155,13 @@ class activity_definition(models.Model):
     interactionType = models.CharField(max_length=200)
     activity = models.OneToOneField(activity)
 
+class activity_def_correctresponsespattern(models.Model):
+    activity_definition = models.OneToOneField(activity_definition, blank=True,null=True)
+
+class correctresponsespattern_answer(models.Model):
+    answer = models.TextField()
+    correctresponsespattern = models.ForeignKey(activity_def_correctresponsespattern)    
+
 class activity_definition_choices(models.Model):
     choice_id = models.CharField(max_length=200)
     description = models.CharField(max_length=200)        
@@ -178,10 +185,6 @@ class activity_definition_target(models.Model):
 class activity_definition_steps(models.Model):
     step_id = models.CharField(max_length=200)
     description = models.CharField(max_length=200)        
-    activity_definition = models.ForeignKey(activity_definition)
-
-class activity_correctResponsesPattern(models.Model):
-    correctResponse = models.TextField()
     activity_definition = models.ForeignKey(activity_definition)
 
 class activity_extentions(models.Model):

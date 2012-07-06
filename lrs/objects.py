@@ -355,11 +355,16 @@ class Activity():
                 #Must have correctResponsesPattern if they have a valid interactionType
                 try:
                     act_def['correctresponsespattern']
+                    #myList = []
+                    #myList = act_def['correctresponsespattern']
+                    #for item in act_def['correctresponsespattern']:
+                        #myList.append(item)  
+
                 except KeyError:    
                     raise Exception("Activity definition missing correctResponsesPattern")
 
                 if act_def['interactiontype'] == 'true-false':
-                    correct_response = json.dumps(act_def['correctresponsespattern'])
+                    correct_response = act_def['correctresponsespattern']
                     interactionType_args['crp'] = correct_response
 
                 if act_def['interactiontype'] == 'multiple-choice':
@@ -367,6 +372,7 @@ class Activity():
                         act_def['choices']
                     except KeyError:
                         raise Exception("Activity definition missing choices for multiple-choice")
+                    interactionType_args['crp'] = act_def['correctresponsespattern']
 
                 if act_def['interactiontype'] == 'fill-in':
                     correct_response = json.dumps(act_def['correctresponsespattern'])
@@ -403,23 +409,34 @@ class Activity():
                 
                 if act_def['interactiontype'] == 'numeric':
                     correct_response = json.dumps(act_def['correctresponsespattern'])
-                    interactionType_args['crp'] = correct_respons
+                    interactionType_args['crp'] = correct_response
                 
                 if act_def['interactiontype'] == 'other':
                     correct_response = json.dumps(act_def['correctresponsespattern'])
-                    interactionType_args['crp'] = correct_respons
+                    interactionType_args['crp'] = correct_response
 
             #Save activity to DB
             self.activity = self.__save_actvity_to_db(act_id, objType)
 
             #Save activity definition to DB
             self.activity_definition = self.__save_activity_definition_to_db(self.activity, act_def['name'],
-                                            act_def['description'], act_def['type'], act_def['interactiontype'])
-
+                        act_def['description'], act_def['type'], act_def['interactiontype'])
+            
             #If there are args then save individually?
+            print 'before if stmt'
             if interactionType_args:
-                pass
-
+                crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
+                crp.save()
+                self.correctResponsesPattern = crp
+                
+                self.answers = []
+                print 'before for loop'
+                for i in act_def['correctresponsespattern']:
+                    print 'in for loop'
+                    answer = models.correctresponsespattern_answer(answer=i, correctresponsespattern=self.correctResponsesPattern)
+                    answer.save()
+                    self.answers.append(answer)
+    
             #Instantiate activity definition extensions
             self.activity_definition_extensions = []
 

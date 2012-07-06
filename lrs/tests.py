@@ -541,6 +541,7 @@ class Models_ActivityTest(py_tc):
 
         defPK = models.activity_definition.objects.get(activity=PK)
 
+        #Create list comprehesions to easier assess keys and values
         extList = models.activity_extentions.objects.values_list().filter(activity_definition=defPK)
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
@@ -553,6 +554,7 @@ class Models_ActivityTest(py_tc):
         self.assertIn('value3', extVals)
 
     def test_activity_definition_wrong_interactionType(self):
+        #Should fail because of invalid interactionType
         self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'activity_id':'http://yahoo.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'intType2', 'correctResponsesPatteRN': 'response', 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -561,6 +563,7 @@ class Models_ActivityTest(py_tc):
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://yahoo.com')
 
     def test_activity_definition_no_correctResponsesPattern(self):
+        #If it has a valid interactionType it must also provide the correctResponsesPattern field
         self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'activity_id':'http://msn.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'true-false', 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -574,8 +577,114 @@ class Models_ActivityTest(py_tc):
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'] ,'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
-        #self.assertEqual(act.activity_definition.definition.correctResponsesPattern, 'true')
 
+        self.assertEqual(act.activity.activity_id, 'http://microsoft.com')
+        self.assertEqual(act.activity.objectType, 'Activity')
+        
+        self.assertEqual(act.activity_definition.name, 'testname2')
+        self.assertEqual(act.activity_definition.description, 'testdesc2')
+        self.assertEqual(act.activity_definition.activity_definition_type, 'cmi.interaction')
+        self.assertEqual(act.activity_definition.interactionType, 'true-false')
+        
+        self.assertEqual(act.activity_definition_extensions[0].key, 'key3')
+        self.assertEqual(act.activity_definition_extensions[1].key, 'key2')
+        self.assertEqual(act.activity_definition_extensions[2].key, 'key1')
+
+        self.assertEqual(act.activity_definition_extensions[0].value, 'value3')    
+        self.assertEqual(act.activity_definition_extensions[1].value, 'value2')
+        self.assertEqual(act.activity_definition_extensions[2].value, 'value1')
+
+        self.assertEqual(act.answers[0].answer, 'true')
+
+        
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).activity_id, 'http://microsoft.com')
+        
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).name, 'testname2')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).description, 'testdesc2')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).activity_definition_type, 'cmi.interaction')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).interactionType, 'true-false')
+
+        defPK = models.activity_definition.objects.get(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+
+        self.assertEqual(act.correctResponsesPattern.activity_definition, defPK)
+        self.assertEqual(rspPK.activity_definition, defPK)
+
+
+
+        #Create list comprehesions to easier assess keys and values
+        extList = models.activity_extentions.objects.values_list().filter(activity_definition=defPK)
+        extKeys = [ext[1] for ext in extList]
+        extVals = [ext[2] for ext in extList]
+
+        self.assertIn('key1', extKeys)
+        self.assertIn('key2', extKeys)
+        self.assertIn('key3', extKeys)
+        self.assertIn('value1', extVals)
+        self.assertIn('value2', extVals)
+        self.assertIn('value3', extVals)
+
+        rspAnswers = models.correctresponsespattern_answer.objects.values_list().filter(correctresponsespattern=rspPK)
+        
+        self.assertIn('true', rspAnswers)
+
+    def test_activity_definition_cmiInteration_multiple_choice(self):    
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'activity_id':'http://facebook.com',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'multiple-choice','correctResponsesPattern': ['golf', 'tetris'],
+                'choices':[{'id': 'golf', 'description': {'en-US':'Golf Example'}},{'id': 'tetris',
+                'description':{'en-US': 'Tetris Example'}}],
+                'extensions': {'key1': 'value1', 'key2': 'value2',
+                'key3': 'value3'}}}))
+
+        self.assertEqual(act.activity.activity_id, 'http://facebook.com')
+        self.assertEqual(act.activity.objectType, 'Activity')
+        
+        self.assertEqual(act.activity_definition.name, 'testname2')
+        self.assertEqual(act.activity_definition.description, 'testdesc2')
+        self.assertEqual(act.activity_definition.activity_definition_type, 'cmi.interaction')
+        self.assertEqual(act.activity_definition.interactionType, 'multiple-choice')
+        
+        self.assertEqual(act.activity_definition_extensions[0].key, 'key3')
+        self.assertEqual(act.activity_definition_extensions[1].key, 'key2')
+        self.assertEqual(act.activity_definition_extensions[2].key, 'key1')
+
+        self.assertEqual(act.activity_definition_extensions[0].value, 'value3')    
+        self.assertEqual(act.activity_definition_extensions[1].value, 'value2')
+        self.assertEqual(act.activity_definition_extensions[2].value, 'value1')
+
+        self.assertEqual(act.answers[0].answer, 'golf')
+        self.assertEqual(act.answers[1].answer, 'tetris')
+
+        
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).objectType, 'Activity')
+        self.assertEqual(models.activity.objects.get(activity_id=act.activity.activity_id).activity_id, 'http://facebook.com')
+        
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).name, 'testname2')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).description, 'testdesc2')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).activity_definition_type, 'cmi.interaction')
+        self.assertEqual(models.activity_definition.objects.get(activity=PK).interactionType, 'multiple-choice')
+
+        defPK = models.activity_definition.objects.get(activity=PK)
+        self.assertEqual(act.correctResponsesPattern.activity_definition, defPK)
+        self.assertEqual(models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK).activity_definition, defPK)
+
+        #Create list comprehesions to easier assess keys and values
+        extList = models.activity_extentions.objects.values_list().filter(activity_definition=defPK)
+        extKeys = [ext[1] for ext in extList]
+        extVals = [ext[2] for ext in extList]
+
+        self.assertIn('key1', extKeys)
+        self.assertIn('key2', extKeys)
+        self.assertIn('key3', extKeys)
+        self.assertIn('value1', extVals)
+        self.assertIn('value2', extVals)
+        self.assertIn('value3', extVals)
 
 
 class Models_ActorTest(py_tc):
