@@ -214,6 +214,8 @@ class Actor():
             etag.check_preconditions(request_dict,p)
         p.content_type = request_dict['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
+        if request_dict['updated']:
+            p.stored = request_dict['updated']
         profile.seek(0)
         if created:
             p.save()

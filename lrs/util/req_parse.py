@@ -130,7 +130,7 @@ def activities_get(request):
         raise ParamError("Error -- activities - method = %s, but activityId parameter is missing" % request.method)
     return request.GET
 
-
+#import pprint
 def actor_profile_put(request):
     req_dict = get_dict(request)
     try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
@@ -153,6 +153,11 @@ def actor_profile_put(request):
     if request.raw_post_data == '':
         raise ParamError("Could not find the profile")
     req_dict['profile'] = request.raw_post_data
+    # this is stupid but unit tests come back as 'updated'
+    # and as 'HTTP_UPDATED' when used tested from python requests
+    req_dict['updated'] = request.META.get('HTTP_UPDATED', None)
+    if not req_dict['updated']:
+        req_dict['updated'] = request.META.get('updated', None)
     req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
     req_dict['ETAG'] = etag.get_etag_info(request, required=False)
     return req_dict

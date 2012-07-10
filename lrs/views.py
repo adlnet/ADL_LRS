@@ -2,6 +2,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from lrs.util import req_parse, req_process, etag
+from lrs import objects
 from django.shortcuts import render_to_response
 import logging
 
