@@ -243,6 +243,16 @@ class Actor():
             ids = self.agent.actor_profile_set.values_list('profileId', flat=True)
         return ids
 
+    def delete_profile(self, profileId):
+        try:
+            prof = self.get_profile(profileId)
+            prof.delete()
+        except models.actor_profile.DoesNotExist:
+            pass #we don't want it anyway
+        except IDNotFoundError:
+            pass
+
+
     def original_actor_json(self):
         return json.dumps(self.obj)
 

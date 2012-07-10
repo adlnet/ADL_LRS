@@ -364,6 +364,12 @@ class ActorProfileTest(TestCase):
         self.otherprofile1 = {"test":"put profile 1","obj":{"actor":"other"}}
         self.put4 = self.client.put(path, self.otherprofile1, content_type=self.content_type)
 
+    def tearDown(self):
+        self.client.delete(reverse(views.actor_profile), self.testparams1)
+        self.client.delete(reverse(views.actor_profile), self.testparams2)
+        self.client.delete(reverse(views.actor_profile), self.testparams3)
+        self.client.delete(reverse(views.actor_profile), self.testparams4)
+
     def test_put(self):
         self.assertEqual(self.put1.status_code, 204)
         self.assertEqual(self.put1.content, '')
@@ -435,14 +441,22 @@ class ActorProfileTest(TestCase):
         r2 = self.client.get(reverse(views.actor_profile), params2)
         self.assertNotIn(prof_id, r2.content)
     
-    # TODO: create delete and make this test
-    #def test_delete(self):
-    #    actor = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
-    #    response = self.client.delete(reverse(views.actor_profile), {'actor':actor, 'profileId':'100'})
-    #    self.assertContains(response, 'Success')
-    #    self.assertContains(response, actor)        
-    #    self.assertContains(response, '100')
+    def test_delete(self):
+        prof_id = "http://deleteme"
+        params = {"profileId": prof_id, "actor": self.testactor}
+        path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
+        profile = {"test":"delete profile","obj":{"actor":"test"}}
+        response = self.client.put(path, profile, content_type=self.content_type)
         
+        r = self.client.get(reverse(views.actor_profile), params)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, '%s' % profile)
+
+        r = self.client.delete(reverse(views.actor_profile), params)
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.get(reverse(views.actor_profile), params)
+        self.assertEqual(r.status_code, 400)
         
 class ActorsTest(TestCase):
     def test_get(self):

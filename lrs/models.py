@@ -151,6 +151,10 @@ class actor_profile(models.Model):
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
 
+    def delete(self, *args, **kwargs):
+        self.profile.delete()
+        super(actor_profile, self).delete(*args, **kwargs)
+
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)
     objectType = models.CharField(max_length=200,blank=True, null=True) 
