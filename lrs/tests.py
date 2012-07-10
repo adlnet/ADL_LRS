@@ -7,7 +7,6 @@ import time
 import datetime
 import hashlib
 from unittest import TestCase as py_tc
-import requests
 import urllib
 
 class StatementsTest(TestCase):
@@ -424,23 +423,6 @@ class ActorProfileTest(TestCase):
         r = self.client.get(reverse(views.actor_profile), params)
         self.assertEqual(r.status_code, 200)
     
-    def test_get_actor_since(self):
-        prof_id = "http://oldprofile/time"
-        updated =  datetime.datetime(2012, 6, 12, 12, 00)
-        params = {"profileId": prof_id, "actor": self.testactor}
-        path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
-        profile = {"test":"actor profile since time: %s" % updated,"obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat())
-
-        r = self.client.get(reverse(views.actor_profile), params)
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % profile)
-
-        since = datetime.datetime(2012, 7, 1, 12, 00)
-        params2 = {"actor": self.testactor, "since":since.isoformat()}
-        r2 = self.client.get(reverse(views.actor_profile), params2)
-        self.assertNotIn(prof_id, r2.content)
-    
     def test_delete(self):
         prof_id = "http://deleteme"
         params = {"profileId": prof_id, "actor": self.testactor}
@@ -457,7 +439,26 @@ class ActorProfileTest(TestCase):
 
         r = self.client.get(reverse(views.actor_profile), params)
         self.assertEqual(r.status_code, 400)
-        
+
+    def test_get_actor_since(self):
+        prof_id = "http://oldprofile/time"
+        updated =  datetime.datetime(2012, 6, 12, 12, 00)
+        params = {"profileId": prof_id, "actor": self.testactor}
+        path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
+        profile = {"test":"actor profile since time: %s" % updated,"obj":{"actor":"test"}}
+        response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat())
+
+        r = self.client.get(reverse(views.actor_profile), params)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, '%s' % profile)
+
+        since = datetime.datetime(2012, 7, 1, 12, 00)
+        params2 = {"actor": self.testactor, "since":since.isoformat()}
+        r2 = self.client.get(reverse(views.actor_profile), params2)
+        self.assertNotIn(prof_id, r2.content)
+
+        self.client.delete(reverse(views.actor_profile), params)
+
 class ActorsTest(TestCase):
     def test_get(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
