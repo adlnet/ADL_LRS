@@ -16,6 +16,11 @@ Then run our fabric file to install all local dependencies
 
     fabric deps_local
 
+Create actor profile path
+
+    create the path /var/www/adllrs/media/actor_profile/ with actor_profile having 777 permissions
+    (sudo chmod 777 actor_profile)
+    
 
 ## Starting
 
