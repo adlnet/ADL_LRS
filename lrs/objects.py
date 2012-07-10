@@ -3,6 +3,7 @@ import types
 from lrs import models
 from django.core.exceptions import FieldError, ValidationError
 from django.core.validators import URLValidator
+from django.core.files.base import ContentFile
 from django.db import transaction
 from functools import wraps
 

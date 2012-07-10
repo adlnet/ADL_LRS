@@ -6,6 +6,7 @@ import time
 import hashlib
 from unittest import TestCase as py_tc
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+import urllib
 
 class StatementsTest(TestCase):
     def test_post_but_really_get(self):
