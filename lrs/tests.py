@@ -483,6 +483,16 @@ class Models_ActivityTest(py_tc):
         for answer in answers:
             self.assertIn(answer,rspAnswers)
 
+    def do_actvity_definition_choices_model(self, defPK, clist, dlist):
+        descs = models.activity_definition_choices.objects.values_list('description', flat=True).filter(activity_definition=defPK)
+        choices = models.activity_definition_choices.objects.values_list('choice_id', flat=True).filter(activity_definition=defPK)
+        
+        for c in clist:
+            self.assertIn(c,choices)
+
+        for d in dlist:
+            self.assertIn(d, descs)
+
     def test_activity(self):
         #Test basic activity
         act = objects.Activity(json.dumps({'objectType':'Activity', 'id':'http://tincanapi.wikispaces.com/', }))
@@ -600,7 +610,7 @@ class Models_ActivityTest(py_tc):
 
         self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, 'true')
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['true'])
-    '''
+    
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
         act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://facebook.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
@@ -631,31 +641,25 @@ class Models_ActivityTest(py_tc):
         #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['golf', 'tetris'])
 
+        #Need to create function to test object choice values, but this works
         self.assertEqual(act.choices[0].choice_id, 'golf')
-        self.assertEqual(act.choices[0].description, {'en-US':'Golf Example'})
+        self.assertEqual(act.choices[0].description, '{"en-US": "Golf Example"}')
 
         self.assertEqual(act.choices[1].choice_id, 'tetris')
-        self.assertEqual(act.choices[1].description, {'en-US': 'Tetris Example'})
+        self.assertEqual(act.choices[1].description, '{"en-US": "Tetris Example"}')
         
         self.assertEqual(act.choices[2].choice_id, 'facebook')
-        self.assertEqual(act.choices[2].description, {'en-US': 'Facebook App'})
+        self.assertEqual(act.choices[2].description, '{"en-US": "Facebook App"}')
 
         self.assertEqual(act.choices[3].choice_id, 'scrabble')
-        self.assertEqual(act.choices[3].description, {'en-US': 'Scrabble Example'})
+        self.assertEqual(act.choices[3].description, '{"en-US": "Scrabble Example"}')
+
+        #Check model choice values
         clist = ['golf', 'tetris', 'facebook', 'scrabble']
-
-        choices = models.activity_definition_choices.objects.values_list('choice_id', flat=True).filter(activity_definition=defPK)
-        print 'choices ' + str(choices) + '\n'
-        for c in clist:
-            self.assertIn(c,choices)
-
-
-        dlist = [unicode({'en-US':'Golf Example'}),unicode({'en-US': 'Tetris Example'}),unicode({'en-US':'Facebook App'}),unicode({'en-US': 'Scrabble Example'})]
-        descs = models.activity_definition_choices.objects.values_list('description', flat=True).filter(activity_definition=defPK)
-
-        for d in dlist:
-            self.assertIn(d, descs)
-    '''
+        dlist = ['{"en-US": "Golf Example"}','{"en-US": "Tetris Example"}','{"en-US": "Facebook App"}','{"en-US": "Scrabble Example"}']
+        self.do_actvity_definition_choices_model(defPK, clist, dlist)        
+        
+    
     def test_activity_definition_cmiInteraction_multiple_choice_no_choices(self):
         self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id':'http://youtube.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',

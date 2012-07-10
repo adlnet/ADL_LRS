@@ -404,16 +404,19 @@ class Activity():
                 if interactionFlag == 'choices':
                     self.choices = []
                     for c in act_def['choices']:
-                        #print c
-                        choice = models.activity_definition_choices(choice_id=c['id'], description=c['description'],
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(c['description'])
+                        choice = models.activity_definition_choices(choice_id=c['id'], description=desc,
                             activity_definition=self.activity_definition)
-                        choice.save()
-                        print choice.choice_id 
-                        print choice.description
+                        choice.save() 
+                        #print choice.description
                         self.choices.append(choice)
+                #elif interactionFlag == 'scale':
+                #    self.scale = []
+                #    for s in act_def['scale']:        
                 
 
-            #Instantiate activity definition extensions
+            #Instantiate activity definition extensons
             self.activity_definition_extensions = []
 
             #See if activity definition has extensions
