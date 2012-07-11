@@ -630,12 +630,12 @@ class Models_ActivityTest(py_tc):
 
     def test_activity_definition_wrong_interactionType(self):
         #Should fail because of invalid interactionType
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id':'http://yahoo.com',
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id':'http://linkedin.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'intType2', 'correctResponsesPatteRN': 'response', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
      
-        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://yahoo.com')
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://linkedin.com')
 
     def test_activity_definition_no_correctResponsesPattern(self):
         #If it has a valid interactionType it must also provide the correctResponsesPattern field
@@ -648,7 +648,7 @@ class Models_ActivityTest(py_tc):
 
     
     def test_activity_definition_cmiInteraction_true_false(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://microsoft.com',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://www.vmware.com/',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'] ,'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
@@ -657,10 +657,10 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://microsoft.com', 'Activity')
+        self.do_activity_object(act,'http://www.vmware.com/', 'Activity')
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'true-false')
         
-        self.do_activity_model('http://microsoft.com', 'Activity')        
+        self.do_activity_model('http://www.vmware.com/', 'Activity')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'true-false')
 
         self.do_activity_definition_extensions_object(act, 'key1', 'key2', 'key3', 'value1', 'value2', 'value3')
@@ -781,7 +781,7 @@ class Models_ActivityTest(py_tc):
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['Fill in answer'])
 
     def test_activity_definition_cmiInteraction_long_fill_in(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://adlnet.gov',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://yahoo.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'fill-in','correctResponsesPattern': ['Long fill in answer'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -791,8 +791,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://adlnet.gov', 'Activity')
-        self.do_activity_model('http://adlnet.gov', 'Activity')
+        self.do_activity_object(act,'http://yahoo.com', 'Activity')
+        self.do_activity_model('http://yahoo.com', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')
@@ -804,7 +804,7 @@ class Models_ActivityTest(py_tc):
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['Long fill in answer'])
 
     def test_activity_definition_cmiInteraction_numeric(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://adlnet.gov/overview',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://ebay.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -814,8 +814,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://adlnet.gov/overview', 'Activity')
-        self.do_activity_model('http://adlnet.gov/overview', 'Activity')
+        self.do_activity_object(act,'http://ebay.com', 'Activity')
+        self.do_activity_model('http://ebay.com', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'numeric')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'numeric')
@@ -827,7 +827,7 @@ class Models_ActivityTest(py_tc):
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['4'])
 
     def test_activity_definition_cmiInteraction_other(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://adlnet.gov/capabilities',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://amazon.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'other','correctResponsesPattern': ['(35.937432,-86.868896)'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -837,8 +837,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://adlnet.gov/capabilities', 'Activity')
-        self.do_activity_model('http://adlnet.gov/capabilities', 'Activity')
+        self.do_activity_object(act,'http://amazon.com', 'Activity')
+        self.do_activity_model('http://amazon.com', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'other')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'other')
