@@ -1,5 +1,7 @@
 import json
 import types
+import urllib
+import datetime
 from lrs import models
 from django.core.exceptions import FieldError, ValidationError
 from django.core.validators import URLValidator
@@ -88,6 +90,8 @@ class Actor():
             else:
                 #raise MultipleActorError("Found multiple actors for actor parameter: %s" % self.initial)
                 #still need to merge
+                #but if i'm here, then it was a get request that asked for the agent
+                #and we can't change the data.. no saving the merged agent or removing the others
                 agent = models.merge_model_objects(agent_set.pop(), list(agent_set), save=False, keep_old=True)
         return agent
 
@@ -147,35 +151,25 @@ class Actor():
                         the_agent.agent_account_set.get_or_create(**to_create)  
         return the_agent     
     
+    @default_on_exception("")
     def get_objectType(self):
-        try:
-            return self.agent.objectType
-        except:
-            return ""
+        return self.agent.objectType
 
+    @default_on_exception([])
     def get_name(self):
-        try:
-            return self.agent.agent_name_set.values_list('name',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_name_set.values_list('name',flat=True).order_by('-date_added')
 
+    @default_on_exception([])
     def get_mbox(self):
-        try:
-            return self.agent.agent_mbox_set.values_list('mbox',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_mbox_set.values_list('mbox',flat=True).order_by('-date_added')
 
+    @default_on_exception([])
     def get_mbox_sha1sum(self):
-        try:
-            return self.agent.agent_mbox_sha1sum_set.values_list('mbox_sha1sum',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_mbox_sha1sum_set.values_list('mbox_sha1sum',flat=True).order_by('-date_added')
 
+    @default_on_exception([])
     def get_openid(self):
-        try:
-            return self.agent.agent_openid_set.values_list('openid',flat=True).order_by('-date_added')
-        except:
-            return []
+        return self.agent.agent_openid_set.values_list('openid',flat=True).order_by('-date_added')
 
     def get_account(self):
         accounts = []
@@ -186,21 +180,79 @@ class Actor():
                 a['accountServiceHomePage'] = acc.accountServiceHomePage
             accounts.append(a)
         return accounts
+   
     @default_on_exception([])
     def get_givenName(self):
         return self.agent.person.person_givenname_set.values_list('givenName',flat=True).order_by('-date_added')
+   
     @default_on_exception([])
     def get_familyName(self):
         return self.agent.person.person_familyname_set.values_list('familyName',flat=True).order_by('-date_added')
+    
     @default_on_exception([])
     def get_firstName(self):
         return self.agent.person.person_firstname_set.values_list('firstName',flat=True).order_by('-date_added')
+    
     @default_on_exception([])
     def get_lastName(self):
         return self.agent.person.person_lastname_set.values_list('lastName',flat=True).order_by('-date_added')
 
     def get_member(self):
         return []#self.agent.agent_name_set.values_list('member',flat=True).order_by('-date_added')
+
+    def put_profile(self, request_dict):
+        try:
+            profile = ContentFile(request_dict['profile'].read())
+        except:
+            try:
+                profile = ContentFile(request_dict['profile'])
+            except:
+                profile = ContentFile(str(request_dict['profile']))
+
+        p,created = models.actor_profile.objects.get_or_create(profileId=request_dict['profileId'],actor=self.agent)
+        if not created:
+            etag.check_preconditions(request_dict,p)
+        p.content_type = request_dict['CONTENT_TYPE']
+        p.etag = etag.create_tag(profile.read())
+        if request_dict['updated']:
+            p.stored = request_dict['updated']
+        profile.seek(0)
+        if created:
+            p.save()
+
+        fn = "%s_%s" % (p.actor_id,request_dict.get('filename', p.id))
+        p.profile.save(fn, profile)
+    
+    def get_profile(self, profileId):
+        try:
+            return self.agent.actor_profile_set.get(profileId=profileId)
+        except models.actor_profile.DoesNotExist:
+            raise IDNotFoundError('There is no profile associated with the id: %s' % profileId)
+
+    def get_profile_ids(self, since=None):
+        ids = []
+        if since: #filter(stored__gte = since)
+            try:
+                profs = self.agent.actor_profile_set.filter(stored__gte=since)
+            except ValidationError:
+                since_i = int(float(since))
+                since_dt = datetime.datetime.fromtimestamp(since_i)
+                profs = self.agent.actor_profile_set.filter(stored__gte=since_dt)
+            ids = [p.profileId for p in profs]
+        else:
+            ids = self.agent.actor_profile_set.values_list('profileId', flat=True)
+        return ids
+
+    def delete_profile(self, profileId):
+        try:
+            prof = self.get_profile(profileId)
+            prof.delete()
+        except models.actor_profile.DoesNotExist:
+            pass #we don't want it anyway
+        except IDNotFoundError:
+            pass
+
+
     def original_actor_json(self):
         return json.dumps(self.obj)
 
@@ -245,6 +297,12 @@ class Actor():
         return json.dumps(ret, sort_keys=True)
 
 class MultipleActorError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+class IDNotFoundError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
