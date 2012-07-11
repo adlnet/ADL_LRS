@@ -472,10 +472,14 @@ class Activity():
                         choice.save() 
                         #print choice.description
                         self.choices.append(choice)
-                #elif interactionFlag == 'scale':
-                #    self.scale = []
-                #    for s in act_def['scale']:        
-                
+                elif interactionFlag == 'scale':
+                    self.scale_choices = []
+                    for s in act_def['scale']:
+                        desc = json.dumps(c['scale'])
+                        scale = models.activity_definition_scale(scale_id=c['id'], description=desc,
+                            activity_definition=self.activity_definition)        
+                        scale.save()
+                        self.scale_choices.append(scale)
 
             #Instantiate activity definition extensons
             self.activity_definition_extensions = []

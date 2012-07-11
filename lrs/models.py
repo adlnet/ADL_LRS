@@ -180,7 +180,7 @@ class activity_definition_choices(models.Model):
 
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=200)
-    description = models.CharField(max_length=200)        
+    description = models.TextField()        
     activity_definition = models.ForeignKey(activity_definition)
 
 class activity_definition_source(models.Model):

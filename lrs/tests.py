@@ -726,37 +726,49 @@ class Models_ActivityTest(py_tc):
                 'key3': 'value3'}}}))   
 
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://youtube.com')
-    '''
+    
     def test_activity_definition_cmiInteraction_likert(self):    
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://adlnet.gov/resources',
+        act = objects.Activity(json.dumps({'id':'http://en.wikipedia.org/',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'likert','correctResponsesPattern': ['likert_3'],
-                'choices':[{'id': 'golf', 'description': {'en-US':'Golf Example'}},{'id': 'tetris',
-                'description':{'en-US': 'Tetris Example'}}],
-                'extensions': {'key1': 'value1', 'key2': 'value2',
-                'key3': 'value3'}}}))
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
+                'description':{'en-US': 'Its Pretty Cool'}}, {'id':'likert_2', 'description':{'en-US':'Its Damn Cool'}},
+                {'id':'likert_3', 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
 
         PK = models.activity.objects.get(activity_id=act.activity.activity_id)
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://adlnet.gov/resources', 'Activity')
-        self.do_activity_model('http://adlnet.gov/resources', 'Activity')
+        self.do_activity_object(act,'http://en.wikipedia.org/', 'Activity')
+        self.do_activity_model('http://en.wikipedia.org/', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')
 
-        self.do_activity_definition_extensions_object(act, 'key1', 'key2', 'key3', 'value1', 'value2', 'value3')
-        self.do_activity_definition_extensions_model(defPK, 'key1', 'key2', 'key3', 'value1', 'value2', 'value3')
-
-        #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
-        self.do_activity_definition_correctResponsePattern_model(rspPK, ['golf', 'tetris'])
-
         #Need to rewrite do_activity_definition_correctResponsePattern_object to accept multiple values
         #This works for now
-        self.assertEqual(act.answers[0].answer, 'golf')
-        self.assertEqual(act.answers[1].answer, 'tetris')
-    '''
+        self.assertEqual(act.answers[0].answer, 'likert_3')
+        #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
+        self.do_activity_definition_correctResponsePattern_model(rspPK, ['likert_3'])
+
+        #Need to create function to test object choice values, but this works
+        self.assertEqual(act.scale_choices[0].choice_id, 'golf')
+        self.assertEqual(act.scale_choices[0].description, '{"en-US": "Golf Example"}')
+
+        self.assertEqual(act.scale_choices[1].choice_id, 'tetris')
+        self.assertEqual(act.scale_choices[1].description, '{"en-US": "Tetris Example"}')
+        
+        self.assertEqual(act.scale_choices[2].choice_id, 'facebook')
+        self.assertEqual(act.scale_choices[2].description, '{"en-US": "Facebook App"}')
+
+        self.assertEqual(act.scale_choices[3].choice_id, 'scrabble')
+        self.assertEqual(act.choices[3].description, '{"en-US": "Scrabble Example"}')
+
+        #Check model choice values
+        clist = ['golf', 'tetris', 'facebook', 'scrabble']
+        dlist = ['{"en-US": "Golf Example"}','{"en-US": "Tetris Example"}','{"en-US": "Facebook App"}','{"en-US": "Scrabble Example"}']
+        self.do_actvity_definition_choices_model(defPK, clist, dlist)
+    
     def test_activity_definition_cmiInteraction_fill_in(self):
         act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://twitter.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
