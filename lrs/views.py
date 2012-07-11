@@ -1,7 +1,8 @@
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, Http404
 from django.views.decorators.http import require_http_methods, require_GET
-from lrs.util import req_parse, req_process
+from lrs.util import req_parse, req_process, etag
+from lrs import objects
 from django.shortcuts import render_to_response
 import logging
 
@@ -72,14 +73,13 @@ def activities(request):
 def actor_profile(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
+    except etag.MissingEtagInfo as mei:
+        return HttpResponse(mei.message, status=409)
+    except etag.EtagPreconditionFail as epf:
+        return HttpResponse(epf.message, status=412)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
-            
-    raise Http404
-
 
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
@@ -87,6 +87,8 @@ def actor_profile(request):
 def actors(request):
     try: 
         resp = handle_request(request)
+    except objects.IDNotFoundError as iderr:
+        return HttpResponse(iderr, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
@@ -158,23 +160,24 @@ processors = {
 
 def print_req_details(request):
     print '=====================details==============='
+    print 'upload handlers: %s' % request.upload_handlers
+    print 'content disposition: %s' % request.META.get("Content-Disposition", None)
     print 'method: %s' % request.method
-    #print 'raw %s' % request.raw_post_data
+    print 'raw %s' % request.raw_post_data
     print 'full path: %s' % request.get_full_path()
-    ##print 'REQUEST keys %s' % request.REQUEST.keys()
+    print 'REQUEST keys %s' % request.REQUEST.keys()
     #print 'DEL keys %s' % request.DELETE.keys()
     #print 'PUT keys %s' % request.PUT.keys()
     print 'GET keys %s' % request.GET.keys()
     print 'GET: %s' % request.GET
-    #print 'POST keys %s' % request.POST.keys()
-    #print 'POST: %s' % request.POST
+    print 'POST keys %s' % request.POST.keys()
+    print 'POST: %s' % request.POST
     try:
         body = request.body
         print 'body: %s' % body
     except:
         print 'busy body' 
 
-    #print 'META: %s' % request.META
+    print 'META: %s' % request.META
     print 'META content type: %s' % request.META['CONTENT_TYPE']
     print '==========================================='
- 

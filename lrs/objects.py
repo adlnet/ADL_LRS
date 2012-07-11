@@ -3,11 +3,13 @@ import types
 import urllib
 import datetime
 from lrs import models
-from django.core.exceptions import FieldError, ValidationError
-from django.core.validators import URLValidator
+from lrs.util import etag
+from django.core.exceptions import FieldError,ValidationError
 from django.core.files.base import ContentFile
+from django.core.validators import URLValidator
 from django.db import transaction
 from functools import wraps
+
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -307,7 +309,7 @@ class IDNotFoundError(Exception):
         self.message = msg
     def __str__(self):
         return repr(self.message)
-
+        
 class Activity():
 
     #activity definition required fields
