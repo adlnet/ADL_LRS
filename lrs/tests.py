@@ -5,6 +5,7 @@ from lrs import models, views, objects
 import json
 import time
 import datetime
+from django.utils.timezone import utc
 import hashlib
 from unittest import TestCase as py_tc
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -443,7 +444,7 @@ class ActorProfileTest(TestCase):
 
     def test_get_actor_since(self):
         prof_id = "http://oldprofile/time"
-        updated =  datetime.datetime(2012, 6, 12, 12, 00)
+        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
         params = {"profileId": prof_id, "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
         profile = {"test":"actor profile since time: %s" % updated,"obj":{"actor":"test"}}
@@ -453,7 +454,7 @@ class ActorProfileTest(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
-        since = datetime.datetime(2012, 7, 1, 12, 00)
+        since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
         params2 = {"actor": self.testactor, "since":since.isoformat()}
         r2 = self.client.get(reverse(views.actor_profile), params2)
         self.assertNotIn(prof_id, r2.content)
