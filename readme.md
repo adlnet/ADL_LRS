@@ -14,9 +14,13 @@ Then run our fabric file to install all local dependencies
 
     cd ADL_LRS
 
-    fab deps_local
+    fabric deps_local
 
-**Be sure to change your username and password to match your DB credentials on your machine in the adl_lrs/settings.py file**
+Create actor profile path
+
+    create the path /var/www/adllrs/media/actor_profile/ with actor_profile having 777 permissions
+    (sudo chmod 777 actor_profile)
+    
 
 ## Starting
 
