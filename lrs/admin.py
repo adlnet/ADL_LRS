@@ -74,7 +74,7 @@ class ActorProfileAdmin(admin.ModelAdmin):
 admin.site.register(models.result, ResultAdmin)
 admin.site.register(models.result_extensions)
 admin.site.register(models.score)
-admin.site.register(models.state)
+admin.site.register(models.activity_state)
 admin.site.register(models.statement_object)
 admin.site.register(models.agent, AgentAdmin)
 admin.site.register(models.agent_name)

@@ -20,14 +20,10 @@ def statements_put(req_dict):
 
 
 def activity_state_put(req_dict):
-    # test ETag for concurrency -- nevermind
-    activityId = req_dict['activityId']
-    actor = req_dict['actor']
-    stateId = req_dict['stateId']
-    registrationId = req_dict.get('registrationId', None)
-    if registrationId:
-        return HttpResponse("Success -- activity_state - method = PUT - activityId = %s - actor = %s - registrationId = %s - stateId = %s" % (activityId, actor, registrationId, stateId))
-    return HttpResponse("Success -- activity_state - method = PUT - activityId = %s - actor = %s - stateId = %s" % (activityId, actor, stateId))
+    # test ETag for concurrency
+    actstate = objects.ActivityState(req_dict)
+    actstate.put()
+    return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
     # add ETag for concurrency
@@ -56,18 +52,9 @@ def activity_state_get(req_dict):
     return response
 
 def activity_state_delete(req_dict):
-    activityId = req_dict['activityId']
-    actor = req_dict['actor']
-    registrationId = req_dict.get('registrationId', None)
-    stateId = req_dict.get('stateId', None)
-    if stateId:
-        if registrationId:
-            return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s - registrationId = %s - stateId = %s" % (activityId, actor, registrationId, stateId))
-        return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s - stateId = %s" % (activityId, actor, stateId))
-    if registrationId:
-        return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s - registrationId = %s" % (activityId, actor, registrationId))
-    return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s" % (activityId, actor))
-
+    actstate = objects.ActivityState(req_dict)
+    actstate.delete()
+    return HttpResponse("Success -- activity state - method = DELETE - stateId=%s" % req_dict.get('stateId',''))
 
 def activity_profile_put(req_dict):
     # test ETag for concurrency
@@ -106,10 +93,7 @@ def actor_profile_put(req_dict):
     # test ETag for concurrency
     actor = req_dict['actor']
     a = objects.Actor(actor, create=True)
-    try:
-        a.put_profile(req_dict)
-    except:
-        raise
+    a.put_profile(req_dict)
     return HttpResponse("", status=204)
 
 def actor_profile_get(req_dict):
