@@ -217,7 +217,7 @@ class Actor():
         p.content_type = request_dict['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
         if request_dict['updated']:
-            p.stored = request_dict['updated']
+            p.updated = request_dict['updated']
         profile.seek(0)
         if created:
             p.save()
@@ -233,13 +233,13 @@ class Actor():
 
     def get_profile_ids(self, since=None):
         ids = []
-        if since: #filter(stored__gte = since)
+        if since:
             try:
-                profs = self.agent.actor_profile_set.filter(stored__gte=since)
+                profs = self.agent.actor_profile_set.filter(updated__gte=since)
             except ValidationError:
                 since_i = int(float(since))
                 since_dt = datetime.datetime.fromtimestamp(since_i)
-                profs = self.agent.actor_profile_set.filter(stored__gte=since_dt)
+                profs = self.agent.actor_profile_set.filter(update__gte=since_dt)
             ids = [p.profileId for p in profs]
         else:
             ids = self.agent.actor_profile_set.values_list('profileId', flat=True)
@@ -326,6 +326,7 @@ class ActivityState():
         self.content_type = request_dict.get('CONTENT_TYPE', None)
         self.state = request_dict.get('state', None)
         self.etag = request_dict.get('ETAG', None)
+        self.since = request_dict.get('since', None)
 
     def __get_actor(self, create=False):
         actor = Actor(self.actor, create=create).agent
@@ -344,7 +345,10 @@ class ActivityState():
             except:
                 state = ContentFile(str(self.state))
 
-        p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,actor=actor,activity=self.activity)
+        if self.registrationId:
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,actor=actor,activity=self.activity,registration_id=self.registrationId)
+        else:
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,actor=actor,activity=self.activity)
         if not created:
             etag.check_preconditions(self.req_dict,p)
         p.content_type = self.content_type
@@ -368,7 +372,17 @@ class ActivityState():
             raise IDNotFoundError('There is no activity state associated with the id: %s' % self.stateId)
 
     def get_ids(self):
-        pass
+        actor = self.__get_actor()
+        try:
+            if self.registrationId:
+                state_set = models.activity_state.objects.filter(actor=actor, activity=self.activity, registration_id=self.registrationId)
+            else:
+                state_set = models.activity_state.objects.filter(actor=actor, activity=self.activity)
+        except models.activity_state.DoesNotExist:
+            return []
+        if self.since:
+            state_set = state_set.filter(updated__gte=self.since)
+        return state_set.values_list('state_id', flat=True)
 
     def delete(self):
         try:

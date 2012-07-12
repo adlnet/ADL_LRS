@@ -140,7 +140,7 @@ class group(agent):
 
 class actor_profile(models.Model):
     profileId = models.CharField(max_length=200)
-    stored = models.DateTimeField(auto_now_add=True, blank=True)
+    updated = models.DateTimeField(auto_now_add=True, blank=True)
     actor = models.ForeignKey(agent)
     profile = models.FileField(upload_to="actor_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
@@ -226,6 +226,15 @@ class activity_state(models.Model):
     def delete(self, *args, **kwargs):
         self.state.delete()
         super(activity_state, self).delete(*args, **kwargs)
+
+    def __unicode__(self):
+        return u'state_id: %s\n \
+               actor id: %s\n \
+               activity id: %s\n \
+               registration_id: %s' % (self.state_id,
+                                       self.actor_id,
+                                       self.activity_id,
+                                       self.registration_id)
 
 class statement(statement_object):
     statement_id = UUIDField(primary_key=True)  

@@ -54,7 +54,11 @@ class ActivityStateTest(TestCase):
     testactor = '{"name":["test"],"mbox":["mailto:test@example.com"]}'
     otheractor = '{"name":["other"],"mbox":["mailto:other@example.com"]}'
     activityId = "http://www.iana.org/domains/example/"
+    activityId2 = "http://www.google.com"
     stateId = "the_state_id"
+    stateId2 = "state_id_2"
+    stateId3 = "third_state_id"
+    stateId4 = "4th.id"
     registrationId = "some_sort_of_reg_id"
     content_type = "application/json"
 
@@ -62,43 +66,131 @@ class ActivityStateTest(TestCase):
         self.activity = models.activity(activity_id=self.activityId)
         self.activity.save()
 
-    def tearDown(self):
-        self.client.delete(self.url, {"stateId":self.stateId, "actor":self.testactor, "activityId":self.activityId})
+        self.activity2 = models.activity(activity_id=self.activityId2)
+        self.activity2.save()
 
-    def test_put(self):
         self.testparams1 = {"stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
         self.testprofile1 = {"test":"put activity state 1","obj":{"actor":"test"}}
         self.put1 = self.client.put(path, self.testprofile1, content_type=self.content_type)
+
+        self.testparams2 = {"stateId": self.stateId2, "activityId": self.activityId, "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams2))
+        self.testprofile2 = {"test":"put activity state 2","obj":{"actor":"test"}}
+        self.put2 = self.client.put(path, self.testprofile2, content_type=self.content_type)
+
+        self.testparams3 = {"stateId": self.stateId3, "activityId": self.activityId2, "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams3))
+        self.testprofile3 = {"test":"put activity state 3","obj":{"actor":"test"}}
+        self.put3 = self.client.put(path, self.testprofile3, content_type=self.content_type)
+
+        self.testparams4 = {"stateId": self.stateId4, "activityId": self.activityId2, "actor": self.otheractor}
+        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams4))
+        self.testprofile4 = {"test":"put activity state 4","obj":{"actor":"other"}}
+        self.put4 = self.client.put(path, self.testprofile4, content_type=self.content_type)
+
+    def tearDown(self):
+        self.client.delete(self.url, self.testparams1)
+        self.client.delete(self.url, self.testparams2)
+        self.client.delete(self.url, self.testparams3)
+        self.client.delete(self.url, self.testparams4)
+
+    def test_put(self):
         self.assertEqual(self.put1.status_code, 204)
         self.assertEqual(self.put1.content, '')
 
+        self.assertEqual(self.put2.status_code, 204)
+        self.assertEqual(self.put2.content, '')
+
+        self.assertEqual(self.put3.status_code, 204)
+        self.assertEqual(self.put3.content, '')
+
+        self.assertEqual(self.put4.status_code, 204)
+        self.assertEqual(self.put4.content, '')
      
     def test_put_with_registrationId(self):
-        pass
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        testprofregid = {"test":"put activity state w/ registrationId","obj":{"actor":"test"}}
+        put1 = self.client.put(path, testprofregid, content_type=self.content_type)
 
-        
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
+        # also testing get w/ registration id
+        r = self.client.get(self.url, testparamsregid)
+        self.assertEqual(r.status_code, 200)
+        prof1_str = '%s' % testprofregid
+        self.assertEqual(r.content, prof1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(prof1_str).hexdigest())
+        # and tests delete w/ registration id
+        del_r = self.client.delete(self.url, testparamsregid)
+        self.assertEqual(del_r.status_code, 204)
+
 
     def test_put_without_activityid(self):
-        pass
+        testparamsbad = {"stateId": "bad_state", "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
+        testprofbad = {"test":"put activity state BAD no activity id","obj":{"actor":"test"}}
+        put1 = self.client.put(path, testprofbad, content_type=self.content_type)
+
+        self.assertEqual(put1.status_code, 400)
+        self.assertIn('activityId parameter is missing', put1.content)
 
     
     def test_put_without_actor(self):
-        pass
+        testparamsbad = {"stateId": "bad_state", "activityId": self.activityId}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
+        testprofbad = {"test":"put activity state BAD no actor","obj":{"actor":"none"}}
+        put1 = self.client.put(path, testprofbad, content_type=self.content_type)
+
+        self.assertEqual(put1.status_code, 400)
+        self.assertIn('actor parameter is missing', put1.content)
 
     
     def test_put_without_stateid(self):
-        pass
+        testparamsbad = {"activityId": self.activityId, "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
+        testprofbad = {"test":"put activity state BAD no state id","obj":{"actor":"test"}}
+        put1 = self.client.put(path, testprofbad, content_type=self.content_type)
+
+        self.assertEqual(put1.status_code, 400)
+        self.assertIn('stateId parameter is missing', put1.content)
 
     
     def test_get(self):
-        pass
+        r = self.client.get(self.url, self.testparams1)
+        self.assertEqual(r.status_code, 200)
+        prof1_str = '%s' % self.testprofile1
+        self.assertEqual(r.content, prof1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(prof1_str).hexdigest())
 
-     
-    def test_get_with_registrationId(self):
-        pass
-
+        r2 = self.client.get(self.url, self.testparams2)
+        self.assertEqual(r2.status_code, 200)
+        prof2_str = '%s' % self.testprofile2
+        self.assertEqual(r2.content, prof2_str)
+        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(prof2_str).hexdigest())
         
+        r3 = self.client.get(self.url, self.testparams3)
+        self.assertEqual(r3.status_code, 200)
+        prof3_str = '%s' % self.testprofile3
+        self.assertEqual(r3.content, prof3_str)
+        self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(prof3_str).hexdigest())
+
+        r4 = self.client.get(self.url, self.testparams4)
+        self.assertEqual(r4.status_code, 200)
+        prof4_str = '%s' % self.testprofile4
+        self.assertEqual(r4.content, prof4_str)
+        self.assertEqual(r4['etag'], '"%s"' % hashlib.sha1(prof4_str).hexdigest())
+
+    def test_get_ids(self):
+        params = {"activityId": self.activityId, "actor": self.testactor}
+        r = self.client.get(self.url, params)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.stateId, r.content)
+        self.assertIn(self.stateId2, r.content)
+        self.assertNotIn(self.stateId3, r.content)
+        self.assertNotIn(self.stateId4, r.content)
+     
     def test_get_with_since(self):
         pass
 
@@ -119,25 +211,73 @@ class ActivityStateTest(TestCase):
         pass
 
     
-    def test_delete(self):
-        pass
-
-     
-    def test_delete_with_registrationId(self):
-        pass
-
-        
     def test_delete_without_activityid(self):
-        pass
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        testprofregid = {"test":"put activity state w/ registrationId","obj":{"actor":"test"}}
+        put1 = self.client.put(path, testprofregid, content_type=self.content_type)
+
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
+        
+        r = self.client.get(self.url, testparamsregid)
+        self.assertEqual(r.status_code, 200)
+        prof1_str = '%s' % testprofregid
+        self.assertEqual(r.content, prof1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(prof1_str).hexdigest())
+
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "actor": self.testactor})
+        self.assertEqual(f_r.status_code, 400)
+        self.assertIn('activityId parameter is missing', f_r.content)
+
+        del_r = self.client.delete(self.url, testparamsregid)
+        self.assertEqual(del_r.status_code, 204)
 
     
     def test_delete_without_actor(self):
-        pass
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        testprofregid = {"test":"put activity state w/ registrationId","obj":{"actor":"test"}}
+        put1 = self.client.put(path, testprofregid, content_type=self.content_type)
+
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
+        
+        r = self.client.get(self.url, testparamsregid)
+        self.assertEqual(r.status_code, 200)
+        prof1_str = '%s' % testprofregid
+        self.assertEqual(r.content, prof1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(prof1_str).hexdigest())
+
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId})
+        self.assertEqual(f_r.status_code, 400)
+        self.assertIn('actor parameter is missing', f_r.content)
+
+        del_r = self.client.delete(self.url, testparamsregid)
+        self.assertEqual(del_r.status_code, 204)
 
     
     def test_delete_without_stateid(self):
-        pass
-    
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        testprofregid = {"test":"put activity state w/ registrationId","obj":{"actor":"test"}}
+        put1 = self.client.put(path, testprofregid, content_type=self.content_type)
+
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
+        
+        r = self.client.get(self.url, testparamsregid)
+        self.assertEqual(r.status_code, 200)
+        prof1_str = '%s' % testprofregid
+        self.assertEqual(r.content, prof1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(prof1_str).hexdigest())
+
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "actor": self.testactor, "activityId": self.activityId})
+        self.assertEqual(f_r.status_code, 400)
+        self.assertIn('stateId parameter is missing', f_r.content)
+
+        del_r = self.client.delete(self.url, testparamsregid)
+        self.assertEqual(del_r.status_code, 204)
         
 class ActivityProfileTest(TestCase):
     def test_put(self):
@@ -318,10 +458,10 @@ class ActorProfileTest(TestCase):
         self.assertEqual(r.content, '%s' % profile)
 
         r = self.client.delete(reverse(views.actor_profile), params)
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 204)
 
         r = self.client.get(reverse(views.actor_profile), params)
-        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.status_code, 404)
 
     def test_get_actor_since(self):
         prof_id = "http://oldprofile/time"
