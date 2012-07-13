@@ -231,10 +231,12 @@ class activity_state(models.Model):
         return u'state_id: %s\n \
                actor id: %s\n \
                activity id: %s\n \
-               registration_id: %s' % (self.state_id,
-                                       self.actor_id,
-                                       self.activity_id,
-                                       self.registration_id)
+               registration_id: %s\n \
+               updated: %s' % (self.state_id,
+                               self.actor_id,
+                               self.activity_id,
+                               self.registration_id,
+                               self.updated)
 
 class statement(statement_object):
     statement_id = UUIDField(primary_key=True)  

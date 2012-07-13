@@ -213,7 +213,8 @@ class Actor():
 
         p,created = models.actor_profile.objects.get_or_create(profileId=request_dict['profileId'],actor=self.agent)
         if not created:
-            etag.check_preconditions(request_dict,p)
+            etag.check_preconditions(request_dict,p, required=True)
+            p.profile.delete()
         p.content_type = request_dict['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
         if request_dict['updated']:
@@ -351,10 +352,11 @@ class ActivityState():
             p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,actor=actor,activity=self.activity)
         if not created:
             etag.check_preconditions(self.req_dict,p)
+            p.state.delete() # remove old state file
         p.content_type = self.content_type
         p.etag = etag.create_tag(state.read())
         if self.updated:
-            p.stored = self.updated
+            p.updated = self.updated
         state.seek(0)
         if created:
             p.save()
@@ -371,13 +373,17 @@ class ActivityState():
         except models.activity_state.DoesNotExist:
             raise IDNotFoundError('There is no activity state associated with the id: %s' % self.stateId)
 
-    def get_ids(self):
+    def get_set(self,**kwargs):
         actor = self.__get_actor()
+        if self.registrationId:
+            state_set = models.activity_state.objects.filter(actor=actor, activity=self.activity, registration_id=self.registrationId)
+        else:
+            state_set = models.activity_state.objects.filter(actor=actor, activity=self.activity)
+        return state_set
+
+    def get_ids(self):
         try:
-            if self.registrationId:
-                state_set = models.activity_state.objects.filter(actor=actor, activity=self.activity, registration_id=self.registrationId)
-            else:
-                state_set = models.activity_state.objects.filter(actor=actor, activity=self.activity)
+            state_set = self.get_set()
         except models.activity_state.DoesNotExist:
             return []
         if self.since:
@@ -386,8 +392,13 @@ class ActivityState():
 
     def delete(self):
         try:
-            state = self.get()
-            state.delete()
+            if not self.stateId:
+                state = self.get_set()
+                for s in state:
+                    s.delete() # bulk delete skips the custom delete function
+            else:
+                state = self.get()
+                state.delete()
         except models.activity_state.DoesNotExist:
             pass
         except IDNotFoundError:
