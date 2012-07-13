@@ -493,8 +493,8 @@ class Models_ActivityTest(py_tc):
         self.assertEqual(act.activity.objectType, objType)
         
     def do_activity_model(self,act_id, objType):
-        self.assertEqual(models.activity.objects.get(activity_id=act_id).objectType, objType)
-        self.assertEqual(models.activity.objects.get(activity_id=act_id).activity_id, act_id)
+        self.assertEqual(models.activity.objects.filter(activity_id=act_id).objectType, objType)
+        self.assertEqual(models.activity.objects.filter(activity_id=act_id).activity_id, act_id)
 
     def do_activity_definition_object(self, act, name, desc, course, intType):
         self.assertEqual(act.activity.activity_definition.name, name)
@@ -531,8 +531,8 @@ class Models_ActivityTest(py_tc):
         self.assertIn('value3', extVals)
 
     def do_activity_definition_correctResponsePattern_object(self, act, defPK, rspPK, answer):
-        self.assertEqual(act.correctResponsesPattern.activity_definition, defPK)
-        self.assertEqual(rspPK.activity_definition, defPK)
+        self.assertIn(act.correctResponsesPattern.activity_definition, defPK)
+        self.assertIn(rspPK[0].activity_definition, defPK)
         self.assertEqual(act.answers[0].answer, answer)
 
     def do_activity_definition_correctResponsePattern_model(self, rspPK, answers):
@@ -592,10 +592,10 @@ class Models_ActivityTest(py_tc):
 
     def test_activity(self):
         #Test basic activity
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id':'http://tincanapi.wikispaces.com/', }))
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'id':'http://localhost:8000/TCAPI/', }))
         
-        self.do_activity_object(act,'http://tincanapi.wikispaces.com/','Activity')
-        self.do_activity_model('http://tincanapi.wikispaces.com/', 'Activity')
+        self.do_activity_object(act,'http://localhost:8000/TCAPI/','Activity')
+        self.do_activity_model('http://localhost:8000/TCAPI/', 'Activity')
     
     def test_activity_not_json(self):
         #Given wrong data format
@@ -603,10 +603,10 @@ class Models_ActivityTest(py_tc):
 
     def test_activity_no_objectType(self):
         #Not given an objectType
-        act = objects.Activity(json.dumps({'id':'http://tincanapi.wikispaces.com/Tin+Can+API+Specification'}))
+        act = objects.Activity(json.dumps({'id':'http://localhost:8000/TCAPI/'}))
         
-        self.do_activity_object(act,'http://tincanapi.wikispaces.com/Tin+Can+API+Specification', None)
-        self.do_activity_model('http://tincanapi.wikispaces.com/Tin+Can+API+Specification', None)
+        self.do_activity_object(act,'http://localhost:8000/TCAPI/', None)
+        self.do_activity_model('http://localhost:8000/TCAPI/', None)
 
     def test_activity_wrong_objectType(self):
         #Given invalid objectType
@@ -625,7 +625,7 @@ class Models_ActivityTest(py_tc):
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
         
         self.do_activity_object(act,'http://tincanapi.wikispaces.com/TinCan+Use+Cases', 'Activity')
         self.do_activity_definition_object(act, 'testname', 'testdesc', 'course', 'intType')
@@ -655,8 +655,8 @@ class Models_ActivityTest(py_tc):
                 'interactionType': 'intType2', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
 
         self.do_activity_object(act,'http://tincanapi.wikispaces.com/Verbs+and+Activities', 'Activity')
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'course', 'intType2')
@@ -692,9 +692,9 @@ class Models_ActivityTest(py_tc):
                 'interactionType': 'true-false','correctResponsesPattern': ['true'] ,'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://microsoft.com', 'Activity')
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'true-false')
@@ -718,9 +718,9 @@ class Models_ActivityTest(py_tc):
                 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://facebook.com', 'Activity')
         self.do_activity_model('http://facebook.com', 'Activity')
@@ -773,9 +773,9 @@ class Models_ActivityTest(py_tc):
                 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://twitter.com', 'Activity')
         self.do_activity_model('http://twitter.com', 'Activity')
@@ -796,9 +796,9 @@ class Models_ActivityTest(py_tc):
                 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://nhl.com', 'Activity')
         self.do_activity_model('http://nhl.com', 'Activity')
@@ -821,9 +821,9 @@ class Models_ActivityTest(py_tc):
                 'description':{'en-US': 'Its Pretty Cool'}}, {'id':'likert_2', 'description':{'en-US':'Its Damn Cool'}},
                 {'id':'likert_3', 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://en.wikipedia.org/', 'Activity')
         self.do_activity_model('http://en.wikipedia.org/', 'Activity')
@@ -864,9 +864,9 @@ class Models_ActivityTest(py_tc):
                 'target':[{'id':'1', 'description':{'en-US': 'SCORM Engine'}},{'id':'2',
                 'description':{'en-US': 'Pure-sewage'}},{'id':'3', 'description':{'en-US': 'SCORM Cloud'}}]}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://duckduckgo.com', 'Activity')
         self.do_activity_model('http://duckduckgo.com', 'Activity')
@@ -916,9 +916,9 @@ class Models_ActivityTest(py_tc):
                 'description':{'en-US': 'Strokes over par in disc golf at Liberty'}},
                 {'id':'lunch', 'description':{'en-US':'Lunch having been eaten'}}]}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://imdb.com', 'Activity')
         self.do_activity_model('http://imdb.com', 'Activity')
@@ -954,9 +954,9 @@ class Models_ActivityTest(py_tc):
                 'choices':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
                 {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron', 'description':{'en-US':'Aaron'}}]}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://bing.com', 'Activity')
         self.do_activity_model('http://bing.com', 'Activity')
@@ -996,9 +996,9 @@ class Models_ActivityTest(py_tc):
                 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://pandora.com', 'Activity')
         self.do_activity_model('http://pandora.com', 'Activity')
@@ -1019,9 +1019,9 @@ class Models_ActivityTest(py_tc):
                 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
 
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+        PK = models.activity.objects.filter(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.filter(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
         self.do_activity_object(act,'http://espn.com', 'Activity')
         self.do_activity_model('http://espn.com', 'Activity')
