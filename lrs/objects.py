@@ -411,6 +411,7 @@ class Activity():
                 except KeyError:    
                     raise Exception("Activity definition missing correctResponsesPattern")    
 
+                #Multiple choice and sequencing must have choices
                 if act_def['interactionType'] == 'multiple-choice' or \
                     act_def['interactionType'] == 'sequencing':
                         try:
@@ -419,6 +420,7 @@ class Activity():
                             raise Exception("Activity definition missing choices")
                         interactionFlag = 'choices' 
 
+                #Matching must have both source and target
                 if act_def['interactionType'] == 'matching':
                     try:
                         act_def['source']
@@ -427,6 +429,7 @@ class Activity():
                         raise Exception("Activity definition missing source/target for matching")
                     interactionFlag = 'source'
 
+                #Performance must have steps
                 if act_def['interactionType'] == 'performance':
                     try:
                         act_def['steps']
@@ -434,6 +437,7 @@ class Activity():
                         raise Exception("Activity definition missing steps for performance")    
                     interactionFlag = 'steps'
 
+                #Likert must have scale
                 if act_def['interactionType'] == 'likert':
                     try:
                         act_def['scale']
@@ -441,6 +445,7 @@ class Activity():
                         raise Exception("Activity definition missing scale for likert")
                     interactionFlag = 'scale'
 
+                #Set correctResponsesPatten arg after setting the arg flag
                 interactionType_args['crp'] = act_def['correctResponsesPattern']
 
             #Save activity to DB
@@ -462,24 +467,53 @@ class Activity():
                     answer.save()
                     self.answers.append(answer)
     
-                if interactionFlag == 'choices':
+                if interactionFlag == 'choices' or interactionFlag == 'sequencing':
                     self.choices = []
                     for c in act_def['choices']:
                         #Save description as string, not a dictionary
                         desc = json.dumps(c['description'])
-                        choice = models.activity_definition_choices(choice_id=c['id'], description=desc,
+                        choice = models.activity_definition_choice(choice_id=c['id'], description=desc,
                             activity_definition=self.activity_definition)
                         choice.save() 
-                        #print choice.description
                         self.choices.append(choice)
+                
                 elif interactionFlag == 'scale':
                     self.scale_choices = []
                     for s in act_def['scale']:
-                        desc = json.dumps(c['scale'])
-                        scale = models.activity_definition_scale(scale_id=c['id'], description=desc,
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(s['description'])
+                        scale = models.activity_definition_scale(scale_id=s['id'], description=desc,
                             activity_definition=self.activity_definition)        
                         scale.save()
                         self.scale_choices.append(scale)
+
+                elif interactionFlag == 'steps':
+                    self.steps = []
+                    for s in act_def['steps']:
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(s['description'])
+                        step = models.activity_definition_step(step_id=s['id'], description=desc,
+                            activity_definition=self.activity_definition)
+                        step.save()
+                        self.steps.append(step)
+
+                elif interactionFlag == 'source':
+                    self.source_choices = []
+                    self.target_choices = []
+                    for s in act_def['source']:
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(s['description'])
+                        source = models.activity_definition_source(source_id=s['id'], description=desc,
+                            activity_definition=self.activity_definition)
+                        source.save()
+                        self.source_choices.append(source)
+                    for t in act_def['target']:
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(t['description'])
+                        target = models.activity_definition_target(target_id=t['id'], description=desc,
+                            activity_definition=self.activity_definition)
+                        target.save()
+                        self.target_choices.append(target)        
 
             #Instantiate activity definition extensons
             self.activity_definition_extensions = []

@@ -542,14 +542,53 @@ class Models_ActivityTest(py_tc):
             self.assertIn(answer,rspAnswers)
 
     def do_actvity_definition_choices_model(self, defPK, clist, dlist):
-        descs = models.activity_definition_choices.objects.values_list('description', flat=True).filter(activity_definition=defPK)
-        choices = models.activity_definition_choices.objects.values_list('choice_id', flat=True).filter(activity_definition=defPK)
+        descs = models.activity_definition_choice.objects.values_list('description', flat=True).filter(activity_definition=defPK)
+        choices = models.activity_definition_choice.objects.values_list('choice_id', flat=True).filter(activity_definition=defPK)
         
         for c in clist:
             self.assertIn(c,choices)
 
         for d in dlist:
             self.assertIn(d, descs)
+
+    def do_actvity_definition_likert_model(self, defPK, clist, dlist):
+        descs = models.activity_definition_scale.objects.values_list('description', flat=True).filter(activity_definition=defPK)
+        choices = models.activity_definition_scale.objects.values_list('scale_id', flat=True).filter(activity_definition=defPK)
+        
+        for c in clist:
+            self.assertIn(c,choices)
+
+        for d in dlist:
+            self.assertIn(d, descs)
+
+    def do_actvity_definition_performance_model(self, defPK, slist, dlist):
+        descs = models.activity_definition_step.objects.values_list('description', flat=True).filter(activity_definition=defPK)
+        steps = models.activity_definition_step.objects.values_list('step_id', flat=True).filter(activity_definition=defPK)
+        
+        for s in slist:
+            self.assertIn(s,steps)
+
+        for d in dlist:
+            self.assertIn(d, descs)
+
+    def do_actvity_definition_matching_model(self, defPK, source_id_list, source_desc_list, target_id_list, target_desc_list):
+        source_descs = models.activity_definition_source.objects.values_list('description', flat=True).filter(activity_definition=defPK)
+        sources = models.activity_definition_source.objects.values_list('source_id', flat=True).filter(activity_definition=defPK)
+        
+        target_descs = models.activity_definition_target.objects.values_list('description', flat=True).filter(activity_definition=defPK)
+        targets = models.activity_definition_target.objects.values_list('target_id', flat=True).filter(activity_definition=defPK)
+        
+        for s_id in source_id_list:
+            self.assertIn(s_id,sources)
+
+        for s_desc in source_desc_list:
+            self.assertIn(s_desc, source_descs)
+
+        for t_id in target_id_list:
+            self.assertIn(t_id,targets)
+
+        for t_desc in target_desc_list:
+            self.assertIn(t_desc, target_descs)            
 
     def test_activity(self):
         #Test basic activity
@@ -727,48 +766,6 @@ class Models_ActivityTest(py_tc):
 
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://youtube.com')
     
-    def test_activity_definition_cmiInteraction_likert(self):    
-        act = objects.Activity(json.dumps({'id':'http://en.wikipedia.org/',
-                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
-                'interactionType': 'likert','correctResponsesPattern': ['likert_3'],
-                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
-                'description':{'en-US': 'Its Pretty Cool'}}, {'id':'likert_2', 'description':{'en-US':'Its Damn Cool'}},
-                {'id':'likert_3', 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
-
-        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
-        defPK = models.activity_definition.objects.get(activity=PK)
-        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
-
-        self.do_activity_object(act,'http://en.wikipedia.org/', 'Activity')
-        self.do_activity_model('http://en.wikipedia.org/', 'Activity')
-
-        self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')        
-        self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')
-
-        #Need to rewrite do_activity_definition_correctResponsePattern_object to accept multiple values
-        #This works for now
-        self.assertEqual(act.answers[0].answer, 'likert_3')
-        #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
-        self.do_activity_definition_correctResponsePattern_model(rspPK, ['likert_3'])
-
-        #Need to create function to test object choice values, but this works
-        self.assertEqual(act.scale_choices[0].choice_id, 'golf')
-        self.assertEqual(act.scale_choices[0].description, '{"en-US": "Golf Example"}')
-
-        self.assertEqual(act.scale_choices[1].choice_id, 'tetris')
-        self.assertEqual(act.scale_choices[1].description, '{"en-US": "Tetris Example"}')
-        
-        self.assertEqual(act.scale_choices[2].choice_id, 'facebook')
-        self.assertEqual(act.scale_choices[2].description, '{"en-US": "Facebook App"}')
-
-        self.assertEqual(act.scale_choices[3].choice_id, 'scrabble')
-        self.assertEqual(act.choices[3].description, '{"en-US": "Scrabble Example"}')
-
-        #Check model choice values
-        clist = ['golf', 'tetris', 'facebook', 'scrabble']
-        dlist = ['{"en-US": "Golf Example"}','{"en-US": "Tetris Example"}','{"en-US": "Facebook App"}','{"en-US": "Scrabble Example"}']
-        self.do_actvity_definition_choices_model(defPK, clist, dlist)
-    
     def test_activity_definition_cmiInteraction_fill_in(self):
         act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://twitter.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
@@ -793,7 +790,7 @@ class Models_ActivityTest(py_tc):
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['Fill in answer'])
 
     def test_activity_definition_cmiInteraction_long_fill_in(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://adlnet.gov',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://nhl.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'fill-in','correctResponsesPattern': ['Long fill in answer'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -803,8 +800,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://adlnet.gov', 'Activity')
-        self.do_activity_model('http://adlnet.gov', 'Activity')
+        self.do_activity_object(act,'http://nhl.com', 'Activity')
+        self.do_activity_model('http://nhl.com', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')
@@ -815,8 +812,185 @@ class Models_ActivityTest(py_tc):
         self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, 'Long fill in answer')
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['Long fill in answer'])
 
+
+    def test_activity_definition_cmiInteraction_likert(self):    
+        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'http://en.wikipedia.org/',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
+                'description':{'en-US': 'Its Pretty Cool'}}, {'id':'likert_2', 'description':{'en-US':'Its Damn Cool'}},
+                {'id':'likert_3', 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
+
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.get(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+
+        self.do_activity_object(act,'http://en.wikipedia.org/', 'Activity')
+        self.do_activity_model('http://en.wikipedia.org/', 'Activity')
+
+        self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')        
+        self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')
+
+        #Need to rewrite do_activity_definition_correctResponsePattern_object to accept multiple values
+        #This works for now
+        self.assertEqual(act.answers[0].answer, 'likert_3')
+        #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
+        self.do_activity_definition_correctResponsePattern_model(rspPK, ['likert_3'])
+
+        #Need to create function to test object choice values, but this works
+        self.assertEqual(act.scale_choices[0].scale_id, 'likert_0')
+        self.assertEqual(act.scale_choices[0].description, '{"en-US": "Its OK"}')
+
+        self.assertEqual(act.scale_choices[1].scale_id, 'likert_1')
+        self.assertEqual(act.scale_choices[1].description, '{"en-US": "Its Pretty Cool"}')
+        
+        self.assertEqual(act.scale_choices[2].scale_id, 'likert_2')
+        self.assertEqual(act.scale_choices[2].description, '{"en-US": "Its Damn Cool"}')
+
+        self.assertEqual(act.scale_choices[3].scale_id, 'likert_3')
+        self.assertEqual(act.scale_choices[3].description, '{"en-US": "Its Gonna Change the World"}')
+
+        #Check model choice values
+        clist = ['likert_3']
+        dlist = ['{"en-US": "Its OK"}','{"en-US": "Its Pretty Cool"}','{"en-US": "Its Damn Cool"}','{"en-US": "Its Gonna Change the World"}']
+        self.do_actvity_definition_likert_model(defPK, clist, dlist)
+
+    def test_activity_definition_cmiInteraction_matching(self):    
+        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'http://duckduckgo.com',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'matching','correctResponsesPattern': ['lou.3,tom.2,andy.1'],
+                'source':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom',
+                'description':{'en-US': 'Tom'}}, {'id':'andy', 'description':{'en-US':'Andy'}}],
+                'target':[{'id':'1', 'description':{'en-US': 'SCORM Engine'}},{'id':'2',
+                'description':{'en-US': 'Pure-sewage'}},{'id':'3', 'description':{'en-US': 'SCORM Cloud'}}]}}))
+
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.get(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+
+        self.do_activity_object(act,'http://duckduckgo.com', 'Activity')
+        self.do_activity_model('http://duckduckgo.com', 'Activity')
+
+        self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'matching')        
+        self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'matching')
+
+        #Need to rewrite do_activity_definition_correctResponsePattern_object to accept multiple values
+        #This works for now
+        self.assertEqual(act.answers[0].answer, 'lou.3,tom.2,andy.1')
+        #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
+        self.do_activity_definition_correctResponsePattern_model(rspPK, ['lou.3,tom.2,andy.1'])
+
+        #Need to create function to test object choice values, but this works
+        self.assertEqual(act.source_choices[0].source_id, 'lou')
+        self.assertEqual(act.source_choices[0].description, '{"en-US": "Lou"}')
+
+        self.assertEqual(act.source_choices[1].source_id, 'tom')
+        self.assertEqual(act.source_choices[1].description, '{"en-US": "Tom"}')
+        
+        self.assertEqual(act.source_choices[2].source_id, 'andy')
+        self.assertEqual(act.source_choices[2].description, '{"en-US": "Andy"}')
+
+        self.assertEqual(act.target_choices[0].target_id, '1')
+        self.assertEqual(act.target_choices[0].description, '{"en-US": "SCORM Engine"}')
+
+        self.assertEqual(act.target_choices[1].target_id, '2')
+        self.assertEqual(act.target_choices[1].description, '{"en-US": "Pure-sewage"}')
+        
+        self.assertEqual(act.target_choices[2].target_id, '3')
+        self.assertEqual(act.target_choices[2].description, '{"en-US": "SCORM Cloud"}')
+
+
+        #Check model choice values
+        source_id_list = ['lou', 'tom', 'andy']
+        source_desc_list = ['{"en-US": "Lou"}','{"en-US": "Tom"}','{"en-US": "Andy"}']
+        target_id_list = ['1','2','3']
+        target_desc_list = ['{"en-US": "SCORM Engine"}','{"en-US": "Pure-sewage"}','{"en-US": "SCORM Cloud"}']
+        self.do_actvity_definition_matching_model(defPK, source_id_list, source_desc_list, target_id_list, target_desc_list)
+
+
+    def test_activity_definition_cmiInteraction_performance(self):    
+        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'http://imdb.com',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'performance','correctResponsesPattern': ['pong.1,dg.10,lunch.4'],
+                'steps':[{'id': 'pong', 'description': {'en-US':'Net pong matches won'}},{'id': 'dg',
+                'description':{'en-US': 'Strokes over par in disc golf at Liberty'}},
+                {'id':'lunch', 'description':{'en-US':'Lunch having been eaten'}}]}}))
+
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.get(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+
+        self.do_activity_object(act,'http://imdb.com', 'Activity')
+        self.do_activity_model('http://imdb.com', 'Activity')
+
+        self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'performance')        
+        self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'performance')
+
+        #Need to rewrite do_activity_definition_correctResponsePattern_object to accept multiple values
+        #This works for now
+        self.assertEqual(act.answers[0].answer, 'pong.1,dg.10,lunch.4')
+        #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
+        self.do_activity_definition_correctResponsePattern_model(rspPK, ['pong.1,dg.10,lunch.4'])
+
+        #Need to create function to test object step values, but this works
+        self.assertEqual(act.steps[0].step_id, 'pong')
+        self.assertEqual(act.steps[0].description, '{"en-US": "Net pong matches won"}')
+
+        self.assertEqual(act.steps[1].step_id, 'dg')
+        self.assertEqual(act.steps[1].description, '{"en-US": "Strokes over par in disc golf at Liberty"}')
+        
+        self.assertEqual(act.steps[2].step_id, 'lunch')
+        self.assertEqual(act.steps[2].description, '{"en-US": "Lunch having been eaten"}')
+
+        #Check model choice values
+        slist = ['pong', 'dg', 'lunch']
+        dlist = ['{"en-US": "Net pong matches won"}','{"en-US": "Strokes over par in disc golf at Liberty"}','{"en-US": "Lunch having been eaten"}']
+        self.do_actvity_definition_performance_model(defPK, slist, dlist)
+
+    def test_activity_definition_cmiInteraction_sequencing(self):    
+        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'http://bing.com',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'sequencing','correctResponsesPattern': ['lou,tom,andy,aaron'],
+                'choices':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
+                {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron', 'description':{'en-US':'Aaron'}}]}}))
+
+        PK = models.activity.objects.get(activity_id=act.activity.activity_id)
+        defPK = models.activity_definition.objects.get(activity=PK)
+        rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
+
+        self.do_activity_object(act,'http://bing.com', 'Activity')
+        self.do_activity_model('http://bing.com', 'Activity')
+
+        self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'sequencing')        
+        self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'sequencing')
+
+        #Need to rewrite do_activity_definition_correctResponsePattern_object to accept multiple values
+        #This works for now
+        self.assertEqual(act.answers[0].answer, 'lou,tom,andy,aaron')
+        #self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, ['golf', 'tetris'])
+        self.do_activity_definition_correctResponsePattern_model(rspPK, ['lou,tom,andy,aaron'])
+
+        #Need to create function to test object step values, but this works
+        self.assertEqual(act.choices[0].choice_id, 'lou')
+        self.assertEqual(act.choices[0].description, '{"en-US": "Lou"}')
+
+        self.assertEqual(act.choices[1].choice_id, 'tom')
+        self.assertEqual(act.choices[1].description, '{"en-US": "Tom"}')
+        
+        self.assertEqual(act.choices[2].choice_id, 'andy')
+        self.assertEqual(act.choices[2].description, '{"en-US": "Andy"}')
+
+        self.assertEqual(act.choices[3].choice_id, 'aaron')
+        self.assertEqual(act.choices[3].description, '{"en-US": "Aaron"}')
+
+        #Check model choice values
+        clist = ['lou', 'tom', 'andy', 'aaron']
+        dlist = ['{"en-US": "Lou"}','{"en-US": "Tom"}','{"en-US": "Andy"}', '{"en-US": "Aaron"}']
+        self.do_actvity_definition_choices_model(defPK, clist, dlist)
+
+
     def test_activity_definition_cmiInteraction_numeric(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://adlnet.gov/overview',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://pandora.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -826,8 +1000,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://adlnet.gov/overview', 'Activity')
-        self.do_activity_model('http://adlnet.gov/overview', 'Activity')
+        self.do_activity_object(act,'http://pandora.com', 'Activity')
+        self.do_activity_model('http://pandora.com', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'numeric')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'numeric')
@@ -839,7 +1013,7 @@ class Models_ActivityTest(py_tc):
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['4'])
 
     def test_activity_definition_cmiInteraction_other(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://adlnet.gov/capabilities',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://espn.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'other','correctResponsesPattern': ['(35.937432,-86.868896)'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -849,8 +1023,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.get(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.get(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://adlnet.gov/capabilities', 'Activity')
-        self.do_activity_model('http://adlnet.gov/capabilities', 'Activity')
+        self.do_activity_object(act,'http://espn.com', 'Activity')
+        self.do_activity_model('http://espn.com', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'other')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'other')
@@ -860,10 +1034,6 @@ class Models_ActivityTest(py_tc):
 
         self.do_activity_definition_correctResponsePattern_object(act, defPK, rspPK, '(35.937432,-86.868896)')
         self.do_activity_definition_correctResponsePattern_model(rspPK, ['(35.937432,-86.868896)'])
-
-
-
-
 
 class Models_ActorTest(py_tc):
     def test_actor(self):
