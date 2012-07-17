@@ -1,9 +1,13 @@
 import json
 import types
 import urllib
+import urllib2
 import datetime
+import urlparse
+from StringIO import StringIO
 from lrs import models
 from lrs.util import etag
+from lxml import etree
 from django.core.exceptions import FieldError,ValidationError
 from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
@@ -319,20 +323,63 @@ class Activity():
     ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
             'interaction', 'cmi.interaction', 'question', 'objective', 'link']
 
+    validator = URLValidator(verify_exists=True)
+
+    req = urllib2.Request('http://projecttincan.com/tincan.xsd')
+    resp = urllib2.urlopen(req)
+    XML = resp.read()
+
+    xmlschema_doc = etree.parse(StringIO(XML))
+    xmlschema = etree.XMLSchema(xmlschema_doc)
+
+
     @transaction.commit_on_success
-    def __init__(self, initial=None):
+    def __init__(self, initial=None, test=True):
         self.initial = initial
-        self.obj = self.__parse(initial)
-        self.__populate(self.obj)
+        self.obj = self._parse(initial)
+        self._populate(self.obj, test)
 
     #Make sure initial data being received is JSON
-    def __parse(self,initial):
+    def _parse(self,initial):
         if initial:
             try:
                 return json.loads(initial)
             except Exception as e:
                 raise Exception("Error parsing the Activity object. Expecting json. Received: %s" % initial) 
         return {}
+
+    def _validateID(self,act_id):
+        valid = False
+        resolves = True
+        act_def = {}
+        #Retrieve XML doc since function is only called when not a link. ID should either not resolve or 
+        #only conform to the TC schema
+        try:    
+            act_resp = urllib2.urlopen(act_id)
+        except Exception, e:
+            print 'does not resolve'
+            resolves = False
+        else:
+            act_XML = act_resp.read()
+
+        #Validate that it is good XML with the schema
+        if resolves:
+            try:
+                act_xmlschema_doc = etree.parse(StringIO(act_XML))
+                valid = Activity.xmlschema.validate(act_xmlschema_doc) 
+            except Exception, e:
+                print 'resolves but does not conform'
+                raise e
+        
+        if valid:
+            #This is where I would parse act_XML, create a dictionary with the values from the doc
+            pass
+
+        #print (len(Activity.xmlschema.error_log))
+        #error = Activity.xmlschema.error_log[0]
+        #print error.message        
+        #print valid
+        return act_def
 
     def __save_actvity_to_db(self, act_id, objType):
         #Save activity to DB
@@ -348,19 +395,13 @@ class Activity():
         return act_def    
 
     #Once JSON is verified, populate the activity objects
-    def __populate(self, the_object):
+    def _populate(self, the_object, test):
+        valid_schema = False
         #Must include activity_id - set object's activity_id
         try:
             activity_id = the_object['id']
         except KeyError:
             raise Exception("No id provided, must provide 'id' field")
-        
-        #Verify the given activity_id exists
-        validator = URLValidator(verify_exists=True)
-        try:
-            validator(activity_id)
-        except ValidationError, e:
-            raise e
 
         #Set objectType to nothing
         objectType = None
@@ -374,12 +415,29 @@ class Activity():
 
         #See if activity has definition included
         if 'definition' in the_object.keys():
+            xml_data = {}
             activity_definition = the_object['definition']
-            self.__populate_definition(activity_definition, activity_id, objectType)
+         
+            if activity_definition['type'] == 'link':
+                #Verify the given activity_id resolves if it is a link
+                try:
+                    Activity.validator(activity_id)
+                except ValidationError, e:
+                    raise e
+            else:
+                if not test:
+                    #If activity is not a link, the ID either must not resolve or validate against metadata schema
+                     xml_data = self._validateID(activity_id)
+            
+            #If the returned data is not empty, it overrides any JSON data sent in
+            if xml_data:
+                activity_definition = xml_data
+
+            self._populate_definition(activity_definition, activity_id, objectType)
         else:
             self.activity = self.__save_actvity_to_db(activity_id, objectType)    
 
-    def __populate_definition(self, act_def, act_id, objType):
+    def _populate_definition(self, act_def, act_id, objType):
             #Needed for cmi.interaction args
             interactionType_args = {}
             interactionFlag = ""

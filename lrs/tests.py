@@ -490,27 +490,33 @@ class ActorsTest(TestCase):
 
 class Models_ActivityTest(py_tc):
     
-
+    #Called on all activity objects to see if they were created with the correct fields
     def do_activity_object(self,act, act_id, objType):
         self.assertEqual(act.activity.activity_id, act_id)
         self.assertEqual(act.activity.objectType, objType)
         
+    #Called on all activity django models to see if they were created with the correct fields    
     def do_activity_model(self,realid,act_id, objType):
         self.assertEqual(models.activity.objects.filter(id=realid)[0].objectType, objType)
         self.assertEqual(models.activity.objects.filter(id=realid)[0].activity_id, act_id)
 
+    #Called on all activity objects with definitions to see if they were created with the correct fields
     def do_activity_definition_object(self, act, name, desc, course, intType):
         self.assertEqual(act.activity.activity_definition.name, name)
         self.assertEqual(act.activity.activity_definition.description, desc)
         self.assertEqual(act.activity.activity_definition.activity_definition_type, course)
         self.assertEqual(act.activity.activity_definition.interactionType, intType)
 
+    #Called on all activity django models with definitions to see if they were created with the correct fields
+    #Rewrite using filter?
     def do_activity_definition_model(self, PK, testname, testdesc, course, intType):
         self.assertEqual(models.activity_definition.objects.get(activity=PK).name, testname)
         self.assertEqual(models.activity_definition.objects.get(activity=PK).description, testdesc)
         self.assertEqual(models.activity_definition.objects.get(activity=PK).activity_definition_type, course)
         self.assertEqual(models.activity_definition.objects.get(activity=PK).interactionType, intType)
 
+    #Called on all activity objects with extensions to see if they were created with the correct fields and values
+    #All extensions are created with the same three values and keys
     def do_activity_definition_extensions_object(self, act, key1, key2, key3, value1, value2, value3):
         self.assertEqual(act.activity_definition_extensions[0].key, key3)
         self.assertEqual(act.activity_definition_extensions[1].key, key2)
@@ -520,6 +526,8 @@ class Models_ActivityTest(py_tc):
         self.assertEqual(act.activity_definition_extensions[1].value, value2)
         self.assertEqual(act.activity_definition_extensions[2].value, value1)        
 
+    #Called on all activity django models with extensions to see if they were created with the correct fields and values
+    #All extensions are created with the same three values and keys
     def do_activity_definition_extensions_model(self, defPK, key1, key2, key3, value1, value2, value3):
         #Create list comprehesions to easier assess keys and values
         extList = models.activity_extentions.objects.values_list().filter(activity_definition=defPK)
@@ -533,17 +541,20 @@ class Models_ActivityTest(py_tc):
         self.assertIn('value2', extVals)
         self.assertIn('value3', extVals)
 
+
     def do_activity_definition_correctResponsePattern_object(self, act, defPK, rspPK, answer):
         self.assertIn(act.correctResponsesPattern.activity_definition, defPK)
         self.assertIn(rspPK[0].activity_definition, defPK)
         self.assertEqual(act.answers[0].answer, answer)
 
+    #Called on all activity django models with a correctResponsePattern because of cmi.interaction type
     def do_activity_definition_correctResponsePattern_model(self, rspPK, answers):
         rspAnswers = models.correctresponsespattern_answer.objects.values_list('answer', flat=True).filter(correctresponsespattern=rspPK)
         
         for answer in answers:
             self.assertIn(answer,rspAnswers)
 
+    #Called on all activity django models with choices because of sequence and choice interactionType
     def do_actvity_definition_choices_model(self, defPK, clist, dlist):
         descs = models.activity_definition_choice.objects.values_list('description', flat=True).filter(activity_definition=defPK)
         choices = models.activity_definition_choice.objects.values_list('choice_id', flat=True).filter(activity_definition=defPK)
@@ -554,6 +565,7 @@ class Models_ActivityTest(py_tc):
         for d in dlist:
             self.assertIn(d, descs)
 
+    #Called on all activity django models with scale because of likert interactionType
     def do_actvity_definition_likert_model(self, defPK, clist, dlist):
         descs = models.activity_definition_scale.objects.values_list('description', flat=True).filter(activity_definition=defPK)
         choices = models.activity_definition_scale.objects.values_list('scale_id', flat=True).filter(activity_definition=defPK)
@@ -564,6 +576,7 @@ class Models_ActivityTest(py_tc):
         for d in dlist:
             self.assertIn(d, descs)
 
+    #Called on all activity django models with steps because of performance interactionType
     def do_actvity_definition_performance_model(self, defPK, slist, dlist):
         descs = models.activity_definition_step.objects.values_list('description', flat=True).filter(activity_definition=defPK)
         steps = models.activity_definition_step.objects.values_list('step_id', flat=True).filter(activity_definition=defPK)
@@ -574,6 +587,7 @@ class Models_ActivityTest(py_tc):
         for d in dlist:
             self.assertIn(d, descs)
 
+    #Called on all activity django models with source and target because of matching interactionType
     def do_actvity_definition_matching_model(self, defPK, source_id_list, source_desc_list, target_id_list, target_desc_list):
         source_descs = models.activity_definition_source.objects.values_list('description', flat=True).filter(activity_definition=defPK)
         sources = models.activity_definition_source.objects.values_list('source_id', flat=True).filter(activity_definition=defPK)
@@ -593,34 +607,78 @@ class Models_ActivityTest(py_tc):
         for t_desc in target_desc_list:
             self.assertIn(t_desc, target_descs)            
 
+    #Test bare minimum activity
     def test_activity(self):
-        #Test basic activity
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id':home, }))
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'id':home}))
         
         self.do_activity_object(act,home,'Activity')
         self.do_activity_model(act.activity.id, home, 'Activity')
     
+    #Test an activity that is not a link and the provided ID doesn't resolve (should still use values from JSON)
+    def test_activity_not_link_no_resolve(self):
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'/var/www/adllrs/activity/example.xml',
+                'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
+                'interactionType': 'intType'}}), test=False)
+
+        PK = models.activity.objects.filter(id=act.activity.id)
+        
+        self.do_activity_object(act, '/var/www/adllrs/activity/example.xml', 'Activity')
+        self.do_activity_definition_object(act, 'testname', 'testdesc', 'course', 'intType')
+        self.do_activity_model(act.activity.id, '/var/www/adllrs/activity/example.xml', 'Activity')        
+        self.do_activity_definition_model(PK, 'testname', 'testdesc', 'course', 'intType')
+
+    #Test an activity that is not a link yet the ID resolves, but doesn't conform to XML schema (will not create one)
+    def test_activity_not_link_resolve(self):
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://tincanapi.wikispaces.com',
+                'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
+                'interactionType': 'intType'}}), test=False )
+
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://tincanapi.wikispaces.com')
+
+    #Test an activity that is a link and the ID resolves (should use values from JSON)
+    def test_activity_link_resolve(self):
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id': home,
+                'definition': {'name': 'testname','description': 'testdesc', 'type': 'link',
+                'interactionType': 'intType'}}), test=False)
+
+        PK = models.activity.objects.filter(id=act.activity.id)
+        
+        self.do_activity_object(act, home, 'Activity')
+        self.do_activity_definition_object(act, 'testname', 'testdesc', 'link', 'intType')
+        self.do_activity_model(act.activity.id, home, 'Activity')        
+        self.do_activity_definition_model(PK, 'testname', 'testdesc', 'link', 'intType')
+
+    #Test an activity that is a link and the ID does not resolve (will not create one)
+    def test_activity_link_no_resolve(self):
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://foo',
+                'definition': {'name': 'testname','description': 'testdesc', 'type': 'link',
+                'interactionType': 'intType'}}), test=False )
+
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://foo')
+
+    #Throws exception because incoming data is not JSON
     def test_activity_not_json(self):
-        #Given wrong data format
         self.assertRaises(Exception, objects.Activity,"This string should throw exception since it's not JSON")
 
+    #Test an activity where there is no given objectType, won't be created with one
     def test_activity_no_objectType(self):
-        #Not given an objectType
         act = objects.Activity(json.dumps({'id':home}))
         
         self.do_activity_object(act,home, None)
         self.do_activity_model(act.activity.id,home, None)
 
+    #Test an activity with a provided objectType but it is wrong (automatically makes Activity the objectType)
     def test_activity_wrong_objectType(self):
-        #Given invalid objectType
         act = objects.Activity(json.dumps({'id': home, 'objectType':'Wrong'}))    
 
         self.do_activity_object(act,home, 'Activity')
         self.do_activity_model(act.activity.id, home, 'Activity')
 
+    #Test activity where given URL doesn't resolve
     def test_activity_invalid_activity_id(self):
-        #Given URL that doesn't resolve
-        self.assertRaises(ValidationError, objects.Activity, json.dumps({'id': 'http://foo', 'objectType':'Activity'}))
+        self.assertRaises(ValidationError, objects.Activity, json.dumps({'id': 'http://foo', 'objectType':'Activity',
+                'definition': {'name': 'testname','description': 'testdesc', 'type': 'link',
+                'interactionType': 'intType'}}))
 
     def test_activity_definition(self):
         #Test activity with definition - must retrieve activity object in order to test definition from DB
