@@ -452,6 +452,12 @@ class Activity():
         except KeyError:
             raise Exception("No id provided, must provide 'id' field")
 
+        #Check if activity ID already exists
+        IDList = models.activity.objects.values_list('activity_id', flat=True)
+
+        if activity_id in IDList:
+            raise(Exception, "Activity ID is already in use, please use a different naming technique")
+
         #Set objectType to nothing
         objectType = None
 

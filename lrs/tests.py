@@ -631,6 +631,10 @@ class Models_ActivityTest(py_tc):
         self.do_activity_model(act.activity.id, 'http://problemsolutions.net/Test/tcexample.xml', 'Activity')        
         self.do_activity_definition_model(PK, 'Example Name', 'Example Desc', 'module', 'course')
 
+    #Test activity that doesn't have a def, isn't a link and conforms to schema but ID already exists (won't create it)
+    def test_activity_no_def_not_link_schema_conform1(self):
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://problemsolutions.net/Test/tcexample.xml'}))
+
     '''
     Choices is not part of the XML so this will throw an exception
     #Test activity that doesn't have a def, isn't a link and conforms to schema with CRP (populates everything from XML)
@@ -689,15 +693,15 @@ class Models_ActivityTest(py_tc):
 
     #Test an activity that has a def, not a link and the provided ID conforms to the schema (should use values from XML and override JSON)
     def test_activity_not_link_schema_conform(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://problemsolutions.net/Test/tcexample.xml',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://problemsolutions.net/Test/tcexample4.xml',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         
-        self.do_activity_object(act, 'http://problemsolutions.net/Test/tcexample.xml', 'Activity')
+        self.do_activity_object(act, 'http://problemsolutions.net/Test/tcexample4.xml', 'Activity')
         self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'module', 'course')
-        self.do_activity_model(act.activity.id, 'http://problemsolutions.net/Test/tcexample.xml', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://problemsolutions.net/Test/tcexample4.xml', 'Activity')        
         self.do_activity_definition_model(PK, 'Example Name', 'Example Desc', 'module', 'course')
 
     #Test an activity that has a def, is a link and the ID resolves (should use values from JSON)
@@ -727,17 +731,17 @@ class Models_ActivityTest(py_tc):
 
     #Test an activity where there is no given objectType, won't be created with one
     def test_activity_no_objectType(self):
-        act = objects.Activity(json.dumps({'id':'foo'}))
+        act = objects.Activity(json.dumps({'id':'fooa'}))
         
-        self.do_activity_object(act,'foo', None)
-        self.do_activity_model(act.activity.id,'foo', None)
+        self.do_activity_object(act,'fooa', None)
+        self.do_activity_model(act.activity.id,'fooa', None)
 
     #Test an activity with a provided objectType but it is wrong (automatically makes Activity the objectType)
     def test_activity_wrong_objectType(self):
-        act = objects.Activity(json.dumps({'id': 'foo', 'objectType':'Wrong'}))    
+        act = objects.Activity(json.dumps({'id': 'foob', 'objectType':'Wrong'}))    
 
-        self.do_activity_object(act,'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act,'foob', 'Activity')
+        self.do_activity_model(act.activity.id, 'foob', 'Activity')
 
     #Test activity where given URL doesn't resolve
     def test_activity_invalid_activity_id(self):
@@ -747,15 +751,15 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition - must retrieve activity object in order to test definition from DB
     def test_activity_definition(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'fooc',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         
-        self.do_activity_object(act,'foo', 'Activity')
+        self.do_activity_object(act,'fooc', 'Activity')
         self.do_activity_definition_object(act, 'testname', 'testdesc', 'course', 'intType')
-        self.do_activity_model(act.activity.id,'foo', 'Activity')        
+        self.do_activity_model(act.activity.id,'fooc', 'Activity')        
         self.do_activity_definition_model(PK, 'testname', 'testdesc', 'course', 'intType')
 
     #Test activity with definition given wrong type (won't create it)
@@ -776,7 +780,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that contains extensions - need to retrieve activity and activity definition objects in order to test extenstions
     def test_activity_definition_extensions(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'food',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'course',
                 'interactionType': 'intType2', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
@@ -784,10 +788,10 @@ class Models_ActivityTest(py_tc):
         PK = models.activity.objects.filter(id=act.activity.id)
         defPK = models.activity_definition.objects.filter(activity=PK)
 
-        self.do_activity_object(act,'foo', 'Activity')
+        self.do_activity_object(act,'food', 'Activity')
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'course', 'intType2')
         
-        self.do_activity_model(act.activity.id,'foo', 'Activity')        
+        self.do_activity_model(act.activity.id,'food', 'Activity')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'course', 'intType2')
 
         self.do_activity_definition_extensions_object(act, 'key1', 'key2', 'key3', 'value1', 'value2', 'value3')
@@ -814,7 +818,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and true-false interactionType
     def test_activity_definition_cmiInteraction_true_false(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'fooe',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'] ,'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
@@ -823,10 +827,10 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act,'foo', 'Activity')
+        self.do_activity_object(act,'fooe', 'Activity')
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'true-false')
         
-        self.do_activity_model(act.activity.id,'foo', 'Activity')        
+        self.do_activity_model(act.activity.id,'fooe', 'Activity')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'true-false')
 
         self.do_activity_definition_extensions_object(act, 'key1', 'key2', 'key3', 'value1', 'value2', 'value3')
@@ -837,7 +841,7 @@ class Models_ActivityTest(py_tc):
     
     #Test activity with definition that is cmi.interaction and multiple choice interactionType
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foof',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'multiple-choice','correctResponsesPattern': ['golf', 'tetris'],
                 'choices':[{'id': 'golf', 'description': {'en-US':'Golf Example'}},{'id': 'tetris',
@@ -850,8 +854,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act,'foo', 'Activity')
-        self.do_activity_model(act.activity.id,'foo', 'Activity')
+        self.do_activity_object(act,'foof', 'Activity')
+        self.do_activity_model(act.activity.id,'foof', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'multiple-choice')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'multiple-choice')
@@ -893,7 +897,7 @@ class Models_ActivityTest(py_tc):
     
     #Test activity with definition that is cmi.interaction and fill in interactionType
     def test_activity_definition_cmiInteraction_fill_in(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foog',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'fill-in','correctResponsesPattern': ['Fill in answer'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -903,8 +907,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act,'foo', 'Activity')
-        self.do_activity_model(act.activity.id,'foo', 'Activity')
+        self.do_activity_object(act,'foog', 'Activity')
+        self.do_activity_model(act.activity.id,'foog', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')
@@ -917,7 +921,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and long fill in interactionType
     def test_activity_definition_cmiInteraction_long_fill_in(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'fooh',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'fill-in','correctResponsesPattern': ['Long fill in answer'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -927,8 +931,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act, 'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act, 'fooh', 'Activity')
+        self.do_activity_model(act.activity.id, 'fooh', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'fill-in')
@@ -941,7 +945,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and likert interactionType
     def test_activity_definition_cmiInteraction_likert(self):    
-        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooi',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'likert','correctResponsesPattern': ['likert_3'],
                 'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
@@ -952,8 +956,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act, 'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act, 'fooi', 'Activity')
+        self.do_activity_model(act.activity.id, 'fooi', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'likert')
@@ -981,7 +985,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and matching interactionType
     def test_activity_definition_cmiInteraction_matching(self):    
-        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooj',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'matching','correctResponsesPattern': ['lou.3,tom.2,andy.1'],
                 'source':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom',
@@ -993,8 +997,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act, 'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act, 'fooj', 'Activity')
+        self.do_activity_model(act.activity.id, 'fooj', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'matching')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'matching')
@@ -1030,7 +1034,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and performance interactionType
     def test_activity_definition_cmiInteraction_performance(self):    
-        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'fook',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'performance','correctResponsesPattern': ['pong.1,dg.10,lunch.4'],
                 'steps':[{'id': 'pong', 'description': {'en-US':'Net pong matches won'}},{'id': 'dg',
@@ -1041,8 +1045,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act, 'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act, 'fook', 'Activity')
+        self.do_activity_model(act.activity.id, 'fook', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'performance')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'performance')
@@ -1067,7 +1071,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and sequencing interactionType
     def test_activity_definition_cmiInteraction_sequencing(self):    
-        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'fool',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'sequencing','correctResponsesPattern': ['lou,tom,andy,aaron'],
                 'choices':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
@@ -1077,8 +1081,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act, 'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act, 'fool', 'Activity')
+        self.do_activity_model(act.activity.id, 'fool', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'sequencing')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'sequencing')
@@ -1106,7 +1110,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and numeric interactionType
     def test_activity_definition_cmiInteraction_numeric(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foom',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -1116,8 +1120,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act, 'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act, 'foom', 'Activity')
+        self.do_activity_model(act.activity.id, 'foom', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'numeric')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'numeric')
@@ -1130,7 +1134,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and other interactionType
     def test_activity_definition_cmiInteraction_other(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id': 'foo',
+        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id': 'foon',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'other','correctResponsesPattern': ['(35.937432,-86.868896)'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -1140,8 +1144,8 @@ class Models_ActivityTest(py_tc):
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act, 'foo', 'Activity')
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_object(act, 'foon', 'Activity')
+        self.do_activity_model(act.activity.id, 'foon', 'Activity')
 
         self.do_activity_definition_object(act, 'testname2', 'testdesc2', 'cmi.interaction', 'other')        
         self.do_activity_definition_model(PK, 'testname2', 'testdesc2', 'cmi.interaction', 'other')
