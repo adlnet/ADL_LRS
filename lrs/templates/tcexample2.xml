@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<tincan xmlns="http://projecttincan.com/tincan.xsd">
+        <activities>
+                <activity id="scorm.ex/module/example" type="module">
+                        <name>Example Name</name>
+                        <description lang="en-US">Example Desc</description>
+                        <interactionType>course</interactionType>
+						<extensions>
+							<extension key="keya">first value</extension>
+							<extension key="keyb">second value</extension>
+							<extension key="keyc">third value</extension>
+						</extensions>
+                </activity>
+        </activities>
+</tincan>						
