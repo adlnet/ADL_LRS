@@ -19,6 +19,18 @@ def home(request):
     return HttpResponse(rsp)
     #return render_to_response('home.html')
 
+def tcexample(request):
+    return render_to_response('tcexample.xml')
+
+def tcexample2(request):
+    return render_to_response('tcexample2.xml')
+
+def tcexample3(request):
+    return render_to_response('tcexample3.xml')
+
+def tcexample4(request):
+    return render_to_response('tcexample4.xml')
+
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):
     try: 
