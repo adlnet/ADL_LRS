@@ -1,9 +1,13 @@
 import json
 import types
 import urllib
+import urllib2
 import datetime
+import urlparse
+from StringIO import StringIO
 from lrs import models
 from lrs.util import etag
+from lxml import etree
 from django.core.exceptions import FieldError,ValidationError
 from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
@@ -312,21 +316,32 @@ class IDNotFoundError(Exception):
         
 class Activity():
 
-    #activity definition required fields
+    #Activity definition required fields
     ADRFs = ['name', 'description', 'type', 'interactionType']
 
-    #activity definition types
+    #Activity definition types
     ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
             'interaction', 'cmi.interaction', 'question', 'objective', 'link']
 
+    #URL Validator
+    validator = URLValidator(verify_exists=True)
+
+    #XMLschema for Activity IDs
+    req = urllib2.Request('http://projecttincan.com/tincan.xsd')
+    resp = urllib2.urlopen(req)
+    XML = resp.read()
+    XMLschema_doc = etree.parse(StringIO(XML))
+    XMLschema = etree.XMLSchema(XMLschema_doc)
+
+    #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None):
+    def __init__(self, initial=None, test=True):
         self.initial = initial
-        self.obj = self.__parse(initial)
-        self.__populate(self.obj)
+        self.obj = self._parse(initial)
+        self._populate(self.obj, test)
 
     #Make sure initial data being received is JSON
-    def __parse(self,initial):
+    def _parse(self,initial):
         if initial:
             try:
                 return json.loads(initial)
@@ -334,33 +349,114 @@ class Activity():
                 raise Exception("Error parsing the Activity object. Expecting json. Received: %s" % initial) 
         return {}
 
-    def __save_actvity_to_db(self, act_id, objType):
-        #Save activity to DB
+    def _validateID(self,act_id):
+        validXML = False
+        resolves = True
+
+        #Retrieve XML doc since function is only called when not a link. ID should either not resolve or 
+        #only conform to the TC schema - if it fails that means the URL didn't resolve at all
+        try:    
+            act_resp = urllib2.urlopen(act_id)
+        except Exception, e:
+            resolves = False
+        else:
+            act_XML = act_resp.read()
+
+        #Validate that it is good XML with the schema - if it fails it means the URL resolved but didn't conform to the schema
+        if resolves:
+            try:
+                act_xmlschema_doc = etree.parse(StringIO(act_XML))    
+                validXML = Activity.XMLschema.validate(act_xmlschema_doc)
+            except Exception, e:
+                raise e        
+
+        #Parse XML, create dictionary with the values from the XML doc
+        if validXML:
+            return self._parseXML(act_xmlschema_doc)
+        else:
+            return {}
+
+    def _parseXML(self, xmldoc):
+        #Create namespace and get the root
+        ns = {'tc':'http://projecttincan.com/tincan.xsd'}
+        root = xmldoc.getroot()
+        act_def = {}
+
+        #Parse the name (required)
+        if root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]:
+            act_def['name'] = root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]
+        else:
+            raise(Exception, "XML is missing name")
+            
+        #Parse the description (required)    
+        if root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]:
+            act_def['description'] = root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]
+        else:
+            raise(Exception, "XML is missing description")
+            
+        #Parse the interactionType (required)
+        if root.xpath('//tc:activities/tc:activity/tc:interactionType/text()', namespaces=ns)[0]:
+            act_def['interactionType'] = root.xpath('//tc:activities/tc:activity/tc:interactionType/text()', namespaces=ns)[0]
+        else:
+            raise(Exception, "XML is missing interactionType")
+
+        #Parse the type (required)
+        if root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]:
+            act_def['type'] = root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]
+        else:
+            raise(Exception, "XML is missing type")
+
+        #Parse extensions if any
+        if root.xpath('//tc:activities/tc:activity/tc:extensions', namespaces=ns) is not None:
+            extensions = {}
+            extensionTags = root.xpath('//tc:activities/tc:activity/tc:extensions/tc:extension', namespaces=ns)
+            
+            for tag in extensionTags:
+                extensions[tag.get('key')] = tag.text
+
+            act_def['extensions'] = extensions
+
+        #Parse correctResponsesPattern if any
+        if root.xpath('//tc:activities/tc:activity/tc:correctResponsesPattern', namespaces=ns) is not None:
+            crList = []
+            correctResponseTags = root.xpath('//tc:activities/tc:activity/tc:correctResponsesPattern/tc:correctResponsePattern', namespaces=ns)
+                
+            for cr in correctResponseTags:    
+                crList.append(cr.text)
+
+            act_def['correctResponsesPattern'] = crList
+
+        return act_def
+
+    #Save activity to DB
+    def _save_actvity_to_db(self, act_id, objType):
         act = models.activity(activity_id=act_id, objectType=objType)
         act.save()
         return act
 
-    def __save_activity_definition_to_db(self, act, name, desc, act_def_type, intType):
-        #Save activity definition to DB
+    #Save activity definition to DB
+    def _save_activity_definition_to_db(self, act, name, desc, act_def_type, intType):
         act_def = models.activity_definition(name=name,description=desc, activity_definition_type=act_def_type,
                   interactionType=intType, activity=act)
         act_def.save()
         return act_def    
 
     #Once JSON is verified, populate the activity objects
-    def __populate(self, the_object):
+    def _populate(self, the_object, test):
+        valid_schema = False
+        xml_data = {}
+
         #Must include activity_id - set object's activity_id
         try:
             activity_id = the_object['id']
         except KeyError:
             raise Exception("No id provided, must provide 'id' field")
-        
-        #Verify the given activity_id exists
-        validator = URLValidator(verify_exists=True)
-        try:
-            validator(activity_id)
-        except ValidationError, e:
-            raise e
+
+        #Check if activity ID already exists
+        IDList = models.activity.objects.values_list('activity_id', flat=True)
+
+        if activity_id in IDList:
+            raise(Exception, "Activity ID is already in use, please use a different naming technique")
 
         #Set objectType to nothing
         objectType = None
@@ -369,22 +465,48 @@ class Activity():
         if 'objectType' in the_object.keys():
             objectType = 'Activity'
 
-        #Instantiate activity definition
-        activity_definition = {}
+        #Try to grab XML from ID if no other JSON is provided - since it won't have a definition it's not a link
+        #therefore it can be allowed to not resolve and will just return an empty dictionary
+        if not 'definition' in the_object.keys():
+            xml_data = self._validateID(activity_id)
 
-        #See if activity has definition included
-        if 'definition' in the_object.keys():
-            activity_definition = the_object['definition']
-            self.__populate_definition(activity_definition, activity_id, objectType)
+            #If the ID validated against the XML schema then proceed with populating the definition with the info
+            #from the XML - else just save the activity (someone sent in an ID that doesn't resolve and an objectType
+            #with no other data)                
+            if xml_data:
+                self._populate_definition(xml_data, activity_id, objectType)
+            else:    
+                self.activity = self._save_actvity_to_db(activity_id, objectType)
+        #Definition is provided
         else:
-            self.activity = self.__save_actvity_to_db(activity_id, objectType)    
+            activity_definition = the_object['definition']
+         
+            #Verify the given activity_id resolves if it is a link (has to resolve if link) 
+            if activity_definition['type'] == 'link':
+                try:
+                    Activity.validator(activity_id)
+                except ValidationError, e:
+                    raise e
+            #Type is not a link - it can be allowed to not resolve and will just return an empty dictionary    
+            else:
+                #If activity is not a link, the ID either must not resolve or validate against metadata schema
+                xml_data = self._validateID(activity_id)
+            
+            #If the returned data is not empty, it overrides any JSON data sent in
+            if xml_data:
+                activity_definition = xml_data
 
-    def __populate_definition(self, act_def, act_id, objType):
+            #If the URL did not resolve and is not type link, it will use the JSON data provided
+            self._populate_definition(activity_definition, activity_id, objectType)
+        
+
+
+    #Populate definition either from JSON or validated XML
+    def _populate_definition(self, act_def, act_id, objType):
             #Needed for cmi.interaction args
-            interactionType_args = {}
             interactionFlag = ""
 
-            #Check if all activity definition required fields are present - delete existing activity model
+            #Check if all activity definition required fields are present - deletes existing activity model
             #if error with required activity definition fields
             for k in Activity.ADRFs:
                 if k not in act_def.keys() and k != 'extensions':
@@ -411,6 +533,7 @@ class Activity():
                 except KeyError:    
                     raise Exception("Activity definition missing correctResponsesPattern")    
 
+                #Multiple choice and sequencing must have choices
                 if act_def['interactionType'] == 'multiple-choice' or \
                     act_def['interactionType'] == 'sequencing':
                         try:
@@ -419,6 +542,7 @@ class Activity():
                             raise Exception("Activity definition missing choices")
                         interactionFlag = 'choices' 
 
+                #Matching must have both source and target
                 if act_def['interactionType'] == 'matching':
                     try:
                         act_def['source']
@@ -427,6 +551,7 @@ class Activity():
                         raise Exception("Activity definition missing source/target for matching")
                     interactionFlag = 'source'
 
+                #Performance must have steps
                 if act_def['interactionType'] == 'performance':
                     try:
                         act_def['steps']
@@ -434,6 +559,7 @@ class Activity():
                         raise Exception("Activity definition missing steps for performance")    
                     interactionFlag = 'steps'
 
+                #Likert must have scale
                 if act_def['interactionType'] == 'likert':
                     try:
                         act_def['scale']
@@ -441,47 +567,80 @@ class Activity():
                         raise Exception("Activity definition missing scale for likert")
                     interactionFlag = 'scale'
 
-                interactionType_args['crp'] = act_def['correctResponsesPattern']
-
             #Save activity to DB
-            self.activity = self.__save_actvity_to_db(act_id, objType)
+            self.activity = self._save_actvity_to_db(act_id, objType)
 
             #Save activity definition to DB
-            self.activity_definition = self.__save_activity_definition_to_db(self.activity, act_def['name'],
+            self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
                         act_def['description'], act_def['type'], act_def['interactionType'])
     
-            #If there are args then save individually
-            if interactionType_args:
+            #If there is a correctResponsesPattern then save the pattern
+            if 'correctResponsesPattern' in act_def.keys():
                 crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
                 crp.save()
                 self.correctResponsesPattern = crp
                 
+                #For each answer in the pattern save it
                 self.answers = []
                 for i in act_def['correctResponsesPattern']:
                     answer = models.correctresponsespattern_answer(answer=i, correctresponsespattern=self.correctResponsesPattern)
                     answer.save()
                     self.answers.append(answer)
     
-                if interactionFlag == 'choices':
+                #Depending on which type of interaction, save the unique fields accordingly
+                if interactionFlag == 'choices' or interactionFlag == 'sequencing':
                     self.choices = []
                     for c in act_def['choices']:
                         #Save description as string, not a dictionary
                         desc = json.dumps(c['description'])
-                        choice = models.activity_definition_choices(choice_id=c['id'], description=desc,
+                        choice = models.activity_definition_choice(choice_id=c['id'], description=desc,
                             activity_definition=self.activity_definition)
                         choice.save() 
-                        #print choice.description
                         self.choices.append(choice)
-                #elif interactionFlag == 'scale':
-                #    self.scale = []
-                #    for s in act_def['scale']:        
                 
+                elif interactionFlag == 'scale':
+                    self.scale_choices = []
+                    for s in act_def['scale']:
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(s['description'])
+                        scale = models.activity_definition_scale(scale_id=s['id'], description=desc,
+                            activity_definition=self.activity_definition)        
+                        scale.save()
+                        self.scale_choices.append(scale)
 
-            #Instantiate activity definition extensons
-            self.activity_definition_extensions = []
+                elif interactionFlag == 'steps':
+                    self.steps = []
+                    for s in act_def['steps']:
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(s['description'])
+                        step = models.activity_definition_step(step_id=s['id'], description=desc,
+                            activity_definition=self.activity_definition)
+                        step.save()
+                        self.steps.append(step)
+
+                elif interactionFlag == 'source':
+                    self.source_choices = []
+                    self.target_choices = []
+                    for s in act_def['source']:
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(s['description'])
+                        source = models.activity_definition_source(source_id=s['id'], description=desc,
+                            activity_definition=self.activity_definition)
+                        source.save()
+                        self.source_choices.append(source)
+                    
+                    for t in act_def['target']:
+                        #Save description as string, not a dictionary
+                        desc = json.dumps(t['description'])
+                        target = models.activity_definition_target(target_id=t['id'], description=desc,
+                            activity_definition=self.activity_definition)
+                        target.save()
+                        self.target_choices.append(target)        
 
             #See if activity definition has extensions
-            if 'extensions' in act_def.keys():
+            if 'extensions' in act_def.keys(): 
+                self.activity_definition_extensions = []
+
                 for k, v in act_def['extensions'].items():
                     act_def_ext = models.activity_extentions(key=k, value=v,
                         activity_definition=self.activity_definition)
