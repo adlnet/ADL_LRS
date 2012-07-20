@@ -173,14 +173,14 @@ class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
     correctresponsespattern = models.ForeignKey(activity_def_correctresponsespattern)    
 
-class activity_definition_choices(models.Model):
+class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=200)
     description = models.TextField()        
     activity_definition = models.ForeignKey(activity_definition)
 
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=200)
-    description = models.CharField(max_length=200)        
+    description = models.TextField()        
     activity_definition = models.ForeignKey(activity_definition)
 
 class activity_definition_source(models.Model):
@@ -193,7 +193,7 @@ class activity_definition_target(models.Model):
     description = models.CharField(max_length=200)        
     activity_definition = models.ForeignKey(activity_definition)
 
-class activity_definition_steps(models.Model):
+class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=200)
     description = models.CharField(max_length=200)        
     activity_definition = models.ForeignKey(activity_definition)
