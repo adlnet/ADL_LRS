@@ -12,3 +12,4 @@ ssh==1.7.13
 supervisor==3.0a12
 uuid==1.30
 wsgiref==0.1.2
+lxml==2.3.4
