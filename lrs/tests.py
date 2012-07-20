@@ -622,32 +622,32 @@ class Models_ActivityTest(py_tc):
 
     #Test activity that doesn't have a def, isn't a link and conforms to schema (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://problemsolutions.net/Test/tcexample.xml'}))
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         
-        self.do_activity_object(act,'http://problemsolutions.net/Test/tcexample.xml', 'Activity')
+        self.do_activity_object(act,'http://localhost:8000/TCAPI/tcexample/', 'Activity')
         self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'module', 'course')
-        self.do_activity_model(act.activity.id, 'http://problemsolutions.net/Test/tcexample.xml', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample/', 'Activity')        
         self.do_activity_definition_model(PK, 'Example Name', 'Example Desc', 'module', 'course')
 
     #Test activity that doesn't have a def, isn't a link and conforms to schema but ID already exists (won't create it)
     def test_activity_no_def_not_link_schema_conform1(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://problemsolutions.net/Test/tcexample.xml'}))
+        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
 
     '''
     Choices is not part of the XML so this will throw an exception
     #Test activity that doesn't have a def, isn't a link and conforms to schema with CRP (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform_correctResponsesPattern(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://problemsolutions.net/Test/tcexample3.xml'}))
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample3/'}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         defPK = models.activity_definition.objects.filter(activity=PK)
         rspPK = models.activity_def_correctresponsespattern.objects.filter(activity_definition=defPK)
 
-        self.do_activity_object(act,'http://problemsolutions.net/Test/tcexample3.xml', 'Activity')
+        self.do_activity_object(act,'http://localhost:8000/TCAPI/tcexample3/', 'Activity')
         self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'cmi.interaction', 'multiple-choice')
-        self.do_activity_model(act.activity.id, 'http://problemsolutions.net/Test/tcexample3.xml', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample3/', 'Activity')        
         self.do_activity_definition_model(PK, 'Example Name', 'Example Desc', 'cmi.interaction', 'multiple-choice')
     
         self.assertEqual(act.answers[0].answer, 'golf')
@@ -657,14 +657,14 @@ class Models_ActivityTest(py_tc):
 
     #Test activity that doesn't have a def, isn't a link and conforms to schema with extensions (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform_extensions(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://problemsolutions.net/Test/tcexample2.xml'}))
+        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample2/'}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         defPK = models.activity_definition.objects.filter(activity=PK)
 
-        self.do_activity_object(act,'http://problemsolutions.net/Test/tcexample2.xml', 'Activity')
+        self.do_activity_object(act,'http://localhost:8000/TCAPI/tcexample2/', 'Activity')
         self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'module', 'course')
-        self.do_activity_model(act.activity.id, 'http://problemsolutions.net/Test/tcexample2.xml', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample2/', 'Activity')        
         self.do_activity_definition_model(PK, 'Example Name', 'Example Desc', 'module', 'course')
 
         self.do_activity_definition_extensions_object(act, 'keya', 'keyb', 'keyc', 'first value', 'second value', 'third value')
