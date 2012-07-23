@@ -20,54 +20,28 @@ def statements_put(req_dict):
 
 
 def activity_state_put(req_dict):
-    # test ETag for concurrency -- nevermind
-    activityId = req_dict['activityId']
-    actor = req_dict['actor']
-    stateId = req_dict['stateId']
-    registrationId = req_dict.get('registrationId', None)
-    if registrationId:
-        return HttpResponse("Success -- activity_state - method = PUT - activityId = %s - actor = %s - registrationId = %s - stateId = %s" % (activityId, actor, registrationId, stateId))
-    return HttpResponse("Success -- activity_state - method = PUT - activityId = %s - actor = %s - stateId = %s" % (activityId, actor, stateId))
+    # test ETag for concurrency
+    actstate = objects.ActivityState(req_dict)
+    actstate.put()
+    return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
     # add ETag for concurrency
-    activityId = req_dict['activityId']
-    actor = req_dict['actor']
-    registrationId = req_dict.get('registrationId', None)
+    actstate = objects.ActivityState(req_dict)
     stateId = req_dict.get('stateId', None)
-    if stateId:
-        if registrationId:
-            resource = "Success -- activity_state - method = GET - activityId = %s - actor = %s - registrationId = %s - stateId = %s" % (activityId, actor, registrationId, stateId)
-        else:
-            resource = "Success -- activity_state - method = GET - activityId = %s - actor = %s - stateId = %s" % (activityId, actor, stateId)
-    else:
-        since = req_dict.get('since', None)
-        if registrationId or since:
-            if registrationId and since:
-                resource = "Success -- activity_state - method = GET - activityId = %s - actor = %s - registrationId = %s - since = %s" % (activityId, actor, registrationId, since)
-            elif registrationId:
-                resource = "Success -- activity_state - method = GET - activityId = %s - actor = %s - registrationId = %s" % (activityId, actor, registrationId)
-            else:
-                resource = "Success -- activity_state - method = GET - activityId = %s - actor = %s - since = %s" % (activityId, actor, since)
-        else:
-            resource = "Success -- activity_state - method = GET - activityId = %s - actor = %s" % (activityId, actor)
-    response = HttpResponse(resource)
-    response['ETag'] = etag.create_tag(resource)
+    if stateId: # state id means we want only 1 item
+        resource = actstate.get()
+        response = HttpResponse(resource.state.read())
+        response['ETag'] = '"%s"' %resource.etag
+    else: # no state id means we want an array of state ids
+        resource = actstate.get_ids()
+        response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     return response
 
 def activity_state_delete(req_dict):
-    activityId = req_dict['activityId']
-    actor = req_dict['actor']
-    registrationId = req_dict.get('registrationId', None)
-    stateId = req_dict.get('stateId', None)
-    if stateId:
-        if registrationId:
-            return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s - registrationId = %s - stateId = %s" % (activityId, actor, registrationId, stateId))
-        return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s - stateId = %s" % (activityId, actor, stateId))
-    if registrationId:
-        return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s - registrationId = %s" % (activityId, actor, registrationId))
-    return HttpResponse("Success -- activity_state - method = DELETE - activityId = %s - actor = %s" % (activityId, actor))
-
+    actstate = objects.ActivityState(req_dict)
+    actstate.delete()
+    return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):
     # test ETag for concurrency
@@ -106,10 +80,7 @@ def actor_profile_put(req_dict):
     # test ETag for concurrency
     actor = req_dict['actor']
     a = objects.Actor(actor, create=True)
-    try:
-        a.put_profile(req_dict)
-    except:
-        raise
+    a.put_profile(req_dict)
     return HttpResponse("", status=204)
 
 def actor_profile_get(req_dict):
@@ -134,7 +105,7 @@ def actor_profile_delete(req_dict):
     a = objects.Actor(actor)
     profileId = req_dict['profileId']
     a.delete_profile(profileId)
-    return HttpResponse("Success -- actor_profile - method = DELETE - actor = %s - profileId = %s" % (actor, profileId))
+    return HttpResponse('', status=204)
 
 
 def actors_get(req_dict):

@@ -59,6 +59,17 @@ def activity_state_put(request):
         req_dict['stateId']
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but stateId parameter is missing.." % request.method)
+    
+    if request.raw_post_data == '':
+        raise ParamError("Could not find the activity state document")
+    req_dict['state'] = request.raw_post_data
+    # this is stupid but unit tests come back as 'updated'
+    # and as 'HTTP_UPDATED' when used tested from python requests
+    req_dict['updated'] = request.META.get('HTTP_UPDATED', None)
+    if not req_dict['updated']:
+        req_dict['updated'] = request.META.get('updated', None)
+    req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
+    req_dict['ETAG'] = etag.get_etag_info(request, required=False)
     return req_dict
 
 

@@ -7,6 +7,7 @@ djangorestframework==0.3.3
 gunicorn==0.14.2
 meld3==0.6.8
 pycrypto==2.5
+pytz==2012c
 ssh==1.7.13
 supervisor==3.0a12
 uuid==1.30

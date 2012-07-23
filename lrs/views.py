@@ -48,13 +48,15 @@ def statements(request):
 def activity_state(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
+    except etag.MissingEtagInfo as mei:
+        return HttpResponse(mei.message, status=409)
+    except etag.EtagPreconditionFail as epf:
+        return HttpResponse(epf.message, status=412)
+    except objects.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
-
-    raise Http404
     
 
 @require_http_methods(["PUT","GET","DELETE"])
@@ -89,6 +91,8 @@ def actor_profile(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
+    except objects.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
