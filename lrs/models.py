@@ -31,11 +31,6 @@ class result_extensions(models.Model):
     value=models.CharField(max_length=200)
     result = models.ForeignKey(result)
 
-class state(models.Model):
-    key = models.PositiveIntegerField(primary_key=True)
-    state_id = models.CharField(max_length=200)
-    updated = models.DateTimeField(auto_now_add=True, blank=True)
-    contents = models.CharField(max_length=200)
 
 class statement_object(models.Model):
     pass
@@ -145,7 +140,7 @@ class group(agent):
 
 class actor_profile(models.Model):
     profileId = models.CharField(max_length=200)
-    stored = models.DateTimeField(auto_now_add=True, blank=True)
+    updated = models.DateTimeField(auto_now_add=True, blank=True)
     actor = models.ForeignKey(agent)
     profile = models.FileField(upload_to="actor_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
@@ -217,6 +212,31 @@ class context_extentions(models.Model):
     key=models.CharField(max_length=200)
     value=models.CharField(max_length=200)
     context = models.ForeignKey(context)
+
+class activity_state(models.Model):
+    state_id = models.CharField(max_length=200)
+    updated = models.DateTimeField(auto_now_add=True, blank=True)
+    state = models.FileField(upload_to="activity_state")
+    actor = models.ForeignKey(agent)
+    activity = models.ForeignKey(activity)
+    registration_id = models.CharField(max_length=200)
+    content_type = models.CharField(max_length=200,blank=True,null=True)
+    etag = models.CharField(max_length=200,blank=True,null=True)
+
+    def delete(self, *args, **kwargs):
+        self.state.delete()
+        super(activity_state, self).delete(*args, **kwargs)
+
+    def __unicode__(self):
+        return u'state_id: %s\n \
+               actor id: %s\n \
+               activity id: %s\n \
+               registration_id: %s\n \
+               updated: %s' % (self.state_id,
+                               self.actor_id,
+                               self.activity_id,
+                               self.registration_id,
+                               self.updated)
 
 class statement(statement_object):
     statement_id = UUIDField(primary_key=True)  

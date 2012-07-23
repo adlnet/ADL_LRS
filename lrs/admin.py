@@ -69,12 +69,12 @@ class PersonAdmin(AgentAdmin):
 
 class ActorProfileAdmin(admin.ModelAdmin):
     model = models.actor_profile
-    readonly_fields = ('profileId','stored','etag')
+    readonly_fields = ('profileId','updated','etag')
 
 admin.site.register(models.result, ResultAdmin)
 admin.site.register(models.result_extensions)
 admin.site.register(models.score)
-admin.site.register(models.state)
+admin.site.register(models.activity_state)
 admin.site.register(models.statement_object)
 admin.site.register(models.agent, AgentAdmin)
 admin.site.register(models.agent_name)
