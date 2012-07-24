@@ -2,6 +2,14 @@ from django.http import HttpResponse
 from lrs import objects
 from lrs.util import etag
 import json
+import sys
+from os import path
+
+
+_DIR = path.abspath(path.dirname(__file__))
+sys.path.append(path.abspath(path.join(_DIR,"../objectContainer")))
+from lrs.objectContainer import Actor, ActivityState
+
 
 def statements_post(req_dict):
     if req_dict['is_get']:
@@ -21,13 +29,13 @@ def statements_put(req_dict):
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
-    actstate = objects.ActivityState(req_dict)
+    actstate = ActivityState.ActivityState(req_dict)
     actstate.put()
     return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
     # add ETag for concurrency
-    actstate = objects.ActivityState(req_dict)
+    actstate = ActivityState.ActivityState(req_dict)
     stateId = req_dict.get('stateId', None)
     if stateId: # state id means we want only 1 item
         resource = actstate.get()
@@ -39,7 +47,7 @@ def activity_state_get(req_dict):
     return response
 
 def activity_state_delete(req_dict):
-    actstate = objects.ActivityState(req_dict)
+    actstate = ActivityState.ActivityState(req_dict)
     actstate.delete()
     return HttpResponse('', status=204)
 
@@ -79,14 +87,14 @@ def activities_get(req_dict):
 def actor_profile_put(req_dict):
     # test ETag for concurrency
     actor = req_dict['actor']
-    a = objects.Actor(actor, create=True)
+    a = Actor.Actor(actor, create=True)
     a.put_profile(req_dict)
     return HttpResponse("", status=204)
 
 def actor_profile_get(req_dict):
     # add ETag for concurrency
     actor = req_dict['actor']
-    a = objects.Actor(actor)
+    a = Actor.Actor(actor)
     
     profileId = req_dict.get('profileId', None)
     if profileId:
@@ -102,7 +110,7 @@ def actor_profile_get(req_dict):
 
 def actor_profile_delete(req_dict):
     actor = req_dict['actor']
-    a = objects.Actor(actor)
+    a = Actor.Actor(actor)
     profileId = req_dict['profileId']
     a.delete_profile(profileId)
     return HttpResponse('', status=204)
@@ -110,7 +118,7 @@ def actor_profile_delete(req_dict):
 
 def actors_get(req_dict):
     actor = req_dict['actor']
-    a = objects.Actor(actor)
+    a = Actor.Actor(actor)
     return HttpResponse(a.full_actor_json(), mimetype="application/json")
 
 
