@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
-from lrs import models, views, objects
+from lrs import models, views
 import json
 import time
 import datetime
@@ -10,6 +10,7 @@ import hashlib
 from unittest import TestCase as py_tc
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 import urllib
+from objectContainer import Actor, Activity
 
 home = 'http://localhost:8000/TCAPI/'
 
@@ -707,7 +708,7 @@ class ActorProfileTest(TestCase):
 class ActorsTest(TestCase):
     def test_get(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        me = objects.Actor(actor,create=True)
+        me = Actor.Actor(actor,create=True)
         response = self.client.get(reverse(views.actors), {'actor':actor})
         #print response
         self.assertContains(response, 'mailto:me@example.com')
@@ -851,20 +852,20 @@ class Models_ActivityTest(py_tc):
 
     #Test activity that doesn't have a def, isn't a link and resolves (will not create Activity object)
     def test_activity_no_def_not_link_resolve(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://yahoo.com'}))
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://yahoo.com'}))
 
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get, activity_id='http://yahoo.com')
 
     #Test activity that doesn't have a def, isn't a link and doesn't resolve (creates useless Activity object)
     def test_activity_no_def_not_link_no_resolve(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id':'foo'}))
+        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'foo'}))
         
         self.do_activity_object(act,'foo','Activity')
         self.do_activity_model(act.activity.id, 'foo', 'Activity')
 
     #Test activity that doesn't have a def, isn't a link and conforms to schema (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
+        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         
@@ -875,13 +876,13 @@ class Models_ActivityTest(py_tc):
 
     #Test activity that doesn't have a def, isn't a link and conforms to schema but ID already exists (won't create it)
     def test_activity_no_def_not_link_schema_conform1(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
 
     '''
     Choices is not part of the XML so this will throw an exception
     #Test activity that doesn't have a def, isn't a link and conforms to schema with CRP (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform_correctResponsesPattern(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample3/'}))
+        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample3/'}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         defPK = models.activity_definition.objects.filter(activity=PK)
@@ -899,7 +900,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity that doesn't have a def, isn't a link and conforms to schema with extensions (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform_extensions(self):
-        act = objects.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample2/'}))
+        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample2/'}))
 
         PK = models.activity.objects.filter(id=act.activity.id)
         defPK = models.activity_definition.objects.filter(activity=PK)
@@ -914,7 +915,7 @@ class Models_ActivityTest(py_tc):
 
     #Test an activity that has a def,is not a link yet the ID resolves, but doesn't conform to XML schema (will not create one)
     def test_activity_not_link_resolve(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://tincanapi.wikispaces.com',
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://tincanapi.wikispaces.com',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}}))
 
@@ -922,7 +923,7 @@ class Models_ActivityTest(py_tc):
 
     #Test an activity that has a def, not a link and the provided ID doesn't resolve (should still use values from JSON)
     def test_activity_not_link_no_resolve(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'/var/www/adllrs/activity/example.xml',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'/var/www/adllrs/activity/example.xml',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}}))
 
@@ -935,7 +936,7 @@ class Models_ActivityTest(py_tc):
 
     #Test an activity that has a def, not a link and the provided ID conforms to the schema (should use values from XML and override JSON)
     def test_activity_not_link_schema_conform(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'http://localhost:8000/TCAPI/tcexample4/',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'http://localhost:8000/TCAPI/tcexample4/',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}}))
 
@@ -948,7 +949,7 @@ class Models_ActivityTest(py_tc):
 
     #Test an activity that has a def, is a link and the ID resolves (should use values from JSON)
     def test_activity_link_resolve(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id': home,
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': home,
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'link',
                 'interactionType': 'intType'}}))
 
@@ -961,7 +962,7 @@ class Models_ActivityTest(py_tc):
 
     #Test an activity that has a def, is a link and the ID does not resolve (will not create one)
     def test_activity_link_no_resolve(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://foo',
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://foo',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'link',
                 'interactionType': 'intType'}}))
 
@@ -969,30 +970,30 @@ class Models_ActivityTest(py_tc):
 
     #Throws exception because incoming data is not JSON
     def test_activity_not_json(self):
-        self.assertRaises(Exception, objects.Activity,"This string should throw exception since it's not JSON")
+        self.assertRaises(Exception, Activity.Activity,"This string should throw exception since it's not JSON")
 
     #Test an activity where there is no given objectType, won't be created with one
     def test_activity_no_objectType(self):
-        act = objects.Activity(json.dumps({'id':'fooa'}))
+        act = Activity.Activity(json.dumps({'id':'fooa'}))
         
         self.do_activity_object(act,'fooa', None)
         self.do_activity_model(act.activity.id,'fooa', None)
 
     #Test an activity with a provided objectType but http://localhost:8000/TCAPI/tcexample4/    def test_activity_wrong_objectType(self):
-        act = objects.Activity(json.dumps({'id': 'foob', 'objectType':'Wrong'}))    
+        act = Activity.Activity(json.dumps({'id': 'foob', 'objectType':'Wrong'}))    
 
         self.do_activity_object(act,'foob', 'Activity')
         self.do_activity_model(act.activity.id, 'foob', 'Activity')
 
     #Test activity where given URL doesn't resolve
     def test_activity_invalid_activity_id(self):
-        self.assertRaises(ValidationError, objects.Activity, json.dumps({'id': 'http://foo', 'objectType':'Activity',
+        self.assertRaises(ValidationError, Activity.Activity, json.dumps({'id': 'http://foo', 'objectType':'Activity',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'link',
                 'interactionType': 'intType'}}))
 
     #Test activity with definition - must retrieve activity object in order to test definition from DB
     def test_activity_definition(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'fooc',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'fooc',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}}))
 
@@ -1005,7 +1006,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition given wrong type (won't create it)
     def test_activity_definition_wrong_type(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
                 'id':'http://msn.com','definition': {'NAME': 'testname',
                 'descripTION': 'testdesc', 'tYpe': 'wrong','interactionType': 'intType'}}))
 
@@ -1013,7 +1014,7 @@ class Models_ActivityTest(py_tc):
     
     #Test activity with definition missing name in definition (won't create it)
     def test_activity_definition_required_fields(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
                 'id':'http://google.com','definition': {'description': 'testdesc',
                 'type': 'wrong','interactionType': 'intType'}}))
 
@@ -1021,7 +1022,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that contains extensions - need to retrieve activity and activity definition objects in order to test extenstions
     def test_activity_definition_extensions(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'food',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'food',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'course',
                 'interactionType': 'intType2', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
@@ -1041,7 +1042,7 @@ class Models_ActivityTest(py_tc):
     #Test activity with definition given wrong interactionType (won't create one)
     def test_activity_definition_wrong_interactionType(self):
 
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id':'http://facebook.com',
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id':'http://facebook.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'intType2', 'correctResponsesPatteRN': 'response', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
@@ -1052,7 +1053,7 @@ class Models_ActivityTest(py_tc):
     #Test activity with definition and valid interactionType-it must also provide the correctResponsesPattern field
     #(wont' create it)
     def test_activity_definition_no_correctResponsesPattern(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id':'http://twitter.com',
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id':'http://twitter.com',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'true-false', 'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
@@ -1062,7 +1063,7 @@ class Models_ActivityTest(py_tc):
     #Test activity with definition that is cmi.interaction and true-false interactionType
     def test_activity_definition_cmiInteraction_true_false(self):
 
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'fooe',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'fooe',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'] ,'extensions': {'key1': 'value1', 'key2': 'value2',
                 'key3': 'value3'}}}))
@@ -1086,7 +1087,7 @@ class Models_ActivityTest(py_tc):
     
     #Test activity with definition that is cmi.interaction and multiple choice interactionType
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foof',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foof',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'multiple-choice','correctResponsesPattern': ['golf', 'tetris'],
                 'choices':[{'id': 'golf', 'description': {'en-US':'Golf Example'}},{'id': 'tetris',
@@ -1132,7 +1133,7 @@ class Models_ActivityTest(py_tc):
         
     #Test activity with definition that is cmi.interaction and multiple choice but missing choices (won't create it)
     def test_activity_definition_cmiInteraction_multiple_choice_no_choices(self):
-        self.assertRaises(Exception, objects.Activity, json.dumps({'objectType': 'Activity', 'id':'http://wikipedia.org',
+        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id':'http://wikipedia.org',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'multiple-choice','correctResponsesPattern': ['golf', 'tetris'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -1142,7 +1143,7 @@ class Models_ActivityTest(py_tc):
     
     #Test activity with definition that is cmi.interaction and fill in interactionType
     def test_activity_definition_cmiInteraction_fill_in(self):
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foog',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foog',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'fill-in','correctResponsesPattern': ['Fill in answer'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -1167,7 +1168,7 @@ class Models_ActivityTest(py_tc):
     #Test activity with definition that is cmi.interaction and long fill in interactionType
     def test_activity_definition_cmiInteraction_long_fill_in(self):
 
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'fooh',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'fooh',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'fill-in','correctResponsesPattern': ['Long fill in answer'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -1191,7 +1192,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and likert interactionType
     def test_activity_definition_cmiInteraction_likert(self):    
-        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooi',
+        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooi',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'likert','correctResponsesPattern': ['likert_3'],
                 'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
@@ -1231,7 +1232,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and matching interactionType
     def test_activity_definition_cmiInteraction_matching(self):    
-        act = objects.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooj',
+        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooj',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'matching','correctResponsesPattern': ['lou.3,tom.2,andy.1'],
                 'source':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom',
@@ -1280,7 +1281,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and performance interactionType
     def test_activity_definition_cmiInteraction_performance(self):    
-        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'fook',
+        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'fook',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'performance','correctResponsesPattern': ['pong.1,dg.10,lunch.4'],
                 'steps':[{'id': 'pong', 'description': {'en-US':'Net pong matches won'}},{'id': 'dg',
@@ -1317,7 +1318,7 @@ class Models_ActivityTest(py_tc):
 
     #Test activity with definition that is cmi.interaction and sequencing interactionType
     def test_activity_definition_cmiInteraction_sequencing(self):    
-        act = objects.Activity(json.dumps({'objectType': 'activity', 'id':'fool',
+        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'fool',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'sequencing','correctResponsesPattern': ['lou,tom,andy,aaron'],
                 'choices':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
@@ -1357,7 +1358,7 @@ class Models_ActivityTest(py_tc):
     #Test activity with definition that is cmi.interaction and numeric interactionType
     def test_activity_definition_cmiInteraction_numeric(self):
 
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id':'foom',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foom',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -1382,7 +1383,7 @@ class Models_ActivityTest(py_tc):
     #Test activity with definition that is cmi.interaction and other interactionType
     def test_activity_definition_cmiInteraction_other(self):
 
-        act = objects.Activity(json.dumps({'objectType': 'Activity', 'id': 'foon',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'foon',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
                 'interactionType': 'other','correctResponsesPattern': ['(35.937432,-86.868896)'],
                 'extensions': {'key1': 'value1', 'key2': 'value2',
@@ -1406,14 +1407,14 @@ class Models_ActivityTest(py_tc):
 
 class Models_ActorTest(py_tc):
     def test_actor(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
         self.assertEqual(bob.agent.objectType, 'Person')
         self.assertIn('bob', bob.agent.agent_name_set.values_list('name', flat=True))
         self.assertIn('bob@example.com', bob.agent.agent_mbox_set.values_list('mbox', flat=True))
 
     def test_actor_merge(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}),create=True)
+        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        robert = Actor.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}),create=True)
         names = robert.agent.agent_name_set.values_list('name', flat=True)
         mboxes = robert.agent.agent_mbox_set.values_list('mbox', flat=True)
         self.assertIn('robert', names)
@@ -1422,9 +1423,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('bob@example.com', mboxes)
 
     def test_actor_double_merge(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}),create=True)
-        magicman = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com','magicman@example.com'],'name':['magic man']}),create=True)
+        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        robert = Actor.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'name':['robert']}),create=True)
+        magicman = Actor.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com','magicman@example.com'],'name':['magic man']}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         mboxes = magicman.agent.agent_mbox_set.values_list('mbox', flat=True)
         self.assertIn('robert', names)
@@ -1435,9 +1436,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('magicman@example.com', mboxes)
 
     def test_actor_double_merge_different_ifp(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}),create=True)
-        magicman = objects.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man']}),create=True)
+        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        robert = Actor.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}),create=True)
+        magicman = Actor.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man']}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         mboxes = magicman.agent.agent_mbox_set.values_list('mbox', flat=True)
         openids = magicman.agent.agent_openid_set.values_list('openid', flat=True)
@@ -1451,9 +1452,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('mgkmn@openid.com', openids)
 
     def test_actor_double_merge_different_ifp_with_person_stuff(self):
-        bob = objects.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com'], 'firstName':['bob', 'robert'], 'lastName':['tester']}),create=True)
-        robert = objects.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}),create=True)
-        magicman = objects.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man'], 'firstName':['magic']}),create=True)
+        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com'], 'firstName':['bob', 'robert'], 'lastName':['tester']}),create=True)
+        robert = Actor.Actor(json.dumps({'mbox':['bob@example.com','robert@example.com'],'openid':['bob@openid.com'],'name':['robert']}),create=True)
+        magicman = Actor.Actor(json.dumps({'openid':['bob@openid.com','mgkmn@openid.com'], 'mbox':['magicman@example.com'], 'name':['magic man'], 'firstName':['magic']}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         mboxes = magicman.agent.agent_mbox_set.values_list('mbox', flat=True)
         openids = magicman.agent.agent_openid_set.values_list('openid', flat=True)
@@ -1473,13 +1474,13 @@ class Models_ActorTest(py_tc):
         self.assertIn('tester', lastNames)
 
     def test_actor_agent_account(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
+        bob = Actor.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
         self.assertIn('bob', bob.agent.agent_name_set.values_list('name', flat=True))
         self.assertIn('bobaccnt', bob.agent.agent_account_set.values_list('accountName', flat=True))
 
     def test_actor_agent_account_merge(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
-        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'bobaccnt'}],'mbox':['robert@example.com']}),create=True)
+        bob = Actor.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
+        robert = Actor.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'bobaccnt'}],'mbox':['robert@example.com']}),create=True)
         names = robert.agent.agent_name_set.values_list('name', flat=True)
         accounts = robert.agent.agent_account_set.values_list('accountName', flat=True)
         mboxs = robert.agent.agent_mbox_set.values_list('mbox', flat=True)
@@ -1489,9 +1490,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('robert@example.com', mboxs)
 
     def test_actor_agent_account_double_merge(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
-        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}),create=True)
-        magicman = objects.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}),create=True)
+        bob = Actor.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'}]}),create=True)
+        robert = Actor.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}),create=True)
+        magicman = Actor.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         accounts = magicman.agent.agent_account_set.values_list('accountName', flat=True)
         acchp = magicman.agent.agent_account_set.values_list('accountServiceHomePage', flat=True)
@@ -1505,9 +1506,9 @@ class Models_ActorTest(py_tc):
         self.assertIn('http://accounts.example.com', acchp)
 
     def test_actor_agent_account_double_merge_extra_accounts(self):
-        bob = objects.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'},{'accountName':'otherbobaccnt','accountServiceHomePage':'http://otheraccounts.example.com'}]}),create=True)
-        robert = objects.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}),create=True)
-        magicman = objects.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}),create=True)
+        bob = Actor.Actor(json.dumps({'name':['bob'],'account':[{'accountName':'bobaccnt'},{'accountName':'otherbobaccnt','accountServiceHomePage':'http://otheraccounts.example.com'}]}),create=True)
+        robert = Actor.Actor(json.dumps({'name':['robert'],'account':[{'accountName':'robertaccnt'}],'mbox':['robert@example.com']}),create=True)
+        magicman = Actor.Actor(json.dumps({'name':['magicman'],'account':[{'accountName':'magicman','accountServiceHomePage':'http://accounts.example.com'},{'accountName':'robertaccnt'},{'accountName':'bobaccnt'}]}),create=True)
         names = magicman.agent.agent_name_set.values_list('name', flat=True)
         accounts = magicman.agent.agent_account_set.values_list('accountName', flat=True)
         acchp = magicman.agent.agent_account_set.values_list('accountServiceHomePage', flat=True)
@@ -1523,12 +1524,12 @@ class Models_ActorTest(py_tc):
         self.assertIn('http://accounts.example.com', acchp)
 
     def test_actor_no_create(self):
-        me = objects.Actor(json.dumps({"name":["me"], "mbox":["mailto:me@example.com"]}))
+        me = Actor.Actor(json.dumps({"name":["me"], "mbox":["mailto:me@example.com"]}))
         self.assertNotIn("me", me.get_name())
-        me = objects.Actor(json.dumps({"name":["me"], "mbox":["mailto:me@example.com"]}),create=True)
+        me = Actor.Actor(json.dumps({"name":["me"], "mbox":["mailto:me@example.com"]}),create=True)
         self.assertIn("me", me.get_name())
         self.assertIn("mailto:me@example.com", me.get_mbox())
-        anotherme = objects.Actor(json.dumps({"mbox":["mailto:me@example.com","mailto:anotherme@example.com"]}))
+        anotherme = Actor.Actor(json.dumps({"mbox":["mailto:me@example.com","mailto:anotherme@example.com"]}))
         self.assertIn("me", me.get_name())
         self.assertIn("mailto:me@example.com", me.get_mbox())
         self.assertNotIn("mailto:anotherme@example.com", me.get_mbox())

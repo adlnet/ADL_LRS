@@ -2,9 +2,10 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from lrs.util import req_parse, req_process, etag
-from lrs import objects
+#from lrs import objects
 from django.shortcuts import render_to_response
 import logging
+from objectContainer import Actor
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ def activity_state(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except objects.IDNotFoundError as nf:
+    except Actor.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=400)
@@ -91,7 +92,7 @@ def actor_profile(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except objects.IDNotFoundError as nf:
+    except Actor.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=400)
@@ -103,7 +104,7 @@ def actor_profile(request):
 def actors(request):
     try: 
         resp = handle_request(request)
-    except objects.IDNotFoundError as iderr:
+    except Actor.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=400)
