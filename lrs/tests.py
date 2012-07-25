@@ -441,7 +441,22 @@ class ActivityStateTest(TestCase):
         r = self.client.get(self.url, testparamsdelset2)
         self.assertEqual(r.status_code, 404)
         self.assertIn('no activity', r.content)
+
         
+class ActivitiesTest(TestCase):
+    def test_get(self):
+        response = self.client.get(reverse(views.activities), {'activityId':'my_activity'})
+        self.assertContains(response, 'Success')
+        self.assertContains(response, 'my_activity')
+    
+    def test_get_no_activity(self):
+        response = self.client.get(reverse(views.activities))
+        self.assertContains(response, 'Error')
+    
+    def test_post(self):
+        response = self.client.post(reverse(views.activities), {'activityId':'my_activity'},content_type='application/x-www-form-urlencoded')
+        self.assertEqual(response.status_code, 405)
+
 class ActivityProfileTest(TestCase):
     def test_put(self):
         response = self.client.put(reverse(views.activity_profile), {'activityId':'act-10','profileId':'10'},content_type='application/x-www-form-urlencoded')
@@ -502,22 +517,6 @@ class ActivityProfileTest(TestCase):
         self.assertContains(response, 'Success')
         self.assertContains(response, 'act-del')        
         self.assertContains(response, '100')
-
-        
-class ActivitiesTest(TestCase):
-    def test_get(self):
-        response = self.client.get(reverse(views.activities), {'activityId':'my_activity'})
-        self.assertContains(response, 'Success')
-        self.assertContains(response, 'my_activity')
-    
-    def test_get_no_activity(self):
-        response = self.client.get(reverse(views.activities))
-        self.assertContains(response, 'Error')
-    
-    def test_post(self):
-        response = self.client.post(reverse(views.activities), {'activityId':'my_activity'},content_type='application/x-www-form-urlencoded')
-        self.assertEqual(response.status_code, 405)
-
 
 class ActorProfileTest(TestCase):
     testactor = '{"mbox":["mailto:test@example.com"]}'

@@ -8,7 +8,7 @@ from os import path
 
 _DIR = path.abspath(path.dirname(__file__))
 sys.path.append(path.abspath(path.join(_DIR,"../objectContainer")))
-from lrs.objectContainer import Actor, ActivityState
+from lrs.objectContainer import Actor, Activity, ActivityState
 
 
 def statements_post(req_dict):
@@ -52,10 +52,16 @@ def activity_state_delete(req_dict):
     return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):
+    #activityId = req_dict['activityId']
+    #profileId = req_dict['profileId']
+    #return HttpResponse("Success -- activity_profile - method = PUT - activityId = %s - profileId = %s" % (activityId, profileId))
     # test ETag for concurrency
-    activityId = req_dict['activityId']
-    profileId = req_dict['profileId']
-    return HttpResponse("Success -- activity_profile - method = PUT - activityId = %s - profileId = %s" % (activityId, profileId))
+    activity = req_dict['activity']
+    a = Activity.Activity(actor)
+    a.put_profile(req_dict)
+    return HttpResponse("", status=204)
+
+
 
 def activity_profile_get(req_dict):
     # add ETag for concurrency

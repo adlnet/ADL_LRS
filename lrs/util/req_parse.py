@@ -107,10 +107,20 @@ def activity_profile_put(request):
         req_dict['profileId']
     except KeyError:
         raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % request.method)
-    try:
-        req_dict['body'] = request.body
-    except:
-        raise ParamError("Error -- no profile in request body")
+    
+    if request.raw_post_data == '':
+        raise ParamError("Could not find the profile")
+    req_dict['profile'] = request.raw_post_data
+    # this is stupid but unit tests come back as 'updated'
+    # and as 'HTTP_UPDATED' when used tested from python requests
+    req_dict['updated'] = request.META.get('HTTP_UPDATED', None)
+    
+    if not req_dict['updated']:
+        req_dict['updated'] = request.META.get('updated', None)
+    
+    req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
+    req_dict['ETAG'] = etag.get_etag_info(request, required=False)
+    
     return req_dict
 
 
