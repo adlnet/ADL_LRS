@@ -57,7 +57,7 @@ def activity_profile_put(req_dict):
 
     #Put profile and return 204 response
     ap.put_profile(req_dict)
-    return HttpResponse("", status=204)
+    return HttpResponse('Success -- activity profile - method = PUT - profileId = %s' % req_dict['profileId'], status=200)
 
 def activity_profile_get(req_dict):
     #TODO:need eTag for returning list of IDs?
@@ -86,12 +86,12 @@ def activity_profile_get(req_dict):
 
 
 def activity_profile_delete(req_dict):
-    activityId = req_dict['activityId']
-    profileId = req_dict['profileId']
-
+    #Instantiate activity profile
     ap = ActivityProfile.ActivityProfile()
-    ap.delete_profile(profileId, activityId)
-    return HttpResponse('', status=204)
+
+    #Delete profile and return success
+    ap.delete_profile(req_dict)
+    return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
 
 def activities_get(req_dict):
     activityId = req_dict['activityId']

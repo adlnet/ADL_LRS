@@ -98,37 +98,42 @@ def activity_state_delete(request):
   
         
 def activity_profile_put(request):
-    #Have to convert from unicode-don't know why doing this
-    req_dict = ast.literal_eval(json.dumps(get_dict(request)))
+    #Get request dictionary
+    req_dict = get_dict(request)
 
-    try: # not using request.GET.get('param', 'default val') cuz activityId is mandatory
+    #Not using request.GET.get('param', 'default val') cuz activityId and profileId are mandatory
+    try: 
         req_dict['activityId']
     except KeyError:
         raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % request.method)
+    
     try:
         req_dict['profileId']
     except KeyError:
         raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % request.method)
     
+    #Check for profile
     if request.raw_post_data == '':
         raise ParamError("Could not find the profile")
-    req_dict['profile'] = request.raw_post_data
     
-    # this is stupid but unit tests come back as 'updated'
+    req_dict['profile'] = request.raw_post_data
+
+    # This is stupid but unit tests come back as 'updated'
     # and as 'HTTP_UPDATED' when used tested from python requests
     req_dict['updated'] = request.META.get('HTTP_UPDATED', None)
     
     if not req_dict['updated']:
         req_dict['updated'] = request.META.get('updated', None)
     
+    #Set content type and etag
     req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
     req_dict['ETAG'] = etag.get_etag_info(request, required=False)
     
     return req_dict
 
-#Parse activityId since it is the only param always required
 def activity_profile_get(request):
-    try: # not using request.GET.get('param', 'default val') cuz activityId is mandatory
+    #Parse activityId since it is the only param always required
+    try:
         request.GET['activityId']
     except KeyError:
          raise ParamError("Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % request.method)
@@ -136,7 +141,8 @@ def activity_profile_get(request):
 
 
 def activity_profile_delete(request):
-    try: # not using request.GET.get('param', 'default val') cuz activityId is mandatory
+    #Parse activityId and profileId since both are required
+    try:
         request.GET['activityId']
     except KeyError:
          raise ParamError("Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % request.method)

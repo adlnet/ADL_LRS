@@ -87,15 +87,13 @@ class ActivityProfile():
             ids = models.activity_profile.objects.filter(activity=activity).values_list('profileId', flat=True)
         return ids
 
-    def delete_profile(self, profileId, activityId):
+    def delete_profile(self, request_dict):
         #Get profile and delete it
         try:
-            prof = self.get_profile(profileId, activityId)
+            prof = self.get_profile(request_dict['profileId'], request_dict['activityId'])
             prof.delete()
-            print 'PROFILE DELETED'
         except models.activity_profile.DoesNotExist:
-            #pass #we don't want it anyway
-            print 'TRIED DELETING BUT ACT PROFILE DNE'
+            pass #we don't want it anyway
         except IDNotFoundError:
-            #pass
-            print 'TRIED DELETING BUT IDNotFoundError'
+            pass
+

@@ -511,20 +511,20 @@ class ActivityProfileTest(TestCase):
     
     def test_put(self):
         #Test the puts
-        self.assertEqual(self.put1.status_code, 204)
-        self.assertEqual(self.put1.content, '')
+        self.assertEqual(self.put1.status_code, 200)
+        self.assertEqual(self.put1.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId1)
         
-        self.assertEqual(self.put2.status_code, 204)
-        self.assertEqual(self.put2.content, '')
+        self.assertEqual(self.put2.status_code, 200)
+        self.assertEqual(self.put2.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId2)
 
-        self.assertEqual(self.put3.status_code, 204)
-        self.assertEqual(self.put3.content, '')
+        self.assertEqual(self.put3.status_code, 200)
+        self.assertEqual(self.put3.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId3)
 
-        self.assertEqual(self.put4.status_code, 204)
-        self.assertEqual(self.put4.content, '')
+        self.assertEqual(self.put4.status_code, 200)
+        self.assertEqual(self.put4.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.otherprofileId1)
 
-        self.assertEqual(self.put5.status_code, 204)
-        self.assertEqual(self.put5.content, '')
+        self.assertEqual(self.put5.status_code, 200)
+        self.assertEqual(self.put5.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.otherprofileId1)
 
         #Grab the activity models
         actmodel1 = models.activity.objects.filter(activity_id=self.test_activityId1)[0]
@@ -570,8 +570,8 @@ class ActivityProfileTest(TestCase):
         profile = {"test":"good - trying to put new profile w/ etag header","obj":{"activity":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
         response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash)
-        self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.content, '')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId1)
 
         r = self.client.get(reverse(views.activity_profile), self.testparams1)
         self.assertEqual(r.status_code, 200)
@@ -594,8 +594,8 @@ class ActivityProfileTest(TestCase):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"activity":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*')
-        self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.content, '')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % 'http://etag.nomatch.good')
 
         r = self.client.get(reverse(views.activity_profile), params)
         self.assertEqual(r.status_code, 200)
@@ -614,10 +614,10 @@ class ActivityProfileTest(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
   
+    #TODO: Need etag for ID list?
     def test_get_activity_only(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId2})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Success')
         self.assertContains(response, self.testprofileId2)
         #resp_hash = hashlib.sha1(response.content).hexdigest()
         #self.assertEqual(response['etag'], '"%s"' % resp_hash)
@@ -652,11 +652,8 @@ class ActivityProfileTest(TestCase):
     
     def test_delete(self):
         response = self.client.delete(reverse(views.activity_profile), {'activityId':self.other_activityId, 'profileId':self.otherprofileId1})
-        print response.__dict__
-        act = models.activity_profile.objects.get(profileId=self.otherprofileId1)
-        self.assertEqual(response.status_code, 100)
-        self.assertContains(response, 'Success')
-        self.assertContains(response, 'act-del')        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'Success -- activity profile - method = DELETE - profileId = %s' % self.otherprofileId1)        
 
 
 class ActorProfileTest(TestCase):
