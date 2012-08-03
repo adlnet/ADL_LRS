@@ -5,7 +5,7 @@ from lrs.util import req_parse, req_process, etag
 #from lrs import objects
 from django.shortcuts import render_to_response
 import logging
-from objectContainer import Actor, Activity
+from objects import Actor, Activity
 
 logger = logging.getLogger(__name__)
 

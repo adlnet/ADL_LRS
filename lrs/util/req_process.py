@@ -7,8 +7,8 @@ from os import path
 
 
 _DIR = path.abspath(path.dirname(__file__))
-sys.path.append(path.abspath(path.join(_DIR,"../objectContainer")))
-from lrs.objectContainer import Actor, Activity, ActivityState, ActivityProfile
+sys.path.append(path.abspath(path.join(_DIR,"../objects")))
+from lrs.objects import Actor, Activity, ActivityState, ActivityProfile
 
 
 def statements_post(req_dict):

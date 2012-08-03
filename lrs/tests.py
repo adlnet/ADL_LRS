@@ -10,7 +10,7 @@ import hashlib
 from unittest import TestCase as py_tc
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 import urllib
-from objectContainer import Actor, Activity
+from objects import Actor, Activity
 
 home = 'http://localhost:8000/TCAPI/'
 
