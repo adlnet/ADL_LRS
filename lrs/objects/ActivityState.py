@@ -5,8 +5,6 @@ from django.core.validators import URLValidator
 from django.db import transaction
 from Actor import Actor, IDNotFoundError
 
-
-
 class ActivityState():
     def __init__(self, request_dict):
         self.req_dict = request_dict
