@@ -238,6 +238,18 @@ class activity_state(models.Model):
                                self.registration_id,
                                self.updated)
 
+class activity_profile(models.Model):
+    profileId = models.CharField(max_length=200)
+    updated = models.DateTimeField(auto_now_add=True, blank=True)
+    activity = models.ForeignKey(activity)
+    profile = models.FileField(upload_to="activity_profile")
+    content_type = models.CharField(max_length=200,blank=True,null=True)
+    etag = models.CharField(max_length=200,blank=True,null=True)
+
+    def delete(self, *args, **kwargs):
+        self.profile.delete()
+        super(activity_profile, self).delete(*args, **kwargs)
+
 class statement(statement_object):
     statement_id = UUIDField(primary_key=True)  
     actor = models.OneToOneField(agent,related_name="actor_statement", blank=True, null=True)

@@ -7,8 +7,7 @@ from lxml import etree
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
-from lrs.util import etag
-from django.core.files.base import ContentFile
+
 
 class Activity():
 
@@ -42,7 +41,7 @@ class Activity():
             try:
                 return json.loads(initial)
             except Exception as e:
-                raise Exception("Error parsing the Activity object. Expecting json. Received: %s" % initial) 
+                raise Exception("Error parsing the Activity object. Expecting json. Received: %s which is %s" % (initial, type(initial))) 
         return {}
 
     def _validateID(self,act_id):
@@ -353,61 +352,6 @@ class Activity():
                     self.activity_definition_extensions.append(act_def_ext)    
 
 
-    def put_profile(self, request_dict):
-        try:
-            profile = ContentFile(request_dict['profile'].read())
-        except:
-            try:
-                profile = ContentFile(request_dict['profile'])
-            except:
-                profile = ContentFile(str(request_dict['profile']))
-
-        p,created = models.activity_profile.objects.get_or_create(profileId=request_dict['profileId'],actor=self.activity)
-        
-        if not created:
-            etag.check_preconditions(request_dict,p, required=True)
-            p.profile.delete()
-        p.content_type = request_dict['CONTENT_TYPE']
-        p.etag = etag.create_tag(profile.read())
-        
-        if request_dict['updated']:
-            p.updated = request_dict['updated']
-        profile.seek(0)
-        
-        if created:
-            p.save()
-
-        fn = "%s_%s" % (p.activity_id,request_dict.get('filename', p.id))
-        p.profile.save(fn, profile)
-
-    def get_profile(self, profileId):
-        try:
-            return self.activity.activity_profile_set.get(profileId=profileId)
-        except models.activity_profile.DoesNotExist:
-            raise IDNotFoundError('There is no profile associated with the id: %s' % profileId)
-
-    def get_profile_ids(self, since=None):
-        ids = []
-        if since:
-            try:
-                profs = self.activity.activity_profile_set.filter(updated__gte=since)
-            except ValidationError:
-                since_i = int(float(since))
-                since_dt = datetime.datetime.fromtimestamp(since_i)
-                profs = self.activity.activity_profile_set.filter(update__gte=since_dt)
-            ids = [p.profileId for p in profs]
-        else:
-            ids = self.activity.activity_profile_set.values_list('profileId', flat=True)
-        return ids
-
-    def delete_profile(self, profileId):
-        try:
-            prof = self.get_profile(profileId)
-            prof.delete()
-        except models.actor_profile.DoesNotExist:
-            pass #we don't want it anyway
-        except IDNotFoundError:
-            pass
 
 class IDNotFoundError(Exception):
     def __init__(self, msg):

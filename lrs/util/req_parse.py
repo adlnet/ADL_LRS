@@ -1,5 +1,5 @@
 from copy import deepcopy # runs slow.. we should only use if necessary
-import json
+import json, ast
 from lrs.util import etag
 from django.http import MultiPartParser
 import StringIO
@@ -98,7 +98,9 @@ def activity_state_delete(request):
   
         
 def activity_profile_put(request):
-    req_dict = get_dict(request)
+    #Have to convert from unicode-don't know why doing this
+    req_dict = ast.literal_eval(json.dumps(get_dict(request)))
+
     try: # not using request.GET.get('param', 'default val') cuz activityId is mandatory
         req_dict['activityId']
     except KeyError:
@@ -111,6 +113,7 @@ def activity_profile_put(request):
     if request.raw_post_data == '':
         raise ParamError("Could not find the profile")
     req_dict['profile'] = request.raw_post_data
+    
     # this is stupid but unit tests come back as 'updated'
     # and as 'HTTP_UPDATED' when used tested from python requests
     req_dict['updated'] = request.META.get('HTTP_UPDATED', None)
@@ -123,7 +126,7 @@ def activity_profile_put(request):
     
     return req_dict
 
-
+#Parse activityId since it is the only param always required
 def activity_profile_get(request):
     try: # not using request.GET.get('param', 'default val') cuz activityId is mandatory
         request.GET['activityId']
@@ -154,6 +157,7 @@ def activities_get(request):
 #import pprint
 def actor_profile_put(request):
     req_dict = get_dict(request)
+
     try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
         req_dict['actor']
     except KeyError:
@@ -162,25 +166,22 @@ def actor_profile_put(request):
         req_dict['profileId']
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % request.method)
-    #try:
-    #    thefile = req_dict['files']['file']
-    #    req_dict['filename'] = thefile.name
-    #    req_dict['profile'] = thefile.read()
-    #except:
-    #    req_dict['profile'] = req_dict.get('body', '')
-    #    if not req_dict['profile']:
-    #        raise ParamError("Could not find the profile")
     
     if request.raw_post_data == '':
         raise ParamError("Could not find the profile")
+
     req_dict['profile'] = request.raw_post_data
+
     # this is stupid but unit tests come back as 'updated'
     # and as 'HTTP_UPDATED' when used tested from python requests
     req_dict['updated'] = request.META.get('HTTP_UPDATED', None)
+
     if not req_dict['updated']:
         req_dict['updated'] = request.META.get('updated', None)
+
     req_dict['CONTENT_TYPE'] = request.META.get('CONTENT_TYPE', '')
     req_dict['ETAG'] = etag.get_etag_info(request, required=False)
+
     return req_dict
 
 

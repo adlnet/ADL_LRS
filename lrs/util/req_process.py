@@ -8,7 +8,7 @@ from os import path
 
 _DIR = path.abspath(path.dirname(__file__))
 sys.path.append(path.abspath(path.join(_DIR,"../objectContainer")))
-from lrs.objectContainer import Actor, Activity, ActivityState
+from lrs.objectContainer import Actor, Activity, ActivityState, ActivityProfile
 
 
 def statements_post(req_dict):
@@ -52,38 +52,46 @@ def activity_state_delete(req_dict):
     return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):
-    #activityId = req_dict['activityId']
-    #profileId = req_dict['profileId']
-    #return HttpResponse("Success -- activity_profile - method = PUT - activityId = %s - profileId = %s" % (activityId, profileId))
-    # test ETag for concurrency
-    activity = req_dict['activity']
-    a = Activity.Activity(actor)
-    a.put_profile(req_dict)
+    #Instantiate ActivityProfile
+    ap = ActivityProfile.ActivityProfile()
+
+    #Put profile and return 204 response
+    ap.put_profile(req_dict)
     return HttpResponse("", status=204)
 
-
-
 def activity_profile_get(req_dict):
-    # add ETag for concurrency
-    activityId = req_dict['activityId']
+    #TODO:need eTag for returning list of IDs?
+
+    #Instantiate ActivityProfile
+    ap = ActivityProfile.ActivityProfile()
+    
+    #Get profileId and activityId
     profileId = req_dict.get('profileId', None)
+    activityId = req_dict.get('activityId', None)
+
+    #If the profileId exists, get the profile and return it in the response
     if profileId:
-        resource = "Success -- activity_profile - method = GET - activityId = %s - profileId = %s" % (activityId, profileId)
-    else:
-        since = req_dict.get('since', None)
-        if since:
-            resource = "Success -- activity_profile - method = GET - activityId = %s - since = %s" % (activityId, since)
-        else:
-            resource = "Success -- activity_profile - method = GET"
-    response = HttpResponse(resource)
-    response['ETag'] = etag.create_tag(resource)
+        resource = ap.get_profile(profileId, activityId)
+        response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+        response['ETag'] = '"%s"' % resource.etag
+        return response
+
+    #Return IDs of profiles stored since profileId was not submitted
+    since = req_dict.get('since', None)
+    resource = ap.get_profile_ids(since, activityId)
+    response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+    response['since'] = since
+    #response['ETag'] = '"%s"' % resource.etag
     return response
+
 
 def activity_profile_delete(req_dict):
     activityId = req_dict['activityId']
     profileId = req_dict['profileId']
-    return HttpResponse("Success -- activity_profile - method = DELETE - activityId = %s - profileId = %s" % (activityId, profileId))
 
+    ap = ActivityProfile.ActivityProfile()
+    ap.delete_profile(profileId, activityId)
+    return HttpResponse('', status=204)
 
 def activities_get(req_dict):
     activityId = req_dict['activityId']
