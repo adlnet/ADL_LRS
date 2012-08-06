@@ -30,10 +30,17 @@ class Activity():
 
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, test=True):
+    def __init__(self, initial=None, get=False):
         self.initial = initial
         self.obj = self._parse(initial)
-        self._populate(self.obj, test)
+        self._populate(self.obj)
+        '''
+        #Get activity object
+        if get and activity_id is not None:
+            self._get_activity(activity_id)
+        else:
+            self._populate(self.obj)
+        '''
 
     #Make sure initial data being received is JSON
     def _parse(self,initial):
@@ -136,8 +143,25 @@ class Activity():
         act_def.save()
         return act_def    
 
+    '''
+    def _get_activity(activity_id):
+        
+        try:
+            act = models.agent.objects.get(activity_id=activity_id)
+        except models.activity.DoesNotExist:
+            raise IDNotFoundError('There is no activity associated with the id: %s' % activity_id)
+
+        try:
+            act_def = models.agent_definition.objects.get(activity=act)
+        except models.activity.DoesNotExist:
+            self._full_activity_json(act)
+    '''
+
+    def _full_activity_json(act, act_def=None, act_def_crp=None, act_def_crp_answer=None, act_def_choice=None, act_def_scale=None, ):
+        pass
+
     #Once JSON is verified, populate the activity objects
-    def _populate(self, the_object, test):
+    def _populate(self, the_object):
         valid_schema = False
         xml_data = {}
 
