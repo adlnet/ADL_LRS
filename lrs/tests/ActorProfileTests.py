@@ -7,6 +7,7 @@ from django.utils.timezone import utc
 import hashlib
 import urllib
 
+#TODO: delete profiles that are being stored
 class ActorProfileTests(TestCase):
     testactor = '{"mbox":["mailto:test@example.com"]}'
     otheractor = '{"mbox":["mailto:other@example.com"]}'

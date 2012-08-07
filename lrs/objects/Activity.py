@@ -30,17 +30,14 @@ class Activity():
 
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, get=False):
-        self.initial = initial
-        self.obj = self._parse(initial)
-        self._populate(self.obj)
-        '''
+    def __init__(self, initial=None, activity_id=None, get=False):
         #Get activity object
         if get and activity_id is not None:
-            self._get_activity(activity_id)
+            self.activity_id = activity_id
         else:
+            self.initial = initial
+            self.obj = self._parse(initial)
             self._populate(self.obj)
-        '''
 
     #Make sure initial data being received is JSON
     def _parse(self,initial):
@@ -143,22 +140,93 @@ class Activity():
         act_def.save()
         return act_def    
 
-    '''
-    def _get_activity(activity_id):
-        
+
+    def full_activity_json(self):
+        #Check to see if activity exists
         try:
-            act = models.agent.objects.get(activity_id=activity_id)
+            act = models.activity.objects.get(activity_id=self.activity_id)
         except models.activity.DoesNotExist:
             raise IDNotFoundError('There is no activity associated with the id: %s' % activity_id)
 
-        try:
-            act_def = models.agent_definition.objects.get(activity=act)
-        except models.activity.DoesNotExist:
-            self._full_activity_json(act)
-    '''
+        #Set activity to return
+        ret = act.objReturn()
 
-    def _full_activity_json(act, act_def=None, act_def_crp=None, act_def_crp_answer=None, act_def_choice=None, act_def_scale=None, ):
-        pass
+        #Check if definition exists
+        try:
+            act_def = models.activity_definition.objects.get(activity=act)
+        except Exception, e:
+            #No definition so return activity
+            return json.dumps(ret)
+
+        #Return activity definition will be set if there is one
+        ret['definition'] = act_def.objReturn() 
+
+        #Check for extensions
+        try:
+            extList = models.activity_extentions.objects.filter(activity_definition=act_def)
+        except Exception, e:
+            #Extensions are optional so pass if there aren't any
+            pass
+
+        #If there were extenstions add them to return activity
+        if extList:
+            ret['extensions'] = {}    
+            for ext in extList:
+                ret['extensions'][ext.objReturn()[0]] = ext.objReturn()[1]
+
+        if not ret['definition']['type'] == 'cmi.interaction':
+            return json.dumps(ret)
+        else:
+            #Must have correct responses pattern and answers
+            act_crp = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def)
+            ansList = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=act_crp)
+        
+            alist = []
+            for answer in ansList:
+                alist.append(answer.objReturn())
+            ret['correctResponsesPattern'] = alist
+
+            if ret['definition']['interactionType'] == 'multiple-choice':
+                chList = models.activity_definition_choice.objects.filter(activity_definition=act_def)
+            
+                clist = []
+                for choice in chList:
+                    clist.append(choice.objReturn())
+                ret['choices'] = clist
+
+            if ret['definition']['interactionType'] == 'likert':
+                scList = models.activity_definition_scale.objects.filter(activity_definition=act_def)
+            
+                slist = []
+                for scale in slist:
+                    slist.append(scale.objReturn())
+                ret['scale'] = slist
+
+            if ret['definition']['interactionType'] == 'performance':
+                stepList = models.activity_definition_step.objects.filter(activity_definition=act_def)
+
+                stlist = []
+                for step in stlist:
+                    stlist.append(scale.objReturn())
+                ret['steps'] = stList
+
+            if ret['definition']['interactionType'] == 'matching':
+                sourceList = models.activity_definition_source.objects.filter(activity_definition=act_def)
+
+                solist = []
+                for source in solist:
+                    solist.append(source.objReturn())    
+                ret['source'] = solist
+
+                tarList = models.activity_definition_target.objects.filter(activity_definition=act_def)
+
+                tlist = []
+                for target in tlist:
+                    tlist.append(target.objReturn())    
+                ret['target'] = tlist
+
+        return json.dumps(ret)
+
 
     #Once JSON is verified, populate the activity objects
     def _populate(self, the_object):

@@ -95,9 +95,9 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['activityId']
-    #a = Activity.Activity(activityId)
-    #return HttpResponse(a.full_activity_json(), mimetype="application/json")
-    return HttpResponse("Success -- activities - method = GET - activityId = %s" % activityId)
+    a = Activity.Activity(activity_id=activityId, get=True)
+    return HttpResponse(a.full_activity_json(), mimetype="application/json")
+    #return HttpResponse("Success -- activities - method = GET - activityId = %s" % activityId)
 
 def actor_profile_put(req_dict):
     # test ETag for concurrency

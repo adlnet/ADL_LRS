@@ -13,6 +13,7 @@ _DIR = path.abspath(path.dirname(__file__))
 sys.path.append(path.abspath(path.join(_DIR,"../objects")))
 from lrs.objects import Activity
 
+#TODO: delete profiles that are being stored in /var/www/adllrs/media/activity profiles
 class ActivityProfileTests(TestCase):
     test_activityId1 = 'act-1'
     test_activityId2 = 'act-2'
@@ -58,11 +59,11 @@ class ActivityProfileTests(TestCase):
 
         
     def tearDown(self):
-        self.client.delete(reverse(views.actor_profile), self.testparams1)
-        self.client.delete(reverse(views.actor_profile), self.testparams2)
-        self.client.delete(reverse(views.actor_profile), self.testparams3)
-        self.client.delete(reverse(views.actor_profile), self.testparams4)    
-        self.client.delete(reverse(views.actor_profile), self.testparams5)    
+        self.client.delete(reverse(views.activity_profile), self.testparams1)
+        self.client.delete(reverse(views.activity_profile), self.testparams2)
+        self.client.delete(reverse(views.activity_profile), self.testparams3)
+        self.client.delete(reverse(views.activity_profile), self.testparams4)    
+        self.client.delete(reverse(views.activity_profile), self.testparams5)    
     
     def test_put(self):
         #Test the puts
@@ -176,14 +177,21 @@ class ActivityProfileTests(TestCase):
         self.assertContains(response, self.testprofileId2)
         #resp_hash = hashlib.sha1(response.content).hexdigest()
         #self.assertEqual(response['etag'], '"%s"' % resp_hash)
+        params = {'activityId': self.test_activityId2, 'profileId': self.testprofileId2}
+
+        self.client.delete(reverse(views.activity_profile), params)
 
     def test_get_activity_profileId(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.testprofile1)
         resp_hash = hashlib.sha1(response.content).hexdigest()
-        self.assertEqual(response['etag'], '"%s"' % resp_hash)
-    
+        self.assertEqual(response['etag'], '"%s"' % resp_hash)    
+        params = {'activityId': self.test_activityId1, 'profileId': self.testprofileId1}
+
+        self.client.delete(reverse(views.activity_profile), params)
+
+
     def test_get_activity_since(self):
         #Convert since to string since will be string in header
         since = str(time.time())
@@ -193,6 +201,9 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response['since'], since)
         #resp_hash = hashlib.sha1(response.content).hexdigest()
         #self.assertEqual(response['etag'], '"%s"' % resp_hash)
+        params = {'activityId': self.test_activityId3, 'profileId': self.testprofileId3}
+
+        self.client.delete(reverse(views.activity_profile), params)
     
     def test_get_no_activity_profileId(self):
         response = self.client.get(reverse(views.activity_profile), {'profileId': self.testprofileId3})

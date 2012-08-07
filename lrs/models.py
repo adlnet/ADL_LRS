@@ -154,12 +154,26 @@ class activity(statement_object):
     activity_id = models.CharField(max_length=200)
     objectType = models.CharField(max_length=200,blank=True, null=True) 
 
+    def objReturn(self):
+        ret = {}
+        ret['activity_id'] = self.activity_id
+        ret['objectType'] = self.objectType
+        return ret
+
 class activity_definition(models.Model):
     name = models.CharField(max_length=200)
     description = models.CharField(max_length=200)
     activity_definition_type = models.CharField(max_length=200)
     interactionType = models.CharField(max_length=200)
     activity = models.OneToOneField(activity)
+
+    def objReturn(self):
+        ret = {}
+        ret['name'] = self.name
+        ret['description'] = self.description
+        ret['type'] = self.activity_definition_type
+        ret['interactionType'] = self.interactionType
+        return ret
 
 class activity_def_correctresponsespattern(models.Model):
     activity_definition = models.OneToOneField(activity_definition, blank=True,null=True)
@@ -168,35 +182,71 @@ class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
     correctresponsespattern = models.ForeignKey(activity_def_correctresponsespattern)    
 
+    def objReturn(self):
+        return self.answer
+
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=200)
     description = models.TextField()        
     activity_definition = models.ForeignKey(activity_definition)
+
+    def objReturn(self):
+        ret = {}
+        ret['id'] = self.choice_id
+        ret['description'] = self.description
+        return ret
 
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=200)
     description = models.TextField()        
     activity_definition = models.ForeignKey(activity_definition)
 
+    def objReturn(self):
+        ret = {}
+        ret['id'] = self.scale_id
+        ret['description'] = self.description
+        return ret
+
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=200)
     description = models.CharField(max_length=200)        
     activity_definition = models.ForeignKey(activity_definition)
+    
+    def objReturn(self):
+        ret = {}
+        ret['id'] = self.source_id
+        ret['description'] = self.description
+        return ret
 
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=200)
     description = models.CharField(max_length=200)        
     activity_definition = models.ForeignKey(activity_definition)
+    
+    def objReturn(self):
+        ret = {}
+        ret['id'] = self.target_id
+        ret['description'] = self.description
+        return ret
 
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=200)
     description = models.CharField(max_length=200)        
     activity_definition = models.ForeignKey(activity_definition)
 
+    def objReturn(self):
+        ret = {}
+        ret['id'] = self.step_id
+        ret['description'] = self.description
+        return ret
+
 class activity_extentions(models.Model):
     key = models.TextField()
     value = models.TextField()
     activity_definition = models.ForeignKey(activity_definition)
+
+    def objReturn(self):
+        return (self.key, self.value) 
 
 class context(models.Model):    
     registration = UUIDField()
@@ -226,17 +276,6 @@ class activity_state(models.Model):
     def delete(self, *args, **kwargs):
         self.state.delete()
         super(activity_state, self).delete(*args, **kwargs)
-
-    def __unicode__(self):
-        return u'state_id: %s\n \
-               actor id: %s\n \
-               activity id: %s\n \
-               registration_id: %s\n \
-               updated: %s' % (self.state_id,
-                               self.actor_id,
-                               self.activity_id,
-                               self.registration_id,
-                               self.updated)
 
 class activity_profile(models.Model):
     profileId = models.CharField(max_length=200)
