@@ -4,7 +4,7 @@ from lrs.util import etag
 import json
 import sys
 from os import path
-
+from profilehooks import profile, coverage
 
 _DIR = path.abspath(path.dirname(__file__))
 sys.path.append(path.abspath(path.join(_DIR,"../objects")))
@@ -96,8 +96,22 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     activityId = req_dict['activityId']
     a = Activity.Activity(activity_id=activityId, get=True)
-    return HttpResponse(a.full_activity_json(), mimetype="application/json")
-    #return HttpResponse("Success -- activities - method = GET - activityId = %s" % activityId)
+    data = a.get_full_activity_json()
+    return HttpResponse(stream_response_generator(data), mimetype="application/json")
+
+
+def stream_response_generator(data): 
+    first = True
+    yield '{'
+    for k,v in data.items():
+        if not first:
+            yield ', '
+        else:
+            first = False    
+        yield json.dumps(k)
+        yield ': '
+        yield json.dumps(v)      
+    yield '}'    
 
 def actor_profile_put(req_dict):
     # test ETag for concurrency

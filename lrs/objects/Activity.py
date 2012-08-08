@@ -4,6 +4,7 @@ import datetime
 from StringIO import StringIO
 from lrs import models
 from lxml import etree
+from django.core import serializers
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
@@ -140,13 +141,13 @@ class Activity():
         act_def.save()
         return act_def    
 
-
-    def full_activity_json(self):
+    def get_full_activity_json(self):
+        json_serializer = serializers.get_serializer("json")()
         #Check to see if activity exists
         try:
-            act = models.activity.objects.get(activity_id=self.activity_id)
+            act = models.activity.objects.get(activity_id=self.activity_id)            
         except models.activity.DoesNotExist:
-            raise IDNotFoundError('There is no activity associated with the id: %s' % activity_id)
+            raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)
 
         #Set activity to return
         ret = act.objReturn()
@@ -156,7 +157,7 @@ class Activity():
             act_def = models.activity_definition.objects.get(activity=act)
         except Exception, e:
             #No definition so return activity
-            return json.dumps(ret)
+            return ret
 
         #Return activity definition will be set if there is one
         ret['definition'] = act_def.objReturn() 
@@ -175,7 +176,7 @@ class Activity():
                 ret['extensions'][ext.objReturn()[0]] = ext.objReturn()[1]
 
         if not ret['definition']['type'] == 'cmi.interaction':
-            return json.dumps(ret)
+            return ret
         else:
             #Must have correct responses pattern and answers
             act_crp = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def)
@@ -186,7 +187,7 @@ class Activity():
                 alist.append(answer.objReturn())
             ret['correctResponsesPattern'] = alist
 
-            if ret['definition']['interactionType'] == 'multiple-choice':
+            if ret['definition']['interactionType'] == 'multiple-choice' or ret['definition']['interactionType'] == 'sequencing':
                 chList = models.activity_definition_choice.objects.filter(activity_definition=act_def)
             
                 clist = []
@@ -198,7 +199,7 @@ class Activity():
                 scList = models.activity_definition_scale.objects.filter(activity_definition=act_def)
             
                 slist = []
-                for scale in slist:
+                for scale in scList:
                     slist.append(scale.objReturn())
                 ret['scale'] = slist
 
@@ -206,26 +207,26 @@ class Activity():
                 stepList = models.activity_definition_step.objects.filter(activity_definition=act_def)
 
                 stlist = []
-                for step in stlist:
-                    stlist.append(scale.objReturn())
-                ret['steps'] = stList
+                for step in stepList:
+                    stlist.append(step.objReturn())
+                ret['steps'] = stlist
 
             if ret['definition']['interactionType'] == 'matching':
                 sourceList = models.activity_definition_source.objects.filter(activity_definition=act_def)
 
                 solist = []
-                for source in solist:
+                for source in sourceList:
                     solist.append(source.objReturn())    
                 ret['source'] = solist
 
                 tarList = models.activity_definition_target.objects.filter(activity_definition=act_def)
 
                 tlist = []
-                for target in tlist:
+                for target in tarList:
                     tlist.append(target.objReturn())    
                 ret['target'] = tlist
 
-        return json.dumps(ret)
+        return ret
 
 
     #Once JSON is verified, populate the activity objects
