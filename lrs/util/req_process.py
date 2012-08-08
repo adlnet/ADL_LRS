@@ -4,7 +4,6 @@ from lrs.util import etag
 import json
 import sys
 from os import path
-from profilehooks import profile, coverage
 
 _DIR = path.abspath(path.dirname(__file__))
 sys.path.append(path.abspath(path.join(_DIR,"../objects")))
