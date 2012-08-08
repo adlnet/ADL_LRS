@@ -99,7 +99,7 @@ def activities_get(req_dict):
     data = a.get_full_activity_json()
     return HttpResponse(stream_response_generator(data), mimetype="application/json")
 
-#Stream json to HttpResponse
+#Generate JSON
 def stream_response_generator(data): 
     first = True
     yield '{'
@@ -107,10 +107,30 @@ def stream_response_generator(data):
         if not first:
             yield ', '
         else:
-            first = False    
-        yield json.dumps(k)
-        yield ': '
-        yield json.dumps(v)      
+            first = False
+        #Catch next dictionaries
+        if type(v) is dict:
+            stream_response_generator(v)
+        #Catch lists as dictionary values
+        if type(v) is list:
+            lfirst = True
+            yield json.dumps(k)
+            yield ': '
+            yield '['
+            for item in v:
+                if not lfirst:
+                    yield ', '
+                else:
+                    lfirst = False
+                #Catch dictionaries as items in a list    
+                if type(item) is dict:
+                    stream_response_generator(item)
+                yield json.dumps(item)
+            yield ']'
+        else:
+            yield json.dumps(k)
+            yield ': '
+            yield json.dumps(v)      
     yield '}'    
 
 def actor_profile_put(req_dict):

@@ -142,7 +142,6 @@ class Activity():
         return act_def    
 
     def get_full_activity_json(self):
-        json_serializer = serializers.get_serializer("json")()
         #Check to see if activity exists
         try:
             act = models.activity.objects.get(activity_id=self.activity_id)            

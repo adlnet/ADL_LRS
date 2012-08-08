@@ -16,12 +16,11 @@ class ActivityTests(TestCase):
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'foobar'}))
         response = self.client.get(reverse(views.activities), {'activityId':'foobar'})
         self.assertEqual(response.content, '{"activity_id": "foobar", "objectType": "Activity"}')
-
+        
     def test_get_def(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar1',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
                 'interactionType': 'intType'}})) 
-     
         response = self.client.get(reverse(views.activities), {'activityId':'foobar1'})
         self.assertEqual(response.content, '{"definition": {"interactionType": "intType", "type": "course", "name": "testname", "description": "testdesc"}, "activity_id": "foobar1", "objectType": "Activity"}')
 
