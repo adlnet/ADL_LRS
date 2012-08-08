@@ -1,5 +1,5 @@
 from copy import deepcopy # runs slow.. we should only use if necessary
-import json, ast
+import json
 from lrs.util import etag
 from django.http import MultiPartParser
 import StringIO

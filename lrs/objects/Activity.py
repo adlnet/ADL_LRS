@@ -4,7 +4,6 @@ import datetime
 from StringIO import StringIO
 from lrs import models
 from lxml import etree
-from django.core import serializers
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
