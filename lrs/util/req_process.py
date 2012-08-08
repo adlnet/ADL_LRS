@@ -99,7 +99,7 @@ def activities_get(req_dict):
     data = a.get_full_activity_json()
     return HttpResponse(stream_response_generator(data), mimetype="application/json")
 
-
+#Stream json to HttpResponse
 def stream_response_generator(data): 
     first = True
     yield '{'
