@@ -10,17 +10,11 @@ Install fabric at the machine level
 
     sudo apt-get install fabric
 
-Then run our fabric file to install all local dependencies
+Then run our fabric file to install all local dependencies and create needed directories
 
     cd ADL_LRS
 
-    fabric deps_local
-
-Create actor profile path
-
-    create the path /var/www/adllrs/media/actor_profile/ with actor_profile having 777 permissions
-    (sudo chmod 777 actor_profile)
-    
+    sudo fab deps_local
 
 ## Starting
 

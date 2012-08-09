@@ -5,7 +5,7 @@ from lrs.util import req_parse, req_process, etag
 #from lrs import objects
 from django.shortcuts import render_to_response
 import logging
-from objectContainer import Actor
+from objects import Actor, Activity
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +64,15 @@ def activity_state(request):
 def activity_profile(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
+    except etag.MissingEtagInfo as mei:
+        return HttpResponse(mei.message, status=409)
+    except etag.EtagPreconditionFail as epf:
+        return HttpResponse(epf.message, status=412)
+    except Activity.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
-  
-    raise Http404
 
 
 @require_GET
