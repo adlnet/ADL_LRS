@@ -5,10 +5,9 @@ import json
 import sys
 from os import path
 
-
 _DIR = path.abspath(path.dirname(__file__))
-sys.path.append(path.abspath(path.join(_DIR,"../objectContainer")))
-from lrs.objectContainer import Actor, ActivityState
+sys.path.append(path.abspath(path.join(_DIR,"../objects")))
+from lrs.objects import Actor, Activity, ActivityState, ActivityProfile
 
 
 def statements_post(req_dict):
@@ -52,37 +51,86 @@ def activity_state_delete(req_dict):
     return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):
-    # test ETag for concurrency
-    activityId = req_dict['activityId']
-    profileId = req_dict['profileId']
-    return HttpResponse("Success -- activity_profile - method = PUT - activityId = %s - profileId = %s" % (activityId, profileId))
+    #Instantiate ActivityProfile
+    ap = ActivityProfile.ActivityProfile()
+
+    #Put profile and return 204 response
+    ap.put_profile(req_dict)
+    return HttpResponse('Success -- activity profile - method = PUT - profileId = %s' % req_dict['profileId'], status=200)
 
 def activity_profile_get(req_dict):
-    # add ETag for concurrency
-    activityId = req_dict['activityId']
+    #TODO:need eTag for returning list of IDs?
+
+    #Instantiate ActivityProfile
+    ap = ActivityProfile.ActivityProfile()
+    
+    #Get profileId and activityId
     profileId = req_dict.get('profileId', None)
+    activityId = req_dict.get('activityId', None)
+
+    #If the profileId exists, get the profile and return it in the response
     if profileId:
-        resource = "Success -- activity_profile - method = GET - activityId = %s - profileId = %s" % (activityId, profileId)
-    else:
-        since = req_dict.get('since', None)
-        if since:
-            resource = "Success -- activity_profile - method = GET - activityId = %s - since = %s" % (activityId, since)
-        else:
-            resource = "Success -- activity_profile - method = GET"
-    response = HttpResponse(resource)
-    response['ETag'] = etag.create_tag(resource)
+        resource = ap.get_profile(profileId, activityId)
+        response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+        response['ETag'] = '"%s"' % resource.etag
+        return response
+
+    #Return IDs of profiles stored since profileId was not submitted
+    since = req_dict.get('since', None)
+    resource = ap.get_profile_ids(since, activityId)
+    response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+    response['since'] = since
+    #response['ETag'] = '"%s"' % resource.etag
     return response
 
-def activity_profile_delete(req_dict):
-    activityId = req_dict['activityId']
-    profileId = req_dict['profileId']
-    return HttpResponse("Success -- activity_profile - method = DELETE - activityId = %s - profileId = %s" % (activityId, profileId))
 
+def activity_profile_delete(req_dict):
+    #Instantiate activity profile
+    ap = ActivityProfile.ActivityProfile()
+
+    #Delete profile and return success
+    ap.delete_profile(req_dict)
+    return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
 
 def activities_get(req_dict):
     activityId = req_dict['activityId']
-    return HttpResponse("Success -- activities - method = GET - activityId = %s" % activityId)
+    a = Activity.Activity(activity_id=activityId, get=True)
+    data = a.get_full_activity_json()
+    return HttpResponse(stream_response_generator(data), mimetype="application/json")
 
+#Generate JSON
+def stream_response_generator(data): 
+    first = True
+    yield '{'
+    for k,v in data.items():
+        if not first:
+            yield ', '
+        else:
+            first = False
+        #Catch next dictionaries
+        if type(v) is dict:
+            stream_response_generator(v)
+        #Catch lists as dictionary values
+        if type(v) is list:
+            lfirst = True
+            yield json.dumps(k)
+            yield ': '
+            yield '['
+            for item in v:
+                if not lfirst:
+                    yield ', '
+                else:
+                    lfirst = False
+                #Catch dictionaries as items in a list    
+                if type(item) is dict:
+                    stream_response_generator(item)
+                yield json.dumps(item)
+            yield ']'
+        else:
+            yield json.dumps(k)
+            yield ': '
+            yield json.dumps(v)      
+    yield '}'    
 
 def actor_profile_put(req_dict):
     # test ETag for concurrency

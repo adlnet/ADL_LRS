@@ -1,5 +1,6 @@
 import json
 import urllib2
+import datetime
 from StringIO import StringIO
 from lrs import models
 from lxml import etree
@@ -29,10 +30,14 @@ class Activity():
 
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, test=True):
-        self.initial = initial
-        self.obj = self._parse(initial)
-        self._populate(self.obj, test)
+    def __init__(self, initial=None, activity_id=None, get=False):
+        #Get activity object
+        if get and activity_id is not None:
+            self.activity_id = activity_id
+        else:
+            self.initial = initial
+            self.obj = self._parse(initial)
+            self._populate(self.obj)
 
     #Make sure initial data being received is JSON
     def _parse(self,initial):
@@ -40,7 +45,7 @@ class Activity():
             try:
                 return json.loads(initial)
             except Exception as e:
-                raise Exception("Error parsing the Activity object. Expecting json. Received: %s" % initial) 
+                raise Exception("Error parsing the Activity object. Expecting json. Received: %s which is %s" % (initial, type(initial))) 
         return {}
 
     def _validateID(self,act_id):
@@ -135,8 +140,95 @@ class Activity():
         act_def.save()
         return act_def    
 
+    def get_full_activity_json(self):
+        #Check to see if activity exists
+        try:
+            act = models.activity.objects.get(activity_id=self.activity_id)            
+        except models.activity.DoesNotExist:
+            raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)
+
+        #Set activity to return
+        ret = act.objReturn()
+
+        #Check if definition exists
+        try:
+            act_def = models.activity_definition.objects.get(activity=act)
+        except Exception, e:
+            #No definition so return activity
+            return ret
+
+        #Return activity definition will be set if there is one
+        ret['definition'] = act_def.objReturn() 
+
+        #Check for extensions
+        try:
+            extList = models.activity_extentions.objects.filter(activity_definition=act_def)
+        except Exception, e:
+            #Extensions are optional so pass if there aren't any
+            pass
+
+        #If there were extenstions add them to return activity
+        if extList:
+            ret['extensions'] = {}    
+            for ext in extList:
+                ret['extensions'][ext.objReturn()[0]] = ext.objReturn()[1]
+
+        if not ret['definition']['type'] == 'cmi.interaction':
+            return ret
+        else:
+            #Must have correct responses pattern and answers
+            act_crp = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def)
+            ansList = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=act_crp)
+        
+            alist = []
+            for answer in ansList:
+                alist.append(answer.objReturn())
+            ret['correctResponsesPattern'] = alist
+
+            if ret['definition']['interactionType'] == 'multiple-choice' or ret['definition']['interactionType'] == 'sequencing':
+                chList = models.activity_definition_choice.objects.filter(activity_definition=act_def)
+            
+                clist = []
+                for choice in chList:
+                    clist.append(choice.objReturn())
+                ret['choices'] = clist
+
+            if ret['definition']['interactionType'] == 'likert':
+                scList = models.activity_definition_scale.objects.filter(activity_definition=act_def)
+            
+                slist = []
+                for scale in scList:
+                    slist.append(scale.objReturn())
+                ret['scale'] = slist
+
+            if ret['definition']['interactionType'] == 'performance':
+                stepList = models.activity_definition_step.objects.filter(activity_definition=act_def)
+
+                stlist = []
+                for step in stepList:
+                    stlist.append(step.objReturn())
+                ret['steps'] = stlist
+
+            if ret['definition']['interactionType'] == 'matching':
+                sourceList = models.activity_definition_source.objects.filter(activity_definition=act_def)
+
+                solist = []
+                for source in sourceList:
+                    solist.append(source.objReturn())    
+                ret['source'] = solist
+
+                tarList = models.activity_definition_target.objects.filter(activity_definition=act_def)
+
+                tlist = []
+                for target in tarList:
+                    tlist.append(target.objReturn())    
+                ret['target'] = tlist
+
+        return ret
+
+
     #Once JSON is verified, populate the activity objects
-    def _populate(self, the_object, test):
+    def _populate(self, the_object):
         valid_schema = False
         xml_data = {}
 
@@ -268,8 +360,17 @@ class Activity():
             self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
                         act_def['description'], act_def['type'], act_def['interactionType'])
     
+    
             #If there is a correctResponsesPattern then save the pattern
             if 'correctResponsesPattern' in act_def.keys():
+                self._populate_correctResponsesPattern(act_def, interactionFlag)
+
+            #See if activity definition has extensions
+            if 'extensions' in act_def.keys():
+                self._populate_extensions(act_def) 
+
+
+    def _populate_correctResponsesPattern(self, act_def, interactionFlag):
                 crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
                 crp.save()
                 self.correctResponsesPattern = crp
@@ -331,8 +432,8 @@ class Activity():
                         target.save()
                         self.target_choices.append(target)        
 
-            #See if activity definition has extensions
-            if 'extensions' in act_def.keys(): 
+
+    def _populate_extensions(self, act_def):
                 self.activity_definition_extensions = []
 
                 for k, v in act_def['extensions'].items():
@@ -340,3 +441,11 @@ class Activity():
                         activity_definition=self.activity_definition)
                     act_def_ext.save()
                     self.activity_definition_extensions.append(act_def_ext)    
+
+
+
+class IDNotFoundError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
