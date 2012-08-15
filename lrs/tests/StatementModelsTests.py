@@ -54,5 +54,32 @@ class StatementModelsTests(TestCase):
     def test_not_json_stmt(self):
     	self.assertRaises(Exception, Statement.Statement, "This will fail.")
 
-    def test_voided_true_stmt(self):
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"verb": "tested", "object": {'id':'activity2'}, "voided": True}))
+    '''
+    def test_contradictory_completion_results_stmt(self):
+    	#stmt = Statement.Statement(json.dumps({"verb":"completed","object": {'id':'activity3'},"result": {"completion": False}}))
+    	
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"mastered","object": {'id':'activity4'},
+    					 "result":{"completion": False}}))
+
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"completed","object": {'id':'activity3'},
+    					 "result":{"completion": False}}))
+
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"passed","object": {'id':'activity5'},
+    					 "result":{"completion": False}}))
+    	
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"failed","object": {'id':'activity3'},
+    					 "result":{"completion": False}})) 
+		
+    def test_contradictory_success_results_stmt(self):
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"mastered","object": {'id':'activity4'},
+    					 "result":{"success": False}}))
+    	
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"passed","object": {'id':'activity3'},
+    					 "result":{"success": False}}))
+    	
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"failed","object": {'id':'activity3'},
+    					 "result":{"success": True}})) 
+	'''
+
+
+

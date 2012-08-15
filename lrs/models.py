@@ -14,7 +14,7 @@ def filename(instance, filename):
     return filename
 
 class score(models.Model):  
-    scaled = models.NullBooleanField(blank=True)
+    scaled = models.NullBooleanField(blank=True, null=True)
     raw = models.PositiveIntegerField(blank=True, null=True)
     score_min = models.PositiveIntegerField(blank=True, null=True)
     score_max = models.PositiveIntegerField(blank=True, null=True)

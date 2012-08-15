@@ -5,9 +5,8 @@ from django.http import MultiPartParser
 import StringIO
 
 def statements_post(request):
-    #TODO:Should be looking at valid JSON here or inside statement class?
+    #TODO: Switch this back to look for get...when this if stmt is implemented it wasn't sending JSON to statement class 
     req_dict = request.body
-    #print req_dict
     '''
     if request.GET: # looking for parameters
         req_dict.update(request.GET.dict()) # dict() is new to django 1.4
