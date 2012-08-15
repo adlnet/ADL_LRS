@@ -4,12 +4,14 @@ from django.core.urlresolvers import reverse
 from lrs import views
 from os import path
 import sys
+import json
 
 _DIR = path.abspath(path.dirname(__file__))
 sys.path.append(path.abspath(path.join(_DIR,"../objects")))
 from lrs.objects import Actor, Activity
 
 class StatementsTests(TestCase):
+    '''
     def test_post_but_really_get(self):
         response = self.client.post(reverse(views.statements), {"verb":"created","object": {"id":"http://example.com/test_post_but_really_get"}},content_type='application/x-www-form-urlencoded')
         #print "\nTesting post with type to url form encoded\n %s \n-----done----" % response.content
@@ -27,12 +29,15 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Error')
         self.assertContains(response, 'could not find a valid parameter')
-    
+    '''
     def test_post(self):
-        response = self.client.post(reverse(views.statements), {"verb":"created","object": {"id":"http://example.com/test_post"}},content_type='application/json')
-        #print "\nTesting post with json type\n %s \n-----done----" % response.content
+        stmt = json.dumps({"verb":"created","object": {"id":"test_post"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json")
+        act = models.activity.objects.get(activity_id="test_post")
+
         self.assertEqual(response.status_code, 200)
-        # failing.. worry about when implementing for real: self.assertContains(response, 'method = POST')
+        self.assertEqual(act.activity_id, "test_post")
+        self.assertContains(response, 'method = POST')
         
     def test_get(self):
         response = self.client.get(reverse(views.statements), {'statementId':'stmtid'})

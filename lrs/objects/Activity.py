@@ -67,7 +67,9 @@ class Activity():
                 act_xmlschema_doc = etree.parse(StringIO(act_XML))    
                 validXML = Activity.XMLschema.validate(act_xmlschema_doc)
             except Exception, e:
-                raise e        
+                #TODO: should put any warning here? validXML will still be false if there is an exception
+                raise e
+                #pass        
 
         #Parse XML, create dictionary with the values from the XML doc
         if validXML:

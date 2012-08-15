@@ -1,5 +1,5 @@
 from django.db import models
-from uuidfield import UUIDField
+from django_extensions.db.fields import UUIDField
 from django.db import transaction
 from django.contrib.contenttypes.generic import GenericForeignKey
 
@@ -249,7 +249,7 @@ class activity_extentions(models.Model):
         return (self.key, self.value) 
 
 class context(models.Model):    
-    registration = UUIDField()
+    registration = models.CharField(max_length=200)
     instructor = models.OneToOneField(agent,blank=True, null=True)
     team = models.CharField(max_length=200,blank=True, null=True)
     contextActivities = models.CharField(max_length=200)
@@ -290,15 +290,17 @@ class activity_profile(models.Model):
         super(activity_profile, self).delete(*args, **kwargs)
 
 class statement(statement_object):
-    statement_id = UUIDField(primary_key=True)  
+    #TODO: can't get django extentions UUIDField to generate UUID
+    #statement_id = UUIDField(version=4)  
+    statement_id = models.CharField(max_length=200)
     actor = models.OneToOneField(agent,related_name="actor_statement", blank=True, null=True)
     verb = models.CharField(max_length=200)
-    inProgress = models.NullBooleanField(blank=True)    
+    inProgress = models.NullBooleanField(blank=True, null=True)    
     result = models.OneToOneField(result, blank=True,null=True)
     timestamp = models.DateTimeField(blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True) 
     authority = models.OneToOneField(agent, blank=True,null=True,related_name="authority_statement")
-    voided = models.NullBooleanField(blank=True)
+    voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
     stmt_object = models.OneToOneField(statement_object)
 

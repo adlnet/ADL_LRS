@@ -7,13 +7,17 @@ from os import path
 
 _DIR = path.abspath(path.dirname(__file__))
 sys.path.append(path.abspath(path.join(_DIR,"../objects")))
-from lrs.objects import Actor, Activity, ActivityState, ActivityProfile
+from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
 
 
 def statements_post(req_dict):
-    if req_dict['is_get']:
-        return HttpResponse("Success -- statements - method = weird POST/GET - params = %s" % req_dict)
-    return HttpResponse("Success -- statements - method = POST - body = %s" % req_dict['body'])
+    #TODO: will only be receiving JSON requests right? shouldn't have to worry about funky methods
+    #if req_dict['is_get']:
+        #return HttpResponse("Success -- statements - method = weird POST/GET - params = %s" % req_dict)
+    #return HttpResponse("Success -- statements - method = POST - body = %s" % req_dict['body'])
+    stmt = Statement.Statement(req_dict).statement
+    return HttpResponse("Success -- statements - method = POST - StatementID = %s" % stmt.statement_id)
+
 
 def statements_get(req_dict):
     statementId = req_dict.get('statementId', None)

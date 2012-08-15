@@ -5,14 +5,18 @@ from django.http import MultiPartParser
 import StringIO
 
 def statements_post(request):
-    req_dict = {}
+    #TODO:Should be looking at valid JSON here or inside statement class?
+    req_dict = request.body
+    #print req_dict
+    '''
     if request.GET: # looking for parameters
         req_dict.update(request.GET.dict()) # dict() is new to django 1.4
 
     body = request.body
     jsn = body.replace("'", "\"")
+    
     # spec not quite clear, i'm assuming if the type is json it's a real POST
-    if request.META['CONTENT_TYPE'] == 'application/json; charset=UTF-8': 
+    if request.META['CONTENT_TYPE'] == "application/json": 
         req_dict['body'] = deepcopy(json.loads(jsn))
         req_dict['is_get'] = False
     else: # if not, then it must be form data
@@ -25,6 +29,8 @@ def statements_post(request):
         if not [k for k,v in req_dict.items() if k in valid_params]:
             raise ParamError("Error -- could not find a valid parameter")
         req_dict['is_get'] = True
+    '''
+
     return req_dict
 
 
