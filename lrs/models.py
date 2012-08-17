@@ -1,5 +1,4 @@
 from django.db import models
-from django_extensions.db.fields import UUIDField
 from django.db import transaction
 from django.contrib.contenttypes.generic import GenericForeignKey
 
