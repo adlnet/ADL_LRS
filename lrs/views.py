@@ -9,30 +9,9 @@ from lrs import forms
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 import logging
-import base64
 from objects import Actor, Activity
 
 logger = logging.getLogger(__name__)
-
-def basic_http_auth(f):
-    def wrap(request, *args, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION', False):
-            authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
-            auth = base64.b64decode(auth)
-            username, password = auth.split(':')
-            user = authenticate(username=username, password=password)
-            
-            if user is not None:
-                return f(request, *args, **kwargs)
-            else:
-                r = HttpResponse("Auth Required", status = 401)
-                r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-                return r
-        r = HttpResponse("Auth Required", status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-        
-    return wrap
 
 def home(request):
     rsp = """
@@ -154,12 +133,15 @@ def actor_profile(request):
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
-@basic_http_auth
 def actors(request):
     try: 
         resp = handle_request(request)
     except Actor.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
+    except req_parse.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp

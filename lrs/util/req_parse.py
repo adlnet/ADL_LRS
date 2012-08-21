@@ -1,9 +1,33 @@
 from copy import deepcopy # runs slow.. we should only use if necessary
 import json
 from lrs.util import etag
-from django.http import MultiPartParser
+from django.http import MultiPartParser, HttpResponse
+from django.contrib.auth import authenticate
 import StringIO
+import base64
 
+def basic_http_auth(f):
+    def wrap(request, *args, **kwargs):
+        if request.META.get('HTTP_AUTHORIZATION', False):
+            authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+            auth = base64.b64decode(auth)
+            username, password = auth.split(':')
+            user = authenticate(username=username, password=password)
+            
+            if user is not None:
+                return f(request, *args, **kwargs)
+            
+        raise NotAuthorizedException("Auth Required")
+        
+    return wrap
+
+class NotAuthorizedException(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+@basic_http_auth
 def statements_post(request):
     #TODO: Switch this back to look for get...when this if stmt is implemented it wasn't sending JSON to statement class 
     req_dict = request.body
@@ -41,6 +65,7 @@ def statements_get(request):
     return request.GET
 
 
+@basic_http_auth
 def statements_put(request):
     req_dict = get_dict(request)
     try:
@@ -50,6 +75,7 @@ def statements_put(request):
     return req_dict
 
 
+@basic_http_auth
 def activity_state_put(request):
     req_dict = get_dict(request)
     try:
@@ -90,6 +116,7 @@ def activity_state_get(request):
     return request.GET
 
 
+@basic_http_auth
 def activity_state_delete(request):
     try:
         request.GET['activityId']
@@ -102,6 +129,7 @@ def activity_state_delete(request):
     return request.GET
   
         
+@basic_http_auth
 def activity_profile_put(request):
     #Get request dictionary
     req_dict = get_dict(request)
@@ -145,6 +173,7 @@ def activity_profile_get(request):
     return request.GET
 
 
+@basic_http_auth
 def activity_profile_delete(request):
     #Parse activityId and profileId since both are required
     try:
@@ -166,6 +195,7 @@ def activities_get(request):
     return request.GET
 
 #import pprint
+@basic_http_auth
 def actor_profile_put(request):
     req_dict = get_dict(request)
 
@@ -204,6 +234,7 @@ def actor_profile_get(request):
     return request.GET
 
 
+@basic_http_auth
 def actor_profile_delete(request):
     try: 
         request.GET['actor']
