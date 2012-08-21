@@ -5,16 +5,22 @@ from lrs import views
 import json
 from os import path
 import sys
+import base64
 
-_DIR = path.abspath(path.dirname(__file__))
-sys.path.append(path.abspath(path.join(_DIR,"../objects")))
 from lrs.objects import Actor
 
 class ActorsTests(TestCase):
+    def setUp(self):
+        self.username = "tester"
+        self.password = "test"
+        self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
+        form = {'username':self.username,'password':self.password,'password2':self.password}
+        response = self.client.post(reverse(views.register),form)
+
     def test_get(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
         me = Actor.Actor(actor,create=True)
-        response = self.client.get(reverse(views.actors), {'actor':actor})
+        response = self.client.get(reverse(views.actors), {'actor':actor}, HTTP_AUTHORIZATION=self.auth)
         #print response
         self.assertContains(response, 'mailto:me@example.com')
 
@@ -28,10 +34,10 @@ class ActorsTests(TestCase):
     #    self.assertContains(response, 'me')
     
     def test_get_no_actor(self):
-        response = self.client.get(reverse(views.actors))
+        response = self.client.get(reverse(views.actors), HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded')
+        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded', HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(response.status_code, 405)

@@ -7,8 +7,6 @@ import urllib
 from os import path
 import sys
 
-_DIR = path.abspath(path.dirname(__file__))
-sys.path.append(path.abspath(path.join(_DIR,"../objects")))
 from lrs.objects import Activity, Statement, Actor
 
 class StatementModelsTests(TestCase):

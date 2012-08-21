@@ -1,13 +1,38 @@
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from lrs.util import req_parse, req_process, etag
+from lrs import forms
 #from lrs import objects
 from django.shortcuts import render_to_response
+from django.template import RequestContext
 import logging
+import base64
 from objects import Actor, Activity
 
 logger = logging.getLogger(__name__)
+
+def basic_http_auth(f):
+    def wrap(request, *args, **kwargs):
+        if request.META.get('HTTP_AUTHORIZATION', False):
+            authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+            auth = base64.b64decode(auth)
+            username, password = auth.split(':')
+            user = authenticate(username=username, password=password)
+            
+            if user is not None:
+                return f(request, *args, **kwargs)
+            else:
+                r = HttpResponse("Auth Required", status = 401)
+                r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+                return r
+        r = HttpResponse("Auth Required", status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
+        
+    return wrap
 
 def home(request):
     rsp = """
@@ -31,6 +56,32 @@ def tcexample3(request):
 
 def tcexample4(request):
     return render_to_response('tcexample4.xml')
+
+def register(request):
+    if request.method == 'GET':
+        form = forms.RegisterForm()
+        return render_to_response('register.html', {"form": form})
+    elif request.method == 'POST':
+        form = forms.RegisterForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data['username']
+            pword = form.cleaned_data['password']
+            try:
+                user = User.objects.get(username__exact=name)
+                user = authenticate(username=name, password=pword)
+                if user is None:
+                    return render_to_response('register.html', {"form": form, "error_message": "%s is already registered but the password was incorrect." % name})
+            except User.DoesNotExist:
+                user = User.objects.create_user(name, '', pword)
+            return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
+        else:
+            return render_to_response('register.html', {"form": form})
+    else:
+        return Http404
+
+def reg_success(request, user_id):
+    user = User.objects.get(id=user_id)
+    return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
 
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):
@@ -103,6 +154,7 @@ def actor_profile(request):
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
+@basic_http_auth
 def actors(request):
     try: 
         resp = handle_request(request)
@@ -200,3 +252,4 @@ def print_req_details(request):
     print 'META: %s' % request.META
     print 'META content type: %s' % request.META['CONTENT_TYPE']
     print '==========================================='
+
