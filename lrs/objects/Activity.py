@@ -164,7 +164,7 @@ class Activity():
 
         #Check for extensions
         try:
-            extList = models.activity_extentions.objects.filter(activity_definition=act_def)
+            extList = models.activity_extensions.objects.filter(activity_definition=act_def)
         except Exception, e:
             #Extensions are optional so pass if there aren't any
             pass
@@ -439,7 +439,7 @@ class Activity():
                 self.activity_definition_extensions = []
 
                 for k, v in act_def['extensions'].items():
-                    act_def_ext = models.activity_extentions(key=k, value=v,
+                    act_def_ext = models.activity_extensions(key=k, value=v,
                         activity_definition=self.activity_definition)
                     act_def_ext.save()
                     self.activity_definition_extensions.append(act_def_ext)    

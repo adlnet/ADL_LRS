@@ -52,7 +52,7 @@ class ActivityModelsTests(TestCase):
     #All extensions are created with the same three values and keys
     def do_activity_definition_extensions_model(self, defPK, key1, key2, key3, value1, value2, value3):
         #Create list comprehesions to easier assess keys and values
-        extList = models.activity_extentions.objects.values_list().filter(activity_definition=defPK)
+        extList = models.activity_extensions.objects.values_list().filter(activity_definition=defPK)
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 

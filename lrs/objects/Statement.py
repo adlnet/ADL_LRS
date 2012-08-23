@@ -1,6 +1,7 @@
 import json
 import types
 import uuid
+import datetime
 from lrs import models
 from django.core.exceptions import FieldError
 from django.db import transaction
@@ -38,10 +39,30 @@ class Statement():
         else:
             raise Exception('Statment already voided, cannot unvoid. Please reissure the statement under a new ID.')
 
+    def _validateResultResponse(self, result, obj_data):
+        pass
+        # #Check if there is a response in result, and check the activity type 
+        # if 'response' in result and 'definition' in obj_data:
+        #     actDef = obj_data['definition']
+        #     if 'type' in actDef:
+        #         #If activity is not a cmi.interaction  or interaction type then throw exception
+        #         if not actDef['type'] == 'cmi.interaction' or actDef['type'] == 'interaction':
+        #             raise Exception("Response only valid for interaction or cmi.interaction activity types")
+        #         else:
+        #             #Check each type of interactionType if it is a cmi.interaction
+        #             if actDef['type'] == 'cmi.interaction':
+        #                 actDefIntType = actDef['interactionType']
+        #                 #Throw exception if it is true-false type yet response isn't string of true or false
+        #                 if actDefIntType == 'true-false' and result['response'] not in ['true', 'false']:
+        #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
+        #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
+        #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
-    def _validateVerbResult(self,result, verb):
+
+
+    def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
-        print 'in _validateVerbResult'
+
         #If completion is false then verb cannot be completed, mastered, 
         if result['completion'] == False:                
             if verb in completedVerbs:
@@ -60,33 +81,51 @@ class Statement():
             #Throw exception b/c failed and success contradict each other or completion is false
             raise Exception('Result success must be False if verb is ' + verb)
 
-    def _parseResult(self, stmt_data):
-        resultJSON = False
-        #TODO: distinguish between json and string type for result
-        '''
-        try:
-            results = json.loads(stmt_data['result'])
-            resultJSON = True
-        except Exception, e:
-            #Is string, not JSON
-            results = stmt_data['result']
-        '''
-        resultJSON = True
-        return (resultJSON, results)
+        #Validate response
+        self._validateResultResponse(result, obj_data)
 
     #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
-    def _validateResultScore(self, score_data):
+    def _validateScoreResult(self, score_data):
         pass
 
-    def _saveScoreToDB(self, args):
+    def _saveScoreToDB(self, score):
         sc = models.score(**score)
         sc.save()
         return sc
 
-    def _saveResultToDB(self, result):
+    def _saveResultToDB(self, result, resultExts, resultString):
+        #If the result is a string, create empty result and save the string in a result extension with the key resultString
+        if resultString:
+            rslt = models.result()
+            rslt.save()
+
+            res_ext = models.result_extensions(key='resultString', value=result, result=rslt)
+            res_ext.save()
+            return rslt
+
+        #Save the result with all of the args
         rslt = models.result(**result)
         rslt.save()
+
+        #If it has extensions, save them all
+        if resultExts:
+            for k, v in resultExts.items():
+                resExt = models.result_extensions(key=k, value=v, result=rslt)
+                resExt.save()
+
         return rslt
+
+    def _saveContextToDB(self, context, contextExts):
+        
+        cntx = models.context(**context)    
+        cntx.save()
+
+        if contextExts:
+            for k, v in contextExts.items():
+                conExt = models.context_extensions(key=k, value=v, context=cntx)
+                conExt.save()
+
+        return cntx        
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
@@ -94,11 +133,76 @@ class Statement():
         stmt.save()
         return stmt
 
+    def _populateResult(self, stmt_data, verb):
+        resultString = False
+        stringExt = {}
+        resultExts = {}
+        
+        #Check if the result is not a dict inside of JSON, if it's not then the data has a string instead
+        if not type(stmt_data['result']) is dict:
+            #Set resultString to True and result to the string
+            resultString = True
+            result = stmt_data['result']
+            
+        #Catch contradictory results if results is JSON object
+        if not resultString:    
+            if 'extensions' in stmt_data['result']:
+                result = {key: value for key, value in stmt_data['result'].items() if not key == 'extensions'}
+                resultExts = stmt_data['result']['extensions']   
+            else:
+                result = stmt_data['result']
+
+            self._validateVerbResult(result, verb, stmt_data['object'])
+
+            #Once found that the results are valid against the verb, check score object and save
+            if 'score' in result.keys():
+                self._validateScoreResult(result['score'])
+                result['score'] = self._saveScoreToDB(result['score'])
+
+        #Save result
+        return self._saveResultToDB(result, resultExts, resultString)
+
+    def _populateContext(self, stmt_data):
+        instructor = team = False
+        revision = platform = True
+        contextExts = {}
+
+        if 'registration' not in stmt_data['context']:
+            raise Exception('Registration UUID required for context')
+
+        if 'contextActivities' not in stmt_data['context']:
+            raise Exception('contextActivities required for context')
+
+        # Statement Actor and Object supercede context instructor and team
+        # If there is an actor or object is a person in the stmt then remove the instructor
+        if 'actor' in stmt_data or 'person' == stmt_data['object']['objectType']:
+            if 'instructor' in stmt_data['context']:                
+                del stmt_data['context']['instructor']
+
+        # If there is an actor or object is a group in the stmt then remove the team
+        if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType']:
+            if 'team' in stmt_data['context']:                
+                del stmt_data['context']['team']                
+
+        # Revision and platform not applicable if object is person
+        if 'person' == stmt_data['object']['objectType']:
+            del stmt_data['context']['revision']
+            del stmt_data['context']['platform']
+
+        if 'extensions' in stmt_data['context']:
+            context = {key: value for key, value in stmt_data['context'].items() if not key == 'extensions'}
+            contextExts = stmt_data['context']['extensions']
+        else:
+            context = stmt_data['context']
+
+        if 'statement' in context:
+            context['statement'] = Statement(context['statement']).statement.id
+
+        return self._saveContextToDB(context, contextExts)
+
     #Once JSON is verified, populate the statement object
     def _populate(self, stmt_data):
-        resultJSON = False
         args ={}
-
         #Must include verb - set statement verb - set to lower too
         try:
             args['verb'] = stmt_data['verb'].lower()
@@ -111,68 +215,52 @@ class Statement():
         except KeyError:
             raise Exception("No object provided, must provide 'object' field")
 
+        #Throw error since you can't set voided to True
+        if 'voided' in stmt_data:
+            if stmt_data['voided']:
+                raise Exception('Cannot have voided statement unless it is being voided by another statement')
+
         #Retrieve actor if in JSON only for now
-        if 'actor' in stmt_data.keys():
-        	args['actor'] = models.Actor(stmt_data['actor']).agent
+        if 'actor' in stmt_data:
+            args['actor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
         else:
-        	#Determine actor from authentication
+            #TODO: Determine actor from authentication
             pass
 
         #Set inProgress to false
         args['inProgress'] = False
 
         #Set inProgress when present
-        if 'inProgress' in stmt_data.keys():
+        if 'inProgress' in stmt_data:
             args['inProgress'] = stmt_data['inProgress']
 
         #Set voided to default false
         args['voided'] = False
 
-        #TODO: Needed? Just make voided false? Cannot have voided as True
-        #if 'voided' in stmt_data.keys():
-        #    if stmt_data['voided'] == 'True':
-        #        raise Exception('Cannot have voided statement unless it is being voided by another statement')
-
         #If not specified, the object is assumed to be an activity
-        if not 'objectType' in statementObjectData.keys():
+        if not 'objectType' in statementObjectData:
         	statementObjectData['objectType'] = 'Activity'
 
         #Check objectType, create object based on type
         if statementObjectData['objectType'] == 'Activity':
             args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
-        if statementObjectData['objectType'] == 'Person':
+        elif statementObjectData['objectType'] == 'Person':
             args['stmt_object'] = Actor(json.dumps(statementObjectData)).agent	
 
-        #TODO: finish testing result
         #Set result when present - result object can be string or JSON object
-        if 'result' in stmt_data.keys():
-            resultJSON, result = self._parseResult(stmt_data)
+        if 'result' in stmt_data:
+            args['result'] = self._populateResult(stmt_data, args['verb'])
 
-            #Catch contradictory results if results is JSON object
-            if resultJSON:
-                print 'in resultJSON'
-                self._validateVerbResult(result, args['verb'])
-                #Once found that the results are valid against the verb, check score object and save
-                if 'score' in result.keys():
-                    self._validateResultScore(result['score'])
-                    result['score'] = self._saveScore(result['score'])
-
-            #Should save result if it is string or result object
-            #TODO: If result is just string, how do we save to DB? 
-            args['result'] = self._saveResultToDB(result)
-
-        #TODO:Validate/parse context object
 	    #Set context when present
-      	if 'context' in stmt_data.keys():
-            #Is instructor or team saved as an agent object or string?
-      		args['context'] = stmt_data['context']
+      	if 'context' in stmt_data:
+      		args['context'] = self._populateContext(stmt_data)
 
       	#Set timestamp when present
-      	if 'timestamp' in stmt_data.keys():
+      	if 'timestamp' in stmt_data:
       		args['timestamp'] = stmt_data['timestamp']
 
-      	if 'authority' in stmt_data.keys():
-      		args['authority'] = Actor(stmt_data['authority'])
+      	if 'authority' in stmt_data:
+      		args['authority'] = Actor(stmt_data['authority']).agent
       	else:
       		#TODO:Find authenticated user???
             pass
@@ -187,11 +275,10 @@ class Statement():
         #If verb is imported then create either the actor or activity it is importing
         if args['verb'] == 'imported':
             if statementObjectData['objectType'].lower() == 'activity':
-                importedActivity = Activity(statementObjectData)
+                importedActivity = Activity(statementObjectData).activity
             elif obj['objectType'].lower() == 'actor':
-                importedActor = Actor(statementObjectData)
+                importedActor = Actor(statementObjectData).agent
 
-
-        #Create uuid for ID
+        #Create uuid for ID and save statement
         args['statement_id'] = uuid.uuid4()
         self.statement = self._saveStatementToDB(args)

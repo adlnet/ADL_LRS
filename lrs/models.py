@@ -13,16 +13,17 @@ def filename(instance, filename):
     return filename
 
 class score(models.Model):  
-    scaled = models.NullBooleanField(blank=True, null=True)
+    scaled = models.FloatField(blank=True, null=True)
     raw = models.PositiveIntegerField(blank=True, null=True)
     score_min = models.PositiveIntegerField(blank=True, null=True)
     score_max = models.PositiveIntegerField(blank=True, null=True)
 
 class result(models.Model): 
-    success = models.CharField(max_length=200, blank=True,null=True)
-    completion = models.NullBooleanField(blank=True)
+    success = models.NullBooleanField(blank=True,null=True)
+    completion = models.CharField(max_length=200, blank=True, null=True)
     response = models.CharField(max_length=200, blank=True, null=True)
-    duration = models.DateTimeField(blank=True, null=True)
+    #Made charfield since it would be stored in ISO8601 duration format
+    duration = models.CharField(max_length=200, blank=True, null=True)
     score = models.OneToOneField(score, blank=True, null=True)
 
 class result_extensions(models.Model):
@@ -239,7 +240,7 @@ class activity_definition_step(models.Model):
         ret['description'] = self.description
         return ret
 
-class activity_extentions(models.Model):
+class activity_extensions(models.Model):
     key = models.TextField()
     value = models.TextField()
     activity_definition = models.ForeignKey(activity_definition)
@@ -250,14 +251,14 @@ class activity_extentions(models.Model):
 class context(models.Model):    
     registration = models.CharField(max_length=200)
     instructor = models.OneToOneField(agent,blank=True, null=True)
-    team = models.CharField(max_length=200,blank=True, null=True)
-    contextActivities = models.CharField(max_length=200)
+    team = models.OneToOneField(group,blank=True, null=True, related_name="context_team")
+    contextActivities = models.TextField()
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
-    statement = models.CharField(max_length=200,blank=True, null=True)
+    statement = models.TextField(blank=True, null=True)
 
-class context_extentions(models.Model):
+class context_extensions(models.Model):
     key=models.CharField(max_length=200)
     value=models.CharField(max_length=200)
     context = models.ForeignKey(context)
@@ -289,7 +290,7 @@ class activity_profile(models.Model):
         super(activity_profile, self).delete(*args, **kwargs)
 
 class statement(statement_object):
-    #TODO: can't get django extentions UUIDField to generate UUID
+    #TODO: can't get django extensions UUIDField to generate UUID
     #statement_id = UUIDField(version=4)  
     statement_id = models.CharField(max_length=200)
     actor = models.OneToOneField(agent,related_name="actor_statement", blank=True, null=True)
