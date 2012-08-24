@@ -256,7 +256,7 @@ class context(models.Model):
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
-    statement = models.TextField(blank=True, null=True)
+    statement = models.BigIntegerField(blank=True, null=True)
 
 class context_extensions(models.Model):
     key=models.CharField(max_length=200)

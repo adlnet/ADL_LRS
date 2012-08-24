@@ -8,6 +8,7 @@ from django.db import transaction
 from functools import wraps
 from Activity import Activity
 from Actor import Actor
+import pdb
 
 class Statement():
 
@@ -19,7 +20,11 @@ class Statement():
 
     #Make sure initial data being received is JSON
     def _parse(self,initial):
+        #pdb.set_trace()
         if initial:
+            if type(initial) is dict:
+                initial=json.dumps(initial)
+
             #Don't put in try..catching exception to raise exception removes stack trace-will have better stack trace if this fails
             return json.loads(initial)
         return {}		
@@ -175,9 +180,14 @@ class Statement():
 
         # Statement Actor and Object supercede context instructor and team
         # If there is an actor or object is a person in the stmt then remove the instructor
-        if 'actor' in stmt_data or 'person' == stmt_data['object']['objectType']:
-            if 'instructor' in stmt_data['context']:                
-                del stmt_data['context']['instructor']
+        if 'actor' in stmt_data:
+            if stmt_data['actor']['objectType'] == 'Person':
+                stmt_data['context']['instructor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
+        elif stmt_data['object']['objectType'] == 'Person':
+            stmt_data['context']['instructor'] = Actor(json.dumps(stmt_data['object']), create=True).agent
+        elif 'instructor' in stmt_data['context']:
+            stmt_data['context']['instructor'] = Actor(json.dumps(stmt_data['context']['instructor']), create=True).agent
+
 
         # If there is an actor or object is a group in the stmt then remove the team
         if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType']:
@@ -245,7 +255,7 @@ class Statement():
         if statementObjectData['objectType'] == 'Activity':
             args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
         elif statementObjectData['objectType'] == 'Person':
-            args['stmt_object'] = Actor(json.dumps(statementObjectData)).agent	
+            args['stmt_object'] = Actor(json.dumps(statementObjectData), create=True).agent	
 
         #Set result when present - result object can be string or JSON object
         if 'result' in stmt_data:
