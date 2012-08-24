@@ -5,8 +5,6 @@ import json
 import sys
 from os import path
 
-_DIR = path.abspath(path.dirname(__file__))
-sys.path.append(path.abspath(path.join(_DIR,"../objects")))
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
 
 
