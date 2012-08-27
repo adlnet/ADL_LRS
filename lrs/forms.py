@@ -2,6 +2,7 @@ from django import forms
 
 class RegisterForm(forms.Form):
 	username = forms.CharField(max_length=200, label='Name')
+	email = forms.CharField(max_length=200, label='Email')
 	password = forms.CharField(label='Password', 
 								widget=forms.PasswordInput(render_value=False))
 	password2 = forms.CharField(label='Password Again', 

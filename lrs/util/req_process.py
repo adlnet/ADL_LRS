@@ -9,19 +9,24 @@ from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Stateme
 
 
 def statements_post(req_dict):
-    #TODO: will only be receiving JSON requests right? shouldn't have to worry about funky methods
-    #if req_dict['is_get']:
-        #return HttpResponse("Success -- statements - method = weird POST/GET - params = %s" % req_dict)
-    #return HttpResponse("Success -- statements - method = POST - body = %s" % req_dict['body'])
-    stmt = Statement.Statement(req_dict).statement
+    # No longer getting weird GET request when trying to send content_type='application/x-www-form-urlencoded' data
+    # if req_dict['is_get']:
+    #     return HttpResponse("Success -- statements - method = weird POST/GET - params = %s" % req_dict)
+    # return HttpResponse("Success -- statements - method = POST - body = %s" % req_dict['body'])
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
     return HttpResponse("Success -- statements - method = POST - StatementID = %s" % stmt.statement_id)
 
 
 def statements_get(req_dict):
-    statementId = req_dict.get('statementId', None)
-    if statementId:
-        return HttpResponse("Success -- statements - method = GET - statementId = %s" % statementId)
-    return HttpResponse("Success - statements - method = GET - params = %s" % req_dict)
+    statementId = req_dict['statementId']
+    st = Statement.Statement(statement_id=statementId, get=True)
+    data = st.get_full_statement_json()
+    return HttpResponse(stream_response_generator(data), mimetype="application/json")    
+    
+    # statementId = req_dict.get('statementId', None)
+    # if statementId:
+    #     return HttpResponse("Success -- statements - method = GET - statementId = %s" % statementId)
+    # return HttpResponse("Success - statements - method = GET - params = %s" % req_dict)
 
 def statements_put(req_dict):
     statementId = req_dict['statementId']    

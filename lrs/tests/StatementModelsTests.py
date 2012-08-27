@@ -53,6 +53,25 @@ class StatementModelsTests(TestCase):
         self.assertEqual(actorName.name, 'bob')
         self.assertEqual(actorMbox.mbox, 'bob@example.com')
 
+    def test_authority_stmt(self):
+        stmt = Statement.Statement(json.dumps({"authority":{'objectType':'Person','name':['bill'],'mbox':['bill@example.com']}, "verb":"created","object": {"id":"activity21", "objectType": "Activity"}}))
+        activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+        authority = models.person.objects.get(id=stmt.statement.authority.id)
+        authName = models.agent_name.objects.get(agent=stmt.statement.authority)
+        authMbox = models.agent_mbox.objects.get(agent=stmt.statement.authority)
+
+        self.assertEqual(stmt.statement.verb, 'created')
+        self.assertEqual(stmt.statement.stmt_object.id, activity.id)
+        self.assertEqual(stmt.statement.authority.id, authority.id)
+
+        st = models.statement.objects.get(id=stmt.statement.id)
+        self.assertEqual(st.stmt_object.id, activity.id)
+        self.assertEqual(st.authority.id, authority.id)
+
+        self.assertEqual(authName.name, 'bill')
+        self.assertEqual(authMbox.mbox, 'bill@example.com')
+        
+
     def test_voided_stmt(self):
         stmt = Statement.Statement(json.dumps({"verb":"mentioned","object": {'id':'activity2'}}))
         stID = stmt.statement.statement_id

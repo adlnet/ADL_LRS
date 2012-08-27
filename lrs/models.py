@@ -3,7 +3,7 @@ from django.db import transaction
 from django.contrib.contenttypes.generic import GenericForeignKey
 
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
-
+#TODO: Rewrite objReturn functions using self._meta.fields, so only have to write it once
 #needs object
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
@@ -303,6 +303,29 @@ class statement(statement_object):
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
     stmt_object = models.OneToOneField(statement_object)
+    
+    def __unicode__(self):
+        return ': '.join([str(self.id), self.objectType])
+    
+    def objReturn(self):
+        ret = {}
+        ret['statement_id'] = self.statement_id
+        ret['verb'] = self.verb
+        ret['inProgress'] = self.inProgress
+        ret['timestamp'] = self.timestamp
+        ret['stored'] = self.stored
+        ret['voided'] = self.voided
+
+        return ret
+
+# def objsReturn(model):
+#     ret = {}
+#     if type(model) is models.Model:
+#         for field in model._meta.fields:
+            
+    
+
+#     return {}    
 
 # - from http://djangosnippets.org/snippets/2283/
 @transaction.commit_on_success

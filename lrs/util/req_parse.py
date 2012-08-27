@@ -5,6 +5,7 @@ from django.http import MultiPartParser, HttpResponse
 from django.contrib.auth import authenticate
 import StringIO
 import base64
+import pdb
 
 def basic_http_auth(f):
     def wrap(request, *args, **kwargs):
@@ -13,8 +14,9 @@ def basic_http_auth(f):
             auth = base64.b64decode(auth)
             username, password = auth.split(':')
             user = authenticate(username=username, password=password)
-            
+
             if user is not None:
+                request.user = user
                 return f(request, *args, **kwargs)
             
         raise NotAuthorizedException("Auth Required")
@@ -29,19 +31,19 @@ class NotAuthorizedException(Exception):
 
 @basic_http_auth
 def statements_post(request):
-    #TODO: Switch this back to look for get...when this if stmt is implemented it wasn't sending JSON to statement class 
-    req_dict = request.body
-    '''
-    if request.GET: # looking for parameters
-        req_dict.update(request.GET.dict()) # dict() is new to django 1.4
-
+    req_dict = {}
+    
+    # No longer getting weird GET request when trying to send content_type='application/x-www-form-urlencoded' data
+    # if request.GET: # looking for parameters
+    #     req_dict.update(request.GET.dict()) # dict() is new to django 1.4
     body = request.body
     jsn = body.replace("'", "\"")
     
-    # spec not quite clear, i'm assuming if the type is json it's a real POST
+    # spec not quite clear, assuming if the type is json it's a real POST
     if request.META['CONTENT_TYPE'] == "application/json": 
         req_dict['body'] = deepcopy(json.loads(jsn))
-        req_dict['is_get'] = False
+        # No longer getting weird GET request
+        # req_dict['is_get'] = False
     else: # if not, then it must be form data
         valid_params = ['verb','object','registration','context','actor','since','until','limit','authoritative','sparse','instructor']
         try:
@@ -52,9 +54,8 @@ def statements_post(request):
         if not [k for k,v in req_dict.items() if k in valid_params]:
             raise ParamError("Error -- could not find a valid parameter")
         req_dict['is_get'] = True
-    '''
-
-    return req_dict
+    
+    return req_dict, request.user
 
 
 def statements_get(request):
@@ -63,7 +64,6 @@ def statements_get(request):
     except KeyError:
         raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
     return request.GET
-
 
 @basic_http_auth
 def statements_put(request):

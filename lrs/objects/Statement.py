@@ -8,19 +8,20 @@ from django.db import transaction
 from functools import wraps
 from Activity import Activity
 from Actor import Actor
-import pdb
 
 class Statement():
 
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None):
-        obj = self._parse(initial)
-        self._populate(obj)
+    def __init__(self, initial=None, auth=None, statement_id=None,get=False):
+        if get and statement_id is not None:
+            self.statement_id = statement_id
+        else:
+            obj = self._parse(initial)
+            self._populate(obj, auth)
 
     #Make sure initial data being received is JSON
     def _parse(self,initial):
-        #pdb.set_trace()
         if initial:
             if type(initial) is dict:
                 initial=json.dumps(initial)
@@ -63,7 +64,23 @@ class Statement():
         #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
         #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
+    # def get_full_statement_json(self):
+    #     #Check to see if statement exists
+    #     try:
+    #         stmt = models.statement.objects.get(statement_id=self.statement_id)            
+    #     except models.statement.DoesNotExist:
+    #         raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
 
+    #     #Set statement to return
+    #     ret = stmt.objReturn()
+
+    #     try:
+    #         stmtObject = stmt.stmt_object
+    #     except Exception, e:
+    #         raise e
+
+
+    #     return ret
 
     def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
@@ -172,6 +189,7 @@ class Statement():
         revision = platform = True
         contextExts = {}
 
+
         if 'registration' not in stmt_data['context']:
             raise Exception('Registration UUID required for context')
 
@@ -211,7 +229,7 @@ class Statement():
         return self._saveContextToDB(context, contextExts)
 
     #Once JSON is verified, populate the statement object
-    def _populate(self, stmt_data):
+    def _populate(self, stmt_data, auth):
         args ={}
         #Must include verb - set statement verb - set to lower too
         try:
@@ -234,8 +252,11 @@ class Statement():
         if 'actor' in stmt_data:
             args['actor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
         else:
-            #TODO: Determine actor from authentication
-            pass
+             if auth:
+                authArgs = {}
+                authArgs['name'] = [auth.username]
+                authArgs['mbox'] = [auth.email]
+                args['actor'] = Actor(json.dumps(authArgs), create=True).agent
 
         #Set inProgress to false
         args['inProgress'] = False
@@ -262,19 +283,22 @@ class Statement():
             args['result'] = self._populateResult(stmt_data, args['verb'])
 
 	    #Set context when present
-      	if 'context' in stmt_data:
-      		args['context'] = self._populateContext(stmt_data)
+        if 'context' in stmt_data:
+            args['context'] = self._populateContext(stmt_data)
 
       	#Set timestamp when present
       	if 'timestamp' in stmt_data:
       		args['timestamp'] = stmt_data['timestamp']
 
-      	if 'authority' in stmt_data:
-      		args['authority'] = Actor(stmt_data['authority']).agent
-      	else:
-      		#TODO:Find authenticated user???
-            pass
-
+        if 'authority' in stmt_data:
+            args['authority'] = Actor(json.dumps(stmt_data['authority']), create=True).agent
+        else:
+            #TODO:Find authenticated user???
+            if auth:
+                authArgs = {}
+                authArgs['name'] = [auth.username]
+                authArgs['mbox'] = [auth.email]
+                args['actor'] = Actor(json.dumps(authArgs), create=True).agent
 
         #Check to see if voiding statement
         if args['verb'] == 'voided':
