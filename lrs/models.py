@@ -293,13 +293,14 @@ class statement(statement_object):
     #TODO: can't get django extensions UUIDField to generate UUID
     #statement_id = UUIDField(version=4)  
     statement_id = models.CharField(max_length=200)
-    actor = models.OneToOneField(agent,related_name="actor_statement", blank=True, null=True)
+    # actor = models.OneToOneField(agent,related_name="actor_statement", blank=True, null=True)
+    actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
     verb = models.CharField(max_length=200)
     inProgress = models.NullBooleanField(blank=True, null=True)    
     result = models.OneToOneField(result, blank=True,null=True)
     timestamp = models.DateTimeField(blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True) 
-    authority = models.OneToOneField(agent, blank=True,null=True,related_name="authority_statement")
+    authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
     stmt_object = models.OneToOneField(statement_object)
@@ -322,7 +323,7 @@ class statement(statement_object):
 #     ret = {}
 #     if type(model) is models.Model:
 #         for field in model._meta.fields:
-            
+
     
 
 #     return {}    

@@ -1,20 +1,25 @@
 from django.http import HttpResponse
-from lrs import objects
+from lrs import objects, models
 from lrs.util import etag
 import json
 import sys
 from os import path
-
+import pdb
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
 
 
 def statements_post(req_dict):
     # No longer getting weird GET request when trying to send content_type='application/x-www-form-urlencoded' data
-    # if req_dict['is_get']:
-    #     return HttpResponse("Success -- statements - method = weird POST/GET - params = %s" % req_dict)
-    # return HttpResponse("Success -- statements - method = POST - body = %s" % req_dict['body'])
-    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
-    return HttpResponse("Success -- statements - method = POST - StatementID = %s" % stmt.statement_id)
+    #TODO: more elegant way of doing this?
+    stmtResponses = []
+    if not type(req_dict[0]['body']) is list:
+        stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+        stmtResponses.append(str(stmt.id))
+    else:
+        for st in req_dict[0]['body']:
+            stmt = Statement.Statement(st, auth=req_dict[1]).statement
+            stmtResponses.append(str(stmt.statement_id))
+    return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
 
 
 def statements_get(req_dict):
@@ -23,15 +28,17 @@ def statements_get(req_dict):
     data = st.get_full_statement_json()
     return HttpResponse(stream_response_generator(data), mimetype="application/json")    
     
-    # statementId = req_dict.get('statementId', None)
-    # if statementId:
-    #     return HttpResponse("Success -- statements - method = GET - statementId = %s" % statementId)
-    # return HttpResponse("Success - statements - method = GET - params = %s" % req_dict)
 
 def statements_put(req_dict):
-    statementId = req_dict['statementId']    
-    return HttpResponse("Success -- statements - method = PUT - statementId = %s" % statementId)
-
+    statementId = req_dict[0]['body']['statementId']
+    try:
+        stmt = models.statement.objects.get(statement_id=statementId)
+    except models.statement.DoesNotExist:
+        stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement        
+        return HttpResponse("StatementID = %s" % statementId, status=200)
+    else:
+        return HttpResponse("Error: %s already exists" % statementId, status=204)
+     
 
 def activity_state_put(req_dict):
     # test ETag for concurrency

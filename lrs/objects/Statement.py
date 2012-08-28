@@ -8,6 +8,7 @@ from django.db import transaction
 from functools import wraps
 from Activity import Activity
 from Actor import Actor
+import pdb
 
 class Statement():
 
@@ -151,6 +152,7 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
+        #pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -248,6 +250,7 @@ class Statement():
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
 
+
         #Retrieve actor if in JSON only for now
         if 'actor' in stmt_data:
             args['actor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
@@ -293,12 +296,11 @@ class Statement():
         if 'authority' in stmt_data:
             args['authority'] = Actor(json.dumps(stmt_data['authority']), create=True).agent
         else:
-            #TODO:Find authenticated user???
             if auth:
                 authArgs = {}
                 authArgs['name'] = [auth.username]
                 authArgs['mbox'] = [auth.email]
-                args['actor'] = Actor(json.dumps(authArgs), create=True).agent
+                args['authority'] = Actor(json.dumps(authArgs), create=True).agent
 
         #Check to see if voiding statement
         if args['verb'] == 'voided':
@@ -313,6 +315,17 @@ class Statement():
             elif obj['objectType'].lower() == 'actor':
                 importedActor = Actor(statementObjectData).agent
 
-        #Create uuid for ID and save statement
-        args['statement_id'] = uuid.uuid4()
+        #See if statement_id already exists, throw exception if it does
+        if 'statement_id' in stmt_data:
+            try:
+                existingSTMT = models.statement.objects.get(statement_id=stmt_data['statement_id'])
+            except models.statement.DoesNotExist:
+                args['statement_id'] = stmt_data['statement_id']
+            else:
+                raise Exception("The Statement ID %s already exists in the system" % args['statement_id'])
+        else:
+            #Create uuid for ID
+            args['statement_id'] = uuid.uuid4()
+        
+        #Save statement
         self.statement = self._saveStatementToDB(args)

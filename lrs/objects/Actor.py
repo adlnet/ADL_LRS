@@ -8,7 +8,7 @@ from django.core.exceptions import FieldError
 from django.core.files.base import ContentFile
 from django.db import transaction
 from functools import wraps
-
+import pdb
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -98,6 +98,7 @@ class Actor():
 
     
     def __populate(self, the_agent, the_object):
+        # pdb.set_trace()
         try:
             objtype = the_object['objectType']
         except KeyError:

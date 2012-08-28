@@ -31,30 +31,19 @@ class NotAuthorizedException(Exception):
 
 @basic_http_auth
 def statements_post(request):
-    req_dict = {}
-    
     # No longer getting weird GET request when trying to send content_type='application/x-www-form-urlencoded' data
-    # if request.GET: # looking for parameters
-    #     req_dict.update(request.GET.dict()) # dict() is new to django 1.4
+    req_dict = {}
     body = request.body
     jsn = body.replace("'", "\"")
     
     # spec not quite clear, assuming if the type is json it's a real POST
     if request.META['CONTENT_TYPE'] == "application/json": 
         req_dict['body'] = deepcopy(json.loads(jsn))
-        # No longer getting weird GET request
-        # req_dict['is_get'] = False
     else: # if not, then it must be form data
-        valid_params = ['verb','object','registration','context','actor','since','until','limit','authoritative','sparse','instructor']
         try:
             req_dict.update(json.loads(jsn))
         except:
             req_dict.update(request.POST.dict())
-        # test if one of the request keys is a valid paramter
-        if not [k for k,v in req_dict.items() if k in valid_params]:
-            raise ParamError("Error -- could not find a valid parameter")
-        req_dict['is_get'] = True
-    
     return req_dict, request.user
 
 
@@ -67,12 +56,13 @@ def statements_get(request):
 
 @basic_http_auth
 def statements_put(request):
+    # pdb.set_trace()
     req_dict = get_dict(request)
     try:
-        req_dict['statementId']
+        req_dict['body']['statementId']
     except KeyError:
         raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % request.method)
-    return req_dict
+    return req_dict, request.user
 
 
 @basic_http_auth

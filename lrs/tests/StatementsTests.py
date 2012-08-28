@@ -6,7 +6,7 @@ from os import path
 import sys
 import json
 import base64
-from lrs.objects import Actor, Activity
+from lrs.objects import Actor, Activity, Statement
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -16,18 +16,6 @@ class StatementsTests(TestCase):
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form)
-
-    # def test_post_but_really_get(self):
-    #     response = self.client.post(reverse(views.statements), {"verb":"created","object": {"id":"http://example.com/test_post_but_really_get"}},content_type='application/x-www-form-urlencoded', HTTP_AUTHORIZATION=self.auth)
-    #     #print "\nTesting post with type to url form encoded\n %s \n-----done----" % response.content
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertContains(response, 'weird POST/GET')
-        
-    # def test_post_but_really_get_no_type(self):
-    #     response = self.client.post(reverse(views.statements), {"verb":"created","object": {"id":"http://example.com/test_post_but_really_get_no_type"}}, HTTP_AUTHORIZATION=self.auth)
-    #     #print "\nTesting post with no content type\n %s \n-----done----" % response.content
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertContains(response, 'weird POST/GET')
         
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
@@ -43,9 +31,22 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(act.activity_id, "test_post")
         
+    def test_list_post(self):
+        stmts = json.dumps([{"verb":"created","object": {"id":"test_list_post"}},{"verb":"managed","object": {"id":"test_list_post1"}}])
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        activity1 = models.activity.objects.get(activity_id="test_list_post")
+        activity2 = models.activity.objects.get(activity_id="test_list_post1")
+        stmt1 = models.statement.objects.get(stmt_object=activity1)
+        stmt2 = models.statement.objects.get(stmt_object=activity2)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(stmt1.verb, "created")
+        self.assertEqual(stmt2.verb, "managed")
+
     def test_authority_stmt_field_post(self):
         stmt = json.dumps({"verb":"created","object": {"id":"test_post1"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        
         act = models.activity.objects.get(activity_id="test_post1")
         actorName = models.agent_name.objects.get(name='tester1')
         actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
@@ -55,6 +56,29 @@ class StatementsTests(TestCase):
 
         self.assertEqual(actorName.name, 'tester1')
         self.assertEqual(actorMbox.mbox, 'test1@tester.com')
+
+    def test_put(self):
+        stmt = json.dumps({"statementId": "putID","verb":"created","object": {"id":"test_put"}})
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        act = models.activity.objects.get(activity_id="test_put")
+        actorName = models.agent_name.objects.get(name='tester1')
+        actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(act.activity_id, "test_put")
+
+    def test_existing_stmtID_put(self):
+        existStmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
+        stmt = json.dumps({"statementId": "blahID","verb":"created","object": {"id":"test_put"}})
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        
+        self.assertEqual(response.status_code, 204)        
+
+    def test_missing_stmtID_put(self):
+        stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+
+        self.assertContains(response, "Error -- statements - method = PUT, but statementId paramater is missing")
 
     # def test_get(self):
     #     stmt = json.dumps({"verb":"created","object": {"id":"test_get"}})

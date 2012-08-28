@@ -8,14 +8,12 @@ from datetime import datetime
 from os import path
 import sys
 import uuid
-import pdb
 
 from lrs.objects import Activity, Statement, Actor
 
 class StatementModelsTests(TestCase):
          
     def test_minimum_stmt(self):
-        # pdb.set_trace()
         stmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
         act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
 
@@ -24,6 +22,22 @@ class StatementModelsTests(TestCase):
 
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, act.id)
+
+    def test_given_stmtID_stmt(self):
+        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
+        act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+
+        self.assertEqual(stmt.statement.verb, 'created')
+        self.assertEqual(stmt.statement.stmt_object.id, act.id)
+        self.assertEqual(stmt.statement.statement_id, "blahID")
+
+        st = models.statement.objects.get(statement_id="blahID")
+        self.assertEqual(st.stmt_object.id, act.id)
+
+    def test_existing_stmtID_stmt(self):
+        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'}, "verb":"created", "statement_id":"blahID"}))
+
 
     def test_minimum_stmt_activity_object(self):
         stmt = Statement.Statement(json.dumps({"verb":"created","object": {"id":"activity1", "objectType": "Activity"}}))
