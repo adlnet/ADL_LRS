@@ -65,23 +65,19 @@ class Statement():
         #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
         #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
-    # def get_full_statement_json(self):
-    #     #Check to see if statement exists
-    #     try:
-    #         stmt = models.statement.objects.get(statement_id=self.statement_id)            
-    #     except models.statement.DoesNotExist:
-    #         raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
+    def get_full_statement_json(self):
+        #Check to see if statement exists
+        try:
+            stmt = models.statement.objects.get(statement_id=self.statement_id)            
+        except models.statement.DoesNotExist:
+            raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
 
-    #     #Set statement to return
-    #     ret = stmt.objReturn()
-
-    #     try:
-    #         stmtObject = stmt.stmt_object
-    #     except Exception, e:
-    #         raise e
-
-
-    #     return ret
+        # pdb.set_trace()
+        #Set statement to return
+        ret = models.objsReturn(stmt)
+        # ret = stmt.StmtObjReturn()
+        print ret
+        return ret
 
     def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
@@ -105,7 +101,7 @@ class Statement():
             raise Exception('Result success must be False if verb is ' + verb)
 
         #Validate response
-        self._validateResultResponse(result, obj_data)
+        # self._validateResultResponse(result, obj_data)
 
     #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
     def _validateScoreResult(self, score_data):

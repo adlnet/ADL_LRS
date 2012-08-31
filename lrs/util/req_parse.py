@@ -32,18 +32,25 @@ class NotAuthorizedException(Exception):
 @basic_http_auth
 def statements_post(request):
     # No longer getting weird GET request when trying to send content_type='application/x-www-form-urlencoded' data
+    # TODO: more elegant way of doing this?
+    # TODO: differentiate if users are using POST as a GET
     req_dict = {}
+    post_dict = {}
+
     body = request.body
     jsn = body.replace("'", "\"")
-    
+    raw = request.raw_post_data.replace("'", "\"")
+
     # spec not quite clear, assuming if the type is json it's a real POST
     if request.META['CONTENT_TYPE'] == "application/json": 
-        req_dict['body'] = deepcopy(json.loads(jsn))
-    else: # if not, then it must be form data
+        req_dict = get_dict(request)
+    # if not, then it must be form data
+    else:
         try:
-            req_dict.update(json.loads(jsn))
+            req_dict = get_dict(json.loads(jsn))
         except:
-            req_dict.update(request.POST.dict())
+            req_dict['body'] = json.loads(raw)
+
     return req_dict, request.user
 
 
@@ -56,7 +63,6 @@ def statements_get(request):
 
 @basic_http_auth
 def statements_put(request):
-    # pdb.set_trace()
     req_dict = get_dict(request)
     try:
         req_dict['body']['statementId']

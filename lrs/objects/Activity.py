@@ -130,15 +130,19 @@ class Activity():
         return act_def
 
     #Save activity to DB
-    def _save_actvity_to_db(self, act_id, objType):
-        act = models.activity(activity_id=act_id, objectType=objType)
+    def _save_actvity_to_db(self, act_id, objType, act_def=None):
+        if act_def:
+            act = models.activity(activity_id=act_id, objectType=objType, activity_definition=act_def)
+        else:
+            act = models.activity(activity_id=act_id, objectType=objType)
+        
         act.save()
         return act
 
     #Save activity definition to DB
-    def _save_activity_definition_to_db(self, act, name, desc, act_def_type, intType):
+    def _save_activity_definition_to_db(self, name, desc, act_def_type, intType):
         act_def = models.activity_definition(name=name,description=desc, activity_definition_type=act_def_type,
-                  interactionType=intType, activity=act)
+                  interactionType=intType)
         act_def.save()
         return act_def    
 
@@ -356,12 +360,16 @@ class Activity():
                     interactionFlag = 'scale'
 
             #Save activity to DB
-            self.activity = self._save_actvity_to_db(act_id, objType)
+            # self.activity = self._save_actvity_to_db(act_id, objType)
 
             #Save activity definition to DB
-            self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
+            # self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
+            #             act_def['description'], act_def['type'], act_def['interactionType'])
+            self.activity_definition = self._save_activity_definition_to_db(act_def['name'],
                         act_def['description'], act_def['type'], act_def['interactionType'])
     
+            self.activity = self._save_actvity_to_db(act_id, objType, self.activity_definition)
+
     
             #If there is a correctResponsesPattern then save the pattern
             if 'correctResponsesPattern' in act_def.keys():
@@ -373,8 +381,11 @@ class Activity():
 
 
     def _populate_correctResponsesPattern(self, act_def, interactionFlag):
-                crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
+                # crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
+                crp = models.activity_def_correctresponsespattern()
                 crp.save()
+                self.activity_definition.correctresponsespattern = crp
+                self.activity_definition.save()
                 self.correctResponsesPattern = crp
                 
                 #For each answer in the pattern save it

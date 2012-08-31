@@ -30,6 +30,7 @@ def statements_get(req_dict):
     
 
 def statements_put(req_dict):
+
     statementId = req_dict[0]['body']['statementId']
     try:
         stmt = models.statement.objects.get(statement_id=statementId)

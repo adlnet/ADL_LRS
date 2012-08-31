@@ -6,6 +6,8 @@ from os import path
 import sys
 import json
 import base64
+import uuid
+from datetime import datetime
 from lrs.objects import Actor, Activity, Statement
 
 class StatementsTests(TestCase):
@@ -30,7 +32,17 @@ class StatementsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(act.activity_id, "test_post")
-        
+    
+    def test_form_post(self):
+        stmt = {"verb": "tested", "object": {"id":"test_form_post"}}
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/x-www-form-urlencoded", HTTP_AUTHORIZATION=self.auth)
+        act = models.activity.objects.get(activity_id="test_form_post")
+        actorName = models.agent_name.objects.get(name='tester1')
+        actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(act.activity_id, "test_form_post")        
+
     def test_list_post(self):
         stmts = json.dumps([{"verb":"created","object": {"id":"test_list_post"}},{"verb":"managed","object": {"id":"test_list_post1"}}])
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
@@ -74,20 +86,30 @@ class StatementsTests(TestCase):
         
         self.assertEqual(response.status_code, 204)        
 
-    def test_missing_stmtID_put(self):
+    def test_missing_stmtID_put(self):        
         stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
         response = self.client.put(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
 
         self.assertContains(response, "Error -- statements - method = PUT, but statementId paramater is missing")
 
-    # def test_get(self):
-    #     stmt = json.dumps({"verb":"created","object": {"id":"test_get"}})
-    #     post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-    #     self.assertEqual(post_response.status_code, 200)
+    def test_get(self):
+        guid = str(uuid.uuid4())
+        cguid = str(uuid.uuid4())
+        time = str(datetime.now())                
+        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        existStmt = Statement.Statement(json.dumps({"statement_id":guid, "actor":{'objectType':'Person','name':['jon1'],'mbox':['jon1@example.com']} ,
+            "verb":"created", "object": {'objectType': 'Activity', 'id':'foog',
+                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+                'interactionType': 'fill-in','correctResponsesPattern': ['Fill in answer'],
+                'extensions': {'key1': 'value1', 'key2': 'value2',
+                'key3': 'value3'}}}, "result": {'score':{'scaled':.95}, 'completion': True, 'success': True, 'response': 'kicked', 'duration': time, 'extensions':{'key1': 'value1', 'key2':'value2'}},
+            'context':{'registration': cguid, 'contextActivities': {'other': {'id': 'NewActivityID'}}, 'revision': 'foo', 'platform':'bar',
+                'language': 'en-US', 'extensions':{'ckey1': 'cval1', 'ckey2': 'cval2'}}, 'timestamp':time, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}}))        
+        
 
-    #     response = self.client.get(reverse(views.statements), {'statementId': post_response.content})
-    #     print response.__dict__
-
+        response = self.client.get(reverse(views.statements), {'statementId': guid})
+        # print response
+        # self.assertEqual(response.status_code, 200)
 
 
     def test_get_no_statementid(self):
