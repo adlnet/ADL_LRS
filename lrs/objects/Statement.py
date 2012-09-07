@@ -9,6 +9,20 @@ from functools import wraps
 from Activity import Activity
 from Actor import Actor
 import pdb
+from functools import wraps
+
+class default_on_exception(object):
+    def __init__(self,default):
+        self.default = default
+    def __call__(self,f):
+        @wraps(f)
+        def closure(obj,*args,**kwargs):
+            try:
+                return f(obj,*args,**kwargs)
+            except:
+                return self.default
+        return closure
+
 
 class Statement():
 
@@ -17,6 +31,10 @@ class Statement():
     def __init__(self, initial=None, auth=None, statement_id=None,get=False):
         if get and statement_id is not None:
             self.statement_id = statement_id
+            try:
+                self.statement = models.statement.objects.get(statement_id=self.statement_id)            
+            except models.statement.DoesNotExist:
+                raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
         else:
             obj = self._parse(initial)
             self._populate(obj, auth)
@@ -66,18 +84,10 @@ class Statement():
         #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
     def get_full_statement_json(self):
-        #Check to see if statement exists
-        try:
-            stmt = models.statement.objects.get(statement_id=self.statement_id)            
-        except models.statement.DoesNotExist:
-            raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
+        # Set statement to return
+        ret = models.objsReturn(self.statement)
+        return json.dumps(ret, indent=4, sort_keys=True)
 
-        # pdb.set_trace()
-        #Set statement to return
-        ret = models.objsReturn(stmt)
-        # ret = stmt.StmtObjReturn()
-        print ret
-        return ret
 
     def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
@@ -148,7 +158,7 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
-        #pdb.set_trace()
+        # pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -246,7 +256,6 @@ class Statement():
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
 
-
         #Retrieve actor if in JSON only for now
         if 'actor' in stmt_data:
             args['actor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
@@ -271,8 +280,9 @@ class Statement():
         if not 'objectType' in statementObjectData:
         	statementObjectData['objectType'] = 'Activity'
 
-        #Check objectType, create object based on type
-        if statementObjectData['objectType'] == 'Activity':
+        #Check objectType, get object based on type
+        if statementObjectData['objectType'] == 'Activity' and not args['verb'] == 'imported':
+            # pdb.set_trace()
             args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
         elif statementObjectData['objectType'] == 'Person':
             args['stmt_object'] = Actor(json.dumps(statementObjectData), create=True).agent	
@@ -305,11 +315,15 @@ class Statement():
         		self._voidStatement(statementObjectData['id'])
 
         #If verb is imported then create either the actor or activity it is importing
+                
         if args['verb'] == 'imported':
+            # pdb.set_trace()
             if statementObjectData['objectType'].lower() == 'activity':
-                importedActivity = Activity(statementObjectData).activity
+                importedActivity = Activity(json.dumps(statementObjectData)).activity
+                args['stmt_object'] = importedActivity
             elif obj['objectType'].lower() == 'actor':
-                importedActor = Actor(statementObjectData).agent
+                importedActor = Actor(json.dumps(statementObjectData), create=True).agent
+                args['stmt_object'] = importedActor
 
         #See if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:

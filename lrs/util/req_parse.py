@@ -9,17 +9,22 @@ import pdb
 
 def basic_http_auth(f):
     def wrap(request, *args, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION', False):
-            authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
-            auth = base64.b64decode(auth)
-            username, password = auth.split(':')
-            user = authenticate(username=username, password=password)
+        # pdb.set_trace()
+        if request.method == 'POST' and not request.META['CONTENT_TYPE'] == 'application/json':
+            return f(request, *args, **kwargs)
+        else:
+            if request.META.get('HTTP_AUTHORIZATION', False):
 
-            if user is not None:
-                request.user = user
-                return f(request, *args, **kwargs)
-            
-        raise NotAuthorizedException("Auth Required")
+                authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+                auth = base64.b64decode(auth)
+                username, password = auth.split(':')
+                user = authenticate(username=username, password=password)
+
+                if user is not None:
+                    request.user = user
+                    return f(request, *args, **kwargs)
+                    
+            raise NotAuthorizedException("Auth Required")
         
     return wrap
 
@@ -31,35 +36,38 @@ class NotAuthorizedException(Exception):
 
 @basic_http_auth
 def statements_post(request):
-    # No longer getting weird GET request when trying to send content_type='application/x-www-form-urlencoded' data
     # TODO: more elegant way of doing this?
-    # TODO: differentiate if users are using POST as a GET
+    # pdb.set_trace()
     req_dict = {}
-    post_dict = {}
 
-    body = request.body
-    jsn = body.replace("'", "\"")
-    raw = request.raw_post_data.replace("'", "\"")
+    if request.META['CONTENT_TYPE'] == "application/json":
+        body = request.body
+        jsn = body.replace("'", "\"")
+        raw = request.raw_post_data.replace("'", "\"")
 
-    # spec not quite clear, assuming if the type is json it's a real POST
-    if request.META['CONTENT_TYPE'] == "application/json": 
+        # spec not quite clear, assuming if the type is json it's a real POST
         req_dict = get_dict(request)
-    # if not, then it must be form data
+        return req_dict, request.user
     else:
-        try:
-            req_dict = get_dict(json.loads(jsn))
-        except:
-            req_dict['body'] = json.loads(raw)
-
-    return req_dict, request.user
-
+        return request.POST.dict()
 
 def statements_get(request):
-    try:
-        request.GET['statementId']
-    except KeyError:
-        raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
-    return request.GET
+    req_dict = {}
+    postParams = ['verb', 'object', 'registration', 'context', 'actor', 'since', 'until', 'limit', 'authoritative', 'sparse', 'instructor']
+    sentParams = [x for x in request.GET]
+    complexRequest = False
+    req_dict['body'] = deepcopy(request.GET.dict())
+    complexRequest = any(x in sentParams for x in postParams)
+    
+    if complexRequest:
+        req_dict['complex'] = True
+    else:
+        try:
+            req_dict['body']['statementId']
+            req_dict['complex'] = False
+        except KeyError:
+            raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
+    return req_dict
 
 @basic_http_auth
 def statements_put(request):

@@ -7,7 +7,7 @@ from lxml import etree
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
-
+import pdb
 
 class Activity():
 
@@ -34,6 +34,15 @@ class Activity():
         #Get activity object
         if get and activity_id is not None:
             self.activity_id = activity_id
+            try:
+                self.activity = models.activity.objects.get(activity_id=self.activity_id)            
+            except models.activity.DoesNotExist:
+                raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)
+            #Check to see if activity exists
+            try:
+                self.activity = models.activity.objects.get(activity_id=self.activity_id)            
+            except models.activity.DoesNotExist:
+                raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)            
         else:
             self.initial = initial
             self.obj = self._parse(initial)
@@ -147,18 +156,14 @@ class Activity():
         return act_def    
 
     def get_full_activity_json(self):
-        #Check to see if activity exists
-        try:
-            act = models.activity.objects.get(activity_id=self.activity_id)            
-        except models.activity.DoesNotExist:
-            raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)
+
 
         #Set activity to return
-        ret = act.objReturn()
+        ret = self.activity.objReturn()
 
         #Check if definition exists
         try:
-            act_def = models.activity_definition.objects.get(activity=act)
+            act_def = models.activity_definition.objects.get(activity=self.activity)
         except Exception, e:
             #No definition so return activity
             return ret
@@ -246,50 +251,55 @@ class Activity():
 
         #Check if activity ID already exists
         IDList = models.activity.objects.values_list('activity_id', flat=True)
-
+        # TODO get displaying correct msg
+        # pdb.set_trace()
         if activity_id in IDList:
-            raise(Exception, "Activity ID is already in use, please use a different naming technique")
-
-        #Set objectType to nothing
-        objectType = None
-
-        #ObjectType should always be Activity when present
-        if 'objectType' in the_object.keys():
-            objectType = 'Activity'
-
-        #Try to grab XML from ID if no other JSON is provided - since it won't have a definition it's not a link
-        #therefore it can be allowed to not resolve and will just return an empty dictionary
-        if not 'definition' in the_object.keys():
-            xml_data = self._validateID(activity_id)
-
-            #If the ID validated against the XML schema then proceed with populating the definition with the info
-            #from the XML - else just save the activity (someone sent in an ID that doesn't resolve and an objectType
-            #with no other data)                
-            if xml_data:
-                self._populate_definition(xml_data, activity_id, objectType)
-            else:    
-                self.activity = self._save_actvity_to_db(activity_id, objectType)
-        #Definition is provided
-        else:
-            activity_definition = the_object['definition']
-         
-            #Verify the given activity_id resolves if it is a link (has to resolve if link) 
-            if activity_definition['type'] == 'link':
-                try:
-                    Activity.validator(activity_id)
-                except ValidationError, e:
-                    raise e
-            #Type is not a link - it can be allowed to not resolve and will just return an empty dictionary    
-            else:
-                #If activity is not a link, the ID either must not resolve or validate against metadata schema
-                xml_data = self._validateID(activity_id)
+            # msg = "Activity ID %s is already in use, please use a different naming technique" % activity_id
+            # raise(Exception, msg)
+            # Don't make a new one
+            self.activity = models.activity.objects.get(activity_id=activity_id)
             
-            #If the returned data is not empty, it overrides any JSON data sent in
-            if xml_data:
-                activity_definition = xml_data
+        else:
+            #Set objectType to nothing
+            objectType = None
 
-            #If the URL did not resolve and is not type link, it will use the JSON data provided
-            self._populate_definition(activity_definition, activity_id, objectType)
+            #ObjectType should always be Activity when present
+            if 'objectType' in the_object.keys():
+                objectType = 'Activity'
+
+            #Try to grab XML from ID if no other JSON is provided - since it won't have a definition it's not a link
+            #therefore it can be allowed to not resolve and will just return an empty dictionary
+            if not 'definition' in the_object.keys():
+                xml_data = self._validateID(activity_id)
+
+                #If the ID validated against the XML schema then proceed with populating the definition with the info
+                #from the XML - else just save the activity (someone sent in an ID that doesn't resolve and an objectType
+                #with no other data)                
+                if xml_data:
+                    self._populate_definition(xml_data, activity_id, objectType)
+                else:    
+                    self.activity = self._save_actvity_to_db(activity_id, objectType)
+            #Definition is provided
+            else:
+                activity_definition = the_object['definition']
+             
+                #Verify the given activity_id resolves if it is a link (has to resolve if link) 
+                if activity_definition['type'] == 'link':
+                    try:
+                        Activity.validator(activity_id)
+                    except ValidationError, e:
+                        raise e
+                #Type is not a link - it can be allowed to not resolve and will just return an empty dictionary    
+                else:
+                    #If activity is not a link, the ID either must not resolve or validate against metadata schema
+                    xml_data = self._validateID(activity_id)
+                
+                #If the returned data is not empty, it overrides any JSON data sent in
+                if xml_data:
+                    activity_definition = xml_data
+
+                #If the URL did not resolve and is not type link, it will use the JSON data provided
+                self._populate_definition(activity_definition, activity_id, objectType)
         
 
 

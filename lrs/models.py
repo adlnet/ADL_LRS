@@ -3,6 +3,7 @@ from django.db import transaction
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
 import pdb
+import json
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 #TODO: Rewrite objReturn functions using self._meta.fields, so only have to write it once
 #needs object
@@ -313,11 +314,21 @@ class statement(statement_object):
     stmt_object = models.OneToOneField(statement_object)
 
 def objsReturn(obj):
-    pdb.set_trace()
+    # pdb.set_trace()
     ret = {}
-    # print serializers.serialize('json', statement.objects.all(), indent=4, relations={'result':{'relations':('score')}})
-    # print serializers.serialize('json', statement.objects.all(), indent=4, relations={'actor':{'relations':('agent_name')}})        
-    # stmtSer = serializers.serialize('json', statement.objects.filter(id=self.id), indent=4, relations={'actor', 'result', 'authority', 'context', 'stmt_object'})
+
+    # If the object being sent in is derived from a statement_object, must retrieve the specific object
+    if type(obj).__name__ == 'statement_object':
+        try:
+            obj = activity.objects.get(id=obj.id)
+        except Exception, e:
+            try:
+                obj = agent.objects.get(id=obj.id)
+            except Exception, e:
+                try:
+                    obj = statement.objects.get(id=obj.id)
+                except Exception, e:
+                    raise e
 
     # Loop through all fields in model
     for field in obj._meta.fields:
@@ -326,10 +337,13 @@ def objsReturn(obj):
 
         if objType == 'agent' or objType == 'person':
             ret[field.name] = {}
-            names = agent_name.objects.filter(agent=fieldValue).values_list('name')
-            ret[field.name]['name'] = names
-            mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox')
-            ret[field.name]['mbox'] = mboxes
+            names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
+            if names:
+                ret[field.name]['name'] = [k for k in names]
+            
+            mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
+            if mboxes:
+                ret[field.name]['mbox'] = [k for k in mboxes]
 
         elif objType == 'result':
             ret[field.name] = objsReturn(getattr(obj, field.name))
@@ -347,29 +361,42 @@ def objsReturn(obj):
 
         elif objType == 'activity_definition':
             ret[field.name] = objsReturn(getattr(obj, field.name))
+
             scales = activity_definition_scale.objects.filter(activity_definition=fieldValue)
             if scales:
-                ret[field.name]['scale'] = scales
+                ret[field.name]['scale'] = []
+                for s in scales:
+                    ret[field.name]['scale'].append(s.objReturn())
 
             choices = activity_definition_choice.objects.filter(activity_definition=fieldValue)
             if choices:
-                ret[field.name]['choices'] = choices
+                ret[field.name]['choices'] = []
+                for c in choices:
+                    ret[field.name]['choices'].append(c.objReturn())
 
             steps = activity_definition_step.objects.filter(activity_definition=fieldValue)
             if steps:
-                ret[field.name]['steps'] = steps
+                ret[field.name]['steps'] = []
+                for st in steps:
+                    ret[field.name]['steps'].append(st.objReturn())
 
             sources = activity_definition_source.objects.filter(activity_definition=fieldValue)
             if sources:
-                ret[field.name]['source'] = sources
+                ret[field.name]['source'] = []
+                for so in sources:
+                    ret[field.name]['source'].append(so.objReturn())
 
             targets = activity_definition_target.objects.filter(activity_definition=fieldValue)
             if targets:
-                ret[field.name]['target'] = targets
+                ret[field.name]['target'] = []
+                for t in targets:
+                    ret[field.name]['target'].append(str(t.objReturn()))
 
         elif objType == 'activity_def_correctresponsespattern':
+            ret[field.name] = []
             answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=fieldValue)
-            ret[field.name] = answers
+            for a in answers:
+                ret[field.name].append(a.objReturn())
 
         else:
             if field.get_internal_type() == 'OneToOneField':
@@ -384,7 +411,7 @@ def objsReturn(obj):
             else:
                 # Don't care about internal ID
                 if not field.name == 'id':
-                    # Set value in dict TODO change to check if not none
+                    # Set value in dict
                     if not getattr(obj, field.name) is None:
                         ret[field.name] = getattr(obj, field.name)
 
