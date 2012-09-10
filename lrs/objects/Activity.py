@@ -22,7 +22,7 @@ class Activity():
     validator = URLValidator(verify_exists=True)
 
     #XMLschema for Activity IDs
-    req = urllib2.Request('http://projecttincan.com/tincan.xsd')
+    req = urllib2.Request('http://tincanapi.com/wp-content/assets/tincan.xsd')
     resp = urllib2.urlopen(req)
     XML = resp.read()
     XMLschema_doc = etree.parse(StringIO(XML))
@@ -34,10 +34,6 @@ class Activity():
         #Get activity object
         if get and activity_id is not None:
             self.activity_id = activity_id
-            try:
-                self.activity = models.activity.objects.get(activity_id=self.activity_id)            
-            except models.activity.DoesNotExist:
-                raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)
             #Check to see if activity exists
             try:
                 self.activity = models.activity.objects.get(activity_id=self.activity_id)            
@@ -156,8 +152,6 @@ class Activity():
         return act_def    
 
     def get_full_activity_json(self):
-
-
         #Set activity to return
         ret = self.activity.objReturn()
 
@@ -237,6 +231,12 @@ class Activity():
 
         return ret
 
+    # Called when need to check if existing activity definition has the same name/desc as the incoming one
+    def _checkNameAndDescription(self, new, existing):
+        diff = False
+        if not new['definition']['name'] == existing.name or not new['definition']['description'] == existing.description: 
+            diff = True
+        return diff
 
     #Once JSON is verified, populate the activity objects
     def _populate(self, the_object):
@@ -251,14 +251,26 @@ class Activity():
 
         #Check if activity ID already exists
         IDList = models.activity.objects.values_list('activity_id', flat=True)
-        # TODO get displaying correct msg
         # pdb.set_trace()
         if activity_id in IDList:
-            # msg = "Activity ID %s is already in use, please use a different naming technique" % activity_id
-            # raise(Exception, msg)
-            # Don't make a new one
-            self.activity = models.activity.objects.get(activity_id=activity_id)
+            existingActivity = models.activity.objects.get(activity_id=activity_id)
             
+            existingActDef = None
+
+            try:
+                existingActDef = models.activity_definition.objects.get(activity=existingActivity)
+            except models.activity_definition.DoesNotExist:
+                pass
+
+            # Don't make a new one
+            if existingActDef:
+                if self._checkNameAndDescription(the_object,existingActDef):    
+                    models.activity_definition.objects.filter(id=existingActDef.id).update(name=the_object['definition']['name'],description=the_object['definition']['description'])
+
+            self.activity = existingActivity        
+            # msg = "Activity ID %s is already in use, please use a different naming technique" % activity_id
+            # raise IDAlreadyExistsError(msg)
+
         else:
             #Set objectType to nothing
             objectType = None
@@ -389,6 +401,7 @@ class Activity():
             if 'extensions' in act_def.keys():
                 self._populate_extensions(act_def) 
 
+            # pdb.set_trace()
 
     def _populate_correctResponsesPattern(self, act_def, interactionFlag):
                 # crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
@@ -472,3 +485,9 @@ class IDNotFoundError(Exception):
         self.message = msg
     def __str__(self):
         return repr(self.message)
+
+class IDAlreadyExistsError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)        

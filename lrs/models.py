@@ -307,11 +307,14 @@ class statement(statement_object):
     inProgress = models.NullBooleanField(blank=True, null=True)    
     result = models.OneToOneField(result, blank=True,null=True)
     timestamp = models.DateTimeField(blank=True,null=True)
-    stored = models.DateTimeField(auto_now_add=True,blank=True) 
+    stored = models.DateTimeField(auto_now_add=True,blank=True)
+    # stored = models.DateTimeField(editable=False,blank=True) 
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
-    stmt_object = models.OneToOneField(statement_object)
+    # stmt_object = models.OneToOneField(statement_object)
+    stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
+
 
 def objsReturn(obj):
     # pdb.set_trace()
@@ -332,6 +335,7 @@ def objsReturn(obj):
 
     # Loop through all fields in model
     for field in obj._meta.fields:
+        # pdb.set_trace()
         fieldValue = getattr(obj, field.name)
         objType = type(fieldValue).__name__
 
@@ -404,6 +408,11 @@ def objsReturn(obj):
                 if not field.name.endswith('_ptr'):
                     if getattr(obj, field.name):
                         ret[field.name] = objsReturn(getattr(obj, field.name))
+            
+            elif field.get_internal_type() == 'ForeignKey':
+                if getattr(obj, field.name):
+                    ret[field.name] = objsReturn(getattr(obj, field.name))
+
             # Return DateTime as string
             elif field.get_internal_type() == 'DateTimeField':
                 if getattr(obj, field.name):

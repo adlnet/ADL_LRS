@@ -156,6 +156,12 @@ class ActivityModelsTests(TestCase):
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
         self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/TCAPI/tcexample/'}))
 
+    # def test_multiple_activities(self):
+    #     act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob'}))
+    #     act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob'}))
+    #     print act1.activity.__dict__
+    #     print act2.activity.__dict__
+
     '''
     Choices is not part of the XML schema for now, so this will throw an exception
     #Test activity that doesn't have a def, isn't a link and conforms to schema with CRP (populates everything from XML)
@@ -230,6 +236,7 @@ class ActivityModelsTests(TestCase):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/TCAPI/',
                 'definition': {'name': 'testname','description': 'testdesc', 'type': 'link',
                 'interactionType': 'intType'}}))
+
 
         PK = models.activity.objects.filter(id=act.activity.id)
         

@@ -10,6 +10,7 @@ from Activity import Activity
 from Actor import Actor
 import pdb
 from functools import wraps
+from django.utils.timezone import utc
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -29,6 +30,7 @@ class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None,get=False):
+        # pdb.set_trace()
         if get and statement_id is not None:
             self.statement_id = statement_id
             try:
@@ -83,9 +85,17 @@ class Statement():
         #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
         #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
-    def get_full_statement_json(self):
+    def get_full_statement_json(self, sparse=True):
         # Set statement to return
         ret = models.objsReturn(self.statement)
+
+        pdb.set_trace()
+        
+        # Remove activity details if sparse
+        if sparse == True:
+            if 'activity_definition' in ret['stmt_object']:
+                del ret['stmt_object']['activity_definition']
+
         return json.dumps(ret, indent=4, sort_keys=True)
 
 
@@ -193,6 +203,7 @@ class Statement():
         return self._saveResultToDB(result, resultExts, resultString)
 
     def _populateContext(self, stmt_data):
+        # pdb.set_trace()
         instructor = team = False
         revision = platform = True
         contextExts = {}
@@ -281,10 +292,10 @@ class Statement():
         	statementObjectData['objectType'] = 'Activity'
 
         #Check objectType, get object based on type
-        if statementObjectData['objectType'] == 'Activity' and not args['verb'] == 'imported':
-            # pdb.set_trace()
+        # pdb.set_trace()
+        if statementObjectData['objectType'] == 'Activity' and not args['verb'] == 'imported':        
             args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
-        elif statementObjectData['objectType'] == 'Person':
+        elif statementObjectData['objectType'] == 'Person' and not args['verb'] == 'imported':
             args['stmt_object'] = Actor(json.dumps(statementObjectData), create=True).agent	
 
         #Set result when present - result object can be string or JSON object
@@ -299,6 +310,7 @@ class Statement():
       	if 'timestamp' in stmt_data:
       		args['timestamp'] = stmt_data['timestamp']
 
+        # pdb.set_trace()
         if 'authority' in stmt_data:
             args['authority'] = Actor(json.dumps(stmt_data['authority']), create=True).agent
         else:
@@ -321,7 +333,7 @@ class Statement():
             if statementObjectData['objectType'].lower() == 'activity':
                 importedActivity = Activity(json.dumps(statementObjectData)).activity
                 args['stmt_object'] = importedActivity
-            elif obj['objectType'].lower() == 'actor':
+            elif statementObjectData['objectType'].lower() == 'person':
                 importedActor = Actor(json.dumps(statementObjectData), create=True).agent
                 args['stmt_object'] = importedActor
 
@@ -337,5 +349,12 @@ class Statement():
             #Create uuid for ID
             args['statement_id'] = uuid.uuid4()
         
+        # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args)
+
+class IDAlreadyExistsError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)

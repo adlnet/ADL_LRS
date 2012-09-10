@@ -146,8 +146,9 @@ class StatementsTests(TestCase):
         importStmt2 = json.dumps({'verb': 'imported', 'object':{'objectType': 'Activity', 'id': 'foogals'}})
         importStmt3 = json.dumps({'verb': 'imported', 'object':{'objectType': 'Activity', 'id': 'foogal'}})
 
+        actorStmt = json.dumps({'verb': 'imported', 'object':{'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}})
 
-        existStmt1 = json.dumps({"statement_id":guid1,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
+        existStmt1 = json.dumps({"statement_id":guid1,"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
             'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
             'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
@@ -174,52 +175,94 @@ class StatementsTests(TestCase):
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': cguid3, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey111': 'cval111',
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']} , 'extensions':{'ckey111': 'cval111',
             'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
-        existStmt4 = json.dumps({"statement_id":guid4,"verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
+        existStmt4 = json.dumps({"statement_id":guid4, "actor":{'objectType':'Person','name':['bob'],'mbox':['bob@example.com']},
+            "verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
             'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey111': 'cval111',
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
             'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
 
 
-        importresponse1 = self.client.post(reverse(views.statements), importStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        # importresponse2 = self.client.post(reverse(views.statements), importStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        # importresponse3 = self.client.post(reverse(views.statements), importStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        # Import activities
+        # activityresponse1 = self.client.post(reverse(views.statements), importStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        # activityresponse2 = self.client.post(reverse(views.statements), importStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        # activityresponse3 = self.client.post(reverse(views.statements), importStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
 
-        postresponse1 = self.client.post(reverse(views.statements), existStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        # postresponse2 = self.client.post(reverse(views.statements), existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        # Import actors
+        # actorresponse1 = self.client.post(reverse(views.statements), actorStmt,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+
+
+        # Post statements
+        # postresponse1 = self.client.post(reverse(views.statements), existStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         # time.sleep(4)
         # postresponse3 = self.client.post(reverse(views.statements), existStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         # postresponse4 = self.client.post(reverse(views.statements), existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         
-
-        # getresponse1 = self.client.get(reverse(views.statements), {'verb': 'passed','since': mytime})
-        # print response4
-
         # secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+        # postresponse2 = self.client.post(reverse(views.statements), existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
 
+
+
+        # Test since and until
+        # sinceGetResponse = self.client.get(reverse(views.statements), {'verb': 'passed','since': mytime})
+        # self.assertEqual(response.status_code, 200)
+
+
+        # untilGetResponse = self.client.post(reverse(views.statements), {'verb': 'created','until': secondTime})
         
-        # getpostresponse1 = self.client.post(reverse(views.statements), {'verb': 'created','until': secondTime})
         # print getpostresponse1
 
-        getresponse2 = self.client.get(reverse(views.statements), {'verb': 'created','since': mytime,'object':{'objectType': 'Activity', 'id':'foogie'}})
-        print getresponse2
+
+        # Test activity object - TODO - activity signal when id already exists and when to update it or throw error
+        existActStmt = json.dumps({"statement_id":guid1,"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
+            'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
+            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}})        
+
+        postresponse1 = self.client.post(reverse(views.statements), existActStmt,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+
+        activityObjectGetResponse = self.client.get(reverse(views.statements), {'object':{'objectType': 'Activity', 'id':'foogie'}, 'sparse':True})
+        print activityObjectGetResponse
 
 
+        # Test actor object
+        # postresponseact = self.client.post(reverse(views.statements), existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)        
+        # getresponse3 = self.client.get(reverse(views.statements), {"object":{"objectType": "person", 'name':['bob'],'mbox':['bob@example.com']}})
+        # print getresponse3
 
 
+        # Test Registration
+        # postresponsecntx = self.client.post(reverse(views.statements), existStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)        
+        # postresponsecntx = self.client.post(reverse(views.statements), existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)        
+        # getresponse4 = self.client.post(reverse(views.statements), {'registration': cguid4})
+        # print getresponse4
 
 
+        # Test actor
+        # getresponse5 = self.client.post(reverse(views.statements), {'actor':{"objectType": "person", 'name':['tester1'],'mbox':['test1@tester.com']}}, content_type="application/x-www-form-urlencoded")
+        # print getresponse5
 
 
+        # Test instructor - will only return one b/c actor in stmt supercedes instructor in context
+        # getresponse6 = self.client.post(reverse(views.statements), {"instructor":{"name":["bill"],"mbox":["bill@bill.com"]}},  content_type="application/x-www-form-urlencoded")
+        # print getresponse6
 
 
+        # Test authoritative
+        # getresponse7 = self.client.get(reverse(views.statements),{"authoritative":{"name":["auth1"],"mbox":["auth1@example.com"]}},  content_type="application/x-www-form-urlencoded")
+        # print getresponse7
 
+        # Test limit
+        # getresponse8 = self.client.post(reverse(views.statements),{'verb':'created', 'limit':1}, content_type="application/x-www-form-urlencoded")
+        # print getresponse8
 
-
+        # Test sparse
+        # getresponse9 = self.client.post(reverse(views.statements),{'verb':'created', 'sparse': False}, content_type="application/x-www-form-urlencoded")
+        # print getresponse9

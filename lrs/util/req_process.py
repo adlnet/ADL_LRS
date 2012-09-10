@@ -14,6 +14,7 @@ def statements_post(req_dict):
     #TODO: more elegant way of doing this?
     # pdb.set_trace()
     if type(req_dict) is dict:
+        # pdb.set_trace()
         returnList = complexGet(req_dict)
         return HttpResponse(returnList, mimetype="application/json", status=200)
     else:
@@ -58,9 +59,10 @@ def convertToUTC(timestr):
     return date_object
 
 def complexGet(req_dict):
-    
+    limit = 0    
     args = {}
-
+    sparse = True
+    # Cycle through req_dict and find simple args
     for k,v in req_dict.items():
         if k.lower() == 'verb':
             args[k] = v 
@@ -70,10 +72,12 @@ def complexGet(req_dict):
         elif k.lower() == 'until':
             date_object = convertToUTC(v)
             args['stored__lte'] = date_object
-
+    # pdb.set_trace()
+    # If searching by activity or actor
     if 'object' in req_dict:
-        pdb.set_trace()
+        # pdb.set_trace()
         objectData = req_dict['object']        
+        
         try:
             objectData = json.loads(objectData) 
         except Exception, e:
@@ -83,27 +87,76 @@ def complexGet(req_dict):
             activity = models.activity.objects.get(activity_id=objectData['id'])
             args['stmt_object'] = activity
         elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
-            agent = Actor(objectData).agent
+            agent = Actor.Actor(json.dumps(objectData)).agent
             args['stmt_object'] = agent
-    
-    else:
-        objectData = req_dict['object']        
-        try:
-            objectData = json.loads(objectData) 
-        except Exception, e:
-            objectData = json.loads(objectData.replace("'",'"'))
-        activity = models.activity.objects.get(activity_id=objectData['id'])
-        args['stmt_object'] = activity        
+        else:
+            activity = models.activity.objects.get(activity_id=objectData['id'])
+            args['stmt_object'] = activity
 
-    # Retrieve statements from DB
-    stmt_list = models.statement.objects.filter(**args).order_by('-stored')
+    if 'registration' in req_dict:
+        uuid = str(req_dict['registration'])
+        cntx = models.context.objects.filter(registration=uuid)
+        args['context'] = cntx
+
+    if 'actor' in req_dict:
+        actorData = req_dict['actor']
+        try:
+            actorData = json.loads(actorData) 
+        except Exception, e:
+            actorData = json.loads(actorData.replace("'",'"'))
+        
+        agent = Actor.Actor(json.dumps(actorData)).agent
+        args['actor'] = agent
+
+    if 'instructor' in req_dict:
+        # pdb.set_trace()
+        instData = req_dict['instructor']
+        
+        # TODO - if perform ast_eval_literal in req_parse, might not have to include try statement
+        if not type(instData) is dict:
+            try:
+                instData = json.loads(instData) 
+            except Exception, e:
+                instData = json.loads(instData.replace("'",'"'))
+            
+        instructor = Actor.Actor(json.dumps(instData)).agent                 
+
+        cntxList = models.context.objects.filter(instructor=instructor)
+        args['context__in'] = cntxList
+
+    if 'authoritative' in req_dict:
+        pdb.set_trace()
+        authData = req_dict['authoritative']
+
+        # TODO - if perform ast_eval_literal in req_parse, might not have to include try statement
+        if not type(authData) is dict:
+            try:
+                authData = json.loads(authData) 
+            except Exception, e:
+                authData = json.loads(authData.replace("'",'"'))
+
+        authority = Actor.Actor(json.dumps(authData)).agent
+        args['authority'] = authority
+
+    if 'limit' in req_dict:
+        limit = int(req_dict['limit'])    
+
+    if 'sparse' in req_dict:
+        sparse = req_dict['sparse']
+
+    if limit == 0:
+        # Retrieve statements from DB
+        stmt_list = models.statement.objects.filter(**args).order_by('-stored')
+    else:
+        stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
+
 
     full_stmt_list = []
 
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
         stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
-        full_stmt_list.append(stmt.get_full_statement_json())
+        full_stmt_list.append(stmt.get_full_statement_json(sparse))
 
     return full_stmt_list
         # return HttpResponse(rl.replace(r"\"", "'"), mimetype="application/json", status=200)

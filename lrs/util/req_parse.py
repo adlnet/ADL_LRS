@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate
 import StringIO
 import base64
 import pdb
+import ast
 
 def basic_http_auth(f):
     def wrap(request, *args, **kwargs):
@@ -49,7 +50,8 @@ def statements_post(request):
         req_dict = get_dict(request)
         return req_dict, request.user
     else:
-        return request.POST.dict()
+        # pdb.set_trace()
+        return ast.literal_eval(request.raw_post_data)
 
 def statements_get(request):
     req_dict = {}
