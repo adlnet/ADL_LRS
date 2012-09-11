@@ -5,7 +5,6 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from lrs.util import req_parse, req_process, etag
 from lrs import forms
-#from lrs import objects
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 import logging
@@ -45,13 +44,14 @@ def register(request):
         if form.is_valid():
             name = form.cleaned_data['username']
             pword = form.cleaned_data['password']
+            email = form.cleaned_data['email']
             try:
                 user = User.objects.get(username__exact=name)
                 user = authenticate(username=name, password=pword)
                 if user is None:
                     return render_to_response('register.html', {"form": form, "error_message": "%s is already registered but the password was incorrect." % name})
             except User.DoesNotExist:
-                user = User.objects.create_user(name, '', pword)
+                user = User.objects.create_user(name, email, pword)
             return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
         else:
             return render_to_response('register.html', {"form": form})
@@ -149,6 +149,8 @@ def actors(request):
 def handle_request(request):
     try:
         req_dict = parsers[request.path][request.method](request)
+        # Depending on if authentication is required, req_dict will either be a dict containing the request info
+        # or a list with the request info dict being the first item, with the auth info being the second item
         return processors[request.path][request.method](req_dict)
     except:
         raise 

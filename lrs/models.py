@@ -1,28 +1,30 @@
 from django.db import models
 from django.db import transaction
 from django.contrib.contenttypes.generic import GenericForeignKey
-
+from django.core import serializers
+import json
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
-#needs object
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
+ourModels = ['agent','result','person','context','activity_definition','activity_def_correctresponsespattern']
 import time
 def filename(instance, filename):
     print filename
     return filename
 
 class score(models.Model):  
-    scaled = models.NullBooleanField(blank=True, null=True)
+    scaled = models.FloatField(blank=True, null=True)
     raw = models.PositiveIntegerField(blank=True, null=True)
     score_min = models.PositiveIntegerField(blank=True, null=True)
     score_max = models.PositiveIntegerField(blank=True, null=True)
 
 class result(models.Model): 
-    success = models.CharField(max_length=200, blank=True,null=True)
-    completion = models.NullBooleanField(blank=True)
+    success = models.NullBooleanField(blank=True,null=True)
+    completion = models.CharField(max_length=200, blank=True, null=True)
     response = models.CharField(max_length=200, blank=True, null=True)
-    duration = models.DateTimeField(blank=True, null=True)
+    #Made charfield since it would be stored in ISO8601 duration format
+    duration = models.CharField(max_length=200, blank=True, null=True)
     score = models.OneToOneField(score, blank=True, null=True)
 
 class result_extensions(models.Model):
@@ -39,6 +41,9 @@ class agent(statement_object):
     
     def __unicode__(self):
         return ': '.join([str(self.id), self.objectType])
+
+    def get_agent_names():
+        return agent_name.objects.filter(agent=self)
 
 class agent_name(models.Model):
     name = models.CharField(max_length=200)
@@ -149,22 +154,17 @@ class actor_profile(models.Model):
         self.profile.delete()
         super(actor_profile, self).delete(*args, **kwargs)
 
-class activity(statement_object):
-    activity_id = models.CharField(max_length=200)
-    objectType = models.CharField(max_length=200,blank=True, null=True) 
-
-    def objReturn(self):
-        ret = {}
-        ret['activity_id'] = self.activity_id
-        ret['objectType'] = self.objectType
-        return ret
+class activity_def_correctresponsespattern(models.Model):
+    #activity_definition = models.OneToOneField(activity_definition, blank=True,null=True)
+    pass
 
 class activity_definition(models.Model):
     name = models.CharField(max_length=200)
     description = models.CharField(max_length=200)
     activity_definition_type = models.CharField(max_length=200)
     interactionType = models.CharField(max_length=200)
-    activity = models.OneToOneField(activity)
+    correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
+    #activity = models.OneToOneField(activity)
 
     def objReturn(self):
         ret = {}
@@ -174,8 +174,16 @@ class activity_definition(models.Model):
         ret['interactionType'] = self.interactionType
         return ret
 
-class activity_def_correctresponsespattern(models.Model):
-    activity_definition = models.OneToOneField(activity_definition, blank=True,null=True)
+class activity(statement_object):
+    activity_id = models.CharField(max_length=200)
+    objectType = models.CharField(max_length=200,blank=True, null=True) 
+    activity_definition = models.OneToOneField(activity_definition, blank=True, null=True)
+
+    def objReturn(self):
+        ret = {}
+        ret['activity_id'] = self.activity_id
+        ret['objectType'] = self.objectType
+        return ret
 
 class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
@@ -239,7 +247,7 @@ class activity_definition_step(models.Model):
         ret['description'] = self.description
         return ret
 
-class activity_extentions(models.Model):
+class activity_extensions(models.Model):
     key = models.TextField()
     value = models.TextField()
     activity_definition = models.ForeignKey(activity_definition)
@@ -249,15 +257,15 @@ class activity_extentions(models.Model):
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)
-    instructor = models.OneToOneField(agent,blank=True, null=True)
-    team = models.CharField(max_length=200,blank=True, null=True)
-    contextActivities = models.CharField(max_length=200)
+    instructor = models.ForeignKey(agent,blank=True, null=True)
+    team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
+    contextActivities = models.TextField()
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
-    statement = models.CharField(max_length=200,blank=True, null=True)
+    statement = models.BigIntegerField(blank=True, null=True)
 
-class context_extentions(models.Model):
+class context_extensions(models.Model):
     key=models.CharField(max_length=200)
     value=models.CharField(max_length=200)
     context = models.ForeignKey(context)
@@ -289,22 +297,133 @@ class activity_profile(models.Model):
         super(activity_profile, self).delete(*args, **kwargs)
 
 class statement(statement_object):
-    #TODO: can't get django extentions UUIDField to generate UUID
+    #TODO: can't get django extensions UUIDField to generate UUID
     #statement_id = UUIDField(version=4)  
     statement_id = models.CharField(max_length=200)
-    actor = models.OneToOneField(agent,related_name="actor_statement", blank=True, null=True)
+    actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
     verb = models.CharField(max_length=200)
     inProgress = models.NullBooleanField(blank=True, null=True)    
     result = models.OneToOneField(result, blank=True,null=True)
     timestamp = models.DateTimeField(blank=True,null=True)
-    stored = models.DateTimeField(auto_now_add=True,blank=True) 
-    authority = models.OneToOneField(agent, blank=True,null=True,related_name="authority_statement")
+    stored = models.DateTimeField(auto_now_add=True,blank=True)
+    # stored = models.DateTimeField(editable=False,blank=True) 
+    authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
-    stmt_object = models.OneToOneField(statement_object)
+    # stmt_object = models.OneToOneField(statement_object)
+    stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
+
+
+def objsReturn(obj):
+    ret = {}
+
+    # If the object being sent in is derived from a statement_object, must retrieve the specific object
+    if type(obj).__name__ == 'statement_object':
+        try:
+            obj = activity.objects.get(id=obj.id)
+        except Exception, e:
+            try:
+                obj = agent.objects.get(id=obj.id)
+            except Exception, e:
+                try:
+                    obj = statement.objects.get(id=obj.id)
+                except Exception, e:
+                    raise e
+
+    # Loop through all fields in model
+    for field in obj._meta.fields:
+        fieldValue = getattr(obj, field.name)
+        objType = type(fieldValue).__name__
+
+        if objType == 'agent' or objType == 'person':
+            ret[field.name] = {}
+            names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
+            if names:
+                ret[field.name]['name'] = [k for k in names]
+            
+            mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
+            if mboxes:
+                ret[field.name]['mbox'] = [k for k in mboxes]
+
+        elif objType == 'result':
+            ret[field.name] = objsReturn(getattr(obj, field.name))
+            ret[field.name]['extensions'] = {}
+            resultExt = result_extensions.objects.filter(result=fieldValue)
+            for ext in resultExt:
+                ret[field.name]['extensions'][ext.key] = ext.value                
+
+        elif objType == 'context':
+            ret[field.name] = objsReturn(getattr(obj, field.name))
+            ret[field.name]['extensions'] = {}
+            contextExt = context_extensions.objects.filter(context=fieldValue)
+            for ext in contextExt:
+                ret[field.name]['extensions'][ext.key] = ext.value
+
+        elif objType == 'activity_definition':
+            ret[field.name] = objsReturn(getattr(obj, field.name))
+
+            scales = activity_definition_scale.objects.filter(activity_definition=fieldValue)
+            if scales:
+                ret[field.name]['scale'] = []
+                for s in scales:
+                    ret[field.name]['scale'].append(s.objReturn())
+
+            choices = activity_definition_choice.objects.filter(activity_definition=fieldValue)
+            if choices:
+                ret[field.name]['choices'] = []
+                for c in choices:
+                    ret[field.name]['choices'].append(c.objReturn())
+
+            steps = activity_definition_step.objects.filter(activity_definition=fieldValue)
+            if steps:
+                ret[field.name]['steps'] = []
+                for st in steps:
+                    ret[field.name]['steps'].append(st.objReturn())
+
+            sources = activity_definition_source.objects.filter(activity_definition=fieldValue)
+            if sources:
+                ret[field.name]['source'] = []
+                for so in sources:
+                    ret[field.name]['source'].append(so.objReturn())
+
+            targets = activity_definition_target.objects.filter(activity_definition=fieldValue)
+            if targets:
+                ret[field.name]['target'] = []
+                for t in targets:
+                    ret[field.name]['target'].append(str(t.objReturn()))
+
+        elif objType == 'activity_def_correctresponsespattern':
+            ret[field.name] = []
+            answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=fieldValue)
+            for a in answers:
+                ret[field.name].append(a.objReturn())
+
+        else:
+            if field.get_internal_type() == 'OneToOneField':
+                # Don't care about inheritance field
+                if not field.name.endswith('_ptr'):
+                    if getattr(obj, field.name):
+                        ret[field.name] = objsReturn(getattr(obj, field.name))
+            
+            elif field.get_internal_type() == 'ForeignKey':
+                if getattr(obj, field.name):
+                    ret[field.name] = objsReturn(getattr(obj, field.name))
+
+            # Return DateTime as string
+            elif field.get_internal_type() == 'DateTimeField':
+                if getattr(obj, field.name):
+                    ret[field.name] = str(getattr(obj, field.name))
+            else:
+                # Don't care about internal ID
+                if not field.name == 'id':
+                    # Set value in dict
+                    if not getattr(obj, field.name) is None:
+                        ret[field.name] = getattr(obj, field.name)
+
+    return ret
 
 # - from http://djangosnippets.org/snippets/2283/
-@transaction.commit_on_success
+# @transaction.commit_on_success
 def merge_model_objects(primary_object, alias_objects=[], save=True, keep_old=False):
     """
     Use this function to merge model objects (i.e. Users, Organizations, Polls,

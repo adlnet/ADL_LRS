@@ -5,19 +5,25 @@ from django.http import MultiPartParser, HttpResponse
 from django.contrib.auth import authenticate
 import StringIO
 import base64
+import ast
 
 def basic_http_auth(f):
     def wrap(request, *args, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION', False):
-            authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
-            auth = base64.b64decode(auth)
-            username, password = auth.split(':')
-            user = authenticate(username=username, password=password)
-            
-            if user is not None:
-                return f(request, *args, **kwargs)
-            
-        raise NotAuthorizedException("Auth Required")
+        if request.method == 'POST' and not request.META['CONTENT_TYPE'] == 'application/json':
+            return f(request, *args, **kwargs)
+        else:
+            if request.META.get('HTTP_AUTHORIZATION', False):
+
+                authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+                auth = base64.b64decode(auth)
+                username, password = auth.split(':')
+                user = authenticate(username=username, password=password)
+
+                if user is not None:
+                    request.user = user
+                    return f(request, *args, **kwargs)
+                    
+            raise NotAuthorizedException("Auth Required")
         
     return wrap
 
@@ -29,50 +35,46 @@ class NotAuthorizedException(Exception):
 
 @basic_http_auth
 def statements_post(request):
-    #TODO: Switch this back to look for get...when this if stmt is implemented it wasn't sending JSON to statement class 
-    req_dict = request.body
-    '''
-    if request.GET: # looking for parameters
-        req_dict.update(request.GET.dict()) # dict() is new to django 1.4
+    # TODO: more elegant way of doing this?
+    req_dict = {}
 
-    body = request.body
-    jsn = body.replace("'", "\"")
-    
-    # spec not quite clear, i'm assuming if the type is json it's a real POST
-    if request.META['CONTENT_TYPE'] == "application/json": 
-        req_dict['body'] = deepcopy(json.loads(jsn))
-        req_dict['is_get'] = False
-    else: # if not, then it must be form data
-        valid_params = ['verb','object','registration','context','actor','since','until','limit','authoritative','sparse','instructor']
-        try:
-            req_dict.update(json.loads(jsn))
-        except:
-            req_dict.update(request.POST.dict())
-        # test if one of the request keys is a valid paramter
-        if not [k for k,v in req_dict.items() if k in valid_params]:
-            raise ParamError("Error -- could not find a valid parameter")
-        req_dict['is_get'] = True
-    '''
+    if request.META['CONTENT_TYPE'] == "application/json":
+        body = request.body
+        jsn = body.replace("'", "\"")
+        raw = request.raw_post_data.replace("'", "\"")
 
-    return req_dict
-
+        # spec not quite clear, assuming if the type is json it's a real POST
+        req_dict = get_dict(request)
+        return req_dict, request.user
+    else:
+        return ast.literal_eval(request.raw_post_data)
 
 def statements_get(request):
-    try:
-        request.GET['statementId']
-    except KeyError:
-        raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
-    return request.GET
-
+    req_dict = {}
+    postParams = ['verb', 'object', 'registration', 'context', 'actor', 'since', 'until', 'limit', 'authoritative', 'sparse', 'instructor']
+    sentParams = [x for x in request.GET]
+    complexRequest = False
+    req_dict['body'] = deepcopy(request.GET.dict())
+    complexRequest = any(x in sentParams for x in postParams)
+    
+    if complexRequest:
+        req_dict['complex'] = True
+    else:
+        try:
+            req_dict['body']['statementId']
+            req_dict['complex'] = False
+        except KeyError:
+            raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
+    return req_dict
 
 @basic_http_auth
 def statements_put(request):
     req_dict = get_dict(request)
     try:
-        req_dict['statementId']
+        req_dict['body']['statementId']
     except KeyError:
         raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % request.method)
-    return req_dict
+    return req_dict, request.user
 
 
 @basic_http_auth

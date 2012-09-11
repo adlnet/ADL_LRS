@@ -1,32 +1,164 @@
 from django.http import HttpResponse
-from lrs import objects
+from lrs import objects, models
 from lrs.util import etag
 import json
 import sys
 from os import path
-
+from functools import wraps
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
-
+from datetime import datetime
+import pytz
+from django.core import serializers
 
 def statements_post(req_dict):
-    #TODO: will only be receiving JSON requests right? shouldn't have to worry about funky methods
-    #if req_dict['is_get']:
-        #return HttpResponse("Success -- statements - method = weird POST/GET - params = %s" % req_dict)
-    #return HttpResponse("Success -- statements - method = POST - body = %s" % req_dict['body'])
-    stmt = Statement.Statement(req_dict).statement
-    return HttpResponse("Success -- statements - method = POST - StatementID = %s" % stmt.statement_id)
-
-
-def statements_get(req_dict):
-    statementId = req_dict.get('statementId', None)
-    if statementId:
-        return HttpResponse("Success -- statements - method = GET - statementId = %s" % statementId)
-    return HttpResponse("Success - statements - method = GET - params = %s" % req_dict)
+    #TODO: more elegant way of doing this?
+    if type(req_dict) is dict:
+        returnList = complexGet(req_dict)
+        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
+    else:
+        stmtResponses = []
+        if not type(req_dict[0]['body']) is list:
+            stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+            stmtResponses.append(str(stmt.statement_id))
+        else:
+            for st in req_dict[0]['body']:
+                stmt = Statement.Statement(st, auth=req_dict[1]).statement
+                stmtResponses.append(str(stmt.statement_id))
+        # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
+        return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
-    statementId = req_dict['statementId']    
-    return HttpResponse("Success -- statements - method = PUT - statementId = %s" % statementId)
+    statementId = req_dict[0]['body']['statementId']
+    try:
+        stmt = models.statement.objects.get(statement_id=statementId)
+    except models.statement.DoesNotExist:
+        stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement        
+        return HttpResponse("StatementID = %s" % statementId, status=200)
+    else:
+        return HttpResponse("Error: %s already exists" % statementId, status=204)
+     
+def statements_get(req_dict):
+    if req_dict['complex']:
+        returnList = complexGet(req_dict['body'])
+        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
+    else:
+        statementId = req_dict['body']['statementId']
+        st = Statement.Statement(statement_id=statementId, get=True)
+        data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
+        # return HttpResponse(st.get_full_statement_json(), mimetype="application/json")
+        return HttpResponse(data, mimetype="application/json")
 
+
+def convertToUTC(timestr):
+    # Strip off TZ info
+    timestr = timestr[:timestr.rfind('+')]
+    # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
+    date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
+    # Localize TZ to UTC since everything is being stored in DB as UTC
+    date_object = pytz.timezone("UTC").localize(date_object)
+    return date_object
+
+def complexGet(req_dict):
+    limit = 0    
+    args = {}
+    sparse = True
+    # Cycle through req_dict and find simple args
+    for k,v in req_dict.items():
+        if k.lower() == 'verb':
+            args[k] = v 
+        elif k.lower() == 'since':
+            date_object = convertToUTC(v)
+            args['stored__gt'] = date_object
+        elif k.lower() == 'until':
+            date_object = convertToUTC(v)
+            args['stored__lte'] = date_object
+    # If searching by activity or actor
+    if 'object' in req_dict:
+        objectData = req_dict['object']        
+        
+        if not type(objectData) is dict:
+            try:
+                objectData = json.loads(objectData) 
+            except Exception, e:
+                objectData = json.loads(objectData.replace("'",'"'))
+     
+        if objectData['objectType'].lower() == 'activity':
+            activity = models.activity.objects.get(activity_id=objectData['id'])
+            args['stmt_object'] = activity
+        elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
+            agent = Actor.Actor(json.dumps(objectData)).agent
+            args['stmt_object'] = agent
+        else:
+            activity = models.activity.objects.get(activity_id=objectData['id'])
+            args['stmt_object'] = activity
+
+    if 'registration' in req_dict:
+        uuid = str(req_dict['registration'])
+        cntx = models.context.objects.filter(registration=uuid)
+        args['context'] = cntx
+
+    if 'actor' in req_dict:
+        actorData = req_dict['actor']
+        if not type(actorData) is dict:
+            try:
+                actorData = json.loads(actorData) 
+            except Exception, e:
+                actorData = json.loads(actorData.replace("'",'"'))
+            
+        agent = Actor.Actor(json.dumps(actorData)).agent
+        args['actor'] = agent
+
+    if 'instructor' in req_dict:
+        instData = req_dict['instructor']
+        
+        if not type(instData) is dict:
+            try:
+                instData = json.loads(instData) 
+            except Exception, e:
+                instData = json.loads(instData.replace("'",'"'))
+            
+        instructor = Actor.Actor(json.dumps(instData)).agent                 
+
+        cntxList = models.context.objects.filter(instructor=instructor)
+        args['context__in'] = cntxList
+
+    if 'authoritative' in req_dict:
+        authData = req_dict['authoritative']
+
+        if not type(authData) is dict:
+            try:
+                authData = json.loads(authData) 
+            except Exception, e:
+                authData = json.loads(authData.replace("'",'"'))
+
+        authority = Actor.Actor(json.dumps(authData)).agent
+        args['authority'] = authority
+
+    if 'limit' in req_dict:
+        limit = int(req_dict['limit'])    
+
+    if 'sparse' in req_dict:
+        if not type(req_dict['sparse']) is bool:
+            if req_dict['sparse'].lower() == 'false':
+                sparse = False
+        else:
+            sparse = req_dict['sparse']
+
+    if limit == 0:
+        # Retrieve statements from DB
+        stmt_list = models.statement.objects.filter(**args).order_by('-stored')
+    else:
+        stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
+
+
+    full_stmt_list = []
+
+    # For each stmt convert to our Statement class and retrieve all json
+    for stmt in stmt_list:
+        stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
+        full_stmt_list.append(stmt.get_full_statement_json(sparse))
+
+    return full_stmt_list
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -99,7 +231,7 @@ def activities_get(req_dict):
     a = Activity.Activity(activity_id=activityId, get=True)
     data = a.get_full_activity_json()
     return HttpResponse(stream_response_generator(data), mimetype="application/json")
-
+    
 #Generate JSON
 def stream_response_generator(data): 
     first = True
@@ -122,7 +254,7 @@ def stream_response_generator(data):
                 if not lfirst:
                     yield ', '
                 else:
-                    lfirst = False
+                    lfirst = False  
                 #Catch dictionaries as items in a list    
                 if type(item) is dict:
                     stream_response_generator(item)
@@ -131,8 +263,8 @@ def stream_response_generator(data):
         else:
             yield json.dumps(k)
             yield ': '
-            yield json.dumps(v)      
-    yield '}'    
+            yield json.dumps(v)
+    yield '}'
 
 def actor_profile_put(req_dict):
     # test ETag for concurrency

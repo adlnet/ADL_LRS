@@ -20,9 +20,10 @@ class ActorProfileTests(TestCase):
 
     def setUp(self):
         self.username = "tester"
+        self.email = "test@tester.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-        form = {'username':self.username,'password':self.password,'password2':self.password}
+        form = {'username':self.username, 'email': self.email,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form)
         
         self.testparams1 = {"profileId": self.testprofileId1, "actor": self.testactor}
