@@ -24,10 +24,11 @@ While still in the ADL_LRS directory, run
 
 To verify it's running
 
-     supervisorctl
+    supervisorctl
 
 You should see a task named web running. This will host the application using gunicorn with 2 worker processes
 
 While still in the ADL_LRS directory, create/update the database
+    
     python manage.py syncdb
     
