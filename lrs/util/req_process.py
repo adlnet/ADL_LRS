@@ -4,30 +4,29 @@ from lrs.util import etag
 import json
 import sys
 from os import path
-import pdb
 from functools import wraps
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
 from datetime import datetime
 import pytz
+from django.core import serializers
 
 def statements_post(req_dict):
     #TODO: more elegant way of doing this?
-    # pdb.set_trace()
     if type(req_dict) is dict:
-        # pdb.set_trace()
         returnList = complexGet(req_dict)
-        return HttpResponse(returnList, mimetype="application/json", status=200)
+        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
     else:
         stmtResponses = []
         if not type(req_dict[0]['body']) is list:
             stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
-            stmtResponses.append(str(stmt.id))
+            stmtResponses.append(str(stmt.statement_id))
         else:
             for st in req_dict[0]['body']:
                 stmt = Statement.Statement(st, auth=req_dict[1]).statement
                 stmtResponses.append(str(stmt.statement_id))
-        return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
-        
+        # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
+        return HttpResponse(stmtResponses, status=200)
+
 def statements_put(req_dict):
     statementId = req_dict[0]['body']['statementId']
     try:
@@ -39,15 +38,16 @@ def statements_put(req_dict):
         return HttpResponse("Error: %s already exists" % statementId, status=204)
      
 def statements_get(req_dict):
-    # pdb.set_trace()
     if req_dict['complex']:
         returnList = complexGet(req_dict['body'])
-        return HttpResponse(returnList, mimetype="application/json", status=200)
+        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
     else:
         statementId = req_dict['body']['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)
-        data = st.get_full_statement_json()
-        return HttpResponse(st.get_full_statement_json(), mimetype="application/json")
+        data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
+        # return HttpResponse(st.get_full_statement_json(), mimetype="application/json")
+        return HttpResponse(data, mimetype="application/json")
+
 
 def convertToUTC(timestr):
     # Strip off TZ info
@@ -72,17 +72,16 @@ def complexGet(req_dict):
         elif k.lower() == 'until':
             date_object = convertToUTC(v)
             args['stored__lte'] = date_object
-    # pdb.set_trace()
     # If searching by activity or actor
     if 'object' in req_dict:
-        # pdb.set_trace()
         objectData = req_dict['object']        
         
-        try:
-            objectData = json.loads(objectData) 
-        except Exception, e:
-            objectData = json.loads(objectData.replace("'",'"'))
- 
+        if not type(objectData) is dict:
+            try:
+                objectData = json.loads(objectData) 
+            except Exception, e:
+                objectData = json.loads(objectData.replace("'",'"'))
+     
         if objectData['objectType'].lower() == 'activity':
             activity = models.activity.objects.get(activity_id=objectData['id'])
             args['stmt_object'] = activity
@@ -100,19 +99,18 @@ def complexGet(req_dict):
 
     if 'actor' in req_dict:
         actorData = req_dict['actor']
-        try:
-            actorData = json.loads(actorData) 
-        except Exception, e:
-            actorData = json.loads(actorData.replace("'",'"'))
-        
+        if not type(actorData) is dict:
+            try:
+                actorData = json.loads(actorData) 
+            except Exception, e:
+                actorData = json.loads(actorData.replace("'",'"'))
+            
         agent = Actor.Actor(json.dumps(actorData)).agent
         args['actor'] = agent
 
     if 'instructor' in req_dict:
-        # pdb.set_trace()
         instData = req_dict['instructor']
         
-        # TODO - if perform ast_eval_literal in req_parse, might not have to include try statement
         if not type(instData) is dict:
             try:
                 instData = json.loads(instData) 
@@ -125,10 +123,8 @@ def complexGet(req_dict):
         args['context__in'] = cntxList
 
     if 'authoritative' in req_dict:
-        pdb.set_trace()
         authData = req_dict['authoritative']
 
-        # TODO - if perform ast_eval_literal in req_parse, might not have to include try statement
         if not type(authData) is dict:
             try:
                 authData = json.loads(authData) 
@@ -142,7 +138,11 @@ def complexGet(req_dict):
         limit = int(req_dict['limit'])    
 
     if 'sparse' in req_dict:
-        sparse = req_dict['sparse']
+        if not type(req_dict['sparse']) is bool:
+            if req_dict['sparse'].lower() == 'false':
+                sparse = False
+        else:
+            sparse = req_dict['sparse']
 
     if limit == 0:
         # Retrieve statements from DB
@@ -159,7 +159,6 @@ def complexGet(req_dict):
         full_stmt_list.append(stmt.get_full_statement_json(sparse))
 
     return full_stmt_list
-        # return HttpResponse(rl.replace(r"\"", "'"), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -235,7 +234,6 @@ def activities_get(req_dict):
     
 #Generate JSON
 def stream_response_generator(data): 
-    # pdb.set_trace()
     first = True
     yield '{'
     for k,v in data.items():

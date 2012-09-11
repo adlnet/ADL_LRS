@@ -9,7 +9,6 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 import logging
 from objects import Actor, Activity
-import pdb
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +64,6 @@ def reg_success(request, user_id):
 
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):
-    # pdb.set_trace()
     try: 
         resp = handle_request(request)
     except req_parse.ParamError as err:

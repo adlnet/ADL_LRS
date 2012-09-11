@@ -5,12 +5,10 @@ from django.http import MultiPartParser, HttpResponse
 from django.contrib.auth import authenticate
 import StringIO
 import base64
-import pdb
 import ast
 
 def basic_http_auth(f):
     def wrap(request, *args, **kwargs):
-        # pdb.set_trace()
         if request.method == 'POST' and not request.META['CONTENT_TYPE'] == 'application/json':
             return f(request, *args, **kwargs)
         else:
@@ -38,7 +36,6 @@ class NotAuthorizedException(Exception):
 @basic_http_auth
 def statements_post(request):
     # TODO: more elegant way of doing this?
-    # pdb.set_trace()
     req_dict = {}
 
     if request.META['CONTENT_TYPE'] == "application/json":
@@ -50,7 +47,6 @@ def statements_post(request):
         req_dict = get_dict(request)
         return req_dict, request.user
     else:
-        # pdb.set_trace()
         return ast.literal_eval(request.raw_post_data)
 
 def statements_get(request):

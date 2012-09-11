@@ -7,7 +7,6 @@ from lxml import etree
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
-import pdb
 
 class Activity():
 
@@ -251,7 +250,7 @@ class Activity():
 
         #Check if activity ID already exists
         IDList = models.activity.objects.values_list('activity_id', flat=True)
-        # pdb.set_trace()
+
         if activity_id in IDList:
             existingActivity = models.activity.objects.get(activity_id=activity_id)
             
@@ -400,8 +399,6 @@ class Activity():
             #See if activity definition has extensions
             if 'extensions' in act_def.keys():
                 self._populate_extensions(act_def) 
-
-            # pdb.set_trace()
 
     def _populate_correctResponsesPattern(self, act_def, interactionFlag):
                 # crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)

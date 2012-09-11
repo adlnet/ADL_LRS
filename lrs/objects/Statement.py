@@ -8,7 +8,6 @@ from django.db import transaction
 from functools import wraps
 from Activity import Activity
 from Actor import Actor
-import pdb
 from functools import wraps
 from django.utils.timezone import utc
 
@@ -30,7 +29,6 @@ class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None,get=False):
-        # pdb.set_trace()
         if get and statement_id is not None:
             self.statement_id = statement_id
             try:
@@ -63,6 +61,7 @@ class Statement():
         if not stmt.voided:
             stmt.voided = True
             stmt.save()
+            return stmt
         else:
             raise Exception('Statment already voided, cannot unvoid. Please reissure the statement under a new ID.')
 
@@ -85,19 +84,17 @@ class Statement():
         #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
         #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
-    def get_full_statement_json(self, sparse=True):
+    def get_full_statement_json(self, sparse=False):
         # Set statement to return
         ret = models.objsReturn(self.statement)
 
-        pdb.set_trace()
-        
-        # Remove activity details if sparse
-        if sparse == True:
+        # Remove activity details if sparse is true
+        if sparse:
             if 'activity_definition' in ret['stmt_object']:
                 del ret['stmt_object']['activity_definition']
 
-        return json.dumps(ret, indent=4, sort_keys=True)
-
+        # return json.dumps(ret, indent=4, sort_keys=True)
+        return ret
 
     def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
@@ -168,7 +165,6 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
-        # pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -203,7 +199,6 @@ class Statement():
         return self._saveResultToDB(result, resultExts, resultString)
 
     def _populateContext(self, stmt_data):
-        # pdb.set_trace()
         instructor = team = False
         revision = platform = True
         contextExts = {}
@@ -292,7 +287,6 @@ class Statement():
         	statementObjectData['objectType'] = 'Activity'
 
         #Check objectType, get object based on type
-        # pdb.set_trace()
         if statementObjectData['objectType'] == 'Activity' and not args['verb'] == 'imported':        
             args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
         elif statementObjectData['objectType'] == 'Person' and not args['verb'] == 'imported':
@@ -310,7 +304,6 @@ class Statement():
       	if 'timestamp' in stmt_data:
       		args['timestamp'] = stmt_data['timestamp']
 
-        # pdb.set_trace()
         if 'authority' in stmt_data:
             args['authority'] = Actor(json.dumps(stmt_data['authority']), create=True).agent
         else:
@@ -324,12 +317,11 @@ class Statement():
         if args['verb'] == 'voided':
         	#objectType must be statement if want to void another statement
         	if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
-        		self._voidStatement(statementObjectData['id'])
-
+        		voidedStmt = self._voidStatement(statementObjectData['id'])
+                args['stmt_object'] = voidedStmt
         #If verb is imported then create either the actor or activity it is importing
                 
         if args['verb'] == 'imported':
-            # pdb.set_trace()
             if statementObjectData['objectType'].lower() == 'activity':
                 importedActivity = Activity(json.dumps(statementObjectData)).activity
                 args['stmt_object'] = importedActivity

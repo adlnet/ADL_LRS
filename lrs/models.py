@@ -2,11 +2,9 @@ from django.db import models
 from django.db import transaction
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
-import pdb
 import json
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
-#TODO: Rewrite objReturn functions using self._meta.fields, so only have to write it once
-#needs object
+
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
 ourModels = ['agent','result','person','context','activity_definition','activity_def_correctresponsespattern']
@@ -259,8 +257,8 @@ class activity_extensions(models.Model):
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)
-    instructor = models.OneToOneField(agent,blank=True, null=True)
-    team = models.OneToOneField(group,blank=True, null=True, related_name="context_team")
+    instructor = models.ForeignKey(agent,blank=True, null=True)
+    team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
     contextActivities = models.TextField()
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
@@ -317,7 +315,6 @@ class statement(statement_object):
 
 
 def objsReturn(obj):
-    # pdb.set_trace()
     ret = {}
 
     # If the object being sent in is derived from a statement_object, must retrieve the specific object
@@ -335,7 +332,6 @@ def objsReturn(obj):
 
     # Loop through all fields in model
     for field in obj._meta.fields:
-        # pdb.set_trace()
         fieldValue = getattr(obj, field.name)
         objType = type(fieldValue).__name__
 
