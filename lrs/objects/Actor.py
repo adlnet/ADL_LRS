@@ -9,7 +9,6 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from functools import wraps
 
-
 class default_on_exception(object):
     def __init__(self,default):
         self.default = default

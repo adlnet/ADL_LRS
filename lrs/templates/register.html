@@ -1,0 +1,18 @@
+<h3>ADL LRS Registration</h3>
+<p>Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public.</p>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<form action="{% url lrs.views.register %}" method="post">
+   <!-- <label for="username">Name: </label>
+    <input type="text" name="username" id="username" />
+    <br/>
+    <label for="password">Password: </label>
+    <input type="password" name="password" id="password" />
+    <br/>
+    <label for="password2">Password Again: </label>
+    <input type="password" name="password2" id="password2" />
+	<br/>
+    <input type="submit" value="Register" />
+-->
+{{ form.as_p }}
+<input type="submit" value="Register" />
+</form>

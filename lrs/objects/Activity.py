@@ -8,7 +8,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
 
-
 class Activity():
 
     #Activity definition required fields
@@ -22,7 +21,7 @@ class Activity():
     validator = URLValidator(verify_exists=True)
 
     #XMLschema for Activity IDs
-    req = urllib2.Request('http://projecttincan.com/tincan.xsd')
+    req = urllib2.Request('http://tincanapi.com/wp-content/assets/tincan.xsd')
     resp = urllib2.urlopen(req)
     XML = resp.read()
     XMLschema_doc = etree.parse(StringIO(XML))
@@ -34,6 +33,11 @@ class Activity():
         #Get activity object
         if get and activity_id is not None:
             self.activity_id = activity_id
+            #Check to see if activity exists
+            try:
+                self.activity = models.activity.objects.get(activity_id=self.activity_id)            
+            except models.activity.DoesNotExist:
+                raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)            
         else:
             self.initial = initial
             self.obj = self._parse(initial)
@@ -67,7 +71,9 @@ class Activity():
                 act_xmlschema_doc = etree.parse(StringIO(act_XML))    
                 validXML = Activity.XMLschema.validate(act_xmlschema_doc)
             except Exception, e:
-                raise e        
+                #TODO: should put any warning here? validXML will still be false if there is an exception
+                raise e
+                #pass        
 
         #Parse XML, create dictionary with the values from the XML doc
         if validXML:
@@ -128,31 +134,29 @@ class Activity():
         return act_def
 
     #Save activity to DB
-    def _save_actvity_to_db(self, act_id, objType):
-        act = models.activity(activity_id=act_id, objectType=objType)
+    def _save_actvity_to_db(self, act_id, objType, act_def=None):
+        if act_def:
+            act = models.activity(activity_id=act_id, objectType=objType, activity_definition=act_def)
+        else:
+            act = models.activity(activity_id=act_id, objectType=objType)
+        
         act.save()
         return act
 
     #Save activity definition to DB
-    def _save_activity_definition_to_db(self, act, name, desc, act_def_type, intType):
+    def _save_activity_definition_to_db(self, name, desc, act_def_type, intType):
         act_def = models.activity_definition(name=name,description=desc, activity_definition_type=act_def_type,
-                  interactionType=intType, activity=act)
+                  interactionType=intType)
         act_def.save()
         return act_def    
 
     def get_full_activity_json(self):
-        #Check to see if activity exists
-        try:
-            act = models.activity.objects.get(activity_id=self.activity_id)            
-        except models.activity.DoesNotExist:
-            raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)
-
         #Set activity to return
-        ret = act.objReturn()
+        ret = self.activity.objReturn()
 
         #Check if definition exists
         try:
-            act_def = models.activity_definition.objects.get(activity=act)
+            act_def = models.activity_definition.objects.get(activity=self.activity)
         except Exception, e:
             #No definition so return activity
             return ret
@@ -162,7 +166,7 @@ class Activity():
 
         #Check for extensions
         try:
-            extList = models.activity_extentions.objects.filter(activity_definition=act_def)
+            extList = models.activity_extensions.objects.filter(activity_definition=act_def)
         except Exception, e:
             #Extensions are optional so pass if there aren't any
             pass
@@ -226,6 +230,12 @@ class Activity():
 
         return ret
 
+    # Called when need to check if existing activity definition has the same name/desc as the incoming one
+    def _checkNameAndDescription(self, new, existing):
+        diff = False
+        if not new['definition']['name'] == existing.name or not new['definition']['description'] == existing.description: 
+            diff = True
+        return diff
 
     #Once JSON is verified, populate the activity objects
     def _populate(self, the_object):
@@ -242,48 +252,65 @@ class Activity():
         IDList = models.activity.objects.values_list('activity_id', flat=True)
 
         if activity_id in IDList:
-            raise(Exception, "Activity ID is already in use, please use a different naming technique")
-
-        #Set objectType to nothing
-        objectType = None
-
-        #ObjectType should always be Activity when present
-        if 'objectType' in the_object.keys():
-            objectType = 'Activity'
-
-        #Try to grab XML from ID if no other JSON is provided - since it won't have a definition it's not a link
-        #therefore it can be allowed to not resolve and will just return an empty dictionary
-        if not 'definition' in the_object.keys():
-            xml_data = self._validateID(activity_id)
-
-            #If the ID validated against the XML schema then proceed with populating the definition with the info
-            #from the XML - else just save the activity (someone sent in an ID that doesn't resolve and an objectType
-            #with no other data)                
-            if xml_data:
-                self._populate_definition(xml_data, activity_id, objectType)
-            else:    
-                self.activity = self._save_actvity_to_db(activity_id, objectType)
-        #Definition is provided
-        else:
-            activity_definition = the_object['definition']
-         
-            #Verify the given activity_id resolves if it is a link (has to resolve if link) 
-            if activity_definition['type'] == 'link':
-                try:
-                    Activity.validator(activity_id)
-                except ValidationError, e:
-                    raise e
-            #Type is not a link - it can be allowed to not resolve and will just return an empty dictionary    
-            else:
-                #If activity is not a link, the ID either must not resolve or validate against metadata schema
-                xml_data = self._validateID(activity_id)
+            existingActivity = models.activity.objects.get(activity_id=activity_id)
             
-            #If the returned data is not empty, it overrides any JSON data sent in
-            if xml_data:
-                activity_definition = xml_data
+            existingActDef = None
 
-            #If the URL did not resolve and is not type link, it will use the JSON data provided
-            self._populate_definition(activity_definition, activity_id, objectType)
+            try:
+                existingActDef = models.activity_definition.objects.get(activity=existingActivity)
+            except models.activity_definition.DoesNotExist:
+                pass
+
+            # Don't make a new one
+            if existingActDef:
+                if self._checkNameAndDescription(the_object,existingActDef):    
+                    models.activity_definition.objects.filter(id=existingActDef.id).update(name=the_object['definition']['name'],description=the_object['definition']['description'])
+
+            self.activity = existingActivity        
+            # msg = "Activity ID %s is already in use, please use a different naming technique" % activity_id
+            # raise IDAlreadyExistsError(msg)
+
+        else:
+            #Set objectType to nothing
+            objectType = None
+
+            #ObjectType should always be Activity when present
+            if 'objectType' in the_object.keys():
+                objectType = 'Activity'
+
+            #Try to grab XML from ID if no other JSON is provided - since it won't have a definition it's not a link
+            #therefore it can be allowed to not resolve and will just return an empty dictionary
+            if not 'definition' in the_object.keys():
+                xml_data = self._validateID(activity_id)
+
+                #If the ID validated against the XML schema then proceed with populating the definition with the info
+                #from the XML - else just save the activity (someone sent in an ID that doesn't resolve and an objectType
+                #with no other data)                
+                if xml_data:
+                    self._populate_definition(xml_data, activity_id, objectType)
+                else:    
+                    self.activity = self._save_actvity_to_db(activity_id, objectType)
+            #Definition is provided
+            else:
+                activity_definition = the_object['definition']
+             
+                #Verify the given activity_id resolves if it is a link (has to resolve if link) 
+                if activity_definition['type'] == 'link':
+                    try:
+                        Activity.validator(activity_id)
+                    except ValidationError, e:
+                        raise e
+                #Type is not a link - it can be allowed to not resolve and will just return an empty dictionary    
+                else:
+                    #If activity is not a link, the ID either must not resolve or validate against metadata schema
+                    xml_data = self._validateID(activity_id)
+                
+                #If the returned data is not empty, it overrides any JSON data sent in
+                if xml_data:
+                    activity_definition = xml_data
+
+                #If the URL did not resolve and is not type link, it will use the JSON data provided
+                self._populate_definition(activity_definition, activity_id, objectType)
         
 
 
@@ -354,12 +381,16 @@ class Activity():
                     interactionFlag = 'scale'
 
             #Save activity to DB
-            self.activity = self._save_actvity_to_db(act_id, objType)
+            # self.activity = self._save_actvity_to_db(act_id, objType)
 
             #Save activity definition to DB
-            self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
+            # self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
+            #             act_def['description'], act_def['type'], act_def['interactionType'])
+            self.activity_definition = self._save_activity_definition_to_db(act_def['name'],
                         act_def['description'], act_def['type'], act_def['interactionType'])
     
+            self.activity = self._save_actvity_to_db(act_id, objType, self.activity_definition)
+
     
             #If there is a correctResponsesPattern then save the pattern
             if 'correctResponsesPattern' in act_def.keys():
@@ -369,10 +400,12 @@ class Activity():
             if 'extensions' in act_def.keys():
                 self._populate_extensions(act_def) 
 
-
     def _populate_correctResponsesPattern(self, act_def, interactionFlag):
-                crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
+                # crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
+                crp = models.activity_def_correctresponsespattern()
                 crp.save()
+                self.activity_definition.correctresponsespattern = crp
+                self.activity_definition.save()
                 self.correctResponsesPattern = crp
                 
                 #For each answer in the pattern save it
@@ -437,7 +470,7 @@ class Activity():
                 self.activity_definition_extensions = []
 
                 for k, v in act_def['extensions'].items():
-                    act_def_ext = models.activity_extentions(key=k, value=v,
+                    act_def_ext = models.activity_extensions(key=k, value=v,
                         activity_definition=self.activity_definition)
                     act_def_ext.save()
                     self.activity_definition_extensions.append(act_def_ext)    
@@ -449,3 +482,9 @@ class IDNotFoundError(Exception):
         self.message = msg
     def __str__(self):
         return repr(self.message)
+
+class IDAlreadyExistsError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)        
