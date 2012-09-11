@@ -1,9 +1,12 @@
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from lrs.util import req_parse, req_process, etag
-#from lrs import objects
+from lrs import forms
 from django.shortcuts import render_to_response
+from django.template import RequestContext
 import logging
 from objects import Actor, Activity
 
@@ -31,6 +34,33 @@ def tcexample3(request):
 
 def tcexample4(request):
     return render_to_response('tcexample4.xml')
+
+def register(request):
+    if request.method == 'GET':
+        form = forms.RegisterForm()
+        return render_to_response('register.html', {"form": form})
+    elif request.method == 'POST':
+        form = forms.RegisterForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data['username']
+            pword = form.cleaned_data['password']
+            email = form.cleaned_data['email']
+            try:
+                user = User.objects.get(username__exact=name)
+                user = authenticate(username=name, password=pword)
+                if user is None:
+                    return render_to_response('register.html', {"form": form, "error_message": "%s is already registered but the password was incorrect." % name})
+            except User.DoesNotExist:
+                user = User.objects.create_user(name, email, pword)
+            return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
+        else:
+            return render_to_response('register.html', {"form": form})
+    else:
+        return Http404
+
+def reg_success(request, user_id):
+    user = User.objects.get(id=user_id)
+    return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
 
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):
@@ -108,6 +138,10 @@ def actors(request):
         resp = handle_request(request)
     except Actor.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
+    except req_parse.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
@@ -115,6 +149,8 @@ def actors(request):
 def handle_request(request):
     try:
         req_dict = parsers[request.path][request.method](request)
+        # Depending on if authentication is required, req_dict will either be a dict containing the request info
+        # or a list with the request info dict being the first item, with the auth info being the second item
         return processors[request.path][request.method](req_dict)
     except:
         raise 
@@ -200,3 +236,4 @@ def print_req_details(request):
     print 'META: %s' % request.META
     print 'META content type: %s' % request.META['CONTENT_TYPE']
     print '==========================================='
+
