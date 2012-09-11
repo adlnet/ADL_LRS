@@ -12,6 +12,7 @@ from django.utils.timezone import utc
 from lrs.objects import Actor, Activity, Statement
 import time
 
+# Start .95 work
 class StatementsTests(TestCase):
     def setUp(self):
         self.username = "tester1"
