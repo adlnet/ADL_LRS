@@ -1,6 +1,25 @@
 # ADL LRS
 
-## Installation
+## Installation on Linux machine
+
+If python is not installed, run
+
+    sudo apt-get install python
+    
+Install pip
+
+    sudo easy_install pip
+    
+Install virtual environment
+
+    sudo easy_install virtualenv
+    
+Create python virtual environment and activate
+
+    mkdir ~/virtualenv
+    virtualenv ~/virtualenv/lrs
+    source ./virtualenv/lrs/bin/activate
+    
 Navigate to desired repository directory
 
 Clone the git repository
@@ -11,10 +30,9 @@ Install fabric at the machine level
 
     sudo apt-get install fabric
 
-Then run our fabric file to install all local dependencies and create needed directories
+Then navigate to the ADL_LRS directory and run our fabric file to install all local dependencies and create needed directories
 
     cd ADL_LRS
-
     sudo fab deps_local
 
 ## Starting
