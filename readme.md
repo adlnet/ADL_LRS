@@ -5,7 +5,11 @@
 If python is not installed, run
 
     sudo apt-get install python
-    
+
+Install setuptools
+
+    sudo apt-get install python-setuptools
+
 Install pip
 
     sudo easy_install pip
@@ -22,8 +26,9 @@ Create python virtual environment and activate
     
 Navigate to desired repository directory
 
-Clone the git repository
-
+Download Git and clone the git repository
+    
+    sudo apt-get install git
     git clone https://github.com/adlnet/ADL_LRS.git
     
 Install fabric at the machine level
