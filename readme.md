@@ -5,6 +5,9 @@ Clone the git repository
 
     git clone https://github.com/adlnet/ADL_LRS.git
     
+Install pip
+
+    sudo apt-get install pip
 
 Install fabric at the machine level
 
