@@ -55,4 +55,8 @@ To verify it's running
 
 You should see a task named web running. This will host the application using gunicorn with 2 worker processes
 
+## Test LRS
+    
+    fab test_lrs
+
         
