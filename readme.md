@@ -1,7 +1,7 @@
 # ADL LRS
 
-## Installiation
-Clone the git repository
+## Installiation 
+Clone the git repository:
 
     git clone https://github.com/adlnet/ADL_LRS.git
     
