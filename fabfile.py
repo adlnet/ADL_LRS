@@ -34,4 +34,7 @@ def deps_local():
 
 def deps_remote():
     for step in INSTALL_STEPS:
-    	run(step)	
+    	run(step)
+    	
+def test_lrs():
+    local('./manage.py test lrs')	
