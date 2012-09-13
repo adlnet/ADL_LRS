@@ -40,6 +40,10 @@ Run fabric file to install all local dependencies and create needed directories
 
     sudo fab deps_local
 
+Activate your virtual environment (while still in ADL_LRS 
+
+    . env/bin/activate
+
 While still in the ADL_LRS directory, create/update the database
     
     python manage.py syncdb
