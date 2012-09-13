@@ -21,15 +21,15 @@ Install Fabric
 
     sudo apt-get install fabric
 
-Install virtual environment
+Install MySQL
 
-    sudo apt-get install python-virtualenv
+    sudo apt-get install mysql-server
 
-Create python virtual environment and activate
+Create LRS database
 
-    mkdir ~/virtualenv
-    virtualenv ~/virtualenv/lrs
-    source ./virtualenv/lrs/bin/activate
+    mysqladmin -h localhost -u {username} -p{password} create lrs
+    
+NOTE: Be sure in your settings file (ADL_LRS/adl_lrs/settings.py) your USER and PASSWORD entries are correct
 
 Navigate to desired repository directory and clone LRS repository
 
@@ -38,8 +38,11 @@ Navigate to desired repository directory and clone LRS repository
     
 Run fabric file to install all local dependencies and create needed directories    
 
-    fab deps_local
-    sudo fab create_dirs
+    sudo fab deps_local
+
+While still in the ADL_LRS directory, create/update the database
+    
+    python manage.py syncdb
 
 ## Starting
 While still in the ADL_LRS directory, run
@@ -52,7 +55,4 @@ To verify it's running
 
 You should see a task named web running. This will host the application using gunicorn with 2 worker processes
 
-While still in the ADL_LRS directory, create/update the database
-    
-    python manage.py syncdb
         
