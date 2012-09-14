@@ -9,7 +9,7 @@ from os import path
 import sys
 import uuid
 
-from lrs.objects import Activity, Statement, Actor
+from lrs.objects import Activity, Statement, Agent
 
 class StatementModelsTests(TestCase):
          

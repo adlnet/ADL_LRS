@@ -7,9 +7,9 @@ from os import path
 import sys
 import base64
 
-from lrs.objects import Actor
+from lrs.objects import Agent
 
-class ActorsTests(TestCase):
+class AgentsTests(TestCase):
     def setUp(self):
         self.username = "tester"
         self.password = "test"
@@ -18,26 +18,26 @@ class ActorsTests(TestCase):
         response = self.client.post(reverse(views.register),form)
 
     def test_get(self):
-        actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        me = Actor.Actor(actor,create=True)
-        response = self.client.get(reverse(views.actors), {'actor':actor}, HTTP_AUTHORIZATION=self.auth)
+        agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+        me = Agent.Agent(agent,create=True)
+        response = self.client.get(reverse(views.agents), {'agent':agent}, HTTP_AUTHORIZATION=self.auth)
         #print response
         self.assertContains(response, 'mailto:me@example.com')
 
     #def test_get_merge(self):
-    #    actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-    #    response = self.client.get(reverse(views.actors), {'actor':actor})
-    #    actor = json.dumps({"mbox":["mailto:me@example.com"]})
-    #    response = self.client.get(reverse(views.actors), {'actor':actor})
+    #    agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+    #    response = self.client.get(reverse(views.agents), {'agent':agent})
+    #    agent = json.dumps({"mbox":["mailto:me@example.com"]})
+    #    response = self.client.get(reverse(views.agents), {'agent':agent})
     #    self.assertContains(response, 'mailto:me@example.com')
     #    self.assertContains(response, 'name')
     #    self.assertContains(response, 'me')
     
-    def test_get_no_actor(self):
-        response = self.client.get(reverse(views.actors), HTTP_AUTHORIZATION=self.auth)
+    def test_get_no_agent(self):
+        response = self.client.get(reverse(views.agents), HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
-        actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded', HTTP_AUTHORIZATION=self.auth)
+        agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+        response = self.client.post(reverse(views.agents), {'agent':agent},content_type='application/x-www-form-urlencoded', HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(response.status_code, 405)

@@ -51,7 +51,7 @@ def statements_post(request):
 
 def statements_get(request):
     req_dict = {}
-    postParams = ['verb', 'object', 'registration', 'context', 'actor', 'since', 'until', 'limit', 'authoritative', 'sparse', 'instructor']
+    postParams = ['verb', 'object', 'registration', 'context', 'agent', 'since', 'until', 'limit', 'authoritative', 'sparse', 'instructor']
     sentParams = [x for x in request.GET]
     complexRequest = False
     req_dict['body'] = deepcopy(request.GET.dict())
@@ -85,9 +85,9 @@ def activity_state_put(request):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % request.method)
     try:
-        req_dict['actor']
+        req_dict['agent']
     except KeyError:
-        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % request.method)
+        raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % request.method)
     try:
         req_dict['stateId']
     except KeyError:
@@ -112,9 +112,9 @@ def activity_state_get(request):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % request.method)
     try:
-        request.GET['actor']
+        request.GET['agent']
     except KeyError:
-        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % request.method)
+        raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % request.method)
     return request.GET
 
 
@@ -125,9 +125,9 @@ def activity_state_delete(request):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % request.method)
     try:
-        request.GET['actor']
+        request.GET['agent']
     except KeyError:
-        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % request.method)
+        raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % request.method)
     return request.GET
   
         
@@ -198,17 +198,17 @@ def activities_get(request):
 
 #import pprint
 @basic_http_auth
-def actor_profile_put(request):
+def agent_profile_put(request):
     req_dict = get_dict(request)
 
-    try: # not using request.GET.get('param', 'default val') cuz actor is mandatory
-        req_dict['actor']
+    try: # not using request.GET.get('param', 'default val') cuz agent is mandatory
+        req_dict['agent']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.." % request.method)
+        raise ParamError("Error -- agent_profile - method = %s, but agent parameter missing.." % request.method)
     try:
         req_dict['profileId']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % request.method)
+        raise ParamError("Error -- agent_profile - method = %s, but profileId parameter missing.." % request.method)
     
     if request.raw_post_data == '':
         raise ParamError("Could not find the profile")
@@ -228,32 +228,32 @@ def actor_profile_put(request):
     return req_dict
 
 
-def actor_profile_get(request):
+def agent_profile_get(request):
     try: 
-        request.GET['actor']
+        request.GET['agent']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.. the actor parameter is required" % request.method)
+        raise ParamError("Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % request.method)
     return request.GET
 
 
 @basic_http_auth
-def actor_profile_delete(request):
+def agent_profile_delete(request):
     try: 
-        request.GET['actor']
+        request.GET['agent']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but no actor parameter.. the actor parameter is required" % request.method)
+        raise ParamError("Error -- agent_profile - method = %s, but no agent parameter.. the agent parameter is required" % request.method)
     try:
         request.GET['profileId']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % request.method)
+        raise ParamError("Error -- agent_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % request.method)
     return request.GET
 
 
-def actors_get(request):
+def agents_get(request):
     try: 
-        request.GET['actor']
+        request.GET['agent']
     except KeyError:
-        raise ParamError("Error -- actors url, but no actor parameter.. the actor parameter is required")
+        raise ParamError("Error -- agents url, but no agent parameter.. the agent parameter is required")
     return request.GET
 
 

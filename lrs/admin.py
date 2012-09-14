@@ -67,8 +67,8 @@ class PersonAdmin(AgentAdmin):
         Person_LastName_Admin
     ]
 
-class ActorProfileAdmin(admin.ModelAdmin):
-    model = models.actor_profile
+class AgentProfileAdmin(admin.ModelAdmin):
+    model = models.agent_profile
     readonly_fields = ('profileId','updated','etag')
 
 admin.site.register(models.result, ResultAdmin)
@@ -88,7 +88,7 @@ admin.site.register(models.person_familyName)
 admin.site.register(models.person_firstName)
 admin.site.register(models.person_lastName)
 admin.site.register(models.group)
-admin.site.register(models.actor_profile, ActorProfileAdmin)
+admin.site.register(models.agent_profile, AgentProfileAdmin)
 admin.site.register(models.activity)
 admin.site.register(models.activity_definition)
 admin.site.register(models.activity_extensions)

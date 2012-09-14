@@ -8,13 +8,13 @@ import hashlib
 import urllib
 from os import path
 import sys
-from lrs.objects import Actor, Activity
+from lrs.objects import Agent, Activity
 import base64
 
 class ActivityStateTests(TestCase):
     url = reverse(views.activity_state)
-    testactor = '{"name":["test"],"mbox":["mailto:test@example.com"]}'
-    otheractor = '{"name":["other"],"mbox":["mailto:other@example.com"]}'
+    testagent = '{"name":["test"],"mbox":["mailto:test@example.com"]}'
+    otheragent = '{"name":["other"],"mbox":["mailto:other@example.com"]}'
     activityId = "http://www.iana.org/domains/example/"
     activityId2 = "http://www.google.com"
     stateId = "the_state_id"
@@ -38,24 +38,24 @@ class ActivityStateTests(TestCase):
         self.activity2 = models.activity(activity_id=self.activityId2)
         self.activity2.save()
 
-        self.testparams1 = {"stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+        self.testparams1 = {"stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        self.teststate1 = {"test":"put activity state 1","obj":{"actor":"test"}}
+        self.teststate1 = {"test":"put activity state 1","obj":{"agent":"test"}}
         self.put1 = self.client.put(path, self.teststate1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
-        self.testparams2 = {"stateId": self.stateId2, "activityId": self.activityId, "actor": self.testactor}
+        self.testparams2 = {"stateId": self.stateId2, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams2))
-        self.teststate2 = {"test":"put activity state 2","obj":{"actor":"test"}}
+        self.teststate2 = {"test":"put activity state 2","obj":{"agent":"test"}}
         self.put2 = self.client.put(path, self.teststate2, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
-        self.testparams3 = {"stateId": self.stateId3, "activityId": self.activityId2, "actor": self.testactor}
+        self.testparams3 = {"stateId": self.stateId3, "activityId": self.activityId2, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams3))
-        self.teststate3 = {"test":"put activity state 3","obj":{"actor":"test"}}
+        self.teststate3 = {"test":"put activity state 3","obj":{"agent":"test"}}
         self.put3 = self.client.put(path, self.teststate3, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
-        self.testparams4 = {"stateId": self.stateId4, "activityId": self.activityId2, "actor": self.otheractor}
+        self.testparams4 = {"stateId": self.stateId4, "activityId": self.activityId2, "agent": self.otheragent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams4))
-        self.teststate4 = {"test":"put activity state 4","obj":{"actor":"other"}}
+        self.teststate4 = {"test":"put activity state 4","obj":{"agent":"other"}}
         self.put4 = self.client.put(path, self.teststate4, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
     def tearDown(self):
@@ -78,9 +78,9 @@ class ActivityStateTests(TestCase):
         self.assertEqual(self.put4.content, '')
      
     def test_put_with_registrationId(self):
-        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
-        teststateregid = {"test":"put activity state w/ registrationId","obj":{"actor":"test"}}
+        teststateregid = {"test":"put activity state w/ registrationId","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 204)
@@ -96,7 +96,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(del_r.status_code, 204)
 
     def test_put_etag_conflict_if_none_match(self):
-        teststateetaginm = {"test":"etag conflict - if none match *","obj":{"actor":"test"}}
+        teststateetaginm = {"test":"etag conflict - if none match *","obj":{"agent":"test"}}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
         r = self.client.put(path, teststateetaginm, content_type=self.content_type, if_none_match='*', HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(r.status_code, 412)
@@ -109,7 +109,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
     def test_put_etag_conflict_if_match(self):
-        teststateetagim = {"test":"etag conflict - if match wrong hash","obj":{"actor":"test"}}
+        teststateetagim = {"test":"etag conflict - if match wrong hash","obj":{"agent":"test"}}
         new_etag = '"%s"' % hashlib.sha1('wrong etag value').hexdigest()
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
         r = self.client.put(path, teststateetagim, content_type=self.content_type, if_match=new_etag, HTTP_AUTHORIZATION=self.auth)
@@ -123,7 +123,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
     def test_put_etag_no_conflict_if_match(self):
-        teststateetagim = {"test":"etag no conflict - if match good hash","obj":{"actor":"test"}}
+        teststateetagim = {"test":"etag no conflict - if match good hash","obj":{"agent":"test"}}
         new_etag = '"%s"' % hashlib.sha1('%s' % self.teststate1).hexdigest()
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
         r = self.client.put(path, teststateetagim, content_type=self.content_type, if_match=new_etag, HTTP_AUTHORIZATION=self.auth)
@@ -137,29 +137,29 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())    
 
     def test_put_without_activityid(self):
-        testparamsbad = {"stateId": "bad_state", "actor": self.testactor}
+        testparamsbad = {"stateId": "bad_state", "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
-        teststatebad = {"test":"put activity state BAD no activity id","obj":{"actor":"test"}}
+        teststatebad = {"test":"put activity state BAD no activity id","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststatebad, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 400)
         self.assertIn('activityId parameter is missing', put1.content)
 
     
-    def test_put_without_actor(self):
+    def test_put_without_agent(self):
         testparamsbad = {"stateId": "bad_state", "activityId": self.activityId}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
-        teststatebad = {"test":"put activity state BAD no actor","obj":{"actor":"none"}}
+        teststatebad = {"test":"put activity state BAD no agent","obj":{"agent":"none"}}
         put1 = self.client.put(path, teststatebad, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 400)
-        self.assertIn('actor parameter is missing', put1.content)
+        self.assertIn('agent parameter is missing', put1.content)
 
     
     def test_put_without_stateid(self):
-        testparamsbad = {"activityId": self.activityId, "actor": self.testactor}
+        testparamsbad = {"activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
-        teststatebad = {"test":"put activity state BAD no state id","obj":{"actor":"test"}}
+        teststatebad = {"test":"put activity state BAD no state id","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststatebad, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 400)
@@ -192,7 +192,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r4['etag'], '"%s"' % hashlib.sha1(state4_str).hexdigest())
 
     def test_get_ids(self):
-        params = {"activityId": self.activityId, "actor": self.testactor}
+        params = {"activityId": self.activityId, "agent": self.testagent}
         r = self.client.get(self.url, params)
         self.assertEqual(r.status_code, 200)
         self.assertIn(self.stateId, r.content)
@@ -202,9 +202,9 @@ class ActivityStateTests(TestCase):
      
     def test_get_with_since(self):
         state_id = "old_state_test"
-        testparamssince = {"stateId": state_id, "activityId": self.activityId, "actor": self.testactor}
+        testparamssince = {"stateId": state_id, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
-        teststatesince = {"test":"get w/ since","obj":{"actor":"test"}}
+        teststatesince = {"test":"get w/ since","obj":{"agent":"test"}}
         updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
         put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), HTTP_AUTHORIZATION=self.auth)
 
@@ -218,7 +218,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
         since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
-        params2 = {"activityId": self.activityId, "actor": self.testactor, "since": since}
+        params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
         r = self.client.get(self.url, params2)
         self.assertEqual(r.status_code, 200)
         self.assertIn(self.stateId, r.content)
@@ -232,9 +232,9 @@ class ActivityStateTests(TestCase):
     def test_get_with_since_and_regid(self):
         # create old state w/ no registration id
         state_id = "old_state_test_no_reg"
-        testparamssince = {"stateId": state_id, "activityId": self.activityId, "actor": self.testactor}
+        testparamssince = {"stateId": state_id, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
-        teststatesince = {"test":"get w/ since","obj":{"actor":"test","stateId":state_id}}
+        teststatesince = {"test":"get w/ since","obj":{"agent":"test","stateId":state_id}}
         updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
         put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), HTTP_AUTHORIZATION=self.auth)
 
@@ -250,9 +250,9 @@ class ActivityStateTests(TestCase):
         # create old state w/ registration id
         regid = 'test_since_w_regid'
         state_id2 = "old_state_test_w_reg"
-        testparamssince2 = {"registrationId": regid, "activityId": self.activityId, "actor": self.testactor, "stateId":state_id2}
+        testparamssince2 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id2}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince2))
-        teststatesince2 = {"test":"get w/ since and registrationId","obj":{"actor":"test","stateId":state_id2}}
+        teststatesince2 = {"test":"get w/ since and registrationId","obj":{"agent":"test","stateId":state_id2}}
         put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated.isoformat(), HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put2.status_code, 204)
@@ -266,9 +266,9 @@ class ActivityStateTests(TestCase):
 
         # create new state w/ registration id
         state_id3 = "old_state_test_w_new_reg"
-        testparamssince3 = {"registrationId": regid, "activityId": self.activityId, "actor": self.testactor, "stateId":state_id3}
+        testparamssince3 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id3}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince3))
-        teststatesince3 = {"test":"get w/ since and registrationId","obj":{"actor":"test","stateId":state_id3}}
+        teststatesince3 = {"test":"get w/ since and registrationId","obj":{"agent":"test","stateId":state_id3}}
         put3 = self.client.put(path, teststatesince3, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put3.status_code, 204)
@@ -282,7 +282,7 @@ class ActivityStateTests(TestCase):
 
         # get no reg ids set w/o old state
         since1 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
-        params = {"activityId": self.activityId, "actor": self.testactor, "since": since1}
+        params = {"activityId": self.activityId, "agent": self.testagent, "since": since1}
         r = self.client.get(self.url, params)
         self.assertEqual(r.status_code, 200)
         self.assertIn(self.stateId, r.content)
@@ -293,7 +293,7 @@ class ActivityStateTests(TestCase):
 
         # get reg id set w/o old state
         since2 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
-        params2 = {"registrationId": regid, "activityId": self.activityId, "actor": self.testactor, "since": since2}
+        params2 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "since": since2}
         r = self.client.get(self.url, params2)
         self.assertEqual(r.status_code, 200)
         self.assertIn(state_id3, r.content)
@@ -309,23 +309,23 @@ class ActivityStateTests(TestCase):
 
         
     def test_get_without_activityid(self):
-        params = {"stateId": self.stateId, "actor": self.testactor}
+        params = {"stateId": self.stateId, "agent": self.testagent}
         r = self.client.get(self.url, params)
         self.assertEqual(r.status_code, 400)
         self.assertIn('activityId parameter is missing', r.content)
 
     
-    def test_get_without_actor(self):
+    def test_get_without_agent(self):
         params = {"stateId": self.stateId, "activityId": self.activityId}
         r = self.client.get(self.url, params)
         self.assertEqual(r.status_code, 400)
-        self.assertIn('actor parameter is missing', r.content)
+        self.assertIn('agent parameter is missing', r.content)
 
     
     def test_delete_without_activityid(self):
-        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
-        teststateregid = {"test":"delete activity state w/o activityid","obj":{"actor":"test"}}
+        teststateregid = {"test":"delete activity state w/o activityid","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 204)
@@ -337,7 +337,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "actor": self.testactor}, HTTP_AUTHORIZATION=self.auth)
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "agent": self.testagent}, HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(f_r.status_code, 400)
         self.assertIn('activityId parameter is missing', f_r.content)
 
@@ -345,10 +345,10 @@ class ActivityStateTests(TestCase):
         self.assertEqual(del_r.status_code, 204)
 
     
-    def test_delete_without_actor(self):
-        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "actor": self.testactor}
+    def test_delete_without_agent(self):
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
-        teststateregid = {"test":"delete activity state w/o actor","obj":{"actor":"test"}}
+        teststateregid = {"test":"delete activity state w/o agent","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 204)
@@ -362,16 +362,16 @@ class ActivityStateTests(TestCase):
 
         f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId}, HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(f_r.status_code, 400)
-        self.assertIn('actor parameter is missing', f_r.content)
+        self.assertIn('agent parameter is missing', f_r.content)
 
         del_r = self.client.delete(self.url, testparamsregid, HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(del_r.status_code, 204)
 
     
     def test_delete_set(self):
-        testparamsdelset1 = {"registrationId": self.registrationId, "stateId": "del_state_set_1", "activityId": self.activityId, "actor": self.testactor}
+        testparamsdelset1 = {"registrationId": self.registrationId, "stateId": "del_state_set_1", "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsdelset1))
-        teststatedelset1 = {"test":"delete set #1","obj":{"actor":"test"}}
+        teststatedelset1 = {"test":"delete set #1","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststatedelset1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 204)
@@ -383,9 +383,9 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
-        testparamsdelset2 = {"registrationId": self.registrationId, "stateId": "del_state_set_2", "activityId": self.activityId, "actor": self.testactor}
+        testparamsdelset2 = {"registrationId": self.registrationId, "stateId": "del_state_set_2", "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsdelset2))
-        teststatedelset2 = {"test":"delete set #2","obj":{"actor":"test"}}
+        teststatedelset2 = {"test":"delete set #2","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststatedelset2, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(put1.status_code, 204)
@@ -397,7 +397,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "actor": self.testactor, "activityId": self.activityId}, HTTP_AUTHORIZATION=self.auth)
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "agent": self.testagent, "activityId": self.activityId}, HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(f_r.status_code, 204)
 
         r = self.client.get(self.url, testparamsdelset1)

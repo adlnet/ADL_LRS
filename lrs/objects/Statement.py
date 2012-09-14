@@ -7,7 +7,7 @@ from django.core.exceptions import FieldError
 from django.db import transaction
 from functools import wraps
 from Activity import Activity
-from Actor import Actor
+from Agent import Agent
 from functools import wraps
 from django.utils.timezone import utc
 
@@ -214,11 +214,11 @@ class Statement():
         # If there is an actor or object is a person in the stmt then remove the instructor
         if 'actor' in stmt_data:
             if stmt_data['actor']['objectType'] == 'Person':
-                stmt_data['context']['instructor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
+                stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['actor']), create=True).agent
         elif stmt_data['object']['objectType'] == 'Person':
-            stmt_data['context']['instructor'] = Actor(json.dumps(stmt_data['object']), create=True).agent
+            stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['object']), create=True).agent
         elif 'instructor' in stmt_data['context']:
-            stmt_data['context']['instructor'] = Actor(json.dumps(stmt_data['context']['instructor']), create=True).agent
+            stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['context']['instructor']), create=True).agent
 
 
         # If there is an actor or object is a group in the stmt then remove the team
@@ -264,13 +264,13 @@ class Statement():
 
         #Retrieve actor if in JSON only for now
         if 'actor' in stmt_data:
-            args['actor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
+            args['actor'] = Agent(json.dumps(stmt_data['actor']), create=True).agent
         else:
              if auth:
                 authArgs = {}
                 authArgs['name'] = [auth.username]
                 authArgs['mbox'] = [auth.email]
-                args['actor'] = Actor(json.dumps(authArgs), create=True).agent
+                args['actor'] = Agent(json.dumps(authArgs), create=True).agent
 
         #Set inProgress to false
         args['inProgress'] = False
@@ -290,7 +290,7 @@ class Statement():
         if statementObjectData['objectType'] == 'Activity' and not args['verb'] == 'imported':        
             args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
         elif statementObjectData['objectType'] == 'Person' and not args['verb'] == 'imported':
-            args['stmt_object'] = Actor(json.dumps(statementObjectData), create=True).agent	
+            args['stmt_object'] = Agent(json.dumps(statementObjectData), create=True).agent	
 
         #Set result when present - result object can be string or JSON object
         if 'result' in stmt_data:
@@ -305,13 +305,13 @@ class Statement():
       		args['timestamp'] = stmt_data['timestamp']
 
         if 'authority' in stmt_data:
-            args['authority'] = Actor(json.dumps(stmt_data['authority']), create=True).agent
+            args['authority'] = Agent(json.dumps(stmt_data['authority']), create=True).agent
         else:
             if auth:
                 authArgs = {}
                 authArgs['name'] = [auth.username]
                 authArgs['mbox'] = [auth.email]
-                args['authority'] = Actor(json.dumps(authArgs), create=True).agent
+                args['authority'] = Agent(json.dumps(authArgs), create=True).agent
 
         #Check to see if voiding statement
         if args['verb'] == 'voided':
@@ -326,7 +326,7 @@ class Statement():
                 importedActivity = Activity(json.dumps(statementObjectData)).activity
                 args['stmt_object'] = importedActivity
             elif statementObjectData['objectType'].lower() == 'person':
-                importedActor = Actor(json.dumps(statementObjectData), create=True).agent
+                importedActor = Agent(json.dumps(statementObjectData), create=True).agent
                 args['stmt_object'] = importedActor
 
         #See if statement_id already exists, throw exception if it does

@@ -9,7 +9,7 @@ import base64
 import uuid
 from datetime import datetime
 from django.utils.timezone import utc
-from lrs.objects import Actor, Activity, Statement
+from lrs.objects import Agent, Activity, Statement
 import time
 
 # Start .95 work
@@ -167,7 +167,7 @@ class StatementsTests(TestCase):
         guid = str(uuid.uuid4())
         cguid = str(uuid.uuid4())
         time = str(datetime.now())                
-        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
+        bob = Agent.Agent(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
         existStmt = Statement.Statement(json.dumps({"statement_id":guid, "actor":{'objectType':'Person','name':['jon1'],'mbox':['jon1@example.com']} ,
             "verb":"created", "object": {'objectType': 'Activity', 'id':'foog',
                 'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',

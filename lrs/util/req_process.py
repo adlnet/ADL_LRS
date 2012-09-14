@@ -5,7 +5,7 @@ import json
 import sys
 from os import path
 from functools import wraps
-from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
+from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
 from datetime import datetime
 import pytz
 from django.core import serializers
@@ -86,7 +86,7 @@ def complexGet(req_dict):
             activity = models.activity.objects.get(activity_id=objectData['id'])
             args['stmt_object'] = activity
         elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
-            agent = Actor.Actor(json.dumps(objectData)).agent
+            agent = Agent.Agent(json.dumps(objectData)).agent
             args['stmt_object'] = agent
         else:
             activity = models.activity.objects.get(activity_id=objectData['id'])
@@ -105,7 +105,7 @@ def complexGet(req_dict):
             except Exception, e:
                 actorData = json.loads(actorData.replace("'",'"'))
             
-        agent = Actor.Actor(json.dumps(actorData)).agent
+        agent = Agent.Agent(json.dumps(actorData)).agent
         args['actor'] = agent
 
     if 'instructor' in req_dict:
@@ -117,7 +117,7 @@ def complexGet(req_dict):
             except Exception, e:
                 instData = json.loads(instData.replace("'",'"'))
             
-        instructor = Actor.Actor(json.dumps(instData)).agent                 
+        instructor = Agent.Agent(json.dumps(instData)).agent                 
 
         cntxList = models.context.objects.filter(instructor=instructor)
         args['context__in'] = cntxList
@@ -131,7 +131,7 @@ def complexGet(req_dict):
             except Exception, e:
                 authData = json.loads(authData.replace("'",'"'))
 
-        authority = Actor.Actor(json.dumps(authData)).agent
+        authority = Agent.Agent(json.dumps(authData)).agent
         args['authority'] = authority
 
     if 'limit' in req_dict:
@@ -266,17 +266,17 @@ def stream_response_generator(data):
             yield json.dumps(v)
     yield '}'
 
-def actor_profile_put(req_dict):
+def agent_profile_put(req_dict):
     # test ETag for concurrency
-    actor = req_dict['actor']
-    a = Actor.Actor(actor, create=True)
+    agent = req_dict['agent']
+    a = Agent.Agent(agent, create=True)
     a.put_profile(req_dict)
     return HttpResponse("", status=204)
 
-def actor_profile_get(req_dict):
+def agent_profile_get(req_dict):
     # add ETag for concurrency
-    actor = req_dict['actor']
-    a = Actor.Actor(actor)
+    agent = req_dict['agent']
+    a = Agent.Agent(agent)
     
     profileId = req_dict.get('profileId', None)
     if profileId:
@@ -290,18 +290,18 @@ def actor_profile_get(req_dict):
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     return response
 
-def actor_profile_delete(req_dict):
-    actor = req_dict['actor']
-    a = Actor.Actor(actor)
+def agent_profile_delete(req_dict):
+    agent = req_dict['agent']
+    a = Agent.Agent(agent)
     profileId = req_dict['profileId']
     a.delete_profile(profileId)
     return HttpResponse('', status=204)
 
 
-def actors_get(req_dict):
-    actor = req_dict['actor']
-    a = Actor.Actor(actor)
-    return HttpResponse(a.full_actor_json(), mimetype="application/json")
+def agents_get(req_dict):
+    agent = req_dict['agent']
+    a = Agent.Agent(agent)
+    return HttpResponse(a.full_agent_json(), mimetype="application/json")
 
 
 # so far unnecessary
