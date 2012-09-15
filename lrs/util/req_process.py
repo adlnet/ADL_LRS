@@ -2,13 +2,17 @@ from django.http import HttpResponse
 from lrs import objects, models
 from lrs.util import etag
 import json
-import sys
-from os import path
 from functools import wraps
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
 from datetime import datetime
 import pytz
-from django.core import serializers
+import uuid
+import hashlib
+import pdb
+import bencode
+import base64
+
+SERVER_STMT_LIMIT = 100
 
 def statements_post(req_dict):
     #TODO: more elegant way of doing this?
@@ -36,24 +40,52 @@ def statements_put(req_dict):
         return HttpResponse("StatementID = %s" % statementId, status=200)
     else:
         return HttpResponse("Error: %s already exists" % statementId, status=204)
+
+def buildStatementResult(self, stmtList):
+    result = {}
+    hash_data = []
+    hash_data.append(str(datetime.now()))
+    hash_data.append(str(stmtList))
+    req_Hash = hashlib.md5(bencode.bencode(data)).hexdigest()
+    req_obj = models.statement_request(hash_id=req_hash, query_dict=str(req_dict['body']))
+    req_obj.save()
+
+    if len(req_dict) > limit:
+        statementResult['more'] = 'http://localhost:8000/TCAPI/statements/more/%s' % reqHash    
+        statementResult['statments'] = 
+    
+
      
-def statements_get(req_dict):
+def statements_get(req_dict, stmt_list, limit=SERVER_STMT_LIMIT):
+    statementResult = {}
+
     if req_dict['complex']:
-        returnList = complexGet(req_dict['body'])
-        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
-    else:
+        stmtList = complexGet(req_dict['body'])
+        
+        # If user gave a limit
+        if req_dict['body']['limit']:
+            # If user limit is not larger that default
+            if not req_dict['body']['limit'] > SERVER_STMT_LIMIT:
+                statementResult = buildStatementResult(stmtList, req_dict['body']['limit'])
+        # If user didn't give a limit
+        else:
+            statementResult = buildStatementResult(stmtList)
+   else:
         statementId = req_dict['body']['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)
-        data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
+        statementResult['statements'] = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
         # return HttpResponse(st.get_full_statement_json(), mimetype="application/json")
-        return HttpResponse(data, mimetype="application/json")
+    
+    return HttpResponse(json.dumps(statementResult,indent=4), mimetype="application/json", status=200)
 
 
 def convertToUTC(timestr):
     # Strip off TZ info
     timestr = timestr[:timestr.rfind('+')]
+    
     # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
     date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
+    
     # Localize TZ to UTC since everything is being stored in DB as UTC
     date_object = pytz.timezone("UTC").localize(date_object)
     return date_object

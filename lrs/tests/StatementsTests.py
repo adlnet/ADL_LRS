@@ -305,3 +305,8 @@ class StatementsTests(TestCase):
         linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':{'name':['auth1'],'mbox':['auth1@example.com']}, 'sparse': False})
         self.assertEqual(linkedGetResponse.status_code, 200)
         self.assertContains(linkedGetResponse, self.postresponse2.content)
+
+    def test_more_stmts_url(self):
+        sinceGetResponse = self.client.get(reverse(views.statements), {'since': self.mytime})
+        print sinceGetResponse
+        # c = self.client.get(reverse(views.statements_more,kwargs={'more_id':sinceGetResponse.content}))     

@@ -13,6 +13,10 @@ def filename(instance, filename):
     print filename
     return filename
 
+class statement_request(models.Model):
+    hash_id = models.TextField()
+    query_dict = models.TextField()
+
 class score(models.Model):  
     scaled = models.FloatField(blank=True, null=True)
     raw = models.PositiveIntegerField(blank=True, null=True)

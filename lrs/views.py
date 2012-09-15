@@ -4,11 +4,13 @@ from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from lrs.util import req_parse, req_process, etag
-from lrs import forms
+from lrs import forms, models
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 import logging
 from objects import Actor, Activity
+import pdb
+import ast
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,19 @@ def register(request):
 def reg_success(request, user_id):
     user = User.objects.get(id=user_id)
     return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
+
+
+def statements_more(request, more_id):
+    pdb.set_trace()
+    reqObj = models.statement_request.objects.filter(hash_id=more_id)[0]
+    rd = ast.literal_eval(reqObj.query_dict)
+
+    stmtList = req_process.complexGet(rd)
+
+    html = "<html><body>%s<br><br>%s</body></html>" % (more_id, stmtList)
+
+
+    return HttpResponse(html)
 
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):
