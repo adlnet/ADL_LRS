@@ -28,14 +28,14 @@ Install MySQL
 Create LRS database
 
     mysqladmin -h localhost -u {username} -p{password} create lrs
-    
-NOTE: Be sure in your settings file (ADL_LRS/adl_lrs/settings.py) your USER and PASSWORD entries are correct
 
 Navigate to desired repository directory and clone LRS repository
 
     git clone https://github.com/adlnet/ADL_LRS.git
     cd ADL_LRS
     
+NOTE: Be sure in your settings file (ADL_LRS/adl_lrs/settings.py) your USER and PASSWORD entries are correct for your MySQL DB)
+
 Run fabric file to install all local dependencies and create needed directories    
 
     sudo fab deps_local
