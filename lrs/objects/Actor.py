@@ -173,12 +173,13 @@ class Actor():
 
     def get_account(self):
         accounts = []
-        for acc in self.agent.agent_account_set.all().order_by('-date_added'):
-            a = {}
-            a['accountName'] = acc.accountName
-            if acc.accountServiceHomePage:
-                a['accountServiceHomePage'] = acc.accountServiceHomePage
-            accounts.append(a)
+        if self.agent:
+            for acc in self.agent.agent_account_set.all().order_by('-date_added'):
+                a = {}
+                a['accountName'] = acc.accountName
+                if acc.accountServiceHomePage:
+                    a['accountServiceHomePage'] = acc.accountServiceHomePage
+                accounts.append(a)
         return accounts
    
     @default_on_exception([])
@@ -259,6 +260,8 @@ class Actor():
 
     def full_actor_json(self):
         ret = {}
+        if not self.agent:
+            return json.dumps(ret)
         ret['objectType'] = self.get_objectType()
         names = self.get_name()
         if names:
