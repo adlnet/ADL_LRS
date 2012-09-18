@@ -86,8 +86,10 @@ def complexGet(req_dict):
             activity = models.activity.objects.get(activity_id=objectData['id'])
             args['stmt_object'] = activity
         elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
-            agent = Actor.Actor(json.dumps(objectData)).agent
-            args['stmt_object'] = agent
+            a = Actor.Actor(json.dumps(objectData))
+            if not a or (hasattr(a, 'agent') and not a.agent):
+                return []
+            args['stmt_object'] = a.agent
         else:
             activity = models.activity.objects.get(activity_id=objectData['id'])
             args['stmt_object'] = activity
@@ -104,9 +106,10 @@ def complexGet(req_dict):
                 actorData = json.loads(actorData) 
             except Exception, e:
                 actorData = json.loads(actorData.replace("'",'"'))
-            
-        agent = Actor.Actor(json.dumps(actorData)).agent
-        args['actor'] = agent
+        a =  Actor.Actor(json.dumps(actorData))
+        if not a or (hasattr(a, 'agent') and not a.agent):
+            return []
+        args['actor'] = a.agent
 
     if 'instructor' in req_dict:
         instData = req_dict['instructor']
@@ -117,9 +120,11 @@ def complexGet(req_dict):
             except Exception, e:
                 instData = json.loads(instData.replace("'",'"'))
             
-        instructor = Actor.Actor(json.dumps(instData)).agent                 
+        a = Actor.Actor(json.dumps(instData))
+        if not a or (hasattr(a, 'agent') and not a.agent):
+            return []                 
 
-        cntxList = models.context.objects.filter(instructor=instructor)
+        cntxList = models.context.objects.filter(instructor=a.agent)
         args['context__in'] = cntxList
 
     if 'authoritative' in req_dict:
@@ -131,8 +136,12 @@ def complexGet(req_dict):
             except Exception, e:
                 authData = json.loads(authData.replace("'",'"'))
 
-        authority = Actor.Actor(json.dumps(authData)).agent
-        args['authority'] = authority
+        a = Actor.Actor(json.dumps(authData))
+        
+        if not a or (hasattr(a, 'agent') and not a.agent):
+            return []
+
+        args['authority'] = a.agent
 
     if 'limit' in req_dict:
         limit = int(req_dict['limit'])    
@@ -277,7 +286,7 @@ def actor_profile_get(req_dict):
     # add ETag for concurrency
     actor = req_dict['actor']
     a = Actor.Actor(actor)
-    
+
     profileId = req_dict.get('profileId', None)
     if profileId:
         resource = a.get_profile(profileId)

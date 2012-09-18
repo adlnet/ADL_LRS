@@ -231,6 +231,11 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.postresponse4.content, activityObjectGetResponse)
         self.assertNotIn(self.postresponse5.content, activityObjectGetResponse)
 
+    def test_no_actor(self):
+        # Test actor object
+        actorObjectGetResponse = self.client.get(reverse(views.statements), {"object":{"objectType": "person", 'mbox':['nobody@example.com']}})
+        self.assertEqual(actorObjectGetResponse.status_code, 200)
+        self.assertEqual(actorObjectGetResponse.content, "[]")
 
     def test_actor_object_filter(self):
         # Test actor object

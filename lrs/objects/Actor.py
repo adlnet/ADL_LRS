@@ -228,7 +228,7 @@ class Actor():
     def get_profile(self, profileId):
         try:
             return self.agent.actor_profile_set.get(profileId=profileId)
-        except models.actor_profile.DoesNotExist:
+        except:
             raise IDNotFoundError('There is no profile associated with the id: %s' % profileId)
 
     def get_profile_ids(self, since=None):
@@ -240,6 +240,8 @@ class Actor():
                 since_i = int(float(since))
                 since_dt = datetime.datetime.fromtimestamp(since_i)
                 profs = self.agent.actor_profile_set.filter(update__gte=since_dt)
+            except:
+                raise IDNotFoundError('There are no profiles associated with the id: %s' % profileId)                
             ids = [p.profileId for p in profs]
         else:
             ids = self.agent.actor_profile_set.values_list('profileId', flat=True)
