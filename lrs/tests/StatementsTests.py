@@ -95,10 +95,6 @@ class StatementsTests(TestCase):
         self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
 
-
-
-
-
         
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
@@ -306,24 +302,3 @@ class StatementsTests(TestCase):
         linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':{'name':['auth1'],'mbox':['auth1@example.com']}, 'sparse': False})
         self.assertEqual(linkedGetResponse.status_code, 200)
         self.assertContains(linkedGetResponse, self.postresponse2.content)
-
-    def test_more_stmts_url(self):
-        # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"authoritative":{"name":["auth1"],"mbox":["auth1@example.com"]}})
-        resp_json = json.loads(sinceGetResponse.content)
-        resp_url = resp_json['more']
-        resp_id = resp_url[-32:]
-  
-        # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
-        
-        self.assertEqual(moreURLGet.status_code, 200)
-        self.assertContains(moreURLGet, self.postresponse2.content)
-        self.assertContains(moreURLGet, self.postresponse3.content)                
-        self.assertContains(moreURLGet, self.postresponse4.content)
-        self.assertNotIn(self.postresponse1.content, moreURLGet)
-        self.assertNotIn(self.postresponse5.content, moreURLGet)
-
-
-
-

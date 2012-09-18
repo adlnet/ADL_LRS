@@ -9,7 +9,7 @@ import pdb
 import json
 import ast
 
-SERVER_STMT_LIMIT = 1
+SERVER_STMT_LIMIT = 10
 
 def getStatementRequest(req_id):
 
