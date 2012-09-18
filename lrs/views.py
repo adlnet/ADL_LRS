@@ -3,14 +3,14 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from lrs.util import req_parse, req_process, etag
+from lrs.util import req_parse, req_process, etag, retrieve_statement
 from lrs import forms, models
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 import logging
 from objects import Actor, Activity
 import pdb
-import ast
+
 
 logger = logging.getLogger(__name__)
 
@@ -66,14 +66,13 @@ def reg_success(request, user_id):
 
 
 def statements_more(request, more_id):
-    pdb.set_trace()
-    reqObj = models.statement_request.objects.filter(hash_id=more_id)[0]
-    rd = ast.literal_eval(reqObj.query_dict)
+    # pdb.set_trace()
+    
+    req_obj, query_dict = retrieve_statement.getStatementRequest(more_id)
 
-    stmtList = req_process.complexGet(rd)
+    stmtList = retrieve_statement.complexGet(query_dict)
 
-    html = "<html><body>%s<br><br>%s</body></html>" % (more_id, stmtList)
-
+    html = "<html><body>%s</body></html>" % stmtList
 
     return HttpResponse(html)
 

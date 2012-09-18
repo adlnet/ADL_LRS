@@ -11,6 +11,7 @@ from datetime import datetime
 from django.utils.timezone import utc
 from lrs.objects import Actor, Activity, Statement
 import time
+import pdb
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -307,6 +308,22 @@ class StatementsTests(TestCase):
         self.assertContains(linkedGetResponse, self.postresponse2.content)
 
     def test_more_stmts_url(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {'since': self.mytime})
-        print sinceGetResponse
-        # c = self.client.get(reverse(views.statements_more,kwargs={'more_id':sinceGetResponse.content}))     
+        # Make initial complex get so 'more' will be required
+        sinceGetResponse = self.client.get(reverse(views.statements), {"authoritative":{"name":["auth1"],"mbox":["auth1@example.com"]}})
+        resp_json = json.loads(sinceGetResponse.content)
+        resp_url = resp_json['more']
+        resp_id = resp_url[-32:]
+  
+        # Simulate user clicking returned 'more' URL
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        
+        self.assertEqual(moreURLGet.status_code, 200)
+        self.assertContains(moreURLGet, self.postresponse2.content)
+        self.assertContains(moreURLGet, self.postresponse3.content)                
+        self.assertContains(moreURLGet, self.postresponse4.content)
+        self.assertNotIn(self.postresponse1.content, moreURLGet)
+        self.assertNotIn(self.postresponse5.content, moreURLGet)
+
+
+
+
