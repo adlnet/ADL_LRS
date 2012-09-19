@@ -128,20 +128,7 @@ def complexGet(req_dict):
         args['context__in'] = cntxList
 
     if 'authoritative' in req_dict:
-        authData = req_dict['authoritative']
-
-        if not type(authData) is dict:
-            try:
-                authData = json.loads(authData) 
-            except Exception, e:
-                authData = json.loads(authData.replace("'",'"'))
-
-        a = Actor.Actor(json.dumps(authData))
-        
-        if not a or (hasattr(a, 'agent') and not a.agent):
-            return []
-
-        args['authority'] = a.agent
+        args['authoritative'] = str(req_dict['authoritative']).upper == 'TRUE'
 
     if 'limit' in req_dict:
         limit = int(req_dict['limit'])    
@@ -158,7 +145,6 @@ def complexGet(req_dict):
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
     else:
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
-
 
     full_stmt_list = []
 
