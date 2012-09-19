@@ -452,6 +452,19 @@ class StatementModelsTests(TestCase):
         self.assertEqual(conactorname.name, 'lou')
         self.assertEqual(conactormbox.mbox, 'l@l.com') 
 
+    def test_model_authoritative_set(self):
+        stmt = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"created", "object": {"id":"activity"}}))
+        self.assertTrue(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
+        
+        stmt2 = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"shared", "object": {"id":"activity"}}))
+        self.assertTrue(models.statement.objects.get(pk=stmt2.statement.pk).authoritative)
+        self.assertFalse(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
+        
+        stmt3 = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"shared", "object": {"id":"activity2"}}))
+        self.assertTrue(models.statement.objects.get(pk=stmt3.statement.pk).authoritative)
+        self.assertTrue(models.statement.objects.get(pk=stmt2.statement.pk).authoritative)
+        self.assertFalse(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
+
 
     # def test_team_in_context_stmt(self):
     #     guid = str(uuid.uuid4())

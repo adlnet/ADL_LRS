@@ -3,11 +3,13 @@ from django.core.cache import cache
 from lrs.objects import Actor, Activity, Statement
 from datetime import datetime
 from django.conf import settings
+from django.core.paginator import Paginator
 import bencode
 import pytz
 import hashlib
 import json
 import jwt
+import pickle
 import pdb
 
 
@@ -108,12 +110,14 @@ def complexGet(req_dict):
         else:
             sparse = req_dict['sparse']
 
-    if limit == 0:
+    if limit == 0 and 'more_start' not in req_dict:
         # Retrieve statements from DB
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
+    elif 'more_start' in req_dict:
+        start = int(req_dict['more_start'])
+        stmt_list = models.statement.objects.filter(**args).order_by('-stored')[start:]
     else:
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
-
 
     full_stmt_list = []
 
@@ -125,28 +129,46 @@ def complexGet(req_dict):
 
 def getStatementRequest(req_id):    
     # Retrieve encoded list of statements
-    encoded_dict = cache.get(req_id)
+    # encoded_dict = cache.get(req_id)
+    encoded_list = cache.get(req_id)
 
     # Could have expired or never existed
     if not encoded_dict:
         return ['List does not exist - may have expired after 24 hours']
 
     # Decode dict
-    query_dict = jwt.decode(encoded_dict, req_id) 
-    
-    # Get list TODO - limit the result
+    # query_dict = jwt.decode(encoded_dict, req_id) 
+    query_info = pickle.load(encoded_list)
+
+    query_dict = query_info[0]
+    start_page = query_info[1]
+
+    query_dict['more_start'] = (start_page - 1) * 10
+
+    #Build list from query_dict
     stmt_list = complexGet(query_dict)
-    stmt_result = buildStatementResult(query_dict, stmt_list)
+
+    # This is when someone initally queries using POST/GET - that sends them to buildStatementResult which
+    # creates the more URL and displays first X amount - they then click more URL and views.py sends them 
+    # here. This adds more_start query param to start from where buildStatementResult left off
+
+    # Build statementResult
+    stmt_result = buildStatementResult(query_dict, stmt_list, req_id)
     return stmt_list
 
-def buildStatementResult(req_dict, stmt_list):
+def buildStatementResult(req_dict, stmt_list, more_id=None):
     result = {}
-    # pdb.set_trace()
     statement_amount = len(stmt_list)  
+
+    if more_id:
+        
+
     # If the list is larger than the limit, truncate statements and give more url
-    # TODO: more should display the stmts already being shown? if so, just change
-    # encoded_dict = jwt.encode(stmt_list[SERVER_STMT_LIMIT:], cache_key)
+    # List will only be larger first time - getStatementRequest should truncate rest of results
+    # of more URLs.
     if statement_amount > settings.SERVER_STMT_LIMIT:
+        cache_list = []
+
         # Create unique hash data to use for the cache key
         hash_data = []
         hash_data.append(str(datetime.now()))
@@ -156,13 +178,26 @@ def buildStatementResult(req_dict, stmt_list):
         cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
 
         # Encode the list of statements
-        encoded_dict = jwt.encode(req_dict, cache_key)
+        # encoded_dict = jwt.encode(req_dict, cache_key)
+
+        stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)   
+        current_page = stmt_pager.page(2)
+        total_pages = stmt_pager.count
+        
+        cache_list.append(req_dict)
+        cache_list.append(current_page)
+        cache_list.append(total_pages)
+
+        encoded_info = pickle.dump(cache_list)
 
         # Save encoded_dict in cache
-        cache.set(cache_key,encoded_dict)
+        cache.set(cache_key,encoded_info)
 
-        result['statments'] = stmt_list[:settings.SERVER_STMT_LIMIT]
+        result['statments'] = stmt_pager.page(1)
         result['more'] = '/TCAPI/statements/more/%s' % cache_key    
+        
+
+        
     # Just provide statements since the list is under the limit
     else:
         result['statements'] = stmt_list

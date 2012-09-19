@@ -192,17 +192,17 @@ class StatementsMoreTests(TestCase):
 
 
     # To run test, change CACHE TIMEOUT to 30 in settings.py
-    # def test_more_stmts_expired(self):
-    #     # Make initial complex get so 'more' will be required
-    #     sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.secondTime})
-    #     resp_json = json.loads(sinceGetResponse.content)
-    #     resp_url = resp_json['more']
-    #     resp_id = resp_url[-32:]
+    def test_more_stmts_expired(self):
+        # Make initial complex get so 'more' will be required
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.secondTime})
+        resp_json = json.loads(sinceGetResponse.content)
+        resp_url = resp_json['more']
+        resp_id = resp_url[-32:]
 
-    #     time.sleep(35)
+        time.sleep(35)
 
-    #     # Simulate user clicking returned 'more' URL
-    #     moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
-    #     self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
+        # Simulate user clicking returned 'more' URL
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
 
 

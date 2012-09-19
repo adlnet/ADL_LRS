@@ -11,7 +11,6 @@ from datetime import datetime
 from django.utils.timezone import utc
 from lrs.objects import Actor, Activity, Statement
 import time
-import pdb
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -271,7 +270,6 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.postresponse1.content, instructorGetResponse)
         self.assertNotIn(self.postresponse5.content, instructorGetResponse)
 
-
     def test_authoritative_filter(self):
         # Test authoritative
         authoritativeGetResponse = self.client.get(reverse(views.statements),{"authoritative":{"name":["auth1"],"mbox":["auth1@example.com"]}},  content_type="application/x-www-form-urlencoded")
@@ -281,13 +279,28 @@ class StatementsTests(TestCase):
         self.assertContains(authoritativeGetResponse, self.postresponse4.content)
         self.assertNotIn(self.postresponse1.content, authoritativeGetResponse)
         self.assertNotIn(self.postresponse5.content, authoritativeGetResponse)
+        # actor, object, context, authority
+
+        # self.username = "tester1"
+        # self.email = "test1@tester.com"
+        # self.password = "test"
+        # self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
+        # form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
+        # response = self.client.post(reverse(views.register),form)
+        # stmt = json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},
+        #                    "verb":"attempted",
+        #                    "object":{"id":"http://adlnet.gov/object.1"}}) #,
+        #                    # "context":{"registration": str(uuid.uuid4), "contextActivities": {"other": {"id": "NewActivityID2"}}},
+        #                    # "authority":{"name":["auth"],"mbox":["mailto:auth@example.com"]}})
+        # stmt1_resp = self.client.post(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        # self.assertEqual(stmt1_resp.status_code, 200)
 
 
     def test_limit_filter(self):
         # Test limit
         limitGetResponse = self.client.post(reverse(views.statements),{'limit':1}, content_type="application/x-www-form-urlencoded")
         respList = json.loads(limitGetResponse.content)
-        self.assertEqual(len(respList), 1)
+        self.assertEqual(len(respList['statements']), 1)
 
 
     def test_sparse_filter(self):

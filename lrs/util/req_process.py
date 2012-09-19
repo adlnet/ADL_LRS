@@ -10,8 +10,9 @@ import retrieve_statement
 def statements_post(req_dict):
     #TODO: more elegant way of doing this?
     if type(req_dict) is dict:
-        returnList = retrieve_statement.complexGet(req_dict)
-        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
+        stmtList = retrieve_statement.complexGet(req_dict)
+        statementResult = retrieve_statement.buildStatementResult(req_dict,stmtList)
+        return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
     else:
         stmtResponses = []
         if not type(req_dict[0]['body']) is list:

@@ -1758,3 +1758,193 @@ Traceback (most recent call last):
   File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
     raise Exception("No verb provided, must provide 'verb' field")
 Exception: No verb provided, must provide 'verb' field
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    returnList = complexGet(req_dict['body'])
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 86, in complexGet
+    activity = models.activity.objects.get(activity_id=objectData['id'])
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/manager.py", line 131, in get
+    return self.get_query_set().get(*args, **kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/query.py", line 366, in get
+    % self.model._meta.object_name)
+DoesNotExist: activity matching query does not exist.
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    returnList = complexGet(req_dict['body'])
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 86, in complexGet
+    activity = models.activity.objects.get(activity_id=objectData['id'])
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/manager.py", line 131, in get
+    return self.get_query_set().get(*args, **kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/query.py", line 366, in get
+    % self.model._meta.object_name)
+DoesNotExist: activity matching query does not exist.
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    returnList = complexGet(req_dict['body'])
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 86, in complexGet
+    activity = models.activity.objects.get(activity_id=objectData['id'])
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/manager.py", line 131, in get
+    return self.get_query_set().get(*args, **kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/query.py", line 366, in get
+    % self.model._meta.object_name)
+DoesNotExist: activity matching query does not exist.
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 41, in statements_get
+    stmtList = retrieve_statement.complexGet(req_dict['body'])
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 113, in complexGet
+    stmt_list = models.statement.objects.filter(**args).order_by('-stored')
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/manager.py", line 143, in filter
+    return self.get_query_set().filter(*args, **kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/query.py", line 621, in filter
+    return self._filter_or_exclude(False, *args, **kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/query.py", line 639, in _filter_or_exclude
+    clone.query.add_q(Q(*args, **kwargs))
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/sql/query.py", line 1250, in add_q
+    can_reuse=used_aliases, force_having=force_having)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/sql/query.py", line 1185, in add_filter
+    connector)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/sql/where.py", line 69, in add
+    value = obj.prepare(lookup_type, value)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/sql/where.py", line 320, in prepare
+    return self.field.get_prep_lookup(lookup_type, value)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/fields/related.py", line 137, in get_prep_lookup
+    return self._pk_trace(value, 'get_prep_lookup', lookup_type)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/fields/related.py", line 210, in _pk_trace
+    v = getattr(field, prep_func)(lookup_type, v, **kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/fields/__init__.py", line 310, in get_prep_lookup
+    return self.get_prep_value(value)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/models/fields/__init__.py", line 537, in get_prep_value
+    return int(value)
+TypeError: int() argument must be a string or a number, not 'dict'
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 18, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 18, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 19, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 19, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
