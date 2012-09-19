@@ -1362,3 +1362,399 @@ Traceback (most recent call last):
   File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
     raise Exception("No verb provided, must provide 'verb' field")
 Exception: No verb provided, must provide 'verb' field
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 82, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 168, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 18, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 82, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 168, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 49, in statements_get
+    return HttpResponse(json.dumps(statementResult,indent=4), mimetype="application/json", status=200)
+  File "/usr/lib/python2.7/bdb.py", line 52, in trace_dispatch
+    return self.dispatch_return(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 86, in dispatch_return
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/9b3713a3baa3343e943ee0caa86088e3
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements_more
+    return HttpResponse(html)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements_more
+    return HttpResponse(html)
+  File "/usr/lib/python2.7/bdb.py", line 48, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/usr/lib/python2.7/bdb.py", line 67, in dispatch_line
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/8887349df4c03c8d6abd7b1433f11c25
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 71, in statements_more
+    req_obj, query_dict = retrieve_statement.getStatementRequest(more_id)
+NameError: global name 'json' is not defined
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 83, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 169, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 18, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 83, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 169, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 153, in buildStatementResult
+    encoded_dict = base64.b64encode(j_dict)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 83, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 169, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 153, in buildStatementResult
+    encoded_dict = base64.b64encode(j_dict)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 83, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 169, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 155, in buildStatementResult
+    cache.set(cache_key,encoded_dict)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/7c02758a27b91b17d863de7408e49ca0
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 74, in statements_more
+    stmtList = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 20, in getStatementRequest
+    query_dict = base64.b64decode(statement_req)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/fc2e2cb820814af1c0fdce1fed2acdf9
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 74, in statements_more
+    stmtList = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 22, in getStatementRequest
+    j_decoded_dict = jwt.decode(decoded_dict, req_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 22, in getStatementRequest
+    j_decoded_dict = jwt.decode(decoded_dict, req_id)
+  File "/usr/lib/python2.7/bdb.py", line 48, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/usr/lib/python2.7/bdb.py", line 67, in dispatch_line
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/ffd67a10e8819afcd40ee79ee06942cc
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 74, in statements_more
+    stmtList = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 24, in getStatementRequest
+    # stmt_list = complexGet(j_decoded_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 24, in getStatementRequest
+    # stmt_list = complexGet(j_decoded_dict)
+  File "/usr/lib/python2.7/bdb.py", line 48, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/usr/lib/python2.7/bdb.py", line 67, in dispatch_line
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/16693a9067c2cc31e20243468ccb4721
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 74, in statements_more
+    stmtList = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 24, in getStatementRequest
+    stmt_list = jwt.decode(encoded_statements, req_id)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/ffcd94e220880dd6057c0b724016261b
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 71, in statements_more
+    stmtList = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 134, in getStatementRequest
+    stmt_list = jwt.decode(encoded_statements, req_id)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/jwt/__init__.py", line 55, in decode
+    signing_input, crypto_segment = jwt.rsplit('.', 1)
+AttributeError: 'NoneType' object has no attribute 'rsplit'
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 82, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 168, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 18, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 82, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 168, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 162, in buildStatementResult
+    cache_list = models.statement_list(hash_id=cache_key, stmt_list=encoded_list)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 82, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 168, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 162, in buildStatementResult
+    cache_list = cache.cache_statement_list(hash_id=cache_key, stmt_list=encoded_list)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 82, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 168, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 162, in buildStatementResult
+    cache_list = cache.cache_statement_list(hash_id=cache_key, stmt_list=encoded_list)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 82, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 168, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 42, in statements_get
+    statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 162, in buildStatementResult
+    # cache_list = cache.cache_statement_list(hash_id=cache_key, stmt_list=encoded_list)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/ef2530d5abe5bb2fd71baceddb056310
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 71, in statements_more
+    stmtList = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 139, in getStatementRequest
+    stmt_list = jwt.decode(encoded_statements.stmt_list, req_id)
+  File "/usr/lib/python2.7/bdb.py", line 54, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+  File "/usr/lib/python2.7/bdb.py", line 92, in dispatch_exception
+    if self.quitting: raise BdbQuit
+BdbQuit
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 76, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 162, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 18, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field
+Internal Server Error: /TCAPI/statements/more/2f5f58e1c6c26454d9e763f5ebf29863
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 70, in statements_more
+    stmtList = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 135, in getStatementRequest
+    query_dict = jwt.decode(encoded_statements, req_id)
+NameError: global name 'encoded_statements' is not defined
+Internal Server Error: /TCAPI/statements/more/485d7cd40a63f7401a3f65e32a0f1fe6
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 71, in statements_more
+    statementResult = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 138, in getStatementRequest
+    stmt_list = complexGet(query_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 138, in getStatementRequest
+    stmt_list = complexGet(query_dict)
+  File "/usr/lib/python2.7/bdb.py", line 48, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/usr/lib/python2.7/bdb.py", line 67, in dispatch_line
+    if self.quitting: raise BdbQuit
+BdbQuit
+Internal Server Error: /TCAPI/statements/more/57067e22fe21451e73b0dc0581a9064e
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 71, in statements_more
+    statementResult = retrieve_statement.getStatementRequest(more_id)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 139, in getStatementRequest
+    stmt_result = buildStatementResult(query_dict, stmt_list)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/retrieve_statement.py", line 159, in buildStatementResult
+    encoded_dict = jwt.encode(req_dict['body'], cache_key)
+KeyError: 'body'
+Method Not Allowed (DELETE): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/activities/
+Method Not Allowed (PUT): /TCAPI/activities/
+Method Not Allowed (POST): /TCAPI/actors/
+Internal Server Error: /TCAPI/statements/
+Traceback (most recent call last):
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/core/handlers/base.py", line 111, in get_response
+    response = callback(request, *callback_args, **callback_kwargs)
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/views/decorators/http.py", line 41, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 77, in statements
+    resp = handle_request(request)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/views.py", line 163, in handle_request
+    return processors[request.path][request.method](req_dict)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/util/req_process.py", line 18, in statements_post
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+  File "/home/lou/virtualenv/lrs/local/lib/python2.7/site-packages/django/db/transaction.py", line 209, in inner
+    return func(*args, **kwargs)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 40, in __init__
+    self._populate(obj, auth)
+  File "/home/lou/gitrepos/ADL_LRS/lrs/objects/Statement.py", line 252, in _populate
+    raise Exception("No verb provided, must provide 'verb' field")
+Exception: No verb provided, must provide 'verb' field

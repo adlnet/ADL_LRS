@@ -1,23 +1,15 @@
 from lrs import objects, models
-import bencode
-import base64
+from django.core.cache import cache
+from lrs.objects import Actor, Activity, Statement
 from datetime import datetime
+from django.conf import settings
+import bencode
 import pytz
 import hashlib
-from lrs.objects import Actor, Activity, Statement
-import pdb
 import json
-import ast
+import jwt
+import pdb
 
-SERVER_STMT_LIMIT = 10
-
-def getStatementRequest(req_id):
-
-    statement_req = models.statement_request.objects.get(hash_id=req_id)
-    
-    query_dict = ast.literal_eval(statement_req.query_dict)
-
-    return statement_req, query_dict
 
 def convertToUTC(timestr):
     # Strip off TZ info
@@ -129,27 +121,49 @@ def complexGet(req_dict):
     for stmt in stmt_list:
         stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
         full_stmt_list.append(stmt.get_full_statement_json(sparse))
-
     return full_stmt_list
+
+def getStatementRequest(req_id):    
+    # Retrieve encoded list of statements
+    encoded_dict = cache.get(req_id)
+
+    # Could have expired or never existed
+    if not encoded_dict:
+        return ['List does not exist - may have expired after 24 hours']
+
+    # Decode dict
+    query_dict = jwt.decode(encoded_dict, req_id) 
+    
+    # Get list TODO - limit the result
+    stmt_list = complexGet(query_dict)
+    stmt_result = buildStatementResult(query_dict, stmt_list)
+    return stmt_list
 
 def buildStatementResult(req_dict, stmt_list):
     result = {}
+    # pdb.set_trace()
+    statement_amount = len(stmt_list)  
     # If the list is larger than the limit, truncate statements and give more url
-    # TODO pagination 100 here
-    if len(stmt_list) > SERVER_STMT_LIMIT:
+    # TODO: more should display the stmts already being shown? if so, just change
+    # encoded_dict = jwt.encode(stmt_list[SERVER_STMT_LIMIT:], cache_key)
+    if statement_amount > settings.SERVER_STMT_LIMIT:
+        # Create unique hash data to use for the cache key
         hash_data = []
         hash_data.append(str(datetime.now()))
         hash_data.append(str(stmt_list))
 
-        req_hash = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
-        
-        req_obj = models.statement_request(hash_id=req_hash, query_dict=str(req_dict['body']))
-        req_obj.save()
+        # Create cache key from hashed data (always 32 digits)
+        cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
 
-        result['statments'] = stmt_list[:SERVER_STMT_LIMIT]
-        result['more'] = '/TCAPI/statements/more/%s' % req_hash    
-        # result['more'] = 'http://localhost:8000/TCAPI/statements/more/%s' % req_hash    
-    # Just provide statements
+        # Encode the list of statements
+        encoded_dict = jwt.encode(req_dict, cache_key)
+
+        # Save encoded_dict in cache
+        cache.set(cache_key,encoded_dict)
+
+        result['statments'] = stmt_list[:settings.SERVER_STMT_LIMIT]
+        result['more'] = '/TCAPI/statements/more/%s' % cache_key    
+    # Just provide statements since the list is under the limit
     else:
         result['statements'] = stmt_list
         result['more'] = ''

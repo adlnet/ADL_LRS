@@ -94,7 +94,6 @@ class StatementsTests(TestCase):
 
         self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-
         
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class

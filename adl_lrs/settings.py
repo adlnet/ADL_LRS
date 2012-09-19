@@ -72,6 +72,16 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+SERVER_STMT_LIMIT = 10
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_statement_list',
+        'TIMEOUT': 86400,
+    }
+}
+
 # List of finder classes that know how to find static files in
 # various locations.
 STATICFILES_FINDERS = (
