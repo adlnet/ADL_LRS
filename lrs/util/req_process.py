@@ -37,10 +37,10 @@ def statements_put(req_dict):
      
 def statements_get(req_dict):
     statementResult = {}
-    # pdb.set_trace()
+    pdb.set_trace()
     if req_dict['complex']:
         stmtList = retrieve_statement.complexGet(req_dict['body'])
-        statementResult = retrieve_statement.buildStatementResult(req_dict, stmtList)
+        statementResult = retrieve_statement.buildStatementResult(req_dict['body'], stmtList)
     else:
         statementId = req_dict['body']['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)

@@ -170,25 +170,37 @@ class StatementsMoreTests(TestCase):
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
 
+        print sinceGetResponse
+
         # Simulate user clicking returned 'more' URL
         moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
         
-        self.assertEqual(moreURLGet.status_code, 200)
-        self.assertContains(moreURLGet, self.postresponse2.content)
-        self.assertContains(moreURLGet, self.postresponse3.content)                
-        self.assertContains(moreURLGet, self.postresponse4.content)
-        self.assertNotIn(self.postresponse1.content, moreURLGet)
-        self.assertNotIn(self.postresponse5.content, moreURLGet)
-        self.assertNotIn(self.postresponse6.content, moreURLGet)
-        self.assertNotIn(self.postresponse7.content, moreURLGet)
-        self.assertNotIn(self.postresponse8.content, moreURLGet)
-        self.assertNotIn(self.postresponse9.content, moreURLGet)
-        self.assertNotIn(self.postresponse10.content, moreURLGet)
-        self.assertNotIn(self.postresponse11.content, moreURLGet)
-        self.assertNotIn(self.postresponse12.content, moreURLGet)
-        self.assertNotIn(self.postresponse13.content, moreURLGet)
-        self.assertNotIn(self.postresponse14.content, moreURLGet)
-        self.assertNotIn(self.postresponse15.content, moreURLGet)
+        print moreURLGet.content
+
+        more_json = json.loads(moreURLGet.content)
+        pdb.set_trace()
+        more_resp_url = more_json['more']
+        more_resp_id = more_resp_url[-32:]
+
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        print more2URLGet
+
+        # self.assertEqual(moreURLGet.status_code, 200)
+        # self.assertContains(moreURLGet, self.postresponse2.content)
+        # self.assertContains(moreURLGet, self.postresponse3.content)                
+        # self.assertContains(moreURLGet, self.postresponse4.content)
+        # self.assertNotIn(self.postresponse1.content, moreURLGet)
+        # self.assertNotIn(self.postresponse5.content, moreURLGet)
+        # self.assertNotIn(self.postresponse6.content, moreURLGet)
+        # self.assertNotIn(self.postresponse7.content, moreURLGet)
+        # self.assertNotIn(self.postresponse8.content, moreURLGet)
+        # self.assertNotIn(self.postresponse9.content, moreURLGet)
+        # self.assertNotIn(self.postresponse10.content, moreURLGet)
+        # self.assertNotIn(self.postresponse11.content, moreURLGet)
+        # self.assertNotIn(self.postresponse12.content, moreURLGet)
+        # self.assertNotIn(self.postresponse13.content, moreURLGet)
+        # self.assertNotIn(self.postresponse14.content, moreURLGet)
+        # self.assertNotIn(self.postresponse15.content, moreURLGet)
 
 
     # To run test, change CACHE TIMEOUT to 30 in settings.py

@@ -109,7 +109,7 @@ def complexGet(req_dict):
                 sparse = False
         else:
             sparse = req_dict['sparse']
-
+    pdb.set_trace()
     if limit == 0 and 'more_start' not in req_dict:
         # Retrieve statements from DB
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
@@ -127,18 +127,19 @@ def complexGet(req_dict):
         full_stmt_list.append(stmt.get_full_statement_json(sparse))
     return full_stmt_list
 
-def getStatementRequest(req_id):    
+def getStatementRequest(req_id):  
+    pdb.set_trace()  
     # Retrieve encoded list of statements
     # encoded_dict = cache.get(req_id)
     encoded_list = cache.get(req_id)
 
     # Could have expired or never existed
-    if not encoded_dict:
+    if not encoded_list:
         return ['List does not exist - may have expired after 24 hours']
 
     # Decode dict
     # query_dict = jwt.decode(encoded_dict, req_id) 
-    query_info = pickle.load(encoded_list)
+    query_info = pickle.loads(encoded_list)
 
     query_dict = query_info[0]
     start_page = query_info[1]
@@ -157,46 +158,75 @@ def getStatementRequest(req_id):
     return stmt_list
 
 def buildStatementResult(req_dict, stmt_list, more_id=None):
+    pdb.set_trace()
     result = {}
+
+    # Get length of stmt list
     statement_amount = len(stmt_list)  
 
+    cache_list = []
+
+    # Create unique hash data to use for the cache key
+    hash_data = []
+    hash_data.append(str(datetime.now()))
+    hash_data.append(str(stmt_list))
+
+    # Create cache key from hashed data (always 32 digits)
+    cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+
+    # See if something is already stored in cache
+    encoded_list = cache.get(more_id)
+
+    # If there is a more_id (means this is being called from getStatementRequest)
     if more_id:
-        
+        # Should always be an encoded_list if there is a more_id
+        if encoded_list: 
+            # Get query_info
+            query_info = pickle.loads(encoded_list)
+            # getStatementRequest just displayed the previous set of stmts, so increment start page since
+            start_page = query_info[1] + 1
+            total_pages = query_info[2]
+
+            # If that was the last page to display then just return the remaining stmts
+            if start_page == total_pages:
+                result['statements'] = stmt_list
+                result['more'] = ''
+
+            # Update cache info (including new start_page)
+            cache_list.append(req_dict)
+            cache_list.append(start_page)
+            cache_list.append(total_pages)
+
+            encoded_info = pickle.dumps(cache_list)
+
+            cache.set(cache_key, encoded_info)
 
     # If the list is larger than the limit, truncate statements and give more url
     # List will only be larger first time - getStatementRequest should truncate rest of results
     # of more URLs.
     if statement_amount > settings.SERVER_STMT_LIMIT:
-        cache_list = []
 
-        # Create unique hash data to use for the cache key
-        hash_data = []
-        hash_data.append(str(datetime.now()))
-        hash_data.append(str(stmt_list))
+        if not encoded_list:
+            # Encode the list of statements
+            # encoded_dict = jwt.encode(req_dict, cache_key)
 
-        # Create cache key from hashed data (always 32 digits)
-        cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+            stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)   
+            # current_page = stmt_pager.next_page_number()
+            # Always going to start on page 2
+            current_page = 2
+            total_pages = stmt_pager.count
+            
+            cache_list.append(req_dict)
+            cache_list.append(current_page)
+            cache_list.append(total_pages)
 
-        # Encode the list of statements
-        # encoded_dict = jwt.encode(req_dict, cache_key)
+            encoded_info = pickle.dumps(cache_list)
 
-        stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)   
-        current_page = stmt_pager.page(2)
-        total_pages = stmt_pager.count
-        
-        cache_list.append(req_dict)
-        cache_list.append(current_page)
-        cache_list.append(total_pages)
+            # Save encoded_dict in cache
+            cache.set(cache_key,encoded_info)
 
-        encoded_info = pickle.dump(cache_list)
-
-        # Save encoded_dict in cache
-        cache.set(cache_key,encoded_info)
-
-        result['statments'] = stmt_pager.page(1)
-        result['more'] = '/TCAPI/statements/more/%s' % cache_key    
-        
-
+            result['statements'] = stmt_pager.page(1).object_list
+            result['more'] = '/TCAPI/statements/more/%s' % cache_key    
         
     # Just provide statements since the list is under the limit
     else:
