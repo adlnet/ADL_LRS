@@ -275,14 +275,6 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.postresponse1.content, instructorGetResponse)
         self.assertNotIn(self.postresponse5.content, instructorGetResponse)
 
-    def test_model_set(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"created", "object": {"id":"activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
-        
-        stmt2 = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"shared", "object": {"id":"activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt2.statement.pk).authoritative)
-        self.assertFalse(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
-
     def test_authoritative_filter(self):
         # Test authoritative
         # authoritativeGetResponse = self.client.get(reverse(views.statements),{"authoritative":{"name":["auth1"],"mbox":["auth1@example.com"]}},  content_type="application/x-www-form-urlencoded")
