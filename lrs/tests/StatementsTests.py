@@ -95,7 +95,8 @@ class StatementsTests(TestCase):
         
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
-        self.assertRaises(Exception, self.client.post, reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post"}},content_type='application/json', Authorization=self.auth)
+        resp = self.client.post(reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post"}},content_type='application/json', Authorization=self.auth)
+        self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
         stmt = json.dumps({"verb":"created","object": {"id":"test_post"}})
