@@ -312,7 +312,13 @@ class statement(statement_object):
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
     # stmt_object = models.OneToOneField(statement_object)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
+    authoritative = models.BooleanField(default=True)
 
+    def save(self, *args, **kwargs):
+        # actor object context authority
+        statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
+        super(statement, self).save(*args, **kwargs)
+        
 
 def objsReturn(obj):
     ret = {}
@@ -415,7 +421,7 @@ def objsReturn(obj):
                     ret[field.name] = str(getattr(obj, field.name))
             else:
                 # Don't care about internal ID
-                if not field.name == 'id':
+                if not field.name == 'id' and not field.name == 'authoritative':
                     # Set value in dict
                     if not getattr(obj, field.name) is None:
                         ret[field.name] = getattr(obj, field.name)
