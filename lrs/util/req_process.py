@@ -82,17 +82,20 @@ def complexGet(req_dict):
             except Exception, e:
                 objectData = json.loads(objectData.replace("'",'"'))
      
-        if objectData['objectType'].lower() == 'activity':
+        if 'objectType' in objectData and objectData['objectType'].lower() == 'activity':
             activity = models.activity.objects.get(activity_id=objectData['id'])
             args['stmt_object'] = activity
-        elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
+        elif 'objectType' in objectData and (objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person'):
             a = Actor.Actor(json.dumps(objectData))
             if not a or (hasattr(a, 'agent') and not a.agent):
                 return []
             args['stmt_object'] = a.agent
         else:
-            activity = models.activity.objects.get(activity_id=objectData['id'])
-            args['stmt_object'] = activity
+            try:
+                activity = models.activity.objects.get(activity_id=objectData['id'])
+                args['stmt_object'] = activity
+            except models.activity.DoesNotExist:
+                pass
 
     if 'registration' in req_dict:
         uuid = str(req_dict['registration'])

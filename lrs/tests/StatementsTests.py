@@ -13,94 +13,93 @@ from lrs.objects import Actor, Activity, Statement
 import time
 
 class StatementsTests(TestCase):
-    # def setUp(self):
-    #     self.username = "tester1"
-    #     self.email = "test1@tester.com"
-    #     self.password = "test"
-    #     self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-    #     form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
-    #     response = self.client.post(reverse(views.register),form)
+    def setUp(self):
+        self.username = "tester1"
+        self.email = "test1@tester.com"
+        self.password = "test"
+        self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
+        form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
+        response = self.client.post(reverse(views.register),form)
 
-    #     self.guid1 = str(uuid.uuid4())
-    #     self.guid2 = str(uuid.uuid4())
-    #     self.guid3 = str(uuid.uuid4())    
-    #     self.guid4 = str(uuid.uuid4())
-    #     self.guid5 = str(uuid.uuid4())
-    #     self.cguid1 = str(uuid.uuid4())
-    #     self.cguid2 = str(uuid.uuid4())    
-    #     self.cguid3 = str(uuid.uuid4())
-    #     self.cguid4 = str(uuid.uuid4())
-    #     self.cguid5 = str(uuid.uuid4())
+        self.guid1 = str(uuid.uuid4())
+        self.guid2 = str(uuid.uuid4())
+        self.guid3 = str(uuid.uuid4())    
+        self.guid4 = str(uuid.uuid4())
+        self.guid5 = str(uuid.uuid4())
+        self.cguid1 = str(uuid.uuid4())
+        self.cguid2 = str(uuid.uuid4())    
+        self.cguid3 = str(uuid.uuid4())
+        self.cguid4 = str(uuid.uuid4())
+        self.cguid5 = str(uuid.uuid4())
 
-    #     self.existStmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
+        self.existStmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
 
-    #     self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+        self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
-    #     self.existStmt1 = json.dumps({"statement_id":self.guid1,"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
-    #         'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
-    #         'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-    #         'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
-    #         "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
-    #         'duration': self.mytime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
-    #         'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
-    #         'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-    #         'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
+        self.existStmt1 = json.dumps({"statement_id":self.guid1,"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
+            'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
+            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
+            "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
+            'duration': self.mytime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
+            'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
+            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
+            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
 
-    #     self.existStmt2 = json.dumps({"statement_id":self.guid2,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
-    #         'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
-    #         'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-    #         'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
-    #         "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
-    #         'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-    #         'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-    #         'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
-    #         'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
+        self.existStmt2 = json.dumps({"statement_id":self.guid2,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
+            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
+            'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
+            "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
+            'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
+            'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
+            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
+            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
-    #     self.existStmt3 = json.dumps({"statement_id":self.guid3,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogals',
-    #         'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
-    #         'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-    #         'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
-    #         "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
-    #         'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-    #         'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-    #         'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']} , 'extensions':{'ckey111': 'cval111',
-    #         'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
+        self.existStmt3 = json.dumps({"statement_id":self.guid3,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogals',
+            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
+            'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
+            "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
+            'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
+            'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']} , 'extensions':{'ckey111': 'cval111',
+            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
-    #     self.existStmt4 = json.dumps({"statement_id":self.guid4,
-    #         "verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
-    #         'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
-    #         'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-    #         'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
-    #         "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
-    #         'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-    #         'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-    #         'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
-    #         'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
+        self.existStmt4 = json.dumps({"statement_id":self.guid4,
+            "verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
+            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
+            'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
+            "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
+            'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
+            'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
+            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
 
-    #     self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
-    #         "verb":"passed"})
+        self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+            "verb":"passed"})
 
+        # Post statements
+        self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", Authorization=self.auth)
+        time.sleep(1)
 
-    #     # Post statements
-    #     self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-    #     time.sleep(1)
-
-    #     self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-    #     self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", Authorization=self.auth)
+        self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", Authorization=self.auth)
         
-    #     self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-    #     time.sleep(1)
+        self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+        time.sleep(1)
 
-    #     self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-    #     self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", Authorization=self.auth)
+        self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", Authorization=self.auth)
         
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
-        self.assertRaises(Exception, self.client.post, reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post"}},content_type='application/json', HTTP_AUTHORIZATION=self.auth)
+        self.assertRaises(Exception, self.client.post, reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post"}},content_type='application/json', Authorization=self.auth)
 
     def test_post(self):
         stmt = json.dumps({"verb":"created","object": {"id":"test_post"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         act = models.activity.objects.get(activity_id="test_post")
         actorName = models.agent_name.objects.get(name='tester1')
         actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
@@ -110,7 +109,7 @@ class StatementsTests(TestCase):
     
     def test_list_post(self):
         stmts = json.dumps([{"verb":"created","object": {"id":"test_list_post"}},{"verb":"managed","object": {"id":"test_list_post1"}}])
-        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth)
         activity1 = models.activity.objects.get(activity_id="test_list_post")
         activity2 = models.activity.objects.get(activity_id="test_list_post1")
         stmt1 = models.statement.objects.get(stmt_object=activity1)
@@ -122,7 +121,7 @@ class StatementsTests(TestCase):
 
     def test_authority_stmt_field_post(self):
         stmt = json.dumps({"verb":"created","object": {"id":"test_post1"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         
         act = models.activity.objects.get(activity_id="test_post1")
         actorName = models.agent_name.objects.get(name='tester1')
@@ -136,7 +135,7 @@ class StatementsTests(TestCase):
 
     def test_put(self):
         stmt = json.dumps({"statementId": "putID","verb":"created","object": {"id":"test_put"}})
-        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         act = models.activity.objects.get(activity_id="test_put")
         actorName = models.agent_name.objects.get(name='tester1')
         actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
@@ -147,13 +146,13 @@ class StatementsTests(TestCase):
     def test_existing_stmtID_put(self):
         existStmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
         stmt = json.dumps({"statementId": "blahID","verb":"created","object": {"id":"test_put"}})
-        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         
         self.assertEqual(response.status_code, 204)        
 
     def test_missing_stmtID_put(self):        
         stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
-        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
 
         self.assertContains(response, "Error -- statements - method = PUT, but statementId paramater is missing")
 
@@ -292,12 +291,14 @@ class StatementsTests(TestCase):
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form)
-        stmt = json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},
-                           "verb":"attempted",
-                           "object":{"id":"http://adlnet.gov/object.1"}}) #,
-                           # "context":{"registration": str(uuid.uuid4), "contextActivities": {"other": {"id": "NewActivityID2"}}},
-                           # "authority":{"name":["auth"],"mbox":["mailto:auth@example.com"]}})
-        stmt1_resp = self.client.post(reverse(views.statements), stmt, content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        raw_stmt = {"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},
+                    "verb":"attempted",
+                    "object":{"id":"http://adlnet.gov/object.1"},
+                    "context":{"registration": str(uuid.uuid4), "contextActivities": {"other": {"id": "NewActivityID2"}}},
+                    "authority":{"name":["auth"],"mbox":["mailto:auth@example.com"]}}
+        stmt = json.dumps(raw_stmt)
+        #stmt1_resp = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        stmt1_resp = self.client.get(reverse(views.statements), raw_stmt)
         self.assertEqual(stmt1_resp.status_code, 200)
 
 

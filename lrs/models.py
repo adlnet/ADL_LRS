@@ -317,12 +317,8 @@ class statement(statement_object):
     def save(self, *args, **kwargs):
         # actor object context authority
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
-        # for stmt in dups:
-        #     print 'in save: pk: %s' % stmt.pk
-        #     stmt.authoritative = False
-        #     stmt.update()
         super(statement, self).save(*args, **kwargs)
-
+        
 
 def objsReturn(obj):
     ret = {}
