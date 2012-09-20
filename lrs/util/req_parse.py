@@ -12,9 +12,11 @@ def basic_http_auth(f):
         if request.method == 'POST' and not request.META['CONTENT_TYPE'] == 'application/json':
             return f(request, *args, **kwargs)
         else:
-            if request.META.get('HTTP_AUTHORIZATION', False):
-
-                authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+            if 'HTTP_AUTHORIZATION' in request.META or 'Authorization' in request.META:
+                try:
+                    authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+                except KeyError:
+                    authtype, auth = request.META['Authorization'].split(' ')
                 auth = base64.b64decode(auth)
                 username, password = auth.split(':')
                 user = authenticate(username=username, password=password)

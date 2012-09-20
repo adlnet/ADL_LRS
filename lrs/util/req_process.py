@@ -82,15 +82,20 @@ def complexGet(req_dict):
             except Exception, e:
                 objectData = json.loads(objectData.replace("'",'"'))
      
-        if objectData['objectType'].lower() == 'activity':
+        if 'objectType' in objectData and objectData['objectType'].lower() == 'activity':
             activity = models.activity.objects.get(activity_id=objectData['id'])
             args['stmt_object'] = activity
-        elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
-            agent = Actor.Actor(json.dumps(objectData)).agent
-            args['stmt_object'] = agent
+        elif 'objectType' in objectData and (objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person'):
+            a = Actor.Actor(json.dumps(objectData))
+            if not a or (hasattr(a, 'agent') and not a.agent):
+                return []
+            args['stmt_object'] = a.agent
         else:
-            activity = models.activity.objects.get(activity_id=objectData['id'])
-            args['stmt_object'] = activity
+            try:
+                activity = models.activity.objects.get(activity_id=objectData['id'])
+                args['stmt_object'] = activity
+            except models.activity.DoesNotExist:
+                pass
 
     if 'registration' in req_dict:
         uuid = str(req_dict['registration'])
@@ -104,9 +109,10 @@ def complexGet(req_dict):
                 actorData = json.loads(actorData) 
             except Exception, e:
                 actorData = json.loads(actorData.replace("'",'"'))
-            
-        agent = Actor.Actor(json.dumps(actorData)).agent
-        args['actor'] = agent
+        a =  Actor.Actor(json.dumps(actorData))
+        if not a or (hasattr(a, 'agent') and not a.agent):
+            return []
+        args['actor'] = a.agent
 
     if 'instructor' in req_dict:
         instData = req_dict['instructor']
@@ -117,22 +123,15 @@ def complexGet(req_dict):
             except Exception, e:
                 instData = json.loads(instData.replace("'",'"'))
             
-        instructor = Actor.Actor(json.dumps(instData)).agent                 
+        a = Actor.Actor(json.dumps(instData))
+        if not a or (hasattr(a, 'agent') and not a.agent):
+            return []                 
 
-        cntxList = models.context.objects.filter(instructor=instructor)
+        cntxList = models.context.objects.filter(instructor=a.agent)
         args['context__in'] = cntxList
 
-    if 'authoritative' in req_dict:
-        authData = req_dict['authoritative']
-
-        if not type(authData) is dict:
-            try:
-                authData = json.loads(authData) 
-            except Exception, e:
-                authData = json.loads(authData.replace("'",'"'))
-
-        authority = Actor.Actor(json.dumps(authData)).agent
-        args['authority'] = authority
+    if 'authoritative' in req_dict and str(req_dict['authoritative']).upper == 'TRUE':
+        args['authoritative'] = True
 
     if 'limit' in req_dict:
         limit = int(req_dict['limit'])    
@@ -149,7 +148,6 @@ def complexGet(req_dict):
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
     else:
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
-
 
     full_stmt_list = []
 
@@ -277,7 +275,7 @@ def actor_profile_get(req_dict):
     # add ETag for concurrency
     actor = req_dict['actor']
     a = Actor.Actor(actor)
-    
+
     profileId = req_dict.get('profileId', None)
     if profileId:
         resource = a.get_profile(profileId)

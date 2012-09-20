@@ -70,9 +70,13 @@ def statements(request):
         return HttpResponse(err.message)
     except req_process.ProcessError as err:
         return HttpResponse(err.message)
+    except req_parse.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
+    #except Exception as err:
+    #    return HttpResponse(err.message, status=400)
     return resp
-
-    raise Http404
     
 
 @require_http_methods(["PUT","GET","DELETE"])
@@ -85,6 +89,10 @@ def activity_state(request):
         return HttpResponse(epf.message, status=412)
     except Actor.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
+    except req_parse.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
@@ -100,6 +108,10 @@ def activity_profile(request):
         return HttpResponse(epf.message, status=412)
     except Activity.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
+    except req_parse.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
@@ -113,6 +125,12 @@ def activities(request):
         return HttpResponse(err.message)
     except req_process.ProcessError as err:
         return HttpResponse(err.message)
+    except req_parse.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
 
 
@@ -126,6 +144,10 @@ def actor_profile(request):
         return HttpResponse(epf.message, status=412)
     except Actor.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
+    except req_parse.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
