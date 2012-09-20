@@ -32,6 +32,8 @@ class StatementsTests(TestCase):
         self.cguid4 = str(uuid.uuid4())
         self.cguid5 = str(uuid.uuid4())
 
+        # TODO: this makes an invalid statement because it doesn't pull the actor from auth
+        # should this be handled differently?
         self.existStmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
 
         self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
@@ -107,6 +109,12 @@ class StatementsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(act.activity_id, "test_post")
+
+    def test_post_with_actor(self):
+        stmt = json.dumps({"actor":{"mbox":["mailto:mr.t@example.com"]},"verb":"created","object": {"id":"i.pity.the.fool"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(response.status_code, 200)
+        models.agent_mbox.objects.get(mbox='mailto:mr.t@example.com')
     
     def test_list_post(self):
         stmts = json.dumps([{"verb":"created","object": {"id":"test_list_post"}},{"verb":"managed","object": {"id":"test_list_post1"}}])
@@ -190,8 +198,9 @@ class StatementsTests(TestCase):
     def test_get_no_statementid(self):
         response = self.client.get(reverse(views.statements))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Error')
-        self.assertContains(response, 'statementId parameter is missing')
+        self.assertEqual(len(json.loads(response.content)), models.statement.objects.all().count())
+        # self.assertContains(response, 'Error')
+        # self.assertContains(response, 'statementId parameter is missing')
 
         
     def test_since_filter(self):

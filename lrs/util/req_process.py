@@ -38,15 +38,14 @@ def statements_put(req_dict):
         return HttpResponse("Error: %s already exists" % statementId, status=204)
      
 def statements_get(req_dict):
-    if req_dict['complex']:
-        returnList = complexGet(req_dict['body'])
-        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
-    else:
-        statementId = req_dict['body']['statementId']
+    try:
+        statementId = req_dict['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)
         data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
-        # return HttpResponse(st.get_full_statement_json(), mimetype="application/json")
         return HttpResponse(data, mimetype="application/json")
+    except:
+        returnList = complexGet(req_dict)
+        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
 
 
 def convertToUTC(timestr):
@@ -130,8 +129,10 @@ def complexGet(req_dict):
         cntxList = models.context.objects.filter(instructor=a.agent)
         args['context__in'] = cntxList
 
-    if 'authoritative' in req_dict and str(req_dict['authoritative']).upper == 'TRUE':
-        args['authoritative'] = True
+    # there's a default of true
+    args['authoritative'] = True
+    if 'authoritative' in req_dict and str(req_dict['authoritative']).upper == 'FALSE':
+        args['authoritative'] = False
 
     if 'limit' in req_dict:
         limit = int(req_dict['limit'])    
