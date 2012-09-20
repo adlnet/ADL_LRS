@@ -317,6 +317,6 @@ class StatementsTests(TestCase):
 
     def test_linked_filters(self):
         # Test reasonable linked query
-        linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':{'name':['auth1'],'mbox':['auth1@example.com']}, 'sparse': False})
+        linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':False, 'sparse': False})
         self.assertEqual(linkedGetResponse.status_code, 200)
         self.assertContains(linkedGetResponse, self.postresponse2.content)

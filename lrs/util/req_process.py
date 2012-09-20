@@ -130,8 +130,8 @@ def complexGet(req_dict):
         cntxList = models.context.objects.filter(instructor=a.agent)
         args['context__in'] = cntxList
 
-    if 'authoritative' in req_dict:
-        args['authoritative'] = str(req_dict['authoritative']).upper == 'TRUE'
+    if 'authoritative' in req_dict and str(req_dict['authoritative']).upper == 'TRUE':
+        args['authoritative'] = True
 
     if 'limit' in req_dict:
         limit = int(req_dict['limit'])    
