@@ -11,6 +11,7 @@ def statements_post(req_dict):
     #TODO: more elegant way of doing this?
     if type(req_dict) is dict:
         stmtList = retrieve_statement.complexGet(req_dict)
+        # pdb.set_trace()
         statementResult = retrieve_statement.buildStatementResult(req_dict,stmtList)
         return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
     else:
@@ -37,7 +38,7 @@ def statements_put(req_dict):
      
 def statements_get(req_dict):
     statementResult = {}
-    pdb.set_trace()
+    # pdb.set_trace()
     if req_dict['complex']:
         stmtList = retrieve_statement.complexGet(req_dict['body'])
         statementResult = retrieve_statement.buildStatementResult(req_dict['body'], stmtList)

@@ -109,11 +109,12 @@ def complexGet(req_dict):
                 sparse = False
         else:
             sparse = req_dict['sparse']
-    pdb.set_trace()
+    # pdb.set_trace()
     if limit == 0 and 'more_start' not in req_dict:
         # Retrieve statements from DB
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
     elif 'more_start' in req_dict:
+        # If more start then start at that page point
         start = int(req_dict['more_start'])
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')[start:]
     else:
@@ -128,94 +129,104 @@ def complexGet(req_dict):
     return full_stmt_list
 
 def getStatementRequest(req_id):  
-    pdb.set_trace()  
-    # Retrieve encoded list of statements
-    # encoded_dict = cache.get(req_id)
-    encoded_list = cache.get(req_id)
+    # pdb.set_trace()  
+
+    # Retrieve encoded info for statements
+    encoded_info = cache.get(req_id)
 
     # Could have expired or never existed
-    if not encoded_list:
+    if not encoded_info:
         return ['List does not exist - may have expired after 24 hours']
 
-    # Decode dict
-    # query_dict = jwt.decode(encoded_dict, req_id) 
-    query_info = pickle.loads(encoded_list)
+    # Decode info
+    decoded_info = pickle.loads(encoded_info)
 
-    query_dict = query_info[0]
-    start_page = query_info[1]
+    # Info is always cached as [query_dict, start_page, total_pages]
+    query_dict = decoded_info[0]
+    start_page = decoded_info[1]
 
-    query_dict['more_start'] = (start_page - 1) * 10
+    # Set 'more_start' to slice query from where you left off 
+    query_dict['more_start'] = start_page * settings.SERVER_STMT_LIMIT
 
     #Build list from query_dict
     stmt_list = complexGet(query_dict)
 
-    # This is when someone initally queries using POST/GET - that sends them to buildStatementResult which
-    # creates the more URL and displays first X amount - they then click more URL and views.py sends them 
-    # here. This adds more_start query param to start from where buildStatementResult left off
-
     # Build statementResult
     stmt_result = buildStatementResult(query_dict, stmt_list, req_id)
-    return stmt_list
+    return stmt_result
 
 def buildStatementResult(req_dict, stmt_list, more_id=None):
-    pdb.set_trace()
+    # pdb.set_trace()
     result = {}
 
     # Get length of stmt list
     statement_amount = len(stmt_list)  
-
-    cache_list = []
-
-    # Create unique hash data to use for the cache key
-    hash_data = []
-    hash_data.append(str(datetime.now()))
-    hash_data.append(str(stmt_list))
-
-    # Create cache key from hashed data (always 32 digits)
-    cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
 
     # See if something is already stored in cache
     encoded_list = cache.get(more_id)
 
     # If there is a more_id (means this is being called from getStatementRequest)
     if more_id:
-        # Should always be an encoded_list if there is a more_id
-        if encoded_list: 
-            # Get query_info
-            query_info = pickle.loads(encoded_list)
-            # getStatementRequest just displayed the previous set of stmts, so increment start page since
+        more_cache_list = []
+        
+        # Get query_info and there should always be an encoded_list if there is a more_id
+        query_info = pickle.loads(encoded_list)
+        
+        # Get page info 
+        start_page = query_info[1]
+        total_pages = query_info[2]
+        next_page = start_page + 1
+
+        # If that was the last page to display then just return the remaining stmts
+        if next_page == total_pages:
+            result['statements'] = stmt_list
+            result['more'] = ''
+            return result
+
+        # There are more pages to display
+        else:
+            stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)
+            hash_data = []
+            hash_data.append(str(datetime.now()))
+            hash_data.append(str(stmt_list))
+
+            # Create cache key from hashed data (always 32 digits)
+            cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+
+            more_cache_list = []
+
+            result['statement'] = stmt_pager.page(start_page).object_list
+            result['more'] = '/TCAPI/statements/more/%s' % cache_key
+
             start_page = query_info[1] + 1
-            total_pages = query_info[2]
+            more_cache_list.append(req_dict)
+            more_cache_list.append(start_page)
+            more_cache_list.append(query_info[2])
 
-            # If that was the last page to display then just return the remaining stmts
-            if start_page == total_pages:
-                result['statements'] = stmt_list
-                result['more'] = ''
+            encoded_list = pickle.dumps(more_cache_list)
 
-            # Update cache info (including new start_page)
-            cache_list.append(req_dict)
-            cache_list.append(start_page)
-            cache_list.append(total_pages)
+            cache.set(cache_key, encoded_list)
+            return result
 
-            encoded_info = pickle.dumps(cache_list)
-
-            cache.set(cache_key, encoded_info)
-
-    # If the list is larger than the limit, truncate statements and give more url
     # List will only be larger first time - getStatementRequest should truncate rest of results
     # of more URLs.
     if statement_amount > settings.SERVER_STMT_LIMIT:
-
+        stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)
+        # First time someone queries POST/GET
         if not encoded_list:
-            # Encode the list of statements
-            # encoded_dict = jwt.encode(req_dict, cache_key)
-
-            stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)   
-            # current_page = stmt_pager.next_page_number()
-            # Always going to start on page 2
-            current_page = 2
-            total_pages = stmt_pager.count
+            cache_list = []
+            # Always going to start on page 1
+            current_page = 1
+            total_pages = stmt_pager.num_pages
             
+            # Create unique hash data to use for the cache key
+            hash_data = []
+            hash_data.append(str(datetime.now()))
+            hash_data.append(str(stmt_list))
+
+            # Create cache key from hashed data (always 32 digits)
+            cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+    
             cache_list.append(req_dict)
             cache_list.append(current_page)
             cache_list.append(total_pages)
@@ -227,10 +238,10 @@ def buildStatementResult(req_dict, stmt_list, more_id=None):
 
             result['statements'] = stmt_pager.page(1).object_list
             result['more'] = '/TCAPI/statements/more/%s' % cache_key    
-        
     # Just provide statements since the list is under the limit
     else:
         result['statements'] = stmt_list
         result['more'] = ''
+    
     return result
 

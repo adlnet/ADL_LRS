@@ -78,7 +78,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
         'LOCATION': 'cache_statement_list',
-        'TIMEOUT': 30, #86400,
+        'TIMEOUT': 86400,
     }
 }
 
