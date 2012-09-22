@@ -1,17 +1,20 @@
 from django.test import TestCase
 from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
-from lrs import views, models
+from lrs import views
+from lrs import models as lrsmodels
 from os import path
 import sys
 import json
 import base64
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils.timezone import utc
 from lrs.objects import Actor, Activity, Statement
 import time
 import pdb
+from django.db import models
+from lrs.util import retrieve_statement
 
 class StatementsMoreTests(TestCase):
     def setUp(self):
@@ -168,77 +171,139 @@ class StatementsMoreTests(TestCase):
 
 
 
-
         # Post statements
         self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid1).update(stored=time)
+
+
         self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid2).update(stored=time)
+
+
         self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid3).update(stored=time)
+
+
         self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid4).update(stored=time)
+
+
         self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=5)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid5).update(stored=time)
 
-        self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        time.sleep(1)
-        
+        self.secondTime = str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat())
+
         self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
-        self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
-        self.postresponse8 = self.client.post(reverse(views.statements), self.existStmt8,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
-        self.postresponse9 = self.client.post(reverse(views.statements), self.existStmt9,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
-        self.postresponse10 = self.client.post(reverse(views.statements), self.existStmt10,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
-        self.thirdTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        time.sleep(1)
+
+        self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid7).update(stored=time)
+
+
+        self.postresponse8 = self.client.post(reverse(views.statements), self.existStmt8,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid8).update(stored=time)
+
+
+        self.postresponse9 = self.client.post(reverse(views.statements), self.existStmt9,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid9).update(stored=time)
+
+
+        self.postresponse10 = self.client.post(reverse(views.statements), self.existStmt10,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid10).update(stored=time)
+
+
+        self.thirdTime = str((datetime.utcnow()+timedelta(seconds=12)).replace(tzinfo=utc).isoformat())
+
 
         self.postresponse11 = self.client.post(reverse(views.statements), self.existStmt11,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
-        self.postresponse12 = self.client.post(reverse(views.statements), self.existStmt12,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
-        self.postresponse13 = self.client.post(reverse(views.statements), self.existStmt13,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
-        self.postresponse14 = self.client.post(reverse(views.statements), self.existStmt14,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)     
-        time.sleep(1)
-        self.postresponse15 = self.client.post(reverse(views.statements), self.existStmt15,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=13)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid11).update(stored=time)
 
-        self.fourthTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        time.sleep(1)
+
+        self.postresponse12 = self.client.post(reverse(views.statements), self.existStmt12,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=14)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid12).update(stored=time)
+
+
+        self.postresponse13 = self.client.post(reverse(views.statements), self.existStmt13,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=15)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid13).update(stored=time)
+
+
+        self.postresponse14 = self.client.post(reverse(views.statements), self.existStmt14,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)     
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=16)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid14).update(stored=time)
+
+
+        self.postresponse15 = self.client.post(reverse(views.statements), self.existStmt15,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=17)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid15).update(stored=time)
+
+
+        self.fourthTime = str((datetime.utcnow()+timedelta(seconds=18)).replace(tzinfo=utc).isoformat())
+
 
         self.postresponse16 = self.client.post(reverse(views.statements), self.existStmt16,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=19)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid16).update(stored=time)
+
+
         self.postresponse17 = self.client.post(reverse(views.statements), self.existStmt17,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=20)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid17).update(stored=time)
+
+
         self.postresponse18 = self.client.post(reverse(views.statements), self.existStmt18,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=21)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid18).update(stored=time)
+
+
         self.postresponse19 = self.client.post(reverse(views.statements), self.existStmt19,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=22)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid19).update(stored=time)
+
+
         self.postresponse20 = self.client.post(reverse(views.statements), self.existStmt20,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=23)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid20).update(stored=time)
 
-        self.fifthTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        time.sleep(1)
-
+        self.fifthTime = str((datetime.utcnow()+timedelta(seconds=24)).replace(tzinfo=utc).isoformat())
+ 
         self.postresponse21 = self.client.post(reverse(views.statements), self.existStmt21,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=25)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid21).update(stored=time)
+
+
         self.postresponse22 = self.client.post(reverse(views.statements), self.existStmt22,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=26)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid22).update(stored=time)
+
         self.postresponse23 = self.client.post(reverse(views.statements), self.existStmt23,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
-        time.sleep(1)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=27)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid23).update(stored=time)
+
         self.postresponse24 = self.client.post(reverse(views.statements), self.existStmt24,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=28)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid24).update(stored=time)
 
-        time.sleep(1)
-        self.sixthTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
-        time.sleep(1)
+        self.sixthTime = str((datetime.utcnow()+timedelta(seconds=29)).replace(tzinfo=utc).isoformat())
+
         self.postresponse25 = self.client.post(reverse(views.statements), self.existStmt25,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=30)).replace(tzinfo=utc).isoformat()))
+        stmt = lrsmodels.statement.objects.filter(statement_id=self.guid25).update(stored=time)
+
 
     def test_unknown_more_id_url(self):
         moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}))
@@ -514,7 +579,7 @@ class StatementsMoreTests(TestCase):
 
         more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
         # print more2URLGet
-        self.assertEqual(moreURLGet.status_code, 200)
+        self.assertEqual(more2URLGet.status_code, 200)
         self.assertContains(more2URLGet, self.postresponse4.content)
         self.assertContains(more2URLGet, self.postresponse3.content)                
         self.assertContains(more2URLGet, self.postresponse2.content)
@@ -675,6 +740,181 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.postresponse1.content, moreURLGet)        
         self.assertNotIn(self.postresponse25.content, moreURLGet)
 
+
+    def test_two_pages_full_third_not_full_more_stmts_multiple_hits(self):
+        # Make initial complex get so 'more' will be required
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime})
+        resp_json = json.loads(sinceGetResponse.content)
+        resp_url = resp_json['more']
+        resp_id = resp_url[-32:]
+
+        # print sinceGetResponse
+
+        self.assertEqual(sinceGetResponse.status_code, 200)
+        self.assertContains(sinceGetResponse, self.postresponse24.content)
+        self.assertContains(sinceGetResponse, self.postresponse23.content)                
+        self.assertContains(sinceGetResponse, self.postresponse22.content)
+        self.assertContains(sinceGetResponse, self.postresponse21.content)
+        self.assertContains(sinceGetResponse, self.postresponse20.content)                
+        self.assertContains(sinceGetResponse, self.postresponse19.content)        
+        self.assertContains(sinceGetResponse, self.postresponse18.content)
+        self.assertContains(sinceGetResponse, self.postresponse17.content)                
+        self.assertContains(sinceGetResponse, self.postresponse16.content)
+        self.assertContains(sinceGetResponse, self.postresponse15.content)
+
+        self.assertNotIn(self.postresponse14.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse13.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse12.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse11.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse10.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse9.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse8.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse7.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse6.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse5.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse4.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse3.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse2.content, sinceGetResponse)
+        self.assertNotIn(self.postresponse1.content, sinceGetResponse)        
+        self.assertNotIn(self.postresponse25.content, sinceGetResponse)
+
+
+
+        # Simulate user clicking returned 'more' URL
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        more_json = json.loads(moreURLGet.content)
+        more_resp_url = more_json['more']
+        more_resp_id = more_resp_url[-32:]
+
+        # print moreURLGet.content
+
+        self.assertEqual(moreURLGet.status_code, 200)
+        self.assertContains(moreURLGet, self.postresponse14.content)
+        self.assertContains(moreURLGet, self.postresponse13.content)                
+        self.assertContains(moreURLGet, self.postresponse12.content)
+        self.assertContains(moreURLGet, self.postresponse11.content)
+        self.assertContains(moreURLGet, self.postresponse10.content)                
+        self.assertContains(moreURLGet, self.postresponse9.content)        
+        self.assertContains(moreURLGet, self.postresponse8.content)
+        self.assertContains(moreURLGet, self.postresponse7.content)                
+        self.assertContains(moreURLGet, self.postresponse6.content)
+        self.assertContains(moreURLGet, self.postresponse5.content)
+
+        self.assertNotIn(self.postresponse24.content, moreURLGet)
+        self.assertNotIn(self.postresponse23.content, moreURLGet)
+        self.assertNotIn(self.postresponse22.content, moreURLGet)
+        self.assertNotIn(self.postresponse21.content, moreURLGet)
+        self.assertNotIn(self.postresponse20.content, moreURLGet)
+        self.assertNotIn(self.postresponse19.content, moreURLGet)
+        self.assertNotIn(self.postresponse18.content, moreURLGet)
+        self.assertNotIn(self.postresponse17.content, moreURLGet)
+        self.assertNotIn(self.postresponse16.content, moreURLGet)
+        self.assertNotIn(self.postresponse15.content, moreURLGet)
+        self.assertNotIn(self.postresponse4.content, moreURLGet)
+        self.assertNotIn(self.postresponse3.content, moreURLGet)
+        self.assertNotIn(self.postresponse2.content, moreURLGet)
+        self.assertNotIn(self.postresponse1.content, moreURLGet)        
+        self.assertNotIn(self.postresponse25.content, moreURLGet)
+
+
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        # print more2URLGet
+        self.assertEqual(more2URLGet.status_code, 200)
+        self.assertContains(more2URLGet, self.postresponse4.content)
+        self.assertContains(more2URLGet, self.postresponse3.content)                
+        self.assertContains(more2URLGet, self.postresponse2.content)
+        self.assertContains(more2URLGet, self.postresponse1.content)
+
+        self.assertNotIn(self.postresponse25.content, more2URLGet)
+        self.assertNotIn(self.postresponse24.content, more2URLGet)
+        self.assertNotIn(self.postresponse23.content, more2URLGet)
+        self.assertNotIn(self.postresponse22.content, more2URLGet)
+        self.assertNotIn(self.postresponse21.content, more2URLGet)
+        self.assertNotIn(self.postresponse20.content, more2URLGet)
+        self.assertNotIn(self.postresponse19.content, more2URLGet)
+        self.assertNotIn(self.postresponse18.content, more2URLGet)
+        self.assertNotIn(self.postresponse17.content, more2URLGet)
+        self.assertNotIn(self.postresponse16.content, more2URLGet)
+        self.assertNotIn(self.postresponse15.content, more2URLGet)
+        self.assertNotIn(self.postresponse14.content, more2URLGet)
+        self.assertNotIn(self.postresponse13.content, more2URLGet)
+        self.assertNotIn(self.postresponse12.content, more2URLGet)
+        self.assertNotIn(self.postresponse11.content, more2URLGet)        
+        self.assertNotIn(self.postresponse10.content, more2URLGet)
+        self.assertNotIn(self.postresponse9.content, more2URLGet)
+        self.assertNotIn(self.postresponse8.content, more2URLGet)
+        self.assertNotIn(self.postresponse7.content, more2URLGet)
+        self.assertNotIn(self.postresponse6.content, more2URLGet)
+        self.assertNotIn(self.postresponse5.content, more2URLGet)        
+    
+
+
+        # Simulate user clicking returned 'more' URL
+        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        another_more_json = json.loads(anotherMoreURLGet.content)
+        another_more_resp_url = another_more_json['more']
+        another_more_resp_id = another_more_resp_url[-32:]
+
+
+        self.assertEqual(anotherMoreURLGet.status_code, 200)
+        self.assertContains(anotherMoreURLGet, self.postresponse14.content)
+        self.assertContains(anotherMoreURLGet, self.postresponse13.content)                
+        self.assertContains(anotherMoreURLGet, self.postresponse12.content)
+        self.assertContains(anotherMoreURLGet, self.postresponse11.content)
+        self.assertContains(anotherMoreURLGet, self.postresponse10.content)                
+        self.assertContains(anotherMoreURLGet, self.postresponse9.content)        
+        self.assertContains(anotherMoreURLGet, self.postresponse8.content)
+        self.assertContains(anotherMoreURLGet, self.postresponse7.content)                
+        self.assertContains(anotherMoreURLGet, self.postresponse6.content)
+        self.assertContains(anotherMoreURLGet, self.postresponse5.content)
+
+        self.assertNotIn(self.postresponse24.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse23.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse22.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse21.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse20.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse19.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse18.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse17.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse16.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse15.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse4.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse3.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse2.content, anotherMoreURLGet)
+        self.assertNotIn(self.postresponse1.content, anotherMoreURLGet)        
+        self.assertNotIn(self.postresponse25.content, anotherMoreURLGet)
+
+
+        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}))
+        # print more2URLGet
+        self.assertEqual(anotherMore2URLGet.status_code, 200)
+        self.assertContains(anotherMore2URLGet, self.postresponse4.content)
+        self.assertContains(anotherMore2URLGet, self.postresponse3.content)                
+        self.assertContains(anotherMore2URLGet, self.postresponse2.content)
+        self.assertContains(anotherMore2URLGet, self.postresponse1.content)
+
+        self.assertNotIn(self.postresponse25.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse24.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse23.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse22.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse21.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse20.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse19.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse18.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse17.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse16.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse15.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse14.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse13.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse12.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse11.content, anotherMore2URLGet)        
+        self.assertNotIn(self.postresponse10.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse9.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse8.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse7.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse6.content, anotherMore2URLGet)
+        self.assertNotIn(self.postresponse5.content, anotherMore2URLGet)        
+    
 
     # To run test, change CACHE TIMEOUT to 30 in settings.py
     # def test_more_stmts_expired(self):

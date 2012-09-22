@@ -12,6 +12,7 @@ import jwt
 import pickle
 import pdb
 
+MORE_ENDPOINT = '/TCAPI/statements/more/'
 
 def convertToUTC(timestr):
     # Strip off TZ info
@@ -128,35 +129,44 @@ def complexGet(req_dict):
         full_stmt_list.append(stmt.get_full_statement_json(sparse))
     return full_stmt_list
 
-def initialCacheReturn(stmt_list, encoded_list, req_dict):
-    result = {}
-    stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)
-    # First time someone queries POST/GET
- 
-    cache_list = []
-    # Always going to start on page 1
-    current_page = 1
-    total_pages = stmt_pager.num_pages
-    
+def createCacheKey(stmt_list):
     # Create unique hash data to use for the cache key
     hash_data = []
     hash_data.append(str(datetime.now()))
     hash_data.append(str(stmt_list))
 
     # Create cache key from hashed data (always 32 digits)
-    cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+    key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+    return key
 
+def initialCacheReturn(stmt_list, encoded_list, req_dict):
+    # First time someone queries POST/GET
+    result = {}
+    stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)
+ 
+    cache_list = []
+    
+    # Always going to start on page 1
+    current_page = 1
+    total_pages = stmt_pager.num_pages
+    
+    # Create cache key from hashed data (always 32 digits)
+    cache_key = createCacheKey(stmt_list)
+
+    # Add data to cache
     cache_list.append(req_dict)
     cache_list.append(current_page)
     cache_list.append(total_pages)
 
+    # Encode data
     encoded_info = pickle.dumps(cache_list)
 
     # Save encoded_dict in cache
     cache.set(cache_key,encoded_info)
 
+    # Return first page of results
     result['statements'] = stmt_pager.page(1).object_list
-    result['more'] = '/TCAPI/statements/more/%s' % cache_key        
+    result['more'] = MORE_ENDPOINT + cache_key        
     return result
 
 def getStatementRequest(req_id):  
@@ -217,29 +227,28 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
             query_info[1] = query_info[1] - 1
             encoded_list = pickle.dumps(query_info)
             cache.set(more_id, encoded_list)
-
             return result
 
         # There are more pages to display
         else:
             stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)
-            hash_data = []
-            hash_data.append(str(datetime.now()))
-            hash_data.append(str(stmt_list))
 
             # Create cache key from hashed data (always 32 digits)
-            cache_key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+            cache_key = createCacheKey(stmt_list)
+
+            # Set result to have selected page of stmts and more endpoing
+            result['statement'] = stmt_pager.page(start_page).object_list
+            result['more'] = MORE_ENDPOINT + cache_key
 
             more_cache_list = []
 
-            result['statement'] = stmt_pager.page(start_page).object_list
-            result['more'] = '/TCAPI/statements/more/%s' % cache_key
-
+            # Increment next page
             start_page = query_info[1] + 1
             more_cache_list.append(req_dict)
             more_cache_list.append(start_page)
             more_cache_list.append(query_info[2])
 
+            # Encode info
             encoded_list = pickle.dumps(more_cache_list)
 
             cache.set(cache_key, encoded_list)
