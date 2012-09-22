@@ -8,7 +8,6 @@ import bencode
 import pytz
 import hashlib
 import json
-import jwt
 import pickle
 import pdb
 
