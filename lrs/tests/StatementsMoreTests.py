@@ -18,8 +18,8 @@ from lrs.util import retrieve_statement
 
 class StatementsMoreTests(TestCase):
     def setUp(self):
-        self.username = "tester1"
-        self.email = "test1@tester.com"
+        self.username = "tester2"
+        self.email = "test2@tester.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
@@ -81,7 +81,7 @@ class StatementsMoreTests(TestCase):
             'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
             "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-            'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
+            'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID24'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
             'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
@@ -91,7 +91,7 @@ class StatementsMoreTests(TestCase):
             'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-            'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
+            'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID23'}},
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']} , 'extensions':{'ckey111': 'cval111',
             'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
@@ -106,67 +106,67 @@ class StatementsMoreTests(TestCase):
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
             'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
 
-        self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon1'],'mbox':['jon1@jon.com']},
             "verb":"passed"})
 
-        self.existStmt6 = json.dumps({"statement_id":self.guid6, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt6 = json.dumps({"statement_id":self.guid6, "object":{'objectType':'Person','name':['jon2'],'mbox':['jon2@jon.com']},
             "verb":"passed"})
 
-        self.existStmt7 = json.dumps({"statement_id":self.guid7, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt7 = json.dumps({"statement_id":self.guid7, "object":{'objectType':'Person','name':['jon3'],'mbox':['jon3@jon.com']},
             "verb":"passed"})
 
-        self.existStmt8 = json.dumps({"statement_id":self.guid8, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt8 = json.dumps({"statement_id":self.guid8, "object":{'objectType':'Person','name':['jon4'],'mbox':['jon4@jon.com']},
             "verb":"passed"})
 
-        self.existStmt9 = json.dumps({"statement_id":self.guid9, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt9 = json.dumps({"statement_id":self.guid9, "object":{'objectType':'Person','name':['jon5'],'mbox':['jon5@jon.com']},
             "verb":"passed"})
 
-        self.existStmt10 = json.dumps({"statement_id":self.guid10, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt10 = json.dumps({"statement_id":self.guid10, "object":{'objectType':'Person','name':['jon33'],'mbox':['jon33@jon.com']},
             "verb":"passed"})       
 
-        self.existStmt11 = json.dumps({"statement_id":self.guid11, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt11 = json.dumps({"statement_id":self.guid11, "object":{'objectType':'Person','name':['jon6'],'mbox':['jon6@jon.com']},
             "verb":"passed"})
 
-        self.existStmt12 = json.dumps({"statement_id":self.guid12, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt12 = json.dumps({"statement_id":self.guid12, "object":{'objectType':'Person','name':['jon7'],'mbox':['jon7@jon.com']},
             "verb":"passed"})
 
-        self.existStmt13 = json.dumps({"statement_id":self.guid13, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt13 = json.dumps({"statement_id":self.guid13, "object":{'objectType':'Person','name':['jon8'],'mbox':['jon8@jon.com']},
             "verb":"passed"})
 
-        self.existStmt14 = json.dumps({"statement_id":self.guid14, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt14 = json.dumps({"statement_id":self.guid14, "object":{'objectType':'Person','name':['jon9'],'mbox':['jon9@jon.com']},
             "verb":"passed"})
 
-        self.existStmt15 = json.dumps({"statement_id":self.guid15, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt15 = json.dumps({"statement_id":self.guid15, "object":{'objectType':'Person','name':['jon10'],'mbox':['jon10@jon.com']},
             "verb":"passed"})
 
-        self.existStmt16 = json.dumps({"statement_id":self.guid16, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt16 = json.dumps({"statement_id":self.guid16, "object":{'objectType':'Person','name':['jon11'],'mbox':['jon11@jon.com']},
             "verb":"passed"})
 
-        self.existStmt17 = json.dumps({"statement_id":self.guid17, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt17 = json.dumps({"statement_id":self.guid17, "object":{'objectType':'Person','name':['jon12'],'mbox':['jon12@jon.com']},
             "verb":"passed"})
 
-        self.existStmt18 = json.dumps({"statement_id":self.guid18, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt18 = json.dumps({"statement_id":self.guid18, "object":{'objectType':'Person','name':['jon13'],'mbox':['jon13@jon.com']},
             "verb":"passed"})
 
-        self.existStmt19 = json.dumps({"statement_id":self.guid19, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt19 = json.dumps({"statement_id":self.guid19, "object":{'objectType':'Person','name':['jon14'],'mbox':['jon14@jon.com']},
             "verb":"passed"})
 
-        self.existStmt20 = json.dumps({"statement_id":self.guid20, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt20 = json.dumps({"statement_id":self.guid20, "object":{'objectType':'Person','name':['jon15'],'mbox':['jon15@jon.com']},
             "verb":"passed"})       
 
-        self.existStmt21 = json.dumps({"statement_id":self.guid21, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt21 = json.dumps({"statement_id":self.guid21, "object":{'objectType':'Person','name':['jon16'],'mbox':['jon16@jon.com']},
             "verb":"passed"})
 
-        self.existStmt22 = json.dumps({"statement_id":self.guid22, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt22 = json.dumps({"statement_id":self.guid22, "object":{'objectType':'Person','name':['jon17'],'mbox':['jon17@jon.com']},
             "verb":"passed"})
 
-        self.existStmt23 = json.dumps({"statement_id":self.guid23, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt23 = json.dumps({"statement_id":self.guid23, "object":{'objectType':'Person','name':['jon18'],'mbox':['jon18@jon.com']},
             "verb":"passed"})
 
-        self.existStmt24 = json.dumps({"statement_id":self.guid24, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt24 = json.dumps({"statement_id":self.guid24, "object":{'objectType':'Person','name':['jon19'],'mbox':['jon19@jon.com']},
             "verb":"passed"})
 
-        self.existStmt25 = json.dumps({"statement_id":self.guid25, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt25 = json.dumps({"statement_id":self.guid25, "object":{'objectType':'Person','name':['jon20'],'mbox':['jon20@jon.com']},
             "verb":"passed"})
 
 
@@ -342,6 +342,8 @@ class StatementsMoreTests(TestCase):
 
     def test_single_full_page_stmts(self):
         sincePostResponse = self.client.post(reverse(views.statements), {"until":self.thirdTime},content_type="application/x-www-form-urlencoded")
+        # print sincePostResponse
+        # pdb.set_trace()
 
         self.assertEqual(sincePostResponse.status_code, 200)
         self.assertContains(sincePostResponse, self.postresponse10.content)

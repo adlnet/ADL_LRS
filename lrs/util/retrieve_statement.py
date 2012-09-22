@@ -26,6 +26,7 @@ def convertToUTC(timestr):
     return date_object
 
 def complexGet(req_dict):
+    # pdb.set_trace()
     limit = 0    
     args = {}
     sparse = True
@@ -48,16 +49,26 @@ def complexGet(req_dict):
                 objectData = json.loads(objectData) 
             except Exception, e:
                 objectData = json.loads(objectData.replace("'",'"'))
-     
-        if objectData['objectType'].lower() == 'activity':
-            activity = models.activity.objects.get(activity_id=objectData['id'])
-            args['stmt_object'] = activity
-        elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
-            agent = Actor.Actor(json.dumps(objectData)).agent
-            args['stmt_object'] = agent
+        
+        if 'objectType' in objectData:
+            if objectData['objectType'].lower() == 'activity':
+                try:
+                    activity = models.activity.objects.get(activity_id=objectData['id'])
+                except Exception, e:
+                    activity = []
+                if activity:
+                    args['stmt_object'] = activity
+            elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
+                agent = Actor.Actor(json.dumps(objectData)).agent
+                if agent:
+                    args['stmt_object'] = agent
         else:
-            activity = models.activity.objects.get(activity_id=objectData['id'])
-            args['stmt_object'] = activity
+            try:
+                activity = models.activity.objects.get(activity_id=objectData['id'])
+            except Exception, e:
+                activity = []
+            if activity:
+                args['stmt_object'] = activity
 
     if 'registration' in req_dict:
         uuid = str(req_dict['registration'])
@@ -73,7 +84,8 @@ def complexGet(req_dict):
                 actorData = json.loads(actorData.replace("'",'"'))
             
         agent = Actor.Actor(json.dumps(actorData)).agent
-        args['actor'] = agent
+        if agent:
+            args['actor'] = agent
 
     if 'instructor' in req_dict:
         instData = req_dict['instructor']
@@ -85,21 +97,15 @@ def complexGet(req_dict):
                 instData = json.loads(instData.replace("'",'"'))
             
         instructor = Actor.Actor(json.dumps(instData)).agent                 
+        if instructor:
+            cntxList = models.context.objects.filter(instructor=instructor)
+            args['context__in'] = cntxList
 
-        cntxList = models.context.objects.filter(instructor=instructor)
-        args['context__in'] = cntxList
-
-    if 'authoritative' in req_dict:
-        authData = req_dict['authoritative']
-
-        if not type(authData) is dict:
-            try:
-                authData = json.loads(authData) 
-            except Exception, e:
-                authData = json.loads(authData.replace("'",'"'))
-
-        authority = Actor.Actor(json.dumps(authData)).agent
-        args['authority'] = authority
+    # there's a default of true
+    # pdb.set_trace()
+    
+    if not 'authoritative' in req_dict or str(req_dict['authoritative']).upper() == 'TRUE':
+        args['authoritative'] = True
 
     if 'limit' in req_dict:
         limit = int(req_dict['limit'])    
@@ -110,7 +116,8 @@ def complexGet(req_dict):
                 sparse = False
         else:
             sparse = req_dict['sparse']
-    # pdb.set_trace()
+    
+
     if limit == 0 and 'more_start' not in req_dict:
         # Retrieve statements from DB
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')

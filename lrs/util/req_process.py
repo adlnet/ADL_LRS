@@ -12,7 +12,7 @@ def statements_post(req_dict):
     if type(req_dict) is dict:
         stmtList = retrieve_statement.complexGet(req_dict)
         # pdb.set_trace()
-        statementResult = retrieve_statement.buildStatementResult(req_dict,stmtList)
+        statementResult = retrieve_statement.buildStatementResult(req_dict.copy(),stmtList)
         return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
     else:
         stmtResponses = []
@@ -37,19 +37,19 @@ def statements_put(req_dict):
         return HttpResponse("Error: %s already exists" % statementId, status=204)
      
 def statements_get(req_dict):
-    statementResult = {}
     # pdb.set_trace()
-    if req_dict['complex']:
-        stmtList = retrieve_statement.complexGet(req_dict['body'])
-        statementResult = retrieve_statement.buildStatementResult(req_dict['body'], stmtList)
-    else:
-        statementId = req_dict['body']['statementId']
+    statementResult = {}
+    try:
+        statementId = req_dict['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)
-        # statementResult['statements'] = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
+        # data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
         statementResult['statements'] = json.dumps(st.get_full_statement_json())
-
-    return HttpResponse(json.dumps(statementResult,indent=4), mimetype="application/json", status=200)
-
+        # return HttpResponse(data, mimetype="application/json")
+    except:
+        stmtList = retrieve_statement.complexGet(req_dict)
+        statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
+    
+    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency

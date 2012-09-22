@@ -37,7 +37,8 @@ class Activity():
             try:
                 self.activity = models.activity.objects.get(activity_id=self.activity_id)            
             except models.activity.DoesNotExist:
-                raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)            
+                # raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)            
+                return []
         else:
             self.initial = initial
             self.obj = self._parse(initial)
