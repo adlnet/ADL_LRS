@@ -12,9 +12,11 @@ def basic_http_auth(f):
         if request.method == 'POST' and not request.META['CONTENT_TYPE'] == 'application/json':
             return f(request, *args, **kwargs)
         else:
-            if request.META.get('HTTP_AUTHORIZATION', False):
-
-                authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+            if 'HTTP_AUTHORIZATION' in request.META or 'Authorization' in request.META:
+                try:
+                    authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+                except KeyError:
+                    authtype, auth = request.META['Authorization'].split(' ')
                 auth = base64.b64decode(auth)
                 username, password = auth.split(':')
                 user = authenticate(username=username, password=password)
@@ -50,22 +52,7 @@ def statements_post(request):
         return ast.literal_eval(request.raw_post_data)
 
 def statements_get(request):
-    req_dict = {}
-    postParams = ['verb', 'object', 'registration', 'context', 'actor', 'since', 'until', 'limit', 'authoritative', 'sparse', 'instructor']
-    sentParams = [x for x in request.GET]
-    complexRequest = False
-    req_dict['body'] = deepcopy(request.GET.dict())
-    complexRequest = any(x in sentParams for x in postParams)
-    
-    if complexRequest:
-        req_dict['complex'] = True
-    else:
-        try:
-            req_dict['body']['statementId']
-            req_dict['complex'] = False
-        except KeyError:
-            raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
-    return req_dict
+    return request.GET
 
 @basic_http_auth
 def statements_put(request):
