@@ -20,7 +20,7 @@ class ActorsTests(TestCase):
     def test_get_no_actors(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
         response = self.client.get(reverse(views.actors), {'actor':actor}, Authorization=self.auth)
-        self.assertContains(response, '{}')
+        self.assertEqual(response.status_code, 404)
 
     def test_get(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})

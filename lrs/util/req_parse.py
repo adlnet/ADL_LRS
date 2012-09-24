@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate
 import StringIO
 import base64
 import ast
+import pdb
 
 def basic_http_auth(f):
     def wrap(request, *args, **kwargs):
@@ -52,22 +53,8 @@ def statements_post(request):
         return ast.literal_eval(request.raw_post_data)
 
 def statements_get(request):
-    req_dict = {}
-    postParams = ['verb', 'object', 'registration', 'context', 'actor', 'since', 'until', 'limit', 'authoritative', 'sparse', 'instructor']
-    sentParams = [x for x in request.GET]
-    complexRequest = False
-    req_dict['body'] = deepcopy(request.GET.dict())
-    complexRequest = any(x in sentParams for x in postParams)
-    
-    if complexRequest:
-        req_dict['complex'] = True
-    else:
-        try:
-            req_dict['body']['statementId']
-            req_dict['complex'] = False
-        except KeyError:
-            raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
-    return req_dict
+    # pdb.set_trace()
+    return request.GET
 
 @basic_http_auth
 def statements_put(request):

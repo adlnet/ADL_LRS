@@ -314,6 +314,7 @@ class statement(statement_object):
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     authoritative = models.BooleanField(default=True)
 
+
     def save(self, *args, **kwargs):
         # actor object context authority
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
@@ -339,7 +340,7 @@ def objsReturn(obj):
     # Loop through all fields in model
     for field in obj._meta.fields:
         fieldValue = getattr(obj, field.name)
-        objType = type(fieldValue).__name__
+        objType = type(fieldValue).__name__.lower()
 
         if objType == 'agent' or objType == 'person':
             ret[field.name] = {}
