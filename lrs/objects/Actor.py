@@ -263,7 +263,8 @@ class Actor():
     def full_actor_json(self):
         ret = {}
         if not self.agent:
-            return json.dumps(ret)
+            # return json.dumps(self.obj)
+            raise IDNotFoundError("No agent found with that id")
         ret['objectType'] = self.get_objectType()
         names = self.get_name()
         if names:

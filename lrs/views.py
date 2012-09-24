@@ -3,12 +3,15 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from lrs.util import req_parse, req_process, etag
-from lrs import forms
+from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-import logging
+from lrs.util import req_parse, req_process, etag, retrieve_statement
+from lrs import forms, models
 from objects import Actor, Activity
+import logging
+import json
+import pdb
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,12 @@ def register(request):
 def reg_success(request, user_id):
     user = User.objects.get(id=user_id)
     return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
+
+# Called when user queries GET statement endpoint and returned list is larger than server limit (10)
+def statements_more(request, more_id):
+    # pdb.set_trace()
+    statementResult = retrieve_statement.getStatementRequest(more_id) 
+    return HttpResponse(json.dumps(statementResult, indent=4),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):

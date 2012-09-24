@@ -32,6 +32,8 @@ class StatementsTests(TestCase):
         self.cguid4 = str(uuid.uuid4())
         self.cguid5 = str(uuid.uuid4())
 
+        # TODO: this makes an invalid statement because it doesn't pull the actor from auth
+        # should this be handled differently?
         self.existStmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
 
         self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
@@ -54,7 +56,7 @@ class StatementsTests(TestCase):
             'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
-            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
+            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth2'],'mbox':['auth2@example.com']}})        
 
         self.existStmt3 = json.dumps({"statement_id":self.guid3,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogals',
             'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
@@ -80,6 +82,7 @@ class StatementsTests(TestCase):
         self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
             "verb":"passed"})
 
+
         # Post statements
         self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", Authorization=self.auth)
         time.sleep(1)
@@ -88,7 +91,7 @@ class StatementsTests(TestCase):
         self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", Authorization=self.auth)
         
         self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        time.sleep(1)
+        time.sleep(2)
 
         self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", Authorization=self.auth)
         self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", Authorization=self.auth)
@@ -107,6 +110,12 @@ class StatementsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(act.activity_id, "test_post")
+
+    def test_post_with_actor(self):
+        stmt = json.dumps({"actor":{"mbox":["mailto:mr.t@example.com"]},"verb":"created","object": {"id":"i.pity.the.fool"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(response.status_code, 200)
+        models.agent_mbox.objects.get(mbox='mailto:mr.t@example.com')
     
     def test_list_post(self):
         stmts = json.dumps([{"verb":"created","object": {"id":"test_list_post"}},{"verb":"managed","object": {"id":"test_list_post1"}}])
@@ -190,8 +199,10 @@ class StatementsTests(TestCase):
     def test_get_no_statementid(self):
         response = self.client.get(reverse(views.statements))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Error')
-        self.assertContains(response, 'statementId parameter is missing')
+        jsn = json.loads(response.content)
+        self.assertEqual(len(jsn['statements']), models.statement.objects.all().count())
+        # self.assertContains(response, 'Error')
+        # self.assertContains(response, 'statementId parameter is missing')
 
         
     def test_since_filter(self):
@@ -230,7 +241,9 @@ class StatementsTests(TestCase):
         # Test actor object
         actorObjectGetResponse = self.client.get(reverse(views.statements), {"object":{"objectType": "person", 'mbox':['nobody@example.com']}})
         self.assertEqual(actorObjectGetResponse.status_code, 200)
-        self.assertEqual(actorObjectGetResponse.content, "[]")
+        stmts = json.loads(actorObjectGetResponse.content)
+        dbstmts = models.statement.objects.all()
+        self.assertEqual(len(stmts['statements']), len(dbstmts))
 
     def test_actor_object_filter(self):
         # Test actor object
@@ -301,13 +314,15 @@ class StatementsTests(TestCase):
         #stmt1_resp = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         stmt1_resp = self.client.get(reverse(views.statements), raw_stmt)
         self.assertEqual(stmt1_resp.status_code, 200)
-
+        stmts = json.loads(stmt1_resp.content)
+        self.assertEqual(len(stmts['statements']), 1)
 
     def test_limit_filter(self):
         # Test limit
         limitGetResponse = self.client.post(reverse(views.statements),{'limit':1}, content_type="application/x-www-form-urlencoded")
         respList = json.loads(limitGetResponse.content)
-        self.assertEqual(len(respList), 1)
+        stmts = respList['statements']
+        self.assertEqual(len(stmts), 1)
 
 
     def test_sparse_filter(self):
@@ -318,6 +333,7 @@ class StatementsTests(TestCase):
 
     def test_linked_filters(self):
         # Test reasonable linked query
-        linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':False, 'sparse': False})
+        linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':'False', 'sparse': False})
         self.assertEqual(linkedGetResponse.status_code, 200)
+        # print linkedGetResponse
         self.assertContains(linkedGetResponse, self.postresponse2.content)

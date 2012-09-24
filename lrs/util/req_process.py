@@ -2,19 +2,18 @@ from django.http import HttpResponse
 from lrs import objects, models
 from lrs.util import etag
 import json
-import sys
-from os import path
-from functools import wraps
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
-from datetime import datetime
-import pytz
-from django.core import serializers
+import uuid
+import pdb
+import retrieve_statement
 
 def statements_post(req_dict):
     #TODO: more elegant way of doing this?
     if type(req_dict) is dict:
-        returnList = complexGet(req_dict)
-        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
+        stmtList = retrieve_statement.complexGet(req_dict)
+        # pdb.set_trace()
+        statementResult = retrieve_statement.buildStatementResult(req_dict.copy(),stmtList)
+        return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
     else:
         stmtResponses = []
         if not type(req_dict[0]['body']) is list:
@@ -38,125 +37,19 @@ def statements_put(req_dict):
         return HttpResponse("Error: %s already exists" % statementId, status=204)
      
 def statements_get(req_dict):
-    if req_dict['complex']:
-        returnList = complexGet(req_dict['body'])
-        return HttpResponse(json.dumps(returnList, indent=4, sort_keys=True), mimetype="application/json", status=200)
-    else:
-        statementId = req_dict['body']['statementId']
+    # pdb.set_trace()
+    statementResult = {}
+    try:
+        statementId = req_dict['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)
-        data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
-        # return HttpResponse(st.get_full_statement_json(), mimetype="application/json")
-        return HttpResponse(data, mimetype="application/json")
-
-
-def convertToUTC(timestr):
-    # Strip off TZ info
-    timestr = timestr[:timestr.rfind('+')]
-    # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
-    date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
-    # Localize TZ to UTC since everything is being stored in DB as UTC
-    date_object = pytz.timezone("UTC").localize(date_object)
-    return date_object
-
-def complexGet(req_dict):
-    limit = 0    
-    args = {}
-    sparse = True
-    # Cycle through req_dict and find simple args
-    for k,v in req_dict.items():
-        if k.lower() == 'verb':
-            args[k] = v 
-        elif k.lower() == 'since':
-            date_object = convertToUTC(v)
-            args['stored__gt'] = date_object
-        elif k.lower() == 'until':
-            date_object = convertToUTC(v)
-            args['stored__lte'] = date_object
-    # If searching by activity or actor
-    if 'object' in req_dict:
-        objectData = req_dict['object']        
-        
-        if not type(objectData) is dict:
-            try:
-                objectData = json.loads(objectData) 
-            except Exception, e:
-                objectData = json.loads(objectData.replace("'",'"'))
-     
-        if 'objectType' in objectData and objectData['objectType'].lower() == 'activity':
-            activity = models.activity.objects.get(activity_id=objectData['id'])
-            args['stmt_object'] = activity
-        elif 'objectType' in objectData and (objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person'):
-            a = Actor.Actor(json.dumps(objectData))
-            if not a or (hasattr(a, 'agent') and not a.agent):
-                return []
-            args['stmt_object'] = a.agent
-        else:
-            try:
-                activity = models.activity.objects.get(activity_id=objectData['id'])
-                args['stmt_object'] = activity
-            except models.activity.DoesNotExist:
-                pass
-
-    if 'registration' in req_dict:
-        uuid = str(req_dict['registration'])
-        cntx = models.context.objects.filter(registration=uuid)
-        args['context'] = cntx
-
-    if 'actor' in req_dict:
-        actorData = req_dict['actor']
-        if not type(actorData) is dict:
-            try:
-                actorData = json.loads(actorData) 
-            except Exception, e:
-                actorData = json.loads(actorData.replace("'",'"'))
-        a =  Actor.Actor(json.dumps(actorData))
-        if not a or (hasattr(a, 'agent') and not a.agent):
-            return []
-        args['actor'] = a.agent
-
-    if 'instructor' in req_dict:
-        instData = req_dict['instructor']
-        
-        if not type(instData) is dict:
-            try:
-                instData = json.loads(instData) 
-            except Exception, e:
-                instData = json.loads(instData.replace("'",'"'))
-            
-        a = Actor.Actor(json.dumps(instData))
-        if not a or (hasattr(a, 'agent') and not a.agent):
-            return []                 
-
-        cntxList = models.context.objects.filter(instructor=a.agent)
-        args['context__in'] = cntxList
-
-    if 'authoritative' in req_dict and str(req_dict['authoritative']).upper == 'TRUE':
-        args['authoritative'] = True
-
-    if 'limit' in req_dict:
-        limit = int(req_dict['limit'])    
-
-    if 'sparse' in req_dict:
-        if not type(req_dict['sparse']) is bool:
-            if req_dict['sparse'].lower() == 'false':
-                sparse = False
-        else:
-            sparse = req_dict['sparse']
-
-    if limit == 0:
-        # Retrieve statements from DB
-        stmt_list = models.statement.objects.filter(**args).order_by('-stored')
-    else:
-        stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
-
-    full_stmt_list = []
-
-    # For each stmt convert to our Statement class and retrieve all json
-    for stmt in stmt_list:
-        stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
-        full_stmt_list.append(stmt.get_full_statement_json(sparse))
-
-    return full_stmt_list
+        # data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
+        statementResult['statements'] = json.dumps(st.get_full_statement_json())
+        # return HttpResponse(data, mimetype="application/json")
+    except:
+        stmtList = retrieve_statement.complexGet(req_dict)
+        statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
+    
+    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -275,7 +168,7 @@ def actor_profile_get(req_dict):
     # add ETag for concurrency
     actor = req_dict['actor']
     a = Actor.Actor(actor)
-
+    
     profileId = req_dict.get('profileId', None)
     if profileId:
         resource = a.get_profile(profileId)

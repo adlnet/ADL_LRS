@@ -59,6 +59,13 @@ class ActorProfileTests(TestCase):
         r = self.client.get(reverse(views.actor_profile), param)
         self.assertEqual(r.status_code, 404)
 
+    def test_get_actor_not_found(self):
+        a = '{"mbox":["mailto:notfound@example.com"]}'
+        p = 'http://actor.not.found'
+        param = {"profileId": p, "actor": a}
+        r = self.client.get(reverse(views.actor_profile), param)
+        self.assertEqual(r.status_code, 404)
+
     def test_put(self):
         self.assertEqual(self.put1.status_code, 204)
         self.assertEqual(self.put1.content, '')
