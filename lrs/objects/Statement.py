@@ -84,16 +84,70 @@ class Statement():
         #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
         #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
+    def _remove_extra_agent_info(self, ret, fieldName):
+        if 'familyName' in ret[fieldName]:
+            del ret[fieldName]['familyName']
+        
+        if 'givenName' in ret[fieldName]:
+            del ret[fieldName]['givenName']
+        
+        if 'firstName' in ret[fieldName]:
+            del ret[fieldName]['firstName']
+        
+        if 'lastName' in ret[fieldName]:
+            del ret[fieldName]['lastName']
+        
+        if 'openid' in ret[fieldName]:
+            del ret[fieldName]['openid']
+        
+        if 'account' in ret[fieldName]:
+            del ret[fieldName]['account']
+        return ret
+
     def get_full_statement_json(self, sparse=False):
         # Set statement to return
         ret = models.objsReturn(self.statement)
 
-        # Remove activity details if sparse is true
+        # Remove details if sparse is true
         if sparse:
-            if 'activity_definition' in ret['stmt_object']:
-                del ret['stmt_object']['activity_definition']
+            # Remove act_def
+            if 'activity_definition' in ret['object']:
+                del ret['object']['activity_definition']
+            
+            # Remove other names/accounts in actor
+            if 'actor' in ret:
+                self._remove_extra_agent_info(ret, 'actor')
 
-        # return json.dumps(ret, indent=4, sort_keys=True)
+            # Remove other names/accounts in authority
+            if 'authority' in ret:
+                self._remove_extra_agent_info(ret, 'authority')
+
+            # Remove other names/accounts if agent is the object of statement
+            if 'objectType' in ret['object']:
+                if ret['object']['objectType'].lower() == 'agent' or ret['object']['objectType'].lower() == 'person':
+                    self._remove_extra_agent_info(ret, 'object')
+
+            # Remove other names/accounts if there is a context and it has an instructor
+            if 'context' in ret:
+                if 'instructor' in ret['context']:
+                    if 'familyName' in ret['context']['instructor']: 
+                        del ret['context']['instructor']['familyName']
+
+                    if 'givenName'in ret['context']['instructor']:
+                        del ret['context']['instructor']['givenName']
+
+                    if 'firstName' in ret['context']['instructor']: 
+                        del ret['context']['instructor']['firstName']
+
+                    if 'lastName'in ret['context']['instructor']:
+                        del ret['context']['instructor']['lastName']
+
+                    if 'openid' in ret['context']['instructor']: 
+                        del ret['context']['instructor']['openid']
+
+                    if 'account'in ret['context']['instructor']:
+                        del ret['context']['instructor']['account']
+
         return ret
 
     def _validateVerbResult(self,result, verb, obj_data):

@@ -26,6 +26,8 @@ class StatementsTests(TestCase):
         self.guid3 = str(uuid.uuid4())    
         self.guid4 = str(uuid.uuid4())
         self.guid5 = str(uuid.uuid4())
+        # self.guid6 = str(uuid.uuid4())
+        # self.guid7 = str(uuid.uuid4())
         self.cguid1 = str(uuid.uuid4())
         self.cguid2 = str(uuid.uuid4())    
         self.cguid3 = str(uuid.uuid4())
@@ -82,6 +84,12 @@ class StatementsTests(TestCase):
         self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
             "verb":"passed"})
 
+        # self.existStmt6 = json.dumps({"statement_id":self.guid6,"actor": {'objectType':'Person','name':['max'],'mbox':['max@max.com'],'givenName':['maximus'],
+        #     'familyName':['zeus'], 'firstName':['maximus'], 'lastName':['zeus']}, "object":{'id': 'test_activity'},"verb":"talked"})
+
+        # self.existStmt7 = json.dumps({"statement_id":self.guid7,'object': {'objectType':'Person','name':['max'],'mbox':['max@max.com'],'account':['maxacct'],
+        #     'openid':['zeusopenid']}, 'verb': 'watched'})
+
 
         # Post statements
         self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", Authorization=self.auth)
@@ -95,7 +103,10 @@ class StatementsTests(TestCase):
 
         self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", Authorization=self.auth)
         self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", Authorization=self.auth)
+        # self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", Authorization=self.auth)
+        # self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", Authorization=self.auth)
         
+
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
         resp = self.client.post(reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post"}},content_type='application/json', Authorization=self.auth)
@@ -328,12 +339,20 @@ class StatementsTests(TestCase):
     def test_sparse_filter(self):
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{'sparse': False}, content_type="application/x-www-form-urlencoded")
+        # print sparseGetResponse.content
         self.assertEqual(sparseGetResponse.status_code, 200)
-        self.assertContains(sparseGetResponse, 'activity_definition')
+        self.assertContains(sparseGetResponse, 'activity_definition')        
+        # self.assertContains(sparseGetResponse, 'firstName')
+        # self.assertContains(sparseGetResponse, 'lastName')
+        # self.assertContains(sparseGetResponse, 'givenName')
+        # self.assertContains(sparseGetResponse, 'familyName')
+        # self.assertContains(sparseGetResponse, 'account')
+        # self.assertContains(sparseGetResponse, 'openid')
+
+
 
     def test_linked_filters(self):
         # Test reasonable linked query
         linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':'False', 'sparse': False})
         self.assertEqual(linkedGetResponse.status_code, 200)
-        # print linkedGetResponse
         self.assertContains(linkedGetResponse, self.postresponse2.content)
