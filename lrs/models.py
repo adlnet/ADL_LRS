@@ -298,10 +298,8 @@ class activity_profile(models.Model):
         super(activity_profile, self).delete(*args, **kwargs)
 
 class statement(statement_object):
-    #TODO: can't get django extensions UUIDField to generate UUID
-    #statement_id = UUIDField(version=4)  
-    statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
+    statement_id = models.CharField(max_length=200)
     actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
     verb = models.CharField(max_length=200)
     inProgress = models.NullBooleanField(blank=True, null=True)    
@@ -327,7 +325,7 @@ def convert_stmt_object_field_name(returnDict):
 
 def objsReturn(obj):
     ret = {}
-    # pdb.set_trace()
+    pdb.set_trace()
     # If the object being sent in is derived from a statement_object, must retrieve the specific object
     if type(obj).__name__ == 'statement_object':
         try:
