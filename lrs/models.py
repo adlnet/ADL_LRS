@@ -298,8 +298,6 @@ class activity_profile(models.Model):
         super(activity_profile, self).delete(*args, **kwargs)
 
 class statement(statement_object):
-    #TODO: can't get django extensions UUIDField to generate UUID
-    #statement_id = UUIDField(version=4)  
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
@@ -482,7 +480,7 @@ def objsReturn(obj):
                     # If there is a value set it in return dict
                     if not getattr(obj, field.name) is None:
                         # If statement_id field in statement object-rename to id in return dict
-                        if field.name == 'statement_id':
+                        if field.name == 'statement_id' or field.name == 'activity_id':
                             ret['id'] = getattr(obj, field.name)
                         else:
                             ret[field.name] = getattr(obj, field.name)
