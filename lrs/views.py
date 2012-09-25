@@ -179,10 +179,13 @@ def actors(request):
 
 def handle_request(request):
     try:
-        req_dict = parsers[request.path][request.method](request)
+        path = request.path
+        if path.endswith('/'):
+            path = path.rstrip('/')
+        req_dict = parsers[path][request.method](request)
         # Depending on if authentication is required, req_dict will either be a dict containing the request info
         # or a list with the request info dict being the first item, with the auth info being the second item
-        return processors[request.path][request.method](req_dict)
+        return processors[path][request.method](req_dict)
     except:
         raise 
 
