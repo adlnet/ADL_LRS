@@ -3,6 +3,7 @@ from django.db import transaction
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
 import json
+import pdb
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
@@ -300,18 +301,16 @@ class statement(statement_object):
     #TODO: can't get django extensions UUIDField to generate UUID
     #statement_id = UUIDField(version=4)  
     statement_id = models.CharField(max_length=200)
+    stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
     verb = models.CharField(max_length=200)
     inProgress = models.NullBooleanField(blank=True, null=True)    
     result = models.OneToOneField(result, blank=True,null=True)
     timestamp = models.DateTimeField(blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
-    # stored = models.DateTimeField(editable=False,blank=True) 
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
-    # stmt_object = models.OneToOneField(statement_object)
-    stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     authoritative = models.BooleanField(default=True)
 
 
@@ -319,11 +318,16 @@ class statement(statement_object):
         # actor object context authority
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
-        
+
+def convert_stmt_object_field_name(returnDict):
+    if 'stmt_object' in returnDict:
+        returnDict['object'] = returnDict['stmt_object']
+        del returnDict['stmt_object']
+    return returnDict    
 
 def objsReturn(obj):
     ret = {}
-
+    # pdb.set_trace()
     # If the object being sent in is derived from a statement_object, must retrieve the specific object
     if type(obj).__name__ == 'statement_object':
         try:
@@ -339,94 +343,151 @@ def objsReturn(obj):
 
     # Loop through all fields in model
     for field in obj._meta.fields:
+        # Get the value of the field and the type of the field
         fieldValue = getattr(obj, field.name)
         objType = type(fieldValue).__name__.lower()
-
-        if objType == 'agent' or objType == 'person':
-            ret[field.name] = {}
-            names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
-            if names:
-                ret[field.name]['name'] = [k for k in names]
-            
-            mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
-            if mboxes:
-                ret[field.name]['mbox'] = [k for k in mboxes]
-
+        
+        # If type of field is agent, need to retrieve all FKs associated with it
+        if objType == 'agent':
+            # Check to see if the agent is of type Person
+            if fieldValue.objectType == 'Person':
+                ret[field.name] = {}
+                # Get all names associated with object
+                names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
+                if names:
+                    ret[field.name]['name'] = [k for k in names]
+                # Get all mboxes associated with object
+                mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
+                if mboxes:
+                    ret[field.name]['mbox'] = [k for k in mboxes]
+                # Get all givenNames associated with object
+                givenNames = person_givenName.objects.filter(person=fieldValue).values_list('givenName', flat=True)
+                if givenNames:
+                    ret[field.name]['givenName'] = [k for k in givenNames]
+                # Get all familyNames associated with object
+                familyNames = person_familyName.objects.filter(person=fieldValue).values_list('familyName', flat=True)
+                if familyNames:
+                    ret[field.name]['familyName'] = [k for k in familyNames]
+                # Get all firstNames associated with object
+                firstNames = person_firstName.objects.filter(person=fieldValue).values_list('firstName', flat=True)
+                if firstNames:
+                    ret[field.name]['firstName'] = [k for k in firstNames]
+                # Get all lastNames associated with object
+                lastNames = person_lastName.objects.filter(person=fieldValue).values_list('lastName', flat=True)
+                if lastNames:
+                    ret[field.name]['lastName'] = [k for k in lastNames]
+            # If agent isn't person
+            else:
+                ret[field.name] = {}
+                # Get all names associated with object
+                names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
+                if names:
+                    ret[field.name]['name'] = [k for k in names]
+                # Get all mboxes associated with object
+                mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
+                if mboxes:
+                    ret[field.name]['mbox'] = [k for k in mboxes]
+                # Get all open ids associated with object
+                openids = agent_openid.objects.filter(agent=fieldValue).values_list('openid', flat=True)
+                if openids:
+                    ret[field.name]['openid'] = [k for k in openids]
+                # Get all accounts associated with object
+                accounts = agent_account.objects.filter(agent=fieldValue).values_list('accountName', flat=True)
+                if accounts:
+                    ret[field.name]['account'] = [k for k in accounts]
+                
+        # If type of field is result
         elif objType == 'result':
+            # Call recursively, send in result object
             ret[field.name] = objsReturn(getattr(obj, field.name))
+            # Once done with result object, get result extensions
             ret[field.name]['extensions'] = {}
             resultExt = result_extensions.objects.filter(result=fieldValue)
             for ext in resultExt:
                 ret[field.name]['extensions'][ext.key] = ext.value                
-
+        
+        # If type of field is context
         elif objType == 'context':
+            # Call recursively, send in context object
             ret[field.name] = objsReturn(getattr(obj, field.name))
+            # Once done with context object, get context extensions
             ret[field.name]['extensions'] = {}
             contextExt = context_extensions.objects.filter(context=fieldValue)
             for ext in contextExt:
                 ret[field.name]['extensions'][ext.key] = ext.value
-
+        
+        # If type of field is activity_definition, need to grab all FKs associated with object
         elif objType == 'activity_definition':
+            # Call recursively, send in act_def object
             ret[field.name] = objsReturn(getattr(obj, field.name))
-
+            # Get scales
             scales = activity_definition_scale.objects.filter(activity_definition=fieldValue)
             if scales:
                 ret[field.name]['scale'] = []
                 for s in scales:
                     ret[field.name]['scale'].append(s.objReturn())
-
+            # Get choices
             choices = activity_definition_choice.objects.filter(activity_definition=fieldValue)
             if choices:
                 ret[field.name]['choices'] = []
                 for c in choices:
                     ret[field.name]['choices'].append(c.objReturn())
-
+            # Get steps
             steps = activity_definition_step.objects.filter(activity_definition=fieldValue)
             if steps:
                 ret[field.name]['steps'] = []
                 for st in steps:
                     ret[field.name]['steps'].append(st.objReturn())
-
+            # Get sources
             sources = activity_definition_source.objects.filter(activity_definition=fieldValue)
             if sources:
                 ret[field.name]['source'] = []
                 for so in sources:
                     ret[field.name]['source'].append(so.objReturn())
-
+            # Get targets
             targets = activity_definition_target.objects.filter(activity_definition=fieldValue)
             if targets:
                 ret[field.name]['target'] = []
                 for t in targets:
                     ret[field.name]['target'].append(str(t.objReturn()))
-
+        
+        # If type of field is activity_def_crp, grab all FKs associated with it
         elif objType == 'activity_def_correctresponsespattern':
             ret[field.name] = []
+            # Get answers
             answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=fieldValue)
             for a in answers:
                 ret[field.name].append(a.objReturn())
-
+        
+        # Else if not any specified LRS object above
         else:
+            # If it is a OneToOneField, skip _ptr name and if it has a value recursively send object
             if field.get_internal_type() == 'OneToOneField':
                 # Don't care about inheritance field
                 if not field.name.endswith('_ptr'):
                     if getattr(obj, field.name):
                         ret[field.name] = objsReturn(getattr(obj, field.name))
-            
+            # If ForeignKey and if it has a value recursively send object
             elif field.get_internal_type() == 'ForeignKey':
                 if getattr(obj, field.name):
                     ret[field.name] = objsReturn(getattr(obj, field.name))
-
             # Return DateTime as string
             elif field.get_internal_type() == 'DateTimeField':
                 if getattr(obj, field.name):
                     ret[field.name] = str(getattr(obj, field.name))
+            # If it's any type of other field(int string, bool)
             else:
-                # Don't care about internal ID
+                # Don't care about internal ID or the authoritative field in statement objects
                 if not field.name == 'id' and not field.name == 'authoritative':
-                    # Set value in dict
+                    # If there is a value set it in return dict
                     if not getattr(obj, field.name) is None:
-                        ret[field.name] = getattr(obj, field.name)
-
+                        # If statement_id field in statement object-rename to id in return dict
+                        if field.name == 'statement_id':
+                            ret['id'] = getattr(obj, field.name)
+                        else:
+                            ret[field.name] = getattr(obj, field.name)
+    
+    convert_stmt_object_field_name(ret)
     return ret
 
 # - from http://djangosnippets.org/snippets/2283/
