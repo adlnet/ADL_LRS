@@ -33,6 +33,9 @@ Create LRS database
 
     mysqladmin -h localhost -u {username} -p create lrs
 
+Create LRS cache table
+    python manage.py createcachetable cache_statement_list
+
 Navigate to desired repository directory and clone LRS repository
 
     git clone https://github.com/adlnet/ADL_LRS.git
