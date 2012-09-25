@@ -83,8 +83,8 @@ def statements(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
+    # except Exception as err:
+    #     return HttpResponse(err.message, status=400)
     return resp
     
 
