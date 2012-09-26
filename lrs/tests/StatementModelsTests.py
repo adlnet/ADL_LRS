@@ -416,7 +416,7 @@ class StatementModelsTests(TestCase):
         self.assertEqual(conactorname.name, 'steve')
         self.assertEqual(conactormbox.mbox, 's@s.com') 
 
-    def test_actor_as_object_with_context_stmt(self):
+    def test_person_as_object_with_context_stmt(self):
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'object':{'objectType':'Person', 'name': ['lou'], 'mbox':['l@l.com']}, "verb":"kicked",
                 'context':{'registration': guid, 'instructor': {'objectType':'Person','name':['jon'],'mbox':['jon@example.com']},
@@ -451,6 +451,49 @@ class StatementModelsTests(TestCase):
         
         self.assertEqual(conactorname.name, 'lou')
         self.assertEqual(conactormbox.mbox, 'l@l.com') 
+
+    def test_agent_as_object(self):
+        guid = str(uuid.uuid4())
+        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': ['lulu'], 'mbox':['lu@lu.com'], 'openid':['luluid'], 'account':[{'accountServiceHomePage':'http://lulu.com','accountName':'luluacct'}]}, "verb":"kicked"}))
+
+        st = models.statement.objects.get(id=stmt.statement.id)
+        agent = models.agent.objects.get(id=stmt.statement.stmt_object.id)
+        agent_names = models.agent_name.objects.filter(agent=agent).values_list('name', flat=True)
+        agent_mboxes = models.agent_mbox.objects.filter(agent=agent).values_list('mbox', flat=True)
+        agent_accounts = models.agent_account.objects.filter(agent=agent).values_list('accountName', flat=True)
+        agent_ids = models.agent_openid.objects.filter(agent=agent).values_list('openid', flat=True)
+
+        self.assertIn('lulu', agent_names)
+        self.assertIn('lu@lu.com', agent_mboxes)
+        self.assertIn('luluacct', agent_accounts)
+        self.assertIn('luluid', agent_ids)
+
+
+    def test_stmt_as_object(self):
+        guid = str(uuid.uuid4())
+        stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Statement', 'verb': 'punched', 'object': {'objectType':'activity', 'id':'http://testex.com'} }}))
+
+        outer_stmt = models.statement.objects.get(id=stmt.statement.id)
+        inner_stmt = models.statement.objects.get(id=outer_stmt.stmt_object.id)
+        inner_act = models.activity.objects.get(id=inner_stmt.stmt_object.id)
+
+        self.assertEqual(outer_stmt.verb, 'kicked')
+        self.assertEqual(inner_stmt.verb, 'punched')
+        self.assertEqual(inner_act.activity_id, 'http://testex.com')
+
+    # def test_group_as_object(self):
+    #     guid = str(uuid.uuid4())
+    #     stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Group', }}))
+
+    #     outer_stmt = models.statement.objects.get(id=stmt.statement.id)
+    #     inner_stmt = models.statement.objects.get(id=outer_stmt.stmt_object.id)
+    #     inner_act = models.activity.objects.get(id=inner_stmt.stmt_object.id)
+
+    #     self.assertEqual(outer_stmt.verb, 'kicked')
+    #     self.assertEqual(inner_stmt.verb, 'punched')
+    #     self.assertEqual(inner_act.activity_id, 'http://testex.com')
+        
+
 
     def test_model_authoritative_set(self):
         stmt = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"created", "object": {"id":"activity"}}))
