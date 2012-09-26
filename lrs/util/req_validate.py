@@ -8,23 +8,22 @@ import base64
 import ast
 import pdb
 
+import pprint
+
 def basic_http_auth(f):
-    def wrap(request, *args, **kwargs):
-        if request.method == 'POST' and not request.META['CONTENT_TYPE'] == 'application/json':
-            return f(request, *args, **kwargs)
+    def wrap(r, *args, **kwargs):
+        if r['method'] == 'POST' and not r['CONTENT_TYPE'] == 'application/json':
+            return f(r, *args, **kwargs)
         else:
-            if 'HTTP_AUTHORIZATION' in request.META or 'Authorization' in request.META:
-                try:
-                    authtype, auth = request.META['HTTP_AUTHORIZATION'].split(' ')
-                except KeyError:
-                    authtype, auth = request.META['Authorization'].split(' ')
+            if 'Authorization' in r:
+                authtype, auth = r['Authorization'].split(' ')
                 auth = base64.b64decode(auth)
                 username, password = auth.split(':')
                 user = authenticate(username=username, password=password)
 
                 if user is not None:
-                    request.user = user
-                    return f(request, *args, **kwargs)
+                    r['user'] = user
+                    return f(r, *args, **kwargs)
                     
             raise NotAuthorizedException("Auth Required")
         
@@ -37,33 +36,26 @@ class NotAuthorizedException(Exception):
         return repr(self.message)
 
 @basic_http_auth
-def statements_post(request):
-    # TODO: more elegant way of doing this?
-    req_dict = {}
-
-    if request.META['CONTENT_TYPE'] == "application/json":
-        body = request.body
-        jsn = body.replace("'", "\"")
-        raw = request.raw_post_data.replace("'", "\"")
-
-        # spec not quite clear, assuming if the type is json it's a real POST
-        req_dict = get_dict(request)
-        return req_dict, request.user
+def statements_post(r_dict):
+    if r_dict['CONTENT_TYPE'] == "application/json":
+        r_dict['raw_post_data'].replace("'", "\"")
+        r_dict.update(json.loads(r_dict['raw_post_data']))
+        return r_dict
     else:
-        return ast.literal_eval(request.raw_post_data)
+        r_dict['method'] = 'GET'
+        r_dict['body'] = ast.literal_eval(r_dict['raw_post_data'])
+        return r_dict
 
-def statements_get(request):
-    # pdb.set_trace()
-    return request.GET
+def statements_get(r_dict):
+    return r_dict
 
 @basic_http_auth
-def statements_put(request):
-    req_dict = get_dict(request)
+def statements_put(r_dict):
     try:
-        req_dict['body']['statementId']
+        r_dict['body']['statementId']
     except KeyError:
-        raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % request.method)
-    return req_dict, request.user
+        raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method'])
+    return r_dict
 
 
 @basic_http_auth
@@ -84,7 +76,7 @@ def activity_state_put(r_dict):
     if 'raw_post_data' not in r_dict:
         raise ParamError("Could not find the profile")
     r_dict['state'] = r_dict.pop('raw_post_data')
-    return req_dict
+    return r_dict
 
 
 def activity_state_get(r_dict):

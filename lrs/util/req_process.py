@@ -7,31 +7,33 @@ import uuid
 import pdb
 import retrieve_statement
 
+import pprint
+
 def statements_post(req_dict):
     #TODO: more elegant way of doing this?
-    if type(req_dict) is dict:
-        stmtList = retrieve_statement.complexGet(req_dict)
+    if req_dict['method'] == 'GET': #type(req_dict) is dict:
+        stmtList = retrieve_statement.complexGet(req_dict['body'])
         # pdb.set_trace()
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(),stmtList)
         return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
     else:
         stmtResponses = []
-        if not type(req_dict[0]['body']) is list:
-            stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+        if not type(req_dict['body']) is list:
+            stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
             stmtResponses.append(str(stmt.statement_id))
         else:
-            for st in req_dict[0]['body']:
-                stmt = Statement.Statement(st, auth=req_dict[1]).statement
+            for st in req_dict['body']:
+                stmt = Statement.Statement(st, auth=req_dict['user']).statement
                 stmtResponses.append(str(stmt.statement_id))
         # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
         return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
-    statementId = req_dict[0]['body']['statementId']
+    statementId = req_dict['body']['statementId']
     try:
         stmt = models.statement.objects.get(statement_id=statementId)
     except models.statement.DoesNotExist:
-        stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement        
+        stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement        
         return HttpResponse("StatementID = %s" % statementId, status=200)
     else:
         return HttpResponse("Error: %s already exists" % statementId, status=204)

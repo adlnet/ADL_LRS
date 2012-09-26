@@ -75,10 +75,6 @@ def statements_more(request, more_id):
 def statements(request):
     try: 
         resp = handle_request(request)
-    except req_validate.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
