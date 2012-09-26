@@ -325,8 +325,8 @@ def convert_stmt_object_field_name(returnDict):
 
 def objsReturn(obj):
     ret = {}
-    # pdb.set_trace()
-    # If the object being sent in is derived from a statement_object, must retrieve the specific object
+
+    # If the object being sent in is derived from a statement_object, must retrieve the specific object then loop through all of it's fields
     if type(obj).__name__ == 'statement_object':
         try:
             obj = activity.objects.get(id=obj.id)
@@ -343,10 +343,26 @@ def objsReturn(obj):
     for field in obj._meta.fields:
         # Get the value of the field and the type of the field
         fieldValue = getattr(obj, field.name)
-        objType = type(fieldValue).__name__.lower()
+        fieldType = type(fieldValue).__name__.lower()
         
+        # Set fieldType and fieldValue when receiving statement_object that is a FK
+        if fieldType == 'statement_object':
+            try:
+                fieldValue = activity.objects.get(id=fieldValue.id)
+                fieldType = 'activity'
+            except Exception, e:
+                try:
+                    fieldValue = agent.objects.get(id=fieldValue.id)
+                    fieldType = 'agent'
+                except Exception, e:
+                    try:
+                        fieldValue = statement.objects.get(id=fieldValue.id)
+                        fieldType = 'statement'
+                    except Exception, e:
+                        raise e
+
         # If type of field is agent, need to retrieve all FKs associated with it
-        if objType == 'agent':
+        if fieldType == 'agent':
             # Check to see if the agent is of type Person
             if fieldValue.objectType == 'Person':
                 ret[field.name] = {}
@@ -395,7 +411,7 @@ def objsReturn(obj):
                     ret[field.name]['account'] = [k for k in accounts]
                 
         # If type of field is result
-        elif objType == 'result':
+        elif fieldType == 'result':
             # Call recursively, send in result object
             ret[field.name] = objsReturn(getattr(obj, field.name))
             # Once done with result object, get result extensions
@@ -405,7 +421,7 @@ def objsReturn(obj):
                 ret[field.name]['extensions'][ext.key] = ext.value                
         
         # If type of field is context
-        elif objType == 'context':
+        elif fieldType == 'context':
             # Call recursively, send in context object
             ret[field.name] = objsReturn(getattr(obj, field.name))
             # Once done with context object, get context extensions
@@ -415,7 +431,7 @@ def objsReturn(obj):
                 ret[field.name]['extensions'][ext.key] = ext.value
         
         # If type of field is activity_definition, need to grab all FKs associated with object
-        elif objType == 'activity_definition':
+        elif fieldType == 'activity_definition':
             # Call recursively, send in act_def object
             ret[field.name] = objsReturn(getattr(obj, field.name))
             # Get scales
@@ -450,7 +466,7 @@ def objsReturn(obj):
                     ret[field.name]['target'].append(str(t.objReturn()))
         
         # If type of field is activity_def_crp, grab all FKs associated with it
-        elif objType == 'activity_def_correctresponsespattern':
+        elif fieldType == 'activity_def_correctresponsespattern':
             ret[field.name] = []
             # Get answers
             answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=fieldValue)
@@ -467,6 +483,20 @@ def objsReturn(obj):
                         ret[field.name] = objsReturn(getattr(obj, field.name))
             # If ForeignKey and if it has a value recursively send object
             elif field.get_internal_type() == 'ForeignKey':
+                # pdb.set_trace()
+                # If the object being sent in is derived from a statement_object, must retrieve the specific object
+                if fieldType == 'statement_object':
+                    try:
+                        obj = activity.objects.get(id=obj.id)
+                    except Exception, e:
+                        try:
+                            obj = agent.objects.get(id=obj.id)
+                        except Exception, e:
+                            try:
+                                obj = statement.objects.get(id=obj.id)
+                            except Exception, e:
+                                raise e
+
                 if getattr(obj, field.name):
                     ret[field.name] = objsReturn(getattr(obj, field.name))
             # Return DateTime as string

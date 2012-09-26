@@ -10,6 +10,7 @@ from Activity import Activity
 from Actor import Actor
 from functools import wraps
 from django.utils.timezone import utc
+import pdb
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -25,7 +26,6 @@ class default_on_exception(object):
 
 
 class Statement():
-
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None,get=False):
@@ -171,9 +171,6 @@ class Statement():
             #Throw exception b/c failed and success contradict each other or completion is false
             raise Exception('Result success must be False if verb is ' + verb)
 
-        #Validate response
-        # self._validateResultResponse(result, obj_data)
-
     #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
     def _validateScoreResult(self, score_data):
         pass
@@ -219,6 +216,7 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
+        # pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -315,6 +313,39 @@ class Statement():
         if 'voided' in stmt_data:
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
+        
+        #If not specified, the object is assumed to be an activity
+        if not 'objectType' in statementObjectData:
+            statementObjectData['objectType'] = 'Activity'
+
+        valid_agent_objects = ['agent', 'person', 'group']
+        #Check to see if voiding statement
+        if args['verb'] == 'voided':
+            #objectType must be statement if want to void another statement
+            if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
+                voidedStmt = self._voidStatement(statementObjectData['id'])
+                args['stmt_object'] = voidedStmt
+        #If verb is imported then create either the actor or activity it is importing              
+        elif args['verb'] == 'imported':
+            if statementObjectData['objectType'].lower() == 'activity':
+                importedActivity = Activity(json.dumps(statementObjectData)).activity
+                args['stmt_object'] = importedActivity
+            elif statementObjectData['objectType'].lower() in valid_agent_objects:
+                importedActor = Actor(json.dumps(statementObjectData), create=True).agent
+                args['stmt_object'] = importedActor
+        else:
+            # pdb.set_trace()
+            # TODO: CHECK IF GROUP AND STMT
+            # Check objectType, get object based on type
+            if statementObjectData['objectType'].lower() == 'activity':        
+                args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
+            elif statementObjectData['objectType'].lower() in valid_agent_objects:
+                args['stmt_object'] = Actor(json.dumps(statementObjectData), create=True).agent
+            elif statementObjectData['objectType'].lower() == 'statement':
+                args['stmt_object'] = Statement(json.dumps(statementObjectData)).statement  
+
+
+
 
         #Retrieve actor if in JSON only for now
         if 'actor' in stmt_data:
@@ -335,16 +366,6 @@ class Statement():
 
         #Set voided to default false
         args['voided'] = False
-
-        #If not specified, the object is assumed to be an activity
-        if not 'objectType' in statementObjectData:
-        	statementObjectData['objectType'] = 'Activity'
-
-        #Check objectType, get object based on type
-        if statementObjectData['objectType'] == 'Activity' and not args['verb'] == 'imported':        
-            args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
-        elif statementObjectData['objectType'] == 'Person' and not args['verb'] == 'imported':
-            args['stmt_object'] = Actor(json.dumps(statementObjectData), create=True).agent	
 
         #Set result when present - result object can be string or JSON object
         if 'result' in stmt_data:
@@ -367,21 +388,6 @@ class Statement():
                 authArgs['mbox'] = [auth.email]
                 args['authority'] = Actor(json.dumps(authArgs), create=True).agent
 
-        #Check to see if voiding statement
-        if args['verb'] == 'voided':
-        	#objectType must be statement if want to void another statement
-        	if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
-        		voidedStmt = self._voidStatement(statementObjectData['id'])
-                args['stmt_object'] = voidedStmt
-        #If verb is imported then create either the actor or activity it is importing
-                
-        if args['verb'] == 'imported':
-            if statementObjectData['objectType'].lower() == 'activity':
-                importedActivity = Activity(json.dumps(statementObjectData)).activity
-                args['stmt_object'] = importedActivity
-            elif statementObjectData['objectType'].lower() == 'person':
-                importedActor = Actor(json.dumps(statementObjectData), create=True).agent
-                args['stmt_object'] = importedActor
 
         #See if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:
