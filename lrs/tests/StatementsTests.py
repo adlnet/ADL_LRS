@@ -28,6 +28,7 @@ class StatementsTests(TestCase):
         self.guid5 = str(uuid.uuid4())
         self.guid6 = str(uuid.uuid4())
         self.guid7 = str(uuid.uuid4())
+        self.guid8 = str(uuid.uuid4())        
         self.cguid1 = str(uuid.uuid4())
         self.cguid2 = str(uuid.uuid4())    
         self.cguid3 = str(uuid.uuid4())
@@ -65,8 +66,8 @@ class StatementsTests(TestCase):
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']} , 'extensions':{'ckey111': 'cval111',
-            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'objectType': 'Agent', 'name':['bob'], 'mbox':['bob@bob.com'], 'account':[{'accountServiceHomePage':'http://example.com','accountName':'bobacct'}], 'openid':['bobopenid']}, 
+            'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
         self.existStmt4 = json.dumps({"statement_id":self.guid4,
             "verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
@@ -76,8 +77,8 @@ class StatementsTests(TestCase):
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
-            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com'],'givenName':['william'], 'familyName':['smith'],
+            'firstName':['billy'], 'lastName':['smith']},'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
 
         self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
             "verb":"passed"})
@@ -85,24 +86,27 @@ class StatementsTests(TestCase):
         self.existStmt6 = json.dumps({"statement_id":self.guid6,"actor": {'objectType':'Person','name':['max'],'mbox':['max@max.com'],'givenName':['maximus'],
             'familyName':['zeus'], 'firstName':['maximus'], 'lastName':['zeus']}, "object":{'id': 'test_activity'},"verb":"talked"})
 
-        self.existStmt7 = json.dumps({"statement_id":self.guid7,'object': {'objectType':'Person','name':['max'],'mbox':['max@max.com'],'account':['maxacct'],
-            'openid':['zeusopenid']}, 'verb': 'watched'})
+        self.existStmt7 = json.dumps({"statement_id":self.guid7,'object': {'objectType':'Person','name':['max'],'mbox':['max@max.com'],'givenName':['maximus'],
+            'familyName':['amillion'], 'firstName':['max'], 'lastName':['amillion']}, 'verb': 'watched'})
 
+        self.existStmt8 = json.dumps({"statement_id":self.guid8,'object': {'objectType':'Agent','name':['john'],'mbox':['john@john.com'],'account':[{'accountServiceHomePage':'http://john.com','accountName':'johnacct'}],
+            'openid':['johnopenid']}, 'verb': 'watched'})
 
         # Post statements
-        # self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", Authorization=self.auth)
-        # time.sleep(1)
+        self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", Authorization=self.auth)
+        time.sleep(1)
 
-        # self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", Authorization=self.auth)
-        # self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", Authorization=self.auth)
+        self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", Authorization=self.auth)
+        self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", Authorization=self.auth)
         
-        # self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        # time.sleep(2)
+        self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+        time.sleep(2)
 
-        # self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", Authorization=self.auth)
-        # self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", Authorization=self.auth)
-        # self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", Authorization=self.auth)
+        self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", Authorization=self.auth)
+        self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", Authorization=self.auth)
+        self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", Authorization=self.auth)
         self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", Authorization=self.auth)
+        self.postresponse8 = self.client.post(reverse(views.statements), self.existStmt8,  content_type="application/json", Authorization=self.auth)
         
 
     def test_post_with_no_valid_params(self):
@@ -162,18 +166,24 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(act.activity_id, "test_put")
 
+    def test_no_content_put(self):
+        stmt = json.dumps({"statementId": "putID"})
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+
+        self.assertEqual(response.status_code, 204)
+
     def test_existing_stmtID_put(self):
         existStmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
         stmt = json.dumps({"statementId": "blahID","verb":"created","object": {"id":"test_put"}})
         response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         
-        self.assertEqual(response.status_code, 204)        
+        self.assertEqual(response.status_code, 409)        
 
     def test_missing_stmtID_put(self):        
         stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
         response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
 
-        self.assertContains(response, "Error -- statements - method = PUT, but statementId paramater is missing")
+        self.assertContains(response, "Error -- statements - method = PUT, but statementId parameter is missing")
 
     def test_get(self):
         guid = str(uuid.uuid4())
@@ -191,6 +201,7 @@ class StatementsTests(TestCase):
         
 
         response = self.client.get(reverse(views.statements), {'statementId': guid})
+        # print response.content
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'jon')
         self.assertContains(response, 'created')
@@ -330,13 +341,13 @@ class StatementsTests(TestCase):
         sparseGetResponse = self.client.post(reverse(views.statements),{'sparse': False}, content_type="application/x-www-form-urlencoded")
         # print sparseGetResponse.content
         self.assertEqual(sparseGetResponse.status_code, 200)
-        # self.assertContains(sparseGetResponse, 'activity_definition')        
-        # self.assertContains(sparseGetResponse, 'firstName')
-        # self.assertContains(sparseGetResponse, 'lastName')
-        # self.assertContains(sparseGetResponse, 'givenName')
-        # self.assertContains(sparseGetResponse, 'familyName')
-        # self.assertContains(sparseGetResponse, 'account')
-        # self.assertContains(sparseGetResponse, 'openid')
+        self.assertContains(sparseGetResponse, 'activity_definition')        
+        self.assertContains(sparseGetResponse, 'firstName')
+        self.assertContains(sparseGetResponse, 'lastName')
+        self.assertContains(sparseGetResponse, 'givenName')
+        self.assertContains(sparseGetResponse, 'familyName')
+        self.assertContains(sparseGetResponse, 'account')
+        self.assertContains(sparseGetResponse, 'openid')
 
 
 
