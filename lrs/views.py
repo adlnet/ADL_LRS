@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from lrs.util import req_parse, req_process, etag, retrieve_statement
+from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement
 from lrs import forms, models
 from objects import Actor, Activity
 import logging
@@ -75,16 +75,16 @@ def statements_more(request, more_id):
 def statements(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
+    except req_validate.ParamError as err:
         return HttpResponse(err.message)
     except req_process.ProcessError as err:
         return HttpResponse(err.message)
-    except req_parse.NotAuthorizedException as autherr:
+    except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=400)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
     
 
@@ -98,7 +98,7 @@ def activity_state(request):
         return HttpResponse(epf.message, status=412)
     except Actor.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
-    except req_parse.NotAuthorizedException as autherr:
+    except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
@@ -117,7 +117,7 @@ def activity_profile(request):
         return HttpResponse(epf.message, status=412)
     except Activity.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
-    except req_parse.NotAuthorizedException as autherr:
+    except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
@@ -130,11 +130,11 @@ def activity_profile(request):
 def activities(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
+    except req_validate.ParamError as err:
         return HttpResponse(err.message)
     except req_process.ProcessError as err:
         return HttpResponse(err.message)
-    except req_parse.NotAuthorizedException as autherr:
+    except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
@@ -153,7 +153,7 @@ def actor_profile(request):
         return HttpResponse(epf.message, status=412)
     except Actor.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
-    except req_parse.NotAuthorizedException as autherr:
+    except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
@@ -169,7 +169,7 @@ def actors(request):
         resp = handle_request(request)
     except Actor.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
-    except req_parse.NotAuthorizedException as autherr:
+    except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
@@ -179,42 +179,43 @@ def actors(request):
 
 def handle_request(request):
     try:
+        r_dict = req_parse.parse(request)
         path = request.path
         if path.endswith('/'):
             path = path.rstrip('/')
-        req_dict = parsers[path][request.method](request)
+        req_dict = validators[path][request.method](r_dict)
         # Depending on if authentication is required, req_dict will either be a dict containing the request info
         # or a list with the request info dict being the first item, with the auth info being the second item
         return processors[path][request.method](req_dict)
     except:
         raise 
 
-parsers = {
+validators = {
     reverse(statements) : {
-        "POST" : req_parse.statements_post,
-        "GET" : req_parse.statements_get,
-        "PUT" : req_parse.statements_put
+        "POST" : req_validate.statements_post,
+        "GET" : req_validate.statements_get,
+        "PUT" : req_validate.statements_put
     },
     reverse(activity_state) : {
-        "PUT" : req_parse.activity_state_put,
-        "GET" : req_parse.activity_state_get,
-        "DELETE" : req_parse.activity_state_delete
+        "PUT" : req_validate.activity_state_put,
+        "GET" : req_validate.activity_state_get,
+        "DELETE" : req_validate.activity_state_delete
     },
     reverse(activity_profile) : {
-        "PUT" : req_parse.activity_profile_put,
-        "GET" : req_parse.activity_profile_get,
-        "DELETE" : req_parse.activity_profile_delete
+        "PUT" : req_validate.activity_profile_put,
+        "GET" : req_validate.activity_profile_get,
+        "DELETE" : req_validate.activity_profile_delete
     },
     reverse(activities) : {
-        "GET" : req_parse.activities_get
+        "GET" : req_validate.activities_get
     },
     reverse(actor_profile) : {
-        "PUT" : req_parse.actor_profile_put,
-        "GET" : req_parse.actor_profile_get,
-        "DELETE" : req_parse.actor_profile_delete
+        "PUT" : req_validate.actor_profile_put,
+        "GET" : req_validate.actor_profile_get,
+        "DELETE" : req_validate.actor_profile_delete
     },
    reverse(actors) : {
-       "GET" : req_parse.actors_get
+       "GET" : req_validate.actors_get
    }
 }
 

@@ -90,18 +90,18 @@ class StatementsTests(TestCase):
 
 
         # Post statements
-        # self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", Authorization=self.auth)
-        # time.sleep(1)
+        self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", Authorization=self.auth)
+        time.sleep(1)
 
-        # self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", Authorization=self.auth)
-        # self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", Authorization=self.auth)
+        self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", Authorization=self.auth)
+        self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", Authorization=self.auth)
         
-        # self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        # time.sleep(2)
+        self.secondTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+        time.sleep(2)
 
-        # self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", Authorization=self.auth)
-        # self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", Authorization=self.auth)
-        # self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", Authorization=self.auth)
+        self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", Authorization=self.auth)
+        self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", Authorization=self.auth)
+        self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", Authorization=self.auth)
         self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", Authorization=self.auth)
         
 
