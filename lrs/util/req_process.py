@@ -44,9 +44,9 @@ def statements_get(req_dict):
     try:
         statementId = req_dict['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)
-        # data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
-        statementResult['statements'] = json.dumps(st.get_full_statement_json())
-        # return HttpResponse(data, mimetype="application/json")
+        stmt_data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
+        # statementResult['statements'] = st.get_full_statement_json()
+        return HttpResponse(stmt_data, mimetype="application/json", status=200)
     except:
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)

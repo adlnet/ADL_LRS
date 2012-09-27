@@ -101,9 +101,7 @@ def complexGet(req_dict):
             cntxList = models.context.objects.filter(instructor=instructor)
             args['context__in'] = cntxList
 
-    # there's a default of true
-    # pdb.set_trace()
-    
+    # there's a default of true    
     if not 'authoritative' in req_dict or str(req_dict['authoritative']).upper() == 'TRUE':
         args['authoritative'] = True
 

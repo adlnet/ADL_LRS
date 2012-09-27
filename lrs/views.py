@@ -79,6 +79,10 @@ def statements(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except req_validate.ParamConflictError as err:
+        return HttpResponse(err.message, status=409)
+    except req_validate.NoParamsError as err:
+        return HttpResponse(err.message, status=204)
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
