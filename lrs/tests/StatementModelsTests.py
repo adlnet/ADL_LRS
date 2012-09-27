@@ -471,7 +471,7 @@ class StatementModelsTests(TestCase):
 
     def test_stmt_as_object(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Statement', 'verb': 'punched', 'object': {'objectType':'activity', 'id':'http://testex.com'} }}))
+        stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Statement', 'verb': 'punched', 'object': {'objectType':'activity', 'id':'testex.com'} }}))
 
         outer_stmt = models.statement.objects.get(id=stmt.statement.id)
         inner_stmt = models.statement.objects.get(id=outer_stmt.stmt_object.id)
@@ -479,7 +479,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(outer_stmt.verb, 'kicked')
         self.assertEqual(inner_stmt.verb, 'punched')
-        self.assertEqual(inner_act.activity_id, 'http://testex.com')
+        self.assertEqual(inner_act.activity_id, 'testex.com')
 
     # def test_group_as_object(self):
     #     guid = str(uuid.uuid4())

@@ -11,6 +11,7 @@ from datetime import datetime
 from django.utils.timezone import utc
 from lrs.objects import Actor, Activity, Statement
 import time
+import urllib
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -157,27 +158,57 @@ class StatementsTests(TestCase):
         self.assertEqual(actorMbox.mbox, 'test1@tester.com')
 
     def test_put(self):
-        stmt = json.dumps({"statementId": "putID","verb":"created","object": {"id":"test_put"}})
-        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        guid = str(uuid.uuid4())
+
+        param = {"statementId":guid}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
+
+        putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
         act = models.activity.objects.get(activity_id="test_put")
         actorName = models.agent_name.objects.get(name='tester1')
         actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
-
-        self.assertEqual(response.status_code, 200)
+        stmt = models.statement.objects.get(statement_id=guid)
+        
+        self.assertEqual(stmt.verb, 'created')
+        self.assertEqual(putResponse.status_code, 200)
         self.assertEqual(act.activity_id, "test_put")
 
-    def test_no_content_put(self):
-        stmt = json.dumps({"statementId": "putID"})
-        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+    def test_put_url_param(self):
+        guid = str(uuid.uuid4())
+        
+        param = {"statementId":guid}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        stmt = {"verb":"created","object": {"id":"test_put"}}
+        
+        putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(putResponse.status_code, 200)
+        stmt = models.statement.objects.get(statement_id=guid)
+        self.assertEqual(stmt.verb, 'created')
 
-        self.assertEqual(response.status_code, 204)
+    def test_no_content_put(self):
+        guid = str(uuid.uuid4())
+        
+        param = {"statementId":guid}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        stmt = json.dumps({})
+
+        putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+
+        self.assertEqual(putResponse.status_code, 204)
 
     def test_existing_stmtID_put(self):
-        existStmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
-        stmt = json.dumps({"statementId": "blahID","verb":"created","object": {"id":"test_put"}})
-        response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        guid = str(uuid.uuid4())
+
+        existStmt = Statement.Statement(json.dumps({"statement_id":guid,"verb":"created", "object": {"id":"activity"}}))
+
+        param = {"statementId":guid}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        stmt = json.dumps({"verb": "attached", "object":{"id":"test_existing_put"}})
+
+        putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
         
-        self.assertEqual(response.status_code, 409)        
+        self.assertEqual(putResponse.status_code, 409)        
 
     def test_missing_stmtID_put(self):        
         stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
@@ -186,48 +217,25 @@ class StatementsTests(TestCase):
         self.assertContains(response, "Error -- statements - method = PUT, but statementId parameter is missing")
 
     def test_get(self):
-        guid = str(uuid.uuid4())
-        cguid = str(uuid.uuid4())
-        time = str(datetime.now())                
-        bob = Actor.Actor(json.dumps({'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}),create=True)
-        existStmt = Statement.Statement(json.dumps({"statement_id":guid, "actor":{'objectType':'Person','name':['jon1'],'mbox':['jon1@example.com']} ,
-            "verb":"created", "object": {'objectType': 'Activity', 'id':'foog',
-                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
-                'interactionType': 'fill-in','correctResponsesPattern': ['Fill in answer'],
-                'extensions': {'key1': 'value1', 'key2': 'value2',
-                'key3': 'value3'}}}, "result": {'score':{'scaled':.95}, 'completion': True, 'success': True, 'response': 'kicked', 'duration': time, 'extensions':{'key1': 'value1', 'key2':'value2'}},
-            'context':{'registration': cguid, 'contextActivities': {'other': {'id': 'NewActivityID'}}, 'revision': 'foo', 'platform':'bar',
-                'language': 'en-US', 'extensions':{'ckey1': 'cval1', 'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}}))        
-        
+        param = {"statementId":self.guid1}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        getResponse = self.client.get(path)
 
-        response = self.client.get(reverse(views.statements), {'statementId': guid})
-        # print response.content
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'jon')
-        self.assertContains(response, 'created')
-        self.assertContains(response, 'foog')
-        self.assertContains(response, 'testname2')
-        self.assertContains(response, 'Fill in answer')
-        self.assertContains(response, 'key1')
-        self.assertContains(response, .95)
-        self.assertContains(response, 'NewActivityID')
-        self.assertContains(response, 'kicked')
-        self.assertContains(response, 'bar')
-        self.assertContains(response, 'ckey')
-        self.assertContains(response, 'auth')
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertContains(getResponse, self.guid1)
 
     def test_get_no_statementid(self):
-        response = self.client.get(reverse(views.statements))
-        self.assertEqual(response.status_code, 200)
-        jsn = json.loads(response.content)
+        getResponse = self.client.get(reverse(views.statements))
+        self.assertEqual(getResponse.status_code, 200)
+        jsn = json.loads(getResponse.content)
         self.assertEqual(len(jsn['statements']), models.statement.objects.all().count())
-        # self.assertContains(response, 'Error')
-        # self.assertContains(response, 'statementId parameter is missing')
-
         
     def test_since_filter(self):
         # Test since - should only get existStmt2-4 since existStmt is stored at same time as mytime
-        sinceGetResponse = self.client.get(reverse(views.statements), {'since': self.mytime})
+        param = {'since': self.mytime}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        sinceGetResponse = self.client.get(path)
+
         self.assertEqual(sinceGetResponse.status_code, 200)
         self.assertContains(sinceGetResponse, self.postresponse2.content)
         self.assertContains(sinceGetResponse, self.postresponse3.content)
@@ -238,7 +246,10 @@ class StatementsTests(TestCase):
 
     def test_until_filter(self):
         # Test until
-        untilGetResponse = self.client.post(reverse(views.statements), {'until': self.secondTime}, content_type="application/x-www-form-urlencoded")
+        param = {'until': self.secondTime}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        untilGetResponse = self.client.get(path)
+        
         self.assertEqual(untilGetResponse.status_code, 200)
         self.assertContains(untilGetResponse, self.postresponse1.content)
         self.assertContains(untilGetResponse, self.postresponse3.content)
@@ -249,7 +260,10 @@ class StatementsTests(TestCase):
 
     def test_activity_object_filter(self):
         # Test activity object
-        activityObjectGetResponse = self.client.get(reverse(views.statements), {'object':{'objectType': 'Activity', 'id':'foogie'}})
+        param = {'object':{'objectType': 'Activity', 'id':'foogie'}}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        activityObjectGetResponse = self.client.get(path)
+
         self.assertEqual(activityObjectGetResponse.status_code, 200)
         self.assertContains(activityObjectGetResponse, self.postresponse1.content)
         self.assertContains(activityObjectGetResponse, self.postresponse2.content)
@@ -259,7 +273,10 @@ class StatementsTests(TestCase):
 
     def test_no_actor(self):
         # Test actor object
-        actorObjectGetResponse = self.client.get(reverse(views.statements), {"object":{"objectType": "person", 'mbox':['nobody@example.com']}})
+        param = {"object":{"objectType": "person", 'mbox':['nobody@example.com']}}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        actorObjectGetResponse = self.client.get(path)
+        
         self.assertEqual(actorObjectGetResponse.status_code, 200)
         stmts = json.loads(actorObjectGetResponse.content)
         dbstmts = models.statement.objects.all()
@@ -267,7 +284,10 @@ class StatementsTests(TestCase):
 
     def test_actor_object_filter(self):
         # Test actor object
-        actorObjectGetResponse = self.client.get(reverse(views.statements), {"object":{"objectType": "person", 'name':['jon'],'mbox':['jon@jon.com']}})
+        param = {"object":{"objectType": "person", 'name':['jon'],'mbox':['jon@jon.com']}}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        actorObjectGetResponse = self.client.get(path)
+        
         self.assertEqual(actorObjectGetResponse.status_code, 200)
         self.assertContains(actorObjectGetResponse, self.postresponse5.content)
         self.assertNotIn(self.postresponse4.content, actorObjectGetResponse)
@@ -278,18 +298,22 @@ class StatementsTests(TestCase):
 
     def test_registration_filter(self):
         # Test Registration
-        registrationGetResponse = self.client.post(reverse(views.statements), {'registration': self.cguid4}, content_type="application/x-www-form-urlencoded")
-        self.assertEqual(registrationGetResponse.status_code, 200)
-        self.assertContains(registrationGetResponse,self.postresponse4.content)
-        self.assertNotIn(self.postresponse2.content, registrationGetResponse)
-        self.assertNotIn(self.postresponse3.content, registrationGetResponse)
-        self.assertNotIn(self.postresponse1.content, registrationGetResponse)
-        self.assertNotIn(self.postresponse5.content, registrationGetResponse)
+        param = {'registration': self.cguid4}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        registrationPostResponse = self.client.get(path)
+
+        self.assertEqual(registrationPostResponse.status_code, 200)
+        self.assertContains(registrationPostResponse,self.postresponse4.content)
+        self.assertNotIn(self.postresponse2.content, registrationPostResponse)
+        self.assertNotIn(self.postresponse3.content, registrationPostResponse)
+        self.assertNotIn(self.postresponse1.content, registrationPostResponse)
+        self.assertNotIn(self.postresponse5.content, registrationPostResponse)
 
 
     def test_actor_filter(self):
         # Test actor
         actorGetResponse = self.client.post(reverse(views.statements), {'actor':{"objectType": "person", 'name':['tester1'],'mbox':['test1@tester.com']}}, content_type="application/x-www-form-urlencoded")
+        
         self.assertEqual(actorGetResponse.status_code, 200)
         self.assertContains(actorGetResponse,self.postresponse1.content)
         self.assertContains(actorGetResponse,self.postresponse2.content)
@@ -322,7 +346,6 @@ class StatementsTests(TestCase):
                     "context":{"registration": str(uuid.uuid4), "contextActivities": {"other": {"id": "NewActivityID2"}}},
                     "authority":{"name":["auth"],"mbox":["mailto:auth@example.com"]}}
         stmt = json.dumps(raw_stmt)
-        #stmt1_resp = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         stmt1_resp = self.client.get(reverse(views.statements), raw_stmt)
         self.assertEqual(stmt1_resp.status_code, 200)
         stmts = json.loads(stmt1_resp.content)
@@ -353,6 +376,11 @@ class StatementsTests(TestCase):
 
     def test_linked_filters(self):
         # Test reasonable linked query
-        linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':'False', 'sparse': False})
-        self.assertEqual(linkedGetResponse.status_code, 200)
-        self.assertContains(linkedGetResponse, self.postresponse2.content)
+        param = {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':'False', 'sparse': False}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        registrationPostResponse = self.client.get(path)
+
+
+        self.assertEqual(registrationPostResponse.status_code, 200)
+        self.assertContains(registrationPostResponse, self.postresponse2.content)
+

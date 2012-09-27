@@ -334,8 +334,6 @@ class Statement():
                 importedActor = Actor(json.dumps(statementObjectData), create=True).agent
                 args['stmt_object'] = importedActor
         else:
-            # pdb.set_trace()
-            # TODO: CHECK IF GROUP AND STMT
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':        
                 args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity

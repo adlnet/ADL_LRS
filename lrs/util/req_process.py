@@ -27,14 +27,16 @@ def statements_post(req_dict):
         return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
-    statementId = req_dict[0]['body']['statementId']
-    try:
-        stmt = models.statement.objects.get(statement_id=statementId)
-    except models.statement.DoesNotExist:
-        stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement        
-        return HttpResponse("StatementID = %s" % statementId, status=200)
-    else:
-        return HttpResponse("Error: %s already exists" % statementId, status=204)
+    # pdb.set_trace()
+    returnData = {}
+    # Retrieve ID
+    statementId = req_dict[0]['statementId']
+
+    # Already checked if it exists and it doesn't so add ID to the dict and create stmt
+    req_dict[0]['body']['statement_id'] = statementId 
+    stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement        
+    returnData['StatementID'] = stmt.statement.statement_id
+    return HttpResponse(returnData, mimetype="application/json", status=200)
      
 def statements_get(req_dict):
     # pdb.set_trace()
@@ -43,7 +45,6 @@ def statements_get(req_dict):
         statementId = req_dict['statementId']
         st = Statement.Statement(statement_id=statementId, get=True)
         stmt_data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
-        # statementResult['statements'] = st.get_full_statement_json()
         return HttpResponse(stmt_data, mimetype="application/json", status=200)
     except:
         stmtList = retrieve_statement.complexGet(req_dict)

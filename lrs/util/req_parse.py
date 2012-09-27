@@ -39,9 +39,9 @@ class NotAuthorizedException(Exception):
 
 @basic_http_auth
 def statements_post(request):
+    # pdb.set_trace()
     # TODO: more elegant way of doing this?
     req_dict = {}
-
     if request.META['CONTENT_TYPE'] == "application/json":
         body = request.body
         jsn = body.replace("'", "\"")
@@ -54,7 +54,6 @@ def statements_post(request):
         return ast.literal_eval(request.raw_post_data)
 
 def statements_get(request):
-    # pdb.set_trace()
     return request.GET
 
 def check_for_existing_statementId(stmtID):
@@ -66,21 +65,24 @@ def check_for_existing_statementId(stmtID):
 
 def check_for_no_other_params_supplied(query_dict):
     supplied = True
-    if len(query_dict) <= 1:
+    if len(query_dict) == 0:
         supplied = False
     return supplied
 
 @basic_http_auth
 def statements_put(request):
     req_dict = get_dict(request)
+    # Get ID from URL-throw error if not there
     try:
-        statement_id = req_dict['body']['statementId']
+        statement_id = req_dict['statementId']
     except KeyError:
         raise ParamError("Error -- statements - method = %s, but statementId parameter is missing" % request.method)
     
+    # If ID already exists return conflict
     if check_for_existing_statementId(statement_id):
         raise ParamConflictError("StatementId conflict")
 
+    # Check for other params-if no other params send no content
     if not check_for_no_other_params_supplied(req_dict['body']):
         raise NoParamsError("No Content supplied")
 
