@@ -186,7 +186,7 @@ def handle_request(request):
         req_dict = validators[path][request.method](r_dict)
         # Depending on if authentication is required, req_dict will either be a dict containing the request info
         # or a list with the request info dict being the first item, with the auth info being the second item
-        return processors[path][request.method](req_dict)
+        return processors[path][req_dict['method']](req_dict)
     except:
         raise 
 

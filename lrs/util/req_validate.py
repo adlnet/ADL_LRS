@@ -44,7 +44,8 @@ def statements_post(r_dict):
         return r_dict
     else:
         r_dict['method'] = 'GET'
-        r_dict['body'] = ast.literal_eval(r_dict['raw_post_data'])
+        #r_dict['body'] = ast.literal_eval(r_dict['raw_post_data'])
+        r_dict.update(ast.literal_eval(r_dict['raw_post_data']))
         return r_dict
 
 def statements_get(r_dict):

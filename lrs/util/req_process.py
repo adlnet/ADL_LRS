@@ -12,7 +12,7 @@ import pprint
 def statements_post(req_dict):
     #TODO: more elegant way of doing this?
     if req_dict['method'] == 'GET': #type(req_dict) is dict:
-        stmtList = retrieve_statement.complexGet(req_dict['body'])
+        stmtList = retrieve_statement.complexGet(req_dict)
         # pdb.set_trace()
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(),stmtList)
         return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
