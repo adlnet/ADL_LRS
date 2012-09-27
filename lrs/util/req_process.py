@@ -10,23 +10,16 @@ import retrieve_statement
 import pprint
 
 def statements_post(req_dict):
-    #TODO: more elegant way of doing this?
-    if req_dict['method'] == 'GET': #type(req_dict) is dict:
-        stmtList = retrieve_statement.complexGet(req_dict)
-        # pdb.set_trace()
-        statementResult = retrieve_statement.buildStatementResult(req_dict.copy(),stmtList)
-        return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
+    stmtResponses = []
+    if not type(req_dict['body']) is list:
+        stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
+        stmtResponses.append(str(stmt.statement_id))
     else:
-        stmtResponses = []
-        if not type(req_dict['body']) is list:
-            stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
+        for st in req_dict['body']:
+            stmt = Statement.Statement(st, auth=req_dict['user']).statement
             stmtResponses.append(str(stmt.statement_id))
-        else:
-            for st in req_dict['body']:
-                stmt = Statement.Statement(st, auth=req_dict['user']).statement
-                stmtResponses.append(str(stmt.statement_id))
-        # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
-        return HttpResponse(stmtResponses, status=200)
+    # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
+    return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
     statementId = req_dict['body']['statementId']
