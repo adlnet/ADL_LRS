@@ -39,9 +39,8 @@ class NotAuthorizedException(Exception):
 
 @basic_http_auth
 def statements_post(request):
-    # pdb.set_trace()
-    # TODO: more elegant way of doing this?
     req_dict = {}
+    # Will be posting json data only else it's a 'GET'
     if request.META['CONTENT_TYPE'] == "application/json":
         body = request.body
         jsn = body.replace("'", "\"")

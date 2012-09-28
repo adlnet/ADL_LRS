@@ -8,45 +8,56 @@ import pdb
 import retrieve_statement
 
 def statements_post(req_dict):
-    #TODO: more elegant way of doing this?
+    statementResult = {}
+    # If it is a dict, it doesn't have auth creds and is a 'GET'
     if type(req_dict) is dict:
         stmtList = retrieve_statement.complexGet(req_dict)
-        # pdb.set_trace()
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(),stmtList)
         return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
+    
+    # Contains payload and auth creds to POST
     else:
-        stmtResponses = []
+        # If just POSTing a sinlge stmt (req_dict data will not be in list)
         if not type(req_dict[0]['body']) is list:
             stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
-            stmtResponses.append(str(stmt.statement_id))
+            statementResult['statement ID(s)'] = str(stmt.statement_id)
+        # POSTing multiple stmts
         else:
+            stmtResponses = []
             for st in req_dict[0]['body']:
                 stmt = Statement.Statement(st, auth=req_dict[1]).statement
                 stmtResponses.append(str(stmt.statement_id))
-        # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
-        return HttpResponse(stmtResponses, status=200)
+            statementResult['statement ID(s)'] = stmtResponses
+        return HttpResponse(json.dumps(statementResult, indent=4), status=200)
 
 def statements_put(req_dict):
-    # pdb.set_trace()
-    returnData = {}
+    statementResult = {}
     # Retrieve ID
     statementId = req_dict[0]['statementId']
 
     # Already checked if it exists and it doesn't so add ID to the dict and create stmt
     req_dict[0]['body']['statement_id'] = statementId 
     stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement        
-    returnData['StatementID'] = stmt.statement.statement_id
-    return HttpResponse(returnData, mimetype="application/json", status=200)
+    statementResult['statement ID(s)'] = str(stmt.statement.statement_id)
+    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
      
 def statements_get(req_dict):
-    # pdb.set_trace()
-    statementResult = {}
-    try:
+    # If statementId is in req_dict then it is a single get
+    if 'statementId' in req_dict:
         statementId = req_dict['statementId']
-        st = Statement.Statement(statement_id=statementId, get=True)
-        stmt_data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
-        return HttpResponse(stmt_data, mimetype="application/json", status=200)
-    except:
+        
+        # Try to retrieve stmt, if DNE then return empty else return stmt info
+        try:
+            st = Statement.Statement(statement_id=statementId, get=True)
+        except Exception, e:
+            return HttpResponse(json.dumps([]), mimetype="application/json", status=200)
+        
+        stmt_data = st.get_full_statement_json()
+        return HttpResponse(json.dumps(stmt_data, indent=4), mimetype="application/json", status=200)
+    
+    # If statementId is not in req_dict then it is a complex GET
+    else:
+        statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
     
