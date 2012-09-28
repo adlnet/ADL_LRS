@@ -1,0 +1,236 @@
+from copy import deepcopy # runs slow.. we should only use if necessary
+import json
+from lrs import models
+from lrs.util import etag
+from django.http import MultiPartParser, HttpResponse
+from django.contrib.auth import authenticate
+import StringIO
+import base64
+import ast
+import pdb
+
+import pprint
+
+def basic_http_auth(f):
+    def wrap(r, *args, **kwargs):
+        if r['method'] == 'POST' and not r['CONTENT_TYPE'] == 'application/json':
+            return f(r, *args, **kwargs)
+        else:
+            if 'Authorization' in r:
+                authtype, auth = r['Authorization'].split(' ')
+                auth = base64.b64decode(auth)
+                username, password = auth.split(':')
+                user = authenticate(username=username, password=password)
+
+                if user is not None:
+                    r['user'] = user
+                    return f(r, *args, **kwargs)
+                    
+            raise NotAuthorizedException("Auth Required")
+        
+    return wrap
+
+class NotAuthorizedException(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+@basic_http_auth
+def statements_post(r_dict):
+    if r_dict['CONTENT_TYPE'] == "application/json":
+        r_dict['raw_post_data'].replace("'", "\"")
+        r_dict.update(json.loads(r_dict['raw_post_data']))
+        return r_dict
+    else:
+        r_dict['method'] = 'GET'
+        r_dict.update(ast.literal_eval(r_dict['raw_post_data']))
+        return r_dict
+
+def statements_get(r_dict):
+    return r_dict
+
+def check_for_existing_statement_id(stmt_id):
+    exists = False
+    stmt = models.statement.objects.filter(statement_id=stmt_id)
+    if stmt:
+        exists = True
+    return exists
+
+def check_for_no_other_params_supplied(query_dict):
+    supplied = True
+    if len(query_dict) <= 1:
+        supplied = False
+    return supplied
+
+@basic_http_auth
+def statements_put(r_dict):
+    pdb.set_trace()
+    try:
+        statement_id = r_dict['body']['statementId']
+    except KeyError:
+        raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method'])
+    
+    if check_for_existing_statement_id(statement_id):
+        raise ParamConflictError("StatementId conflict")
+
+    if not check_for_no_other_params_supplied(r_dict['body']):
+        raise NoParamsError("No Content supplied")
+    return r_dict
+
+
+@basic_http_auth
+def activity_state_put(r_dict):
+    try:
+        r_dict['activityId']
+    except KeyError:
+        raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method'])
+    try:
+        r_dict['actor']
+    except KeyError:
+        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % r_dict['method'])
+    try:
+        r_dict['stateId']
+    except KeyError:
+        raise ParamError("Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method'])
+    
+    if 'raw_post_data' not in r_dict:
+        raise ParamError("Could not find the profile")
+    r_dict['state'] = r_dict.pop('raw_post_data')
+    return r_dict
+
+
+def activity_state_get(r_dict):
+    try:
+        r_dict['activityId']
+    except KeyError:
+        raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method'])
+    try:
+        r_dict['actor']
+    except KeyError:
+        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % r_dict['method'])
+    return r_dict
+
+
+@basic_http_auth
+def activity_state_delete(r_dict):
+    try:
+        r_dict['activityId']
+    except KeyError:
+        raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method'])
+    try:
+        r_dict['actor']
+    except KeyError:
+        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % r_dict['method'])
+    return r_dict
+  
+        
+@basic_http_auth
+def activity_profile_put(r_dict):
+    try: 
+        r_dict['activityId']
+    except KeyError:
+        raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method'])
+    
+    try:
+        r_dict['profileId']
+    except KeyError:
+        raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method'])
+    
+    if 'raw_post_data' not in r_dict:
+        raise ParamError("Could not find the profile")
+    r_dict['profile'] = r_dict.pop('raw_post_data')
+    
+    return r_dict
+
+def activity_profile_get(r_dict):
+    try:
+        r_dict['activityId']
+    except KeyError:
+         raise ParamError("Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method'])
+    return r_dict
+
+
+@basic_http_auth
+def activity_profile_delete(r_dict):
+    try:
+        r_dict['activityId']
+    except KeyError:
+         raise ParamError("Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method'])
+    try:
+        r_dict['profileId']
+    except KeyError:
+         raise ParamError("Error -- activity_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method'])
+    return r_dict
+
+
+def activities_get(r_dict):
+    try:
+        r_dict['activityId']
+    except KeyError:
+        raise ParamError("Error -- activities - method = %s, but activityId parameter is missing" % r_dict['method'])
+    return r_dict
+
+@basic_http_auth
+def actor_profile_put(r_dict):
+    try: 
+        r_dict['actor']
+    except KeyError:
+        raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.." % r_dict['method'])
+    try:
+        r_dict['profileId']
+    except KeyError:
+        raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % r_dict['method'])
+    
+    if 'raw_post_data' not in r_dict:
+        raise ParamError("Could not find the profile")
+    r_dict['profile'] = r_dict.pop('raw_post_data')
+    return r_dict
+
+
+def actor_profile_get(r_dict):
+    try: 
+        r_dict['actor']
+    except KeyError:
+        raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.. the actor parameter is required" % r_dict['method'])
+    return r_dict
+
+
+@basic_http_auth
+def actor_profile_delete(r_dict):
+    try: 
+        r_dict['actor']
+    except KeyError:
+        raise ParamError("Error -- actor_profile - method = %s, but no actor parameter.. the actor parameter is required" % r_dict['method'])
+    try:
+        r_dict['profileId']
+    except KeyError:
+        raise ParamError("Error -- actor_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method'])
+    return r_dict
+
+
+def actors_get(r_dict):
+    try: 
+        r_dict['actor']
+    except KeyError:
+        raise ParamError("Error -- actors url, but no actor parameter.. the actor parameter is required")
+    return r_dict
+
+
+class ParamError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+class ParamConflictError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+class NoParamsError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)

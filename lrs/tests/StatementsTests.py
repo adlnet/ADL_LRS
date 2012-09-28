@@ -267,8 +267,8 @@ class StatementsTests(TestCase):
     def test_missing_stmtID_put(self):        
         stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
         response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
-
-        self.assertContains(response, "Error -- statements - method = PUT, but statementId parameter is missing")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(response.content, "Error -- statements - method = PUT, but statementId paramater is missing")
 
     def test_get(self):
         param = {"statementId":self.guid1}

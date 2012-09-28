@@ -6,16 +6,16 @@ IF_NONE_MATCH = "HTTP_IF_NONE_MATCH"
 def create_tag(resource):
     return hashlib.sha1(resource).hexdigest()
 
-def get_etag_info(request, required=True):
+def get_etag_info(headers, required=True):
 	etag = {}
-	etag[IF_MATCH] = request.META.get(IF_MATCH, None)
+	etag[IF_MATCH] = headers.get(IF_MATCH, None)
 	if not etag[IF_MATCH]:
-		etag[IF_MATCH] = request.META.get('if_match', None)
-	etag[IF_NONE_MATCH] = request.META.get(IF_NONE_MATCH, None)
+		etag[IF_MATCH] = headers.get('if_match', None)
+	etag[IF_NONE_MATCH] = headers.get(IF_NONE_MATCH, None)
 	if not etag[IF_NONE_MATCH]:
-		etag[IF_NONE_MATCH] = request.META.get('if_none_match', None)
-	#if required and not etag[IF_MATCH] and not etag[IF_NONE_MATCH]:
-	#	raise MissingEtagInfo("If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
+		etag[IF_NONE_MATCH] = headers.get('if_none_match', None)
+	if required and not etag[IF_MATCH] and not etag[IF_NONE_MATCH]:
+		raise MissingEtagInfo("If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
 	return etag
 
 def check_preconditions(request, contents, required=False):

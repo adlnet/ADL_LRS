@@ -11,6 +11,8 @@ import json
 import pickle
 import pdb
 
+import pprint
+
 MORE_ENDPOINT = '/TCAPI/statements/more/'
 
 def convertToUTC(timestr):
@@ -48,7 +50,6 @@ def complexGet(req_dict):
                 objectData = json.loads(objectData) 
             except Exception, e:
                 objectData = json.loads(objectData.replace("'",'"'))
-        
         if 'objectType' in objectData:
             if objectData['objectType'].lower() == 'activity':
                 try:
@@ -113,8 +114,7 @@ def complexGet(req_dict):
                 sparse = False
         else:
             sparse = req_dict['sparse']
-    
-
+    # pprint.pprint(req_dict)        
     if limit == 0 and 'more_start' not in req_dict:
         # Retrieve statements from DB
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
@@ -126,7 +126,6 @@ def complexGet(req_dict):
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
 
     full_stmt_list = []
-
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
         stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)

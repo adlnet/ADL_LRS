@@ -7,39 +7,33 @@ import uuid
 import pdb
 import retrieve_statement
 
+import pprint
+
 def statements_post(req_dict):
-    statementResult = {}
-    # If it is a dict, it doesn't have auth creds and is a 'GET'
-    if type(req_dict) is dict:
-        stmtList = retrieve_statement.complexGet(req_dict)
-        statementResult = retrieve_statement.buildStatementResult(req_dict.copy(),stmtList)
-        return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
-    
-    # Contains payload and auth creds to POST
+    statement_result = {}
+    # If just POSTing a sinlge stmt (req_dict data will not be in list)
+    if not type(req_dict[0]['body']) is list:
+        stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
+        statement_result['statement ID(s)'] = str(stmt.statement_id)
+    # POSTing multiple stmts
     else:
-        # If just POSTing a sinlge stmt (req_dict data will not be in list)
-        if not type(req_dict[0]['body']) is list:
-            stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement
-            statementResult['statement ID(s)'] = str(stmt.statement_id)
-        # POSTing multiple stmts
-        else:
-            stmtResponses = []
-            for st in req_dict[0]['body']:
-                stmt = Statement.Statement(st, auth=req_dict[1]).statement
-                stmtResponses.append(str(stmt.statement_id))
-            statementResult['statement ID(s)'] = stmtResponses
-        return HttpResponse(json.dumps(statementResult, indent=4), status=200)
+        stmt_responses = []
+        for st in req_dict[0]['body']:
+            stmt = Statement.Statement(st, auth=req_dict[1]).statement
+            stmt_responses.append(str(stmt.statement_id))
+        statement_result['statement ID(s)'] = stmtResponses
+    return HttpResponse(json.dumps(statement_result, indent=4), status=200)    
 
 def statements_put(req_dict):
-    statementResult = {}
+    statement_result = {}
     # Retrieve ID
-    statementId = req_dict[0]['statementId']
+    statement_id = req_dict[0]['statementId']
 
     # Already checked if it exists and it doesn't so add ID to the dict and create stmt
-    req_dict[0]['body']['statement_id'] = statementId 
+    req_dict[0]['body']['statement_id'] = statement_id 
     stmt = Statement.Statement(req_dict[0]['body'], auth=req_dict[1]).statement        
-    statementResult['statement ID(s)'] = str(stmt.statement.statement_id)
-    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
+    statement_result['statement ID(s)'] = str(stmt.statement.statement_id)
+    return HttpResponse(json.dumps(statement_result, indent=4), mimetype="application/json", status=200)
      
 def statements_get(req_dict):
     # If statementId is in req_dict then it is a single get
@@ -57,11 +51,11 @@ def statements_get(req_dict):
     
     # If statementId is not in req_dict then it is a complex GET
     else:
-        statementResult = {}
-        stmtList = retrieve_statement.complexGet(req_dict)
-        statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
+        statement_result = {}
+        stmt_list = retrieve_statement.complexGet(req_dict)
+        statement_result = retrieve_statement.buildStatementResult(req_dict.copy(), stmt_list)
     
-    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
+    return HttpResponse(json.dumps(statement_result, indent=4), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
