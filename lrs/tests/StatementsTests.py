@@ -339,7 +339,6 @@ class StatementsTests(TestCase):
     def test_sparse_filter(self):
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{'sparse': False}, content_type="application/x-www-form-urlencoded")
-        # print sparseGetResponse.content
         self.assertEqual(sparseGetResponse.status_code, 200)
         self.assertContains(sparseGetResponse, 'activity_definition')        
         self.assertContains(sparseGetResponse, 'firstName')

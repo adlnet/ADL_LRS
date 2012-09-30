@@ -107,7 +107,7 @@ def activity_state(request):
     return resp
     
 
-@require_http_methods(["PUT","GET","DELETE"])
+@require_http_methods(["PUT","POST","GET","DELETE"])
 def activity_profile(request):
     try: 
         resp = handle_request(request)
@@ -183,7 +183,7 @@ def handle_request(request):
         path = request.path
         if path.endswith('/'):
             path = path.rstrip('/')
-        req_dict = validators[path][request.method](r_dict)
+        req_dict = validators[path][r_dict['method']](r_dict)
         # Depending on if authentication is required, req_dict will either be a dict containing the request info
         # or a list with the request info dict being the first item, with the auth info being the second item
         return processors[path][req_dict['method']](req_dict)

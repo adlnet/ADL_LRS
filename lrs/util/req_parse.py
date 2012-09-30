@@ -1,25 +1,28 @@
 import json
 from lrs.util import etag
+from django.http import MultiPartParser
+import ast
 
 import pprint
 
 def parse(request):
     r_dict = {}
-    r_dict.update(request.GET.dict())
     r_dict['user'] = request.user
-    r_dict['method'] = request.method
-
-    # is this the IE cors POST thing?
-    if request.GET and 'method' in r_dict:
-        r_dict.update(request.POST.dict())
+    
+    if request.method == 'POST' and 'method' in request.GET:
+        bdy = ast.literal_eval(request.body)
+        r_dict.update(bdy)
         if 'content' in r_dict: # body is in 'content' for the IE cors POST
-            r_dict['body'] = json.loads(r_dict.pop('content').replace("'", "\""))  
+            r_dict['body'] = r_dict.pop('content')
     else:
         r_dict = parse_body(r_dict, request)
-    
+
     r_dict = get_headers(request.META, r_dict)
-    if request.raw_post_data and request.raw_post_data != '':
-        r_dict['raw_post_data'] = request.raw_post_data    
+    r_dict.update(request.GET.dict())
+    
+    if 'method' not in r_dict:
+        r_dict['method'] = request.method
+    
     return r_dict 
 
 def parse_body(r, request):
@@ -31,16 +34,18 @@ def parse_body(r, request):
             r['files'] = files
         else:
             if request.body:
-                body = request.body
-                jsn = body.replace("'", "\"")
                 try:
-                    r['body'] = json.loads(jsn)
+                    r['body'] = ast.literal_eval(request.body)
                 except:
-                    pass
+                    r['body'] = json.loads(request.body)
+            if request.raw_post_data:
+                try:
+                    r['raw_post_data'] = ast.literal_eval(request.raw_post_data)
+                except:
+                    r['raw_post_data'] = json.loads(request.raw_post_data)
     return r
 
 def get_headers(headers, r):
-    # updated 
     if 'HTTP_UPDATED' in headers:
         r['updated'] = headers['HTTP_UPDATED']
     else:

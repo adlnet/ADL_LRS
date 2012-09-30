@@ -1,13 +1,8 @@
-from copy import deepcopy # runs slow.. we should only use if necessary
 import json
 from lrs import models
-from lrs.util import etag
-from django.http import MultiPartParser, HttpResponse
 from django.contrib.auth import authenticate
-import StringIO
 import base64
 import ast
-import pdb
 
 import pprint
 
@@ -38,15 +33,9 @@ class NotAuthorizedException(Exception):
 
 @basic_http_auth
 def statements_post(r_dict):
-    if r_dict['CONTENT_TYPE'] == "application/json":
-        r_dict['raw_post_data'].replace("'", "\"")
-        r_dict.update(json.loads(r_dict['raw_post_data']))
-        return r_dict
-    else:
+    if "application/json" not in r_dict['CONTENT_TYPE']:
         r_dict['method'] = 'GET'
-        #r_dict['body'] = ast.literal_eval(r_dict['raw_post_data'])
-        r_dict.update(ast.literal_eval(r_dict['raw_post_data']))
-        return r_dict
+    return r_dict
 
 def statements_get(r_dict):
     return r_dict
@@ -94,9 +83,9 @@ def activity_state_put(r_dict):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method'])
     
-    if 'raw_post_data' not in r_dict:
+    if 'body' not in r_dict:
         raise ParamError("Could not find the profile")
-    r_dict['state'] = r_dict.pop('raw_post_data')
+    r_dict['state'] = r_dict.pop('body')
     return r_dict
 
 
@@ -137,9 +126,11 @@ def activity_profile_put(r_dict):
     except KeyError:
         raise ParamError("Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method'])
     
-    if 'raw_post_data' not in r_dict:
+    if 'body' not in r_dict:
         raise ParamError("Could not find the profile")
-    r_dict['profile'] = r_dict.pop('raw_post_data')
+
+    bdy = r_dict.pop('body')
+    r_dict['profile'] = bdy #json.dumps([i.values()[::-1] for i in bdy])
     
     return r_dict
 
@@ -182,9 +173,9 @@ def actor_profile_put(r_dict):
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % r_dict['method'])
     
-    if 'raw_post_data' not in r_dict:
+    if 'body' not in r_dict:
         raise ParamError("Could not find the profile")
-    r_dict['profile'] = r_dict.pop('raw_post_data')
+    r_dict['profile'] = r_dict.pop('body')
     return r_dict
 
 
