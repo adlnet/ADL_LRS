@@ -22,25 +22,27 @@ def statements_post(req_dict):
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
-    statementId = req_dict['body']['statementId']
-    try:
-        stmt = models.statement.objects.get(statement_id=statementId)
-    except models.statement.DoesNotExist:
-        stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement        
-        return HttpResponse("StatementID = %s" % statementId, status=200)
-    else:
-        return HttpResponse("Error: %s already exists" % statementId, status=204)
+    req_dict['body']['statement_id'] = req_dict['statementId']
+    stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement        
+    return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
-    # pdb.set_trace()
-    statementResult = {}
-    try:
+    # If statementId is in req_dict then it is a single get
+    if 'statementId' in req_dict:
         statementId = req_dict['statementId']
-        st = Statement.Statement(statement_id=statementId, get=True)
-        stmt_data = json.dumps(st.get_full_statement_json(), indent=4, sort_keys=True)
-        # statementResult['statements'] = st.get_full_statement_json()
-        return HttpResponse(stmt_data, mimetype="application/json", status=200)
-    except:
+        
+        # Try to retrieve stmt, if DNE then return empty else return stmt info
+        try:
+            st = Statement.Statement(statement_id=statementId, get=True)
+        except Exception, e:
+            return HttpResponse(json.dumps([]), mimetype="application/json", status=200)
+        
+        stmt_data = st.get_full_statement_json()
+        return HttpResponse(json.dumps(stmt_data, indent=4), mimetype="application/json", status=200)
+    
+    # If statementId is not in req_dict then it is a complex GET
+    else:
+        statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
     
