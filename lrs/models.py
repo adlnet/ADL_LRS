@@ -155,17 +155,19 @@ class actor_profile(models.Model):
         self.profile.delete()
         super(actor_profile, self).delete(*args, **kwargs)
 
+class LanguageMap(models.Model):
+    key = models.CharField(max_length=200)
+    value = models.CharField(max_length=200)
+
 class activity_def_correctresponsespattern(models.Model):
-    #activity_definition = models.OneToOneField(activity_definition, blank=True,null=True)
     pass
 
 class activity_definition(models.Model):
-    name = models.CharField(max_length=200)
-    description = models.CharField(max_length=200)
+    name = models.OneToOneField(LanguageMap, related_name="activity_definition_name")
+    description = models.OneToOneField(LanguageMap, related_name="activity_definition_description")
     activity_definition_type = models.CharField(max_length=200)
     interactionType = models.CharField(max_length=200)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
-    #activity = models.OneToOneField(activity)
 
     def objReturn(self):
         ret = {}
@@ -295,7 +297,7 @@ class activity_profile(models.Model):
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
-        super(activity_profile, self).delete(*args, **kwargs)
+        super(activity_profile, self).delete(*args, **kwargs)    
 
 class statement(statement_object):
     statement_id = models.CharField(max_length=200)

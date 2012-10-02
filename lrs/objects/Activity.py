@@ -7,6 +7,7 @@ from lxml import etree
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
+import pdb
 
 class Activity():
 
@@ -82,21 +83,29 @@ class Activity():
         else:
             return {}
 
+    # TODO: Thought xml was taken out? Need to update parsing of it then for name and desc?
     def _parseXML(self, xmldoc):
         #Create namespace and get the root
         ns = {'tc':'http://projecttincan.com/tincan.xsd'}
         root = xmldoc.getroot()
         act_def = {}
 
+        # pdb.set_trace()
         #Parse the name (required)
         if root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]:
-            act_def['name'] = root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]
+            act_def['name'] = {}
+
+            lang = root.xpath('//tc:activities/tc:activity/tc:name/@lang', namespaces=ns)[0]
+            act_def['name'][lang] = root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]
         else:
             raise(Exception, "XML is missing name")
             
         #Parse the description (required)    
         if root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]:
-            act_def['description'] = root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]
+            act_def['description'] = {}
+            
+            lang = root.xpath('//tc:activities/tc:activity/tc:description/@lang', namespaces=ns)[0]
+            act_def['description'][lang] = root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]
         else:
             raise(Exception, "XML is missing description")
             
@@ -108,6 +117,7 @@ class Activity():
 
         #Parse the type (required)
         if root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]:
+            # act_def['type'] = root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]
             act_def['type'] = root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]
         else:
             raise(Exception, "XML is missing type")
@@ -148,6 +158,7 @@ class Activity():
     def _save_activity_definition_to_db(self, name, desc, act_def_type, intType):
         act_def = models.activity_definition(name=name,description=desc, activity_definition_type=act_def_type,
                   interactionType=intType)
+        # act_def = models.activity_definition(**args)
         act_def.save()
         return act_def    
 
@@ -232,11 +243,52 @@ class Activity():
         return ret
 
     # Called when need to check if existing activity definition has the same name/desc as the incoming one
-    def _checkNameAndDescription(self, new, existing):
-        diff = False
-        if not new['definition']['name'] == existing.name or not new['definition']['description'] == existing.description: 
-            diff = True
-        return diff
+    def _check_name_and_description(self, new_name_key, new_name_value, new_desc_key, new_desc_value,
+                                    existing_name=None, existing_desc=None):
+        name_diff = False
+        desc_diff = False
+
+        # Check both name and description against existing values
+        if existing_name:
+            if not new_name_key == existing_name.key or not new_name_value == existing_name.value:
+                name_diff = True
+
+        if existing_desc:
+            if not new_desc_key == existing_desc.key or not new_desc_value == existing_desc.value:
+                desc_diff = True
+        return (name_diff, desc_diff)
+
+    def _update_activity_name_and_description(self, new_activity, existing_activity):
+        # Try grabbing the activity definition (these aren't required)
+        existing_act_def = None        
+        try:
+            existing_act_def = models.activity_definition.objects.get(activity=existing_activity)
+        except models.activity_definition.DoesNotExist:
+            pass
+
+        # If there is an existing activity definition and the names or descriptions are different,
+        # update it with new name and/or description info
+        if existing_act_def:
+            name_diff = False
+            desc_diff = False
+
+            existing_name_lang_map = existing_act_def.name
+            existing_desc_lang_map = existing_act_def.description
+
+            new_name_key = new_activity['definition']['name'].keys()[0]
+            new_name_value = new_activity['definition']['name'].values()[0]
+
+            new_desc_key = new_activity['definition']['description'].keys()[0]
+            new_desc_value = new_activity['definition']['description'].values()[0]
+
+            name_diff, desc_diff = self._check_name_and_description(new_name_key, new_desc_value,
+                                                new_desc_key, new_desc_value, existing_name_lang_map,
+                                                existing_desc_lang_map)
+            if name_diff:
+                models.LanguageMap.objects.filter(id=existing_act_def.name.id).update(key = new_name_key, value = new_name_value)
+                
+            if desc_diff:
+                models.LanguageMap.objects.filter(id=existing_act_def.description.id).update(key = new_desc_key, value = new_desc_value)
 
     #Once JSON is verified, populate the activity objects
     def _populate(self, the_object):
@@ -249,28 +301,19 @@ class Activity():
         except KeyError:
             raise Exception("No id provided, must provide 'id' field")
 
-        #Check if activity ID already exists
-        IDList = models.activity.objects.values_list('activity_id', flat=True)
+        # Check if activity ID already exists
+        id_list = models.activity.objects.values_list('activity_id', flat=True)
+        if activity_id in id_list:
+            # Grab pre-existing activity
+            existing_activity = models.activity.objects.get(activity_id=activity_id)
 
-        if activity_id in IDList:
-            existingActivity = models.activity.objects.get(activity_id=activity_id)
+            # Update name and desc if needed
+            self._update_activity_name_and_description(the_object, existing_activity)
             
-            existingActDef = None
+            # Set activity to existing one
+            self.activity = existing_activity        
 
-            try:
-                existingActDef = models.activity_definition.objects.get(activity=existingActivity)
-            except models.activity_definition.DoesNotExist:
-                pass
-
-            # Don't make a new one
-            if existingActDef:
-                if self._checkNameAndDescription(the_object,existingActDef):    
-                    models.activity_definition.objects.filter(id=existingActDef.id).update(name=the_object['definition']['name'],description=the_object['definition']['description'])
-
-            self.activity = existingActivity        
-            # msg = "Activity ID %s is already in use, please use a different naming technique" % activity_id
-            # raise IDAlreadyExistsError(msg)
-
+        # Activity ID doesn't exist, create a new one
         else:
             #Set objectType to nothing
             objectType = None
@@ -313,7 +356,13 @@ class Activity():
                 #If the URL did not resolve and is not type link, it will use the JSON data provided
                 self._populate_definition(activity_definition, activity_id, objectType)
         
-
+    # Save language map object for activity definition name or description
+    def _save_activity_definition_name_or_desc(self, lang_map, name=True):
+        for k, v in lang_map.items():
+            act_def_language_map = models.LanguageMap(key = k, value = v)
+        
+        act_def_language_map.save()        
+        return act_def_language_map
 
     #Populate definition either from JSON or validated XML
     def _populate_definition(self, act_def, act_id, objType):
@@ -329,6 +378,7 @@ class Activity():
             #Check definition type
             if act_def['type'] not in Activity.ADTs:
                 raise Exception("Activity definition type not valid")
+
 
             #If the type is cmi.interaction, have to check interactionType
             if act_def['type'] == 'cmi.interaction':
@@ -381,15 +431,15 @@ class Activity():
                         raise Exception("Activity definition missing scale for likert")
                     interactionFlag = 'scale'
 
-            #Save activity to DB
-            # self.activity = self._save_actvity_to_db(act_id, objType)
+            # Save activity definition name and description
+            act_def['name'] = self._save_activity_definition_name_or_desc(act_def['name'])
+            act_def['description'] = self._save_activity_definition_name_or_desc(act_def['description'], False)
 
-            #Save activity definition to DB
-            # self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
-            #             act_def['description'], act_def['type'], act_def['interactionType'])
             self.activity_definition = self._save_activity_definition_to_db(act_def['name'],
                         act_def['description'], act_def['type'], act_def['interactionType'])
     
+            # self.activity_definition = self._save_activity_definition_to_db(act_def)
+
             self.activity = self._save_actvity_to_db(act_id, objType, self.activity_definition)
 
     
@@ -488,4 +538,10 @@ class IDAlreadyExistsError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
-        return repr(self.message)        
+        return repr(self.message)
+
+class EmptyFieldError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)                
