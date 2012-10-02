@@ -216,7 +216,7 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
-        # pdb.set_trace()
+        #pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -334,8 +334,6 @@ class Statement():
                 importedActor = Actor(json.dumps(statementObjectData), create=True).agent
                 args['stmt_object'] = importedActor
         else:
-            # pdb.set_trace()
-            # TODO: CHECK IF GROUP AND STMT
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':        
                 args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity

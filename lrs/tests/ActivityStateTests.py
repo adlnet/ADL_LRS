@@ -98,7 +98,7 @@ class ActivityStateTests(TestCase):
     def test_put_etag_conflict_if_none_match(self):
         teststateetaginm = {"test":"etag conflict - if none match *","obj":{"actor":"test"}}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetaginm, content_type=self.content_type, if_none_match='*', Authorization=self.auth)
+        r = self.client.put(path, teststateetaginm, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(r.status_code, 412)
         self.assertEqual(r.content, 'Resource detected')
 
@@ -112,7 +112,7 @@ class ActivityStateTests(TestCase):
         teststateetagim = {"test":"etag conflict - if match wrong hash","obj":{"actor":"test"}}
         new_etag = '"%s"' % hashlib.sha1('wrong etag value').hexdigest()
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetagim, content_type=self.content_type, if_match=new_etag, Authorization=self.auth)
+        r = self.client.put(path, teststateetagim, content_type=self.content_type, If_Match=new_etag, Authorization=self.auth)
         self.assertEqual(r.status_code, 412)
         self.assertIn('No resources matched', r.content)
 
@@ -126,7 +126,7 @@ class ActivityStateTests(TestCase):
         teststateetagim = {"test":"etag no conflict - if match good hash","obj":{"actor":"test"}}
         new_etag = '"%s"' % hashlib.sha1('%s' % self.teststate1).hexdigest()
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetagim, content_type=self.content_type, if_match=new_etag, Authorization=self.auth)
+        r = self.client.put(path, teststateetagim, content_type=self.content_type, If_Match=new_etag, Authorization=self.auth)
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, '')
 
@@ -407,3 +407,29 @@ class ActivityStateTests(TestCase):
         r = self.client.get(self.url, testparamsdelset2)
         self.assertEqual(r.status_code, 404)
         self.assertIn('no activity', r.content)
+
+    def test_ie_cors_put_delete(self):
+        testactor = '{"name":["another test"],"mbox":["mailto:anothertest@example.com"]}'
+        sid = "test_ie_cors_put_delete_set_1"
+        sparam1 = {"stateId": sid, "activityId": self.activityId, "actor": testactor}
+        path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
+        sparam1['content'] = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
+        sparam1['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
+        sparam1['Authorization'] = self.auth
+        put1 = self.client.post(path, sparam1, content_type='application/x-www-form-urlencoded')
+
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
+        
+        r = self.client.get(self.url, {"stateId": sid, "activityId": self.activityId, "actor": testactor})
+        self.assertEqual(r.status_code, 200)
+        state1_str = '%s' % sparam1['content']
+        self.assertEqual(r.content, state1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
+
+        dparam = {"actor": testactor, "activityId": self.activityId}
+        dparam['Authorization'] = self.auth
+        dparam['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
+        path = '%s?%s' % (self.url, urllib.urlencode({"method":"DELETE"}))
+        f_r = self.client.post(path, dparam, content_type='application/x-www-form-urlencoded')
+        self.assertEqual(f_r.status_code, 204)
