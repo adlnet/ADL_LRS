@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import models, views
 import json
@@ -7,7 +6,6 @@ import time
 import hashlib
 import urllib
 from os import path
-import sys
 from lrs.objects import Activity
 import base64
 
@@ -129,7 +127,7 @@ class ActivityProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"good - trying to put new profile w/ etag header","obj":{"activity":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, Authorization=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId1)
 
@@ -141,7 +139,7 @@ class ActivityProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ wrong etag value","obj":{"activity":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % 'wrong hash').hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, Authorization=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertIn('No resources matched', response.content)
 
@@ -166,7 +164,7 @@ class ActivityProfileTests(TestCase):
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ if none match etag but one exists","obj":{"activity":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', Authorization=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
 
@@ -224,3 +222,44 @@ class ActivityProfileTests(TestCase):
         response = self.client.delete(reverse(views.activity_profile), {'activityId':self.other_activityId, 'profileId':self.otherprofileId1}, Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = DELETE - profileId = %s' % self.otherprofileId1)        
+
+    def test_cors_put(self):
+        profileid = 'http://test.cors.put'
+        activityid = 'test_cors_put-activity'
+        testparams1 = {"profileId": profileid, "activityId": activityid, "Authorization": self.auth}
+        testparams1['content'] = {"test":"put profile 1","obj":{"activity":"test"}}
+        path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
+        the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': activityid}))
+        put1 = self.client.post(path, testparams1, content_type="application/x-www-form-urlencoded")
+        self.assertEqual(put1.status_code, 200)
+        self.assertEqual(put1.content, 'Success -- activity profile - method = PUT - profileId = %s' % testparams1['profileId'])
+        self.client.delete(reverse(views.activity_profile), testparams1, Authorization=self.auth)
+
+    def test_cors_put_etag(self):
+        pid = 'http://ie.cors.etag/test'
+        aid = 'ie.cors.etag/test'
+
+        actaid = Activity.Activity(json.dumps({'objectType':'Activity', 'id': aid}))
+        
+        params = {"profileId": pid, "activityId": aid}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
+        tp = {"test":"put example profile for test_cors_put_etag","obj":{"activity":"this should be replaced -- ie cors post/put"}}
+        put1 = self.client.put(path, tp, content_type=self.content_type, Authorization=self.auth)
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
+        
+        params['content'] = {"test":"good - trying to put new profile w/ etag header - IE cors","obj":{"activity":"test IE cors etag"}}
+        thehash = '"%s"' % hashlib.sha1('%s' % tp).hexdigest()
+        params['If-Match'] = thehash
+        params['Authorization'] = self.auth
+        params['CONTENT_TYPE'] = "application/x-www-form-urlencoded"
+
+        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded")
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % pid)
+
+        r = self.client.get(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, '%s' % params['content'])
+
+        self.client.delete(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, Authorization=self.auth)

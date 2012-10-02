@@ -94,7 +94,7 @@ class ActorProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"good - trying to put new profile w/ etag header","obj":{"actor":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, Authorization=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.content, '')
 
@@ -106,7 +106,7 @@ class ActorProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ wrong etag value","obj":{"actor":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % 'wrong hash').hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, Authorization=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertIn('No resources matched', response.content)
 
@@ -118,7 +118,7 @@ class ActorProfileTests(TestCase):
         params = {"profileId": 'http://etag.nomatch.good', "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
         profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', Authorization=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.content, '')
 
@@ -131,7 +131,7 @@ class ActorProfileTests(TestCase):
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ if none match etag but one exists","obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', Authorization=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
 
@@ -215,3 +215,25 @@ class ActorProfileTests(TestCase):
         self.assertNotIn(prof_id, r2.content)
 
         self.client.delete(reverse(views.actor_profile), params, Authorization=self.auth)
+
+    def test_post_put_delete(self):
+        prof_id = "http://deleteme.too"
+        params = {"profileId": prof_id, "actor": self.testactor}
+        path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode({"method":"PUT"}))
+        params['content'] = {"test":"delete profile","obj":{"actor":"test", "testcase":"ie cors post for put and delete"}}
+        params['Authorization'] = self.auth
+        params['Content-Type'] = "application/json"
+        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded")
+        
+        r = self.client.get(reverse(views.actor_profile), {"profileId": prof_id, "actor": self.testactor})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, '%s' % params['content'])
+
+        dparams = {"profileId": prof_id, "actor": self.testactor}
+        dparams['Authorization'] = self.auth
+        path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode({"method":"DELETE"}))
+        r = self.client.post(path, dparams,content_type="application/x-www-form-urlencoded")
+        self.assertEqual(r.status_code, 204)
+
+        r = self.client.get(reverse(views.actor_profile), {"profileId": prof_id, "actor": self.testactor})
+        self.assertEqual(r.status_code, 404)

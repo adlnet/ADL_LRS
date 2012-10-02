@@ -11,6 +11,8 @@ import json
 import pickle
 import pdb
 
+import pprint
+
 MORE_ENDPOINT = '/TCAPI/statements/more/'
 
 def convertToUTC(timestr):
@@ -26,11 +28,15 @@ def convertToUTC(timestr):
 
 def complexGet(req_dict):
     # pdb.set_trace()
+    try:
+        the_dict = req_dict['body']
+    except KeyError:
+        the_dict = req_dict
     limit = 0    
     args = {}
     sparse = True
-    # Cycle through req_dict and find simple args
-    for k,v in req_dict.items():
+    # Cycle through the_dict and find simple args
+    for k,v in the_dict.items():
         if k.lower() == 'verb':
             args[k] = v 
         elif k.lower() == 'since':
@@ -40,15 +46,14 @@ def complexGet(req_dict):
             date_object = convertToUTC(v)
             args['stored__lte'] = date_object
     # If searching by activity or actor
-    if 'object' in req_dict:
-        objectData = req_dict['object']        
+    if 'object' in the_dict:
+        objectData = the_dict['object']        
         
         if not type(objectData) is dict:
             try:
                 objectData = json.loads(objectData) 
             except Exception, e:
                 objectData = json.loads(objectData.replace("'",'"'))
-        
         if 'objectType' in objectData:
             if objectData['objectType'].lower() == 'activity':
                 try:
@@ -69,13 +74,13 @@ def complexGet(req_dict):
             if activity:
                 args['stmt_object'] = activity
 
-    if 'registration' in req_dict:
-        uuid = str(req_dict['registration'])
+    if 'registration' in the_dict:
+        uuid = str(the_dict['registration'])
         cntx = models.context.objects.filter(registration=uuid)
         args['context'] = cntx
 
-    if 'actor' in req_dict:
-        actorData = req_dict['actor']
+    if 'actor' in the_dict:
+        actorData = the_dict['actor']
         if not type(actorData) is dict:
             try:
                 actorData = json.loads(actorData) 
@@ -86,8 +91,8 @@ def complexGet(req_dict):
         if agent:
             args['actor'] = agent
 
-    if 'instructor' in req_dict:
-        instData = req_dict['instructor']
+    if 'instructor' in the_dict:
+        instData = the_dict['instructor']
         
         if not type(instData) is dict:
             try:
@@ -101,32 +106,30 @@ def complexGet(req_dict):
             args['context__in'] = cntxList
 
     # there's a default of true    
-    if not 'authoritative' in req_dict or str(req_dict['authoritative']).upper() == 'TRUE':
+    if not 'authoritative' in the_dict or str(the_dict['authoritative']).upper() == 'TRUE':
         args['authoritative'] = True
 
-    if 'limit' in req_dict:
-        limit = int(req_dict['limit'])    
+    if 'limit' in the_dict:
+        limit = int(the_dict['limit'])    
 
-    if 'sparse' in req_dict:
-        if not type(req_dict['sparse']) is bool:
-            if req_dict['sparse'].lower() == 'false':
+    if 'sparse' in the_dict:
+        if not type(the_dict['sparse']) is bool:
+            if the_dict['sparse'].lower() == 'false':
                 sparse = False
         else:
-            sparse = req_dict['sparse']
-    
-
-    if limit == 0 and 'more_start' not in req_dict:
+            sparse = the_dict['sparse']
+    # pprint.pprint(the_dict)        
+    if limit == 0 and 'more_start' not in the_dict:
         # Retrieve statements from DB
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
-    elif 'more_start' in req_dict:
+    elif 'more_start' in the_dict:
         # If more start then start at that page point
-        start = int(req_dict['more_start'])
+        start = int(the_dict['more_start'])
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')[start:]
     else:
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
 
     full_stmt_list = []
-
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
         stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
