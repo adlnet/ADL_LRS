@@ -56,6 +56,8 @@ def check_for_no_other_params_supplied(query_dict):
 @basic_http_auth
 def statements_put(r_dict):
     try:
+        if isinstance(r_dict['body'], str):
+            r_dict['body'] = ast.literal_eval(r_dict['body'])
         statement_id = r_dict['body']['statementId']
     except KeyError:
         raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method'])

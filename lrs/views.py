@@ -88,7 +88,7 @@ def statements(request):
     return resp
     
 
-@require_http_methods(["PUT","GET","DELETE"])
+@require_http_methods(["PUT","POST","GET","DELETE"])
 def activity_state(request):
     try: 
         resp = handle_request(request)
@@ -143,7 +143,7 @@ def activities(request):
     return resp
 
 
-@require_http_methods(["PUT","GET","DELETE"])    
+@require_http_methods(["PUT","POST","GET","DELETE"])    
 def actor_profile(request):
     try: 
         resp = handle_request(request)

@@ -2,13 +2,14 @@ import json
 from lrs.util import etag
 from django.http import MultiPartParser
 import ast
+import StringIO
 
 import pprint
 
 def parse(request):
     r_dict = {}
     r_dict['user'] = request.user
-    
+
     if request.method == 'POST' and 'method' in request.GET:
         bdy = ast.literal_eval(request.body)
         r_dict.update(bdy)
@@ -19,7 +20,6 @@ def parse(request):
 
     r_dict = get_headers(request.META, r_dict)
     r_dict.update(request.GET.dict())
-    
     if 'method' not in r_dict:
         r_dict['method'] = request.method
     
@@ -53,7 +53,7 @@ def get_headers(headers, r):
 
     r['CONTENT_TYPE'] = headers.get('CONTENT_TYPE', '')
 
-    r['ETAG'] = etag.get_etag_info(headers, required=False)
+    r['ETAG'] = etag.get_etag_info(headers, r, required=False)
     if 'HTTP_AUTHORIZATION' in headers:
         r['Authorization'] = headers['HTTP_AUTHORIZATION']
     if 'Authorization' in headers:

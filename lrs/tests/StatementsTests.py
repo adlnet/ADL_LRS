@@ -11,6 +11,7 @@ from datetime import datetime
 from django.utils.timezone import utc
 from lrs.objects import Actor, Activity, Statement
 import time
+import urllib
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -355,3 +356,19 @@ class StatementsTests(TestCase):
         linkedGetResponse = self.client.get(reverse(views.statements), {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':'False', 'sparse': False})
         self.assertEqual(linkedGetResponse.status_code, 200)
         self.assertContains(linkedGetResponse, self.postresponse2.content)
+
+    def test_cors_post_put(self):
+        bdy = {}
+        # bdy['content'] = json.dumps({"statementId": "postputID","verb":"created","object": {"id":"test_cors_post_put"}})
+        bdy['content'] = {"statementId": "postputID","verb":"created","object": {"id":"test_cors_post_put"}}
+        bdy['Authorization'] = self.auth
+        bdy['Content-Type'] = "application/json"
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"method":"PUT"}))
+        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 200)
+
+        act = models.activity.objects.get(activity_id="test_cors_post_put")
+        actorName = models.agent_name.objects.get(name='tester1')
+        actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
+
+        self.assertEqual(act.activity_id, "test_cors_post_put")
