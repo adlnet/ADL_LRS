@@ -163,7 +163,7 @@ class activity_definition(models.Model):
     name = models.CharField(max_length=200)
     description = models.CharField(max_length=200)
     activity_definition_type = models.CharField(max_length=200)
-    interactionType = models.CharField(max_length=200)
+    interactionType = models.CharField(max_length=200, blank=True, null=True)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
     #activity = models.OneToOneField(activity)
 
@@ -172,7 +172,8 @@ class activity_definition(models.Model):
         ret['name'] = self.name
         ret['description'] = self.description
         ret['type'] = self.activity_definition_type
-        ret['interactionType'] = self.interactionType
+        if self.interactionType:
+            ret['interactionType'] = self.interactionType
         return ret
 
 class activity(statement_object):
