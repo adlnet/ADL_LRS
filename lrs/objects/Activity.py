@@ -11,7 +11,7 @@ from django.db import transaction
 class Activity():
 
     #Activity definition required fields
-    ADRFs = ['name', 'description', 'type', 'interactionType']
+    ADRFs = ['name', 'description', 'type']
 
     #Activity definition types
     ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
@@ -388,7 +388,7 @@ class Activity():
             # self.activity_definition = self._save_activity_definition_to_db(self.activity, act_def['name'],
             #             act_def['description'], act_def['type'], act_def['interactionType'])
             self.activity_definition = self._save_activity_definition_to_db(act_def['name'],
-                        act_def['description'], act_def['type'], act_def['interactionType'])
+                        act_def['description'], act_def['type'], act_def.get('interactionType', None))
     
             self.activity = self._save_actvity_to_db(act_id, objType, self.activity_definition)
 

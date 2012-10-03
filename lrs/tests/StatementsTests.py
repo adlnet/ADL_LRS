@@ -465,3 +465,21 @@ class StatementsTests(TestCase):
         actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
 
         self.assertEqual(act.activity_id, "test_cors_post_put")
+
+    def test_tetris_snafu(self):
+        stmtid = str(uuid.uuid4())
+        stmt = json.dumps({"verb":"attempted",
+                            "object":{"id":"scorm.com/JsTetris_TCAPI",
+                                      "definition":{"type":"media",
+                                                   "name":{"en-US":"Js Tetris - Tin Can Prototype"},
+                                                   "description":{"en-US":"A game of tetris."}}},
+                            "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
+                                       "registration":"52775f36-108d-4d68-9564-673dfa440761"},
+                            "actor":{"name":["tom creighton"],"mbox":["mailto:tom@example.com"]}})
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmtid}))
+        putstmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(putstmt.status_code, 204)
+
+        getstmt = self.client.get(path)
+        self.assertEqual(getstmt.status_code, 200)
+        self.assertContains(getstmt, stmtid)
