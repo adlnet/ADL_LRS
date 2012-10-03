@@ -83,8 +83,8 @@ def statements(request):
         return HttpResponse(err.message, status=409)
     except req_validate.NoParamsError as err:
         return HttpResponse(err.message, status=204)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=400)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
     
 
