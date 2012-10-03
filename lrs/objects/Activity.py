@@ -163,82 +163,83 @@ class Activity():
         return act_def    
 
     def get_full_activity_json(self):
-        #Set activity to return
-        ret = self.activity.objReturn()
+        ret = models.objsReturn(self.activity)
+        # #Set activity to return
+        # ret = self.activity.objReturn()
 
-        #Check if definition exists
-        try:
-            act_def = models.activity_definition.objects.get(activity=self.activity)
-        except Exception, e:
-            #No definition so return activity
-            return ret
+        # #Check if definition exists
+        # try:
+        #     act_def = models.activity_definition.objects.get(activity=self.activity)
+        # except Exception, e:
+        #     #No definition so return activity
+        #     return ret
 
-        #Return activity definition will be set if there is one
-        ret['definition'] = act_def.objReturn() 
+        # #Return activity definition will be set if there is one
+        # ret['definition'] = act_def.objReturn() 
 
-        #Check for extensions
-        try:
-            extList = models.activity_extensions.objects.filter(activity_definition=act_def)
-        except Exception, e:
-            #Extensions are optional so pass if there aren't any
-            pass
+        # #Check for extensions
+        # try:
+        #     extList = models.activity_extensions.objects.filter(activity_definition=act_def)
+        # except Exception, e:
+        #     #Extensions are optional so pass if there aren't any
+        #     pass
 
-        #If there were extenstions add them to return activity
-        if extList:
-            ret['extensions'] = {}    
-            for ext in extList:
-                ret['extensions'][ext.objReturn()[0]] = ext.objReturn()[1]
+        # #If there were extenstions add them to return activity
+        # if extList:
+        #     ret['extensions'] = {}    
+        #     for ext in extList:
+        #         ret['extensions'][ext.objReturn()[0]] = ext.objReturn()[1]
 
-        if not ret['definition']['type'] == 'cmi.interaction':
-            return ret
-        else:
-            #Must have correct responses pattern and answers
-            act_crp = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def)
-            ansList = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=act_crp)
+        # if not ret['definition']['type'] == 'cmi.interaction':
+        #     return ret
+        # else:
+        #     #Must have correct responses pattern and answers
+        #     act_crp = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def)
+        #     ansList = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=act_crp)
         
-            alist = []
-            for answer in ansList:
-                alist.append(answer.objReturn())
-            ret['correctResponsesPattern'] = alist
+        #     alist = []
+        #     for answer in ansList:
+        #         alist.append(answer.objReturn())
+        #     ret['correctResponsesPattern'] = alist
 
-            if ret['definition']['interactionType'] == 'multiple-choice' or ret['definition']['interactionType'] == 'sequencing':
-                chList = models.activity_definition_choice.objects.filter(activity_definition=act_def)
+        #     if ret['definition']['interactionType'] == 'multiple-choice' or ret['definition']['interactionType'] == 'sequencing':
+        #         chList = models.activity_definition_choice.objects.filter(activity_definition=act_def)
             
-                clist = []
-                for choice in chList:
-                    clist.append(choice.objReturn())
-                ret['choices'] = clist
+        #         clist = []
+        #         for choice in chList:
+        #             clist.append(choice.objReturn())
+        #         ret['choices'] = clist
 
-            if ret['definition']['interactionType'] == 'likert':
-                scList = models.activity_definition_scale.objects.filter(activity_definition=act_def)
+        #     if ret['definition']['interactionType'] == 'likert':
+        #         scList = models.activity_definition_scale.objects.filter(activity_definition=act_def)
             
-                slist = []
-                for scale in scList:
-                    slist.append(scale.objReturn())
-                ret['scale'] = slist
+        #         slist = []
+        #         for scale in scList:
+        #             slist.append(scale.objReturn())
+        #         ret['scale'] = slist
 
-            if ret['definition']['interactionType'] == 'performance':
-                stepList = models.activity_definition_step.objects.filter(activity_definition=act_def)
+        #     if ret['definition']['interactionType'] == 'performance':
+        #         stepList = models.activity_definition_step.objects.filter(activity_definition=act_def)
 
-                stlist = []
-                for step in stepList:
-                    stlist.append(step.objReturn())
-                ret['steps'] = stlist
+        #         stlist = []
+        #         for step in stepList:
+        #             stlist.append(step.objReturn())
+        #         ret['steps'] = stlist
 
-            if ret['definition']['interactionType'] == 'matching':
-                sourceList = models.activity_definition_source.objects.filter(activity_definition=act_def)
+        #     if ret['definition']['interactionType'] == 'matching':
+        #         sourceList = models.activity_definition_source.objects.filter(activity_definition=act_def)
 
-                solist = []
-                for source in sourceList:
-                    solist.append(source.objReturn())    
-                ret['source'] = solist
+        #         solist = []
+        #         for source in sourceList:
+        #             solist.append(source.objReturn())    
+        #         ret['source'] = solist
 
-                tarList = models.activity_definition_target.objects.filter(activity_definition=act_def)
+        #         tarList = models.activity_definition_target.objects.filter(activity_definition=act_def)
 
-                tlist = []
-                for target in tarList:
-                    tlist.append(target.objReturn())    
-                ret['target'] = tlist
+        #         tlist = []
+        #         for target in tarList:
+        #             tlist.append(target.objReturn())    
+        #         ret['target'] = tlist
 
         return ret
 
@@ -432,8 +433,15 @@ class Activity():
                     interactionFlag = 'scale'
 
             # Save activity definition name and description
-            act_def['name'] = self._save_activity_definition_name_or_desc(act_def['name'])
-            act_def['description'] = self._save_activity_definition_name_or_desc(act_def['description'], False)
+            if type(act_def['name']) is dict:
+                act_def['name'] = self._save_activity_definition_name_or_desc(act_def['name'])
+            else:
+                raise Exception("Activity name must be a language dictionary")
+
+            if type(act_def['description']) is dict:
+                act_def['description'] = self._save_activity_definition_name_or_desc(act_def['description'], False)
+            else:
+                raise Exception("Activity description must be a language dictionary")
 
             self.activity_definition = self._save_activity_definition_to_db(act_def['name'],
                         act_def['description'], act_def['type'], act_def['interactionType'])

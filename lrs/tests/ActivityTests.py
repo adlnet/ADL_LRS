@@ -5,43 +5,89 @@ from lrs import views, models
 from os import path
 import sys
 import json
-
-_DIR = path.abspath(path.dirname(__file__))
-sys.path.append(path.abspath(path.join(_DIR,"../objects")))
 from lrs.objects import Activity
+import pdb
 
 class ActivityTests(TestCase):
     
     def test_get(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'foobar'}))
         response = self.client.get(reverse(views.activities), {'activityId':'foobar'})
-        self.assertEqual(response.content, '{"activity_id": "foobar", "objectType": "Activity"}')
-        
+        rsp = response.content
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('foobar', rsp)
+        self.assertIn('Activity', rsp)
+        self.assertIn('objectType', rsp)        
+        # pdb.set_trace()
+        # ret = models.objsReturn(act.activity)
+
+
     def test_get_def(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar1',
-                'definition': {'name': 'testname','description': 'testdesc', 'type': 'course',
-                'interactionType': 'intType'}})) 
+                'definition': {'name': {'en-US':'testname'},'description': {'en-US':'testdesc'},
+                'type': 'course','interactionType': 'intType'}})) 
         response = self.client.get(reverse(views.activities), {'activityId':'foobar1'})
-        self.assertEqual(response.content, '{"definition": {"interactionType": "intType", "type": "course", "name": "testname", "description": "testdesc"}, "activity_id": "foobar1", "objectType": "Activity"}')
+        rsp = response.content
 
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('foobar1', rsp)
+        self.assertIn('course', rsp)
+        self.assertIn('intType', rsp)
+        self.assertIn('en-US', rsp)
+        self.assertIn('testname', rsp)
+        self.assertIn('testdesc', rsp)
+        
     def test_get_ext(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar2',
-                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'course',
-                'interactionType': 'intType2', 'extensions': {'key1': 'value1', 'key2': 'value2',
-                'key3': 'value3'}}}))
+                'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
+                'type': 'course','interactionType': 'intType2', 
+                'extensions': {'key1': 'value1', 'key2': 'value2'}}}))
+
         response = self.client.get(reverse(views.activities), {'activityId':'foobar2'})
-        self.assertEqual(response.content, '{"definition": {"interactionType": "intType2", "type": "course", "name": "testname2", "description": "testdesc2"}, "activity_id": "foobar2", "extensions": {"key3": "value3", "key2": "value2", "key1": "value1"}, "objectType": "Activity"}')
+        rsp = response.content
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('foobar2', rsp)
+        self.assertIn('course', rsp)
+        self.assertIn('intType2', rsp)
+        self.assertIn('en-FR', rsp)
+        self.assertIn('testname2', rsp)
+        self.assertIn('testdesc2', rsp)
+        self.assertIn('key1', rsp)
+        self.assertIn('key2', rsp)
+        self.assertIn('value1', rsp)
+        self.assertIn('value2', rsp)
 
     def test_get_crp_multiple_choice(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar3',
-                'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
-                'interactionType': 'multiple-choice','correctResponsesPattern': ['golf', 'tetris'],'choices':
-                [{'id': 'golf', 'description': {'en-US':'Golf Example'}},{'id': 'tetris',
-                'description':{'en-US': 'Tetris Example'}}, {'id':'facebook', 'description':{'en-US':'Facebook App'}},
-                {'id':'scrabble', 'description': {'en-US': 'Scrabble Example'}}]}}))        
+                'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
+                'type': 'cmi.interaction','interactionType': 'multiple-choice',
+                'correctResponsesPattern': ['golf', 'tetris'],'choices':[{'id': 'golf',
+                'description': {'en-US':'Golf Example'}},{'id': 'tetris',
+                'description':{'en-US': 'Tetris Example'}}, {'id':'facebook',
+                'description':{'en-US':'Facebook App'}},{'id':'scrabble', 
+                'description': {'en-US': 'Scrabble Example'}}]}}))        
+        
         response = self.client.get(reverse(views.activities), {'activityId':'foobar3'})
-        #self.assertEqual(response.content, '{"choices": [{"id": "golf", "description": "{\\"en-US\\": \\"Golf Example\\"}"}, {"id": "tetris", "description": "{\\"en-US\\": \\"Tetris Example\\"}"}, {"id": "facebook", "description": "{\\"en-US\\": \\"Facebook App\\"}"}, {"id": "scrabble", "description": "{\\"en-US\\": \\"Scrabble Example\\"}"}], "definition": {"interactionType": "multiple-choice", "type": "cmi.interaction", "name": "testname2", "description": "testdesc2"}, "activity_id": "foobar3", "correctResponsesPattern": ["golf", "tetris"], "objectType": "Activity"}')
+
+        rsp = response.content
+        pdb.set_trace()
         self.assertEqual(response.status_code, 200)
+        self.assertIn('foobar3', rsp)
+        self.assertIn('cmi.interaction', rsp)
+        self.assertIn('multiple-choice', rsp)
+        self.assertIn('en-FR', rsp)
+        self.assertIn('testname2', rsp)
+        self.assertIn('testdesc2', rsp)
+        self.assertIn('golf', rsp)
+        self.assertIn('tetris', rsp)
+        self.assertIn('Golf Example', rsp)
+        self.assertIn('Tetris Example', rsp)
+        self.assertIn('Facebook App', rsp)
+        self.assertIn('Scrabble Example', rsp)
+        self.assertIn('scrabble', rsp)
+        self.assertIn('facebook', rsp)
+
 
 
     def test_get_crp_true_false(self):
