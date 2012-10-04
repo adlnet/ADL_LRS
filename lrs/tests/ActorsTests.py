@@ -17,10 +17,15 @@ class ActorsTests(TestCase):
         form = {'username':self.username,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form)
 
+    def test_get_no_actors(self):
+        actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+        response = self.client.get(reverse(views.actors), {'actor':actor}, Authorization=self.auth)
+        self.assertEqual(response.status_code, 404)
+
     def test_get(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
         me = Actor.Actor(actor,create=True)
-        response = self.client.get(reverse(views.actors), {'actor':actor}, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.get(reverse(views.actors), {'actor':actor}, Authorization=self.auth)
         #print response
         self.assertContains(response, 'mailto:me@example.com')
 
@@ -34,10 +39,10 @@ class ActorsTests(TestCase):
     #    self.assertContains(response, 'me')
     
     def test_get_no_actor(self):
-        response = self.client.get(reverse(views.actors), HTTP_AUTHORIZATION=self.auth)
+        response = self.client.get(reverse(views.actors), Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded', HTTP_AUTHORIZATION=self.auth)
+        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded', Authorization=self.auth)
         self.assertEqual(response.status_code, 405)

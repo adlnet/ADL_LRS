@@ -29,28 +29,42 @@ class ActorProfileTests(TestCase):
         self.testparams1 = {"profileId": self.testprofileId1, "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         self.testprofile1 = {"test":"put profile 1","obj":{"actor":"test"}}
-        self.put1 = self.client.put(path, self.testprofile1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put1 = self.client.put(path, self.testprofile1, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams2 = {"profileId": self.testprofileId2, "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams2))
         self.testprofile2 = {"test":"put profile 2","obj":{"actor":"test"}}
-        self.put2 = self.client.put(path, self.testprofile2, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put2 = self.client.put(path, self.testprofile2, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams3 = {"profileId": self.testprofileId3, "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams3))
         self.testprofile3 = {"test":"put profile 3","obj":{"actor":"test"}}
-        self.put3 = self.client.put(path, self.testprofile3, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put3 = self.client.put(path, self.testprofile3, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams4 = {"profileId": self.otherprofileId1, "actor": self.otheractor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams4))
         self.otherprofile1 = {"test":"put profile 1","obj":{"actor":"other"}}
-        self.put4 = self.client.put(path, self.otherprofile1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put4 = self.client.put(path, self.otherprofile1, content_type=self.content_type, Authorization=self.auth)
 
     def tearDown(self):
-        self.client.delete(reverse(views.actor_profile), self.testparams1, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(reverse(views.actor_profile), self.testparams2, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(reverse(views.actor_profile), self.testparams3, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(reverse(views.actor_profile), self.testparams4, HTTP_AUTHORIZATION=self.auth)
+        self.client.delete(reverse(views.actor_profile), self.testparams1, Authorization=self.auth)
+        self.client.delete(reverse(views.actor_profile), self.testparams2, Authorization=self.auth)
+        self.client.delete(reverse(views.actor_profile), self.testparams3, Authorization=self.auth)
+        self.client.delete(reverse(views.actor_profile), self.testparams4, Authorization=self.auth)
+
+    def test_get_actor_not_found(self):
+        a = '{"mbox":["mailto:notfound@example.com"]}'
+        p = 'http://actor.not.found'
+        param = {"profileId": p, "actor": a}
+        r = self.client.get(reverse(views.actor_profile), param)
+        self.assertEqual(r.status_code, 404)
+
+    def test_get_actor_not_found(self):
+        a = '{"mbox":["mailto:notfound@example.com"]}'
+        p = 'http://actor.not.found'
+        param = {"profileId": p, "actor": a}
+        r = self.client.get(reverse(views.actor_profile), param)
+        self.assertEqual(r.status_code, 404)
 
     def test_put(self):
         self.assertEqual(self.put1.status_code, 204)
@@ -68,7 +82,7 @@ class ActorProfileTests(TestCase):
     def test_put_etag_missing_on_change(self):
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/o etag header","obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, Authorization=self.auth)
         self.assertEqual(response.status_code, 409)
         self.assertIn('If-Match and If-None-Match headers were missing', response.content)
         
@@ -80,7 +94,7 @@ class ActorProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"good - trying to put new profile w/ etag header","obj":{"actor":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.content, '')
 
@@ -92,7 +106,7 @@ class ActorProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ wrong etag value","obj":{"actor":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % 'wrong hash').hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertIn('No resources matched', response.content)
 
@@ -104,7 +118,7 @@ class ActorProfileTests(TestCase):
         params = {"profileId": 'http://etag.nomatch.good', "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
         profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.content, '')
 
@@ -112,12 +126,12 @@ class ActorProfileTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
-        r = self.client.delete(reverse(views.actor_profile), params, HTTP_AUTHORIZATION=self.auth)
+        r = self.client.delete(reverse(views.actor_profile), params, Authorization=self.auth)
 
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ if none match etag but one exists","obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
 
@@ -171,13 +185,13 @@ class ActorProfileTests(TestCase):
         params = {"profileId": prof_id, "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
         profile = {"test":"delete profile","obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, Authorization=self.auth)
         
         r = self.client.get(reverse(views.actor_profile), params)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
-        r = self.client.delete(reverse(views.actor_profile), params, HTTP_AUTHORIZATION=self.auth)
+        r = self.client.delete(reverse(views.actor_profile), params, Authorization=self.auth)
         self.assertEqual(r.status_code, 204)
 
         r = self.client.get(reverse(views.actor_profile), params)
@@ -189,7 +203,7 @@ class ActorProfileTests(TestCase):
         params = {"profileId": prof_id, "actor": self.testactor}
         path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode(params))
         profile = {"test":"actor profile since time: %s" % updated,"obj":{"actor":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth)
 
         r = self.client.get(reverse(views.actor_profile), params)
         self.assertEqual(r.status_code, 200)
@@ -200,4 +214,26 @@ class ActorProfileTests(TestCase):
         r2 = self.client.get(reverse(views.actor_profile), params2)
         self.assertNotIn(prof_id, r2.content)
 
-        self.client.delete(reverse(views.actor_profile), params, HTTP_AUTHORIZATION=self.auth)
+        self.client.delete(reverse(views.actor_profile), params, Authorization=self.auth)
+
+    def test_post_put_delete(self):
+        prof_id = "http://deleteme.too"
+        params = {"profileId": prof_id, "actor": self.testactor}
+        path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode({"method":"PUT"}))
+        params['content'] = {"test":"delete profile","obj":{"actor":"test", "testcase":"ie cors post for put and delete"}}
+        params['Authorization'] = self.auth
+        params['Content-Type'] = "application/json"
+        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded")
+        
+        r = self.client.get(reverse(views.actor_profile), {"profileId": prof_id, "actor": self.testactor})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, '%s' % params['content'])
+
+        dparams = {"profileId": prof_id, "actor": self.testactor}
+        dparams['Authorization'] = self.auth
+        path = '%s?%s' % (reverse(views.actor_profile), urllib.urlencode({"method":"DELETE"}))
+        r = self.client.post(path, dparams,content_type="application/x-www-form-urlencoded")
+        self.assertEqual(r.status_code, 204)
+
+        r = self.client.get(reverse(views.actor_profile), {"profileId": prof_id, "actor": self.testactor})
+        self.assertEqual(r.status_code, 404)

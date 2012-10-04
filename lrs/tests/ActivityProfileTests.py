@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import models, views
 import json
@@ -7,7 +6,6 @@ import time
 import hashlib
 import urllib
 from os import path
-import sys
 from lrs.objects import Activity
 import base64
 
@@ -39,35 +37,35 @@ class ActivityProfileTests(TestCase):
         self.testparams1 = {"profileId": self.testprofileId1, "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         self.testprofile1 = {"test":"put profile 1","obj":{"activity":"test"}}
-        self.put1 = self.client.put(path, self.testprofile1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put1 = self.client.put(path, self.testprofile1, content_type=self.content_type, Authorization=self.auth)
         
         self.testparams2 = {"profileId": self.testprofileId2, "activityId": self.test_activityId2}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams2))
         self.testprofile2 = {"test":"put profile 2","obj":{"activity":"test"}}
-        self.put2 = self.client.put(path, self.testprofile2, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put2 = self.client.put(path, self.testprofile2, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams3 = {"profileId": self.testprofileId3, "activityId": self.test_activityId3}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams3))
         self.testprofile3 = {"test":"put profile 3","obj":{"activity":"test"}}
-        self.put3 = self.client.put(path, self.testprofile3, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put3 = self.client.put(path, self.testprofile3, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams4 = {"profileId": self.otherprofileId1, "activityId": self.other_activityId}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams4))
         self.otherprofile1 = {"test":"put profile other","obj":{"activity":"other"}}
-        self.put4 = self.client.put(path, self.otherprofile1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put4 = self.client.put(path, self.otherprofile1, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams5 = {"profileId": self.otherprofileId1, "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams5))
         self.anotherprofile1 = {"test":"put another profile 1","obj":{"activity":"other"}}
-        self.put5 = self.client.put(path, self.anotherprofile1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put5 = self.client.put(path, self.anotherprofile1, content_type=self.content_type, Authorization=self.auth)
 
         
     def tearDown(self):
-        self.client.delete(reverse(views.activity_profile), self.testparams1, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(reverse(views.activity_profile), self.testparams2, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(reverse(views.activity_profile), self.testparams3, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(reverse(views.activity_profile), self.testparams4, HTTP_AUTHORIZATION=self.auth)    
-        self.client.delete(reverse(views.activity_profile), self.testparams5, HTTP_AUTHORIZATION=self.auth)    
+        self.client.delete(reverse(views.activity_profile), self.testparams1, Authorization=self.auth)
+        self.client.delete(reverse(views.activity_profile), self.testparams2, Authorization=self.auth)
+        self.client.delete(reverse(views.activity_profile), self.testparams3, Authorization=self.auth)
+        self.client.delete(reverse(views.activity_profile), self.testparams4, Authorization=self.auth)    
+        self.client.delete(reverse(views.activity_profile), self.testparams5, Authorization=self.auth)    
     
     def test_put(self):
         #Test the puts
@@ -101,23 +99,23 @@ class ActivityProfileTests(TestCase):
 
         
     def test_put_no_params(self):
-        put = self.client.put(reverse(views.activity_profile) ,content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put = self.client.put(reverse(views.activity_profile) ,content_type=self.content_type, Authorization=self.auth)
         self.assertEquals(put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
 
     def test_put_no_activityId(self):
-        put = self.client.put(reverse(views.activity_profile), {'profileId':'10'},content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put = self.client.put(reverse(views.activity_profile), {'profileId':'10'},content_type=self.content_type, Authorization=self.auth)
         self.assertEquals(put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
 
     def test_put_no_profileId(self):
         testparams = {'activityId':'act'}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(testparams))
-        put = self.client.put(path, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put = self.client.put(path, content_type=self.content_type, Authorization=self.auth)
         self.assertEquals(put.content, 'Error -- activity_profile - method = PUT, but profileId parameter missing..')
 
     def test_put_etag_missing_on_change(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/o etag header","obj":{"activity":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, Authorization=self.auth)
         self.assertEqual(response.status_code, 409)
         self.assertIn('If-Match and If-None-Match headers were missing', response.content)
         
@@ -129,7 +127,7 @@ class ActivityProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"good - trying to put new profile w/ etag header","obj":{"activity":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId1)
 
@@ -141,7 +139,7 @@ class ActivityProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ wrong etag value","obj":{"activity":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % 'wrong hash').hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, if_match=thehash, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertIn('No resources matched', response.content)
 
@@ -153,7 +151,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": 'http://etag.nomatch.good', "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"activity":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % 'http://etag.nomatch.good')
 
@@ -161,12 +159,12 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
-        r = self.client.delete(reverse(views.activity_profile), params, HTTP_AUTHORIZATION=self.auth)
+        r = self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth)
 
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"error - trying to put new profile w/ if none match etag but one exists","obj":{"activity":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', HTTP_AUTHORIZATION=self.auth)
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
 
@@ -183,7 +181,7 @@ class ActivityProfileTests(TestCase):
         #self.assertEqual(response['etag'], '"%s"' % resp_hash)
         params = {'activityId': self.test_activityId2, 'profileId': self.testprofileId2}
 
-        self.client.delete(reverse(views.activity_profile), params, HTTP_AUTHORIZATION=self.auth)
+        self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth)
 
     def test_get_activity_profileId(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1})
@@ -193,7 +191,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response['etag'], '"%s"' % resp_hash)    
         params = {'activityId': self.test_activityId1, 'profileId': self.testprofileId1}
 
-        self.client.delete(reverse(views.activity_profile), params, HTTP_AUTHORIZATION=self.auth)
+        self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth)
 
 
     def test_get_activity_since(self):
@@ -207,7 +205,7 @@ class ActivityProfileTests(TestCase):
         #self.assertEqual(response['etag'], '"%s"' % resp_hash)
         params = {'activityId': self.test_activityId3, 'profileId': self.testprofileId3}
 
-        self.client.delete(reverse(views.activity_profile), params, HTTP_AUTHORIZATION=self.auth)
+        self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth)
     
     def test_get_no_activity_profileId(self):
         response = self.client.get(reverse(views.activity_profile), {'profileId': self.testprofileId3})
@@ -221,6 +219,47 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')
     
     def test_delete(self):
-        response = self.client.delete(reverse(views.activity_profile), {'activityId':self.other_activityId, 'profileId':self.otherprofileId1}, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.delete(reverse(views.activity_profile), {'activityId':self.other_activityId, 'profileId':self.otherprofileId1}, Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = DELETE - profileId = %s' % self.otherprofileId1)        
+
+    def test_cors_put(self):
+        profileid = 'http://test.cors.put'
+        activityid = 'test_cors_put-activity'
+        testparams1 = {"profileId": profileid, "activityId": activityid, "Authorization": self.auth}
+        testparams1['content'] = {"test":"put profile 1","obj":{"activity":"test"}}
+        path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
+        the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': activityid}))
+        put1 = self.client.post(path, testparams1, content_type="application/x-www-form-urlencoded")
+        self.assertEqual(put1.status_code, 200)
+        self.assertEqual(put1.content, 'Success -- activity profile - method = PUT - profileId = %s' % testparams1['profileId'])
+        self.client.delete(reverse(views.activity_profile), testparams1, Authorization=self.auth)
+
+    def test_cors_put_etag(self):
+        pid = 'http://ie.cors.etag/test'
+        aid = 'ie.cors.etag/test'
+
+        actaid = Activity.Activity(json.dumps({'objectType':'Activity', 'id': aid}))
+        
+        params = {"profileId": pid, "activityId": aid}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
+        tp = {"test":"put example profile for test_cors_put_etag","obj":{"activity":"this should be replaced -- ie cors post/put"}}
+        put1 = self.client.put(path, tp, content_type=self.content_type, Authorization=self.auth)
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
+        
+        params['content'] = {"test":"good - trying to put new profile w/ etag header - IE cors","obj":{"activity":"test IE cors etag"}}
+        thehash = '"%s"' % hashlib.sha1('%s' % tp).hexdigest()
+        params['If-Match'] = thehash
+        params['Authorization'] = self.auth
+        params['CONTENT_TYPE'] = "application/x-www-form-urlencoded"
+
+        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded")
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % pid)
+
+        r = self.client.get(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, '%s' % params['content'])
+
+        self.client.delete(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, Authorization=self.auth)
