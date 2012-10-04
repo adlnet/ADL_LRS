@@ -17,10 +17,16 @@ class AgentsTests(TestCase):
         form = {'username':self.username,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form)
 
+    def test_get_no_agentss(self):
+        agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+        response = self.client.get(reverse(views.agents), {'agent':agent}, Authorization=self.auth)
+        self.assertEqual(response.status_code, 404)
+
     def test_get(self):
         agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
         me = Agent.Agent(agent,create=True)
-        response = self.client.get(reverse(views.agents), {'agent':agent}, HTTP_AUTHORIZATION=self.auth)
+        response = self.client.get(reverse(views.agents), {'agent':agent}, Authorization=self.auth)
+
         #print response
         self.assertContains(response, 'mailto:me@example.com')
 
@@ -32,12 +38,11 @@ class AgentsTests(TestCase):
     #    self.assertContains(response, 'mailto:me@example.com')
     #    self.assertContains(response, 'name')
     #    self.assertContains(response, 'me')
-    
     def test_get_no_agent(self):
-        response = self.client.get(reverse(views.agents), HTTP_AUTHORIZATION=self.auth)
+        response = self.client.get(reverse(views.agents), Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
         agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        response = self.client.post(reverse(views.agents), {'agent':agent},content_type='application/x-www-form-urlencoded', HTTP_AUTHORIZATION=self.auth)
+        response = self.client.post(reverse(views.agents), {'agent':agent},content_type='application/x-www-form-urlencoded', Authorization=self.auth)
         self.assertEqual(response.status_code, 405)

@@ -3,12 +3,15 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from lrs.util import req_parse, req_process, etag
-from lrs import forms
+from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-import logging
+from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement
+from lrs import forms, models
 from objects import Agent, Activity
+import logging
+import json
+import pdb
 
 logger = logging.getLogger(__name__)
 
@@ -62,20 +65,30 @@ def reg_success(request, user_id):
     user = User.objects.get(id=user_id)
     return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
 
+# Called when user queries GET statement endpoint and returned list is larger than server limit (10)
+def statements_more(request, more_id):
+    # pdb.set_trace()
+    statementResult = retrieve_statement.getStatementRequest(more_id) 
+    return HttpResponse(json.dumps(statementResult, indent=4),mimetype="application/json",status=200)
+
 @require_http_methods(["PUT","GET","POST"])
 def statements(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
+    except req_validate.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
+    except req_validate.ParamConflictError as err:
+        return HttpResponse(err.message, status=409)
+    except req_validate.NoParamsError as err:
+        return HttpResponse(err.message, status=204)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
-
-    raise Http404
     
 
-@require_http_methods(["PUT","GET","DELETE"])
+@require_http_methods(["PUT","POST","GET","DELETE"])
 def activity_state(request):
     try: 
         resp = handle_request(request)
@@ -85,12 +98,16 @@ def activity_state(request):
         return HttpResponse(epf.message, status=412)
     except Agent.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
+    except req_validate.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
     
 
-@require_http_methods(["PUT","GET","DELETE"])
+@require_http_methods(["PUT","POST","GET","DELETE"])
 def activity_profile(request):
     try: 
         resp = handle_request(request)
@@ -100,6 +117,10 @@ def activity_profile(request):
         return HttpResponse(epf.message, status=412)
     except Activity.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
+    except req_validate.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
@@ -109,14 +130,20 @@ def activity_profile(request):
 def activities(request):
     try: 
         resp = handle_request(request)
-    except req_parse.ParamError as err:
+    except req_validate.ParamError as err:
         return HttpResponse(err.message)
     except req_process.ProcessError as err:
         return HttpResponse(err.message)
+    except req_validate.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
 
 
-@require_http_methods(["PUT","GET","DELETE"])    
+@require_http_methods(["PUT","POST","GET","DELETE"])    
 def agent_profile(request):
     try: 
         resp = handle_request(request)
@@ -126,6 +153,10 @@ def agent_profile(request):
         return HttpResponse(epf.message, status=412)
     except Agent.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
+    except req_validate.NotAuthorizedException as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
     except Exception as err:
         return HttpResponse(err.message, status=400)
     return resp
@@ -138,7 +169,7 @@ def agents(request):
         resp = handle_request(request)
     except Agent.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
-    except req_parse.NotAuthorizedException as autherr:
+    except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
@@ -148,39 +179,43 @@ def agents(request):
 
 def handle_request(request):
     try:
-        req_dict = parsers[request.path][request.method](request)
+        r_dict = req_parse.parse(request)
+        path = request.path
+        if path.endswith('/'):
+            path = path.rstrip('/')
+        req_dict = validators[path][r_dict['method']](r_dict)
         # Depending on if authentication is required, req_dict will either be a dict containing the request info
         # or a list with the request info dict being the first item, with the auth info being the second item
-        return processors[request.path][request.method](req_dict)
+        return processors[path][req_dict['method']](req_dict)
     except:
         raise 
 
-parsers = {
+validators = {
     reverse(statements) : {
-        "POST" : req_parse.statements_post,
-        "GET" : req_parse.statements_get,
-        "PUT" : req_parse.statements_put
+        "POST" : req_validate.statements_post,
+        "GET" : req_validate.statements_get,
+        "PUT" : req_validate.statements_put
     },
     reverse(activity_state) : {
-        "PUT" : req_parse.activity_state_put,
-        "GET" : req_parse.activity_state_get,
-        "DELETE" : req_parse.activity_state_delete
+        "PUT" : req_validate.activity_state_put,
+        "GET" : req_validate.activity_state_get,
+        "DELETE" : req_validate.activity_state_delete
     },
     reverse(activity_profile) : {
-        "PUT" : req_parse.activity_profile_put,
-        "GET" : req_parse.activity_profile_get,
-        "DELETE" : req_parse.activity_profile_delete
+        "PUT" : req_validate.activity_profile_put,
+        "GET" : req_validate.activity_profile_get,
+        "DELETE" : req_validate.activity_profile_delete
     },
     reverse(activities) : {
-        "GET" : req_parse.activities_get
+        "GET" : req_validate.activities_get
     },
     reverse(agent_profile) : {
-        "PUT" : req_parse.agent_profile_put,
-        "GET" : req_parse.agent_profile_get,
-        "DELETE" : req_parse.agent_profile_delete
+        "PUT" : req_validate.agent_profile_put,
+        "GET" : req_validate.agent_profile_get,
+        "DELETE" : req_validate.agent_profile_delete
     },
    reverse(agents) : {
-       "GET" : req_parse.agents_get
+       "GET" : req_validate.agents_get
    }
 }
 

@@ -11,8 +11,7 @@ agent_profile = 'agent_profile'
 activity_profile = 'activity_profile'
 activity_state = 'activity_state'
 
-INSTALL_STEPS = ['yes | sudo apt-get install python-setuptools libmysqlclient-dev python-dev python-mysqldb python-libxml2 python-libxslt1 libxml2-dev libxslt1-dev',
-                 'sudo easy_install pip',
+INSTALL_STEPS = ['sudo easy_install pip',
                  'sudo pip install virtualenv',
                  'virtualenv env;. env/bin/activate;pip install -r requirements.txt;deactivate']
 def deps_local():

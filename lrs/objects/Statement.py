@@ -10,6 +10,7 @@ from Activity import Activity
 from Agent import Agent
 from functools import wraps
 from django.utils.timezone import utc
+import pdb
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -25,7 +26,6 @@ class default_on_exception(object):
 
 
 class Statement():
-
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None,get=False):
@@ -84,41 +84,93 @@ class Statement():
         #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
         #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
 
+    def _remove_extra_agent_info(self, ret, fieldName):
+        if 'familyName' in ret[fieldName]:
+            del ret[fieldName]['familyName']
+        
+        if 'givenName' in ret[fieldName]:
+            del ret[fieldName]['givenName']
+        
+        if 'firstName' in ret[fieldName]:
+            del ret[fieldName]['firstName']
+        
+        if 'lastName' in ret[fieldName]:
+            del ret[fieldName]['lastName']
+        
+        if 'openid' in ret[fieldName]:
+            del ret[fieldName]['openid']
+        
+        if 'account' in ret[fieldName]:
+            del ret[fieldName]['account']
+        return ret
+
     def get_full_statement_json(self, sparse=False):
         # Set statement to return
         ret = models.objsReturn(self.statement)
 
-        # Remove activity details if sparse is true
+        # Remove details if sparse is true
         if sparse:
-            if 'activity_definition' in ret['stmt_object']:
-                del ret['stmt_object']['activity_definition']
+            # Remove act_def
+            if 'activity_definition' in ret['object']:
+                del ret['object']['activity_definition']
+            
+            # Remove other names/accounts in actor
+            if 'actor' in ret:
+                self._remove_extra_agent_info(ret, 'actor')
 
-        # return json.dumps(ret, indent=4, sort_keys=True)
+            # Remove other names/accounts in authority
+            if 'authority' in ret:
+                self._remove_extra_agent_info(ret, 'authority')
+
+            # Remove other names/accounts if agent is the object of statement
+            if 'objectType' in ret['object']:
+                if ret['object']['objectType'].lower() == 'agent' or ret['object']['objectType'].lower() == 'person':
+                    self._remove_extra_agent_info(ret, 'object')
+
+            # Remove other names/accounts if there is a context and it has an instructor
+            if 'context' in ret:
+                if 'instructor' in ret['context']:
+                    if 'familyName' in ret['context']['instructor']: 
+                        del ret['context']['instructor']['familyName']
+
+                    if 'givenName'in ret['context']['instructor']:
+                        del ret['context']['instructor']['givenName']
+
+                    if 'firstName' in ret['context']['instructor']: 
+                        del ret['context']['instructor']['firstName']
+
+                    if 'lastName'in ret['context']['instructor']:
+                        del ret['context']['instructor']['lastName']
+
+                    if 'openid' in ret['context']['instructor']: 
+                        del ret['context']['instructor']['openid']
+
+                    if 'account'in ret['context']['instructor']:
+                        del ret['context']['instructor']['account']
+
         return ret
 
     def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
-
+        comp = result.get('completion', None)
+        suc = result.get('success', None)
         #If completion is false then verb cannot be completed, mastered, 
-        if result['completion'] == False:                
+        if comp != None and comp == False:                
             if verb in completedVerbs:
                 #Throw exceptions b/c those verbs must have true completion
                 raise Exception('Completion must be True if using the verb ' + verb)
 
-        if verb == 'mastered' and result['success'] == False:
+        if verb == 'mastered' and (suc == None or suc == False):
             #Throw exception b/c mastered and success contradict each other or completion is false
             raise Exception('Result success must be True if verb is ' + verb)
 
-        if verb == 'passed' and result['success'] == False:
+        if verb == 'passed' and (suc == None or suc == False):
             #Throw exception b/c passed and success contradict each other or completion is false
             raise Exception('Result success must be True if verb is ' + verb)
 
-        if verb == 'failed' and result['success'] == True:
+        if verb == 'failed' and (suc == None or suc == True):
             #Throw exception b/c failed and success contradict each other or completion is false
             raise Exception('Result success must be False if verb is ' + verb)
-
-        #Validate response
-        # self._validateResultResponse(result, obj_data)
 
     #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
     def _validateScoreResult(self, score_data):
@@ -165,6 +217,7 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
+        #pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -211,23 +264,23 @@ class Statement():
             raise Exception('contextActivities required for context')
 
         # Statement Actor and Object supercede context instructor and team
-        # If there is an actor or object is a person in the stmt then remove the instructor
+        # If there is an actor or object is an agent in the stmt then remove the instructor
         if 'actor' in stmt_data:
-            if stmt_data['actor']['objectType'] == 'Person':
+            if 'objectType' not in stmt_data['actor'] or stmt_data['actor']['objectType'] == 'Person':
                 stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['actor']), create=True).agent
-        elif stmt_data['object']['objectType'] == 'Person':
+        elif 'objectType' in stmt_data['object'] and stmt_data['object']['objectType'] == 'Person':
             stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['object']), create=True).agent
         elif 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['context']['instructor']), create=True).agent
 
 
         # If there is an actor or object is a group in the stmt then remove the team
-        if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType']:
+        if 'actor' in stmt_data or 'Group' == stmt_data['object']['objectType']:
             if 'team' in stmt_data['context']:                
                 del stmt_data['context']['team']                
 
-        # Revision and platform not applicable if object is person
-        if 'person' == stmt_data['object']['objectType']:
+        # Revision and platform not applicable if object is agent
+        if 'objectType' in stmt_data['object'] and 'Person' == stmt_data['object']['objectType']:
             del stmt_data['context']['revision']
             del stmt_data['context']['platform']
 
@@ -261,6 +314,37 @@ class Statement():
         if 'voided' in stmt_data:
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
+        
+        #If not specified, the object is assumed to be an activity
+        if not 'objectType' in statementObjectData:
+            statementObjectData['objectType'] = 'Activity'
+
+        valid_agent_objects = ['agent', 'person', 'group']
+        #Check to see if voiding statement
+        if args['verb'] == 'voided':
+            #objectType must be statement if want to void another statement
+            if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
+                voidedStmt = self._voidStatement(statementObjectData['id'])
+                args['stmt_object'] = voidedStmt
+        #If verb is imported then create either the agent or activity it is importing              
+        elif args['verb'] == 'imported':
+            if statementObjectData['objectType'].lower() == 'activity':
+                importedActivity = Activity(json.dumps(statementObjectData)).activity
+                args['stmt_object'] = importedActivity
+            elif statementObjectData['objectType'].lower() in valid_agent_objects:
+                importedAgent = Agent(json.dumps(statementObjectData), create=True).agent
+                args['stmt_object'] = importedAgent
+        else:
+            # Check objectType, get object based on type
+            if statementObjectData['objectType'].lower() == 'activity':        
+                args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
+            elif statementObjectData['objectType'].lower() in valid_agent_objects:
+                args['stmt_object'] = Agent(json.dumps(statementObjectData), create=True).agent
+            elif statementObjectData['objectType'].lower() == 'statement':
+                args['stmt_object'] = Statement(json.dumps(statementObjectData)).statement  
+
+
+
 
         #Retrieve actor if in JSON only for now
         if 'actor' in stmt_data:
@@ -282,16 +366,6 @@ class Statement():
         #Set voided to default false
         args['voided'] = False
 
-        #If not specified, the object is assumed to be an activity
-        if not 'objectType' in statementObjectData:
-        	statementObjectData['objectType'] = 'Activity'
-
-        #Check objectType, get object based on type
-        if statementObjectData['objectType'] == 'Activity' and not args['verb'] == 'imported':        
-            args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
-        elif statementObjectData['objectType'] == 'Person' and not args['verb'] == 'imported':
-            args['stmt_object'] = Agent(json.dumps(statementObjectData), create=True).agent	
-
         #Set result when present - result object can be string or JSON object
         if 'result' in stmt_data:
             args['result'] = self._populateResult(stmt_data, args['verb'])
@@ -312,22 +386,6 @@ class Statement():
                 authArgs['name'] = [auth.username]
                 authArgs['mbox'] = [auth.email]
                 args['authority'] = Agent(json.dumps(authArgs), create=True).agent
-
-        #Check to see if voiding statement
-        if args['verb'] == 'voided':
-        	#objectType must be statement if want to void another statement
-        	if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
-        		voidedStmt = self._voidStatement(statementObjectData['id'])
-                args['stmt_object'] = voidedStmt
-        #If verb is imported then create either the actor or activity it is importing
-                
-        if args['verb'] == 'imported':
-            if statementObjectData['objectType'].lower() == 'activity':
-                importedActivity = Activity(json.dumps(statementObjectData)).activity
-                args['stmt_object'] = importedActivity
-            elif statementObjectData['objectType'].lower() == 'person':
-                importedActor = Agent(json.dumps(statementObjectData), create=True).agent
-                args['stmt_object'] = importedActor
 
         #See if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:

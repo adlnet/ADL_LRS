@@ -41,28 +41,28 @@ class ActivityStateTests(TestCase):
         self.testparams1 = {"stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
         self.teststate1 = {"test":"put activity state 1","obj":{"agent":"test"}}
-        self.put1 = self.client.put(path, self.teststate1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put1 = self.client.put(path, self.teststate1, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams2 = {"stateId": self.stateId2, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams2))
         self.teststate2 = {"test":"put activity state 2","obj":{"agent":"test"}}
-        self.put2 = self.client.put(path, self.teststate2, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put2 = self.client.put(path, self.teststate2, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams3 = {"stateId": self.stateId3, "activityId": self.activityId2, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams3))
         self.teststate3 = {"test":"put activity state 3","obj":{"agent":"test"}}
-        self.put3 = self.client.put(path, self.teststate3, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put3 = self.client.put(path, self.teststate3, content_type=self.content_type, Authorization=self.auth)
 
         self.testparams4 = {"stateId": self.stateId4, "activityId": self.activityId2, "agent": self.otheragent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams4))
         self.teststate4 = {"test":"put activity state 4","obj":{"agent":"other"}}
-        self.put4 = self.client.put(path, self.teststate4, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        self.put4 = self.client.put(path, self.teststate4, content_type=self.content_type, Authorization=self.auth)
 
     def tearDown(self):
-        self.client.delete(self.url, self.testparams1, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(self.url, self.testparams2, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(self.url, self.testparams3, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(self.url, self.testparams4, HTTP_AUTHORIZATION=self.auth)
+        self.client.delete(self.url, self.testparams1, Authorization=self.auth)
+        self.client.delete(self.url, self.testparams2, Authorization=self.auth)
+        self.client.delete(self.url, self.testparams3, Authorization=self.auth)
+        self.client.delete(self.url, self.testparams4, Authorization=self.auth)
 
     def test_put(self):
         self.assertEqual(self.put1.status_code, 204)
@@ -81,7 +81,7 @@ class ActivityStateTests(TestCase):
         testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"put activity state w/ registrationId","obj":{"agent":"test"}}
-        put1 = self.client.put(path, teststateregid, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -92,13 +92,13 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
         # and tests delete w/ registration id
-        del_r = self.client.delete(self.url, testparamsregid, HTTP_AUTHORIZATION=self.auth)
+        del_r = self.client.delete(self.url, testparamsregid, Authorization=self.auth)
         self.assertEqual(del_r.status_code, 204)
 
     def test_put_etag_conflict_if_none_match(self):
         teststateetaginm = {"test":"etag conflict - if none match *","obj":{"agent":"test"}}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetaginm, content_type=self.content_type, if_none_match='*', HTTP_AUTHORIZATION=self.auth)
+        r = self.client.put(path, teststateetaginm, content_type=self.content_type, If_None_Match='*', Authorization=self.auth)
         self.assertEqual(r.status_code, 412)
         self.assertEqual(r.content, 'Resource detected')
 
@@ -112,7 +112,7 @@ class ActivityStateTests(TestCase):
         teststateetagim = {"test":"etag conflict - if match wrong hash","obj":{"agent":"test"}}
         new_etag = '"%s"' % hashlib.sha1('wrong etag value').hexdigest()
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetagim, content_type=self.content_type, if_match=new_etag, HTTP_AUTHORIZATION=self.auth)
+        r = self.client.put(path, teststateetagim, content_type=self.content_type, If_Match=new_etag, Authorization=self.auth)
         self.assertEqual(r.status_code, 412)
         self.assertIn('No resources matched', r.content)
 
@@ -126,7 +126,7 @@ class ActivityStateTests(TestCase):
         teststateetagim = {"test":"etag no conflict - if match good hash","obj":{"agent":"test"}}
         new_etag = '"%s"' % hashlib.sha1('%s' % self.teststate1).hexdigest()
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetagim, content_type=self.content_type, if_match=new_etag, HTTP_AUTHORIZATION=self.auth)
+        r = self.client.put(path, teststateetagim, content_type=self.content_type, If_Match=new_etag, Authorization=self.auth)
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, '')
 
@@ -140,7 +140,7 @@ class ActivityStateTests(TestCase):
         testparamsbad = {"stateId": "bad_state", "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
         teststatebad = {"test":"put activity state BAD no activity id","obj":{"agent":"test"}}
-        put1 = self.client.put(path, teststatebad, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststatebad, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 400)
         self.assertIn('activityId parameter is missing', put1.content)
@@ -150,7 +150,7 @@ class ActivityStateTests(TestCase):
         testparamsbad = {"stateId": "bad_state", "activityId": self.activityId}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
         teststatebad = {"test":"put activity state BAD no agent","obj":{"agent":"none"}}
-        put1 = self.client.put(path, teststatebad, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststatebad, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 400)
         self.assertIn('agent parameter is missing', put1.content)
@@ -160,7 +160,7 @@ class ActivityStateTests(TestCase):
         testparamsbad = {"activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsbad))
         teststatebad = {"test":"put activity state BAD no state id","obj":{"agent":"test"}}
-        put1 = self.client.put(path, teststatebad, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststatebad, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 400)
         self.assertIn('stateId parameter is missing', put1.content)
@@ -206,7 +206,7 @@ class ActivityStateTests(TestCase):
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
         teststatesince = {"test":"get w/ since","obj":{"agent":"test"}}
         updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
-        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -227,7 +227,7 @@ class ActivityStateTests(TestCase):
         self.assertNotIn(self.stateId3, r.content)
         self.assertNotIn(self.stateId4, r.content)
 
-        del_r = self.client.delete(self.url, testparamssince, HTTP_AUTHORIZATION=self.auth)
+        del_r = self.client.delete(self.url, testparamssince, Authorization=self.auth)
         
     def test_get_with_since_and_regid(self):
         # create old state w/ no registration id
@@ -236,7 +236,7 @@ class ActivityStateTests(TestCase):
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
         teststatesince = {"test":"get w/ since","obj":{"agent":"test","stateId":state_id}}
         updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
-        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -253,7 +253,7 @@ class ActivityStateTests(TestCase):
         testparamssince2 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id2}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince2))
         teststatesince2 = {"test":"get w/ since and registrationId","obj":{"agent":"test","stateId":state_id2}}
-        put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated.isoformat(), HTTP_AUTHORIZATION=self.auth)
+        put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth)
 
         self.assertEqual(put2.status_code, 204)
         self.assertEqual(put2.content, '')
@@ -269,7 +269,7 @@ class ActivityStateTests(TestCase):
         testparamssince3 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id3}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince3))
         teststatesince3 = {"test":"get w/ since and registrationId","obj":{"agent":"test","stateId":state_id3}}
-        put3 = self.client.put(path, teststatesince3, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put3 = self.client.put(path, teststatesince3, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put3.status_code, 204)
         self.assertEqual(put3.content, '')
@@ -303,9 +303,9 @@ class ActivityStateTests(TestCase):
         self.assertNotIn(self.stateId3, r.content)
         self.assertNotIn(self.stateId4, r.content)
         
-        self.client.delete(self.url, testparamssince, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(self.url, testparamssince2, HTTP_AUTHORIZATION=self.auth)
-        self.client.delete(self.url, testparamssince3, HTTP_AUTHORIZATION=self.auth)
+        self.client.delete(self.url, testparamssince, Authorization=self.auth)
+        self.client.delete(self.url, testparamssince2, Authorization=self.auth)
+        self.client.delete(self.url, testparamssince3, Authorization=self.auth)
 
         
     def test_get_without_activityid(self):
@@ -326,7 +326,7 @@ class ActivityStateTests(TestCase):
         testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"delete activity state w/o activityid","obj":{"agent":"test"}}
-        put1 = self.client.put(path, teststateregid, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -337,11 +337,12 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "agent": self.testagent}, HTTP_AUTHORIZATION=self.auth)
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "agent": self.testagent}, Authorization=self.auth)
+
         self.assertEqual(f_r.status_code, 400)
         self.assertIn('activityId parameter is missing', f_r.content)
 
-        del_r = self.client.delete(self.url, testparamsregid, HTTP_AUTHORIZATION=self.auth)
+        del_r = self.client.delete(self.url, testparamsregid, Authorization=self.auth)
         self.assertEqual(del_r.status_code, 204)
 
     
@@ -349,7 +350,7 @@ class ActivityStateTests(TestCase):
         testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"delete activity state w/o agent","obj":{"agent":"test"}}
-        put1 = self.client.put(path, teststateregid, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -360,11 +361,11 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId}, HTTP_AUTHORIZATION=self.auth)
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId}, Authorization=self.auth)
         self.assertEqual(f_r.status_code, 400)
         self.assertIn('agent parameter is missing', f_r.content)
 
-        del_r = self.client.delete(self.url, testparamsregid, HTTP_AUTHORIZATION=self.auth)
+        del_r = self.client.delete(self.url, testparamsregid, Authorization=self.auth)
         self.assertEqual(del_r.status_code, 204)
 
     
@@ -372,7 +373,7 @@ class ActivityStateTests(TestCase):
         testparamsdelset1 = {"registrationId": self.registrationId, "stateId": "del_state_set_1", "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsdelset1))
         teststatedelset1 = {"test":"delete set #1","obj":{"agent":"test"}}
-        put1 = self.client.put(path, teststatedelset1, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststatedelset1, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -386,7 +387,7 @@ class ActivityStateTests(TestCase):
         testparamsdelset2 = {"registrationId": self.registrationId, "stateId": "del_state_set_2", "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsdelset2))
         teststatedelset2 = {"test":"delete set #2","obj":{"agent":"test"}}
-        put1 = self.client.put(path, teststatedelset2, content_type=self.content_type, HTTP_AUTHORIZATION=self.auth)
+        put1 = self.client.put(path, teststatedelset2, content_type=self.content_type, Authorization=self.auth)
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -397,7 +398,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "agent": self.testagent, "activityId": self.activityId}, HTTP_AUTHORIZATION=self.auth)
+        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "agent": self.testagent, "activityId": self.activityId}, Authorization=self.auth)
         self.assertEqual(f_r.status_code, 204)
 
         r = self.client.get(self.url, testparamsdelset1)
@@ -407,3 +408,29 @@ class ActivityStateTests(TestCase):
         r = self.client.get(self.url, testparamsdelset2)
         self.assertEqual(r.status_code, 404)
         self.assertIn('no activity', r.content)
+
+    def test_ie_cors_put_delete(self):
+        testagent = '{"name":["another test"],"mbox":["mailto:anothertest@example.com"]}'
+        sid = "test_ie_cors_put_delete_set_1"
+        sparam1 = {"stateId": sid, "activityId": self.activityId, "agent": testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
+        sparam1['content'] = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
+        sparam1['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
+        sparam1['Authorization'] = self.auth
+        put1 = self.client.post(path, sparam1, content_type='application/x-www-form-urlencoded')
+
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
+        
+        r = self.client.get(self.url, {"stateId": sid, "activityId": self.activityId, "agent": testagent})
+        self.assertEqual(r.status_code, 200)
+        state1_str = '%s' % sparam1['content']
+        self.assertEqual(r.content, state1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
+
+        dparam = {"agent": testagent, "activityId": self.activityId}
+        dparam['Authorization'] = self.auth
+        dparam['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
+        path = '%s?%s' % (self.url, urllib.urlencode({"method":"DELETE"}))
+        f_r = self.client.post(path, dparam, content_type='application/x-www-form-urlencoded')
+        self.assertEqual(f_r.status_code, 204)

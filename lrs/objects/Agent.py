@@ -173,12 +173,13 @@ class Agent():
 
     def get_account(self):
         accounts = []
-        for acc in self.agent.agent_account_set.all().order_by('-date_added'):
-            a = {}
-            a['accountName'] = acc.accountName
-            if acc.accountServiceHomePage:
-                a['accountServiceHomePage'] = acc.accountServiceHomePage
-            accounts.append(a)
+        if self.agent:
+            for acc in self.agent.agent_account_set.all().order_by('-date_added'):
+                a = {}
+                a['accountName'] = acc.accountName
+                if acc.accountServiceHomePage:
+                    a['accountServiceHomePage'] = acc.accountServiceHomePage
+                accounts.append(a)
         return accounts
    
     @default_on_exception([])
@@ -227,7 +228,7 @@ class Agent():
     def get_profile(self, profileId):
         try:
             return self.agent.agent_profile_set.get(profileId=profileId)
-        except models.agent_profile.DoesNotExist:
+        except:
             raise IDNotFoundError('There is no profile associated with the id: %s' % profileId)
 
     def get_profile_ids(self, since=None):
@@ -239,6 +240,9 @@ class Agent():
                 since_i = int(float(since))
                 since_dt = datetime.datetime.fromtimestamp(since_i)
                 profs = self.agent.agent_profile_set.filter(update__gte=since_dt)
+            except:
+                raise IDNotFoundError('There are no profiles associated with the id: %s' % profileId)                
+
             ids = [p.profileId for p in profs]
         else:
             ids = self.agent.agent_profile_set.values_list('profileId', flat=True)
@@ -259,6 +263,9 @@ class Agent():
 
     def full_agent_json(self):
         ret = {}
+        if not self.agent:
+            # return json.dumps(self.obj)
+            raise IDNotFoundError("No agent found with that id")
         ret['objectType'] = self.get_objectType()
         names = self.get_name()
         if names:
