@@ -152,22 +152,23 @@ class Statement():
 
     def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
-
+        comp = result.get('completion', None)
+        suc = result.get('success', None)
         #If completion is false then verb cannot be completed, mastered, 
-        if result['completion'] == False:                
+        if comp != None and comp == False:                
             if verb in completedVerbs:
                 #Throw exceptions b/c those verbs must have true completion
                 raise Exception('Completion must be True if using the verb ' + verb)
 
-        if verb == 'mastered' and result['success'] == False:
+        if verb == 'mastered' and (suc == None or suc == False):
             #Throw exception b/c mastered and success contradict each other or completion is false
             raise Exception('Result success must be True if verb is ' + verb)
 
-        if verb == 'passed' and result['success'] == False:
+        if verb == 'passed' and (suc == None or suc == False):
             #Throw exception b/c passed and success contradict each other or completion is false
             raise Exception('Result success must be True if verb is ' + verb)
 
-        if verb == 'failed' and result['success'] == True:
+        if verb == 'failed' and (suc == None or suc == True):
             #Throw exception b/c failed and success contradict each other or completion is false
             raise Exception('Result success must be False if verb is ' + verb)
 
