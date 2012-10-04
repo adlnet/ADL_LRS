@@ -483,3 +483,23 @@ class StatementsTests(TestCase):
         getstmt = self.client.get(path)
         self.assertEqual(getstmt.status_code, 200)
         self.assertContains(getstmt, stmtid)
+
+    def test_tetris_snafu2(self):
+        stmtid = str(uuid.uuid4())
+        stmt = json.dumps({"verb":"completed",
+                           "object":{"id":"scorm.com/JsTetris_TCAPI/level2",
+                                     "definition":{"type":"media",
+                                                   "name":{"en-US":"Js Tetris Level2"},
+                                                   "description":{"en-US":"Starting at 1, the higher the level, the harder the game."}}},
+                                     "result":{"extensions":{"time":104,"apm":229,"lines":5},
+                                               "score":{"raw":9911,"min":0}},
+                           "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
+                                      "registration":"b7be7d9d-bfe2-4917-8ccd-41a0d18dd953"},
+                           "actor":{"name":["tom creighton"],"mbox":["mailto:tom@example.com"]}})
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmtid}))
+        putstmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(putstmt.status_code, 204)
+
+        getstmt = self.client.get(path)
+        self.assertEqual(getstmt.status_code, 200)
+        self.assertContains(getstmt, stmtid)
