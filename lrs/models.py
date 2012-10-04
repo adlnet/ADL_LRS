@@ -155,17 +155,19 @@ class actor_profile(models.Model):
         self.profile.delete()
         super(actor_profile, self).delete(*args, **kwargs)
 
+class LanguageMap(models.Model):
+    key = models.CharField(max_length=200)
+    value = models.CharField(max_length=200)
+
 class activity_def_correctresponsespattern(models.Model):
-    #activity_definition = models.OneToOneField(activity_definition, blank=True,null=True)
     pass
 
 class activity_definition(models.Model):
-    name = models.CharField(max_length=200)
-    description = models.CharField(max_length=200)
+    name = models.OneToOneField(LanguageMap, related_name="activity_definition_name")
+    description = models.OneToOneField(LanguageMap, related_name="activity_definition_description")
     activity_definition_type = models.CharField(max_length=200)
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
-    #activity = models.OneToOneField(activity)
 
     def objReturn(self):
         ret = {}
@@ -296,7 +298,7 @@ class activity_profile(models.Model):
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
-        super(activity_profile, self).delete(*args, **kwargs)
+        super(activity_profile, self).delete(*args, **kwargs)    
 
 class statement(statement_object):
     statement_id = models.CharField(max_length=200)
@@ -318,15 +320,36 @@ class statement(statement_object):
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
 
-def convert_stmt_object_field_name(returnDict):
-    if 'stmt_object' in returnDict:
-        returnDict['object'] = returnDict['stmt_object']
-        del returnDict['stmt_object']
-    return returnDict    
+def convert_stmt_object_field_name(return_dict):
+    if 'stmt_object' in return_dict:
+        return_dict['object'] = return_dict['stmt_object']
+        del return_dict['stmt_object']
+    return return_dict    
+
+def convert_activity_definition_field_name(return_dict):
+    if 'activity_definition' in return_dict:
+        return_dict['definition'] = return_dict['activity_definition']
+        del return_dict['activity_definition']
+
+    if 'activity_definition_type' in return_dict:
+        return_dict['type'] = return_dict['activity_definition_type']
+        del return_dict['activity_definition_type']
+    return return_dict
+
+def handle_lang_map(obj):
+    # pdb.set_trace()
+    ret = {}
+
+    # Grab the key and value fields
+    key = obj._meta.fields[1]
+    value = obj._meta.fields[2]
+
+    ret[getattr(obj, key.name)] = getattr(obj, value.name) 
+    return ret
 
 def objsReturn(obj):
     ret = {}
-
+    # pdb.set_trace()
     # If the object being sent in is derived from a statement_object, must retrieve the specific object then loop through all of it's fields
     if type(obj).__name__ == 'statement_object':
         try:
@@ -339,8 +362,13 @@ def objsReturn(obj):
                     obj = statement.objects.get(id=obj.id)
                 except Exception, e:
                     raise e
+    # Else if the object is a LanguageMap we have to handle this different since we actually want the
+    # key value as the key in the dict we're returning
+    elif type(obj).__name__ == 'LanguageMap':
+        ret = handle_lang_map(obj)
+        return ret
 
-    # Loop through all fields in model
+    # Once we retrieve the specific object if needed, loop through all fields in model
     for field in obj._meta.fields:
         # Get the value of the field and the type of the field
         fieldValue = getattr(obj, field.name)
@@ -465,7 +493,11 @@ def objsReturn(obj):
                 ret[field.name]['target'] = []
                 for t in targets:
                     ret[field.name]['target'].append(str(t.objReturn()))
-        
+            
+            ret[field.name]['extensions'] = {}
+            act_def_ext = activity_extensions.objects.filter(activity_definition=fieldValue)
+            for ext in act_def_ext:
+                ret[field.name]['extensions'][ext.key] = ext.value
         # If type of field is activity_def_crp, grab all FKs associated with it
         elif fieldType == 'activity_def_correctresponsespattern':
             ret[field.name] = []
@@ -478,6 +510,7 @@ def objsReturn(obj):
         else:
             # If it is a OneToOneField, skip _ptr name and if it has a value recursively send object
             if field.get_internal_type() == 'OneToOneField':
+                # pdb.set_trace()
                 # Don't care about inheritance field
                 if not field.name.endswith('_ptr'):
                     if getattr(obj, field.name):
@@ -517,6 +550,7 @@ def objsReturn(obj):
                             ret[field.name] = getattr(obj, field.name)
     
     convert_stmt_object_field_name(ret)
+    convert_activity_definition_field_name(ret)
     return ret
 
 # - from http://djangosnippets.org/snippets/2283/

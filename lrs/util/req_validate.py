@@ -118,7 +118,7 @@ def activity_state_delete(r_dict):
         
 @basic_http_auth
 def activity_profile_put(r_dict):
-    try: 
+    try:
         r_dict['activityId']
     except KeyError:
         raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method'])
@@ -166,7 +166,7 @@ def activities_get(r_dict):
 
 @basic_http_auth
 def actor_profile_put(r_dict):
-    try: 
+    try:
         r_dict['actor']
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.." % r_dict['method'])
@@ -182,7 +182,7 @@ def actor_profile_put(r_dict):
 
 
 def actor_profile_get(r_dict):
-    try: 
+    try:
         r_dict['actor']
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.. the actor parameter is required" % r_dict['method'])
@@ -191,7 +191,7 @@ def actor_profile_get(r_dict):
 
 @basic_http_auth
 def actor_profile_delete(r_dict):
-    try: 
+    try:
         r_dict['actor']
     except KeyError:
         raise ParamError("Error -- actor_profile - method = %s, but no actor parameter.. the actor parameter is required" % r_dict['method'])
@@ -203,7 +203,7 @@ def actor_profile_delete(r_dict):
 
 
 def actors_get(r_dict):
-    try: 
+    try:
         r_dict['actor']
     except KeyError:
         raise ParamError("Error -- actors url, but no actor parameter.. the actor parameter is required")

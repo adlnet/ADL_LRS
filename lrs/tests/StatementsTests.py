@@ -43,7 +43,7 @@ class StatementsTests(TestCase):
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
         self.existStmt1 = json.dumps({"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
             'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
             "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
@@ -52,8 +52,19 @@ class StatementsTests(TestCase):
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
             'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
 
+        # self.existStmt1 = json.dumps({"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
+        #     'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
+        #     'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
+        #     'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
+        #     "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
+        #     'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
+        #     'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
+        #     'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
+        #     'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
+
+
         self.existStmt2 = json.dumps({"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
             "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -63,7 +74,7 @@ class StatementsTests(TestCase):
             'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth2'],'mbox':['auth2@example.com']}})        
 
         self.existStmt3 = json.dumps({"verb":"created", "object": {'objectType': 'Activity', 'id':'foogals',
-            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -73,7 +84,7 @@ class StatementsTests(TestCase):
             'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
         self.existStmt4 = json.dumps({"verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
-            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -98,9 +109,10 @@ class StatementsTests(TestCase):
         param = {"statementId":self.guid1}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt1
+        # pdb.set_trace()
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         #self.assertEqual(self.putresponse1.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
 
@@ -108,7 +120,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt3
         self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
         
@@ -116,16 +128,16 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt4
         self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
-        self.secondTime = str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat())
+        self.secondTime = str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat())
         
         param = {"statementId":self.guid2}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt2
         self.putresponse2 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)       
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
 
@@ -133,7 +145,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt5
         self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
         
 
@@ -141,7 +153,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt6
         self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
         
@@ -149,7 +161,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt7        
         self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json", Authorization=self.auth)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
         
 
@@ -157,7 +169,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt8        
         self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
         
 
@@ -282,12 +294,16 @@ class StatementsTests(TestCase):
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
         self.assertEqual(len(jsn['statements']), models.statement.objects.all().count())
+        # self.assertContains(response, 'Error')
+        # self.assertContains(response, 'statementId parameter is missing')
+
         
     def test_since_filter(self):
         # Test since - should only get existStmt1-8 since existStmt is stored at same time as firstTime
         param = {'since': self.firstTime}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         sinceGetResponse = self.client.get(path)
+        # pdb.set_trace()
 
         self.assertEqual(sinceGetResponse.status_code, 200)
         self.assertContains(sinceGetResponse, self.guid1)
@@ -305,6 +321,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         untilGetResponse = self.client.get(path)
         
+        # pdb.set_trace()
         self.assertEqual(untilGetResponse.status_code, 200)
         self.assertContains(untilGetResponse, self.guid1)
         self.assertContains(untilGetResponse, self.guid3)
@@ -416,6 +433,7 @@ class StatementsTests(TestCase):
                     "context":{"registration": str(uuid.uuid4), "contextActivities": {"other": {"id": "NewActivityID2"}}},
                     "authority":{"name":["auth"],"mbox":["mailto:auth@example.com"]}}
         stmt = json.dumps(raw_stmt)
+        #stmt1_resp = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         stmt1_resp = self.client.get(reverse(views.statements), raw_stmt)
         self.assertEqual(stmt1_resp.status_code, 200)
         stmts = json.loads(stmt1_resp.content)
@@ -432,14 +450,17 @@ class StatementsTests(TestCase):
     def test_sparse_filter(self):
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{'sparse': False}, content_type="application/x-www-form-urlencoded")
+        # print sparseGetResponse.content
+        # pdb.set_trace()
         self.assertEqual(sparseGetResponse.status_code, 200)
-        self.assertContains(sparseGetResponse, 'activity_definition')        
+        self.assertContains(sparseGetResponse, 'definition')        
         self.assertContains(sparseGetResponse, 'firstName')
         self.assertContains(sparseGetResponse, 'lastName')
         self.assertContains(sparseGetResponse, 'givenName')
         self.assertContains(sparseGetResponse, 'familyName')
         self.assertContains(sparseGetResponse, 'account')
         self.assertContains(sparseGetResponse, 'openid')
+
 
 
     def test_linked_filters(self):

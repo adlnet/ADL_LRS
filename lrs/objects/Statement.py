@@ -296,6 +296,7 @@ class Statement():
 
     #Once JSON is verified, populate the statement object
     def _populate(self, stmt_data, auth):
+        # pdb.set_trace()
         args ={}
         #Must include verb - set statement verb - set to lower too
         try:
@@ -314,7 +315,8 @@ class Statement():
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
         
-        #If not specified, the object is assumed to be an activity
+        # If not specified, the object is assumed to be an activity
+        # TODO - CHECK FOR AUTHENTICATION WHEN LOOKING AT ACTIVITY IDS
         if not 'objectType' in statementObjectData:
             statementObjectData['objectType'] = 'Activity'
 
@@ -403,8 +405,8 @@ class Statement():
         #Save statement
         self.statement = self._saveStatementToDB(args)
 
-class IDAlreadyExistsError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
+# class IDAlreadyExistsError(Exception):
+#     def __init__(self, msg):
+#         self.message = msg
+#     def __str__(self):
+#         return repr(self.message)

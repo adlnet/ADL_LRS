@@ -23,7 +23,7 @@ def parse(request):
     if 'method' not in r_dict:
         r_dict['method'] = request.method
     
-    return r_dict 
+    return r_dict
 
 def parse_body(r, request):
     if request.method == 'POST' or request.method == 'PUT':
