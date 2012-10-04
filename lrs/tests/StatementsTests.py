@@ -52,17 +52,6 @@ class StatementsTests(TestCase):
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
             'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
 
-        # self.existStmt1 = json.dumps({"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
-        #     'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
-        #     'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-        #     'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
-        #     "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
-        #     'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
-        #     'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
-        #     'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-        #     'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
-
-
         self.existStmt2 = json.dumps({"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
             'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
@@ -109,9 +98,8 @@ class StatementsTests(TestCase):
         param = {"statementId":self.guid1}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt1
-        # pdb.set_trace()
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
-        #self.assertEqual(self.putresponse1.status_code, 204)
+        self.assertEqual(self.putresponse1.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
@@ -120,6 +108,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt3
         self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(self.putresponse3.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
@@ -128,6 +117,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt4
         self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(self.putresponse4.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
@@ -137,6 +127,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt2
         self.putresponse2 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)       
+        self.assertEqual(self.putresponse2.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
@@ -145,6 +136,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt5
         self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(self.putresponse5.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
         
@@ -153,6 +145,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt6
         self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(self.putresponse6.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
@@ -161,6 +154,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt7        
         self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json", Authorization=self.auth)
+        self.assertEqual(self.putresponse7.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
         
@@ -169,6 +163,7 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt8        
         self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(self.putresponse8.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
         

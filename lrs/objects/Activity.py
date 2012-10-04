@@ -432,7 +432,6 @@ class Activity():
                         raise Exception("Activity definition missing scale for likert")
                     interactionFlag = 'scale'
 
-            # pdb.set_trace()
             # Save activity definition name and description
             if type(act_def['name']) is dict:
                 act_def['name'] = self._save_activity_definition_name_or_desc(act_def['name'])
