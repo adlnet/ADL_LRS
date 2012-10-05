@@ -1,5 +1,4 @@
 Django==1.4
-Fabric==1.4.1
 MySQL-python==1.2.3
 URLObject==2.0.1
 django-uuidfield==0.2
@@ -13,3 +12,4 @@ supervisor==3.0a12
 uuid==1.30
 wsgiref==0.1.2
 lxml==2.3.4
+bencode==1.0
