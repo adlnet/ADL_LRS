@@ -9,7 +9,7 @@ from os import path
 import sys
 import uuid
 
-from lrs.objects import Activity, Statement, Actor
+from lrs.objects import Activity, Statement, Agent
 
 class StatementModelsTests(TestCase):
          
@@ -416,12 +416,37 @@ class StatementModelsTests(TestCase):
         self.assertEqual(conactorname.name, 'steve')
         self.assertEqual(conactormbox.mbox, 's@s.com') 
 
-    def test_person_as_object_with_context_stmt(self):
+    def test_agent_as_object_with_context_stmt(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Person', 'name': ['lou'], 'mbox':['l@l.com']}, "verb":"kicked",
-                'context':{'registration': guid, 'instructor': {'objectType':'Person','name':['jon'],'mbox':['jon@example.com']},
-                'contextActivities': {'other': {'id': 'NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
-                'language': 'en-US', 'statement': {'verb': 'graded', 'object':{'id':'NestContextAct2'}}}}))
+        stmt = Statement.Statement(
+            json.dumps(
+                {'object':{
+                    'objectType':'Person', 
+                    'name': ['lou'], 
+                    'mbox':['l@l.com']
+                 }, 
+                 "verb":"kicked",
+                 'context':{
+                    'registration': guid, 
+                    'instructor': {
+                        'objectType':'Person',
+                        'name':['jon'],
+                        'mbox':['jon@example.com']
+                    },
+                    'contextActivities': {
+                        'other': {'id': 'NewActivityID1'}
+                    }, 
+                    'revision': 'foob', 
+                    'platform':'bard',
+                    'language': 'en-US', 
+                    'statement': {
+                        'verb': 'graded', 
+                        'object':{'id':'NestContextAct2'}
+                    }
+                 }
+                }
+            )
+        )
 
         context = models.context.objects.get(id=stmt.statement.context.id)
         conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
@@ -439,8 +464,9 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID1'}}))
-        self.assertEqual(context.revision, 'foob')
-        self.assertEqual(context.platform, 'bard')
+        # TOM: thinks these aren't supposed to be here
+        # self.assertEqual(context.revision, 'foob')
+        # self.assertEqual(context.platform, 'bard')
         self.assertEqual(context.language, 'en-US')
         
         self.assertEqual(neststmt.verb, 'graded')
@@ -454,7 +480,7 @@ class StatementModelsTests(TestCase):
 
     def test_agent_as_object(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': ['lulu'], 'mbox':['lu@lu.com'], 'openid':['luluid'], 'account':[{'accountServiceHomePage':'http://lulu.com','accountName':'luluacct'}]}, "verb":"kicked"}))
+        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Person', 'name': ['lulu'], 'mbox':['lu@lu.com'], 'openid':['luluid'], 'account':[{'accountServiceHomePage':'http://lulu.com','accountName':'luluacct'}]}, "verb":"kicked"}))
 
         st = models.statement.objects.get(id=stmt.statement.id)
         agent = models.agent.objects.get(id=stmt.statement.stmt_object.id)

@@ -9,12 +9,13 @@ import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
-from lrs.objects import Actor, Activity, Statement
+from lrs.objects import Agent, Activity, Statement
 import time
 import urllib
 from lrs.util import retrieve_statement
 import pdb
 
+# Start .95 work
 class StatementsTests(TestCase):
     def setUp(self):
         self.username = "tester1"

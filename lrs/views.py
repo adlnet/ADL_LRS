@@ -8,7 +8,7 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement
 from lrs import forms, models
-from objects import Actor, Activity
+from objects import Agent, Activity
 import logging
 import json
 import pdb
@@ -96,7 +96,7 @@ def activity_state(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Actor.IDNotFoundError as nf:
+    except Agent.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -144,14 +144,14 @@ def activities(request):
 
 
 @require_http_methods(["PUT","POST","GET","DELETE"])    
-def actor_profile(request):
+def agent_profile(request):
     try: 
         resp = handle_request(request)
     except etag.MissingEtagInfo as mei:
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Actor.IDNotFoundError as nf:
+    except Agent.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -164,10 +164,10 @@ def actor_profile(request):
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
-def actors(request):
+def agents(request):
     try: 
         resp = handle_request(request)
-    except Actor.IDNotFoundError as iderr:
+    except Agent.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -209,13 +209,13 @@ validators = {
     reverse(activities) : {
         "GET" : req_validate.activities_get
     },
-    reverse(actor_profile) : {
-        "PUT" : req_validate.actor_profile_put,
-        "GET" : req_validate.actor_profile_get,
-        "DELETE" : req_validate.actor_profile_delete
+    reverse(agent_profile) : {
+        "PUT" : req_validate.agent_profile_put,
+        "GET" : req_validate.agent_profile_get,
+        "DELETE" : req_validate.agent_profile_delete
     },
-   reverse(actors) : {
-       "GET" : req_validate.actors_get
+   reverse(agents) : {
+       "GET" : req_validate.agents_get
    }
 }
 
@@ -238,13 +238,13 @@ processors = {
     reverse(activities) : {
         "GET" : req_process.activities_get
     },
-    reverse(actor_profile) : {
-        "PUT" : req_process.actor_profile_put,
-        "GET" : req_process.actor_profile_get,
-        "DELETE" : req_process.actor_profile_delete
+    reverse(agent_profile) : {
+        "PUT" : req_process.agent_profile_put,
+        "GET" : req_process.agent_profile_get,
+        "DELETE" : req_process.agent_profile_delete
     },
-   reverse(actors) : {
-       "GET" : req_process.actors_get
+   reverse(agents) : {
+       "GET" : req_process.agents_get
    }
 }
 

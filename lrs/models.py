@@ -152,17 +152,17 @@ class person_lastName(models.Model):
 class group(agent):
     member = models.TextField()
 
-class actor_profile(models.Model):
+class agent_profile(models.Model):
     profileId = models.CharField(max_length=200)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
-    actor = models.ForeignKey(agent)
-    profile = models.FileField(upload_to="actor_profile")
+    agent = models.ForeignKey(agent)
+    profile = models.FileField(upload_to="agent_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
-        super(actor_profile, self).delete(*args, **kwargs)
+        super(agent_profile, self).delete(*args, **kwargs)
 
 class activity_def_correctresponsespattern(models.Model):
     #activity_definition = models.OneToOneField(activity_definition, blank=True,null=True)
@@ -285,7 +285,7 @@ class activity_state(models.Model):
     state_id = models.CharField(max_length=200)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     state = models.FileField(upload_to="activity_state")
-    actor = models.ForeignKey(agent)
+    agent = models.ForeignKey(agent)
     activity = models.ForeignKey(activity)
     registration_id = models.CharField(max_length=200)
     content_type = models.CharField(max_length=200,blank=True,null=True)

@@ -21,7 +21,7 @@ class default_on_exception(object):
                 return self.default
         return closure
 
-class Actor():
+class Agent():
     IFPs = ['account','mbox','openid','mbox_sha1sum']
     
     @transaction.commit_on_success
@@ -40,7 +40,7 @@ class Actor():
             try:
                 return json.loads(initial)
             except Exception as e:
-                raise Exception("Error parsing the Actor object. Expecting json. Received: %s" % initial)
+                raise Exception("Error parsing the Agent object. Expecting json. Received: %s" % initial)
         return {}
 
     def __get_or_create_agent(self,the_object):
@@ -53,14 +53,14 @@ class Actor():
     
     def __validate(self,the_object):
         # Inverse Functional Properties
-        ifps = [k for k,v in the_object.items() if k in Actor.IFPs]
+        ifps = [k for k,v in the_object.items() if k in Agent.IFPs]
         if not ifps:
-            raise Exception("Actor object validation issue. Actor object did not contain an Inverse Functional Property. Acceptable properties are: %s" % ifp)
+            raise Exception("Agent object validation issue. Agent object did not contain an Inverse Functional Property. Acceptable properties are: %s" % ifp)
         return ifps
     
     def __get_agent(self, the_object, the_ifps, modify=False):
         # i need to see if any of these ifps is already associated with an existing agent
-        # if so then that agent is the agent for this actor object
+        # if so then that agent is the agent for this agent object
         # if not, then i need to make a new agent and have __populate fill in the info
         agent = {}
         agents = []
@@ -88,7 +88,7 @@ class Actor():
             if modify:
                 agent = models.merge_model_objects(agent_set.pop(), list(agent_set))
             else:
-                #raise MultipleActorError("Found multiple actors for actor parameter: %s" % self.initial)
+                #raise MultipleAgentError("Found multiple agents for agent parameter: %s" % self.initial)
                 #still need to merge
                 #but if i'm here, then it was a get request that asked for the agent
                 #and we can't change the data.. no saving the merged agent or removing the others
@@ -116,7 +116,7 @@ class Actor():
         
         #if the_agent.objectType == 'Group':
         #    for member in the_object['member']:
-        #        a = Actor(json.dumps(member))
+        #        a = Agent(json.dumps(member))
         #        print dir(the_agent)
         #        #the_agent.group.agent_group.get_or_create(a.agent)
 
@@ -210,7 +210,7 @@ class Actor():
             except:
                 profile = ContentFile(str(request_dict['profile']))
 
-        p,created = models.actor_profile.objects.get_or_create(profileId=request_dict['profileId'],actor=self.agent)
+        p,created = models.agent_profile.objects.get_or_create(profileId=request_dict['profileId'],agent=self.agent)
         if not created:
             etag.check_preconditions(request_dict,p, required=True)
             p.profile.delete()
@@ -222,12 +222,12 @@ class Actor():
         if created:
             p.save()
 
-        fn = "%s_%s" % (p.actor_id,request_dict.get('filename', p.id))
+        fn = "%s_%s" % (p.agent_id,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
     
     def get_profile(self, profileId):
         try:
-            return self.agent.actor_profile_set.get(profileId=profileId)
+            return self.agent.agent_profile_set.get(profileId=profileId)
         except:
             raise IDNotFoundError('There is no profile associated with the id: %s' % profileId)
 
@@ -235,32 +235,33 @@ class Actor():
         ids = []
         if since:
             try:
-                profs = self.agent.actor_profile_set.filter(updated__gte=since)
+                profs = self.agent.agent_profile_set.filter(updated__gte=since)
             except ValidationError:
                 since_i = int(float(since))
                 since_dt = datetime.datetime.fromtimestamp(since_i)
-                profs = self.agent.actor_profile_set.filter(update__gte=since_dt)
+                profs = self.agent.agent_profile_set.filter(update__gte=since_dt)
             except:
                 raise IDNotFoundError('There are no profiles associated with the id: %s' % profileId)                
+
             ids = [p.profileId for p in profs]
         else:
-            ids = self.agent.actor_profile_set.values_list('profileId', flat=True)
+            ids = self.agent.agent_profile_set.values_list('profileId', flat=True)
         return ids
 
     def delete_profile(self, profileId):
         try:
             prof = self.get_profile(profileId)
             prof.delete()
-        except models.actor_profile.DoesNotExist:
+        except models.agent_profile.DoesNotExist:
             pass #we don't want it anyway
         except IDNotFoundError:
             pass
 
 
-    def original_actor_json(self):
+    def original_agent_json(self):
         return json.dumps(self.obj)
 
-    def full_actor_json(self):
+    def full_agent_json(self):
         ret = {}
         if not self.agent:
             # return json.dumps(self.obj)
@@ -303,7 +304,7 @@ class Actor():
 
         return json.dumps(ret, sort_keys=True)
 
-class MultipleActorError(Exception):
+class MultipleAgentError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
