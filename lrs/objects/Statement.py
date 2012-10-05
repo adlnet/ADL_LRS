@@ -266,21 +266,21 @@ class Statement():
         # Statement Actor and Object supercede context instructor and team
         # If there is an actor or object is an agent in the stmt then remove the instructor
         if 'actor' in stmt_data:
-            if 'objectType' not in stmt_data['actor'] or stmt_data['actor']['objectType'] == 'Person':
+            if 'objectType' not in stmt_data['actor'] or stmt_data['actor']['objectType'].lower() == 'person':
                 stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['actor']), create=True).agent
-        elif 'objectType' in stmt_data['object'] and stmt_data['object']['objectType'] == 'Person':
+        elif 'objectType' in stmt_data['object'] and stmt_data['object']['objectType'].lower() == 'person':
             stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['object']), create=True).agent
         elif 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['context']['instructor']), create=True).agent
 
 
         # If there is an actor or object is a group in the stmt then remove the team
-        if 'actor' in stmt_data or 'Group' == stmt_data['object']['objectType']:
+        if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
             if 'team' in stmt_data['context']:                
                 del stmt_data['context']['team']                
 
         # Revision and platform not applicable if object is agent
-        if 'objectType' in stmt_data['object'] and 'Person' == stmt_data['object']['objectType']:
+        if 'objectType' in stmt_data['object'] and 'person' == stmt_data['object']['objectType'].lower():
             del stmt_data['context']['revision']
             del stmt_data['context']['platform']
 
