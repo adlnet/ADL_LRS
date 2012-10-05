@@ -27,7 +27,11 @@ def convertToUTC(timestr):
     return date_object
 
 def complexGet(req_dict):
-    # pdb.set_trace()
+    language = None
+
+    if 'language' in req_dict:
+        language = req_dict['language']
+
     try:
         the_dict = req_dict['body']
     except KeyError:
@@ -35,6 +39,7 @@ def complexGet(req_dict):
     limit = 0
     args = {}
     sparse = True
+    
     # Cycle through the_dict and find simple args
     for k,v in the_dict.items():
         if k.lower() == 'verb':
@@ -45,6 +50,7 @@ def complexGet(req_dict):
         elif k.lower() == 'until':
             date_object = convertToUTC(v)
             args['stored__lte'] = date_object
+    
     # If searching by activity or actor
     if 'object' in the_dict:
         objectData = the_dict['object']

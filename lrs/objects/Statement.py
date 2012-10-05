@@ -333,15 +333,21 @@ class Statement():
         #If verb is imported then create either the actor or activity it is importing              
         elif args['verb'] == 'imported':
             if statementObjectData['objectType'].lower() == 'activity':
-                importedActivity = Activity(json.dumps(statementObjectData)).activity
+                if auth is not None:
+                    importedActivity = Activity(json.dumps(statementObjectData), auth=auth.username).activity
+                else:
+                    importedActivity = Activity(json.dumps(statementObjectData)).activity
                 args['stmt_object'] = importedActivity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 importedActor = Actor(json.dumps(statementObjectData), create=True).agent
                 args['stmt_object'] = importedActor
         else:
             # Check objectType, get object based on type
-            if statementObjectData['objectType'].lower() == 'activity':        
-                args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
+            if statementObjectData['objectType'].lower() == 'activity':
+                if auth is not None:        
+                    args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=auth.username).activity
+                else:
+                    args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 args['stmt_object'] = Actor(json.dumps(statementObjectData), create=True).agent
             elif statementObjectData['objectType'].lower() == 'statement':

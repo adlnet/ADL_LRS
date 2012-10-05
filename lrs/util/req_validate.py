@@ -3,11 +3,13 @@ from lrs import models
 from django.contrib.auth import authenticate
 import base64
 import ast
+import pdb
 
 import pprint
 
 def basic_http_auth(f):
     def wrap(r, *args, **kwargs):
+        # pdb.set_trace()
         if r['method'] == 'POST' and not r['CONTENT_TYPE'] == 'application/json':
             return f(r, *args, **kwargs)
         else:

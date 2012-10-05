@@ -128,7 +128,8 @@ class ActivityTests(TestCase):
     def test_get_crp_long_fill_in(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar6',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
-                'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['Long fill in answer']}}))        
+                'type': 'cmi.interaction','interactionType': 'fill-in',
+                'correctResponsesPattern': ['Long fill in answer']}}))        
 
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar6'})       
 
@@ -146,16 +147,16 @@ class ActivityTests(TestCase):
 
     def test_get_crp_likert(self):
         act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'foobar7',
-                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 'type': 'cmi.interaction',
-                'interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
                 'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
-                'description':{'en-US': 'Its Pretty Cool'}}, {'id':'likert_2', 'description':{'en-US':'Its Cool Cool'}},
-                {'id':'likert_3', 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
+                'description':{'en-US': 'Its Pretty Cool'}}, {'id':'likert_2',
+                'description':{'en-US':'Its Cool Cool'}},{'id':'likert_3',
+                'description': {'en-US': 'Its Gonna Change the World'}}]}}))
 
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar7'})       
 
         rsp = response.content
-        # pdb.set_trace()
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar7', rsp)
         self.assertIn('cmi.interaction', rsp)
@@ -196,15 +197,15 @@ class ActivityTests(TestCase):
 
     def test_get_crp_performance(self):
         act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'foobar9',
-                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 'type': 'cmi.interaction',
-                'interactionType': 'performance','correctResponsesPattern': ['pong.1,dg.10,lunch.4'],
-                'steps':[{'id': 'pong', 'description': {'en-US':'Net pong matches won'}},{'id': 'dg',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'cmi.interaction','interactionType': 'performance',
+                'correctResponsesPattern': ['pong.1,dg.10,lunch.4'],'steps':[{'id': 'pong',
+                'description': {'en-US':'Net pong matches won'}},{'id': 'dg',
                 'description':{'en-US': 'Strokes over par in disc golf at Liberty'}},
                 {'id':'lunch', 'description':{'en-US':'Lunch having been eaten'}}]}}))
         
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar9'})       
         rsp = response.content
-        # pdb.set_trace()
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar9', rsp)
@@ -221,14 +222,14 @@ class ActivityTests(TestCase):
 
     def test_get_crp_sequencing(self):
         act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'foobar10',
-                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 'type': 'cmi.interaction',
-                'interactionType': 'sequencing','correctResponsesPattern': ['lou,tom,andy,aaron'],
-                'choices':[{'id': 'lou', 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'cmi.interaction','interactionType': 'sequencing',
+                'correctResponsesPattern': ['lou,tom,andy,aaron'],'choices':[{'id': 'lou',
+                'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
                 {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron', 'description':{'en-US':'Aaron'}}]}}))        
         
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar10'})       
         rsp = response.content
-        # pdb.set_trace()
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar10', rsp)
@@ -243,10 +244,9 @@ class ActivityTests(TestCase):
 
     def test_get_crp_numeric(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar11',
-                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 'type': 'cmi.interaction',
-                'interactionType': 'numeric','correctResponsesPattern': ['4'],
-                'extensions': {'key1': 'value1', 'key2': 'value2',
-                'key3': 'value3'}}}))        
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
+                'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}))        
 
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar11'})       
         rsp = response.content
@@ -272,7 +272,8 @@ class ActivityTests(TestCase):
     def test_get_crp_other(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'foobar12',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
-                'type': 'cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35.937432,-86.868896)']}}))        
+                'type': 'cmi.interaction','interactionType': 'other',
+                'correctResponsesPattern': ['(35.937432,-86.868896)']}}))        
         
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar12'})       
         rsp = response.content
@@ -300,14 +301,17 @@ class ActivityTests(TestCase):
         self.assertContains(response, 'Error')
     
     def test_post(self):
-        response = self.client.post(reverse(views.activities), {'activityId':'my_activity'},content_type='application/x-www-form-urlencoded')
+        response = self.client.post(reverse(views.activities), {'activityId':'my_activity'},
+            content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 405)
 
     def test_delete(self):
-        response = self.client.delete(reverse(views.activities), {'activityId':'my_activity'},content_type='application/x-www-form-urlencoded')
+        response = self.client.delete(reverse(views.activities), {'activityId':'my_activity'},
+            content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 405)
 
     def test_put(self):
-        response = self.client.put(reverse(views.activities), {'activityId':'my_activity'},content_type='application/x-www-form-urlencoded')
+        response = self.client.put(reverse(views.activities), {'activityId':'my_activity'},
+            content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 405)
 

@@ -434,6 +434,7 @@ class StatementsTests(TestCase):
         stmts = json.loads(stmt1_resp.content)
         self.assertEqual(len(stmts['statements']), 1)
 
+    # TODO - NEEDS FINISHED ONCE FK LANG MAPS ARE DONE...
     def test_limit_filter(self):
         # Test limit
         limitGetResponse = self.client.post(reverse(views.statements),{'limit':1}, content_type="application/x-www-form-urlencoded")
@@ -464,9 +465,70 @@ class StatementsTests(TestCase):
         self.assertEqual(linkedGetResponse.status_code, 200)
         self.assertContains(linkedGetResponse, self.guid2)
 
+
+    def test_language_header_filter(self):
+        param = {'limit':1}
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        lang_get_response = self.client.get(path, Accept_Language='en-US')
+
+        resp_list = json.loads(lang_get_response.content)
+        stmts = resp_list['statements']
+        self.assertEqual(len(stmts), 1)
+
+
+    # Six activities are PUT, but should be 5 since two have same ID and auth
+    def test_number_of_activities(self):
+        acts = len(models.activity.objects.all())
+        self.assertEqual(5, acts)
+
+    def test_update_activity_wrong_auth(self):
+        wrong_username = "tester2"
+        wrong_email = "test2@tester.com"
+        wrong_password = "test2"
+        wrong_auth = "Basic %s" % base64.b64encode("%s:%s" % (wrong_username, wrong_password))
+        form = {'username':wrong_username, 'email':wrong_email,'password':wrong_password,
+            'password2':wrong_password}
+        response = self.client.post(reverse(views.register),form)
+
+        stmt = json.dumps({"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
+            'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answer'],
+            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
+            "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
+            'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
+            'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
+            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
+            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})
+        
+        post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=wrong_auth)
+        self.assertEqual(post_response.status_code, 400)
+        self.assertEqual(post_response.content, "This ActivityID already exists, and you do not have" + 
+                        " the correct authority to create or update it.")
+
+    def test_update_activity_correct_auth(self):
+        stmt = json.dumps({"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
+            'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answer'],
+            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
+            "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
+            'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
+            'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
+            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
+            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})
+
+        post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth)
+        
+        act = models.activity.objects.get(activity_id='foogie')
+        act_def = models.activity_definition.objects.get(activity=act)
+
+        self.assertEqual(act_def.name.value, 'testname3')
+        self.assertEqual(act_def.description.value, 'testdesc3')
+
+
     def test_cors_post_put(self):
         bdy = {"statementId": "postputID"}
-        # bdy['content'] = json.dumps({"statementId": "postputID","verb":"created","object": {"id":"test_cors_post_put"}})
         bdy['content'] = {"verb":"created","object": {"id":"test_cors_post_put"}}
         bdy['Authorization'] = self.auth
         bdy['Content-Type'] = "application/json"

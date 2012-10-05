@@ -169,25 +169,12 @@ class activity_definition(models.Model):
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
 
-    def objReturn(self):
-        ret = {}
-        ret['name'] = self.name
-        ret['description'] = self.description
-        ret['type'] = self.activity_definition_type
-        if self.interactionType:
-            ret['interactionType'] = self.interactionType
-        return ret
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)
     objectType = models.CharField(max_length=200,blank=True, null=True) 
     activity_definition = models.OneToOneField(activity_definition, blank=True, null=True)
-
-    def objReturn(self):
-        ret = {}
-        ret['activity_id'] = self.activity_id
-        ret['objectType'] = self.objectType
-        return ret
+    authoritative = models.CharField(max_length=200, blank=True, null=True)
 
 class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
@@ -266,8 +253,6 @@ class activity_extensions(models.Model):
     value = models.TextField()
     activity_definition = models.ForeignKey(activity_definition)
 
-    def objReturn(self):
-        return (self.key, self.value) 
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)

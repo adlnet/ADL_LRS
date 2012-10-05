@@ -30,7 +30,7 @@ class Activity():
 
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, activity_id=None, get=False):
+    def __init__(self, initial=None, activity_id=None, get=False, auth=None):
         #Get activity object
         if get and activity_id is not None:
             self.activity_id = activity_id
@@ -40,6 +40,8 @@ class Activity():
             except models.activity.DoesNotExist:
                 raise IDNotFoundError('There is no activity associated with the id: %s' % self.activity_id)
         else:
+            # pdb.set_trace()
+            self.auth = auth
             self.initial = initial
             self.obj = self._parse(initial)
             self._populate(self.obj)
@@ -146,10 +148,16 @@ class Activity():
     #Save activity to DB
     def _save_actvity_to_db(self, act_id, objType, act_def=None):
         if act_def:
-            act = models.activity(activity_id=act_id, objectType=objType, activity_definition=act_def)
+            if self.auth is not None:
+                act = models.activity(activity_id=act_id, objectType=objType, activity_definition=act_def, authoritative=self.auth)
+            else:
+                act = models.activity(activity_id=act_id, objectType=objType, activity_definition=act_def)
         else:
-            act = models.activity(activity_id=act_id, objectType=objType)
-        
+            if self.auth is not None:
+                act = models.activity(activity_id=act_id, objectType=objType, authoritative=self.auth)
+            else:
+                act = models.activity(activity_id=act_id, objectType=objType)
+
         act.save()
         return act
 
@@ -224,18 +232,33 @@ class Activity():
             activity_id = the_object['id']
         except KeyError:
             raise Exception("No id provided, must provide 'id' field")
-
+        # pdb.set_trace()
         # Check if activity ID already exists
         id_list = models.activity.objects.values_list('activity_id', flat=True)
         if activity_id in id_list:
             # Grab pre-existing activity
             existing_activity = models.activity.objects.get(activity_id=activity_id)
 
-            # Update name and desc if needed
-            self._update_activity_name_and_description(the_object, existing_activity)
+            # If authority is required to update the activity
+            if existing_activity.authoritative is not None:
+                # Request has correct authority
+                if existing_activity.authoritative == self.auth:
+                    # Update name and desc if needed
+                    self._update_activity_name_and_description(the_object, existing_activity)
             
-            # Set activity to existing one
-            self.activity = existing_activity        
+                    # Set activity to existing one
+                    self.activity = existing_activity
+                # Someone with wrong auth trying to update activity
+                else:
+                    raise Exception("This ActivityID already exists, and you do not have" + 
+                        " the correct authority to create or update it.") 
+            # No auth required to update activity
+            else:
+                # Update name and desc if needed
+                self._update_activity_name_and_description(the_object, existing_activity)
+        
+                # Set activity to existing one
+                self.activity = existing_activity                
 
         # Activity ID doesn't exist, create a new one
         else:
