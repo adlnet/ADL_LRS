@@ -110,10 +110,13 @@ class Statement():
 
         # Remove details if sparse is true
         if sparse:
-            # Remove act_def
-            if 'activity_definition' in ret['object']:
-                del ret['object']['activity_definition']
-            
+            # Remove responses and only return language for name and description
+            if 'definition' in ret['object']:
+                if 'correctresponsespattern' in ret['object']['definition']:
+                    del ret['object']['definition']['correctresponsespattern']
+                    ret['object']['definition']['description'] = ret['object']['definition']['description'].keys()[0]
+                    ret['object']['definition']['name'] = ret['object']['definition']['name'].keys()[0]
+
             # Remove other names/accounts in actor
             if 'actor' in ret:
                 self._remove_extra_agent_info(ret, 'actor')

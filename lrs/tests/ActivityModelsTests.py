@@ -55,9 +55,18 @@ class ActivityModelsTests(TestCase):
 
     #Called on all activity django models with choices because of sequence and choice interactionType
     def do_actvity_definition_choices_model(self, def_fk, clist, dlist):
-        descs = models.activity_definition_choice.objects.values_list('description',
+        # Grab all lang map IDs in act def
+        desc_lang_maps = models.activity_definition_choice.objects.values_list('description',
                 flat=True).filter(activity_definition=def_fk)
         
+        # Recreate lang map and add to list for check
+        lang_map_list = []
+        for desc in desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            dic = {}
+            dic[d.key] = d.value
+            lang_map_list.append(dic)
+
         choices = models.activity_definition_choice.objects.values_list('choice_id',
                 flat=True).filter(activity_definition=def_fk)
         
@@ -65,12 +74,20 @@ class ActivityModelsTests(TestCase):
             self.assertIn(c,choices)
 
         for d in dlist:
-            self.assertIn(d, descs)
+            self.assertIn(d, lang_map_list)
 
     #Called on all activity django models with scale because of likert interactionType
     def do_actvity_definition_likert_model(self, def_fk, clist, dlist):
-        descs = models.activity_definition_scale.objects.values_list('description',
+        desc_lang_maps = models.activity_definition_scale.objects.values_list('description',
                 flat=True).filter(activity_definition=def_fk)
+
+        # Recreate lang map and add to list for check
+        lang_map_list = []
+        for desc in desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            dic = {}
+            dic[d.key] = d.value
+            lang_map_list.append(dic)
         
         choices = models.activity_definition_scale.objects.values_list('scale_id',
                 flat=True).filter(activity_definition=def_fk)
@@ -79,12 +96,20 @@ class ActivityModelsTests(TestCase):
             self.assertIn(c,choices)
 
         for d in dlist:
-            self.assertIn(d, descs)
+            self.assertIn(d, lang_map_list)
 
     #Called on all activity django models with steps because of performance interactionType
     def do_actvity_definition_performance_model(self, def_fk, slist, dlist):
-        descs = models.activity_definition_step.objects.values_list('description',
+        desc_lang_maps = models.activity_definition_step.objects.values_list('description',
                 flat=True).filter(activity_definition=def_fk)
+
+        # Recreate lang map and add to list for check
+        lang_map_list = []
+        for desc in desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            dic = {}
+            dic[d.key] = d.value
+            lang_map_list.append(dic)
         
         steps = models.activity_definition_step.objects.values_list('step_id',
             flat=True).filter(activity_definition=def_fk)
@@ -93,20 +118,37 @@ class ActivityModelsTests(TestCase):
             self.assertIn(s,steps)
 
         for d in dlist:
-            self.assertIn(d, descs)
+            self.assertIn(d, lang_map_list)
 
     #Called on all activity django models with source and target because of matching interactionType
     def do_actvity_definition_matching_model(self, def_fk, source_id_list, source_desc_list,
                                              target_id_list, target_desc_list):
 
-        source_descs = models.activity_definition_source.objects.values_list('description',
+        source_desc_lang_maps = models.activity_definition_source.objects.values_list('description',
                 flat=True).filter(activity_definition=def_fk)
+
+        # Recreate lang map and add to list for check
+        source_lang_map_list = []
+        for desc in source_desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            dic = {}
+            dic[d.key] = d.value
+            source_lang_map_list.append(dic)
 
         sources = models.activity_definition_source.objects.values_list('source_id',
                 flat=True).filter(activity_definition=def_fk)
         
-        target_descs = models.activity_definition_target.objects.values_list('description',
+        target_desc_lang_maps = models.activity_definition_target.objects.values_list('description',
                 flat=True).filter(activity_definition=def_fk)
+
+        # Recreate lang map and add to list for check
+        target_lang_map_list = []
+        for desc in target_desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            dic = {}
+            dic[d.key] = d.value
+            target_lang_map_list.append(dic)
+
         
         targets = models.activity_definition_target.objects.values_list('target_id',
                 flat=True).filter(activity_definition=def_fk)
@@ -115,13 +157,13 @@ class ActivityModelsTests(TestCase):
             self.assertIn(s_id,sources)
 
         for s_desc in source_desc_list:
-            self.assertIn(s_desc, source_descs)
+            self.assertIn(s_desc, source_lang_map_list)
 
         for t_id in target_id_list:
             self.assertIn(t_id,targets)
 
         for t_desc in target_desc_list:
-            self.assertIn(t_desc, target_descs)            
+            self.assertIn(t_desc, target_lang_map_list)            
 
 
     # Test activity that doesn't have a def, isn't a link and resolves (will not create Activity object)
@@ -398,8 +440,8 @@ class ActivityModelsTests(TestCase):
 
         #Check model choice values
         clist = ['golf', 'tetris', 'facebook', 'scrabble']
-        dlist = ['{"en-US": "Golf Example"}','{"en-US": "Tetris Example"}','{"en-US": "Facebook App"}',
-                 '{"en-US": "Scrabble Example"}']
+        dlist = [{"en-US": "Golf Example"},{"en-US": "Tetris Example"},{"en-US": "Facebook App"},
+                 {"en-US": "Scrabble Example"}]
 
         self.do_actvity_definition_choices_model(def_fk, clist, dlist)        
         
@@ -483,8 +525,8 @@ class ActivityModelsTests(TestCase):
 
         #Check model choice values
         clist = ['likert_3']
-        dlist = ['{"en-US": "Its OK"}','{"en-US": "Its Pretty Cool"}','{"en-US": "Its Cool Cool"}',
-                 '{"en-US": "Its Gonna Change the World"}']
+        dlist = [{"en-US": "Its OK"},{"en-US": "Its Pretty Cool"},{"en-US": "Its Cool Cool"},
+                 {"en-US": "Its Gonna Change the World"}]
         
         self.do_actvity_definition_likert_model(def_fk, clist, dlist)
 
@@ -512,10 +554,10 @@ class ActivityModelsTests(TestCase):
 
         #Check model choice values
         source_id_list = ['lou', 'tom', 'andy']
-        source_desc_list = ['{"en-US": "Lou"}','{"en-US": "Tom"}','{"en-US": "Andy"}']
+        source_desc_list = [{"en-US": "Lou"},{"en-US": "Tom"},{"en-US": "Andy"}]
         target_id_list = ['1','2','3']
-        target_desc_list = ['{"en-US": "SCORM Engine"}','{"en-US": "Pure-sewage"}',
-                            '{"en-US": "SCORM Cloud"}']
+        target_desc_list = [{"en-US": "SCORM Engine"},{"en-US": "Pure-sewage"},
+                            {"en-US": "SCORM Cloud"}]
         self.do_actvity_definition_matching_model(def_fk, source_id_list, source_desc_list,
                                                   target_id_list, target_desc_list)
 
@@ -542,8 +584,8 @@ class ActivityModelsTests(TestCase):
 
         #Check model choice values
         slist = ['pong', 'dg', 'lunch']
-        dlist = ['{"en-US": "Net pong matches won"}','{"en-US": "Strokes over par in disc golf at Liberty"}',
-                 '{"en-US": "Lunch having been eaten"}']
+        dlist = [{"en-US": "Net pong matches won"},{"en-US": "Strokes over par in disc golf at Liberty"},
+                 {"en-US": "Lunch having been eaten"}]
         
         self.do_actvity_definition_performance_model(def_fk, slist, dlist)
 
@@ -570,7 +612,7 @@ class ActivityModelsTests(TestCase):
 
         #Check model choice values
         clist = ['lou', 'tom', 'andy', 'aaron']
-        dlist = ['{"en-US": "Lou"}','{"en-US": "Tom"}','{"en-US": "Andy"}', '{"en-US": "Aaron"}']
+        dlist = [{"en-US": "Lou"},{"en-US": "Tom"},{"en-US": "Andy"}, {"en-US": "Aaron"}]
         self.do_actvity_definition_choices_model(def_fk, clist, dlist)
 
     #Test activity with definition that is cmi.interaction and numeric interactionType

@@ -112,6 +112,7 @@ def complexGet(req_dict):
     if 'limit' in the_dict:
         limit = int(the_dict['limit'])
 
+    # pdb.set_trace()
     if 'sparse' in the_dict:
         if not type(the_dict['sparse']) is bool:
             if the_dict['sparse'].lower() == 'false':

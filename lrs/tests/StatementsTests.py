@@ -332,7 +332,6 @@ class StatementsTests(TestCase):
         param = {'object':{'objectType': 'Activity', 'id':'foogie'}}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         activityObjectGetResponse = self.client.get(path)
-
         self.assertEqual(activityObjectGetResponse.status_code, 200)
         self.assertContains(activityObjectGetResponse, self.guid1)
         self.assertContains(activityObjectGetResponse, self.guid2)
@@ -342,7 +341,9 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid6, activityObjectGetResponse)
         self.assertNotIn(self.guid7, activityObjectGetResponse)
         self.assertNotIn(self.guid8, activityObjectGetResponse)
-
+        # Should not be in response since sparse is true
+        self.assertNotIn('testdesc3', activityObjectGetResponse)
+        self.assertNotIn('testname3', activityObjectGetResponse)
 
     def test_no_actor(self):
         # Test actor object
@@ -428,7 +429,6 @@ class StatementsTests(TestCase):
                     "context":{"registration": str(uuid.uuid4), "contextActivities": {"other": {"id": "NewActivityID2"}}},
                     "authority":{"name":["auth"],"mbox":["mailto:auth@example.com"]}}
         stmt = json.dumps(raw_stmt)
-        #stmt1_resp = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         stmt1_resp = self.client.get(reverse(views.statements), raw_stmt)
         self.assertEqual(stmt1_resp.status_code, 200)
         stmts = json.loads(stmt1_resp.content)
@@ -445,8 +445,6 @@ class StatementsTests(TestCase):
     def test_sparse_filter(self):
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{'sparse': False}, content_type="application/x-www-form-urlencoded")
-        # print sparseGetResponse.content
-        # pdb.set_trace()
         self.assertEqual(sparseGetResponse.status_code, 200)
         self.assertContains(sparseGetResponse, 'definition')        
         self.assertContains(sparseGetResponse, 'firstName')
@@ -455,16 +453,16 @@ class StatementsTests(TestCase):
         self.assertContains(sparseGetResponse, 'familyName')
         self.assertContains(sparseGetResponse, 'account')
         self.assertContains(sparseGetResponse, 'openid')
-
-
+        # Should display full lang map (won't find testdesc2 since activity class will merge activities with same id together)
+        self.assertContains(sparseGetResponse, 'testdesc3')
 
     def test_linked_filters(self):
         # Test reasonable linked query
         param = {'verb':'created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':'False', 'sparse': False}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
-        registrationGetResponse = self.client.get(path)
-        self.assertEqual(registrationGetResponse.status_code, 200)
-        self.assertContains(registrationGetResponse, self.guid2)
+        linkedGetResponse = self.client.get(path)
+        self.assertEqual(linkedGetResponse.status_code, 200)
+        self.assertContains(linkedGetResponse, self.guid2)
 
     def test_cors_post_put(self):
         bdy = {"statementId": "postputID"}

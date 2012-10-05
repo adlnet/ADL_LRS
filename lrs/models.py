@@ -198,57 +198,67 @@ class correctresponsespattern_answer(models.Model):
 
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=200)
-    description = models.TextField()        
+    description = models.OneToOneField(LanguageMap)        
     activity_definition = models.ForeignKey(activity_definition)
 
     def objReturn(self):
         ret = {}
         ret['id'] = self.choice_id
-        ret['description'] = self.description
+        ret['description'] = {}
+        lang_map = self.description
+        ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=200)
-    description = models.TextField()        
+    description = models.OneToOneField(LanguageMap)        
     activity_definition = models.ForeignKey(activity_definition)
 
     def objReturn(self):
         ret = {}
         ret['id'] = self.scale_id
-        ret['description'] = self.description
+        ret['description'] = {}
+        lang_map = self.description
+        ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=200)
-    description = models.CharField(max_length=200)        
+    description = models.OneToOneField(LanguageMap)       
     activity_definition = models.ForeignKey(activity_definition)
     
     def objReturn(self):
         ret = {}
         ret['id'] = self.source_id
-        ret['description'] = self.description
+        ret['description'] = {}
+        lang_map = self.description
+        ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=200)
-    description = models.CharField(max_length=200)        
+    description = models.OneToOneField(LanguageMap)        
     activity_definition = models.ForeignKey(activity_definition)
     
     def objReturn(self):
         ret = {}
         ret['id'] = self.target_id
-        ret['description'] = self.description
+        ret['description'] = {}
+        lang_map = self.description
+        ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=200)
-    description = models.CharField(max_length=200)        
+    description = models.OneToOneField(LanguageMap)        
     activity_definition = models.ForeignKey(activity_definition)
 
     def objReturn(self):
         ret = {}
         ret['id'] = self.step_id
-        ret['description'] = self.description
+        ret['description'] = {}
+        lang_map = self.description
+        ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_extensions(models.Model):
@@ -492,7 +502,7 @@ def objsReturn(obj):
             if targets:
                 ret[field.name]['target'] = []
                 for t in targets:
-                    ret[field.name]['target'].append(str(t.objReturn()))
+                    ret[field.name]['target'].append(t.objReturn())
             
             ret[field.name]['extensions'] = {}
             act_def_ext = activity_extensions.objects.filter(activity_definition=fieldValue)

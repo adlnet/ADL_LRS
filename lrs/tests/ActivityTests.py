@@ -18,8 +18,6 @@ class ActivityTests(TestCase):
         self.assertIn('foobar', rsp)
         self.assertIn('Activity', rsp)
         self.assertIn('objectType', rsp)        
-        # pdb.set_trace()
-        # ret = models.objsReturn(act.activity)
 
 
     def test_get_def(self):
@@ -71,7 +69,7 @@ class ActivityTests(TestCase):
         response = self.client.get(reverse(views.activities), {'activityId':'foobar3'})
 
         rsp = response.content
-        # pdb.set_trace()
+        
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar3', rsp)
         self.assertIn('cmi.interaction', rsp)
