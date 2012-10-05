@@ -39,7 +39,7 @@ class result(models.Model):
 
 class result_extensions(models.Model):
     key=models.CharField(max_length=200)
-    value=models.CharField(max_length=200)
+    value=models.TextField()
     result = models.ForeignKey(result)
 
 
@@ -278,7 +278,7 @@ class context(models.Model):
 
 class context_extensions(models.Model):
     key=models.CharField(max_length=200)
-    value=models.CharField(max_length=200)
+    value=models.TextField()
     context = models.ForeignKey(context)
 
 class activity_state(models.Model):
