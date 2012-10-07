@@ -96,7 +96,7 @@ def activity_state(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Agent.IDNotFoundError as nf:
+    except models.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -115,7 +115,7 @@ def activity_profile(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Activity.IDNotFoundError as nf:
+    except models.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -151,7 +151,7 @@ def agent_profile(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Agent.IDNotFoundError as nf:
+    except models.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -167,7 +167,7 @@ def agent_profile(request):
 def agents(request):
     try: 
         resp = handle_request(request)
-    except Agent.IDNotFoundError as iderr:
+    except models.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
