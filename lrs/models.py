@@ -376,53 +376,9 @@ def objsReturn(obj):
 
         # If type of field is agent, need to retrieve all FKs associated with it
         if fieldType == 'agent':
-            # Check to see if the agent is of type Person
-            if fieldValue.objectType == 'Person':
-                ret[field.name] = {}
-                # Get all names associated with object
-                names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
-                if names:
-                    ret[field.name]['name'] = [k for k in names]
-                # Get all mboxes associated with object
-                mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
-                if mboxes:
-                    ret[field.name]['mbox'] = [k for k in mboxes]
-                # Get all givenNames associated with object
-                givenNames = person_givenName.objects.filter(person=fieldValue).values_list('givenName', flat=True)
-                if givenNames:
-                    ret[field.name]['givenName'] = [k for k in givenNames]
-                # Get all familyNames associated with object
-                familyNames = person_familyName.objects.filter(person=fieldValue).values_list('familyName', flat=True)
-                if familyNames:
-                    ret[field.name]['familyName'] = [k for k in familyNames]
-                # Get all firstNames associated with object
-                firstNames = person_firstName.objects.filter(person=fieldValue).values_list('firstName', flat=True)
-                if firstNames:
-                    ret[field.name]['firstName'] = [k for k in firstNames]
-                # Get all lastNames associated with object
-                lastNames = person_lastName.objects.filter(person=fieldValue).values_list('lastName', flat=True)
-                if lastNames:
-                    ret[field.name]['lastName'] = [k for k in lastNames]
-            # If agent isn't person
-            else:
-                ret[field.name] = {}
-                # Get all names associated with object
-                names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
-                if names:
-                    ret[field.name]['name'] = [k for k in names]
-                # Get all mboxes associated with object
-                mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
-                if mboxes:
-                    ret[field.name]['mbox'] = [k for k in mboxes]
-                # Get all open ids associated with object
-                openids = agent_openid.objects.filter(agent=fieldValue).values_list('openid', flat=True)
-                if openids:
-                    ret[field.name]['openid'] = [k for k in openids]
-                # Get all accounts associated with object
-                accounts = agent_account.objects.filter(agent=fieldValue).values_list('accountName', flat=True)
-                if accounts:
-                    ret[field.name]['account'] = [k for k in accounts]
-                
+            # Check to see if the agent is of type Agent
+            ret[field.name] = fieldValue.get_agent_json()
+                  
         # If type of field is result
         elif fieldType == 'result':
             # Call recursively, send in result object

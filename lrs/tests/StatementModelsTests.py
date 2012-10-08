@@ -1,15 +1,10 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from lrs import models
 import json
-from django.core.exceptions import ValidationError
-import urllib
 from datetime import datetime
-from os import path
-import sys
 import uuid
 
-from lrs.objects import Activity, Statement, Agent
+from lrs.objects import Statement
 
 class StatementModelsTests(TestCase):
          
@@ -50,11 +45,9 @@ class StatementModelsTests(TestCase):
         self.assertEqual(st.stmt_object.id, act.id)
 
     def test_actor_stmt(self):
-        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':['bob'],'mbox':['bob@example.com']}, "verb":"created","object": {"id":"activity5", "objectType": "Activity"}}))
+        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'bob','mbox':'bob@example.com'}, "verb":"created","object": {"id":"activity5", "objectType": "Activity"}}))
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        actor = models.person.objects.get(id=stmt.statement.actor.id)
-        actorName = models.agent_name.objects.get(agent=stmt.statement.actor)
-        actorMbox = models.agent_mbox.objects.get(agent=stmt.statement.actor)
+        actor = models.agent.objects.get(id=stmt.statement.actor.id)
 
         self.assertEqual(stmt.statement.verb, 'created')
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
@@ -64,15 +57,13 @@ class StatementModelsTests(TestCase):
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
-        self.assertEqual(actorName.name, 'bob')
-        self.assertEqual(actorMbox.mbox, 'bob@example.com')
+        self.assertEqual(actor.name, 'bob')
+        self.assertEqual(actor.mbox, 'bob@example.com')
 
     def test_authority_stmt(self):
-        stmt = Statement.Statement(json.dumps({"authority":{'objectType':'Person','name':['bill'],'mbox':['bill@example.com']}, "verb":"created","object": {"id":"activity21", "objectType": "Activity"}}))
+        stmt = Statement.Statement(json.dumps({"authority":{'objectType':'Agent','name':'bill','mbox':'bill@example.com'}, "verb":"created","object": {"id":"activity21", "objectType": "Activity"}}))
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        authority = models.person.objects.get(id=stmt.statement.authority.id)
-        authName = models.agent_name.objects.get(agent=stmt.statement.authority)
-        authMbox = models.agent_mbox.objects.get(agent=stmt.statement.authority)
+        authority = models.agent.objects.get(id=stmt.statement.authority.id)
 
         self.assertEqual(stmt.statement.verb, 'created')
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
@@ -82,8 +73,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.authority.id, authority.id)
 
-        self.assertEqual(authName.name, 'bill')
-        self.assertEqual(authMbox.mbox, 'bill@example.com')
+        self.assertEqual(authority.name, 'bill')
+        self.assertEqual(authority.mbox, 'bill@example.com')
         
 
     def test_voided_stmt(self):
@@ -174,14 +165,12 @@ class StatementModelsTests(TestCase):
 
     def test_result_ext_stmt(self):
         time = str(datetime.now())
-        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':['jon'],'mbox':['jon@example.com']},"verb":"attempted","object": {'id':'activity13'}, "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
+        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'jon@example.com'},"verb":"attempted","object": {'id':'activity13'}, "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
                                             'extensions':{'key1': 'value1', 'key2':'value2'}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         result = models.result.objects.get(id=stmt.statement.result.id)
-        actor = models.person.objects.get(id=stmt.statement.actor.id)
-        actorName = models.agent_name.objects.get(agent=stmt.statement.actor)
-        actorMbox = models.agent_mbox.objects.get(agent=stmt.statement.actor)
+        actor = models.agent.objects.get(id=stmt.statement.actor.id)
         extList = models.result_extensions.objects.values_list().filter(result=result)
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
@@ -201,8 +190,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(result.response, 'yes')
         self.assertEqual(result.duration, time)
 
-        self.assertEqual(actorName.name, 'jon')
-        self.assertEqual(actorMbox.mbox, 'jon@example.com')
+        self.assertEqual(actor.name, 'jon')
+        self.assertEqual(actor.mbox, 'jon@example.com')
 
         self.assertIn('key1', extKeys)
         self.assertIn('key2', extKeys)
@@ -211,16 +200,14 @@ class StatementModelsTests(TestCase):
 
     def test_result_score_stmt(self):
         time = str(datetime.now())
-        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':['jon'],'mbox':['jon@example.com']},"verb":"passed","object": {'id':'activity14'}, 
+        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'jon@example.com'},"verb":"passed","object": {'id':'activity14'}, 
             "result": {'score':{'scaled':.95}, 'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'key1': 'value1', 'key2':'value2'}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         result = models.result.objects.get(id=stmt.statement.result.id)
         score = models.score.objects.get(id=stmt.statement.result.score.id)
-        actor = models.person.objects.get(id=stmt.statement.actor.id)
-        actorName = models.agent_name.objects.get(agent=stmt.statement.actor)
-        actorMbox = models.agent_mbox.objects.get(agent=stmt.statement.actor)
+        actor = models.agent.objects.get(id=stmt.statement.actor.id)
         extList = models.result_extensions.objects.values_list().filter(result=result)
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
@@ -245,8 +232,8 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(activity.activity_id, 'activity14')
 
-        self.assertEqual(actorName.name, 'jon')
-        self.assertEqual(actorMbox.mbox, 'jon@example.com')
+        self.assertEqual(actor.name, 'jon')
+        self.assertEqual(actor.mbox, 'jon@example.com')
 
         self.assertIn('key1', extKeys)
         self.assertIn('key2', extKeys)
@@ -343,7 +330,7 @@ class StatementModelsTests(TestCase):
     def test_instructor_in_context_stmt(self):
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity17'},
-                'context':{'registration': guid, 'instructor': {'objectType':'Person','name':['jon'],'mbox':['jon@example.com']},
+                'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon','mbox':'jon@example.com'},
                 'contextActivities': {'other': {'id': 'NewActivityID'}}, 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US', 'statement': {'verb': 'graded', 'object':{'id':'NestContextAct1'}}}}))
 
@@ -352,9 +339,6 @@ class StatementModelsTests(TestCase):
         conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
         neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
         nestactivity = models.activity.objects.get(id=neststmt.stmt_object.id)
-        
-        conactorname = models.agent_name.objects.get(agent=conactor)
-        conactormbox = models.agent_mbox.objects.get(agent=conactor)
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
@@ -373,15 +357,15 @@ class StatementModelsTests(TestCase):
         
         self.assertEqual(nestactivity.activity_id, 'NestContextAct1')
         
-        self.assertEqual(conactor.objectType, 'Person')
+        self.assertEqual(conactor.objectType, 'Agent')
         
-        self.assertEqual(conactorname.name, 'jon')
-        self.assertEqual(conactormbox.mbox, 'jon@example.com') 
+        self.assertEqual(conactor.name, 'jon')
+        self.assertEqual(conactor.mbox, 'jon@example.com') 
 
     def test_actor_with_context_stmt(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Person', 'name': ['steve'], 'mbox':['s@s.com']}, "verb":"kicked","object": {'id':'activity18'},
-                'context':{'registration': guid, 'instructor': {'objectType':'Person','name':['jon'],'mbox':['jon@example.com']},
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve', 'mbox':'s@s.com'}, "verb":"kicked","object": {'id':'activity18'},
+                'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon','mbox':'jon@example.com'},
                 'contextActivities': {'other': {'id': 'NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
                 'language': 'en-US', 'statement': {'verb': 'graded', 'object':{'id':'NestContextAct2'}}}}))
 
@@ -390,9 +374,6 @@ class StatementModelsTests(TestCase):
         conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
         neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
         nestactivity = models.activity.objects.get(id=neststmt.stmt_object.id)
-        
-        conactorname = models.agent_name.objects.get(agent=conactor)
-        conactormbox = models.agent_mbox.objects.get(agent=conactor)
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
@@ -411,27 +392,27 @@ class StatementModelsTests(TestCase):
         
         self.assertEqual(nestactivity.activity_id, 'NestContextAct2')
         
-        self.assertEqual(conactor.objectType, 'Person')
+        self.assertEqual(conactor.objectType, 'Agent')
         
-        self.assertEqual(conactorname.name, 'steve')
-        self.assertEqual(conactormbox.mbox, 's@s.com') 
+        self.assertEqual(conactor.name, 'steve')
+        self.assertEqual(conactor.mbox, 's@s.com') 
 
     def test_agent_as_object_with_context_stmt(self):
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(
             json.dumps(
                 {'object':{
-                    'objectType':'Person', 
-                    'name': ['lou'], 
-                    'mbox':['l@l.com']
+                    'objectType':'Agent', 
+                    'name': 'lou', 
+                    'mbox':'l@l.com'
                  }, 
                  "verb":"kicked",
                  'context':{
                     'registration': guid, 
                     'instructor': {
-                        'objectType':'Person',
-                        'name':['jon'],
-                        'mbox':['jon@example.com']
+                        'objectType':'Agent',
+                        'name':'jon',
+                        'mbox':'jon@example.com'
                     },
                     'contextActivities': {
                         'other': {'id': 'NewActivityID1'}
@@ -452,9 +433,6 @@ class StatementModelsTests(TestCase):
         conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
         neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
         nestactivity = models.activity.objects.get(id=neststmt.stmt_object.id)
-        
-        conactorname = models.agent_name.objects.get(agent=conactor)
-        conactormbox = models.agent_mbox.objects.get(agent=conactor)
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
@@ -464,35 +442,27 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID1'}}))
-        # TOM: thinks these aren't supposed to be here
-        # self.assertEqual(context.revision, 'foob')
-        # self.assertEqual(context.platform, 'bard')
         self.assertEqual(context.language, 'en-US')
         
         self.assertEqual(neststmt.verb, 'graded')
         
         self.assertEqual(nestactivity.activity_id, 'NestContextAct2')
         
-        self.assertEqual(conactor.objectType, 'Person')
+        self.assertEqual(conactor.objectType, 'Agent')
         
-        self.assertEqual(conactorname.name, 'lou')
-        self.assertEqual(conactormbox.mbox, 'l@l.com') 
+        # TODO: Lou look at this, confirm it's right
+        self.assertEqual(conactor.name, 'lou')
+        self.assertEqual(conactor.mbox, 'l@l.com') 
 
     def test_agent_as_object(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Person', 'name': ['lulu'], 'mbox':['lu@lu.com'], 'openid':['luluid'], 'account':[{'accountServiceHomePage':'http://lulu.com','accountName':'luluacct'}]}, "verb":"kicked"}))
+        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'luluid'}, "verb":"kicked"}))
 
         st = models.statement.objects.get(id=stmt.statement.id)
         agent = models.agent.objects.get(id=stmt.statement.stmt_object.id)
-        agent_names = models.agent_name.objects.filter(agent=agent).values_list('name', flat=True)
-        agent_mboxes = models.agent_mbox.objects.filter(agent=agent).values_list('mbox', flat=True)
-        agent_accounts = models.agent_account.objects.filter(agent=agent).values_list('accountName', flat=True)
-        agent_ids = models.agent_openid.objects.filter(agent=agent).values_list('openid', flat=True)
 
-        self.assertIn('lulu', agent_names)
-        self.assertIn('lu@lu.com', agent_mboxes)
-        self.assertIn('luluacct', agent_accounts)
-        self.assertIn('luluid', agent_ids)
+        self.assertEqual(agent.name, 'lulu')
+        self.assertEqual(agent.openid, 'luluid')
 
 
     def test_stmt_as_object(self):
@@ -507,63 +477,16 @@ class StatementModelsTests(TestCase):
         self.assertEqual(inner_stmt.verb, 'punched')
         self.assertEqual(inner_act.activity_id, 'testex.com')
 
-    # def test_group_as_object(self):
-    #     guid = str(uuid.uuid4())
-    #     stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Group', }}))
-
-    #     outer_stmt = models.statement.objects.get(id=stmt.statement.id)
-    #     inner_stmt = models.statement.objects.get(id=outer_stmt.stmt_object.id)
-    #     inner_act = models.activity.objects.get(id=inner_stmt.stmt_object.id)
-
-    #     self.assertEqual(outer_stmt.verb, 'kicked')
-    #     self.assertEqual(inner_stmt.verb, 'punched')
-    #     self.assertEqual(inner_act.activity_id, 'http://testex.com')
-        
-
 
     def test_model_authoritative_set(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"created", "object": {"id":"activity"}}))
+        stmt = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},"verb":"created", "object": {"id":"activity"}}))
         self.assertTrue(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
         
-        stmt2 = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"shared", "object": {"id":"activity"}}))
+        stmt2 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},"verb":"shared", "object": {"id":"activity"}}))
         self.assertTrue(models.statement.objects.get(pk=stmt2.statement.pk).authoritative)
         self.assertFalse(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
         
-        stmt3 = Statement.Statement(json.dumps({"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},"verb":"shared", "object": {"id":"activity2"}}))
+        stmt3 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},"verb":"shared", "object": {"id":"activity2"}}))
         self.assertTrue(models.statement.objects.get(pk=stmt3.statement.pk).authoritative)
         self.assertTrue(models.statement.objects.get(pk=stmt2.statement.pk).authoritative)
         self.assertFalse(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
-
-
-    # def test_team_in_context_stmt(self):
-    #     guid = str(uuid.uuid4())
-    #     stmt = Statement.Statement(json.dumps({"verb":"experienced","object": {'id':'activity20'},
-    #             'context':{'registration': guid, 'team': {'objectType':'Group','member':'MemberName'},
-    #             'contextActivities': {'other': {'id': 'NewActivityID'}}, 'revision': 'foo', 'platform':'bar',
-    #             'language': 'en-US', 'statement': {'verb': 'graded', 'object':{'id':'NestContextAct1'}}}}))
-
-    #     activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-    #     context = models.context.objects.get(id=stmt.statement.context.id)
-    #     congroup = models.group.objects.get(id=stmt.statement.context.team.id)
-    #     neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
-    #     nestactivity = models.activity.objects.get(id=neststmt.stmt_object.id)
-
-    #     st = models.statement.objects.get(id=stmt.statement.id)
-
-    #     self.assertEqual(st.stmt_object.id, activity.id)
-    #     self.assertEqual(st.context.id, context.id)
-    #     self.assertEqual(st.context.statement, neststmt.id)
-    #     self.assertEqual(st.context.instructor.id, conactor.id)
-
-    #     self.assertEqual(context.registration, guid)
-    #     self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID'}}))
-    #     self.assertEqual(context.revision, 'foo')
-    #     self.assertEqual(context.platform, 'bar')
-    #     self.assertEqual(context.language, 'en-US')
-        
-    #     self.assertEqual(neststmt.verb, 'graded')
-        
-    #     self.assertEqual(nestactivity.activity_id, 'NestContextAct1')
-
-    #     self.assertEqual(congroup.objectType, 'Group')
-    #     self.assertEqual(congroup.member, 'MemberName')

@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import models, views
 import datetime
@@ -7,8 +6,6 @@ from django.utils.timezone import utc
 import hashlib
 import urllib
 from os import path
-import sys
-from lrs.objects import Agent, Activity
 import base64
 
 class ActivityStateTests(TestCase):

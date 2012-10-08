@@ -1,15 +1,12 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import views, models
-from os import path
-import sys
 import json
 import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
-from lrs.objects import Actor, Activity, Statement
+from lrs.objects import Activity
 import time
 import pdb
 from lrs.util import retrieve_statement
@@ -104,67 +101,67 @@ class StatementsMoreTests(TestCase):
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
             'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
 
-        self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Person','name':['jon1'],'mbox':['jon1@jon.com']},
+        self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Agent','name':'jon1','mbox':'jon1@jon.com'},
             "verb":"passed"})
 
-        self.existStmt6 = json.dumps({"statement_id":self.guid6, "object":{'objectType':'Person','name':['jon2'],'mbox':['jon2@jon.com']},
+        self.existStmt6 = json.dumps({"statement_id":self.guid6, "object":{'objectType':'Agent','name':'jon2','mbox':'jon2@jon.com'},
             "verb":"passed"})
 
-        self.existStmt7 = json.dumps({"statement_id":self.guid7, "object":{'objectType':'Person','name':['jon3'],'mbox':['jon3@jon.com']},
+        self.existStmt7 = json.dumps({"statement_id":self.guid7, "object":{'objectType':'Agent','name':'jon3','mbox':'jon3@jon.com'},
             "verb":"passed"})
 
-        self.existStmt8 = json.dumps({"statement_id":self.guid8, "object":{'objectType':'Person','name':['jon4'],'mbox':['jon4@jon.com']},
+        self.existStmt8 = json.dumps({"statement_id":self.guid8, "object":{'objectType':'Agent','name':'jon4','mbox':'jon4@jon.com'},
             "verb":"passed"})
 
-        self.existStmt9 = json.dumps({"statement_id":self.guid9, "object":{'objectType':'Person','name':['jon5'],'mbox':['jon5@jon.com']},
+        self.existStmt9 = json.dumps({"statement_id":self.guid9, "object":{'objectType':'Agent','name':'jon5','mbox':'jon5@jon.com'},
             "verb":"passed"})
 
-        self.existStmt10 = json.dumps({"statement_id":self.guid10, "object":{'objectType':'Person','name':['jon33'],'mbox':['jon33@jon.com']},
+        self.existStmt10 = json.dumps({"statement_id":self.guid10, "object":{'objectType':'Agent','name':'jon33','mbox':'jon33@jon.com'},
             "verb":"passed"})       
 
-        self.existStmt11 = json.dumps({"statement_id":self.guid11, "object":{'objectType':'Person','name':['jon6'],'mbox':['jon6@jon.com']},
+        self.existStmt11 = json.dumps({"statement_id":self.guid11, "object":{'objectType':'Agent','name':'jon6','mbox':'jon6@jon.com'},
             "verb":"passed"})
 
-        self.existStmt12 = json.dumps({"statement_id":self.guid12, "object":{'objectType':'Person','name':['jon7'],'mbox':['jon7@jon.com']},
+        self.existStmt12 = json.dumps({"statement_id":self.guid12, "object":{'objectType':'Agent','name':'jon7','mbox':'jon7@jon.com'},
             "verb":"passed"})
 
-        self.existStmt13 = json.dumps({"statement_id":self.guid13, "object":{'objectType':'Person','name':['jon8'],'mbox':['jon8@jon.com']},
+        self.existStmt13 = json.dumps({"statement_id":self.guid13, "object":{'objectType':'Agent','name':'jon8','mbox':'jon8@jon.com'},
             "verb":"passed"})
 
-        self.existStmt14 = json.dumps({"statement_id":self.guid14, "object":{'objectType':'Person','name':['jon9'],'mbox':['jon9@jon.com']},
+        self.existStmt14 = json.dumps({"statement_id":self.guid14, "object":{'objectType':'Agent','name':'jon9','mbox':'jon9@jon.com'},
             "verb":"passed"})
 
-        self.existStmt15 = json.dumps({"statement_id":self.guid15, "object":{'objectType':'Person','name':['jon10'],'mbox':['jon10@jon.com']},
+        self.existStmt15 = json.dumps({"statement_id":self.guid15, "object":{'objectType':'Agent','name':'jon10','mbox':'jon10@jon.com'},
             "verb":"passed"})
 
-        self.existStmt16 = json.dumps({"statement_id":self.guid16, "object":{'objectType':'Person','name':['jon11'],'mbox':['jon11@jon.com']},
+        self.existStmt16 = json.dumps({"statement_id":self.guid16, "object":{'objectType':'Agent','name':'jon11','mbox':'jon11@jon.com'},
             "verb":"passed"})
 
-        self.existStmt17 = json.dumps({"statement_id":self.guid17, "object":{'objectType':'Person','name':['jon12'],'mbox':['jon12@jon.com']},
+        self.existStmt17 = json.dumps({"statement_id":self.guid17, "object":{'objectType':'Agent','name':'jon12','mbox':'jon12@jon.com'},
             "verb":"passed"})
 
-        self.existStmt18 = json.dumps({"statement_id":self.guid18, "object":{'objectType':'Person','name':['jon13'],'mbox':['jon13@jon.com']},
+        self.existStmt18 = json.dumps({"statement_id":self.guid18, "object":{'objectType':'Agent','name':'jon13','mbox':'jon13@jon.com'},
             "verb":"passed"})
 
-        self.existStmt19 = json.dumps({"statement_id":self.guid19, "object":{'objectType':'Person','name':['jon14'],'mbox':['jon14@jon.com']},
+        self.existStmt19 = json.dumps({"statement_id":self.guid19, "object":{'objectType':'Agent','name':'jon14','mbox':'jon14@jon.com'},
             "verb":"passed"})
 
-        self.existStmt20 = json.dumps({"statement_id":self.guid20, "object":{'objectType':'Person','name':['jon15'],'mbox':['jon15@jon.com']},
+        self.existStmt20 = json.dumps({"statement_id":self.guid20, "object":{'objectType':'Agent','name':'jon15','mbox':'jon15@jon.com'},
             "verb":"passed"})       
 
-        self.existStmt21 = json.dumps({"statement_id":self.guid21, "object":{'objectType':'Person','name':['jon16'],'mbox':['jon16@jon.com']},
+        self.existStmt21 = json.dumps({"statement_id":self.guid21, "object":{'objectType':'Agent','name':'jon16','mbox':'jon16@jon.com'},
             "verb":"passed"})
 
-        self.existStmt22 = json.dumps({"statement_id":self.guid22, "object":{'objectType':'Person','name':['jon17'],'mbox':['jon17@jon.com']},
+        self.existStmt22 = json.dumps({"statement_id":self.guid22, "object":{'objectType':'Agent','name':'jon17','mbox':'jon17@jon.com'},
             "verb":"passed"})
 
-        self.existStmt23 = json.dumps({"statement_id":self.guid23, "object":{'objectType':'Person','name':['jon18'],'mbox':['jon18@jon.com']},
+        self.existStmt23 = json.dumps({"statement_id":self.guid23, "object":{'objectType':'Agent','name':'jon18','mbox':'jon18@jon.com'},
             "verb":"passed"})
 
-        self.existStmt24 = json.dumps({"statement_id":self.guid24, "object":{'objectType':'Person','name':['jon19'],'mbox':['jon19@jon.com']},
+        self.existStmt24 = json.dumps({"statement_id":self.guid24, "object":{'objectType':'Agent','name':'jon19','mbox':'jon19@jon.com'},
             "verb":"passed"})
 
-        self.existStmt25 = json.dumps({"statement_id":self.guid25, "object":{'objectType':'Person','name':['jon20'],'mbox':['jon20@jon.com']},
+        self.existStmt25 = json.dumps({"statement_id":self.guid25, "object":{'objectType':'Agent','name':'jon20','mbox':'jon20@jon.com'},
             "verb":"passed"})
 
 
@@ -894,21 +891,4 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid8, anotherMore2URLGet)
         self.assertNotIn(self.guid7, anotherMore2URLGet)
         self.assertNotIn(self.guid6, anotherMore2URLGet)
-        self.assertNotIn(self.guid5, anotherMore2URLGet)        
-    
-
-    # To run test, change CACHE TIMEOUT to 30 in settings.py
-    # def test_more_stmts_expired(self):
-    #     # Make initial complex get so 'more' will be required
-    #     sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.secondTime})
-    #     resp_json = json.loads(sinceGetResponse.content)
-    #     resp_url = resp_json['more']
-    #     resp_id = resp_url[-32:]
-
-    #     time.sleep(35)
-
-    #     # Simulate user clicking returned 'more' URL
-    #     moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
-    #     self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
-
-
+        self.assertNotIn(self.guid5, anotherMore2URLGet)
