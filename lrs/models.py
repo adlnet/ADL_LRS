@@ -1,10 +1,8 @@
 from django.db import models
 from django.db import transaction
-from django.contrib.contenttypes.generic import GenericForeignKey
-from django.core import serializers
-import json
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes import generic
 import pdb
-#this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
@@ -159,12 +157,13 @@ class LanguageMap(models.Model):
     key = models.CharField(max_length=200)
     value = models.CharField(max_length=200)
 
+
 class activity_def_correctresponsespattern(models.Model):
     pass
 
 class activity_definition(models.Model):
-    name = models.OneToOneField(LanguageMap, related_name="activity_definition_name")
-    description = models.OneToOneField(LanguageMap, related_name="activity_definition_description")
+    name = models.ManyToManyField(LanguageMap, related_name="activity_definition_name", blank=True, null=True)
+    description = models.ManyToManyField(LanguageMap, related_name="activity_definition_description", blank=True, null=True)
     activity_definition_type = models.CharField(max_length=200)
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
@@ -185,67 +184,78 @@ class correctresponsespattern_answer(models.Model):
 
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=200)
-    description = models.OneToOneField(LanguageMap)        
+    description = models.ManyToManyField(LanguageMap, blank=True, null=True)        
     activity_definition = models.ForeignKey(activity_definition)
 
     def objReturn(self):
         ret = {}
         ret['id'] = self.choice_id
         ret['description'] = {}
-        lang_map = self.description
-        ret['description'][lang_map.key] = lang_map.value
+        lang_map_set = self.description.all()
+        
+        for lang_map in lang_map_set:
+            ret['description'][lang_map.key] = lang_map.value
+        
         return ret
 
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=200)
-    description = models.OneToOneField(LanguageMap)        
+    description = models.ManyToManyField(LanguageMap, blank=True, null=True)        
     activity_definition = models.ForeignKey(activity_definition)
 
     def objReturn(self):
         ret = {}
         ret['id'] = self.scale_id
         ret['description'] = {}
-        lang_map = self.description
-        ret['description'][lang_map.key] = lang_map.value
+        lang_map_set = self.description.all()
+        
+        for lang_map in lang_map_set:
+            ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=200)
-    description = models.OneToOneField(LanguageMap)       
+    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
     activity_definition = models.ForeignKey(activity_definition)
     
     def objReturn(self):
         ret = {}
         ret['id'] = self.source_id
         ret['description'] = {}
-        lang_map = self.description
-        ret['description'][lang_map.key] = lang_map.value
+        lang_map_set = self.description.all()
+        
+        for lang_map in lang_map_set:
+            ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=200)
-    description = models.OneToOneField(LanguageMap)        
+    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
     activity_definition = models.ForeignKey(activity_definition)
     
     def objReturn(self):
         ret = {}
         ret['id'] = self.target_id
         ret['description'] = {}
-        lang_map = self.description
-        ret['description'][lang_map.key] = lang_map.value
+        lang_map_set = self.description.all()
+        
+        for lang_map in lang_map_set:
+            ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=200)
-    description = models.OneToOneField(LanguageMap)        
+    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
     activity_definition = models.ForeignKey(activity_definition)
 
     def objReturn(self):
         ret = {}
         ret['id'] = self.step_id
         ret['description'] = {}
-        lang_map = self.description
-        ret['description'][lang_map.key] = lang_map.value
+        lang_map_set = self.description.all()
+        
+        for lang_map in lang_map_set:
+            ret['description'][lang_map.key] = lang_map.value
         return ret
 
 class activity_extensions(models.Model):

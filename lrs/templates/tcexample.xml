@@ -4,6 +4,8 @@
                 <activity id="scorm.ex/module/example" type="module">
                         <name lang="en-FR">Example Name</name>
                         <description lang="en-US">Example Desc</description>
+                        <name lang="en-GB">Name</name>
+                        <description lang="en-GB">Desc</description>
                         <interactionType>course</interactionType>
                 </activity>
         </activities>

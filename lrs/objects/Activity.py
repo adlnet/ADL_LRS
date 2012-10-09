@@ -91,7 +91,7 @@ class Activity():
         root = xmldoc.getroot()
         act_def = {}
 
-        # pdb.set_trace()
+        pdb.set_trace()
         #Parse the name (required)
         if root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]:
             act_def['name'] = {}
@@ -162,10 +162,9 @@ class Activity():
         return act
 
     #Save activity definition to DB
-    def _save_activity_definition_to_db(self, name, desc, act_def_type, intType):
-        act_def = models.activity_definition(name=name,description=desc, activity_definition_type=act_def_type,
+    def _save_activity_definition_to_db(self,act_def_type, intType):
+        act_def = models.activity_definition(activity_definition_type=act_def_type,
                   interactionType=intType)
-        # act_def = models.activity_definition(**args)
         act_def.save()
         return act_def    
 
@@ -175,7 +174,7 @@ class Activity():
         return ret
 
     # Called when need to check if existing activity definition has the same name/desc as the incoming one
-    def _check_name_and_description(self, new_name_key, new_name_value, new_desc_key, new_desc_value,
+    def _check_names_and_descriptions(self, new_name_key, new_name_value, new_desc_key, new_desc_value,
                                     existing_name=None, existing_desc=None):
         name_diff = False
         desc_diff = False
@@ -190,6 +189,9 @@ class Activity():
                 desc_diff = True
         return (name_diff, desc_diff)
 
+    def _check_activity_definition_value(self, new_name_value, existing_name_value):
+        return new_name_value == existing_name_value
+
     def _update_activity_name_and_description(self, new_activity, existing_activity):
         # Try grabbing the activity definition (these aren't required)
         existing_act_def = None        
@@ -201,26 +203,65 @@ class Activity():
         # If there is an existing activity definition and the names or descriptions are different,
         # update it with new name and/or description info
         if existing_act_def:
-            name_diff = False
-            desc_diff = False
+            # Get list of existing name lang maps
+            existing_name_lang_map_set = existing_act_def.name.all()
 
-            existing_name_lang_map = existing_act_def.name
-            existing_desc_lang_map = existing_act_def.description
+            # Make lists of keys and values from existing name lang maps
+            existing_name_key_set = existing_name_lang_map_set.values_list('key', flat=True)
 
-            new_name_key = new_activity['definition']['name'].keys()[0]
-            new_name_value = new_activity['definition']['name'].values()[0]
+            # Get list of existing desc lang maps
+            existing_desc_lang_map_set = existing_act_def.description.all()
 
-            new_desc_key = new_activity['definition']['description'].keys()[0]
-            new_desc_value = new_activity['definition']['description'].values()[0]
+            # Make lists of keys and values from existing desc lang maps
+            existing_desc_key_set = existing_desc_lang_map_set.values_list('key', flat=True)
 
-            name_diff, desc_diff = self._check_name_and_description(new_name_key, new_desc_value,
-                                                new_desc_key, new_desc_value, existing_name_lang_map,
-                                                existing_desc_lang_map)
-            if name_diff:
-                models.LanguageMap.objects.filter(id=existing_act_def.name.id).update(key = new_name_key, value = new_name_value)
+            # Loop through all language maps in name
+            for new_name_lang_map in new_activity['definition']['name'].items():
+                # If there is already an entry in the same language
+                if new_name_lang_map[0] in existing_name_key_set:
+                    name_same = True                    
+                    # Retrieve existing language map with same key (all in the existing act_def)
+                    existing_lang_map = existing_act_def.name.get(key=new_name_lang_map[0])
+                    name_same = self._check_activity_definition_value(new_name_lang_map[1], existing_lang_map.value)
+                    # If names are different, update the language map with the new name
+                    if not name_same:
+                        models.LanguageMap.objects.filter(id=existing_lang_map.id).update(value=new_name_lang_map[1])
+                # Else it's a new lang map and needs added
+                else:
+                    lang_map = self._save_lang_map(new_name_lang_map)
+                    existing_act_def.name.add(lang_map)
+                    existing_act_def.save()                    
+
+            # Loop through all language maps in description
+            for new_desc_lang_map in new_activity['definition']['description'].items():
+                # If there is already an entry in the same language
+                if new_desc_lang_map[0] in existing_desc_key_set:
+                    desc_same = False
+                    # Retrieve existing language map with same key (all in the existing act_def)
+                    existing_lang_map = existing_act_def.description.get(key=new_desc_lang_map[0])
+                    desc_same = self._check_activity_definition_value(new_desc_lang_map[1], existing_lang_map.value)
+                    # If desc are different, update the langage map with the new desc
+                    if not desc_same:
+                        models.LanguageMap.objects.filter(id=existing_lang_map.id).update(value=new_desc_lang_map[1])
+                else:
+                    lang_map = self._save_lang_map(new_desc_lang_map)
+                    existing_act_def.description.add(lang_map)
+                    existing_act_def.save()                    
+
+            # new_name_key = new_activity['definition']['name'].keys()[0]
+            # new_name_value = new_activity['definition']['name'].values()[0]
+
+            # new_desc_key = new_activity['definition']['description'].keys()[0]
+            # new_desc_value = new_activity['definition']['description'].values()[0]
+
+            # name_diff, desc_diff = self._check_names_and_descriptions(new_name_key, new_desc_value,
+            #                                     new_desc_key, new_desc_value, existing_name_lang_map,
+            #                                     existing_desc_lang_map)
+            # if name_diff:
+            #     models.LanguageMap.objects.filter(id=existing_act_def.name.id).update(key = new_name_key, value = new_name_value)
                 
-            if desc_diff:
-                models.LanguageMap.objects.filter(id=existing_act_def.description.id).update(key = new_desc_key, value = new_desc_value)
+            # if desc_diff:
+            #     models.LanguageMap.objects.filter(id=existing_act_def.description.id).update(key = new_desc_key, value = new_desc_value)
 
     #Once JSON is verified, populate the activity objects
     def _populate(self, the_object):
@@ -232,7 +273,6 @@ class Activity():
             activity_id = the_object['id']
         except KeyError:
             raise Exception("No id provided, must provide 'id' field")
-        # pdb.set_trace()
         # Check if activity ID already exists
         id_list = models.activity.objects.values_list('activity_id', flat=True)
         if activity_id in id_list:
@@ -305,15 +345,16 @@ class Activity():
         
     # Save language map object for activity definition name or description
     def _save_lang_map(self, lang_map):
-        for k, v in lang_map.items():
-            act_def_language_map = models.LanguageMap(key = k, value = v)
+        k = lang_map[0]
+        v = lang_map[1]
+
+        language_map = models.LanguageMap(key = k, value = v)
         
-        act_def_language_map.save()        
-        return act_def_language_map
+        language_map.save()        
+        return language_map
 
     #Populate definition either from JSON or validated XML
     def _populate_definition(self, act_def, act_id, objType):
-            # pdb.set_trace()
             #Needed for cmi.interaction args
             interactionFlag = ""
 
@@ -379,25 +420,27 @@ class Activity():
                         raise Exception("Activity definition missing scale for likert")
                     interactionFlag = 'scale'
 
+            self.activity_definition = self._save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', None))
+
             # Save activity definition name and description
-            if type(act_def['name']) is dict:
-                act_def['name'] = self._save_lang_map(act_def['name'])
-            else:
-                raise Exception("Activity with id %s name must be a language map" % act_id)
+            for name_lang_map in act_def['name'].items():
+                if isinstance(name_lang_map, tuple):
+                    lang_map = self._save_lang_map(name_lang_map)
+                    self.activity_definition.name.add(lang_map)
+                    self.activity_definition.save()
+                else:
+                    raise Exception("Activity with id %s has a name that is not a language map" % act_id)
 
-            if type(act_def['description']) is dict:
-                act_def['description'] = self._save_lang_map(act_def['description'])
-            else:
-                raise Exception("Activity with id %s description must be a language map" % act_id)
-
-            self.activity_definition = self._save_activity_definition_to_db(act_def['name'],
-                        act_def['description'], act_def['type'], act_def.get('interactionType', None))
+            for desc_lang_map in act_def['description'].items():
+                if isinstance(desc_lang_map, tuple):
+                    lang_map = self._save_lang_map(desc_lang_map)
+                    self.activity_definition.description.add(lang_map)
+                    self.activity_definition.save()
+                else:
+                    raise Exception("Activity with id %s has a description that is not a language map" % act_id)
     
-            # self.activity_definition = self._save_activity_definition_to_db(act_def)
-
             self.activity = self._save_actvity_to_db(act_id, objType, self.activity_definition)
 
-    
             #If there is a correctResponsesPattern then save the pattern
             if 'correctResponsesPattern' in act_def.keys():
                 self._populate_correctResponsesPattern(act_def, interactionFlag)
@@ -425,70 +468,79 @@ class Activity():
                 if interactionFlag == 'choices' or interactionFlag == 'sequencing':
                     self.choices = []
                     for c in act_def['choices']:
+                        choice = models.activity_definition_choice(choice_id=c['id'], activity_definition=self.activity_definition)
+                        choice.save()
                         #Save description as string, not a dictionary
-                        # desc = json.dumps(c['description'])
-                        if isinstance(c['description'], dict):
-                            desc = self._save_lang_map(c['description'])
-                        else:
-                            raise Exception("Choice description must be a language map")
-                        choice = models.activity_definition_choice(choice_id=c['id'], description=desc,
-                            activity_definition=self.activity_definition)
-                        choice.save() 
+                        for desc_lang_map in c['description'].items():
+                            if isinstance(desc_lang_map, tuple):
+                                lang_map = self._save_lang_map(desc_lang_map)
+                                choice.description.add(lang_map)
+                                choice.save()
+                            else:
+                                raise Exception("Choice description must be a language map")
+ 
                         self.choices.append(choice)
                 
                 elif interactionFlag == 'scale':
                     self.scale_choices = []
                     for s in act_def['scale']:
-                        # Save description as string, not a dictionary
-                        # desc = json.dumps(s['description'])
-                        if isinstance(s['description'], dict):
-                            desc = self._save_lang_map(s['description'])
-                        else:
-                            raise Exception("Scale description must be a language map")                        
-                        scale = models.activity_definition_scale(scale_id=s['id'], description=desc,
-                            activity_definition=self.activity_definition)        
+                        scale = models.activity_definition_scale(scale_id=s['id'], activity_definition=self.activity_definition)        
                         scale.save()
+                        # Save description as string, not a dictionary
+                        for desc_lang_map in s['description'].items():
+                            if isinstance(desc_lang_map, tuple):
+                                lang_map = self._save_lang_map(desc_lang_map)
+                                scale.description.add(lang_map)
+                                scale.save()
+                            else:
+                                raise Exception("Scale description must be a language map")                        
+
                         self.scale_choices.append(scale)
 
                 elif interactionFlag == 'steps':
                     self.steps = []
                     for s in act_def['steps']:
-                        #Save description as string, not a dictionary
-                        # desc = json.dumps(s['description'])
-                        if isinstance(s['description'], dict):
-                            desc = self._save_lang_map(s['description'])
-                        else:
-                            raise Exception("Step description must be a language map")                        
-                        step = models.activity_definition_step(step_id=s['id'], description=desc,
-                            activity_definition=self.activity_definition)
+                        step = models.activity_definition_step(step_id=s['id'], activity_definition=self.activity_definition)
                         step.save()
+                        #Save description as string, not a dictionary
+                        for desc_lang_map in s['description'].items():
+                            if isinstance(desc_lang_map, tuple):
+                                lang_map = self._save_lang_map(desc_lang_map)
+                                step.description.add(lang_map)
+                                step.save()
+                            else:
+                                raise Exception("Step description must be a language map")                        
+
                         self.steps.append(step)
 
                 elif interactionFlag == 'source':
                     self.source_choices = []
                     self.target_choices = []
                     for s in act_def['source']:
+                        source = models.activity_definition_source(source_id=s['id'], activity_definition=self.activity_definition)
+                        source.save()                        
                         #Save description as string, not a dictionary
-                        # desc = json.dumps(s['description'])
-                        if isinstance(s['description'], dict):
-                            desc = self._save_lang_map(s['description'])
-                        else:
-                            raise Exception("Source description must be a language map")                        
-                        source = models.activity_definition_source(source_id=s['id'], description=desc,
-                            activity_definition=self.activity_definition)
-                        source.save()
+                        for desc_lang_map in s['description'].items():
+                            if isinstance(desc_lang_map, tuple):
+                                lang_map = self._save_lang_map(desc_lang_map)
+                                source.description.add(lang_map)
+                                source.save()
+                            else:
+                                raise Exception("Source description must be a language map")                        
                         self.source_choices.append(source)
                     
                     for t in act_def['target']:
-                        #Save description as string, not a dictionary
-                        # desc = json.dumps(t['description'])
-                        if isinstance(t['description'], dict):
-                            desc = self._save_lang_map(t['description'])
-                        else:
-                            raise Exception("Target description must be a language map")                        
-                        target = models.activity_definition_target(target_id=t['id'], description=desc,
-                            activity_definition=self.activity_definition)
+                        target = models.activity_definition_target(target_id=t['id'], activity_definition=self.activity_definition)
                         target.save()
+                        #Save description as string, not a dictionary
+                        for desc_lang_map in t['description'].items():
+                            if isinstance(desc_lang_map, tuple):
+                                lang_map = self._save_lang_map(desc_lang_map)
+                                target.description.add(lang_map)
+                                target.save()
+                            else:
+                                raise Exception("Target description must be a language map")                        
+
                         self.target_choices.append(target)        
 
 
