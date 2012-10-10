@@ -8,6 +8,7 @@ from datetime import datetime
 from os import path
 import sys
 import uuid
+import pdb
 
 from lrs.objects import Statement
 
@@ -17,34 +18,52 @@ class StatementModelsTests(TestCase):
     def test_minimum_stmt(self):
         
 
-        stmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
-        act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+        stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
 
-        self.assertEqual(stmt.statement.verb, 'created')
-        self.assertEqual(stmt.statement.stmt_object.id, act.id)
+        activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+        verb = models.Verb.objects.get(id=stmt.statement.verb.id)
+        actor = models.agent.objects.get(id=stmt.statement.actor.id)
 
-        st = models.statement.objects.get(id=stmt.statement.id)
-        self.assertEqual(st.stmt_object.id, act.id)
+        self.assertEqual(activity.activity_id, "http://example.adlnet.gov/tincan/example/simplestatement")
+        self.assertEqual(actor.mbox, "tincan@adlnet.gov")
+        self.assertEqual(verb.verb_id, "http://adlnet.gov/expapi/verbs/created")
 
     def test_given_stmtID_stmt(self):
         
 
-        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created",
-            "object": {"id":"activity"}}))
-        act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+        stmt = Statement.Statement(json.dumps({"statement_id":"blahID",
+            "actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
+        activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+        verb = models.Verb.objects.get(id=stmt.statement.verb.id)
+        actor = models.agent.objects.get(id=stmt.statement.actor.id)
+        gb_lang = verb.display.all()[0]
+        us_lang = verb.display.all()[1]
 
-        self.assertEqual(stmt.statement.verb, 'created')
-        self.assertEqual(stmt.statement.stmt_object.id, act.id)
-        self.assertEqual(stmt.statement.statement_id, "blahID")
+        self.assertEqual(gb_lang.key, 'en-GB')
+        self.assertEqual(gb_lang.value, 'made')
+        self.assertEqual(us_lang.key, 'en-US')
+        self.assertEqual(us_lang.value, 'created')        
 
+        self.assertEqual(activity.activity_id, "http://example.adlnet.gov/tincan/example/simplestatement")
+        self.assertEqual(actor.mbox, "tincan@adlnet.gov")
+        self.assertEqual(verb.verb_id, "http://adlnet.gov/expapi/verbs/created")
+        
         st = models.statement.objects.get(statement_id="blahID")
-        self.assertEqual(st.stmt_object.id, act.id)
+        self.assertEqual(st.stmt_object.id, activity.id)
+        self.assertEqual(st.verb.id, verb.id)
+
 
     def test_existing_stmtID_stmt(self):
         
-        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'}, "verb":"created",
-            "statement_id":"blahID"}))
+        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":{"id":"verb/url",
+            "display":{"en-US":"myverb"}}, "object": {"id":"activity"}, "actor":"objectType":"Agent",
+            "mbox":"t@t.com"}))
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'},
+            "verb":{"id":"verb/url","display":{"en-US":"myverb"}},"statement_id":"blahID"}))
 
     def test_minimum_stmt_activity_object(self):
 

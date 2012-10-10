@@ -307,9 +307,33 @@ class Statement():
 
         return self._saveContextToDB(context, contextExts)
 
-    def _build_verb_object(self, obj):
+    def _save_lang_map(self, lang_map):
+        k = lang_map[0]
+        v = lang_map[1]
+
+        language_map = models.LanguageMap(key = k, value = v)
+        
+        language_map.save()        
+        return language_map
+
+    def _build_verb_object(self, incoming_verb):
         verb = {}
         
+        if 'id' not in incoming_verb:
+            raise Exception("ID field is not included in statement verb")
+
+        verb_object = models.Verb(verb_id=incoming_verb['id'])
+        verb_object.save()
+
+        # Save verb displays
+        for verb_lang_map in incoming_verb['display'].items():
+            if isinstance(verb_lang_map, tuple):
+                lang_map = self._save_lang_map(verb_lang_map)
+                verb_object.display.add(lang_map)  
+            else:
+                raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
+        verb_object.save()
+        return verb_object
 
     #Once JSON is verified, populate the statement object
     def _populate(self, stmt_data, auth):
@@ -326,6 +350,11 @@ class Statement():
         except KeyError:
             raise Exception("No object provided, must provide 'object' field")
 
+        try:
+            raw_actor = stmt_data['actor']
+        except KeyError:
+            raise Exception("No actor provided, must provide 'actor' field")
+
         #Throw error since you can't set voided to True
         if 'voided' in stmt_data:
             if stmt_data['voided']:
@@ -337,25 +366,13 @@ class Statement():
 
         args['verb'] = self._build_verb_object(raw_verb)
 
-
         valid_agent_objects = ['agent', 'group']
         #Check to see if voiding statement
-        if args['verb'] == 'voided':
+        if args['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             #objectType must be statement if want to void another statement
             if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
                 voidedStmt = self._voidStatement(statementObjectData['id'])
                 args['stmt_object'] = voidedStmt
-        #If verb is imported then create either the agent or activity it is importing              
-        elif args['verb'] == 'imported':
-            if statementObjectData['objectType'].lower() == 'activity':
-                if auth is not None:
-                    importedActivity = Activity(json.dumps(statementObjectData), auth=auth.username).activity
-                else:
-                    importedActivity = Activity(json.dumps(statementObjectData)).activity
-                args['stmt_object'] = importedActivity
-            elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                importedAgent = Agent(initial=statementObjectData, create=True).agent
-                args['stmt_object'] = importedAgent
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
@@ -368,18 +385,8 @@ class Statement():
             elif statementObjectData['objectType'].lower() == 'statement':
                 args['stmt_object'] = Statement(json.dumps(statementObjectData)).statement  
 
-
-
-
-        #Retrieve actor if in JSON only for now
-        if 'actor' in stmt_data:
-            args['actor'] = Agent(initial=stmt_data['actor'], create=True).agent
-        else:
-             if auth:
-                authArgs = {}
-                authArgs['name'] = auth.username
-                authArgs['mbox'] = auth.email
-                args['actor'] = Agent(initial=authArgs, create=True).agent
+        #Retrieve actor
+        args['actor'] = Agent(initial=stmt_data['actor'], create=True).agent
 
         #Set inProgress to false
         args['inProgress'] = False

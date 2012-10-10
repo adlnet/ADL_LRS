@@ -359,7 +359,7 @@ class activity_profile(models.Model):
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=200)
-    display = models.ManyToManyField(LanguageMap, null=True)
+    display = models.ManyToManyField(LanguageMap, null=True, blank=True)
 
 class statement(statement_object):
     statement_id = models.CharField(max_length=200)
