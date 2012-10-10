@@ -499,3 +499,22 @@ class StatementsTests(TestCase):
         getstmt = self.client.get(path)
         self.assertEqual(getstmt.status_code, 200)
         self.assertContains(getstmt, stmtid)
+
+    def test_post_with_group(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        members = [{"name":"agentA","mbox":"mailto:agentA@example.com"},
+                    {"name":"agentB","mbox":"mailto:agentB@example.com"}]
+        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+
+        stmt = json.dumps({"actor":group,"verb":"created","object": {"id":"i.pity.the.fool"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(response.status_code, 200)
+        g = models.group.objects.get(mbox='mailto:the.groupST@example.com')
+        self.assertEquals(g.name, name)
+        self.assertEquals(g.mbox, mbox)
+        mems = g.member.values_list('name', flat=True)
+        self.assertEquals(len(mems), 2)
+        self.assertIn('agentA', mems)
+        self.assertIn('agentB', mems)

@@ -1,6 +1,6 @@
 import json
 import datetime
-from lrs.models import agent, agent_profile, IDNotFoundError
+from lrs.models import agent, group, agent_profile, IDNotFoundError
 from lrs.util import etag
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -18,13 +18,19 @@ class Agent():
             except:
                 params = json.loads(params)
         
+        if 'objectType' in params and params['objectType'] == 'Group':
+            obj = group
+        else:
+            obj = agent
         if create:
-            self.agent, created = agent.objects.gen(**params)
+            self.agent, created = obj.objects.gen(**params)
         else:
             try:
-                self.agent = agent.objects.get(**params)
-            except agent.DoesNotExist:
-                raise IDNotFoundError("Error with Activity State. The agent partial (%s) did not match any agents on record" % self.initial) 
+                if 'member' in params:
+                    params.pop('member', None)
+                self.agent = obj.objects.get(**params)
+            except:
+                raise IDNotFoundError("Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial) 
         
     def put_profile(self, request_dict):
         try:

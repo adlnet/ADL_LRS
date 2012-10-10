@@ -490,3 +490,26 @@ class StatementModelsTests(TestCase):
         self.assertTrue(models.statement.objects.get(pk=stmt3.statement.pk).authoritative)
         self.assertTrue(models.statement.objects.get(pk=stmt2.statement.pk).authoritative)
         self.assertFalse(models.statement.objects.get(pk=stmt.statement.pk).authoritative)
+
+    def test_group_stmt(self):
+        ot = "Group"
+        name = "the group SMT"
+        mbox = "mailto:the.groupSMT@example.com"
+        members = [{"name":"agentA","mbox":"mailto:agentA@example.com"},
+                    {"name":"agentB","mbox":"mailto:agentB@example.com"}]
+        testagent = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+        
+        stmt = Statement.Statement(json.dumps({"actor":testagent, "verb":"created","object": {"id":"activity5", "objectType": "Activity"}}))
+        activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+        actor = models.agent.objects.get(id=stmt.statement.actor.id)
+
+        self.assertEqual(stmt.statement.verb, 'created')
+        self.assertEqual(stmt.statement.stmt_object.id, activity.id)
+        self.assertEqual(stmt.statement.actor.id, actor.id)
+
+        st = models.statement.objects.get(id=stmt.statement.id)
+        self.assertEqual(st.stmt_object.id, activity.id)
+        self.assertEqual(st.actor.id, actor.id)
+
+        self.assertEqual(actor.name, name)
+        self.assertEqual(actor.mbox, mbox)

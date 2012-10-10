@@ -1,11 +1,7 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from lrs import models
 import json
 from django.core.exceptions import ValidationError
-import urllib
-from os import path
-import sys
 from lrs.objects import Activity
 
 

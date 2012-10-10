@@ -59,8 +59,9 @@ class statement_object(models.Model):
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
     def gen(self, **kwargs):
+        group = kwargs.get('objectType', None) == "Group"
         attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
-        if len(attrs) != 1:
+        if not group and len(attrs) != 1:
             raise ValidationError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
         val = kwargs.pop('account', None)
         if val:
@@ -82,6 +83,15 @@ class agentmgr(models.Manager):
                     acc = agent_account(**account)
                     acc.save()
                 kwargs['account'] = acc
+        if group and 'member' in kwargs:
+            mem = kwargs.pop('member')
+            try:
+                members = ast.literal_eval(mem)
+            except:
+                try:
+                    members = json.loads(mem)
+                except:
+                    members = mem
         try:
             agent = self.get(**kwargs)
             created = False
@@ -89,6 +99,10 @@ class agentmgr(models.Manager):
             agent = self.model(**kwargs)
             agent.save()
             created = True
+        if group:
+            ags = [self.gen(**a) for a in members]
+            agent.member.add(*(a for a, c in ags))
+        agent.save()
         return agent, created
 
 
@@ -149,11 +163,18 @@ class agent(statement_object):
 
 
 class group(agent):
-    member = models.ManyToManyField(agent, related_name="members")
+    member = models.ManyToManyField(agent, related_name="agents")
+    objects = agentmgr()
 
     def __init__(self, *args, **kwargs):
         kwargs["objectType"] = "Group"
         super(group, self).__init__(*args, **kwargs)
+
+    def get_agent_json(self):
+        ret = super(group, self).get_agent_json()
+        ret['member'] = [a.get_agent_json() for a in self.member.all()]
+        return ret
+
 
 class agent_profile(models.Model):
     profileId = models.CharField(max_length=200)
