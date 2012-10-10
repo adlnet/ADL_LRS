@@ -104,9 +104,9 @@ class Statement():
             del ret[fieldName]['account']
         return ret
 
-    def get_full_statement_json(self, sparse=False):
+    def get_full_statement_json(self, sparse=False, language=None):
         # Set statement to return
-        ret = models.objsReturn(self.statement)
+        ret = models.objsReturn(self.statement, language)
 
         # Remove details if sparse is true
         if sparse:
@@ -114,8 +114,8 @@ class Statement():
             if 'definition' in ret['object']:
                 if 'correctresponsespattern' in ret['object']['definition']:
                     del ret['object']['definition']['correctresponsespattern']
-                    ret['object']['definition']['description'] = ret['object']['definition']['description'].keys()[0]
-                    ret['object']['definition']['name'] = ret['object']['definition']['name'].keys()[0]
+                    ret['object']['definition']['description'] = ret['object']['definition']['description'].keys()
+                    ret['object']['definition']['name'] = ret['object']['definition']['name'].keys()
 
             # Remove other names/accounts in actor
             if 'actor' in ret:
@@ -157,10 +157,11 @@ class Statement():
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
 
         #If completion is false then verb cannot be completed, mastered, 
-        if result['completion'] == False:                
-            if verb in completedVerbs:
-                #Throw exceptions b/c those verbs must have true completion
-                raise Exception('Completion must be True if using the verb ' + verb)
+        if 'completion' in result:
+            if result['completion'] == False:                
+                if verb in completedVerbs:
+                    #Throw exceptions b/c those verbs must have true completion
+                    raise Exception('Completion must be True if using the verb ' + verb)
 
         if verb == 'mastered' and result['success'] == False:
             #Throw exception b/c mastered and success contradict each other or completion is false
@@ -176,7 +177,15 @@ class Statement():
 
     #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
     def _validateScoreResult(self, score_data):
-        pass
+        if 'min' in score_data:
+            score_data['score_min'] = score_data['min']
+            del score_data['min']
+
+        if 'max' in score_data:
+            score_data['score_max'] = score_data['max']
+            del score_data['max']
+
+        return score_data
 
     def _saveScoreToDB(self, score):
         sc = models.score(**score)
@@ -219,7 +228,6 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
-        #pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -247,7 +255,7 @@ class Statement():
 
             #Once found that the results are valid against the verb, check score object and save
             if 'score' in result.keys():
-                self._validateScoreResult(result['score'])
+                result['score'] = self._validateScoreResult(result['score'])
                 result['score'] = self._saveScoreToDB(result['score'])
 
         #Save result
@@ -299,7 +307,6 @@ class Statement():
 
     #Once JSON is verified, populate the statement object
     def _populate(self, stmt_data, auth):
-        # pdb.set_trace()
         args ={}
         #Must include verb - set statement verb - set to lower too
         try:
@@ -409,7 +416,7 @@ class Statement():
         else:
             #Create uuid for ID
             args['statement_id'] = uuid.uuid4()
-        
+
         # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args)

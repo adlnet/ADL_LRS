@@ -118,7 +118,6 @@ def complexGet(req_dict):
     if 'limit' in the_dict:
         limit = int(the_dict['limit'])
 
-    # pdb.set_trace()
     if 'sparse' in the_dict:
         if not type(the_dict['sparse']) is bool:
             if the_dict['sparse'].lower() == 'false':
@@ -140,7 +139,7 @@ def complexGet(req_dict):
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
         stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
-        full_stmt_list.append(stmt.get_full_statement_json(sparse))
+        full_stmt_list.append(stmt.get_full_statement_json(sparse, language))
     return full_stmt_list
 
 

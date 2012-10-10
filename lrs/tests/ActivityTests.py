@@ -22,11 +22,11 @@ class ActivityTests(TestCase):
 
     def test_get_def(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar1',
-                'definition': {'name': {'en-US':'testname'},'description': {'en-US':'testdesc'},
+                'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
+                'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},
                 'type': 'course','interactionType': 'intType'}})) 
         response = self.client.get(reverse(views.activities), {'activityId':'foobar1'})
         rsp = response.content
-
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar1', rsp)
         self.assertIn('course', rsp)
@@ -34,6 +34,9 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)
         self.assertIn('testname', rsp)
         self.assertIn('testdesc', rsp)
+        self.assertIn('en-GB', rsp)
+        self.assertIn('altdesc', rsp)
+        self.assertIn('altname', rsp)
         
     def test_get_ext(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar2',
@@ -43,7 +46,6 @@ class ActivityTests(TestCase):
 
         response = self.client.get(reverse(views.activities), {'activityId':'foobar2'})
         rsp = response.content
-
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar2', rsp)
         self.assertIn('course', rsp)
@@ -58,10 +60,11 @@ class ActivityTests(TestCase):
 
     def test_get_crp_multiple_choice(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar3',
-                'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
+                'definition': {'name': {'en-FR':'testname2'},
+                'description': {'en-FR':'testdesc2', 'en-CH': 'altdesc'},
                 'type': 'cmi.interaction','interactionType': 'multiple-choice',
                 'correctResponsesPattern': ['golf', 'tetris'],'choices':[{'id': 'golf',
-                'description': {'en-US':'Golf Example'}},{'id': 'tetris',
+                'description': {'en-US':'Golf Example', 'en-GB':'alt golf'}},{'id': 'tetris',
                 'description':{'en-US': 'Tetris Example'}}, {'id':'facebook',
                 'description':{'en-US':'Facebook App'}},{'id':'scrabble', 
                 'description': {'en-US': 'Scrabble Example'}}]}}))        
@@ -69,7 +72,6 @@ class ActivityTests(TestCase):
         response = self.client.get(reverse(views.activities), {'activityId':'foobar3'})
 
         rsp = response.content
-        
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar3', rsp)
         self.assertIn('cmi.interaction', rsp)
@@ -85,8 +87,10 @@ class ActivityTests(TestCase):
         self.assertIn('Scrabble Example', rsp)
         self.assertIn('scrabble', rsp)
         self.assertIn('facebook', rsp)
-
-
+        self.assertIn('en-GB', rsp)
+        self.assertIn('alt golf', rsp)
+        self.assertIn('en-CH', rsp)
+        self.assertIn('altdesc', rsp)
 
     def test_get_crp_true_false(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar4',
@@ -180,7 +184,6 @@ class ActivityTests(TestCase):
                 {'id':'3', 'description':{'en-US': 'SCORM Cloud'}}]}}))        
         
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar8'})       
-        # pdb.set_trace()
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar8', rsp)
@@ -197,16 +200,17 @@ class ActivityTests(TestCase):
 
     def test_get_crp_performance(self):
         act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'foobar9',
-                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
-                'type': 'cmi.interaction','interactionType': 'performance',
+                'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
+                'description': {'en-US':'testdesc2'},'type': 'cmi.interaction',
+                'interactionType': 'performance',
                 'correctResponsesPattern': ['pong.1,dg.10,lunch.4'],'steps':[{'id': 'pong',
                 'description': {'en-US':'Net pong matches won'}},{'id': 'dg',
                 'description':{'en-US': 'Strokes over par in disc golf at Liberty'}},
-                {'id':'lunch', 'description':{'en-US':'Lunch having been eaten'}}]}}))
+                {'id':'lunch', 'description':{'en-US':'Lunch having been eaten', 
+                'en-FR': 'altlunch'}}]}}))
         
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar9'})       
         rsp = response.content
-
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar9', rsp)
         self.assertIn('cmi.interaction', rsp)
@@ -219,6 +223,9 @@ class ActivityTests(TestCase):
         self.assertIn('pong.1,dg.10,lunch.4', rsp)
         self.assertIn('Strokes over par in disc golf at Liberty', rsp)
         self.assertIn('Lunch having been eaten', rsp)
+        self.assertIn('en-GB', rsp)
+        self.assertIn('en-FR', rsp)
+        self.assertIn('altlunch', rsp)
 
     def test_get_crp_sequencing(self):
         act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'foobar10',

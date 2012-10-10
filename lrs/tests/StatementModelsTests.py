@@ -74,6 +74,22 @@ class StatementModelsTests(TestCase):
         self.assertEqual(actorName.name, 'bob')
         self.assertEqual(actorMbox.mbox, 'bob@example.com')
 
+    def test_activity_mult_lang_stmt(self):
+
+        stmt = Statement.Statement(json.dumps({"verb": "passed", "object":{'objectType': 'Activity', 'id':'foobar3',
+                'definition': {'name': {'en-FR':'testname2'},
+                'description': {'en-FR':'testdesc2', 'en-CH': 'altdesc'},
+                'type': 'cmi.interaction','interactionType': 'multiple-choice',
+                'correctResponsesPattern': ['golf', 'tetris'],'choices':[{'id': 'golf',
+                'description': {'en-US':'Golf Example', 'en-GB':'alt golf'}},{'id': 'tetris',
+                'description':{'en-US': 'Tetris Example'}}, {'id':'facebook',
+                'description':{'en-US':'Facebook App'}},{'id':'scrabble', 
+                'description': {'en-US': 'Scrabble Example'}}]}}}))
+
+        activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+        self.assertEqual(stmt.statement.verb, 'passed')
+        self.assertEqual(stmt.statement.stmt_object.id, activity.id)
+
     def test_authority_stmt(self):
 
 

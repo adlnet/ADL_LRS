@@ -64,9 +64,9 @@ class StatementsMoreTests(TestCase):
         self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
         self.existStmt1 = json.dumps({"statement_id":self.guid1,"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
+            'definition': {'name': {'en-US':'testname2', 'en-GB':'altname'},'description': {'en-US':'testdesc2',
+            'en-GB':'altdesc'}, 'type': 'cmi.interaction','interactionType': 'fill-in',
+            'correctResponsesPattern': ['answer'],'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
             "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
             'duration': self.mytime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
             'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},

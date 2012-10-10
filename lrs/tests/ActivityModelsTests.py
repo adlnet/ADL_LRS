@@ -172,7 +172,6 @@ class ActivityModelsTests(TestCase):
     # Test activity that doesn't have a def, isn't a link and conforms to schema
     # (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform(self):
-        pdb.set_trace()
         act = Activity.Activity(json.dumps({'objectType':'Activity',
             'id': 'http://localhost:8000/TCAPI/tcexample/'}))
 
@@ -181,14 +180,17 @@ class ActivityModelsTests(TestCase):
         act_def = models.activity_definition.objects.filter(activity=fk)
 
         name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
-        
+        desc_set = act_def[0].description.all()        
 
         self.assertEqual(name_set[0].key, 'en-FR')
         self.assertEqual(name_set[0].value, 'Example Name')
+        self.assertEqual(name_set[1].key, 'en-CH')
+        self.assertEqual(name_set[1].value, 'Alt Name')
 
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'Example Desc')
+        self.assertEqual(desc_set[1].key, 'en-CH')
+        self.assertEqual(desc_set[1].value, 'Alt Desc')
 
         self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample/', 'Activity')        
         self.do_activity_definition_model(fk, 'module','course')
@@ -550,7 +552,7 @@ class ActivityModelsTests(TestCase):
                                                      'value3')
 
         self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['golf', 'tetris'])
-        pdb.set_trace()
+        
         #Check model choice values
         clist = ['golf', 'tetris', 'facebook', 'scrabble']
         dlist = [("en-US","Golf Example"),("en-US", "Tetris Example"),("en-US", "Facebook App"),

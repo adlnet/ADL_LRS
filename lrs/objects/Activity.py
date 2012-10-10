@@ -91,22 +91,26 @@ class Activity():
         root = xmldoc.getroot()
         act_def = {}
 
-        pdb.set_trace()
         #Parse the name (required)
-        if root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]:
+        if len(root.xpath('//tc:activities/tc:activity/tc:name', namespaces=ns)) > 0:
             act_def['name'] = {}
 
-            lang = root.xpath('//tc:activities/tc:activity/tc:name/@lang', namespaces=ns)[0]
-            act_def['name'][lang] = root.xpath('//tc:activities/tc:activity/tc:name/text()', namespaces=ns)[0]
+            for element in root.xpath('//tc:activities/tc:activity/tc:name', namespaces=ns):
+                lang = element.get('lang')
+                act_def['name'][lang] = element.text
         else:
             raise(Exception, "XML is missing name")
             
         #Parse the description (required)    
-        if root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]:
+        if len(root.xpath('//tc:activities/tc:activity/tc:description', namespaces=ns)) > 0:
             act_def['description'] = {}
             
-            lang = root.xpath('//tc:activities/tc:activity/tc:description/@lang', namespaces=ns)[0]
-            act_def['description'][lang] = root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]
+            for element in root.xpath('//tc:activities/tc:activity/tc:description', namespaces=ns):
+                lang = element.get('lang')
+                act_def['description'][lang] = element.text
+
+            # lang = root.xpath('//tc:activities/tc:activity/tc:description/@lang', namespaces=ns)[0]
+            # act_def['description'][lang] = root.xpath('//tc:activities/tc:activity/tc:description/text()', namespaces=ns)[0]
         else:
             raise(Exception, "XML is missing description")
             
@@ -118,7 +122,6 @@ class Activity():
 
         #Parse the type (required)
         if root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]:
-            # act_def['type'] = root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]
             act_def['type'] = root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]
         else:
             raise(Exception, "XML is missing type")
@@ -170,7 +173,6 @@ class Activity():
 
     def get_full_activity_json(self):
         ret = models.objsReturn(self.activity)
-
         return ret
 
     # Called when need to check if existing activity definition has the same name/desc as the incoming one
@@ -248,26 +250,11 @@ class Activity():
                     existing_act_def.description.add(lang_map)
                     existing_act_def.save()                    
 
-            # new_name_key = new_activity['definition']['name'].keys()[0]
-            # new_name_value = new_activity['definition']['name'].values()[0]
-
-            # new_desc_key = new_activity['definition']['description'].keys()[0]
-            # new_desc_value = new_activity['definition']['description'].values()[0]
-
-            # name_diff, desc_diff = self._check_names_and_descriptions(new_name_key, new_desc_value,
-            #                                     new_desc_key, new_desc_value, existing_name_lang_map,
-            #                                     existing_desc_lang_map)
-            # if name_diff:
-            #     models.LanguageMap.objects.filter(id=existing_act_def.name.id).update(key = new_name_key, value = new_name_value)
-                
-            # if desc_diff:
-            #     models.LanguageMap.objects.filter(id=existing_act_def.description.id).update(key = new_desc_key, value = new_desc_value)
-
     #Once JSON is verified, populate the activity objects
     def _populate(self, the_object):
         valid_schema = False
         xml_data = {}
-
+        
         #Must include activity_id - set object's activity_id
         try:
             activity_id = the_object['id']

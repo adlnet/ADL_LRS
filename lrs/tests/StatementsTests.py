@@ -43,7 +43,8 @@ class StatementsTests(TestCase):
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
         self.existStmt1 = json.dumps({"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
+            'description': {'en-US':'testdesc2', 'en-GB': 'altdesc'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
             'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
             "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
@@ -53,7 +54,8 @@ class StatementsTests(TestCase):
             'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
 
         self.existStmt2 = json.dumps({"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3', 'en-GB': 'altname'},
+            'description': {'en-US':'testdesc3','en-GB':'altdesc'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
             "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -109,7 +111,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt3
         self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse3.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
         
@@ -118,7 +120,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt4
         self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse4.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat())
@@ -137,7 +139,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt5
         self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse5.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
         
 
@@ -146,7 +148,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt6
         self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse6.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
         
@@ -155,7 +157,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt7        
         self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse7.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
         
 
@@ -164,7 +166,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt8        
         self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse8.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
         
 
@@ -289,8 +291,6 @@ class StatementsTests(TestCase):
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
         self.assertEqual(len(jsn['statements']), models.statement.objects.all().count())
-        # self.assertContains(response, 'Error')
-        # self.assertContains(response, 'statementId parameter is missing')
 
         
     def test_since_filter(self):
@@ -298,7 +298,6 @@ class StatementsTests(TestCase):
         param = {'since': self.firstTime}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         sinceGetResponse = self.client.get(path)
-        # pdb.set_trace()
 
         self.assertEqual(sinceGetResponse.status_code, 200)
         self.assertContains(sinceGetResponse, self.guid1)
@@ -316,7 +315,6 @@ class StatementsTests(TestCase):
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         untilGetResponse = self.client.get(path)
         
-        # pdb.set_trace()
         self.assertEqual(untilGetResponse.status_code, 200)
         self.assertContains(untilGetResponse, self.guid1)
         self.assertContains(untilGetResponse, self.guid3)
@@ -434,14 +432,13 @@ class StatementsTests(TestCase):
         stmts = json.loads(stmt1_resp.content)
         self.assertEqual(len(stmts['statements']), 1)
 
-    # TODO - NEEDS FINISHED ONCE FK LANG MAPS ARE DONE...
     def test_limit_filter(self):
         # Test limit
         limitGetResponse = self.client.post(reverse(views.statements),{'limit':1}, content_type="application/x-www-form-urlencoded")
         respList = json.loads(limitGetResponse.content)
         stmts = respList['statements']
         self.assertEqual(len(stmts), 1)
-
+        self.assertContains(limitGetResponse, self.guid8)
 
     def test_sparse_filter(self):
         # Test sparse
@@ -467,14 +464,15 @@ class StatementsTests(TestCase):
 
 
     def test_language_header_filter(self):
-        param = {'limit':1}
+        param = {'limit':1, 'object':{'objectType': 'Activity', 'id':'foogie'}}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         lang_get_response = self.client.get(path, Accept_Language='en-US')
 
         resp_list = json.loads(lang_get_response.content)
         stmts = resp_list['statements']
         self.assertEqual(len(stmts), 1)
-
+        self.assertContains(lang_get_response, 'en-US')
+        self.assertNotContains(lang_get_response, 'en-GB')
 
     # Six activities are PUT, but should be 5 since two have same ID and auth
     def test_number_of_activities(self):
@@ -523,9 +521,20 @@ class StatementsTests(TestCase):
         act = models.activity.objects.get(activity_id='foogie')
         act_def = models.activity_definition.objects.get(activity=act)
 
-        self.assertEqual(act_def.name.value, 'testname3')
-        self.assertEqual(act_def.description.value, 'testdesc3')
+        name_set = act_def.name.all()
+        desc_set = act_def.description.all()
 
+        self.assertEqual(name_set[0].key, 'en-GB')
+        self.assertEqual(name_set[0].value, 'altname')
+
+        self.assertEqual(name_set[1].key, 'en-US')
+        self.assertEqual(name_set[1].value, 'testname3')
+
+        self.assertEqual(desc_set[0].key, 'en-GB')
+        self.assertEqual(desc_set[0].value, 'altdesc')
+
+        self.assertEqual(desc_set[1].key, 'en-US')
+        self.assertEqual(desc_set[1].value, 'testdesc3')
 
     def test_cors_post_put(self):
         bdy = {"statementId": "postputID"}
@@ -559,3 +568,17 @@ class StatementsTests(TestCase):
         getstmt = self.client.get(path)
         self.assertEqual(getstmt.status_code, 200)
         self.assertContains(getstmt, stmtid)
+
+    def test_issue_put(self):
+        stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244430' 
+        stmt = json.dumps({"verb":"completed","object":{"id":"scorm.com/JsTetris_TCAPI/level2",
+            "definition":{"type":"media","name":{"en-US":"Js Tetris Level2"},
+            "description":{"en-US":"Starting at 1, the higher the level, the harder the game."}}},
+            "result":{"extensions":{"time":104,"apm":229,"lines":5},"score":{"raw":9911,"min":0}},
+            "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
+            "registration":"b7be7d9d-bfe2-4917-8ccd-41a0d18dd953"},
+            "actor":{"name":["tom creighton"],"mbox":["mailto:tom@example.com"]}}) 
+
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+        put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(put_stmt.status_code, 204)      
