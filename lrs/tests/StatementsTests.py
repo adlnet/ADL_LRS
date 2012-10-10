@@ -610,3 +610,15 @@ class StatementsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn('agentA', mems)
         self.assertIn('agentB', mems)
+
+    def test_import_agent(self):
+        stmt_id = str(uuid.uuid4())
+        stmt = json.dumps({"verb": "imported", 'object': {'objectType':'Agent','name':'john','mbox':'john@john.com'}})
+
+        path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+        put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+        
+        self.assertEqual(put_stmt.status_code, 204)
+
+        st = models.statement.objects.get(statement_id=stmt_id)
+        agent = st.stmt_object
