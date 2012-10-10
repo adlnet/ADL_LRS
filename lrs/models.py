@@ -18,6 +18,15 @@ class score(models.Model):
     raw = models.PositiveIntegerField(blank=True, null=True)
     score_min = models.PositiveIntegerField(blank=True, null=True)
     score_max = models.PositiveIntegerField(blank=True, null=True)
+    
+    def __init__(self, *args, **kwargs):
+        the_min = kwargs.pop('min', None)
+        the_max = kwargs.pop('max', None)
+        super(score, self).__init__(*args, **kwargs)
+        if the_min:
+            self.score_min = the_min
+        if the_max:
+            self.score_max = the_max
 
 class result(models.Model): 
     success = models.NullBooleanField(blank=True,null=True)
