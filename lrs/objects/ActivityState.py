@@ -1,9 +1,10 @@
 from lrs import models
+from lrs.objects.Agent import Agent
+from lrs.models import IDNotFoundError
 from lrs.util import etag
 from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
 from django.db import transaction
-from Agent import Agent, IDNotFoundError
 
 class ActivityState():
     def __init__(self, request_dict):
@@ -22,10 +23,7 @@ class ActivityState():
         self.since = request_dict.get('since', None)
 
     def __get_agent(self, create=False):
-        the_agent = Agent(self.agent, create=create).agent
-        if not the_agent:
-            raise IDNotFoundError("Error with Activity State. The agent partial (%s) did not match any agents on record" % agent) 
-        return the_agent
+        return Agent(self.agent, create).agent
 
     @transaction.commit_on_success
     def put(self):

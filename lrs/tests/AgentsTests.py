@@ -7,7 +7,7 @@ from os import path
 import sys
 import base64
 
-from lrs.objects import Agent
+from lrs.models import agent
 
 class AgentsTests(TestCase):
     def setUp(self):
@@ -17,32 +17,27 @@ class AgentsTests(TestCase):
         form = {'username':self.username,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form)
 
-    def test_get_no_agentss(self):
-        agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+    def test_get_no_agents(self):
+        agent = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
         response = self.client.get(reverse(views.agents), {'agent':agent}, Authorization=self.auth)
         self.assertEqual(response.status_code, 404)
 
     def test_get(self):
-        agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        me = Agent.Agent(agent,create=True)
-        response = self.client.get(reverse(views.agents), {'agent':agent}, Authorization=self.auth)
+        a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
+        me = agent.objects.gen(**json.loads(a))
+        response = self.client.get(reverse(views.agents), {'agent':a}, Authorization=self.auth)
+        r_data = json.loads(response.content)
+        self.assertTrue(isinstance(r_data['mbox'], list))
+        self.assertTrue(isinstance(r_data['name'], list))
+        self.assertEqual(r_data['mbox'], ['mailto:me@example.com'])
+        self.assertEqual(r_data['name'], ['me'])
+        self.assertEqual(r_data['objectType'], 'Agent')
 
-        #print response
-        self.assertContains(response, 'mailto:me@example.com')
-
-    #def test_get_merge(self):
-    #    agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-    #    response = self.client.get(reverse(views.agents), {'agent':agent})
-    #    agent = json.dumps({"mbox":["mailto:me@example.com"]})
-    #    response = self.client.get(reverse(views.agents), {'agent':agent})
-    #    self.assertContains(response, 'mailto:me@example.com')
-    #    self.assertContains(response, 'name')
-    #    self.assertContains(response, 'me')
     def test_get_no_agent(self):
         response = self.client.get(reverse(views.agents), Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
-        agent = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
+        agent = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
         response = self.client.post(reverse(views.agents), {'agent':agent},content_type='application/x-www-form-urlencoded', Authorization=self.auth)
         self.assertEqual(response.status_code, 405)

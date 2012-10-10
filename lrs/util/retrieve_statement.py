@@ -1,6 +1,6 @@
-from lrs import objects, models
+from lrs import models
 from django.core.cache import cache
-from lrs.objects import Actor, Activity, Statement
+from lrs.objects import Agent, Statement
 from datetime import datetime
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -62,10 +62,12 @@ def complexGet(req_dict):
                     activity = []
                 if activity:
                     args['stmt_object'] = activity
-            elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'person':
-                agent = Actor.Actor(json.dumps(objectData)).agent
-                if agent:
+            elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'agent':
+                try:
+                    agent = Agent.Agent(json.dumps(objectData)).agent
                     args['stmt_object'] = agent
+                except models.IDNotFoundError:
+                    pass # no stmt_object filter added
         else:
             try:
                 activity = models.activity.objects.get(activity_id=objectData['id'])
@@ -86,10 +88,11 @@ def complexGet(req_dict):
                 actorData = json.loads(actorData) 
             except Exception, e:
                 actorData = json.loads(actorData.replace("'",'"'))
-            
-        agent = Actor.Actor(json.dumps(actorData)).agent
-        if agent:
+        try:
+            agent = Agent.Agent(json.dumps(actorData)).agent
             args['actor'] = agent
+        except models.IDNotFoundError:
+            pass # no actor filter added
 
     if 'instructor' in the_dict:
         instData = the_dict['instructor']
@@ -100,10 +103,13 @@ def complexGet(req_dict):
             except Exception, e:
                 instData = json.loads(instData.replace("'",'"'))
             
-        instructor = Actor.Actor(json.dumps(instData)).agent                 
-        if instructor:
-            cntxList = models.context.objects.filter(instructor=instructor)
-            args['context__in'] = cntxList
+        try:
+            instructor = Agent.Agent(json.dumps(instData)).agent                 
+            if instructor:
+                cntxList = models.context.objects.filter(instructor=instructor)
+                args['context__in'] = cntxList
+        except models.IDNotFoundError:
+            pass # no actor filter added
 
     # there's a default of true    
     if not 'authoritative' in the_dict or str(the_dict['authoritative']).upper() == 'TRUE':
