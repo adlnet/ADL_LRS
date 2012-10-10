@@ -580,16 +580,19 @@ class StatementsTests(TestCase):
 
     def test_issue_put(self):
         stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244430' 
-        stmt = json.dumps({"verb":"completed","object":{"id":"scorm.com/JsTetris_TCAPI/level2",
-            "definition":{"type":"media","name":{"en-US":"Js Tetris Level2"},
-            "description":{"en-US":"Starting at 1, the higher the level, the harder the game."}}},
-            "result":{"extensions":{"time":104,"apm":229,"lines":5},"score":{"raw":9911,"min":0}},
-            "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
-            "registration":"b7be7d9d-bfe2-4917-8ccd-41a0d18dd953"},
-            "actor":{"name":["tom creighton"],"mbox":["mailto:tom@example.com"]}}) 
+        # stmt = json.dumps({"verb":"completed","object":{"id":"scorm.com/JsTetris_TCAPI/level2",
+        #     "definition":{"type":"media","name":{"en-US":"Js Tetris Level2"},
+        #     "description":{"en-US":"Starting at 1, the higher the level, the harder the game."}}},
+        #     "result":{"extensions":{"time":104,"apm":229,"lines":5},"score":{"raw":9911,"min":0}},
+        #     "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
+        #     "registration":"b7be7d9d-bfe2-4917-8ccd-41a0d18dd953"},
+        #     "actor":{"name":["tom creighton"],"mbox":["mailto:tom@example.com"]}}) 
+
+        stmt = json.dumps({"verb":"attempted","object":{"id":"scorm.com/JsTetris_TCAPI","definition":{"type":"media","name":{"en-US":"Js Tetris - Tin Can Prototype"},"description":{"en-US":"A game of tetris."}}},"context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},"registration":"6b1091be-2833-4886-b4a6-59e5e0b3c3f4"},"actor":{"mbox":["mailto:tom.creighton.ctr@adlnet.gov"],"name":["Tom Creighton"]}})
 
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+        pdb.set_trace()
         self.assertEqual(put_stmt.status_code, 204) 
 
     def test_post_with_group(self):

@@ -175,7 +175,6 @@ class Statement():
             #Throw exception b/c failed and success contradict each other or completion is false
             raise Exception('Result success must be False if verb is ' + verb)
 
-    #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
     def _validateScoreResult(self, score_data):
         if 'min' in score_data:
             score_data['score_min'] = score_data['min']
@@ -308,12 +307,16 @@ class Statement():
 
         return self._saveContextToDB(context, contextExts)
 
+    def _build_verb_object(self, obj):
+        verb = {}
+        
+
     #Once JSON is verified, populate the statement object
     def _populate(self, stmt_data, auth):
         args ={}
-        #Must include verb - set statement verb - set to lower too
+        #Must include verb - set statement verb 
         try:
-            args['verb'] = stmt_data['verb'].lower()
+            raw_verb = stmt_data['verb']
         except KeyError:
             raise Exception("No verb provided, must provide 'verb' field")
 
@@ -329,9 +332,11 @@ class Statement():
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
         
         # If not specified, the object is assumed to be an activity
-
         if not 'objectType' in statementObjectData:
             statementObjectData['objectType'] = 'Activity'
+
+        args['verb'] = self._build_verb_object(raw_verb)
+
 
         valid_agent_objects = ['agent', 'group']
         #Check to see if voiding statement

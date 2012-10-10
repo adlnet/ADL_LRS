@@ -357,11 +357,16 @@ class activity_profile(models.Model):
         self.profile.delete()
         super(activity_profile, self).delete(*args, **kwargs)
 
+class Verb(models.Model):
+    verb_id = models.CharField(max_length=200)
+    display = models.ManyToManyField(LanguageMap, null=True)
+
 class statement(statement_object):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
-    verb = models.CharField(max_length=200)
+    # verb = models.CharField(max_length=200)
+    verb = models.ForeignKey(Verb)
     inProgress = models.NullBooleanField(blank=True, null=True)    
     result = models.OneToOneField(result, blank=True,null=True)
     timestamp = models.DateTimeField(blank=True,null=True)
