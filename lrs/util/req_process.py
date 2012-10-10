@@ -185,11 +185,10 @@ def agent_profile_delete(req_dict):
     a.delete_profile(profileId)
     return HttpResponse('', status=204)
 
-
 def agents_get(req_dict):
     agent = req_dict['agent']
     a = Agent.Agent(agent)
-    return HttpResponse(a.full_agent_json(), mimetype="application/json")
+    return HttpResponse(a.get_person_json(), mimetype="application/json")
 
 
 # so far unnecessary

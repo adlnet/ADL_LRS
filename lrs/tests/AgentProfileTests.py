@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import views
 import datetime
@@ -7,11 +6,12 @@ from django.utils.timezone import utc
 import hashlib
 import urllib
 import base64
+import json
 
 #TODO: delete profiles that are being stored
 class AgentProfileTests(TestCase):
-    testagent = '{"mbox":["mailto:test@example.com"]}'
-    otheragent = '{"mbox":["mailto:other@example.com"]}'
+    testagent = '{"mbox":"mailto:test@example.com"}'
+    otheragent = '{"mbox":"mailto:other@example.com"}'
     content_type = "application/json"
     testprofileId1 = "http://profile.test.id/test/1"
     testprofileId2 = "http://profile.test.id/test/2"
@@ -234,3 +234,24 @@ class AgentProfileTests(TestCase):
 
         r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent})
         self.assertEqual(r.status_code, 404)
+
+    def test_group_as_agent(self):
+        ot = "Group"
+        name = "the group APT"
+        mbox = "mailto:the.groupAPT@example.com"
+        members = [{"name":"agentA","mbox":"mailto:agentA@example.com"},
+                    {"name":"agentB","mbox":"mailto:agentB@example.com"}]
+        testagent = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+        testprofileId = "http://profile.test.id/group.as.agent/"
+        testparams1 = {"profileId": testprofileId, "agent": testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(testparams1))
+        testprofile = {"test":"put profile - group as agent","obj":{"agent":"group"}}
+        put1 = self.client.put(path, testprofile, content_type=self.content_type, Authorization=self.auth)
+
+        self.assertEqual(put1.status_code, 204)
+
+        getr = self.client.get(reverse(views.agent_profile), testparams1)
+        self.assertEqual(getr.status_code, 200)
+        self.assertEqual(getr.content, '%s' % testprofile)
+
+        self.client.delete(reverse(views.agent_profile), testparams1, Authorization=self.auth)

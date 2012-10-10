@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import models, views
 import datetime
@@ -7,14 +6,13 @@ from django.utils.timezone import utc
 import hashlib
 import urllib
 from os import path
-import sys
-from lrs.objects import Agent, Activity
 import base64
+import json
 
 class ActivityStateTests(TestCase):
     url = reverse(views.activity_state)
-    testagent = '{"name":["test"],"mbox":["mailto:test@example.com"]}'
-    otheragent = '{"name":["other"],"mbox":["mailto:other@example.com"]}'
+    testagent = '{"name":"test","mbox":"mailto:test@example.com"}'
+    otheragent = '{"name":"other","mbox":"mailto:other@example.com"}'
     activityId = "http://www.iana.org/domains/example/"
     activityId2 = "http://www.google.com"
     stateId = "the_state_id"
@@ -410,7 +408,7 @@ class ActivityStateTests(TestCase):
         self.assertIn('no activity', r.content)
 
     def test_ie_cors_put_delete(self):
-        testagent = '{"name":["another test"],"mbox":["mailto:anothertest@example.com"]}'
+        testagent = '{"name":"another test","mbox":"mailto:anothertest@example.com"}'
         sid = "test_ie_cors_put_delete_set_1"
         sparam1 = {"stateId": sid, "activityId": self.activityId, "agent": testagent}
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
@@ -434,3 +432,25 @@ class ActivityStateTests(TestCase):
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"DELETE"}))
         f_r = self.client.post(path, dparam, content_type='application/x-www-form-urlencoded')
         self.assertEqual(f_r.status_code, 204)
+
+    def test_agent_is_group(self):
+        ot = "Group"
+        name = "the group"
+        mbox = "mailto:the.group@example.com"
+        members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
+                    {"name":"agent2","mbox":"mailto:agent2@example.com"}]
+        testagent = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+        testparams1 = {"stateId": "group.state.id", "activityId": self.activityId, "agent": testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparams1))
+        teststate1 = {"test":"put activity state using group as agent","obj":{"agent":"group of 2 agents"}}
+        put1 = self.client.put(path, teststate1, content_type=self.content_type, Authorization=self.auth)
+
+        self.assertEqual(put1.status_code, 204)
+
+        get1 = self.client.get(self.url, {"stateId":"group.state.id", "activityId": self.activityId, "agent":testagent})
+        self.assertEqual(get1.status_code, 200)
+        st = '%s' % teststate1
+        self.assertEqual(get1.content, st)
+
+        delr = self.client.delete(self.url, testparams1, Authorization=self.auth)
+        self.assertEqual(delr.status_code, 204)        

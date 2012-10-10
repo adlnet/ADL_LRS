@@ -1,15 +1,13 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import views, models
 from os import path
-import sys
 import json
 import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
-from lrs.objects import Agent, Activity, Statement
+from lrs.objects import Activity, Statement
 import time
 import urllib
 from lrs.util import retrieve_statement
@@ -51,7 +49,7 @@ class StatementsTests(TestCase):
             'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
             'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
+            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth','mbox':'auth@example.com'}})        
 
         self.existStmt2 = json.dumps({"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
             'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
@@ -61,7 +59,7 @@ class StatementsTests(TestCase):
             'duration': self.firstTime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
-            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth2'],'mbox':['auth2@example.com']}})        
+            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':'auth2','mbox':'auth2@example.com'}})        
 
         self.existStmt3 = json.dumps({"verb":"created", "object": {'objectType': 'Activity', 'id':'foogals',
             'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
@@ -70,8 +68,8 @@ class StatementsTests(TestCase):
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': self.firstTime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'objectType': 'Agent', 'name':['bob'], 'mbox':['bob@bob.com'], 'account':[{'accountServiceHomePage':'http://example.com','accountName':'bobacct'}], 'openid':['bobopenid']}, 
-            'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'objectType': 'Agent', 'name':'bob', 'mbox':'bob@bob.com'}, 
+            'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
 
         self.existStmt4 = json.dumps({"verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
             'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
@@ -80,20 +78,19 @@ class StatementsTests(TestCase):
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': self.firstTime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'], 'mbox':['bill@bill.com'],'givenName':['william'], 'familyName':['smith'],
-            'firstName':['billy'], 'lastName':['smith']},'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
+            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':'bill', 'mbox':'bill@bill.com'},
+            'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 
+            'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})
 
-        self.existStmt5 = json.dumps({"object":{'objectType':'Person','name':['jon'],'mbox':['jon@jon.com']},
+        self.existStmt5 = json.dumps({"object":{'objectType':'Agent','name':'jon','mbox':'jon@jon.com'},
             "verb":"passed"})
 
-        self.existStmt6 = json.dumps({"actor": {'objectType':'Person','name':['max'],'mbox':['max@max.com'],'givenName':['maximus'],
-            'familyName':['zeus'], 'firstName':['maximus'], 'lastName':['zeus']}, "object":{'id': 'test_activity'},"verb":"talked"})
+        self.existStmt6 = json.dumps({"actor": {'objectType':'Agent','name':'max','mbox':'max@max.com'}, 
+                                      "object":{'id': 'test_activity'},"verb":"talked"})
 
-        self.existStmt7 = json.dumps({'object': {'objectType':'Person','name':['max'],'mbox':['max@max.com'],'givenName':['maximus'],
-            'familyName':['amillion'], 'firstName':['max'], 'lastName':['amillion']}, 'verb': 'watched'})
+        self.existStmt7 = json.dumps({'object': {'objectType':'Agent','name':'max','mbox':'max@max.com'}, 'verb': 'watched'})
 
-        self.existStmt8 = json.dumps({'object': {'objectType':'Agent','name':['john'],'mbox':['john@john.com'],'account':[{'accountServiceHomePage':'http://john.com','accountName':'johnacct'}],
-            'openid':['johnopenid']}, 'verb': 'watched'})
+        self.existStmt8 = json.dumps({'object': {'objectType':'Agent','name':'john','mbox':'john@john.com'}, 'verb': 'watched'})
 
         # Put statements
         param = {"statementId":self.guid1}
@@ -170,44 +167,41 @@ class StatementsTests(TestCase):
     def test_post(self):
         stmt = json.dumps({"verb":"created","object": {"id":"test_post"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
-        act = models.activity.objects.get(activity_id="test_post")
-        actorName = models.agent_name.objects.get(name='tester1')
-        actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
-
         self.assertEqual(response.status_code, 200)
+        act = models.activity.objects.get(activity_id="test_post")
         self.assertEqual(act.activity_id, "test_post")
+        agent = models.agent.objects.get(mbox='test1@tester.com')
+        self.assertEqual(agent.name, 'tester1')
 
     def test_post_with_actor(self):
-        stmt = json.dumps({"actor":{"mbox":["mailto:mr.t@example.com"]},"verb":"created","object": {"id":"i.pity.the.fool"}})
+        stmt = json.dumps({"actor":{"mbox":"mailto:mr.t@example.com"},"verb":"created","object": {"id":"i.pity.the.fool"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
-        models.agent_mbox.objects.get(mbox='mailto:mr.t@example.com')
+        agent = models.agent.objects.get(mbox='mailto:mr.t@example.com')
     
     def test_list_post(self):
         stmts = json.dumps([{"verb":"created","object": {"id":"test_list_post"}},{"verb":"managed","object": {"id":"test_list_post1"}}])
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth)
+        self.assertEqual(response.status_code, 200)
         activity1 = models.activity.objects.get(activity_id="test_list_post")
         activity2 = models.activity.objects.get(activity_id="test_list_post1")
         stmt1 = models.statement.objects.get(stmt_object=activity1)
         stmt2 = models.statement.objects.get(stmt_object=activity2)
 
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb, "created")
         self.assertEqual(stmt2.verb, "managed")
 
     def test_authority_stmt_field_post(self):
         stmt = json.dumps({"verb":"created","object": {"id":"test_post1"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(response.status_code, 200)
         
         act = models.activity.objects.get(activity_id="test_post1")
-        actorName = models.agent_name.objects.get(name='tester1')
-        actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
-
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(act.activity_id, "test_post1")
 
-        self.assertEqual(actorName.name, 'tester1')
-        self.assertEqual(actorMbox.mbox, 'test1@tester.com')
+        agent = models.agent.objects.get(mbox='test1@tester.com')
+        self.assertEqual(agent.name, 'tester1')
+        self.assertEqual(agent.mbox, 'test1@tester.com')
 
     def test_put(self):
         guid = str(uuid.uuid4())
@@ -217,15 +211,17 @@ class StatementsTests(TestCase):
         stmt = json.dumps({"verb":"created","object": {"id":"test_put"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(putResponse.status_code, 204)
 
         act = models.activity.objects.get(activity_id="test_put")
-        actorName = models.agent_name.objects.get(name='tester1')
-        actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
-        stmt = models.statement.objects.get(statement_id=guid)
-        
-        self.assertEqual(putResponse.status_code, 204)
-        self.assertEqual(stmt.verb, 'created')
         self.assertEqual(act.activity_id, "test_put")
+
+        agent = models.agent.objects.get(mbox='test1@tester.com')
+        self.assertEqual(agent.name, 'tester1')
+        self.assertEqual(agent.mbox, 'test1@tester.com')
+
+        stmt = models.statement.objects.get(statement_id=guid)
+        self.assertEqual(stmt.verb, 'created')
 
     def test_put_url_param(self):
         guid = str(uuid.uuid4())
@@ -335,7 +331,7 @@ class StatementsTests(TestCase):
 
     def test_no_actor(self):
         # Test actor object
-        param = {"object":{"objectType": "person", 'mbox':['nobody@example.com']}}
+        param = {"object":{"objectType": "Agent", 'mbox':'nobody@example.com'}}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         actorObjectGetResponse = self.client.get(path)
         
@@ -346,7 +342,7 @@ class StatementsTests(TestCase):
 
     def test_actor_object_filter(self):
         # Test actor object
-        param = {"object":{"objectType": "person", 'name':['jon'],'mbox':['jon@jon.com']}}
+        param = {"object":{"objectType": "Agent", 'name':'jon','mbox':'jon@jon.com'}}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         actorObjectGetResponse = self.client.get(path)
         
@@ -376,7 +372,9 @@ class StatementsTests(TestCase):
 
     def test_actor_filter(self):
         # Test actor
-        actorGetResponse = self.client.post(reverse(views.statements), {'actor':{"objectType": "person", 'name':['tester1'],'mbox':['test1@tester.com']}}, content_type="application/x-www-form-urlencoded")
+        actorGetResponse = self.client.post(reverse(views.statements), 
+            {'actor':{"objectType": "Agent", 'name':'tester1','mbox':'test1@tester.com'}},
+             content_type="application/x-www-form-urlencoded")
         
         self.assertEqual(actorGetResponse.status_code, 200)
         self.assertContains(actorGetResponse,self.guid1)
@@ -391,7 +389,9 @@ class StatementsTests(TestCase):
 
     def test_instructor_filter(self):
         # Test instructor - will only return one b/c actor in stmt supercedes instructor in context
-        instructorGetResponse = self.client.post(reverse(views.statements), {"instructor":{"name":["bill"],"mbox":["bill@bill.com"]}},  content_type="application/x-www-form-urlencoded")
+        instructorGetResponse = self.client.post(reverse(views.statements), 
+                                                {"instructor":{"name":"bill","mbox":"bill@bill.com"}},  
+                                                content_type="application/x-www-form-urlencoded")
         self.assertEqual(instructorGetResponse.status_code, 200)
         self.assertContains(instructorGetResponse, self.guid4)
         self.assertNotIn(self.guid2, instructorGetResponse)
@@ -411,11 +411,11 @@ class StatementsTests(TestCase):
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form)
-        raw_stmt = {"actor":{"name":["tom"],"mbox":["mailto:tom@example.com"]},
+        raw_stmt = {"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
                     "verb":"attempted",
                     "object":{"id":"http://adlnet.gov/object.1"},
                     "context":{"registration": str(uuid.uuid4), "contextActivities": {"other": {"id": "NewActivityID2"}}},
-                    "authority":{"name":["auth"],"mbox":["mailto:auth@example.com"]}}
+                    "authority":{"name":"auth","mbox":"mailto:auth@example.com"}}
         stmt = json.dumps(raw_stmt)
         stmt1_resp = self.client.get(reverse(views.statements), raw_stmt)
         self.assertEqual(stmt1_resp.status_code, 200)
@@ -434,14 +434,7 @@ class StatementsTests(TestCase):
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{'sparse': False}, content_type="application/x-www-form-urlencoded")
         self.assertEqual(sparseGetResponse.status_code, 200)
-        self.assertContains(sparseGetResponse, 'activity_definition')        
-        self.assertContains(sparseGetResponse, 'firstName')
-        self.assertContains(sparseGetResponse, 'lastName')
-        self.assertContains(sparseGetResponse, 'givenName')
-        self.assertContains(sparseGetResponse, 'familyName')
-        self.assertContains(sparseGetResponse, 'account')
-        self.assertContains(sparseGetResponse, 'openid')
-
+        self.assertContains(sparseGetResponse, 'activity_definition')
 
     def test_linked_filters(self):
         # Test reasonable linked query
@@ -462,10 +455,12 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 204)
 
         act = models.activity.objects.get(activity_id="test_cors_post_put")
-        actorName = models.agent_name.objects.get(name='tester1')
-        actorMbox = models.agent_mbox.objects.get(mbox='test1@tester.com')
-
         self.assertEqual(act.activity_id, "test_cors_post_put")
+
+        agent = models.agent.objects.get(mbox='test1@tester.com')
+        self.assertEqual(agent.name, 'tester1')
+        self.assertEqual(agent.mbox, 'test1@tester.com')
+
 
     def test_tetris_snafu(self):
         stmtid = str(uuid.uuid4())
@@ -476,7 +471,7 @@ class StatementsTests(TestCase):
                                                    "description":{"en-US":"A game of tetris."}}},
                             "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
                                        "registration":"52775f36-108d-4d68-9564-673dfa440761"},
-                            "actor":{"name":["tom creighton"],"mbox":["mailto:tom@example.com"]}})
+                            "actor":{"name":"tom creighton","mbox":"mailto:tom@example.com"}})
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmtid}))
         putstmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
         self.assertEqual(putstmt.status_code, 204)
@@ -496,7 +491,7 @@ class StatementsTests(TestCase):
                                                "score":{"raw":9911,"min":0}},
                            "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
                                       "registration":"b7be7d9d-bfe2-4917-8ccd-41a0d18dd953"},
-                           "actor":{"name":["tom creighton"],"mbox":["mailto:tom@example.com"]}})
+                           "actor":{"name":"tom creighton","mbox":"mailto:tom@example.com"}})
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmtid}))
         putstmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
         self.assertEqual(putstmt.status_code, 204)
@@ -504,3 +499,22 @@ class StatementsTests(TestCase):
         getstmt = self.client.get(path)
         self.assertEqual(getstmt.status_code, 200)
         self.assertContains(getstmt, stmtid)
+
+    def test_post_with_group(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        members = [{"name":"agentA","mbox":"mailto:agentA@example.com"},
+                    {"name":"agentB","mbox":"mailto:agentB@example.com"}]
+        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+
+        stmt = json.dumps({"actor":group,"verb":"created","object": {"id":"i.pity.the.fool"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(response.status_code, 200)
+        g = models.group.objects.get(mbox='mailto:the.groupST@example.com')
+        self.assertEquals(g.name, name)
+        self.assertEquals(g.mbox, mbox)
+        mems = g.member.values_list('name', flat=True)
+        self.assertEquals(len(mems), 2)
+        self.assertIn('agentA', mems)
+        self.assertIn('agentB', mems)

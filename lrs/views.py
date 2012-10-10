@@ -3,12 +3,9 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
-from django.template import RequestContext
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement
 from lrs import forms, models
-from objects import Agent, Activity
 import logging
 import json
 import pdb
@@ -96,7 +93,7 @@ def activity_state(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Agent.IDNotFoundError as nf:
+    except models.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -115,7 +112,7 @@ def activity_profile(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Activity.IDNotFoundError as nf:
+    except models.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -151,7 +148,7 @@ def agent_profile(request):
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Agent.IDNotFoundError as nf:
+    except models.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -167,7 +164,7 @@ def agent_profile(request):
 def agents(request):
     try: 
         resp = handle_request(request)
-    except Agent.IDNotFoundError as iderr:
+    except models.IDNotFoundError as iderr:
         return HttpResponse(iderr, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
@@ -178,17 +175,12 @@ def agents(request):
     return resp
 
 def handle_request(request):
-    try:
-        r_dict = req_parse.parse(request)
-        path = request.path
-        if path.endswith('/'):
-            path = path.rstrip('/')
-        req_dict = validators[path][r_dict['method']](r_dict)
-        # Depending on if authentication is required, req_dict will either be a dict containing the request info
-        # or a list with the request info dict being the first item, with the auth info being the second item
-        return processors[path][req_dict['method']](req_dict)
-    except:
-        raise 
+    r_dict = req_parse.parse(request)
+    path = request.path
+    if path.endswith('/'):
+        path = path.rstrip('/')
+    req_dict = validators[path][r_dict['method']](r_dict)
+    return processors[path][req_dict['method']](req_dict)
 
 validators = {
     reverse(statements) : {

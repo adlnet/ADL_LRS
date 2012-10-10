@@ -3,11 +3,11 @@ import types
 import uuid
 import datetime
 from lrs import models
+from lrs.objects.Agent import Agent
 from django.core.exceptions import FieldError
 from django.db import transaction
 from functools import wraps
 from Activity import Activity
-from Agent import Agent
 from functools import wraps
 from django.utils.timezone import utc
 import pdb
@@ -266,12 +266,14 @@ class Statement():
         # Statement Actor and Object supercede context instructor and team
         # If there is an actor or object is an agent in the stmt then remove the instructor
         if 'actor' in stmt_data:
-            if 'objectType' not in stmt_data['actor'] or stmt_data['actor']['objectType'].lower() == 'person':
-                stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['actor']), create=True).agent
-        elif 'objectType' in stmt_data['object'] and stmt_data['object']['objectType'].lower() == 'person':
-            stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['object']), create=True).agent
+            if 'objectType' not in stmt_data['actor'] or (stmt_data['actor']['objectType'].lower() == 'agent' 
+                                                      or stmt_data['actor']['objectType'].lower() == 'group'):
+                stmt_data['context']['instructor'] = Agent(initial=stmt_data['actor'], create=True).agent
+        elif 'objectType' in stmt_data['object'] and (stmt_data['object']['objectType'].lower() == 'agent'
+                                                    or stmt_data['object']['objectType'].lower() == 'group'):
+            stmt_data['context']['instructor'] = Agent(initial=stmt_data['object'], create=True).agent
         elif 'instructor' in stmt_data['context']:
-            stmt_data['context']['instructor'] = Agent(json.dumps(stmt_data['context']['instructor']), create=True).agent
+            stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'], create=True).agent
 
 
         # If there is an actor or object is a group in the stmt then remove the team
@@ -280,7 +282,8 @@ class Statement():
                 del stmt_data['context']['team']                
 
         # Revision and platform not applicable if object is agent
-        if 'objectType' in stmt_data['object'] and 'person' == stmt_data['object']['objectType'].lower():
+        if 'objectType' in stmt_data['object'] and ('agent' == stmt_data['object']['objectType'].lower()
+                                                or 'group' == stmt_data['object']['objectType'].lower()):
             del stmt_data['context']['revision']
             del stmt_data['context']['platform']
 
@@ -319,7 +322,7 @@ class Statement():
         if not 'objectType' in statementObjectData:
             statementObjectData['objectType'] = 'Activity'
 
-        valid_agent_objects = ['agent', 'person', 'group']
+        valid_agent_objects = ['agent', 'group']
         #Check to see if voiding statement
         if args['verb'] == 'voided':
             #objectType must be statement if want to void another statement
@@ -332,14 +335,14 @@ class Statement():
                 importedActivity = Activity(json.dumps(statementObjectData)).activity
                 args['stmt_object'] = importedActivity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                importedAgent = Agent(json.dumps(statementObjectData), create=True).agent
+                importedAgent = Agent(initial=statementObjectData, create=True).agent
                 args['stmt_object'] = importedAgent
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':        
                 args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                args['stmt_object'] = Agent(json.dumps(statementObjectData), create=True).agent
+                args['stmt_object'] = Agent(initial=statementObjectData, create=True).agent
             elif statementObjectData['objectType'].lower() == 'statement':
                 args['stmt_object'] = Statement(json.dumps(statementObjectData)).statement  
 
@@ -348,13 +351,13 @@ class Statement():
 
         #Retrieve actor if in JSON only for now
         if 'actor' in stmt_data:
-            args['actor'] = Agent(json.dumps(stmt_data['actor']), create=True).agent
+            args['actor'] = Agent(initial=stmt_data['actor'], create=True).agent
         else:
              if auth:
                 authArgs = {}
-                authArgs['name'] = [auth.username]
-                authArgs['mbox'] = [auth.email]
-                args['actor'] = Agent(json.dumps(authArgs), create=True).agent
+                authArgs['name'] = auth.username
+                authArgs['mbox'] = auth.email
+                args['actor'] = Agent(initial=authArgs, create=True).agent
 
         #Set inProgress to false
         args['inProgress'] = False
@@ -379,13 +382,13 @@ class Statement():
       		args['timestamp'] = stmt_data['timestamp']
 
         if 'authority' in stmt_data:
-            args['authority'] = Agent(json.dumps(stmt_data['authority']), create=True).agent
+            args['authority'] = Agent(initial=stmt_data['authority'], create=True).agent
         else:
             if auth:
                 authArgs = {}
-                authArgs['name'] = [auth.username]
-                authArgs['mbox'] = [auth.email]
-                args['authority'] = Agent(json.dumps(authArgs), create=True).agent
+                authArgs['name'] = auth.username
+                authArgs['mbox'] = auth.email
+                args['authority'] = Agent(initial=authArgs, create=True).agent
 
         #See if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:

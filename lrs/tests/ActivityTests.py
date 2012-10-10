@@ -1,13 +1,7 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
-from lrs import views, models
-from os import path
-import sys
+from lrs import views
 import json
-
-_DIR = path.abspath(path.dirname(__file__))
-sys.path.append(path.abspath(path.join(_DIR,"../objects")))
 from lrs.objects import Activity
 
 class ActivityTests(TestCase):
