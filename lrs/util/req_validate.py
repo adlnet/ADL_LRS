@@ -3,13 +3,11 @@ from lrs import models
 from django.contrib.auth import authenticate
 import base64
 import ast
-import pdb
 
 import pprint
 
 def basic_http_auth(f):
     def wrap(r, *args, **kwargs):
-        # pdb.set_trace()
         if r['method'] == 'POST' and not r['CONTENT_TYPE'] == 'application/json':
             return f(r, *args, **kwargs)
         else:
@@ -79,9 +77,9 @@ def activity_state_put(r_dict):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method'])
     try:
-        r_dict['actor']
+        r_dict['agent']
     except KeyError:
-        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % r_dict['method'])
+        raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method'])
     try:
         r_dict['stateId']
     except KeyError:
@@ -99,9 +97,9 @@ def activity_state_get(r_dict):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method'])
     try:
-        r_dict['actor']
+        r_dict['agent']
     except KeyError:
-        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % r_dict['method'])
+        raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method'])
     return r_dict
 
 
@@ -112,9 +110,9 @@ def activity_state_delete(r_dict):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method'])
     try:
-        r_dict['actor']
+        r_dict['agent']
     except KeyError:
-        raise ParamError("Error -- activity_state - method = %s, but actor parameter is missing.." % r_dict['method'])
+        raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method'])
     return r_dict
   
         
@@ -167,15 +165,15 @@ def activities_get(r_dict):
     return r_dict
 
 @basic_http_auth
-def actor_profile_put(r_dict):
-    try:
-        r_dict['actor']
+def agent_profile_put(r_dict):
+    try: 
+        r_dict['agent']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.." % r_dict['method'])
+        raise ParamError("Error -- agent_profile - method = %s, but agent parameter missing.." % r_dict['method'])
     try:
         r_dict['profileId']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but profileId parameter missing.." % r_dict['method'])
+        raise ParamError("Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method'])
     
     if 'body' not in r_dict:
         raise ParamError("Could not find the profile")
@@ -183,32 +181,32 @@ def actor_profile_put(r_dict):
     return r_dict
 
 
-def actor_profile_get(r_dict):
-    try:
-        r_dict['actor']
+def agent_profile_get(r_dict):
+    try: 
+        r_dict['agent']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but actor parameter missing.. the actor parameter is required" % r_dict['method'])
+        raise ParamError("Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % r_dict['method'])
     return r_dict
 
 
 @basic_http_auth
-def actor_profile_delete(r_dict):
-    try:
-        r_dict['actor']
+def agent_profile_delete(r_dict):
+    try: 
+        r_dict['agent']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but no actor parameter.. the actor parameter is required" % r_dict['method'])
+        raise ParamError("Error -- agent_profile - method = %s, but no agent parameter.. the agent parameter is required" % r_dict['method'])
     try:
         r_dict['profileId']
     except KeyError:
-        raise ParamError("Error -- actor_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method'])
+        raise ParamError("Error -- agent_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method'])
     return r_dict
 
 
-def actors_get(r_dict):
-    try:
-        r_dict['actor']
+def agents_get(r_dict):
+    try: 
+        r_dict['agent']
     except KeyError:
-        raise ParamError("Error -- actors url, but no actor parameter.. the actor parameter is required")
+        raise ParamError("Error -- agents url, but no agent parameter.. the agent parameter is required")
     return r_dict
 
 

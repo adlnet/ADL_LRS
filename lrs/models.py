@@ -3,15 +3,25 @@ from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
+from django.core import serializers
+from django.core.exceptions import ValidationError
+import ast
+import json
 import pdb
+#this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
-ourModels = ['agent','result','person','context','activity_definition','activity_def_correctresponsespattern']
 import time
 def filename(instance, filename):
     print filename
     return filename
+
+class IDNotFoundError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
 
 class score(models.Model):  
     scaled = models.FloatField(blank=True, null=True)
@@ -45,123 +55,137 @@ class result_extensions(models.Model):
 class statement_object(models.Model):
     pass
 
-class agent(statement_object):  
-    objectType = models.CharField(max_length=200)
-    
-    def __unicode__(self):
-        return ': '.join([str(self.id), self.objectType])
 
-    def get_agent_names():
-        return agent_name.objects.filter(agent=self)
-
-class agent_name(models.Model):
-    name = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)
-
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.name == other.name
-
-class agent_mbox(models.Model):
-    mbox = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)
-
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.mbox == other.mbox
-
-class agent_mbox_sha1sum(models.Model):
-    mbox_sha1sum = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)
-
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.mbox_sha1sum == other.mbox_sha1sum        
-
-class agent_openid(models.Model):
-    openid = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)
-
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.openid == other.openid        
+agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
+class agentmgr(models.Manager):
+    def gen(self, **kwargs):
+        group = kwargs.get('objectType', None) == "Group"
+        attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
+        if not group and len(attrs) != 1:
+            raise ValidationError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
+        val = kwargs.pop('account', None)
+        if val:
+            if isinstance(val, agent_account):
+                kwargs['account'] = val
+            elif isinstance(val, int):
+                try:
+                    kwargs['account'] = agent_account.objects.get(pk=val)
+                except agent_account.DoesNotExist:
+                    raise IDNotFoundError('Agent Account ID was not found')
+            else:
+                try:
+                    account = ast.literal_eval(val)
+                except:
+                    account = json.loads(val)
+                try:
+                    acc = agent_account.objects.get(**account)
+                except agent_account.DoesNotExist:
+                    acc = agent_account(**account)
+                    acc.save()
+                kwargs['account'] = acc
+        if group and 'member' in kwargs:
+            mem = kwargs.pop('member')
+            try:
+                members = ast.literal_eval(mem)
+            except:
+                try:
+                    members = json.loads(mem)
+                except:
+                    members = mem
+        try:
+            agent = self.get(**kwargs)
+            created = False
+        except self.model.DoesNotExist:
+            agent = self.model(**kwargs)
+            agent.save()
+            created = True
+        if group:
+            ags = [self.gen(**a) for a in members]
+            agent.member.add(*(a for a, c in ags))
+        agent.save()
+        return agent, created
 
 class agent_account(models.Model):  
-    accountServiceHomePage = models.CharField(max_length=200, blank=True, null=True)
-    accountName = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(agent)
+    homePage = models.CharField(max_length=200, blank=True, null=True)
+    name = models.CharField(max_length=200)
 
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.accountName == other.accountName and self.accountServiceHomePage == other.accountServiceHomePage  
-
-class person(agent):    
-    pass
-
-class person_givenName(models.Model):
-    givenName = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    person = models.ForeignKey(person)
-
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.givenName == other.givenName  
-
-class person_familyName(models.Model):
-    familyName = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    person = models.ForeignKey(person)
-
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.familyName == other.familyName  
-
-class person_firstName(models.Model):
-    firstName = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    person = models.ForeignKey(person)
-
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.firstName == other.firstName
+    def get_json(self):
+        ret = {}
+        ret['homePage'] = homePage
+        ret['name'] = name
+        return ret
     
-class person_lastName(models.Model):
-    lastName = models.CharField(max_length=200)
-    date_added = models.DateTimeField(auto_now_add=True, blank=True)
-    person = models.ForeignKey(person)
-
     def equals(self, other):
         if not isinstance(other, self.__class__):
             raise TypeError('Only models of same class can be compared')
-        return self.lastName == other.lastName
+        return self.name == other.name and self.homePage == other.homePage 
+
+
+class agent(statement_object):
+    objectType = models.CharField(max_length=200, blank=True, default="Agent")
+    name = models.CharField(max_length=200, blank=True, null=True)
+    mbox = models.CharField(max_length=200, blank=True, null=True)
+    mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True)
+    openid = models.CharField(max_length=200, blank=True, null=True)
+    account = models.OneToOneField('agent_account', blank=True, null=True)
+    objects = agentmgr()
+
+    def get_agent_json(self):
+        ret = {}
+        ret['objectType'] = self.objectType
+        if self.name:
+            ret['name'] = self.name
+        if self.mbox:
+            ret['mbox'] = self.mbox
+        if self.mbox_sha1sum:
+            ret['mbox_sha1sum'] = self.mbox_sha1sum
+        if self.openid:
+            ret['openid'] = self.openid
+        if self.account:
+            ret['account'] = self.account.get_json()
+        return ret
+
+    def get_person_json(self):
+        ret = {}
+        ret['objectType'] = self.objectType
+        if self.name:
+            ret['name'] = [self.name]
+        if self.mbox:
+            ret['mbox'] = [self.mbox]
+        if self.mbox_sha1sum:
+            ret['mbox_sha1sum'] = [self.mbox_sha1sum]
+        if self.openid:
+            ret['openid'] = [self.openid]
+        if self.account:
+            ret['account'] = [self.account.get_json()]
+        return ret
+
 
 class group(agent):
-    member = models.TextField()
+    member = models.ManyToManyField(agent, related_name="agents")
+    objects = agentmgr()
 
-class actor_profile(models.Model):
+    def __init__(self, *args, **kwargs):
+        kwargs["objectType"] = "Group"
+        super(group, self).__init__(*args, **kwargs)
+
+    def get_agent_json(self):
+        ret = super(group, self).get_agent_json()
+        ret['member'] = [a.get_agent_json() for a in self.member.all()]
+        return ret
+
+
+class agent_profile(models.Model):
     profileId = models.CharField(max_length=200)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
-    actor = models.ForeignKey(agent)
-    profile = models.FileField(upload_to="actor_profile")
+    agent = models.ForeignKey(agent)
+    profile = models.FileField(upload_to="agent_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
-        super(actor_profile, self).delete(*args, **kwargs)
+        super(agent_profile, self).delete(*args, **kwargs)
 
 class LanguageMap(models.Model):
     key = models.CharField(max_length=200)
@@ -173,7 +197,7 @@ class activity_def_correctresponsespattern(models.Model):
 class activity_definition(models.Model):
     name = models.ManyToManyField(LanguageMap, related_name="activity_definition_name", blank=True, null=True)
     description = models.ManyToManyField(LanguageMap, related_name="activity_definition_description", blank=True, null=True)
-    activity_definition_type = models.CharField(max_length=200)
+    activity_definition_type = models.CharField(max_length=200, blank=True, null=True)
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
 
@@ -289,6 +313,8 @@ class activity_extensions(models.Model):
     value = models.TextField()
     activity_definition = models.ForeignKey(activity_definition)
 
+    def objReturn(self):
+        return (self.key, self.value) 
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)
@@ -302,14 +328,14 @@ class context(models.Model):
 
 class context_extensions(models.Model):
     key=models.CharField(max_length=200)
-    value=models.CharField(max_length=200)
+    value=models.TextField()
     context = models.ForeignKey(context)
 
 class activity_state(models.Model):
     state_id = models.CharField(max_length=200)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     state = models.FileField(upload_to="activity_state")
-    actor = models.ForeignKey(agent)
+    agent = models.ForeignKey(agent)
     activity = models.ForeignKey(activity)
     registration_id = models.CharField(max_length=200)
     content_type = models.CharField(max_length=200,blank=True,null=True)
@@ -329,7 +355,7 @@ class activity_profile(models.Model):
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
-        super(activity_profile, self).delete(*args, **kwargs)    
+        super(activity_profile, self).delete(*args, **kwargs)
 
 class statement(statement_object):
     statement_id = models.CharField(max_length=200)
@@ -430,53 +456,9 @@ def objsReturn(obj, language=None):
 
         # If type of field is agent, need to retrieve all FKs associated with it
         if fieldType == 'agent':
-            # Check to see if the agent is of type Person
-            if fieldValue.objectType == 'Person':
-                ret[field.name] = {}
-                # Get all names associated with object
-                names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
-                if names:
-                    ret[field.name]['name'] = [k for k in names]
-                # Get all mboxes associated with object
-                mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
-                if mboxes:
-                    ret[field.name]['mbox'] = [k for k in mboxes]
-                # Get all givenNames associated with object
-                givenNames = person_givenName.objects.filter(person=fieldValue).values_list('givenName', flat=True)
-                if givenNames:
-                    ret[field.name]['givenName'] = [k for k in givenNames]
-                # Get all familyNames associated with object
-                familyNames = person_familyName.objects.filter(person=fieldValue).values_list('familyName', flat=True)
-                if familyNames:
-                    ret[field.name]['familyName'] = [k for k in familyNames]
-                # Get all firstNames associated with object
-                firstNames = person_firstName.objects.filter(person=fieldValue).values_list('firstName', flat=True)
-                if firstNames:
-                    ret[field.name]['firstName'] = [k for k in firstNames]
-                # Get all lastNames associated with object
-                lastNames = person_lastName.objects.filter(person=fieldValue).values_list('lastName', flat=True)
-                if lastNames:
-                    ret[field.name]['lastName'] = [k for k in lastNames]
-            # If agent isn't person
-            else:
-                ret[field.name] = {}
-                # Get all names associated with object
-                names = agent_name.objects.filter(agent=fieldValue).values_list('name', flat=True)
-                if names:
-                    ret[field.name]['name'] = [k for k in names]
-                # Get all mboxes associated with object
-                mboxes = agent_mbox.objects.filter(agent=fieldValue).values_list('mbox', flat=True)
-                if mboxes:
-                    ret[field.name]['mbox'] = [k for k in mboxes]
-                # Get all open ids associated with object
-                openids = agent_openid.objects.filter(agent=fieldValue).values_list('openid', flat=True)
-                if openids:
-                    ret[field.name]['openid'] = [k for k in openids]
-                # Get all accounts associated with object
-                accounts = agent_account.objects.filter(agent=fieldValue).values_list('accountName', flat=True)
-                if accounts:
-                    ret[field.name]['account'] = [k for k in accounts]
-                
+            # Check to see if the agent is of type Agent
+            ret[field.name] = fieldValue.get_agent_json()
+                  
         # If type of field is result
         elif fieldType == 'result':
             # Call recursively, send in result object
@@ -554,6 +536,7 @@ def objsReturn(obj, language=None):
                         ret[field.name] = objsReturn(getattr(obj, field.name), language)
             # If ForeignKey and if it has a value recursively send object
             elif field.get_internal_type() == 'ForeignKey':
+                # pdb.set_trace()
                 # If the object being sent in is derived from a statement_object, must retrieve the specific object
                 if fieldType == 'statement_object':
                     try:
