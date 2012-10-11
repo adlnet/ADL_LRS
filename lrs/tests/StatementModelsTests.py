@@ -1,14 +1,22 @@
 from django.test import TestCase
+from django.test.utils import setup_test_environment
 from lrs import models
 import json
+from django.core.exceptions import ValidationError
+import urllib
 from datetime import datetime
+from os import path
+import sys
 import uuid
 
 from lrs.objects import Statement
 
 class StatementModelsTests(TestCase):
          
+
     def test_minimum_stmt(self):
+        
+
         stmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
         act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
 
@@ -19,7 +27,10 @@ class StatementModelsTests(TestCase):
         self.assertEqual(st.stmt_object.id, act.id)
 
     def test_given_stmtID_stmt(self):
-        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
+        
+
+        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created",
+            "object": {"id":"activity"}}))
         act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
 
         self.assertEqual(stmt.statement.verb, 'created')
@@ -30,12 +41,16 @@ class StatementModelsTests(TestCase):
         self.assertEqual(st.stmt_object.id, act.id)
 
     def test_existing_stmtID_stmt(self):
+        
         stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":"created", "object": {"id":"activity"}}))
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'}, "verb":"created", "statement_id":"blahID"}))
-
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'}, "verb":"created",
+            "statement_id":"blahID"}))
 
     def test_minimum_stmt_activity_object(self):
-        stmt = Statement.Statement(json.dumps({"verb":"created","object": {"id":"activity1", "objectType": "Activity"}}))
+
+
+        stmt = Statement.Statement(json.dumps({"verb":"created","object": {"id":"activity1",
+            "objectType": "Activity"}}))
         act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         
         self.assertEqual(stmt.statement.verb, 'created')
@@ -78,30 +93,43 @@ class StatementModelsTests(TestCase):
         
 
     def test_voided_stmt(self):
+
+
         stmt = Statement.Statement(json.dumps({"verb":"mentioned","object": {'id':'activity2'}}))
         stID = stmt.statement.statement_id
         stModel = models.statement.objects.get(statement_id=stID)
 
         self.assertEqual(stModel.voided, False)
-        
-        stmt2 = Statement.Statement(json.dumps({'verb': 'voided', 'object': {'objectType':'Statement', 'id': str(stID)}}))
+        stmt2 = Statement.Statement(json.dumps({'verb': 'voided', 'object': {'objectType':'Statement',
+            'id': str(stID)}}))
         stModel = models.statement.objects.get(statement_id=stID)        
         
         self.assertEqual(stModel.voided, True)
 
     def test_no_verb_stmt(self):
+
+
         self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'}}))
 
     def test_no_object_stmt(self):
+        
+
         self.assertRaises(Exception, Statement.Statement, json.dumps({"verb": "cheated"}))
 
     def test_not_json_stmt(self):
-    	self.assertRaises(Exception, Statement.Statement, "This will fail.")
+    	
+
+        self.assertRaises(Exception, Statement.Statement, "This will fail.")
 
     def test_voided_true_stmt(self):
         self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': 'kicked', 'voided': True, 'object': {'id':'activity3'}}))
 
-    def test_contradictory_completion_result_stmt(self):  	
+        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': 'kicked', 'voided': True,
+            'object': {'id':'activity3'}}))
+
+    def test_contradictory_completion_result_stmt(self):
+
+
     	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"mastered","object": {'id':'activity4'},
     					 "result":{"completion": False}}))
 
@@ -115,6 +143,8 @@ class StatementModelsTests(TestCase):
     					 "result":{"completion": False}})) 
 		
     def test_contradictory_success_result_stmt(self):
+
+
     	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"mastered","object": {'id':'activity8'},
     					 "result":{"success": False}}))
     	
@@ -127,6 +157,9 @@ class StatementModelsTests(TestCase):
     def test_string_result_stmt(self):
         stmt = Statement.Statement(json.dumps({"verb":"attempted","object": {"id":"activity11"}, "result": "This is a string."}))
 
+
+        stmt = Statement.Statement(json.dumps({"verb":"attempted","object": {"id":"activity11"},
+            "result": "This is a string."}))
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         result = models.result.objects.get(id=stmt.statement.result.id)
         ext = models.result_extensions.objects.get(result=result)
@@ -144,9 +177,11 @@ class StatementModelsTests(TestCase):
 
 
     def test_result_stmt(self):
-        time = str(datetime.now())
-        stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity12'}, "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
 
+
+        time = str(datetime.now())
+        stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity12'},
+            "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         result = models.result.objects.get(id=stmt.statement.result.id)
 
@@ -164,10 +199,13 @@ class StatementModelsTests(TestCase):
         self.assertEqual(result.duration, time)
 
     def test_result_ext_stmt(self):
-        time = str(datetime.now())
-        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'jon@example.com'},"verb":"attempted","object": {'id':'activity13'}, "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
-                                            'extensions':{'key1': 'value1', 'key2':'value2'}}}))
 
+
+        time = str(datetime.now())
+        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':'jon',
+            'mbox':'jon@example.com'},"verb":"attempted","object": {'id':'activity13'}, 
+            "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
+            'extensions':{'key1': 'value1', 'key2':'value2'}}}))
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         result = models.result.objects.get(id=stmt.statement.result.id)
         actor = models.agent.objects.get(id=stmt.statement.actor.id)
@@ -199,6 +237,8 @@ class StatementModelsTests(TestCase):
         self.assertIn('value2', extVals)
 
     def test_result_score_stmt(self):
+
+
         time = str(datetime.now())
         stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'jon@example.com'},"verb":"passed","object": {'id':'activity14'}, 
             "result": {'score':{'scaled':.95}, 'completion': True, 'success': True, 'response': 'yes', 'duration': time,
@@ -240,18 +280,25 @@ class StatementModelsTests(TestCase):
         self.assertIn('value1', extVals)
         self.assertIn('value2', extVals)
 
-    def test_no_registration_context_stmt(self):        
+    def test_no_registration_context_stmt(self):
+
+
         self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"failed","object": {'id':'activity14'},
                          'context': {'contextActivities': {'foo':'bar'}}})) 
 
     def test_no_contextActivities_content_stmt(self):
+
+
         self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"failed","object": {'id':'activity14'},
                          'context': {'registration':'uuid'}})) 
 
     def test_context_stmt(self):
+
+
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity15'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}}, 'revision': 'foo', 'platform':'bar',
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
+                'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
@@ -272,10 +319,12 @@ class StatementModelsTests(TestCase):
         self.assertEqual(context.language, 'en-US')
 
     def test_context_ext_stmt(self):
+
+
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity16'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}}, 'revision': 'foo', 'platform':'bar',
-                'language': 'en-US', 'extensions':{'k1': 'v1', 'k2': 'v2'}}}))
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
+                'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'k1': 'v1', 'k2': 'v2'}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         context = models.context.objects.get(id=stmt.statement.context.id)
@@ -303,6 +352,8 @@ class StatementModelsTests(TestCase):
         self.assertIn('v2', extVals)
 
     def test_stmt_in_context_stmt(self):
+
+
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}}, 'revision': 'foo', 'platform':'bar',
@@ -328,6 +379,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(nestact.activity_id, 'NestContextAct')
 
     def test_instructor_in_context_stmt(self):
+
+
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity17'},
                 'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon','mbox':'jon@example.com'},
@@ -363,6 +416,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(conactor.mbox, 'jon@example.com') 
 
     def test_actor_with_context_stmt(self):
+
+
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve', 'mbox':'s@s.com'}, "verb":"kicked","object": {'id':'activity18'},
                 'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon','mbox':'jon@example.com'},
@@ -450,13 +505,16 @@ class StatementModelsTests(TestCase):
         
         self.assertEqual(conactor.objectType, 'Agent')
         
-        # TODO: Lou look at this, confirm it's right
+        # Should be lou b/c actor or object of statement overrides instructor
         self.assertEqual(conactor.name, 'lou')
         self.assertEqual(conactor.mbox, 'l@l.com') 
 
     def test_agent_as_object(self):
+
+
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'luluid'}, "verb":"kicked"}))
+        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'luluid'}, 
+            "verb":"kicked"}))
 
         st = models.statement.objects.get(id=stmt.statement.id)
         agent = models.agent.objects.get(id=stmt.statement.stmt_object.id)
@@ -464,10 +522,12 @@ class StatementModelsTests(TestCase):
         self.assertEqual(agent.name, 'lulu')
         self.assertEqual(agent.openid, 'luluid')
 
-
     def test_stmt_as_object(self):
+
+
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Statement', 'verb': 'punched', 'object': {'objectType':'activity', 'id':'testex.com'} }}))
+        stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Statement', 'verb': 'punched',
+            'object': {'objectType':'activity', 'id':'testex.com'} }}))
 
         outer_stmt = models.statement.objects.get(id=stmt.statement.id)
         inner_stmt = models.statement.objects.get(id=outer_stmt.stmt_object.id)
@@ -476,6 +536,19 @@ class StatementModelsTests(TestCase):
         self.assertEqual(outer_stmt.verb, 'kicked')
         self.assertEqual(inner_stmt.verb, 'punched')
         self.assertEqual(inner_act.activity_id, 'testex.com')
+
+    # def test_group_as_object(self):
+    #     guid = str(uuid.uuid4())
+    #     stmt = Statement.Statement(json.dumps({"verb":"kicked", 'object':{'objectType':'Group', }}))
+
+    #     outer_stmt = models.statement.objects.get(id=stmt.statement.id)
+    #     inner_stmt = models.statement.objects.get(id=outer_stmt.stmt_object.id)
+    #     inner_act = models.activity.objects.get(id=inner_stmt.stmt_object.id)
+
+    #     self.assertEqual(outer_stmt.verb, 'kicked')
+    #     self.assertEqual(inner_stmt.verb, 'punched')
+    #     self.assertEqual(inner_act.activity_id, 'http://testex.com')
+        
 
 
     def test_model_authoritative_set(self):

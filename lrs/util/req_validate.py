@@ -118,7 +118,7 @@ def activity_state_delete(r_dict):
         
 @basic_http_auth
 def activity_profile_put(r_dict):
-    try: 
+    try:
         r_dict['activityId']
     except KeyError:
         raise ParamError("Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method'])

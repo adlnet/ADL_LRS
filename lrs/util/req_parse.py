@@ -7,6 +7,7 @@ import StringIO
 import pprint
 
 def parse(request):
+
     r_dict = {}
     r_dict['user'] = request.user
 
@@ -58,4 +59,6 @@ def get_headers(headers, r):
         r['Authorization'] = headers['HTTP_AUTHORIZATION']
     if 'Authorization' in headers:
         r['Authorization'] = headers['Authorization']
+    if 'Accept_Language' in headers:
+        r['language'] = headers['Accept_Language']    
     return r

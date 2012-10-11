@@ -46,7 +46,7 @@ def statements_get(req_dict):
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
     
-    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
+    return HttpResponse(json.dumps(statementResult), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -116,7 +116,11 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['activityId']
-    a = Activity.Activity(activity_id=activityId, get=True)
+    # Try to retrieve activity, if DNE then return empty else return activity info
+    try:
+        a = Activity.Activity(activity_id=activityId, get=True)
+    except Activity.IDNotFoundError:
+        return HttpResponse(json.dumps([]), mimetype="application/json", status=200)
     data = a.get_full_activity_json()
     return HttpResponse(stream_response_generator(data), mimetype="application/json")
     

@@ -104,16 +104,19 @@ class Statement():
             del ret[fieldName]['account']
         return ret
 
-    def get_full_statement_json(self, sparse=False):
+    def get_full_statement_json(self, sparse=False, language=None):
         # Set statement to return
-        ret = models.objsReturn(self.statement)
+        ret = models.objsReturn(self.statement, language)
 
         # Remove details if sparse is true
         if sparse:
-            # Remove act_def
-            if 'activity_definition' in ret['object']:
-                del ret['object']['activity_definition']
-            
+            # Remove responses and only return language for name and description
+            if 'definition' in ret['object']:
+                if 'correctresponsespattern' in ret['object']['definition']:
+                    del ret['object']['definition']['correctresponsespattern']
+                    ret['object']['definition']['description'] = ret['object']['definition']['description'].keys()
+                    ret['object']['definition']['name'] = ret['object']['definition']['name'].keys()
+
             # Remove other names/accounts in actor
             if 'actor' in ret:
                 self._remove_extra_agent_info(ret, 'actor')
@@ -152,29 +155,37 @@ class Statement():
 
     def _validateVerbResult(self,result, verb, obj_data):
         completedVerbs = ['completed', 'mastered', 'passed', 'failed']
-        comp = result.get('completion', None)
-        suc = result.get('success', None)
-        #If completion is false then verb cannot be completed, mastered, 
-        if comp != None and comp == False:                
-            if verb in completedVerbs:
-                #Throw exceptions b/c those verbs must have true completion
-                raise Exception('Completion must be True if using the verb ' + verb)
 
-        if verb == 'mastered' and (suc == None or suc == False):
+        #If completion is false then verb cannot be completed, mastered, 
+        if 'completion' in result:
+            if result['completion'] == False:                
+                if verb in completedVerbs:
+                    #Throw exceptions b/c those verbs must have true completion
+                    raise Exception('Completion must be True if using the verb ' + verb)
+
+        if verb == 'mastered' and result['success'] == False:
             #Throw exception b/c mastered and success contradict each other or completion is false
             raise Exception('Result success must be True if verb is ' + verb)
 
-        if verb == 'passed' and (suc == None or suc == False):
+        if verb == 'passed' and result['success'] == False:
             #Throw exception b/c passed and success contradict each other or completion is false
             raise Exception('Result success must be True if verb is ' + verb)
 
-        if verb == 'failed' and (suc == None or suc == True):
+        if verb == 'failed' and result['success'] == True:
             #Throw exception b/c failed and success contradict each other or completion is false
             raise Exception('Result success must be False if verb is ' + verb)
 
     #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
     def _validateScoreResult(self, score_data):
-        pass
+        if 'min' in score_data:
+            score_data['score_min'] = score_data['min']
+            del score_data['min']
+
+        if 'max' in score_data:
+            score_data['score_max'] = score_data['max']
+            del score_data['max']
+
+        return score_data
 
     def _saveScoreToDB(self, score):
         sc = models.score(**score)
@@ -217,7 +228,6 @@ class Statement():
 
     #Save statement to DB
     def _saveStatementToDB(self, args):
-        #pdb.set_trace()
         stmt = models.statement(**args)
         stmt.save()
         return stmt
@@ -245,7 +255,7 @@ class Statement():
 
             #Once found that the results are valid against the verb, check score object and save
             if 'score' in result.keys():
-                self._validateScoreResult(result['score'])
+                result['score'] = self._validateScoreResult(result['score'])
                 result['score'] = self._saveScoreToDB(result['score'])
 
         #Save result
@@ -318,7 +328,8 @@ class Statement():
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
         
-        #If not specified, the object is assumed to be an activity
+        # If not specified, the object is assumed to be an activity
+
         if not 'objectType' in statementObjectData:
             statementObjectData['objectType'] = 'Activity'
 
@@ -332,15 +343,21 @@ class Statement():
         #If verb is imported then create either the agent or activity it is importing              
         elif args['verb'] == 'imported':
             if statementObjectData['objectType'].lower() == 'activity':
-                importedActivity = Activity(json.dumps(statementObjectData)).activity
+                if auth is not None:
+                    importedActivity = Activity(json.dumps(statementObjectData), auth=auth.username).activity
+                else:
+                    importedActivity = Activity(json.dumps(statementObjectData)).activity
                 args['stmt_object'] = importedActivity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 importedAgent = Agent(initial=statementObjectData, create=True).agent
                 args['stmt_object'] = importedAgent
         else:
             # Check objectType, get object based on type
-            if statementObjectData['objectType'].lower() == 'activity':        
-                args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
+            if statementObjectData['objectType'].lower() == 'activity':
+                if auth is not None:        
+                    args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=auth.username).activity
+                else:
+                    args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True).agent
             elif statementObjectData['objectType'].lower() == 'statement':
@@ -401,13 +418,8 @@ class Statement():
         else:
             #Create uuid for ID
             args['statement_id'] = uuid.uuid4()
-        
+
         # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args)
 
-class IDAlreadyExistsError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
