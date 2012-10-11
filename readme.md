@@ -33,10 +33,6 @@ Create LRS database
 
     mysqladmin -h localhost -u {username} -p create lrs
 
-Create LRS cache table
-
-    python manage.py createcachetable cache_statement_list
-
 Navigate to desired repository directory and clone LRS repository
 
     git clone https://github.com/adlnet/ADL_LRS.git
@@ -48,6 +44,10 @@ NOTE: Be sure in your settings file (ADL_LRS/adl_lrs/settings.py) your USER and 
 Run fabric file to install all local dependencies and create needed directories    
 
     sudo fab deps_local
+
+Create LRS cache table
+
+    python manage.py createcachetable cache_statement_list
 
 Activate your virtual environment (while still in ADL_LRS)
 

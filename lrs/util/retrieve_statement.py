@@ -27,31 +27,37 @@ def convertToUTC(timestr):
     return date_object
 
 def complexGet(req_dict):
-    # pdb.set_trace()
+    language = None
+
+    if 'language' in req_dict:
+        language = req_dict['language']
+
     try:
         the_dict = req_dict['body']
     except KeyError:
         the_dict = req_dict
-    limit = 0    
+    limit = 0
     args = {}
     sparse = True
+    
     # Cycle through the_dict and find simple args
     for k,v in the_dict.items():
         if k.lower() == 'verb':
-            args[k] = v 
+            args[k] = v
         elif k.lower() == 'since':
             date_object = convertToUTC(v)
             args['stored__gt'] = date_object
         elif k.lower() == 'until':
             date_object = convertToUTC(v)
             args['stored__lte'] = date_object
+    
     # If searching by activity or actor
     if 'object' in the_dict:
-        objectData = the_dict['object']        
+        objectData = the_dict['object']
         
         if not type(objectData) is dict:
             try:
-                objectData = json.loads(objectData) 
+                objectData = json.loads(objectData)
             except Exception, e:
                 objectData = json.loads(objectData.replace("'",'"'))
         if 'objectType' in objectData:
@@ -85,7 +91,7 @@ def complexGet(req_dict):
         actorData = the_dict['actor']
         if not type(actorData) is dict:
             try:
-                actorData = json.loads(actorData) 
+                actorData = json.loads(actorData)
             except Exception, e:
                 actorData = json.loads(actorData.replace("'",'"'))
         try:
@@ -99,7 +105,7 @@ def complexGet(req_dict):
         
         if not type(instData) is dict:
             try:
-                instData = json.loads(instData) 
+                instData = json.loads(instData)
             except Exception, e:
                 instData = json.loads(instData.replace("'",'"'))
             
@@ -111,12 +117,12 @@ def complexGet(req_dict):
         except models.IDNotFoundError:
             pass # no actor filter added
 
-    # there's a default of true    
+    # there's a default of true
     if not 'authoritative' in the_dict or str(the_dict['authoritative']).upper() == 'TRUE':
         args['authoritative'] = True
 
     if 'limit' in the_dict:
-        limit = int(the_dict['limit'])    
+        limit = int(the_dict['limit'])
 
     if 'sparse' in the_dict:
         if not type(the_dict['sparse']) is bool:
@@ -124,7 +130,7 @@ def complexGet(req_dict):
                 sparse = False
         else:
             sparse = the_dict['sparse']
-    # pprint.pprint(the_dict)        
+    # pprint.pprint(the_dict)
     if limit == 0 and 'more_start' not in the_dict:
         # Retrieve statements from DB
         stmt_list = models.statement.objects.filter(**args).order_by('-stored')
@@ -139,7 +145,7 @@ def complexGet(req_dict):
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
         stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
-        full_stmt_list.append(stmt.get_full_statement_json(sparse))
+        full_stmt_list.append(stmt.get_full_statement_json(sparse, language))
     return full_stmt_list
 
 def createCacheKey(stmt_list):
