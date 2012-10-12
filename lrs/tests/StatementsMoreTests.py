@@ -64,9 +64,9 @@ class StatementsMoreTests(TestCase):
         self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
         self.existStmt1 = json.dumps({"statement_id":self.guid1,"verb":"attempted", "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': 'testname2','description': 'testdesc2', 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
+            'definition': {'name': {'en-US':'testname2', 'en-GB':'altname'},'description': {'en-US':'testdesc2',
+            'en-GB':'altdesc'}, 'type': 'cmi.interaction','interactionType': 'fill-in',
+            'correctResponsesPattern': ['answer'],'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
             "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
             'duration': self.mytime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
             'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
@@ -74,7 +74,7 @@ class StatementsMoreTests(TestCase):
             'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
 
         self.existStmt2 = json.dumps({"statement_id":self.guid2,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
             "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -84,7 +84,7 @@ class StatementsMoreTests(TestCase):
             'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
 
         self.existStmt3 = json.dumps({"statement_id":self.guid3,"verb":"created", "object": {'objectType': 'Activity', 'id':'foogals',
-            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -95,7 +95,7 @@ class StatementsMoreTests(TestCase):
 
         self.existStmt4 = json.dumps({"statement_id":self.guid4,
             "verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
-            'definition': {'name': 'testname3','description': 'testdesc3', 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',

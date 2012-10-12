@@ -33,10 +33,6 @@ Create LRS database
 
     mysqladmin -h localhost -u {username} -p create lrs
 
-Create LRS cache table
-
-    python manage.py createcachetable cache_statement_list
-
 Navigate to desired repository directory and clone LRS repository
 
     git clone https://github.com/adlnet/ADL_LRS.git
@@ -48,6 +44,10 @@ NOTE: Be sure in your settings file (ADL_LRS/adl_lrs/settings.py) your USER and 
 Run fabric file to install all local dependencies and create needed directories    
 
     sudo fab deps_local
+
+Create LRS cache table
+
+    python manage.py createcachetable cache_statement_list
 
 Activate your virtual environment (while still in ADL_LRS)
 
@@ -74,4 +74,44 @@ You should see a task named web running. This will host the application using gu
     
     fab test_lrs
 
-        
+# ADL LRS
+
+## Installiation 
+Clone the git repository:
+
+    git clone https://github.com/adlnet/ADL_LRS.git
+    
+Install pip
+
+    sudo apt-get install pip
+
+Install fabric at the machine level
+
+    sudo apt-get install fabric
+
+Then run our fabric file to install all local dependencies
+
+    cd ADL_LRS
+
+    fabric deps_local
+
+Create actor profile path
+
+    create the path /var/www/adllrs/media/actor_profile/ with actor_profile having 777 permissions
+    (sudo chmod 777 actor_profile)
+    
+
+## Starting
+
+    cd ADL_LRS
+
+    supervisord
+
+To verify it's running
+
+     supervisorctl
+
+you should see a task named web running
+
+
+This will host the application using gunicorn with 2 worker processes

@@ -2,8 +2,10 @@
 <tincan xmlns="http://projecttincan.com/tincan.xsd">
         <activities>
                 <activity id="scorm.ex/module/example" type="module">
-                        <name>Example Name</name>
+                        <name lang="en-FR">Example Name</name>
+                        <name lang="en-CH">Alt Name</name>
                         <description lang="en-US">Example Desc</description>
+                        <description lang="en-CH">Alt Desc</description>
                         <interactionType>course</interactionType>
                 </activity>
         </activities>

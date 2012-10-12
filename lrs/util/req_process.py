@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from lrs import objects, models
 from lrs.util import etag
 import json
+import ast
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
 import uuid
 import pdb
@@ -11,6 +12,11 @@ import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
+    if isinstance(req_dict['body'], str):
+        try:
+            req_dict['body'] = ast.literal_eval(req_dict['body'])
+        except:
+            req_dict['body'] = json.loads(req_dict['body'])
     if not type(req_dict['body']) is list:
         stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
         stmtResponses.append(str(stmt.statement_id))
@@ -23,11 +29,12 @@ def statements_post(req_dict):
 
 def statements_put(req_dict):
     req_dict['body']['statement_id'] = req_dict['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement        
+    stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
     # If statementId is in req_dict then it is a single get
+    # pdb.set_trace()
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']
         
@@ -46,7 +53,7 @@ def statements_get(req_dict):
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
     
-    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
+    return HttpResponse(json.dumps(statementResult), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -116,12 +123,16 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['activityId']
-    a = Activity.Activity(activity_id=activityId, get=True)
+    # Try to retrieve activity, if DNE then return empty else return activity info
+    try:
+        a = Activity.Activity(activity_id=activityId, get=True)
+    except Activity.IDNotFoundError:
+        return HttpResponse(json.dumps([]), mimetype="application/json", status=200)
     data = a.get_full_activity_json()
     return HttpResponse(stream_response_generator(data), mimetype="application/json")
     
 #Generate JSON
-def stream_response_generator(data): 
+def stream_response_generator(data):
     first = True
     yield '{'
     for k,v in data.items():
@@ -142,8 +153,8 @@ def stream_response_generator(data):
                 if not lfirst:
                     yield ', '
                 else:
-                    lfirst = False  
-                #Catch dictionaries as items in a list    
+                    lfirst = False
+                #Catch dictionaries as items in a list
                 if type(item) is dict:
                     stream_response_generator(item)
                 yield json.dumps(item)
