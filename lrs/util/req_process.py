@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from lrs import objects, models
 from lrs.util import etag
 import json
+import ast
 from lrs.objects import Actor, Activity, ActivityState, ActivityProfile, Statement
 import uuid
 import pdb
@@ -11,6 +12,11 @@ import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
+    if isinstance(req_dict['body'], str):
+        try:
+            req_dict['body'] = ast.literal_eval(req_dict['body'])
+        except:
+            req_dict['body'] = json.loads(req_dict['body'])
     if not type(req_dict['body']) is list:
         stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
         stmtResponses.append(str(stmt.statement_id))

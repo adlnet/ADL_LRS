@@ -10,6 +10,7 @@ import hashlib
 import json
 import pickle
 import pdb
+import ast
 
 import pprint
 
@@ -34,6 +35,11 @@ def complexGet(req_dict):
 
     try:
         the_dict = req_dict['body']
+        if isinstance(the_dict, str):
+            try:
+                the_dict = ast.literal_eval(the_dict)
+            except:
+                the_dict = json.loads(the_dict)
     except KeyError:
         the_dict = req_dict
     limit = 0
