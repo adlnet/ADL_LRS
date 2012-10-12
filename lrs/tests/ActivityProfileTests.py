@@ -263,3 +263,16 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(r.content, '%s' % params['content'])
 
         self.client.delete(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, Authorization=self.auth)
+
+    def test_tetris_snafu(self):
+        params = {"profileId": "http://test.tetris/", "activityId": "tetris.snafu"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        profile = {"test":"put profile 1","obj":{"activity":"test"}}
+        the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': "tetris.snafu"}))
+        p_r = self.client.put(path, json.dumps(profile), content_type=self.content_type, Authorization=self.auth)
+        self.assertEqual(p_r.status_code, 200)
+
+        r = self.client.get(reverse(views.activity_profile), {'activityId': "tetris.snafu", 'profileId': "http://test.tetris/"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], self.content_type)
+        self.assertIn("\"", r.content)

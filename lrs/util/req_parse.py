@@ -7,6 +7,7 @@ import StringIO
 import pprint
 
 def parse(request):
+
     r_dict = {}
     r_dict['user'] = request.user
 
@@ -23,7 +24,7 @@ def parse(request):
     if 'method' not in r_dict:
         r_dict['method'] = request.method
     
-    return r_dict 
+    return r_dict
 
 def parse_body(r, request):
     if request.method == 'POST' or request.method == 'PUT':
@@ -34,15 +35,17 @@ def parse_body(r, request):
             r['files'] = files
         else:
             if request.body:
-                try:
-                    r['body'] = ast.literal_eval(request.body)
-                except:
-                    r['body'] = json.loads(request.body)
+                r['body'] = request.body
+                # try:
+                #     r['body'] = ast.literal_eval(request.body)
+                # except:
+                #     r['body'] = json.loads(request.body)
             if request.raw_post_data:
-                try:
-                    r['raw_post_data'] = ast.literal_eval(request.raw_post_data)
-                except:
-                    r['raw_post_data'] = json.loads(request.raw_post_data)
+                r['raw_post_data'] = request.raw_post_data
+                # try:
+                #     r['raw_post_data'] = ast.literal_eval(request.raw_post_data)
+                # except:
+                #     r['raw_post_data'] = json.loads(request.raw_post_data)
     return r
 
 def get_headers(headers, r):
@@ -58,4 +61,6 @@ def get_headers(headers, r):
         r['Authorization'] = headers['HTTP_AUTHORIZATION']
     if 'Authorization' in headers:
         r['Authorization'] = headers['Authorization']
+    if 'Accept_Language' in headers:
+        r['language'] = headers['Accept_Language']    
     return r
