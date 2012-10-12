@@ -326,13 +326,14 @@ class Statement():
         verb_object.save()
 
         # Save verb displays
-        for verb_lang_map in incoming_verb['display'].items():
-            if isinstance(verb_lang_map, tuple):
-                lang_map = self._save_lang_map(verb_lang_map)
-                verb_object.display.add(lang_map)  
-            else:
-                raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
-        verb_object.save()
+        if 'display' in incoming_verb:
+            for verb_lang_map in incoming_verb['display'].items():
+                if isinstance(verb_lang_map, tuple):
+                    lang_map = self._save_lang_map(verb_lang_map)
+                    verb_object.display.add(lang_map)  
+                else:
+                    raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
+            verb_object.save()
         return verb_object
 
     #Once JSON is verified, populate the statement object

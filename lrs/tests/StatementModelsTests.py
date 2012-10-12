@@ -60,80 +60,67 @@ class StatementModelsTests(TestCase):
     def test_existing_stmtID_stmt(self):
         
         stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":{"id":"verb/url",
-            "display":{"en-US":"myverb"}}, "object": {"id":"activity"}, "actor":"objectType":"Agent",
-            "mbox":"t@t.com"}))
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'},
-            "verb":{"id":"verb/url","display":{"en-US":"myverb"}},"statement_id":"blahID"}))
+            "display":{"en-US":"myverb"}}, "object": {"id":"activity"}, "actor":{"objectType":"Agent",
+            "mbox":"t@t.com"}}))
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"statement_id":"blahID",
+            "verb":{"id":"verb/url","display":{"en-US":"myverb"}},"object": {'id':'activity2'},
+            "actor":{"objectType":"Agent", "mbox":"t@t.com"}}))
 
-    def test_minimum_stmt_activity_object(self):
 
+    # def test_authority_stmt(self):
+    #     stmt = Statement.Statement(json.dumps({"authority":{'objectType':'Agent','name':'bill','mbox':'bill@example.com'}, "verb":"created","object": {"id":"activity21", "objectType": "Activity"}}))
+    #     activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
+    #     authority = models.agent.objects.get(id=stmt.statement.authority.id)
 
-        stmt = Statement.Statement(json.dumps({"verb":"created","object": {"id":"activity1",
-            "objectType": "Activity"}}))
-        act = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        
-        self.assertEqual(stmt.statement.verb, 'created')
-        self.assertEqual(stmt.statement.stmt_object.id, act.id)
+    #     self.assertEqual(stmt.statement.verb, 'created')
+    #     self.assertEqual(stmt.statement.stmt_object.id, activity.id)
+    #     self.assertEqual(stmt.statement.authority.id, authority.id)
 
-        st = models.statement.objects.get(id=stmt.statement.id)
-        self.assertEqual(st.stmt_object.id, act.id)
+    #     st = models.statement.objects.get(id=stmt.statement.id)
+    #     self.assertEqual(st.stmt_object.id, activity.id)
+    #     self.assertEqual(st.authority.id, authority.id)
 
-    def test_actor_stmt(self):
-        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'bob','mbox':'bob@example.com'}, "verb":"created","object": {"id":"activity5", "objectType": "Activity"}}))
-        activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        actor = models.agent.objects.get(id=stmt.statement.actor.id)
-
-        self.assertEqual(stmt.statement.verb, 'created')
-        self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.actor.id, actor.id)
-
-        st = models.statement.objects.get(id=stmt.statement.id)
-        self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.actor.id, actor.id)
-
-        self.assertEqual(actor.name, 'bob')
-        self.assertEqual(actor.mbox, 'bob@example.com')
-
-    def test_authority_stmt(self):
-        stmt = Statement.Statement(json.dumps({"authority":{'objectType':'Agent','name':'bill','mbox':'bill@example.com'}, "verb":"created","object": {"id":"activity21", "objectType": "Activity"}}))
-        activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        authority = models.agent.objects.get(id=stmt.statement.authority.id)
-
-        self.assertEqual(stmt.statement.verb, 'created')
-        self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.authority.id, authority.id)
-
-        st = models.statement.objects.get(id=stmt.statement.id)
-        self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.authority.id, authority.id)
-
-        self.assertEqual(authority.name, 'bill')
-        self.assertEqual(authority.mbox, 'bill@example.com')
+    #     self.assertEqual(authority.name, 'bill')
+    #     self.assertEqual(authority.mbox, 'bill@example.com')
         
 
     def test_voided_stmt(self):
 
 
-        stmt = Statement.Statement(json.dumps({"verb":"mentioned","object": {'id':'activity2'}}))
-        stID = stmt.statement.statement_id
-        stModel = models.statement.objects.get(statement_id=stID)
+        stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
 
-        self.assertEqual(stModel.voided, False)
-        stmt2 = Statement.Statement(json.dumps({'verb': 'voided', 'object': {'objectType':'Statement',
-            'id': str(stID)}}))
-        stModel = models.statement.objects.get(statement_id=stID)        
+        st_id = stmt.statement.statement_id
+        st_model = models.statement.objects.get(statement_id=st_id)
+        self.assertEqual(st_model.voided, False)
+
+        stmt2 = Statement.Statement(json.dumps({"actor":{"name":"Example Admin", "mbox":"admin@example.com"},
+            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement',
+            'id': str(st_id)}}))
         
-        self.assertEqual(stModel.voided, True)
+        st_model = models.statement.objects.get(statement_id=st_id)        
+        self.assertEqual(st_model.voided, True)
 
     def test_no_verb_stmt(self):
 
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"object": {'id':'activity2'}}))
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"actor":{"objectType":"Agent", "mbox":"t@t.com"},
+            "object": {'id':'activity2'}}))
 
     def test_no_object_stmt(self):
         
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"verb": "cheated"}))
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"actor":{"objectType":"Agent", "mbox":"t@t.com"},
+            "verb": {"id":"verb/url"}}))
+
+
+    def test_no_actor_stmt(self):
+
+
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"object":{"id":"activity_test"},
+            "verb": {"id":"verb/url"}}))
+
 
     def test_not_json_stmt(self):
     	
@@ -141,18 +128,19 @@ class StatementModelsTests(TestCase):
         self.assertRaises(Exception, Statement.Statement, "This will fail.")
 
     def test_voided_true_stmt(self):
-        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': 'kicked', 'voided': True, 'object': {'id':'activity3'}}))
+        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":'verb/url/kicked'}, 'voided': True,
+            'object': {'id':'activity3'}}))
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': 'kicked', 'voided': True,
+        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"}, 'voided': True,
             'object': {'id':'activity3'}}))
 
     def test_contradictory_completion_result_stmt(self):
 
 
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"mastered","object": {'id':'activity4'},
-    					 "result":{"completion": False}}))
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
+            "object": {'id':'activity4'},"result":{"completion": False}}))
 
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"completed","object": {'id':'activity5'},
+    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},"object": {'id':'activity5'},
     					 "result":{"completion": False}}))
 
     	self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"passed","object": {'id':'activity6'},
