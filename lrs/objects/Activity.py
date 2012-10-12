@@ -351,9 +351,9 @@ class Activity():
                 if k not in act_def.keys() and k != 'extensions':
                     raise Exception("Activity definition error with key: %s" % k)
 
-            #Check definition type
-            if act_def['type'] not in Activity.ADTs:
-                raise Exception("Activity definition type not valid")
+            # #Check definition type
+            # if act_def['type'] not in Activity.ADTs:
+            #     raise Exception("Activity definition type not valid")
 
 
             #If the type is cmi.interaction, have to check interactionType
