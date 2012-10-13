@@ -65,23 +65,6 @@ class StatementModelsTests(TestCase):
         self.assertRaises(Exception, Statement.Statement, json.dumps({"statement_id":"blahID",
             "verb":{"id":"verb/url","display":{"en-US":"myverb"}},"object": {'id':'activity2'},
             "actor":{"objectType":"Agent", "mbox":"t@t.com"}}))
-
-
-    # def test_authority_stmt(self):
-    #     stmt = Statement.Statement(json.dumps({"authority":{'objectType':'Agent','name':'bill','mbox':'bill@example.com'}, "verb":"created","object": {"id":"activity21", "objectType": "Activity"}}))
-    #     activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-    #     authority = models.agent.objects.get(id=stmt.statement.authority.id)
-
-    #     self.assertEqual(stmt.statement.verb, 'created')
-    #     self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-    #     self.assertEqual(stmt.statement.authority.id, authority.id)
-
-    #     st = models.statement.objects.get(id=stmt.statement.id)
-    #     self.assertEqual(st.stmt_object.id, activity.id)
-    #     self.assertEqual(st.authority.id, authority.id)
-
-    #     self.assertEqual(authority.name, 'bill')
-    #     self.assertEqual(authority.mbox, 'bill@example.com')
         
 
     def test_voided_stmt(self):
@@ -96,11 +79,28 @@ class StatementModelsTests(TestCase):
         self.assertEqual(st_model.voided, False)
 
         stmt2 = Statement.Statement(json.dumps({"actor":{"name":"Example Admin", "mbox":"admin@example.com"},
-            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement',
+            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'StatementRef',
             'id': str(st_id)}}))
         
         st_model = models.statement.objects.get(statement_id=st_id)        
         self.assertEqual(st_model.voided, True)
+
+        stmt_ref = models.StatementRef.objects.get(ref_id=str(st_id))
+        self.assertEqual(stmt_ref.object_type, 'StatementRef')
+
+
+    def test_voided_wrong_type(self):
+
+
+        stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
+
+        st_id = stmt.statement.statement_id
+
+        self.assertRaises(Exception, Statement.Statement, json.dumps({"actor":{"name":"Example Admin", "mbox":"admin@example.com"},
+            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement',
+            'id': str(st_id)}}))
 
     def test_no_verb_stmt(self):
 
@@ -128,11 +128,12 @@ class StatementModelsTests(TestCase):
         self.assertRaises(Exception, Statement.Statement, "This will fail.")
 
     def test_voided_true_stmt(self):
-        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":'verb/url/kicked'}, 'voided': True,
+
+
+        self.assertRaises(Exception, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'l@l.com'},
+            'verb': {"id":'verb/url/kicked'},'voided': True,
             'object': {'id':'activity3'}}))
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"}, 'voided': True,
-            'object': {'id':'activity3'}}))
 
     def test_contradictory_completion_result_stmt(self):
 
@@ -546,6 +547,26 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(agent.name, 'lulu')
         self.assertEqual(agent.openid, 'luluid')
+
+    def test_unallowed_substmt_field(self):
+
+
+        stmt = {'actor':{'objectType':'Agent','mbox':'s@s.com'},
+            'verb': {"id":"verb/url"}, 'object':{'objectType':'SubStatement',
+            'actor':{'objectType':'Agent','mbox':'ss@ss.com'},'verb': {"id":"verb/url/nest"},
+            'object': {'objectType':'activity', 'id':'testex.com'},
+            'authority':{'objectType':'Agent','mbox':'s@s.com'}}}
+        self.assertRaises(Exception, Statement.Statement, json.dumps(stmt))
+
+    def test_nested_substatement(self):
+
+
+        stmt = {'actor':{'objectType':'Agent','mbox':'s@s.com'},
+            'verb': {"id":"verb/url"}, 'object':{'objectType':'SubStatement',
+            'actor':{'objectType':'Agent','mbox':'ss@ss.com'},'verb': {"id":"verb/url/nest"},
+            'object': {'objectType':'SubStatement', 'actor':{'objectType':'Agent','mbox':'sss@sss.com'},
+            'verb':{'id':'verb/url/nest/nest'}, 'object':{'id':'activity/url'}}}}
+        self.assertRaises(Exception, Statement.Statement, json.dumps(stmt))
 
     def test_substatement_as_object(self):
 

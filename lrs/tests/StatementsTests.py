@@ -42,6 +42,7 @@ class StatementsTests(TestCase):
         self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"activity"},
             "actor":{"objectType":"Agent","mbox":"s@s.com"}}))
+        self.exist_stmt_id = self.existStmt.statement.statement_id
 
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
@@ -284,13 +285,40 @@ class StatementsTests(TestCase):
         response = self.client.put(path, stmt, content_type="application/json",
             Authorization=self.auth)
         self.assertEqual(response.status_code, 204)
-        # pdb.set_trace()
-        
+
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path)
 
         self.assertEqual(get_response.status_code, 200)
-        # print get_response.content
+        # print get_response
+        self.assertContains(get_response, 'objectType')
+        # self.assertContains(get_response, 'SubStatement')
+        self.assertContains(get_response, 'actor')
+        self.assertContains(get_response, 'ss@ss.com')
+        self.assertContains(get_response, 'verb')
+        self.assertContains(get_response, 'verb/url/nested')
+        self.assertContains(get_response, 'Activity')
+        self.assertContains(get_response, 'testex.com')
+        self.assertContains(get_response, 'result')
+        self.assertContains(get_response, 'completion')
+        self.assertContains(get_response, 'success')
+        self.assertContains(get_response, 'response')
+        self.assertContains(get_response, 'kicked')
+        self.assertContains(get_response, 'context')
+        self.assertContains(get_response, con_guid)
+        self.assertContains(get_response, 'contextActivities')
+        self.assertContains(get_response, 'other')
+        self.assertContains(get_response, 'revision')
+        self.assertContains(get_response, 'foo')
+        self.assertContains(get_response, 'platform')
+        self.assertContains(get_response, 'bar')
+        self.assertContains(get_response, 'language')
+        self.assertContains(get_response, 'en-US')
+        self.assertContains(get_response, 'extensions')
+        self.assertContains(get_response, 'k1')
+        self.assertContains(get_response, 'v1')
+        self.assertContains(get_response, 'k2')
+        self.assertContains(get_response, 'v2')                                                                                                                                                                                                                
 
     def test_no_content_put(self):
         guid = str(uuid.uuid4())
@@ -330,7 +358,6 @@ class StatementsTests(TestCase):
         param = {"statementId":self.guid1}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
         getResponse = self.client.get(path)
-
         self.assertEqual(getResponse.status_code, 200)
         self.assertContains(getResponse, self.guid1)
 
@@ -447,6 +474,22 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid6, registrationPostResponse)
         self.assertNotIn(self.guid7, registrationPostResponse)
         self.assertNotIn(self.guid8, registrationPostResponse)
+
+    def test_ascending_filter(self):
+        # Test actor
+        ascending_get_response = self.client.get(reverse(views.statements), 
+            {'ascending': True},content_type="application/x-www-form-urlencoded")
+
+        self.assertEqual(ascending_get_response.status_code, 200)
+        self.assertContains(ascending_get_response,self.guid1)
+        self.assertContains(ascending_get_response,self.guid2)
+        self.assertContains(ascending_get_response,self.guid3)
+        self.assertContains(ascending_get_response,self.guid4)
+        self.assertContains(ascending_get_response,self.guid5)
+        self.assertContains(ascending_get_response,self.guid6)
+        self.assertContains(ascending_get_response,self.guid7)
+        self.assertContains(ascending_get_response,self.guid8)
+        self.assertContains(ascending_get_response, str(self.exist_stmt_id))
 
     def test_actor_filter(self):
         # Test actor

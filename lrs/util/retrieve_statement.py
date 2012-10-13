@@ -28,6 +28,7 @@ def convertToUTC(timestr):
 
 def complexGet(req_dict):
     language = None
+    ascending = False
 
     if 'language' in req_dict:
         language = req_dict['language']
@@ -40,10 +41,12 @@ def complexGet(req_dict):
     args = {}
     sparse = True
     
+    if 'ascending' in the_dict:
+        if the_dict['ascending']:
+            ascending = True
+
     # Cycle through the_dict and find simple args
     for k,v in the_dict.items():
-        # if k.lower() == 'verb':
-        #     args[k] = v
         if k.lower() == 'since':
             date_object = convertToUTC(v)
             args['stored__gt'] = date_object
@@ -143,17 +146,26 @@ def complexGet(req_dict):
                 sparse = False
         else:
             sparse = the_dict['sparse']
-    # pdb.set_trace()
-    # pprint.pprint(the_dict)
+
+    if ascending:
+        stored_param = 'stored'
+    else:
+        stored_param = '-stored'
+
     if limit == 0 and 'more_start' not in the_dict:
         # Retrieve statements from DB
-        stmt_list = models.statement.objects.filter(**args).order_by('-stored')
+        # stmt_list = models.statement.objects.filter(**args).order_by('-stored')
+        stmt_list = models.statement.objects.filter(**args).order_by(stored_param)
+
     elif 'more_start' in the_dict:
         # If more start then start at that page point
         start = int(the_dict['more_start'])
-        stmt_list = models.statement.objects.filter(**args).order_by('-stored')[start:]
+        # stmt_list = models.statement.objects.filter(**args).order_by('-stored')[start:]
+        stmt_list = models.statement.objects.filter(**args).order_by(stored_param)[start:]
+
     else:
-        stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
+        # stmt_list = models.statement.objects.filter(**args).order_by('-stored')[:limit]
+        stmt_list = models.statement.objects.filter(**args).order_by(stored_param)[:limit]
 
     full_stmt_list = []
     # For each stmt convert to our Statement class and retrieve all json

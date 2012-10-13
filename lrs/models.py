@@ -361,6 +361,11 @@ class Verb(models.Model):
     verb_id = models.CharField(max_length=200)
     display = models.ManyToManyField(LanguageMap, null=True, blank=True)
 
+class StatementRef(statement_object):
+    object_type = models.CharField(max_length=12, default="StatementRef")
+    ref_id = models.CharField(max_length=200)
+
+
 class SubStatement(statement_object):
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_substatement")
     actor = models.ForeignKey(agent,related_name="actor_of_substatement", blank=True, null=True)
@@ -462,8 +467,11 @@ def objsReturn(obj, language=None):
                     fieldType = 'agent'
                 except Exception, e:
                     try:
+                        # pdb.set_trace()
                         fieldValue = SubStatement.objects.get(id=fieldValue.id)
                         fieldType = 'SubStatement'
+                        # Add SubStatement objectType
+                        # ret['objectType'] = fieldType
                     except Exception, e:
                         fieldValue = statement.objects.get(id=fieldValue.id)
                         fieldType = 'statement'

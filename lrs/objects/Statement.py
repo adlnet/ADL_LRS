@@ -51,8 +51,8 @@ class Statement():
 
 
     def _voidStatement(self,stmt_id):
-        #Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
-        #since you cannot unvoid a statement and should just reissue the statement under a new ID.
+        # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
+        # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
             stmt = models.statement.objects.get(statement_id=stmt_id)
         except Exception, e:
@@ -61,7 +61,9 @@ class Statement():
         if not stmt.voided:
             stmt.voided = True
             stmt.save()
-            return stmt
+            stmt_ref = models.StatementRef(ref_id=stmt_id)
+            stmt_ref.save()
+            return stmt_ref
         else:
             raise Exception('Statment already voided, cannot unvoid. Please re-issue the statement under a new ID.')
 
@@ -349,7 +351,7 @@ class Statement():
         except KeyError:
             raise Exception("No actor provided, must provide 'actor' field")
 
-        #Throw error since you can't set voided to True
+        # Throw error since you can't set voided to True
         if 'voided' in stmt_data:
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
@@ -361,12 +363,14 @@ class Statement():
         args['verb'] = self._build_verb_object(raw_verb)
 
         valid_agent_objects = ['agent', 'group']
-        #Check to see if voiding statement
+        # Check to see if voiding statement
         if args['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
-            #objectType must be statement if want to void another statement
-            if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
-                voidedStmt = self._voidStatement(statementObjectData['id'])
-                args['stmt_object'] = voidedStmt
+            # objectType must be statementRef if want to void another statement
+            if statementObjectData['objectType'].lower() == 'statementref' and 'id' in statementObjectData.keys():
+                stmt_ref = self._voidStatement(statementObjectData['id'])
+                args['stmt_object'] = stmt_ref
+            else:
+                raise Exception("There was a problem voiding the Statement")
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
@@ -433,4 +437,9 @@ class SubStatement(Statement):
         for field in unallowed_fields:
             if field in data:
                 raise Exception("%s is not allowed in a SubStatement.")
+
+        if 'objectType' in data['object']:
+            if data['object']['objectType'].lower() == 'substatement':
+                raise Exception("SubStatements cannot be nested inside of other SubStatements")
+
         self._populate(data, auth, sub=True)

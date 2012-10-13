@@ -363,6 +363,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid7, sincePostResponse)
         self.assertNotIn(self.guid8, sincePostResponse)
         self.assertNotIn(self.guid6, sincePostResponse)
+
     def test_single_full_page_stmts(self):
 
 

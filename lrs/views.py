@@ -64,7 +64,6 @@ def reg_success(request, user_id):
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 def statements_more(request, more_id):
-    # pdb.set_trace()
     statementResult = retrieve_statement.getStatementRequest(more_id) 
     return HttpResponse(json.dumps(statementResult, indent=4),mimetype="application/json",status=200)
 
