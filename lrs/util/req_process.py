@@ -27,6 +27,7 @@ def statements_put(req_dict):
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
+    # pdb.set_trace()
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']

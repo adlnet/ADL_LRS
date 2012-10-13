@@ -40,7 +40,7 @@ class score(models.Model):
 
 class result(models.Model): 
     success = models.NullBooleanField(blank=True,null=True)
-    completion = models.CharField(max_length=200, blank=True, null=True)
+    completion = models.NullBooleanField(blank=True,null=True)
     response = models.CharField(max_length=200, blank=True, null=True)
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=200, blank=True, null=True)
@@ -361,13 +361,20 @@ class Verb(models.Model):
     verb_id = models.CharField(max_length=200)
     display = models.ManyToManyField(LanguageMap, null=True, blank=True)
 
+class SubStatement(statement_object):
+    stmt_object = models.ForeignKey(statement_object, related_name="object_of_substatement")
+    actor = models.ForeignKey(agent,related_name="actor_of_substatement", blank=True, null=True)
+    verb = models.ForeignKey(Verb)    
+    result = models.OneToOneField(result, blank=True,null=True)
+    timestamp = models.DateTimeField(blank=True,null=True)
+    context = models.OneToOneField(context, related_name="context_of_statement",blank=True, null=True)
+
+
 class statement(statement_object):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
-    # verb = models.CharField(max_length=200)
-    verb = models.ForeignKey(Verb)
-    inProgress = models.NullBooleanField(blank=True, null=True)    
+    verb = models.ForeignKey(Verb)    
     result = models.OneToOneField(result, blank=True,null=True)
     timestamp = models.DateTimeField(blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
@@ -401,7 +408,7 @@ def convert_activity_definition_field_name(return_dict):
 
 def objsReturn(obj, language=None):
     ret = {}
-
+    # pdb.set_trace()
     # If the object being sent in is derived from a statement_object, must retrieve the specific object then loop through all of it's fields
     if type(obj).__name__ == 'statement_object':
         try:
@@ -411,7 +418,7 @@ def objsReturn(obj, language=None):
                 obj = agent.objects.get(id=obj.id)
             except Exception, e:
                 try:
-                    obj = statement.objects.get(id=obj.id)
+                    obj = SubStatement.objects.get(id=obj.id)
                 except Exception, e:
                     raise e
     # Else if the object is a LanguageMap we have to handle this different since we actually want the
@@ -445,6 +452,7 @@ def objsReturn(obj, language=None):
         
         # Set fieldType and fieldValue when receiving statement_object that is a FK
         if fieldType == 'statement_object':
+            # pdb.set_trace()
             try:
                 fieldValue = activity.objects.get(id=fieldValue.id)
                 fieldType = 'activity'
@@ -454,11 +462,11 @@ def objsReturn(obj, language=None):
                     fieldType = 'agent'
                 except Exception, e:
                     try:
+                        fieldValue = SubStatement.objects.get(id=fieldValue.id)
+                        fieldType = 'SubStatement'
+                    except Exception, e:
                         fieldValue = statement.objects.get(id=fieldValue.id)
                         fieldType = 'statement'
-                    except Exception, e:
-                        raise e
-
         # If type of field is agent, need to retrieve all FKs associated with it
         if fieldType == 'agent':
             # Check to see if the agent is of type Agent

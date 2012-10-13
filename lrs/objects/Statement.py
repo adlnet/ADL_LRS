@@ -63,26 +63,7 @@ class Statement():
             stmt.save()
             return stmt
         else:
-            raise Exception('Statment already voided, cannot unvoid. Please reissure the statement under a new ID.')
-
-    def _validateResultResponse(self, result, obj_data):
-        pass
-        # #Check if there is a response in result, and check the activity type 
-        # if 'response' in result and 'definition' in obj_data:
-        #     actDef = obj_data['definition']
-        #     if 'type' in actDef:
-        #         #If activity is not a cmi.interaction  or interaction type then throw exception
-        #         if not actDef['type'] == 'cmi.interaction' or actDef['type'] == 'interaction':
-        #             raise Exception("Response only valid for interaction or cmi.interaction activity types")
-        #         else:
-        #             #Check each type of interactionType if it is a cmi.interaction
-        #             if actDef['type'] == 'cmi.interaction':
-        #                 actDefIntType = actDef['interactionType']
-        #                 #Throw exception if it is true-false type yet response isn't string of true or false
-        #                 if actDefIntType == 'true-false' and result['response'] not in ['true', 'false']:
-        #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
-        #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
-        #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
+            raise Exception('Statment already voided, cannot unvoid. Please re-issue the statement under a new ID.')
 
     def _remove_extra_agent_info(self, ret, fieldName):
         if 'familyName' in ret[fieldName]:
@@ -226,9 +207,18 @@ class Statement():
         return cntx        
 
     #Save statement to DB
-    def _saveStatementToDB(self, args):
-        stmt = models.statement(**args)
-        stmt.save()
+    def _saveStatementToDB(self, args, sub):
+        # pdb.set_trace()
+        if sub:
+            del args['voided']
+            del args['statement_id']
+            if 'authority' in args:
+                del args['authority']
+            stmt = models.SubStatement(**args)
+            stmt.save()
+        else:
+            stmt = models.statement(**args)
+            stmt.save()
         return stmt
 
     def _populateResult(self, stmt_data, verb):
@@ -322,22 +312,25 @@ class Statement():
         if 'id' not in incoming_verb:
             raise Exception("ID field is not included in statement verb")
 
-        verb_object = models.Verb(verb_id=incoming_verb['id'])
-        verb_object.save()
+        # Use get_or_create - no sense in creating the same verb object when they are immutable
+        verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
+        # verb_object.save()
 
-        # Save verb displays
-        if 'display' in incoming_verb:
-            for verb_lang_map in incoming_verb['display'].items():
-                if isinstance(verb_lang_map, tuple):
-                    lang_map = self._save_lang_map(verb_lang_map)
-                    verb_object.display.add(lang_map)  
-                else:
-                    raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
-            verb_object.save()
+        if created:
+            # Save verb displays
+            if 'display' in incoming_verb:
+                for verb_lang_map in incoming_verb['display'].items():
+                    if isinstance(verb_lang_map, tuple):
+                        lang_map = self._save_lang_map(verb_lang_map)
+                        verb_object.display.add(lang_map)  
+                    else:
+                        raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
+                verb_object.save()
         return verb_object
 
     #Once JSON is verified, populate the statement object
-    def _populate(self, stmt_data, auth):
+    def _populate(self, stmt_data, auth, sub=False):
+        # pdb.set_trace()
         args ={}
         #Must include verb - set statement verb 
         try:
@@ -383,18 +376,12 @@ class Statement():
                     args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True).agent
-            elif statementObjectData['objectType'].lower() == 'statement':
-                args['stmt_object'] = Statement(json.dumps(statementObjectData)).statement  
+            elif statementObjectData['objectType'].lower() == 'substatement':
+                sub_statement = SubStatement(statementObjectData, auth)
+                args['stmt_object'] = sub_statement.statement
 
         #Retrieve actor
         args['actor'] = Agent(initial=stmt_data['actor'], create=True).agent
-
-        #Set inProgress to false
-        args['inProgress'] = False
-
-        #Set inProgress when present
-        if 'inProgress' in stmt_data:
-            args['inProgress'] = stmt_data['inProgress']
 
         #Set voided to default false
         args['voided'] = False
@@ -403,11 +390,11 @@ class Statement():
         if 'result' in stmt_data:
             args['result'] = self._populateResult(stmt_data, args['verb'])
 
-	    #Set context when present
+	    # Set context when present
         if 'context' in stmt_data:
             args['context'] = self._populateContext(stmt_data)
 
-      	#Set timestamp when present
+      	# Set timestamp when present
       	if 'timestamp' in stmt_data:
       		args['timestamp'] = stmt_data['timestamp']
 
@@ -434,5 +421,16 @@ class Statement():
 
         # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
-        self.statement = self._saveStatementToDB(args)
+        self.statement = self._saveStatementToDB(args, sub)
 
+
+class SubStatement(Statement):
+    @transaction.commit_on_success
+    def __init__(self, data, auth):
+        # pdb.set_trace()
+        unallowed_fields = ['id', 'stored', 'authority']
+
+        for field in unallowed_fields:
+            if field in data:
+                raise Exception("%s is not allowed in a SubStatement.")
+        self._populate(data, auth, sub=True)

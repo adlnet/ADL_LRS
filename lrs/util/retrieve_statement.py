@@ -42,9 +42,9 @@ def complexGet(req_dict):
     
     # Cycle through the_dict and find simple args
     for k,v in the_dict.items():
-        if k.lower() == 'verb':
-            args[k] = v
-        elif k.lower() == 'since':
+        # if k.lower() == 'verb':
+        #     args[k] = v
+        if k.lower() == 'since':
             date_object = convertToUTC(v)
             args['stored__gt'] = date_object
         elif k.lower() == 'until':
@@ -55,19 +55,24 @@ def complexGet(req_dict):
     if 'object' in the_dict:
         objectData = the_dict['object']
         
+        # If object is not dict, try to load as one
         if not type(objectData) is dict:
             try:
                 objectData = json.loads(objectData)
             except Exception, e:
                 objectData = json.loads(objectData.replace("'",'"'))
+        # Check the objectType
         if 'objectType' in objectData:
+            # If type is activity try go retrieve object
             if objectData['objectType'].lower() == 'activity':
                 try:
                     activity = models.activity.objects.get(activity_id=objectData['id'])
                 except Exception, e:
                     activity = []
+                # If there is an activity set it to the found one, else it's empty
                 if activity:
                     args['stmt_object'] = activity
+            # If type is not an activity then it must be an agent
             elif objectData['objectType'].lower() == 'agent' or objectData['objectType'].lower() == 'agent':
                 try:
                     agent = Agent.Agent(json.dumps(objectData)).agent
@@ -81,6 +86,14 @@ def complexGet(req_dict):
                 activity = []
             if activity:
                 args['stmt_object'] = activity
+
+    if 'verb' in the_dict:
+        verb_id = the_dict['verb']
+
+        try:
+            args['verb'] = models.Verb.objects.get(verb_id=verb_id)
+        except models.Verb.DoesNotExist:
+            pass # no verb filter added
 
     if 'registration' in the_dict:
         uuid = str(the_dict['registration'])
@@ -130,6 +143,7 @@ def complexGet(req_dict):
                 sparse = False
         else:
             sparse = the_dict['sparse']
+    # pdb.set_trace()
     # pprint.pprint(the_dict)
     if limit == 0 and 'more_start' not in the_dict:
         # Retrieve statements from DB

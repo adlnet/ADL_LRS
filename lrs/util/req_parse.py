@@ -3,7 +3,7 @@ from lrs.util import etag
 from django.http import MultiPartParser
 import ast
 import StringIO
-
+import pdb
 import pprint
 
 def parse(request):
@@ -27,6 +27,7 @@ def parse(request):
     return r_dict
 
 def parse_body(r, request):
+    # pdb.set_trace()
     if request.method == 'POST' or request.method == 'PUT':
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             r.update(request.POST.dict())
