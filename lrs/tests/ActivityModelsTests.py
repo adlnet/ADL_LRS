@@ -214,11 +214,11 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_object(act,'http://localhost:8000/TCAPI/tcexample3/', 'Activity')
         self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'cmi.interaction',
-            'multiple-choice')
+            'choice')
 
         self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample3/', 'Activity')        
         self.do_activity_definition_model(fk, 'Example Name', 'Example Desc', 'cmi.interaction',
-            'multiple-choice')
+            'choice')
     
         self.assertEqual(act.answers[0].answer, 'golf')
         self.assertEqual(act.answers[1].answer, 'tetris')
@@ -518,7 +518,7 @@ class ActivityModelsTests(TestCase):
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foof',
                 'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
-                'type': 'cmi.interaction','interactionType': 'multiple-choice',
+                'type': 'cmi.interaction','interactionType': 'choice',
                 'correctResponsesPattern': ['golf', 'tetris'],'choices':[{'id': 'golf', 
                 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},{'id': 'tetris',
                 'description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}}, {'id':'facebook', 
@@ -542,7 +542,7 @@ class ActivityModelsTests(TestCase):
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
         self.do_activity_model(act.activity.id,'foof', 'Activity')
-        self.do_activity_definition_model(fk, 'cmi.interaction', 'multiple-choice')
+        self.do_activity_definition_model(fk, 'cmi.interaction', 'choice')
 
         self.do_activity_definition_extensions_model(act_def, 'key1', 'key2', 'key3', 'value1', 'value2',
                                                      'value3')
@@ -562,7 +562,7 @@ class ActivityModelsTests(TestCase):
         self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 
                 'id':'http://wikipedia.org','definition': {'name': {'en-US':'testname2'},
                 'description': {'en-US':'testdesc2'},'type': 'cmi.interaction',
-                'interactionType': 'multiple-choice','correctResponsesPattern': ['golf', 'tetris'],
+                'interactionType': 'choice','correctResponsesPattern': ['golf', 'tetris'],
                 'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}))   
 
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,

@@ -59,7 +59,7 @@ class ActivityTests(TestCase):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar3',
                 'definition': {'name': {'en-FR':'testname2'},
                 'description': {'en-FR':'testdesc2', 'en-CH': 'altdesc'},
-                'type': 'cmi.interaction','interactionType': 'multiple-choice',
+                'type': 'cmi.interaction','interactionType': 'choice',
                 'correctResponsesPattern': ['golf', 'tetris'],'choices':[{'id': 'golf',
                 'description': {'en-US':'Golf Example', 'en-GB':'alt golf'}},{'id': 'tetris',
                 'description':{'en-US': 'Tetris Example'}}, {'id':'facebook',
@@ -72,7 +72,7 @@ class ActivityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar3', rsp)
         self.assertIn('cmi.interaction', rsp)
-        self.assertIn('multiple-choice', rsp)
+        self.assertIn('choice', rsp)
         self.assertIn('en-FR', rsp)
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
@@ -104,7 +104,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('true', rsp)
 
     def test_get_crp_fill_in(self):
@@ -123,7 +123,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('Fill in answer', rsp)
 
     def test_get_crp_long_fill_in(self):
@@ -143,7 +143,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-FR', rsp)
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('Long fill in answer', rsp)
 
     def test_get_crp_likert(self):
@@ -165,7 +165,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('likert_3', rsp)
         self.assertIn('likert_2', rsp)
         self.assertIn('likert_1', rsp)
@@ -190,7 +190,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)        
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('lou.3,tom.2,andy.1', rsp)
         self.assertIn('source', rsp)
         self.assertIn('target', rsp)
@@ -216,7 +216,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)        
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('pong.1,dg.10,lunch.4', rsp)
         self.assertIn('Strokes over par in disc golf at Liberty', rsp)
         self.assertIn('Lunch having been eaten', rsp)
@@ -243,7 +243,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)        
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('lou,tom,andy,aaron', rsp)
 
     def test_get_crp_numeric(self):
@@ -264,7 +264,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)        
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('extensions', rsp)
         self.assertIn('key1', rsp)
         self.assertIn('value1', rsp)
@@ -290,7 +290,7 @@ class ActivityTests(TestCase):
         self.assertIn('en-US', rsp)        
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
-        self.assertIn('correctresponsespattern', rsp)
+        self.assertIn('correctResponsesPattern', rsp)
 
 
     def test_get_wrong_activity(self):

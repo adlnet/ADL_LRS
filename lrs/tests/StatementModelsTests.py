@@ -297,11 +297,12 @@ class StatementModelsTests(TestCase):
         self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},"object": {'id':'activity14'},
                          'context': {'contextActivities': {'foo':'bar'}}})) 
 
-    def test_no_contextActivities_content_stmt(self):
+    # ContextActivities are optional
+    # def test_no_contextActivities_content_stmt(self):
 
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},"object": {'id':'activity14'},
-                         'context': {'registration':'uuid'}})) 
+    #     self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},"object": {'id':'activity14'},
+    #                      'context': {'registration':'uuid'}})) 
 
     def test_context_stmt(self):
 
@@ -309,12 +310,13 @@ class StatementModelsTests(TestCase):
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'s@s.com'},
                 'verb': {"id":"verb/url"},"object": {'id':'activity15'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}, 'grouping':{'id':'GroupID'}},
                 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         context = models.context.objects.get(id=stmt.statement.context.id)
+        context_activities = stmt.statement.context.contextActivities.all()
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
@@ -323,9 +325,12 @@ class StatementModelsTests(TestCase):
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.id, context.id)
+        self.assertEqual(context_activities[1].key, 'grouping')
+        self.assertEqual(context_activities[1].context_activity, 'GroupID')
+        self.assertEqual(context_activities[0].key, 'other')
+        self.assertEqual(context_activities[0].context_activity, 'NewActivityID')
 
-        self.assertEqual(context.registration, guid)
-        self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID'}}))
+        self.assertEqual(context.registration, guid)        
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -344,6 +349,7 @@ class StatementModelsTests(TestCase):
         extList = models.context_extensions.objects.values_list().filter(context=context)
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
+        context_activities = stmt.statement.context.contextActivities.all()
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
@@ -354,7 +360,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(st.context.id, context.id)
 
         self.assertEqual(context.registration, guid)
-        self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID'}}))
+        self.assertEqual(context_activities[0].key, 'other')
+        self.assertEqual(context_activities[0].context_activity, 'NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -365,67 +372,68 @@ class StatementModelsTests(TestCase):
         self.assertIn('v2', extVals)
 
     def test_stmt_in_context_stmt(self):
+        stmt_guid = str(uuid.uuid4())
 
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'s@s.com'},
+            'verb': {"id":"verb/url/outer"},"object": {'id':'activityy16'}}))
 
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'s@s.com'},
                 'verb': {"id":"verb/url"},"object": {'id':'activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'actor':{'objectType':'Agent',
-                'mbox':'s@s.com'},'verb': {"id":"verb/url"},'object':{'id':'NestContextAct'}}}}))
+                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         context = models.context.objects.get(id=stmt.statement.context.id)
-        neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
-        nestact = models.activity.objects.get(id=neststmt.stmt_object.id)
+        stmt_ref = models.StatementRef(ref_id=stmt_guid)
+        neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
-        
+
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.statement, neststmt.id)
 
         self.assertEqual(context.registration, guid)
-        self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID'}}))
+
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
-        self.assertEqual(neststmt.verb.verb_id, "verb/url")
-        self.assertEqual(nestact.activity_id, 'NestContextAct')
+        self.assertEqual(neststmt.verb.verb_id, "verb/url/outer")
 
     def test_instructor_in_context_stmt(self):
 
+        stmt_guid = str(uuid.uuid4())
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'s@s.com'},
+            'verb': {"id":"verb/url/outer"},"object": {'id':'activityy16'}}))
 
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'jon@example.com', 'name':'jon'},
                 'verb': {"id":"verb/url"},"object": {'id':'activity17'},
                 'context':{'registration': guid, 'instructor': {'objectType':'Agent',
                 'name':'jon','mbox':'jon@example.com'},'contextActivities': {'other': {'id': 'NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'actor':{'objectType':'Agent',
-                'mbox':'s@s.com'},'verb': {"id":"verb/url"},'object':{'id':'NestContextAct1'}}}}))
+                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         context = models.context.objects.get(id=stmt.statement.context.id)
         conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
-        neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
-        nestactivity = models.activity.objects.get(id=neststmt.stmt_object.id)
+        stmt_ref = models.StatementRef(ref_id=stmt_guid)
+        neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
+        context_activities = stmt.statement.context.contextActivities.all() 
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.statement, neststmt.id)
         self.assertEqual(st.context.instructor.id, conactor.id)
 
         self.assertEqual(context.registration, guid)
-        self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID'}}))
+        self.assertEqual(context_activities[0].key, 'other')
+        self.assertEqual(context_activities[0].context_activity, 'NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
         
-        self.assertEqual(neststmt.verb.verb_id, "verb/url")
-        
-        self.assertEqual(nestactivity.activity_id, 'NestContextAct1')
+        self.assertEqual(neststmt.verb.verb_id, "verb/url/outer")
         
         self.assertEqual(conactor.objectType, 'Agent')
         
@@ -435,36 +443,38 @@ class StatementModelsTests(TestCase):
     def test_actor_with_context_stmt(self):
 
 
+        stmt_guid = str(uuid.uuid4())
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'s@s.com'},
+            'verb': {"id":"verb/url/outer"},"object": {'id':'activityy16'}}))
+
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve', 'mbox':'s@s.com'},
             'verb': {"id":"verb/url"},"object": {'id':'activity18'},'context':{'registration': guid, 
             'instructor': {'objectType':'Agent','name':'jon','mbox':'jon@example.com'},
             'contextActivities': {'other': {'id': 'NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
-            'language': 'en-US', 'statement': {'actor':{'objectType':'Agent','mbox':'s@s.com'},'verb': {"id":"verb/urls"},
-            'object':{'id':'NestContextAct2'}}}}))
+            'language': 'en-US', 'statement': {'id':stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         context = models.context.objects.get(id=stmt.statement.context.id)
         conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
-        neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
-        nestactivity = models.activity.objects.get(id=neststmt.stmt_object.id)        
+        stmt_ref = models.StatementRef(ref_id=stmt_guid)
+        neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
         st = models.statement.objects.get(id=stmt.statement.id)
+        context_activities = stmt.statement.context.contextActivities.all()
 
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.statement, neststmt.id)
         self.assertEqual(st.context.instructor.id, conactor.id)
         self.assertEqual(st.verb.verb_id, "verb/url" )
 
         self.assertEqual(context.registration, guid)
-        self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID1'}}))
+        self.assertEqual(context_activities[0].key, 'other')
+        self.assertEqual(context_activities[0].context_activity, 'NewActivityID1')
         self.assertEqual(context.revision, 'foob')
         self.assertEqual(context.platform, 'bard')
         self.assertEqual(context.language, 'en-US')
         
-        self.assertEqual(neststmt.verb.verb_id, "verb/urls")
-        
-        self.assertEqual(nestactivity.activity_id, 'NestContextAct2')
+        self.assertEqual(neststmt.verb.verb_id, "verb/url/outer")
         
         self.assertEqual(conactor.objectType, 'Agent')
         
@@ -472,6 +482,12 @@ class StatementModelsTests(TestCase):
         self.assertEqual(conactor.mbox, 's@s.com') 
 
     def test_agent_as_object_with_context_stmt(self):
+
+
+        stmt_guid = str(uuid.uuid4())
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'s@s.com'},
+            'verb': {"id":"verb/url/outer"},"object": {'id':'activityy16'}}))
+
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(
             json.dumps(
@@ -500,9 +516,7 @@ class StatementModelsTests(TestCase):
                     'platform':'bard',
                     'language': 'en-US', 
                     'statement': {
-                        'actor': {"objectType":"Agent", "mbox":"m@m.com"},
-                        'verb': {"id":"verb/url"}, 
-                        'object':{'id':'NestContextAct2'}
+                        'id': stmt_guid
                     }
                  }
                 }
@@ -511,23 +525,22 @@ class StatementModelsTests(TestCase):
 
         context = models.context.objects.get(id=stmt.statement.context.id)
         conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
-        neststmt = models.statement.objects.get(id=stmt.statement.context.statement)
-        nestactivity = models.activity.objects.get(id=neststmt.stmt_object.id)
+        stmt_ref = models.StatementRef(ref_id=stmt_guid)
+        neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
+        context_activities = stmt.statement.context.contextActivities.all()
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
         self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.statement, neststmt.id)
         self.assertEqual(st.context.instructor.id, conactor.id)
         self.assertEqual(st.verb.verb_id, "verb/url")
 
         self.assertEqual(context.registration, guid)
-        self.assertEqual(str(context.contextActivities), str({u'other': {u'id': u'NewActivityID1'}}))
+        self.assertEqual(context_activities[0].key, 'other')
+        self.assertEqual(context_activities[0].context_activity, 'NewActivityID1')
         self.assertEqual(context.language, 'en-US')
         
-        self.assertEqual(neststmt.verb.verb_id, "verb/url")
-        
-        self.assertEqual(nestactivity.activity_id, 'NestContextAct2')
+        self.assertEqual(neststmt.verb.verb_id, "verb/url/outer")
         
         self.assertEqual(conactor.objectType, 'Agent')
         

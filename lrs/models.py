@@ -5,12 +5,25 @@ from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
 from django.core.exceptions import ValidationError
+from datetime import datetime
+from django.utils.timezone import utc
 import ast
 import json
 import pdb
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
+
+def convertToUTC(timestr):
+    # Strip off TZ info
+    timestr = timestr[:timestr.rfind('+')]
+    
+    # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
+    date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
+    
+    # Localize TZ to UTC since everything is being stored in DB as UTC
+    date_object = pytz.timezone("UTC").localize(date_object)
+    return date_object
 
 import time
 def filename(instance, filename):
@@ -38,6 +51,15 @@ class score(models.Model):
         if the_max:
             self.score_max = the_max
 
+    def object_return(self):
+        ret = {}
+        for field in self._meta.fields:
+            if not field.name == 'id':
+                value = getattr(self, field.name)
+                if not value is None:
+                    ret[field.name] = value
+        return ret
+
 class result(models.Model): 
     success = models.NullBooleanField(blank=True,null=True)
     completion = models.NullBooleanField(blank=True,null=True)
@@ -46,15 +68,32 @@ class result(models.Model):
     duration = models.CharField(max_length=200, blank=True, null=True)
     score = models.OneToOneField(score, blank=True, null=True)
 
+    def object_return(self):
+        ret = {}
+        for field in self._meta.fields:
+            if not field.name == 'id':
+                value = getattr(self, field.name)
+                if not value is None:
+                    if not field.name == 'score':
+                        ret[field.name] = value
+                    else:
+                        ret[field.name] = self.score.object_return()
+        ret['extensions'] = {}
+        result_ext = result_extensions.objects.filter(result=self)
+        for ext in result_ext:
+            ret['extensions'][ext.key] = ext.value        
+        return ret
+
 class result_extensions(models.Model):
     key=models.CharField(max_length=200)
     value=models.CharField(max_length=200)
     result = models.ForeignKey(result)
 
+    def object_return(self):
+        return (self.key, self.value)
 
 class statement_object(models.Model):
     pass
-
 
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
@@ -73,10 +112,13 @@ class agentmgr(models.Manager):
                 except agent_account.DoesNotExist:
                     raise IDNotFoundError('Agent Account ID was not found')
             else:
-                try:
-                    account = ast.literal_eval(val)
-                except:
-                    account = json.loads(val)
+                if not isinstance(val, dict):
+                    try:
+                        account = ast.literal_eval(val)
+                    except:
+                        account = json.loads(val)
+                else:
+                    account = val
                 try:
                     acc = agent_account.objects.get(**account)
                 except agent_account.DoesNotExist:
@@ -111,8 +153,8 @@ class agent_account(models.Model):
 
     def get_json(self):
         ret = {}
-        ret['homePage'] = homePage
-        ret['name'] = name
+        ret['homePage'] = self.homePage
+        ret['name'] = self.name
         return ret
     
     def equals(self, other):
@@ -190,6 +232,9 @@ class agent_profile(models.Model):
 class LanguageMap(models.Model):
     key = models.CharField(max_length=200)
     value = models.CharField(max_length=200)
+    
+    def object_return(self):
+        return (self.key, self.value)
 
 class activity_def_correctresponsespattern(models.Model):
     pass
@@ -201,12 +246,85 @@ class activity_definition(models.Model):
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
 
+    def object_return(self, lang=None):
+        ret = {}
+        if lang is not None:
+            name_lang_map_set = self.name.filter(key=lang)
+            desc_lang_map_set = self.name.filter(key=lang)
+        else:
+            name_lang_map_set = self.name.all()
+            desc_lang_map_set = self.description.all()
+
+        ret['name'] = {}
+        ret['description'] = {}
+        for lang_map in name_lang_map_set:
+            ret['name'][lang_map.key] = lang_map.value                    
+        for lang_map in desc_lang_map_set:
+            ret['description'][lang_map.key] = lang_map.value 
+
+        ret['type'] = self.activity_definition_type
+        
+        if not self.interactionType is None:
+            ret['interactionType'] = self.interactionType
+
+        if not self.correctresponsespattern is None:
+            ret['correctResponsesPattern'] = []
+            # Get answers
+            answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=self.correctresponsespattern)
+            for a in answers:
+                ret['correctResponsesPattern'].append(a.objReturn())            
+            scales = activity_definition_scale.objects.filter(activity_definition=self)
+            if scales:
+                ret['scale'] = []
+                for s in scales:
+                    ret['scale'].append(s.object_return(lang))
+            # Get choices
+            choices = activity_definition_choice.objects.filter(activity_definition=self)
+            if choices:
+                ret['choices'] = []
+                for c in choices:
+                    ret['choices'].append(c.object_return(lang))
+            # Get steps
+            steps = activity_definition_step.objects.filter(activity_definition=self)
+            if steps:
+                ret['steps'] = []
+                for st in steps:
+                    ret['steps'].append(st.object_return(lang))
+            # Get sources
+            sources = activity_definition_source.objects.filter(activity_definition=self)
+            if sources:
+                ret['source'] = []
+                for so in sources:
+                    ret['source'].append(so.object_return(lang))
+            # Get targets
+            targets = activity_definition_target.objects.filter(activity_definition=self)
+            if targets:
+                ret['target'] = []
+                for t in targets:
+                    ret['target'].append(t.object_return(lang))            
+        act_def_ext = activity_extensions.objects.filter(activity_definition=self)
+        if act_def_ext:
+            ret['extensions'] = {}             
+            for ext in act_def_ext:
+                ret['extensions'][ext.key] = ext.value        
+        return ret
+
+
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)
     objectType = models.CharField(max_length=200,blank=True, null=True) 
     activity_definition = models.OneToOneField(activity_definition, blank=True, null=True)
     authoritative = models.CharField(max_length=200, blank=True, null=True)
+
+    def object_return(self, lang=None):
+
+        ret = {}
+        ret['id'] = self.activity_id
+        ret['objectType'] = self.objectType
+        if not self.activity_definition is None:
+            ret['definition'] = self.activity_definition.object_return(lang)
+        return ret
 
 class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
@@ -217,10 +335,10 @@ class correctresponsespattern_answer(models.Model):
 
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)        
+    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
     activity_definition = models.ForeignKey(activity_definition)
 
-    def objReturn(self, lang):
+    def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.choice_id
         ret['description'] = {}
@@ -240,7 +358,7 @@ class activity_definition_scale(models.Model):
     description = models.ManyToManyField(LanguageMap, blank=True, null=True)        
     activity_definition = models.ForeignKey(activity_definition)
 
-    def objReturn(self, lang):
+    def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.scale_id
         ret['description'] = {}
@@ -259,7 +377,7 @@ class activity_definition_source(models.Model):
     description = models.ManyToManyField(LanguageMap, blank=True, null=True)
     activity_definition = models.ForeignKey(activity_definition)
     
-    def objReturn(self, lang):
+    def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.source_id
         ret['description'] = {}
@@ -277,7 +395,7 @@ class activity_definition_target(models.Model):
     description = models.ManyToManyField(LanguageMap, blank=True, null=True)
     activity_definition = models.ForeignKey(activity_definition)
     
-    def objReturn(self, lang):
+    def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.target_id
         ret['description'] = {}
@@ -295,7 +413,7 @@ class activity_definition_step(models.Model):
     description = models.ManyToManyField(LanguageMap, blank=True, null=True)
     activity_definition = models.ForeignKey(activity_definition)
 
-    def objReturn(self, lang):
+    def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.step_id
         ret['description'] = {}
@@ -313,23 +431,75 @@ class activity_extensions(models.Model):
     value = models.TextField()
     activity_definition = models.ForeignKey(activity_definition)
 
-    def objReturn(self):
+    def object_return(self):
         return (self.key, self.value) 
+
+class StatementRef(statement_object):
+    object_type = models.CharField(max_length=12, default="StatementRef")
+    ref_id = models.CharField(max_length=200)
+
+    def object_return(self):
+        ret = {}
+        ret['objectType'] = "StatementRef"
+        ret['id'] = self.ref_id
+        return ret
+
+class ContextActivity(models.Model):
+    key = models.CharField(max_length=20, null=True)
+    context_activity = models.CharField(max_length=200, null=True)
+    
+    def object_return(self):
+        ret = {}
+        ret[self.key] = {}
+        ret[self.key]['id'] = self.context_activity
+        return ret
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)
     instructor = models.ForeignKey(agent,blank=True, null=True)
     team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
-    contextActivities = models.TextField()
+    contextActivities = models.ManyToManyField(ContextActivity)
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
-    statement = models.BigIntegerField(blank=True, null=True)
+    statement = models.OneToOneField(StatementRef, blank=True, null=True)
+
+    def object_return(self):
+
+        ret = {}
+        linked_fields = ['instructor', 'team', 'statement', 'contextActivities']
+        for field in self._meta.fields:
+            if not field.name == 'id':
+                value = getattr(self, field.name)
+                if not value is None:
+                    if not field.name in linked_fields:
+                        ret[field.name] = value
+                    elif field.name == 'instructor':
+                        ret[field.name] = self.instructor.get_agent_json()
+                    elif field.name == 'team':
+                        ret[field.name] = self.team.get_agent_json()
+                    elif field.name == 'statement':
+                        ret[field.name] = self.statement.object_return()                    
+        if self.contextActivities:
+            con_act_set = self.contextActivities.all()
+            ret['contextActivities'] = {}
+            for con_act in con_act_set:
+                ret['contextActivities'][con_act.key] = {}
+                ret['contextActivities'][con_act.key]['id'] = con_act.context_activity    
+
+        ret['extensions'] = {}
+        context_ext = context_extensions.objects.filter(context=self)
+        for ext in context_ext:
+            ret['extensions'][ext.key] = ext.value        
+        return ret
 
 class context_extensions(models.Model):
     key=models.CharField(max_length=200)
     value=models.TextField()
     context = models.ForeignKey(context)
+    
+    def objReturn(self):
+        return (self.key, self.value)
 
 class activity_state(models.Model):
     state_id = models.CharField(max_length=200)
@@ -361,238 +531,109 @@ class Verb(models.Model):
     verb_id = models.CharField(max_length=200)
     display = models.ManyToManyField(LanguageMap, null=True, blank=True)
 
-class StatementRef(statement_object):
-    object_type = models.CharField(max_length=12, default="StatementRef")
-    ref_id = models.CharField(max_length=200)
+    def object_return(self, lang=None):
+        ret = {}
+        ret['id'] = self.verb_id
+        ret['display'] = {}
+        if lang is not None:
+            lang_map_set = self.display.filter(key=lang)
+        else:
+            lang_map_set = self.display.all()        
 
+        for lang_map in lang_map_set:
+            ret['display'][lang_map.key] = lang_map.value        
+        return ret
 
 class SubStatement(statement_object):
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_substatement")
-    actor = models.ForeignKey(agent,related_name="actor_of_substatement", blank=True, null=True)
+    actor = models.ForeignKey(agent,related_name="actor_of_substatement")
     verb = models.ForeignKey(Verb)    
     result = models.OneToOneField(result, blank=True,null=True)
-    timestamp = models.DateTimeField(blank=True,null=True)
+    timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = models.OneToOneField(context, related_name="context_of_statement",blank=True, null=True)
 
+    def object_return(self, lang=None):
+        activity_object = True
+        ret = {}
+        ret['actor'] = self.actor.get_agent_json()
+        ret['verb'] = self.verb.object_return()
+
+        try:
+            stmt_object = activity.objects.get(id=self.stmt_object.id)
+        except activity.DoesNotExist:
+            try:
+                stmt_object = agent.objects.get(id=self.stmt_object.id)
+                activity_object = False
+            except agent.DoesNotExist:
+                raise IDNotFoundError('No activity or agent object found with given ID')
+
+        if activity_object:
+            ret['object'] = stmt_object.object_return(lang)  
+        else:
+            ret['object'] = stmt_object.get_agent_json()
+
+        ret['result'] = self.result.object_return()
+        ret['context'] = self.context.object_return()
+        ret['timestamp'] = str(self.timestamp)
+        ret['objectType'] = "SubStatement"
+        return ret
 
 class statement(statement_object):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
-    actor = models.ForeignKey(agent,related_name="actor_statement", blank=True, null=True)
+    actor = models.ForeignKey(agent,related_name="actor_statement")
     verb = models.ForeignKey(Verb)    
     result = models.OneToOneField(result, blank=True,null=True)
-    timestamp = models.DateTimeField(blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
+    timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
     authoritative = models.BooleanField(default=True)
 
+    def object_return(self, lang=None):
+        object_type = 'activity'
+        ret = {}
+        ret['id'] = self.statement_id
+        ret['actor'] = self.actor.get_agent_json()
+        ret['verb'] = self.verb.object_return(lang)
+
+        try:
+            stmt_object = activity.objects.get(id=self.stmt_object.id)
+        except activity.DoesNotExist:
+            try:
+                stmt_object = agent.objects.get(id=self.stmt_object.id)
+                object_type = 'agent'
+            except agent.DoesNotExist:
+                try:
+                    stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
+                    object_type = 'substatement'            
+                except SubStatement.DoesNotExist:
+                    raise IDNotFoundError("No activity, agent, or substatement found with given ID")
+
+        if object_type == 'activity' or object_type == 'substatement':
+            ret['object'] = stmt_object.object_return(lang)  
+        else:
+            ret['object'] = stmt_object.get_agent_json()
+        if not self.result is None:
+            ret['result'] = self.result.object_return()        
+        if not self.context is None:
+            ret['context'] = self.context.object_return()
+        
+        ret['timestamp'] = str(self.timestamp)
+        ret['stored'] = str(self.stored)
+        
+        if not self.authority is None:
+            ret['authority'] = self.authority.get_agent_json()
+        
+        ret['voided'] = self.voided
+        return ret
 
     def save(self, *args, **kwargs):
         # actor object context authority
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
 
-def convert_stmt_object_field_name(return_dict):
-    if 'stmt_object' in return_dict:
-        return_dict['object'] = return_dict['stmt_object']
-        del return_dict['stmt_object']
-    return return_dict    
-
-def convert_activity_definition_field_name(return_dict):
-    if 'activity_definition' in return_dict:
-        return_dict['definition'] = return_dict['activity_definition']
-        del return_dict['activity_definition']
-
-    if 'activity_definition_type' in return_dict:
-        return_dict['type'] = return_dict['activity_definition_type']
-        del return_dict['activity_definition_type']
-    return return_dict
-
-
-def objsReturn(obj, language=None):
-    ret = {}
-    # pdb.set_trace()
-    # If the object being sent in is derived from a statement_object, must retrieve the specific object then loop through all of it's fields
-    if type(obj).__name__ == 'statement_object':
-        try:
-            obj = activity.objects.get(id=obj.id)
-        except Exception, e:
-            try:
-                obj = agent.objects.get(id=obj.id)
-            except Exception, e:
-                try:
-                    obj = SubStatement.objects.get(id=obj.id)
-                except Exception, e:
-                    raise e
-    # Else if the object is a LanguageMap we have to handle this different since we actually want the
-    # key value as the key in the dict we're returning
-    elif type(obj).__name__ == 'LanguageMap':
-        ret = handle_lang_map(obj)
-        return ret
-    # Have to handle the name and desc fields since they are manytomany and don't appear in _meta.fields
-    elif type(obj).__name__ == 'activity_definition':
-
-        if language is not None:
-            name_lang_map_set = obj.name.filter(key=language)
-            desc_lang_map_set = obj.name.filter(key=language)
-        else:
-            name_lang_map_set = obj.name.all()
-            desc_lang_map_set = obj.description.all()
-        
-        ret['name'] = {}
-        ret['description'] = {}
-        for lang_map in name_lang_map_set:
-            ret['name'][lang_map.key] = lang_map.value
-                    
-        for lang_map in desc_lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value        
-
-    # Once we retrieve the specific object if needed, loop through all fields in model
-    for field in obj._meta.fields:
-        # Get the value of the field and the type of the field
-        fieldValue = getattr(obj, field.name)
-        fieldType = type(fieldValue).__name__.lower()
-        
-        # Set fieldType and fieldValue when receiving statement_object that is a FK
-        if fieldType == 'statement_object':
-            # pdb.set_trace()
-            try:
-                fieldValue = activity.objects.get(id=fieldValue.id)
-                fieldType = 'activity'
-            except Exception, e:
-                try:
-                    fieldValue = agent.objects.get(id=fieldValue.id)
-                    fieldType = 'agent'
-                except Exception, e:
-                    try:
-                        # pdb.set_trace()
-                        fieldValue = SubStatement.objects.get(id=fieldValue.id)
-                        fieldType = 'SubStatement'
-                        # Add SubStatement objectType
-                        # ret['objectType'] = fieldType
-                    except Exception, e:
-                        fieldValue = statement.objects.get(id=fieldValue.id)
-                        fieldType = 'statement'
-        # If type of field is agent, need to retrieve all FKs associated with it
-        if fieldType == 'agent':
-            # Check to see if the agent is of type Agent
-            ret[field.name] = fieldValue.get_agent_json()
-                  
-        # If type of field is result
-        elif fieldType == 'result':
-            # Call recursively, send in result object
-            ret[field.name] = objsReturn(getattr(obj, field.name), language)
-            # Once done with result object, get result extensions
-            ret[field.name]['extensions'] = {}
-            resultExt = result_extensions.objects.filter(result=fieldValue)
-            for ext in resultExt:
-                ret[field.name]['extensions'][ext.key] = ext.value                
-        
-        # If type of field is context
-        elif fieldType == 'context':
-            # Call recursively, send in context object
-            ret[field.name] = objsReturn(getattr(obj, field.name), language)
-            # Once done with context object, get context extensions
-            ret[field.name]['extensions'] = {}
-            contextExt = context_extensions.objects.filter(context=fieldValue)
-            for ext in contextExt:
-                ret[field.name]['extensions'][ext.key] = ext.value
-        
-        # If type of field is activity_definition, need to grab all FKs associated with object
-        elif fieldType == 'activity_definition':
-            # Call recursively, send in act_def object
-            ret[field.name] = objsReturn(getattr(obj, field.name), language)
-            # Get scales
-            scales = activity_definition_scale.objects.filter(activity_definition=fieldValue)
-            if scales:
-                ret[field.name]['scale'] = []
-                for s in scales:
-                    ret[field.name]['scale'].append(s.objReturn(language))
-            # Get choices
-            choices = activity_definition_choice.objects.filter(activity_definition=fieldValue)
-            if choices:
-                ret[field.name]['choices'] = []
-                for c in choices:
-                    ret[field.name]['choices'].append(c.objReturn(language))
-            # Get steps
-            steps = activity_definition_step.objects.filter(activity_definition=fieldValue)
-            if steps:
-                ret[field.name]['steps'] = []
-                for st in steps:
-                    ret[field.name]['steps'].append(st.objReturn(language))
-            # Get sources
-            sources = activity_definition_source.objects.filter(activity_definition=fieldValue)
-            if sources:
-                ret[field.name]['source'] = []
-                for so in sources:
-                    ret[field.name]['source'].append(so.objReturn(language))
-            # Get targets
-            targets = activity_definition_target.objects.filter(activity_definition=fieldValue)
-            if targets:
-                ret[field.name]['target'] = []
-                for t in targets:
-                    ret[field.name]['target'].append(t.objReturn(language))
-            
-            ret[field.name]['extensions'] = {}
-            act_def_ext = activity_extensions.objects.filter(activity_definition=fieldValue)
-            for ext in act_def_ext:
-                ret[field.name]['extensions'][ext.key] = ext.value
-        # If type of field is activity_def_crp, grab all FKs associated with it
-        elif fieldType == 'activity_def_correctresponsespattern':
-            ret[field.name] = []
-            # Get answers
-            answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=fieldValue)
-            for a in answers:
-                ret[field.name].append(a.objReturn())
-        
-        # Else if not any specified LRS object above
-        else:
-            # If it is a OneToOneField, skip _ptr name and if it has a value recursively send object
-            if field.get_internal_type() == 'OneToOneField':
-                # Don't care about inheritance field
-                if not field.name.endswith('_ptr'):
-                    if getattr(obj, field.name):
-                        ret[field.name] = objsReturn(getattr(obj, field.name), language)
-            # If ForeignKey and if it has a value recursively send object
-            elif field.get_internal_type() == 'ForeignKey':
-                # pdb.set_trace()
-                # If the object being sent in is derived from a statement_object, must retrieve the specific object
-                if fieldType == 'statement_object':
-                    try:
-                        obj = activity.objects.get(id=obj.id)
-                    except Exception, e:
-                        try:
-                            obj = agent.objects.get(id=obj.id)
-                        except Exception, e:
-                            try:
-                                obj = statement.objects.get(id=obj.id)
-                            except Exception, e:
-                                raise e
-
-                if getattr(obj, field.name):
-                    ret[field.name] = objsReturn(getattr(obj, field.name), language)
-
-            # Return DateTime as string
-            elif field.get_internal_type() == 'DateTimeField':
-                if getattr(obj, field.name):
-                    ret[field.name] = str(getattr(obj, field.name))
-            # If it's any type of other field(int string, bool)
-            else:
-                # Don't care about internal ID or the authoritative field in statement objects
-                if not field.name == 'id' and not field.name == 'authoritative':
-                    # If there is a value set it in return dict
-                    if not getattr(obj, field.name) is None:
-                        # If statement_id field in statement object-rename to id in return dict
-                        if field.name == 'statement_id' or field.name == 'activity_id':
-                            ret['id'] = getattr(obj, field.name)
-                        else:
-                            ret[field.name] = getattr(obj, field.name)
-    
-    convert_stmt_object_field_name(ret)
-    convert_activity_definition_field_name(ret)
-    return ret
 
 # - from http://djangosnippets.org/snippets/2283/
 # @transaction.commit_on_success

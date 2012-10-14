@@ -46,8 +46,8 @@ def statements_get(req_dict):
         statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
-    
-    return HttpResponse(json.dumps(statementResult), mimetype="application/json", status=200)
+    # pdb.set_trace()
+    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency

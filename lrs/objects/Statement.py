@@ -34,7 +34,7 @@ class Statement():
             try:
                 self.statement = models.statement.objects.get(statement_id=self.statement_id)            
             except models.statement.DoesNotExist:
-                raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
+                raise Exception('There is no statement associated with the id: %s' % self.statement_id)
         else:
             obj = self._parse(initial)
             self._populate(obj, auth)
@@ -89,8 +89,8 @@ class Statement():
 
     def get_full_statement_json(self, sparse=False, language=None):
         # Set statement to return
-        ret = models.objsReturn(self.statement, language)
-
+        # ret = models.objsReturn(self.statement, language)
+        ret = self.statement.object_return(language)
         # Remove details if sparse is true
         if sparse:
             # Remove responses and only return language for name and description
@@ -197,9 +197,21 @@ class Statement():
         return rslt
 
     def _saveContextToDB(self, context, contextExts):
-        
+        # pdb.set_trace()
+        con_act_data = None
+        if 'contextActivities' in context:
+            con_act_data = context['contextActivities']
+            del context['contextActivities']
+
         cntx = models.context(**context)    
         cntx.save()
+
+        if con_act_data:
+            for con_act in con_act_data.items():
+                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'])
+                ca.save()
+                cntx.contextActivities.add(ca)
+            cntx.save()
 
         if contextExts:
             for k, v in contextExts.items():
@@ -261,8 +273,8 @@ class Statement():
         if 'registration' not in stmt_data['context']:
             raise Exception('Registration UUID required for context')
 
-        if 'contextActivities' not in stmt_data['context']:
-            raise Exception('contextActivities required for context')
+        # if 'contextActivities' not in stmt_data['context']:
+        #     raise Exception('contextActivities required for context')
 
         # Statement Actor and Object supercede context instructor and team
         # If there is an actor or object is an agent in the stmt then remove the instructor
@@ -295,9 +307,14 @@ class Statement():
             context = stmt_data['context']
 
         if 'statement' in context:
-            context['statement'] = Statement(context['statement']).statement.id
+            # stmt = Statement(context['statement']).statement.id 
+            stmt = Statement(statement_id=context['statement']['id'], get=True)
+            stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
+            stmt_ref.save()
+            context['statement'] = stmt_ref
 
         return self._saveContextToDB(context, contextExts)
+
 
     def _save_lang_map(self, lang_map):
         k = lang_map[0]
@@ -314,20 +331,18 @@ class Statement():
         if 'id' not in incoming_verb:
             raise Exception("ID field is not included in statement verb")
 
-        # Use get_or_create - no sense in creating the same verb object when they are immutable
-        verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
-        # verb_object.save()
+        verb_object = models.Verb(verb_id=incoming_verb['id'])
+        verb_object.save()
 
-        if created:
-            # Save verb displays
-            if 'display' in incoming_verb:
-                for verb_lang_map in incoming_verb['display'].items():
-                    if isinstance(verb_lang_map, tuple):
-                        lang_map = self._save_lang_map(verb_lang_map)
-                        verb_object.display.add(lang_map)  
-                    else:
-                        raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
-                verb_object.save()
+        # Save verb displays
+        if 'display' in incoming_verb:
+            for verb_lang_map in incoming_verb['display'].items():
+                if isinstance(verb_lang_map, tuple):
+                    lang_map = self._save_lang_map(verb_lang_map)
+                    verb_object.display.add(lang_map)  
+                else:
+                    raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
+            verb_object.save()
         return verb_object
 
     #Once JSON is verified, populate the statement object

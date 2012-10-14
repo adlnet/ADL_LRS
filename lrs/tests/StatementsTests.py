@@ -14,15 +14,15 @@ import time
 import urllib
 from lrs.util import retrieve_statement
 import pdb
+import hashlib
 
-# Start .95 work
 class StatementsTests(TestCase):
     def setUp(self):
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-        form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
+        form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
         response = self.client.post(reverse(views.register),form)
 
         self.guid1 = str(uuid.uuid4())
@@ -32,12 +32,14 @@ class StatementsTests(TestCase):
         self.guid5 = str(uuid.uuid4())
         self.guid6 = str(uuid.uuid4())
         self.guid7 = str(uuid.uuid4())
-        self.guid8 = str(uuid.uuid4())        
+        self.guid8 = str(uuid.uuid4())
+        self.guid9 = str(uuid.uuid4())        
         self.cguid1 = str(uuid.uuid4())
         self.cguid2 = str(uuid.uuid4())    
         self.cguid3 = str(uuid.uuid4())
         self.cguid4 = str(uuid.uuid4())
         self.cguid5 = str(uuid.uuid4())
+        self.cguid6 = str(uuid.uuid4())
 
         self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"activity"},
@@ -48,76 +50,84 @@ class StatementsTests(TestCase):
 
         self.existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
-            "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
-            'description': {'en-US':'testdesc2', 'en-GB': 'altdesc'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
-            "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
-            'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
-            'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth','mbox':'auth@example.com'}})        
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+            "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
+            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
+            "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})        
 
         self.existStmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@t.com"},
-            "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname3', 'en-GB': 'altname'},
-            'description': {'en-US':'testdesc3','en-GB':'altdesc'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-            'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
-            "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
-            'duration': self.firstTime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-            'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
-            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':'auth2','mbox':'auth2@example.com'}})        
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname3", "en-GB": "altname"},
+            "description": {"en-US":"testdesc3","en-GB":"altdesc"}, "type": "cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answers"],
+            "extensions": {"key11": "value11", "key22": "value22","key33": "value33"}}}, 
+            "result": {"score":{"scaled":.75}, "completion": True, "success": True, "response": "shouted",
+            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "context":{"registration": self.cguid2, "contextActivities": {"other": {"id": "NewActivityID22"}},
+            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey11": "cval11",
+            "ckey22": "cval22"}}, "authority":{"objectType":"Agent","name":"auth2","mbox":"auth2@example.com"}})        
 
         self.existStmt3 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
-            "object": {'objectType': 'Activity', 'id':'foogals',
-            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-            'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
-            "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
-            'duration': self.firstTime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-            'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US',
-            'instructor':{'objectType': 'Agent', 'name':'bob', 'mbox':'bob@bob.com'}, 
-            'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}},
-            'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
+            "object": {"objectType": "Activity", "id":"foogals",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answers"],
+            "extensions": {"key111": "value111", "key222": "value222","key333": "value333"}}}, 
+            "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
+            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "context":{"registration": self.cguid3, "contextActivities": {"other": {"id": "NewActivityID22"}},
+            "revision": "food", "platform":"bard","language": "en-US",
+            "instructor":{"objectType": "Agent", "name":"bob", "mbox":"bob@bob.com"}, 
+            "extensions":{"ckey111": "cval111","ckey222": "cval222"}},
+            "authority":{"objectType":"Agent","name":"auth1","mbox":"auth1@example.com"}})        
 
         self.existStmt4 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
-            "object": {'objectType': 'Activity', 'id':'foogal',
-            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-            'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
-            "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
-            'duration': self.firstTime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
-            'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':'bill', 'mbox':'bill@bill.com'},
-            'extensions':{'ckey111': 'cval111','ckey222': 'cval222'}}, 
-            'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})
+            "object": {"objectType": "Activity", "id":"foogal",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answers"],
+            "extensions": {"key111": "value111", "key222": "value222","key333": "value333"}}}, 
+            "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
+            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "context":{"registration": self.cguid4, "contextActivities": {"other": {"id": "NewActivityID22"}},
+            "revision": "food", "platform":"bard","language": "en-US","instructor":{"name":"bill", "mbox":"bill@bill.com"},
+            "extensions":{"ckey111": "cval111","ckey222": "cval222"}}, 
+            "authority":{"objectType":"Agent","name":"auth1","mbox":"auth1@example.com"}})
 
-        self.existStmt5 = json.dumps({"object":{'objectType':'Agent','name':'jon','mbox':'jon@jon.com'},
+        self.existStmt5 = json.dumps({"object":{"objectType":"Agent","name":"jon","mbox":"jon@jon.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "actor":{"objectType":"Agent","mbox":"s@s.com"}})
 
-        self.existStmt6 = json.dumps({"actor": {'objectType':'Agent','name':'max','mbox':'max@max.com'}, 
-                                      "object":{'id': 'test_activity'},"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        self.existStmt6 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"max@max.com"}, 
+                                      "object":{"id": "test_activity"},"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                                       "display": {"en-US":"created"}}})
 
-        self.existStmt7 = json.dumps({'object': {'objectType':'Agent','name':'max','mbox':'max@max.com'},
-            'verb': {"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+        self.existStmt7 = json.dumps({"object": {"objectType":"Agent","name":"max","mbox":"max@max.com"},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "actor":{"objectType":"Agent","mbox":"s@s.com"}})
 
-        self.existStmt8 = json.dumps({'object': {'objectType':'Agent','name':'john','mbox':'john@john.com'},
-            'verb': {"id": "http://adlnet.gov/expapi/verbs/missed","display": {"en-US":"missed"}},
+        self.existStmt8 = json.dumps({"object": {"objectType":"Agent","name":"john","mbox":"john@john.com"},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/missed","display": {"en-US":"missed"}},
             "actor":{"objectType":"Agent","mbox":"s@s.com"}})
+
+        self.existStmt9 = json.dumps({"actor":{"objectType":"Agent","mbox":"sub@sub.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
+            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb/url/nested"},
+            "object": {"objectType":"activity", "id":"testex.com"}, "result":{"completion": True, "success": True,
+            "response": "kicked"}, "context":{"registration": self.cguid6,
+            "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
+            "language": "en-US", "extensions":{"k1": "v1", "k2": "v2"}}}})
 
         # Put statements
         param = {"statementId":self.guid1}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt1
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse1.status_code, 204)
@@ -126,7 +136,7 @@ class StatementsTests(TestCase):
 
 
         param = {"statementId":self.guid3}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt3
         self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse3.status_code, 204)
@@ -135,7 +145,7 @@ class StatementsTests(TestCase):
 
         
         param = {"statementId":self.guid4}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt4
         self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse4.status_code, 204)
@@ -145,7 +155,7 @@ class StatementsTests(TestCase):
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat())
         
         param = {"statementId":self.guid2}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt2
         self.putresponse2 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)       
         self.assertEqual(self.putresponse2.status_code, 204)
@@ -154,7 +164,7 @@ class StatementsTests(TestCase):
 
 
         param = {"statementId":self.guid5}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt5
         self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse5.status_code, 204)
@@ -163,7 +173,7 @@ class StatementsTests(TestCase):
         
 
         param = {"statementId":self.guid6}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt6
         self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse6.status_code, 204)
@@ -172,7 +182,7 @@ class StatementsTests(TestCase):
 
         
         param = {"statementId":self.guid7}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt7        
         self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse7.status_code, 204)
@@ -181,18 +191,35 @@ class StatementsTests(TestCase):
         
 
         param = {"statementId":self.guid8}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt8        
         self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
         self.assertEqual(self.putresponse8.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
         
+        param = {"statementId": self.guid9}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = self.existStmt9        
+        self.putresponse9 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth)
+        self.assertEqual(self.putresponse9.status_code, 204)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
+        stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
+        stmt = models.statement.objects.filter(statement_id=self.guid9)[0]
+        print str(stmt.stmt_object.id) + 'substatement id'
+        sub = models.SubStatement.objects.get(id=stmt.stmt_object.id)
+        print str(sub.actor.id) + ' actor id in substatement'
+        print str(sub.verb.verb_id) + ' verburl in sub'
+        print str(sub.verb.id) + ' verb id in sub'
+        act = models.activity.objects.get(id=sub.stmt_object.id)
+        print str(act.activity_id) + ' activity id in sub'
+        print str(sub.result.id) + ' sub result'
+        print str(sub.context.id) + ' sub context'
 
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
         resp = self.client.post(reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post"}},
-            content_type='application/json', Authorization=self.auth)
+            content_type="application/json", Authorization=self.auth)
         self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
@@ -205,8 +232,8 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         act = models.activity.objects.get(activity_id="test_post")
         self.assertEqual(act.activity_id, "test_post")
-        agent = models.agent.objects.get(mbox='t@t.com')
-        self.assertEqual(agent.name, 'bob')
+        agent = models.agent.objects.get(mbox="t@t.com")
+        self.assertEqual(agent.name, "bob")
 
     def test_post_with_actor(self):
         stmt = json.dumps({"actor":{"mbox":"mailto:mr.t@example.com"},
@@ -215,7 +242,7 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
-        agent = models.agent.objects.get(mbox='mailto:mr.t@example.com')
+        agent = models.agent.objects.get(mbox="mailto:mr.t@example.com")
 
     def test_list_post(self):
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -238,17 +265,17 @@ class StatementsTests(TestCase):
         self.assertEqual(stmt1.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
         self.assertEqual(stmt2.verb.verb_id, "http://adlnet.gov/expapi/verbs/failed")
         
-        self.assertEqual(lang_map1.key, 'en-US')
-        self.assertEqual(lang_map1.value, 'passed')
-        self.assertEqual(lang_map2.key, 'en-GB')
-        self.assertEqual(lang_map2.value, 'failed')
+        self.assertEqual(lang_map1.key, "en-US")
+        self.assertEqual(lang_map1.value, "passed")
+        self.assertEqual(lang_map2.key, "en-GB")
+        self.assertEqual(lang_map2.value, "failed")
 
 
     def test_put(self):
         guid = str(uuid.uuid4())
 
         param = {"statementId":guid}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_put"},"actor":{"objectType":"Agent", "mbox":"t@t.com"}})
 
@@ -259,72 +286,70 @@ class StatementsTests(TestCase):
         act = models.activity.objects.get(activity_id="test_put")
         self.assertEqual(act.activity_id, "test_put")
 
-        self.assertEqual(stmt.statement.actor.mbox, 't@t.com')
+        self.assertEqual(stmt.statement.actor.mbox, "t@t.com")
 
-        self.assertEqual(stmt.statement.authority.name, 'tester1')
-        self.assertEqual(stmt.statement.authority.mbox, 'test1@tester.com')
+        self.assertEqual(stmt.statement.authority.name, "tester1")
+        self.assertEqual(stmt.statement.authority.mbox, "test1@tester.com")
         
         
-        self.assertEqual(stmt.verb.verb_id, 'http://adlnet.gov/expapi/verbs/passed')
+        self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
 
     def test_put_with_substatement(self):
         con_guid = str(uuid.uuid4())
         st_guid = str(uuid.uuid4())
 
-
         param = {"statementId": st_guid}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))
-        stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'sass@sass.com'},
-            'verb': {"id":"verb/url/tested"}, 'object':{'objectType':'SubStatement',
-            'actor':{'objectType':'Agent','mbox':'ss@ss.com'},'verb': {"id":"verb/url/nested"},
-            'object': {'objectType':'activity', 'id':'testex.com'}, 'result':{'completion': True, 'success': True,
-            'response': 'kicked'}, 'context':{'registration': con_guid,
-            'contextActivities': {'other': {'id': 'NewActivityID'}},'revision': 'foo', 'platform':'bar',
-            'language': 'en-US', 'extensions':{'k1': 'v1', 'k2': 'v2'}}}})
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"sass@sass.com"},
+            "verb": {"id":"verb/url/tested"}, "object":{"objectType":"SubStatement",
+            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb/url/nested"},
+            "object": {"objectType":"activity", "id":"testex.com"}, "result":{"completion": True, "success": True,
+            "response": "kicked"}, "context":{"registration": con_guid,
+            "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
+            "language": "en-US", "extensions":{"k1": "v1", "k2": "v2"}}}})
         
         response = self.client.put(path, stmt, content_type="application/json",
             Authorization=self.auth)
         self.assertEqual(response.status_code, 204)
 
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path)
 
         self.assertEqual(get_response.status_code, 200)
-        # print get_response
-        self.assertContains(get_response, 'objectType')
-        # self.assertContains(get_response, 'SubStatement')
-        self.assertContains(get_response, 'actor')
-        self.assertContains(get_response, 'ss@ss.com')
-        self.assertContains(get_response, 'verb')
-        self.assertContains(get_response, 'verb/url/nested')
-        self.assertContains(get_response, 'Activity')
-        self.assertContains(get_response, 'testex.com')
-        self.assertContains(get_response, 'result')
-        self.assertContains(get_response, 'completion')
-        self.assertContains(get_response, 'success')
-        self.assertContains(get_response, 'response')
-        self.assertContains(get_response, 'kicked')
-        self.assertContains(get_response, 'context')
+        self.assertContains(get_response, "objectType")
+        self.assertContains(get_response, "SubStatement")
+        self.assertContains(get_response, "actor")
+        self.assertContains(get_response, "ss@ss.com")
+        self.assertContains(get_response, "verb")
+        self.assertContains(get_response, "verb/url/nested")
+        self.assertContains(get_response, "Activity")
+        self.assertContains(get_response, "testex.com")
+        self.assertContains(get_response, "result")
+        self.assertContains(get_response, "completion")
+        self.assertContains(get_response, "success")
+        self.assertContains(get_response, "response")
+        self.assertContains(get_response, "kicked")
+        self.assertContains(get_response, "context")
         self.assertContains(get_response, con_guid)
-        self.assertContains(get_response, 'contextActivities')
-        self.assertContains(get_response, 'other')
-        self.assertContains(get_response, 'revision')
-        self.assertContains(get_response, 'foo')
-        self.assertContains(get_response, 'platform')
-        self.assertContains(get_response, 'bar')
-        self.assertContains(get_response, 'language')
-        self.assertContains(get_response, 'en-US')
-        self.assertContains(get_response, 'extensions')
-        self.assertContains(get_response, 'k1')
-        self.assertContains(get_response, 'v1')
-        self.assertContains(get_response, 'k2')
-        self.assertContains(get_response, 'v2')                                                                                                                                                                                                                
+        self.assertContains(get_response, "contextActivities")
+        self.assertContains(get_response, "other")
+        self.assertContains(get_response, "revision")
+        self.assertContains(get_response, "foo")
+        self.assertContains(get_response, "platform")
+        self.assertContains(get_response, "bar")
+        self.assertContains(get_response, "language")
+        self.assertContains(get_response, "en-US")
+        self.assertContains(get_response, "extensions")
+        self.assertContains(get_response, "k1")
+        self.assertContains(get_response, "v1")
+        self.assertContains(get_response, "k2")
+        self.assertContains(get_response, "v2")                                                                                                                                                                                                                
 
     def test_no_content_put(self):
         guid = str(uuid.uuid4())
         
         param = {"statementId":guid}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         stmt = json.dumps({})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
@@ -339,7 +364,7 @@ class StatementsTests(TestCase):
             "object": {"id":"activity"},"actor":{"objectType":"Agent", "mbox":"t@t.com"}}))
 
         param = {"statementId":guid}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object":{"id":"test_existing_put"}, "actor":{"objectType":"Agent", "mbox":"t@t.com"}})
 
@@ -356,7 +381,7 @@ class StatementsTests(TestCase):
 
     def test_get(self):
         param = {"statementId":self.guid1}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         getResponse = self.client.get(path)
         self.assertEqual(getResponse.status_code, 200)
         self.assertContains(getResponse, self.guid1)
@@ -365,12 +390,12 @@ class StatementsTests(TestCase):
         getResponse = self.client.get(reverse(views.statements))
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
-        self.assertEqual(len(jsn['statements']), models.statement.objects.all().count())
+        self.assertEqual(len(jsn["statements"]), models.statement.objects.all().count())
         
     def test_since_filter(self):
         # Test since - should only get existStmt1-8 since existStmt is stored at same time as firstTime
-        param = {'since': self.firstTime}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        param = {"since": self.firstTime}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         sinceGetResponse = self.client.get(path)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -385,10 +410,10 @@ class StatementsTests(TestCase):
 
     def test_until_filter(self):
         # Test until
-        param = {'until': self.secondTime}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        param = {"until": self.secondTime}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         untilGetResponse = self.client.get(path)
-        
+ 
         self.assertEqual(untilGetResponse.status_code, 200)
         self.assertContains(untilGetResponse, self.guid1)
         self.assertContains(untilGetResponse, self.guid3)
@@ -401,8 +426,8 @@ class StatementsTests(TestCase):
 
     def test_activity_object_filter(self):
         # Test activity object
-        param = {'object':{'objectType': 'Activity', 'id':'foogie'}}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        param = {"object":{"objectType": "Activity", "id":"foogie"}}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         activityObjectGetResponse = self.client.get(path)
 
         self.assertEqual(activityObjectGetResponse.status_code, 200)
@@ -415,23 +440,23 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid7, activityObjectGetResponse)
         self.assertNotIn(self.guid8, activityObjectGetResponse)
         # Should not be in response since sparse is true
-        self.assertNotIn('testdesc3', activityObjectGetResponse)
-        self.assertNotIn('testname3', activityObjectGetResponse)
+        self.assertNotIn("testdesc3", activityObjectGetResponse)
+        self.assertNotIn("testname3", activityObjectGetResponse)
 
     def test_no_actor(self):
         # Test actor object
-        param = {"object":{"objectType": "Agent", 'mbox':'nobody@example.com'}}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        param = {"object":{"objectType": "Agent", "mbox":"nobody@example.com"}}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         actorObjectGetResponse = self.client.get(path)
         
         self.assertEqual(actorObjectGetResponse.status_code, 200)
         stmts = json.loads(actorObjectGetResponse.content)
         dbstmts = models.statement.objects.all()
-        self.assertEqual(len(stmts['statements']), len(dbstmts))
+        self.assertEqual(len(stmts["statements"]), len(dbstmts))
 
     def test_verb_filter(self):
         param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         verb_response = self.client.get(path)
 
         self.assertEqual(verb_response.status_code, 200)
@@ -447,8 +472,8 @@ class StatementsTests(TestCase):
 
     def test_actor_object_filter(self):
         # Test actor object
-        param = {"object":{"objectType": "Agent", 'name':'jon','mbox':'jon@jon.com'}}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        param = {"object":{"objectType": "Agent", "name":"jon","mbox":"jon@jon.com"}}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         actorObjectGetResponse = self.client.get(path)
         
         self.assertEqual(actorObjectGetResponse.status_code, 200)
@@ -459,10 +484,22 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid1, actorObjectGetResponse)
 
 
+    def test_substatement_object_filter(self):
+        param = {"object":{"objectType": "SubStatement", "actor":{"objectType":"Agent","mbox":"ss@ss.com"},
+        "verb": {"id":"verb/url/nested"},"object":{"objectType":"activity", "id":"testex.com"},
+        "result":{"completion": True, "success": True,"response": "kicked"},"context":{"registration": self.cguid6,
+            "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
+            "language": "en-US"}}}
+            
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        sub_object_get_response = self.client.get(path)
+        print sub_object_get_response
+
+
     def test_registration_filter(self):
         # Test Registration
-        param = {'registration': self.cguid4}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        param = {"registration": self.cguid4}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         registrationPostResponse = self.client.get(path)
 
         self.assertEqual(registrationPostResponse.status_code, 200)
@@ -478,7 +515,7 @@ class StatementsTests(TestCase):
     def test_ascending_filter(self):
         # Test actor
         ascending_get_response = self.client.get(reverse(views.statements), 
-            {'ascending': True},content_type="application/x-www-form-urlencoded")
+            {"ascending": True},content_type="application/x-www-form-urlencoded")
 
         self.assertEqual(ascending_get_response.status_code, 200)
         self.assertContains(ascending_get_response,self.guid1)
@@ -494,7 +531,7 @@ class StatementsTests(TestCase):
     def test_actor_filter(self):
         # Test actor
         actorGetResponse = self.client.post(reverse(views.statements), 
-            {'actor':{"objectType": "Agent", 'mbox':'s@s.com'}},
+            {"actor":{"objectType": "Agent", "mbox":"s@s.com"}},
              content_type="application/x-www-form-urlencoded")
         
         self.assertEqual(actorGetResponse.status_code, 200)
@@ -530,105 +567,104 @@ class StatementsTests(TestCase):
         self.email = "test1@tester.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-        form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
+        form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
         response = self.client.post(reverse(views.register),form)
         
         auth_stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
-            "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
-            'description': {'en-US':'testdesc2', 'en-GB': 'altdesc'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
-            "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
-            'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
-            'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth','mbox':'auth@example.com'}})
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+            "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
+            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
+            "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
 
         post_response = self.client.post(reverse(views.statements), auth_stmt, content_type="application/json",
             Authorization=self.auth)
         self.assertEqual(post_response.status_code, 200)
 
-        params = {'authoritative': False, 'actor':{"objectType":"Agent","mbox":"s@s.com"},
-            'object':{'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
-            'description': {'en-US':'testdesc2', 'en-GB': 'altdesc'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}}
+        params = {"authoritative": False, "actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}}
 
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(params))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(params))        
         auth_get_response = self.client.get(path)        
         self.assertEqual(auth_get_response.status_code, 200)
         
         stmts = json.loads(auth_get_response.content)
-        self.assertEqual(len(stmts['statements']), 2)
+        self.assertEqual(len(stmts["statements"]), 2)
 
     def test_limit_filter(self):
         # Test limit
-        limitGetResponse = self.client.post(reverse(views.statements),{'limit':1}, content_type="application/x-www-form-urlencoded")
+        limitGetResponse = self.client.post(reverse(views.statements),{"limit":1}, content_type="application/x-www-form-urlencoded")
         respList = json.loads(limitGetResponse.content)
-        stmts = respList['statements']
+        stmts = respList["statements"]
         self.assertEqual(len(stmts), 1)
-        self.assertContains(limitGetResponse, self.guid8)
+        self.assertContains(limitGetResponse, self.guid9)
 
     def test_sparse_filter(self):
         # Test sparse
-        sparseGetResponse = self.client.post(reverse(views.statements),{'sparse': False}, content_type="application/x-www-form-urlencoded")
+        sparseGetResponse = self.client.post(reverse(views.statements),{"sparse": False}, content_type="application/x-www-form-urlencoded")
         self.assertEqual(sparseGetResponse.status_code, 200)
-        self.assertContains(sparseGetResponse, 'definition')        
-        self.assertContains(sparseGetResponse, 'en-GB')
-        self.assertContains(sparseGetResponse, 'altdesc')
-        self.assertContains(sparseGetResponse, 'altname')
+        self.assertContains(sparseGetResponse, "definition")        
+        self.assertContains(sparseGetResponse, "en-GB")
+        self.assertContains(sparseGetResponse, "altdesc")
+        self.assertContains(sparseGetResponse, "altname")
 
 
-        # Should display full lang map (won't find testdesc2 since activity class will merge activities with same id together)
-        self.assertContains(sparseGetResponse, 'testdesc3')
+        # Should display full lang map (won"t find testdesc2 since activity class will merge activities with same id together)
+        self.assertContains(sparseGetResponse, "testdesc3")
 
     def test_linked_filters(self):
         # Test reasonable linked query
-        param = {'verb':'http://adlnet.gov/expapi/verbs/created', 'object':{'objectType': 'Activity', 'id':'foogie'}, 'since':self.secondTime, 'authoritative':'False', 'sparse': False}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
+        param = {"verb":"http://adlnet.gov/expapi/verbs/created", "object":{"objectType": "Activity", "id":"foogie"}, "since":self.secondTime, "authoritative":"False", "sparse": False}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         linkedGetResponse = self.client.get(path)
         self.assertEqual(linkedGetResponse.status_code, 200)
         self.assertContains(linkedGetResponse, self.guid2)
 
-
     def test_language_header_filter(self):
-        param = {'limit':1, 'object':{'objectType': 'Activity', 'id':'foogie'}}
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
-        lang_get_response = self.client.get(path, Accept_Language='en-US')
+        param = {"limit":1, "object":{"objectType": "Activity", "id":"foogie"}}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        lang_get_response = self.client.get(path, Accept_Language="en-US")
 
         resp_list = json.loads(lang_get_response.content)
-        stmts = resp_list['statements']
+        stmts = resp_list["statements"]
         self.assertEqual(len(stmts), 1)
-        self.assertContains(lang_get_response, 'en-US')
-        self.assertNotContains(lang_get_response, 'en-GB')
+        self.assertContains(lang_get_response, "en-US")
+        self.assertNotContains(lang_get_response, "en-GB")
 
-    # Six activities are PUT, but should be 5 since two have same ID and auth
+    # Sever activities are PUT, but should be 6 since two have same ID and auth
     def test_number_of_activities(self):
         acts = len(models.activity.objects.all())
-        self.assertEqual(5, acts)
+        self.assertEqual(6, acts)
 
     def test_update_activity_wrong_auth(self):
         wrong_username = "tester2"
         wrong_email = "test2@tester.com"
         wrong_password = "test2"
         wrong_auth = "Basic %s" % base64.b64encode("%s:%s" % (wrong_username, wrong_password))
-        form = {'username':wrong_username, 'email':wrong_email,'password':wrong_password,
-            'password2':wrong_password}
+        form = {"username":wrong_username, "email":wrong_email,"password":wrong_password,
+            "password2":wrong_password}
         response = self.client.post(reverse(views.register),form)
 
         stmt = json.dumps({"verb":{"id":"verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"r@r.com"},
-            "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
-            'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
-            "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
-            'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
-            'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth','mbox':'auth@example.com'}})
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
+            "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+            "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
+            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
+            "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
         
         post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=wrong_auth)
@@ -638,63 +674,63 @@ class StatementsTests(TestCase):
 
     def test_update_activity_correct_auth(self):
         stmt = json.dumps({"verb": {"id":"verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"l@l.com"},
-            "object": {'objectType': 'Activity', 'id':'foogie',
-            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
-            'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answer'],
-            'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}, 
-            "result": {'score':{'scaled':.85}, 'completion': True, 'success': True, 'response': 'kicked',
-            'duration': self.firstTime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
-            'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth','mbox':'auth@example.com'}})
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
+            "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+            "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
+            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
+            "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
 
         post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth)
         
-        act = models.activity.objects.get(activity_id='foogie')
+        act = models.activity.objects.get(activity_id="foogie")
         act_def = models.activity_definition.objects.get(activity=act)
 
         name_set = act_def.name.all()
         desc_set = act_def.description.all()
 
-        self.assertEqual(name_set[0].key, 'en-GB')
-        self.assertEqual(name_set[0].value, 'altname')
+        self.assertEqual(name_set[0].key, "en-GB")
+        self.assertEqual(name_set[0].value, "altname")
 
-        self.assertEqual(name_set[1].key, 'en-US')
-        self.assertEqual(name_set[1].value, 'testname3')
+        self.assertEqual(name_set[1].key, "en-US")
+        self.assertEqual(name_set[1].value, "testname3")
 
-        self.assertEqual(desc_set[0].key, 'en-GB')
-        self.assertEqual(desc_set[0].value, 'altdesc')
+        self.assertEqual(desc_set[0].key, "en-GB")
+        self.assertEqual(desc_set[0].value, "altdesc")
 
-        self.assertEqual(desc_set[1].key, 'en-US')
-        self.assertEqual(desc_set[1].value, 'testdesc3')
+        self.assertEqual(desc_set[1].key, "en-US")
+        self.assertEqual(desc_set[1].value, "testdesc3")
 
     def test_cors_post_put(self):
         bdy = {"statementId": "postputID"}
-        bdy['content'] = {"verb":{"id":"verb/url"}, "actor":{'objectType':"Agent", "mbox": "r@r.com"},
+        bdy["content"] = {"verb":{"id":"verb/url"}, "actor":{"objectType":"Agent", "mbox": "r@r.com"},
             "object": {"id":"test_cors_post_put"}}
-        bdy['Authorization'] = self.auth
-        bdy['Content-Type'] = "application/json"
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"method":"PUT"}))
+        bdy["Authorization"] = self.auth
+        bdy["Content-Type"] = "application/json"
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"method":"PUT"}))
         response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 204)
 
         act = models.activity.objects.get(activity_id="test_cors_post_put")
         self.assertEqual(act.activity_id, "test_cors_post_put")
 
-        agent = models.agent.objects.get(mbox='test1@tester.com')
-        self.assertEqual(agent.name, 'tester1')
-        self.assertEqual(agent.mbox, 'test1@tester.com')
+        agent = models.agent.objects.get(mbox="test1@tester.com")
+        self.assertEqual(agent.name, "tester1")
+        self.assertEqual(agent.mbox, "test1@tester.com")
 
     def test_issue_put(self):
-        stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244430' 
+        stmt_id = "33f60b35-e1b2-4ddc-9c6f-7b3f65244430" 
         stmt = json.dumps({"verb":{"id":"verb/uri"},"object":{"id":"scorm.com/JsTetris_TCAPI","definition":{"type":"media",
             "name":{"en-US":"Js Tetris - Tin Can Prototype"},"description":{"en-US":"A game of tetris."}}},
             "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
             "registration":"6b1091be-2833-4886-b4a6-59e5e0b3c3f4"},
             "actor":{"mbox":"mailto:tom.creighton.ctr@adlnet.gov","name":"Tom Creighton"}})
 
-        path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
         self.assertEqual(put_stmt.status_code, 204) 
 
@@ -710,10 +746,145 @@ class StatementsTests(TestCase):
             "object": {"id":"i.pity.the.fool"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
-        g = models.group.objects.get(mbox='mailto:the.groupST@example.com')
+        g = models.group.objects.get(mbox="mailto:the.groupST@example.com")
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
-        mems = g.member.values_list('name', flat=True)
+        mems = g.member.values_list("name", flat=True)
         self.assertEquals(len(mems), 2)
-        self.assertIn('agentA', mems)
-        self.assertIn('agentB', mems)
+        self.assertIn("agentA", mems)
+        self.assertIn("agentB", mems)
+
+    # Use this test to make sure stmts are being returned correctly with all data
+    # def test_all_fields_activity_as_object(self):
+    #     nested_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
+    #     nested_st_id = nested_stmt.statement.statement_id
+
+    #     stmt_id = str(uuid.uuid4())
+    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+        
+    #     stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"uniqueName"}},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
+    #         "object": {"objectType": "Activity", "id":"/my/Activity/URL",
+    #         "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
+    #         "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
+    #         "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+    #         "interactionType": "choice",
+    #         "correctResponsesPattern": ["golf", "tetris"],
+    #         "choices":[{"id": "golf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
+    #         {"id": "tetris","description":{"en-US": "Tetris Example", "en-GB": "TETRIS"}},
+    #         {"id":"facebook", "description":{"en-US":"Facebook App", "en-GB": "FACEBOOK"}},
+    #         {"id":"scrabble", "description": {"en-US": "Scrabble Example", "en-GB": "SCRABBLE"}}],
+    #         "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+    #         "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
+    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
+    #         "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"},
+    #         "grouping":{"id":"http://groupingID"} },
+    #         "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+    #         "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
+    #         "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
+    #         "timestamp":self.firstTime})
+        
+    #     put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+    #     self.assertEqual(put_stmt.status_code, 204)
+
+    #     param = {"statementId":stmt_id}
+    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+    #     get_response = self.client.get(path)
+    #     print get_response
+
+
+
+    # Use this test to make sure stmts are being returned correctly with all data
+    # def test_all_fields_agent_as_object(self):
+    #     nested_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
+    #     nested_st_id = nested_stmt.statement.statement_id
+
+    #     stmt_id = str(uuid.uuid4())
+    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+    #     msha = hashlib.sha1("tom@example.com").hexdigest()        
+        
+    #     stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/helped","display": {"en-US":"helped", "en-GB":"assisted"}},
+    #         "object": {"objectType":"Agent","name": "Tom Creighton","mbox_sha1sum":msha}, 
+    #         "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
+    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
+    #         "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
+    #         "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+    #         "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
+    #         "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
+    #         "timestamp":self.firstTime})
+        
+    #     put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+    #     self.assertEqual(put_stmt.status_code, 204)
+
+    #     param = {"statementId":stmt_id}
+    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+    #     get_response = self.client.get(path)
+    #     print get_response
+
+
+    # Use this test to make sure stmts are being returned correctly with all data
+    # def test_all_fields_substatement_as_object(self):
+    #     nested_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincannest@adlnet.gov"},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB":"graded"}},
+    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
+    #     nested_st_id = nested_stmt.statement.statement_id
+
+    #     nested_sub_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincannestsub@adlnet.gov"},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/verb","display": {"en-US":"verb", "en-GB":"altVerb"}},
+    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplenestedsubstatement"}}))
+    #     nested_sub_st_id = nested_stmt.statement.statement_id
+
+    #     stmt_id = str(uuid.uuid4())
+    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+    #     msha = hashlib.sha1("tom@example.com").hexdigest()        
+        
+    #     stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
+    #         "object": {"objectType": "SubStatement", "actor":{"objectType":"Agent","name":"Tom Creighton","mbox": "tom@adlnet.gov"},
+    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB": "Graded"}},
+    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement",'definition': {'name': {'en-US':'SubStatement name'},
+    #         'description': {'en-US':'SubStatement description'},
+    #         'type': 'cmi.interaction','interactionType': 'matching',
+    #         'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
+    #         'description': {'en-US':'Lou', 'it': 'Luigi'}},{'id': 'tom','description':{'en-US': 'Tom', 'it':'Tim'}},
+    #         {'id':'andy', 'description':{'en-US':'Andy'}}],'target':[{'id':'1',
+    #         'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
+    #         {'id':'3', 'description':{'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}}]}},
+    #         "result": {"score":{"scaled":.50, "raw": 50, "min":1, "max":51}, "completion": True,
+    #         "success": True, "response": "Poorly done",
+    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey11": "resultValue11", "resultKey22":"resultValue22"}},
+    #         "context":{"registration": str(uuid.uuid4()),
+    #         "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test/nest"}},
+    #         "revision": "Spelling error in target.", "platform":"Ipad.","language": "en-US",
+    #         "statement":{"objectType":"StatementRef", "id":str(nested_sub_st_id)},
+    #         "extensions":{"contextKey11": "contextVal11","contextKey22": "contextVal22"}}}, 
+    #         "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
+    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
+    #         "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
+    #         "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+    #         "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
+    #         "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
+    #         "timestamp":self.firstTime})
+        
+    #     put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
+    #     self.assertEqual(put_stmt.status_code, 204)
+
+    #     param = {"statementId":stmt_id}
+    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+    #     get_response = self.client.get(path)
+    #     print get_response
+
+
+    # def test_post_list_rollback(self):
+    #     stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+    #         "object": {"id":"test_list_post"}, "actor":{"objectType":"Agent", "mbox":"t@t.com"}},
+    #         {"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+    #         "object": {"id":"test_list_post"}, "actor":{"objectType":"Agent", "mbox":"t@t.com"}}])
+    #     response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth)
+    #     self.assertEqual(response.status_code, 200)
+    #     pdb.set_trace()
