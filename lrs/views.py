@@ -6,9 +6,10 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement
+from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
 from lrs import forms, models
 from objects import Actor, Activity
+from django.utils.decorators import decorator_from_middleware
 import logging
 import json
 import pdb
@@ -66,12 +67,14 @@ def reg_success(request, user_id):
     return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
     # pdb.set_trace()
     statementResult = retrieve_statement.getStatementRequest(more_id) 
     return HttpResponse(json.dumps(statementResult, indent=4),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements(request):
     try: 
         resp = handle_request(request)
@@ -89,6 +92,7 @@ def statements(request):
     
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_state(request):
     try: 
         resp = handle_request(request)
@@ -108,8 +112,9 @@ def activity_state(request):
     
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_profile(request):
-    try: 
+    try:
         resp = handle_request(request)
     except etag.MissingEtagInfo as mei:
         return HttpResponse(mei.message, status=409)
@@ -127,6 +132,7 @@ def activity_profile(request):
 
 
 @require_GET
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activities(request):
     try: 
         resp = handle_request(request)
@@ -144,6 +150,7 @@ def activities(request):
 
 
 @require_http_methods(["PUT","POST","GET","DELETE"])    
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def actor_profile(request):
     try: 
         resp = handle_request(request)
@@ -164,6 +171,7 @@ def actor_profile(request):
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def actors(request):
     try: 
         resp = handle_request(request)

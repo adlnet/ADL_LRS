@@ -12,7 +12,7 @@ class ActivityTests(TestCase):
     
     def test_get(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'foobar'}))
-        response = self.client.get(reverse(views.activities), {'activityId':'foobar'})
+        response = self.client.get(reverse(views.activities), {'activityId':'foobar'}, X_Experience_API_Version="0.95")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar', rsp)
@@ -25,7 +25,7 @@ class ActivityTests(TestCase):
                 'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},
                 'type': 'course','interactionType': 'intType'}})) 
-        response = self.client.get(reverse(views.activities), {'activityId':'foobar1'})
+        response = self.client.get(reverse(views.activities), {'activityId':'foobar1'}, X_Experience_API_Version="0.95")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar1', rsp)
@@ -44,7 +44,7 @@ class ActivityTests(TestCase):
                 'type': 'course','interactionType': 'intType2', 
                 'extensions': {'key1': 'value1', 'key2': 'value2'}}}))
 
-        response = self.client.get(reverse(views.activities), {'activityId':'foobar2'})
+        response = self.client.get(reverse(views.activities), {'activityId':'foobar2'}, X_Experience_API_Version="0.95")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar2', rsp)
@@ -69,7 +69,7 @@ class ActivityTests(TestCase):
                 'description':{'en-US':'Facebook App'}},{'id':'scrabble', 
                 'description': {'en-US': 'Scrabble Example'}}]}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId':'foobar3'})
+        response = self.client.get(reverse(views.activities), {'activityId':'foobar3'}, X_Experience_API_Version="0.95")
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -97,7 +97,7 @@ class ActivityTests(TestCase):
         'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
         'type': 'cmi.interaction','interactionType': 'true-false','correctResponsesPattern': ['true']}}))
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar4'})
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar4'}, X_Experience_API_Version="0.95")
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -116,7 +116,7 @@ class ActivityTests(TestCase):
                 'type': 'cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Fill in answer']}}))
         # pdb.set_trace()
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar5'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar5'}, X_Experience_API_Version="0.95")       
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -135,7 +135,7 @@ class ActivityTests(TestCase):
                 'type': 'cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Long fill in answer']}}))        
 
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar6'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar6'}, X_Experience_API_Version="0.95")       
 
         rsp = response.content
         # pdb.set_trace()
@@ -158,7 +158,7 @@ class ActivityTests(TestCase):
                 'description':{'en-US':'Its Cool Cool'}},{'id':'likert_3',
                 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
 
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar7'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar7'}, X_Experience_API_Version="0.95")       
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -183,7 +183,7 @@ class ActivityTests(TestCase):
                 'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
                 {'id':'3', 'description':{'en-US': 'SCORM Cloud'}}]}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar8'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar8'}, X_Experience_API_Version="0.95")       
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar8', rsp)
@@ -209,7 +209,7 @@ class ActivityTests(TestCase):
                 {'id':'lunch', 'description':{'en-US':'Lunch having been eaten', 
                 'en-FR': 'altlunch'}}]}}))
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar9'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar9'}, X_Experience_API_Version="0.95")       
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('foobar9', rsp)
@@ -235,7 +235,7 @@ class ActivityTests(TestCase):
                 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
                 {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron', 'description':{'en-US':'Aaron'}}]}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar10'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar10'}, X_Experience_API_Version="0.95")       
         rsp = response.content
 
         self.assertEqual(response.status_code, 200)
@@ -255,7 +255,7 @@ class ActivityTests(TestCase):
                 'type': 'cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}))        
 
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar11'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar11'}, X_Experience_API_Version="0.95")       
         rsp = response.content
         # pdb.set_trace()
 
@@ -282,7 +282,7 @@ class ActivityTests(TestCase):
                 'type': 'cmi.interaction','interactionType': 'other',
                 'correctResponsesPattern': ['(35.937432,-86.868896)']}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'foobar12'})       
+        response = self.client.get(reverse(views.activities), {'activityId': 'foobar12'}, X_Experience_API_Version="0.95")       
         rsp = response.content
 
         self.assertEqual(response.status_code, 200)
@@ -297,28 +297,28 @@ class ActivityTests(TestCase):
 
 
     def test_get_wrong_activity(self):
-        response = self.client.get(reverse(views.activities), {'activityId': 'foo'})
+        response = self.client.get(reverse(views.activities), {'activityId': 'foo'}, X_Experience_API_Version="0.95")
         rsp = response.content
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(rsp, '[]')
 
     def test_get_no_activity(self):
-        response = self.client.get(reverse(views.activities))
+        response = self.client.get(reverse(views.activities), X_Experience_API_Version="0.95")
         self.assertContains(response, 'Error')
     
     def test_post(self):
         response = self.client.post(reverse(views.activities), {'activityId':'my_activity'},
-            content_type='application/x-www-form-urlencoded')
+            content_type='application/x-www-form-urlencoded', X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 405)
 
     def test_delete(self):
         response = self.client.delete(reverse(views.activities), {'activityId':'my_activity'},
-            content_type='application/x-www-form-urlencoded')
+            content_type='application/x-www-form-urlencoded', X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 405)
 
     def test_put(self):
         response = self.client.put(reverse(views.activities), {'activityId':'my_activity'},
-            content_type='application/x-www-form-urlencoded')
+            content_type='application/x-www-form-urlencoded', X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 405)
 

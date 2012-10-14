@@ -15,17 +15,17 @@ class ActorsTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form)
+        response = self.client.post(reverse(views.register))
 
     def test_get_no_actors(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        response = self.client.get(reverse(views.actors), {'actor':actor}, Authorization=self.auth)
+        response = self.client.get(reverse(views.actors), {'actor':actor}, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 404)
 
     def test_get(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
         me = Actor.Actor(actor,create=True)
-        response = self.client.get(reverse(views.actors), {'actor':actor}, Authorization=self.auth)
+        response = self.client.get(reverse(views.actors), {'actor':actor}, Authorization=self.auth, X_Experience_API_Version="0.95")
         #print response
         self.assertContains(response, 'mailto:me@example.com')
 
@@ -39,10 +39,10 @@ class ActorsTests(TestCase):
     #    self.assertContains(response, 'me')
     
     def test_get_no_actor(self):
-        response = self.client.get(reverse(views.actors), Authorization=self.auth)
+        response = self.client.get(reverse(views.actors), Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
         actor = json.dumps({"name":["me"],"mbox":["mailto:me@example.com"]})
-        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded', Authorization=self.auth)
+        response = self.client.post(reverse(views.actors), {'actor':actor},content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 405)

@@ -21,7 +21,7 @@ class StatementsMoreTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form)
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
         self.guid1 = str(uuid.uuid4())
         self.guid2 = str(uuid.uuid4())
@@ -170,53 +170,53 @@ class StatementsMoreTests(TestCase):
 
 
         # Post statements
-        self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
 
-        self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
 
-        self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
 
-        self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
 
-        self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=5)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
 
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat())
 
-        self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
 
-        self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
 
 
-        self.postresponse8 = self.client.post(reverse(views.statements), self.existStmt8,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse8 = self.client.post(reverse(views.statements), self.existStmt8,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
 
 
-        self.postresponse9 = self.client.post(reverse(views.statements), self.existStmt9,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse9 = self.client.post(reverse(views.statements), self.existStmt9,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
 
 
-        self.postresponse10 = self.client.post(reverse(views.statements), self.existStmt10,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse10 = self.client.post(reverse(views.statements), self.existStmt10,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
@@ -224,27 +224,27 @@ class StatementsMoreTests(TestCase):
         self.thirdTime = str((datetime.utcnow()+timedelta(seconds=12)).replace(tzinfo=utc).isoformat())
 
 
-        self.postresponse11 = self.client.post(reverse(views.statements), self.existStmt11,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse11 = self.client.post(reverse(views.statements), self.existStmt11,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=13)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid11).update(stored=time)
 
 
-        self.postresponse12 = self.client.post(reverse(views.statements), self.existStmt12,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse12 = self.client.post(reverse(views.statements), self.existStmt12,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=14)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid12).update(stored=time)
 
 
-        self.postresponse13 = self.client.post(reverse(views.statements), self.existStmt13,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse13 = self.client.post(reverse(views.statements), self.existStmt13,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=15)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid13).update(stored=time)
 
 
-        self.postresponse14 = self.client.post(reverse(views.statements), self.existStmt14,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)     
+        self.postresponse14 = self.client.post(reverse(views.statements), self.existStmt14,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")     
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=16)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid14).update(stored=time)
 
 
-        self.postresponse15 = self.client.post(reverse(views.statements), self.existStmt15,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse15 = self.client.post(reverse(views.statements), self.existStmt15,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=17)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid15).update(stored=time)
 
@@ -252,63 +252,63 @@ class StatementsMoreTests(TestCase):
         self.fourthTime = str((datetime.utcnow()+timedelta(seconds=18)).replace(tzinfo=utc).isoformat())
 
 
-        self.postresponse16 = self.client.post(reverse(views.statements), self.existStmt16,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse16 = self.client.post(reverse(views.statements), self.existStmt16,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=19)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid16).update(stored=time)
 
 
-        self.postresponse17 = self.client.post(reverse(views.statements), self.existStmt17,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse17 = self.client.post(reverse(views.statements), self.existStmt17,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=20)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid17).update(stored=time)
 
 
-        self.postresponse18 = self.client.post(reverse(views.statements), self.existStmt18,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse18 = self.client.post(reverse(views.statements), self.existStmt18,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=21)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid18).update(stored=time)
 
 
-        self.postresponse19 = self.client.post(reverse(views.statements), self.existStmt19,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse19 = self.client.post(reverse(views.statements), self.existStmt19,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=22)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid19).update(stored=time)
 
 
-        self.postresponse20 = self.client.post(reverse(views.statements), self.existStmt20,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse20 = self.client.post(reverse(views.statements), self.existStmt20,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=23)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid20).update(stored=time)
 
         self.fifthTime = str((datetime.utcnow()+timedelta(seconds=24)).replace(tzinfo=utc).isoformat())
  
-        self.postresponse21 = self.client.post(reverse(views.statements), self.existStmt21,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse21 = self.client.post(reverse(views.statements), self.existStmt21,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=25)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid21).update(stored=time)
 
 
-        self.postresponse22 = self.client.post(reverse(views.statements), self.existStmt22,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse22 = self.client.post(reverse(views.statements), self.existStmt22,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=26)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid22).update(stored=time)
 
-        self.postresponse23 = self.client.post(reverse(views.statements), self.existStmt23,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse23 = self.client.post(reverse(views.statements), self.existStmt23,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=27)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid23).update(stored=time)
 
-        self.postresponse24 = self.client.post(reverse(views.statements), self.existStmt24,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse24 = self.client.post(reverse(views.statements), self.existStmt24,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=28)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid24).update(stored=time)
 
 
         self.sixthTime = str((datetime.utcnow()+timedelta(seconds=29)).replace(tzinfo=utc).isoformat())
 
-        self.postresponse25 = self.client.post(reverse(views.statements), self.existStmt25,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        self.postresponse25 = self.client.post(reverse(views.statements), self.existStmt25,  content_type="application/json", HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=30)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid25).update(stored=time)
 
 
     def test_unknown_more_id_url(self):
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="0.95")
         self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
 
     def test_not_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
 
         self.assertEqual(sincePostResponse.status_code, 200)
         self.assertContains(sincePostResponse, self.guid5)
@@ -339,7 +339,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid6, sincePostResponse)        
 
     def test_single_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.thirdTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.thirdTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
 
         self.assertEqual(sincePostResponse.status_code, 200)
         self.assertContains(sincePostResponse, self.guid10)
@@ -370,7 +370,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid11, sincePostResponse)
 
     def test_single_full_second_not_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
         resp_json = json.loads(sincePostResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -404,7 +404,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sincePostResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
 
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid5)
@@ -435,7 +435,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
     def test_two_pages_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
         resp_json = json.loads(sincePostResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -469,7 +469,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sincePostResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
 
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid10)
@@ -501,7 +501,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_url(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -535,7 +535,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, sinceGetResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         more_json = json.loads(moreURLGet.content)
         more_resp_url = more_json['more']
         more_resp_id = more_resp_url[-32:]
@@ -569,7 +569,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(more2URLGet.status_code, 200)
         self.assertContains(more2URLGet, self.guid4)
         self.assertContains(more2URLGet, self.guid3)                
@@ -599,7 +599,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2URLGet)        
     
     def test_limit_less_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -634,7 +634,7 @@ class StatementsMoreTests(TestCase):
 
 
     def test_limit_same_as_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -669,7 +669,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn('more', sinceGetResponse)    
 
     def test_limit_more_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -703,7 +703,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sinceGetResponse)                
         self.assertNotIn(self.guid25, sinceGetResponse)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid14)
         self.assertContains(moreURLGet, self.guid13)
@@ -735,7 +735,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_multiple_hits(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -769,7 +769,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, sinceGetResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         more_json = json.loads(moreURLGet.content)
         more_resp_url = more_json['more']
         more_resp_id = more_resp_url[-32:]
@@ -803,7 +803,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(more2URLGet.status_code, 200)
         self.assertContains(more2URLGet, self.guid4)
         self.assertContains(more2URLGet, self.guid3)                
@@ -833,7 +833,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2URLGet)        
 
         # Simulate user clicking returned 'more' URL
-        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         another_more_json = json.loads(anotherMoreURLGet.content)
         another_more_resp_url = another_more_json['more']
         another_more_resp_id = another_more_resp_url[-32:]
@@ -867,7 +867,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, anotherMoreURLGet)
 
         # Simulate user clicking returned 'more' URL
-        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}))
+        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(anotherMore2URLGet.status_code, 200)
         self.assertContains(anotherMore2URLGet, self.guid4)
         self.assertContains(anotherMore2URLGet, self.guid3)                
