@@ -147,7 +147,7 @@ def activities(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except req_process.IDNotFoundError as nf:
+    except models.activity.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=500)

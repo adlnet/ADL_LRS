@@ -127,7 +127,7 @@ def activities_get(req_dict):
     try:
         # a = Activity.Activity(activity_id=activityId, get=True)
         acts = models.activity.objects.filter(activity_id=activityId)
-    except Activity.IDNotFoundError:
+    except models.activity.DoesNotExist:
         raise IDNotFoundError("No activities found with ID %s" % activityId)
     # data = a.get_full_activity_json()
     activity_list = []
