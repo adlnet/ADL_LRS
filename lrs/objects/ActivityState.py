@@ -14,7 +14,7 @@ class ActivityState():
         try:
             self.activity = models.activity.objects.get(activity_id=request_dict['activityId'])
         except models.activity.DoesNotExist:
-            raise IDNotFoundError("Error with Activity State. The activity id (%s) did not match any activities on record: %s" % (request_dict['activityId']))
+            raise IDNotFoundError("Error with Activity State. The activity id (%s) did not match any activities on record" % (request_dict['activityId']))
         self.registrationId = request_dict.get('registrationId', None)
         self.stateId = request_dict.get('stateId', None)
         self.updated = request_dict.get('updated', None)
@@ -87,7 +87,7 @@ class ActivityState():
         try:
             state_set = self.get_set(auth)
         except models.activity_state.DoesNotExist:
-            return []
+            raise IDNotFoundError('There is no activity state associated with the ID: %s' % self.stateId)
         if self.since:
             state_set = state_set.filter(updated__gte=self.since)
         return state_set.values_list('state_id', flat=True)

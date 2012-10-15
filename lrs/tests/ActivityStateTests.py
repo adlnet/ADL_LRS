@@ -75,6 +75,15 @@ class ActivityStateTests(TestCase):
         self.assertEqual(self.put4.status_code, 204)
         self.assertEqual(self.put4.content, '')
      
+    def test_put_no_existing_activity(self):
+        testparams = {"stateId": self.stateId3, "activityId": "http://foobar", "agent": self.testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparams))
+        teststate = {"test":"put activity state","obj":{"agent":"test"}}
+        put = self.client.put(path, teststate, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
+
+        self.assertEqual(put.status_code, 404)
+
+
     def test_put_with_registrationId(self):
         testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
@@ -220,6 +229,12 @@ class ActivityStateTests(TestCase):
         r5 = self.client.get(self.url, self.testparams3, X_Experience_API_Version="0.95", Authorization=auth)
         self.assertEqual(r5.status_code, 403)
 
+    def test_get_no_existing_id(self):
+        testparams = {"stateId": "testID", "activityId": self.activityId, "agent": self.testagent}
+        r = self.client.get(self.url, testparams, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(r.status_code, 404)
+
+
     def test_get_ids(self):
         params = {"activityId": self.activityId, "agent": self.testagent}
         r = self.client.get(self.url, params, X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -228,6 +243,7 @@ class ActivityStateTests(TestCase):
         self.assertIn(self.stateId2, r.content)
         self.assertNotIn(self.stateId3, r.content)
         self.assertNotIn(self.stateId4, r.content)
+
      
     def test_get_with_since(self):
         state_id = "old_state_test"

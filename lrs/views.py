@@ -109,14 +109,14 @@ def activity_state(request):
         return r
     except ActivityState.ForbiddenException as forberr:
         return HttpResponse(forberr.message, status=403)
-    except Agent.IDNotFoundError as nf:
+    except models.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except etag.MissingEtagInfo as mei:
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        return HttpResponse(err.message, status=500)
     return resp
     
 
