@@ -3,25 +3,25 @@ from lrs import models
 from django.contrib.auth import authenticate
 import base64
 import ast
-
+import pdb
 import pprint
 
 def basic_http_auth(f):
     def wrap(r, *args, **kwargs):
-        if r['method'] == 'POST' and not r['CONTENT_TYPE'] == 'application/json':
-            return f(r, *args, **kwargs)
-        else:
-            if 'Authorization' in r:
-                authtype, auth = r['Authorization'].split(' ')
-                auth = base64.b64decode(auth)
-                username, password = auth.split(':')
-                user = authenticate(username=username, password=password)
+        # if r['method'] == 'POST' and not r['CONTENT_TYPE'] == 'application/json':
+        #     return f(r, *args, **kwargs)
+        # else:
+        if 'Authorization' in r:
+            authtype, auth = r['Authorization'].split(' ')
+            auth = base64.b64decode(auth)
+            username, password = auth.split(':')
+            user = authenticate(username=username, password=password)
 
-                if user is not None:
-                    r['user'] = user
-                    return f(r, *args, **kwargs)
-                    
-            raise NotAuthorizedException("Auth Required")
+            if user is not None:
+                r['user'] = user
+                return f(r, *args, **kwargs)
+                
+        raise NotAuthorizedException("Auth Required")
         
     return wrap
 
@@ -37,6 +37,7 @@ def statements_post(r_dict):
         r_dict['method'] = 'GET'
     return r_dict
 
+@basic_http_auth
 def statements_get(r_dict):
     return r_dict
 
@@ -94,7 +95,7 @@ def activity_state_put(r_dict):
     r_dict['state'] = r_dict.pop('body')
     return r_dict
 
-
+@basic_http_auth
 def activity_state_get(r_dict):
     try:
         r_dict['activityId']

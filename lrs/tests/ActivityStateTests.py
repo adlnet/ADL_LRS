@@ -23,8 +23,8 @@ class ActivityStateTests(TestCase):
     content_type = "application/json"
 
     def setUp(self):
-        self.username = "tester"
-        self.email = "test@tester.com"        
+        self.username = "test"
+        self.email = "mailto:test@example.com"        
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username,'email': self.email,'password':self.password,'password2':self.password}
@@ -84,7 +84,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         # also testing get w/ registration id
-        r = self.client.get(self.url, testparamsregid, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamsregid, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststateregid
         self.assertEqual(r.content, state1_str)
@@ -93,6 +93,14 @@ class ActivityStateTests(TestCase):
         del_r = self.client.delete(self.url, testparamsregid, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(del_r.status_code, 204)
 
+    def test_put_without_auth(self):
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        teststateregid = {"test":"put activity state w/ registrationId","obj":{"agent":"test"}}
+        put1 = self.client.put(path, teststateregid, content_type=self.content_type, X_Experience_API_Version="0.95")
+
+        self.assertEqual(put1.status_code, 401)
+
     def test_put_etag_conflict_if_none_match(self):
         teststateetaginm = {"test":"etag conflict - if none match *","obj":{"agent":"test"}}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
@@ -100,7 +108,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.status_code, 412)
         self.assertEqual(r.content, 'Resource detected')
 
-        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % self.teststate1
         self.assertEqual(r.content, state1_str)
@@ -114,7 +122,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.status_code, 412)
         self.assertIn('No resources matched', r.content)
 
-        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % self.teststate1
         self.assertEqual(r.content, state1_str)
@@ -128,11 +136,24 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, '')
 
-        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststateetagim
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())    
+
+    def test_put_etag_missing_on_change(self):
+        teststateetagim = {'test': 'etag no conflict - if match good hash', 'obj': {'agent': 'test'}}
+        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
+        r = self.client.put(path, teststateetagim, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 409)
+        self.assertIn('If-Match and If-None-Match headers were missing', r.content)
+        
+        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        state1_str = '%s' % self.teststate1
+        self.assertEqual(r.content, state1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
     def test_put_without_activityid(self):
         testparamsbad = {"stateId": "bad_state", "agent": self.testagent}
@@ -163,35 +184,45 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 400)
         self.assertIn('stateId parameter is missing', put1.content)
 
-    
+    # Also tests 403 forbidden status
     def test_get(self):
-        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95")
+        username = "other"
+        email = "mailto:other@example.com"
+        password = "test"
+        auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
+        form = {'username':username,'email': email,'password':password,'password2':password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")        
+
+        r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % self.teststate1
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
-        r2 = self.client.get(self.url, self.testparams2, X_Experience_API_Version="0.95")
+        r2 = self.client.get(self.url, self.testparams2, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r2.status_code, 200)
         state2_str = '%s' % self.teststate2
         self.assertEqual(r2.content, state2_str)
         self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(state2_str).hexdigest())
         
-        r3 = self.client.get(self.url, self.testparams3, X_Experience_API_Version="0.95")
+        r3 = self.client.get(self.url, self.testparams3, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r3.status_code, 200)
         state3_str = '%s' % self.teststate3
         self.assertEqual(r3.content, state3_str)
         self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(state3_str).hexdigest())
 
-        r4 = self.client.get(self.url, self.testparams4, X_Experience_API_Version="0.95")
+        r4 = self.client.get(self.url, self.testparams4, X_Experience_API_Version="0.95", Authorization=auth)
         self.assertEqual(r4.status_code, 200)
         state4_str = '%s' % self.teststate4
         self.assertEqual(r4.content, state4_str)
         self.assertEqual(r4['etag'], '"%s"' % hashlib.sha1(state4_str).hexdigest())
 
+        r5 = self.client.get(self.url, self.testparams3, X_Experience_API_Version="0.95", Authorization=auth)
+        self.assertEqual(r5.status_code, 403)
+
     def test_get_ids(self):
         params = {"activityId": self.activityId, "agent": self.testagent}
-        r = self.client.get(self.url, params, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, params, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertIn(self.stateId, r.content)
         self.assertIn(self.stateId2, r.content)
@@ -209,7 +240,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
-        r = self.client.get(self.url, testparamssince, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamssince, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststatesince
         self.assertEqual(r.content, state1_str)
@@ -217,7 +248,7 @@ class ActivityStateTests(TestCase):
 
         since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
         params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
-        r = self.client.get(self.url, params2, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, params2, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertIn(self.stateId, r.content)
         self.assertIn(self.stateId2, r.content)
@@ -239,7 +270,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
-        r = self.client.get(self.url, testparamssince, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamssince, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststatesince
         self.assertEqual(r.content, state1_str)
@@ -256,7 +287,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put2.status_code, 204)
         self.assertEqual(put2.content, '')
 
-        r2 = self.client.get(self.url, testparamssince2, X_Experience_API_Version="0.95")
+        r2 = self.client.get(self.url, testparamssince2, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r2.status_code, 200)
         state2_str = '%s' % teststatesince2
         self.assertEqual(r2.content, state2_str)
@@ -272,7 +303,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put3.status_code, 204)
         self.assertEqual(put3.content, '')
 
-        r3 = self.client.get(self.url, testparamssince3, X_Experience_API_Version="0.95")
+        r3 = self.client.get(self.url, testparamssince3, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r3.status_code, 200)
         state3_str = '%s' % teststatesince3
         self.assertEqual(r3.content, state3_str)
@@ -281,7 +312,7 @@ class ActivityStateTests(TestCase):
         # get no reg ids set w/o old state
         since1 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
         params = {"activityId": self.activityId, "agent": self.testagent, "since": since1}
-        r = self.client.get(self.url, params, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, params, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertIn(self.stateId, r.content)
         self.assertIn(self.stateId2, r.content)
@@ -292,7 +323,7 @@ class ActivityStateTests(TestCase):
         # get reg id set w/o old state
         since2 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
         params2 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "since": since2}
-        r = self.client.get(self.url, params2, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, params2, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertIn(state_id3, r.content)
         self.assertNotIn(state_id2, r.content)
@@ -308,14 +339,14 @@ class ActivityStateTests(TestCase):
         
     def test_get_without_activityid(self):
         params = {"stateId": self.stateId, "agent": self.testagent}
-        r = self.client.get(self.url, params, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, params, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 400)
         self.assertIn('activityId parameter is missing', r.content)
 
     
     def test_get_without_agent(self):
         params = {"stateId": self.stateId, "activityId": self.activityId}
-        r = self.client.get(self.url, params, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, params, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 400)
         self.assertIn('agent parameter is missing', r.content)
 
@@ -329,7 +360,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
-        r = self.client.get(self.url, testparamsregid, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamsregid, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststateregid
         self.assertEqual(r.content, state1_str)
@@ -353,7 +384,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
-        r = self.client.get(self.url, testparamsregid, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamsregid, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststateregid
         self.assertEqual(r.content, state1_str)
@@ -376,7 +407,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
-        r = self.client.get(self.url, testparamsdelset1, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamsdelset1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststatedelset1
         self.assertEqual(r.content, state1_str)
@@ -390,7 +421,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
-        r = self.client.get(self.url, testparamsdelset2, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamsdelset2, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % teststatedelset2
         self.assertEqual(r.content, state1_str)
@@ -399,41 +430,56 @@ class ActivityStateTests(TestCase):
         f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "agent": self.testagent, "activityId": self.activityId}, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(f_r.status_code, 204)
 
-        r = self.client.get(self.url, testparamsdelset1, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamsdelset1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 404)
         self.assertIn('no activity', r.content)
 
-        r = self.client.get(self.url, testparamsdelset2, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, testparamsdelset2, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 404)
         self.assertIn('no activity', r.content)
 
     def test_ie_cors_put_delete(self):
+        username = "another test"
+        email = "mailto:anothertest@example.com"
+        password = "test"
+        auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
+        form = {'username':username,'email': email,'password':password,'password2':password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
+
+
         testagent = '{"name":"another test","mbox":"mailto:anothertest@example.com"}'
         sid = "test_ie_cors_put_delete_set_1"
         sparam1 = {"stateId": sid, "activityId": self.activityId, "agent": testagent}
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
         sparam1['content'] = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
         sparam1['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
-        sparam1['Authorization'] = self.auth
+        sparam1['Authorization'] = auth
         put1 = self.client.post(path, sparam1, content_type='application/x-www-form-urlencoded', X_Experience_API_Version="0.95")
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
-        r = self.client.get(self.url, {"stateId": sid, "activityId": self.activityId, "agent": testagent}, X_Experience_API_Version="0.95")
+        r = self.client.get(self.url, {"stateId": sid, "activityId": self.activityId, "agent": testagent}, X_Experience_API_Version="0.95", Authorization=auth)
         self.assertEqual(r.status_code, 200)
         state1_str = '%s' % sparam1['content']
         self.assertEqual(r.content, state1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
 
         dparam = {"agent": testagent, "activityId": self.activityId}
-        dparam['Authorization'] = self.auth
+        dparam['Authorization'] = auth
         dparam['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"DELETE"}))
         f_r = self.client.post(path, dparam, content_type='application/x-www-form-urlencoded', X_Experience_API_Version="0.95")
         self.assertEqual(f_r.status_code, 204)
 
     def test_agent_is_group(self):
+        username = "the group"
+        email = "mailto:the.group@example.com"
+        password = "test"
+        auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
+        form = {'username':username,'email': email,'password':password,'password2':password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
+
         ot = "Group"
         name = "the group"
         mbox = "mailto:the.group@example.com"
@@ -447,10 +493,10 @@ class ActivityStateTests(TestCase):
 
         self.assertEqual(put1.status_code, 204)
 
-        get1 = self.client.get(self.url, {"stateId":"group.state.id", "activityId": self.activityId, "agent":testagent}, X_Experience_API_Version="0.95")
+        get1 = self.client.get(self.url, {"stateId":"group.state.id", "activityId": self.activityId, "agent":testagent}, X_Experience_API_Version="0.95", Authorization=auth)
         self.assertEqual(get1.status_code, 200)
         st = '%s' % teststate1
         self.assertEqual(get1.content, st)
 
-        delr = self.client.delete(self.url, testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
+        delr = self.client.delete(self.url, testparams1, Authorization=auth, X_Experience_API_Version="0.95")
         self.assertEqual(delr.status_code, 204)        

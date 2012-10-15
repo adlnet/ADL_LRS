@@ -204,6 +204,10 @@ def complexGet(req_dict):
     if 'language' in req_dict:
         language = req_dict['language']
     
+    user = None
+    if 'user' in req_dict:
+        user = req_dict['user']
+
     # Parse out params into single dict
     try:
         the_dict = req_dict['body']
@@ -291,8 +295,9 @@ def complexGet(req_dict):
     stmt_list = retrieve_stmts_from_db(the_dict, limit, stored_param, args)
     full_stmt_list = []
     # For each stmt convert to our Statement class and retrieve all json
+    # pdb.set_trace()
     for stmt in stmt_list:
-        stmt = Statement.Statement(statement_id=stmt.statement_id, get=True)
+        stmt = Statement.Statement(statement_id=stmt.statement_id, get=True, auth=user)
         full_stmt_list.append(stmt.get_full_statement_json(sparse, language))
     return full_stmt_list
 

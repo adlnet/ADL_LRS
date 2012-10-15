@@ -28,13 +28,18 @@ class default_on_exception(object):
 class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, auth=None, statement_id=None,get=False):
+    def __init__(self, initial=None, auth=None, statement_id=None, get=False):
         if get and statement_id is not None:
             self.statement_id = statement_id
+            self.statement = None
             try:
-                self.statement = models.statement.objects.get(statement_id=self.statement_id)            
+                self.statement = models.statement.objects.get(statement_id=self.statement_id)
             except models.statement.DoesNotExist:
-                raise Exception('There is no statement associated with the id: %s' % self.statement_id)
+                raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
+
+            if not self.statement.authority.mbox is None:            
+                if self.statement.authority.mbox != auth.email:
+                    raise ForbiddenException("Unauthorized to retrieve statement with statement ID %s" % statement_id)            
         else:
             obj = self._parse(initial)
             self._populate(obj, auth)
@@ -458,3 +463,15 @@ class SubStatement(Statement):
                 raise Exception("SubStatements cannot be nested inside of other SubStatements")
 
         self._populate(data, auth, sub=True)
+
+class ForbiddenException(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+class IDNotFoundError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)        

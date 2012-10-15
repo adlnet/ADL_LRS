@@ -27,7 +27,6 @@ def parse(request):
     return r_dict
 
 def parse_body(r, request):
-    # pdb.set_trace()
     if request.method == 'POST' or request.method == 'PUT':
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             r.update(request.POST.dict())

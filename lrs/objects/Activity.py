@@ -277,7 +277,7 @@ class Activity():
                     self.activity = existing_activity
                 # Someone with wrong auth trying to update activity
                 else:
-                    raise Exception("This ActivityID already exists, and you do not have" + 
+                    raise ForbiddenException("This ActivityID already exists, and you do not have" + 
                         " the correct authority to create or update it.") 
             # No auth required to update activity
             else:
@@ -552,4 +552,10 @@ class InvalidLanguageMapError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
-        return repr(self.message)            
+        return repr(self.message)
+
+class ForbiddenException(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)

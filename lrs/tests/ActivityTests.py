@@ -302,7 +302,7 @@ class ActivityTests(TestCase):
 
     def test_get_no_activity(self):
         response = self.client.get(reverse(views.activities), X_Experience_API_Version="0.95")
-        self.assertContains(response, 'Error')
+        self.assertEqual(response.status_code, 400)
     
     def test_post(self):
         response = self.client.post(reverse(views.activities), {'activityId':'my_activity'},

@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
 from lrs import forms, models
-from objects import Agent, Activity
+from objects import Agent, Activity, Statement, ActivityState
 import logging
 import json
 import pdb
@@ -68,7 +68,7 @@ def reg_success(request, user_id):
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
     statementResult = retrieve_statement.getStatementRequest(more_id) 
-    return HttpResponse(json.dumps(statementResult, indent=4),mimetype="application/json",status=200)
+    return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
@@ -83,7 +83,11 @@ def statements(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except req_process.IDNotFoundError as nf:
+    except Statement.ForbiddenException as forberr:
+        return HttpResponse(forberr.message, status=403)
+    except Activity.ForbiddenException as forberr:
+        return HttpResponse(forberr.message, status=403)        
+    except Statement.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)    
     except req_validate.ParamConflictError as pcerr:
         return HttpResponse(pcerr.message, status=409)
@@ -103,14 +107,16 @@ def activity_state(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except ActivityState.ForbiddenException as forberr:
+        return HttpResponse(forberr.message, status=403)
     except Agent.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except etag.MissingEtagInfo as mei:
         return HttpResponse(mei.message, status=409)
     except etag.EtagPreconditionFail as epf:
         return HttpResponse(epf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     return HttpResponse(err.message, status=500)
     return resp
     
 
@@ -147,7 +153,7 @@ def activities(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except models.activity.IDNotFoundError as nf:
+    except req_process.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except Exception as err:
         return HttpResponse(err.message, status=500)
@@ -159,6 +165,8 @@ def activities(request):
 def agent_profile(request):
     try: 
         resp = handle_request(request)
+    except req_validate.ParamError as err:
+        return HttpResponse(err.message, status=400)        
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
@@ -180,6 +188,8 @@ def agent_profile(request):
 def agents(request):
     try: 
         resp = handle_request(request)
+    except req_validate.ParamError as err:
+        return HttpResponse(err.message, status=400)        
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
