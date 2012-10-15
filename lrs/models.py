@@ -242,7 +242,7 @@ class activity_def_correctresponsespattern(models.Model):
 class activity_definition(models.Model):
     name = models.ManyToManyField(LanguageMap, related_name="activity_definition_name", blank=True, null=True)
     description = models.ManyToManyField(LanguageMap, related_name="activity_definition_description", blank=True, null=True)
-    activity_definition_type = models.CharField(max_length=200)
+    activity_definition_type = models.CharField(max_length=200, blank=True, null=True)
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
 

@@ -4,11 +4,12 @@ from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
-from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement
+from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
 from lrs import forms, models
 import logging
 import json
 import pdb
+from django.utils.decorators import decorator_from_middleware
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +64,13 @@ def reg_success(request, user_id):
     return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
     statementResult = retrieve_statement.getStatementRequest(more_id) 
     return HttpResponse(json.dumps(statementResult, indent=4),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements(request):
     try: 
         resp = handle_request(request)
@@ -79,12 +82,13 @@ def statements(request):
         return HttpResponse(err.message, status=409)
     except req_validate.NoParamsError as err:
         return HttpResponse(err.message, status=204)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=400)
+    except Exception as err:
+        return HttpResponse(err.message, status=400)
     return resp
     
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_state(request):
     try: 
         resp = handle_request(request)
@@ -104,6 +108,7 @@ def activity_state(request):
     
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_profile(request):
     try: 
         resp = handle_request(request)
@@ -123,6 +128,7 @@ def activity_profile(request):
 
 
 @require_GET
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activities(request):
     try: 
         resp = handle_request(request)
@@ -140,6 +146,7 @@ def activities(request):
 
 
 @require_http_methods(["PUT","POST","GET","DELETE"])    
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def agent_profile(request):
     try: 
         resp = handle_request(request)
@@ -160,6 +167,7 @@ def agent_profile(request):
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def agents(request):
     try: 
         resp = handle_request(request)

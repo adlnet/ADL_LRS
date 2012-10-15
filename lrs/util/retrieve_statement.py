@@ -28,7 +28,7 @@ def convertToUTC(timestr):
     return date_object
 
 def retrieve_result(objectData):
-    pdb.set_trace()
+    # pdb.set_trace()
     if 'score' in objectData:
         objectData['score'] = models.score.objects.filter(**objectData['score'])[0]
     try:
@@ -38,7 +38,7 @@ def retrieve_result(objectData):
     return result
 
 def retrieve_context(objectData):
-    pdb.set_trace()
+    # pdb.set_trace()
     # if 'instructor' in objectData:
     #     objectData['instructor'] = models.agent.objects.filter(**objectData['instructor'])[0]
 
@@ -61,7 +61,7 @@ def retrieve_context(objectData):
 
 def parse_incoming_object(objectData, args):
     # If object is not dict, try to load as one
-    pdb.set_trace()
+    # pdb.set_trace()
     obj = None
     if not type(objectData) is dict:
         try:
@@ -120,7 +120,7 @@ def parse_incoming_object(objectData, args):
                     sub_args['context'] = context
 
             if 'actor' in objectData:
-                actor = parse_incoming_actor(objectData['actor'], sub_args)
+                actor = parse_incoming_actor(objectData['actor'])
                 if actor:
                     sub_args['actor'] = actor
 
@@ -147,7 +147,7 @@ def parse_incoming_object(objectData, args):
     return obj
 
 def parse_incoming_actor(actorData):
-    pdb.set_trace()
+    # pdb.set_trace()
     actor = None
     if not type(actorData) is dict:
         try:
@@ -207,6 +207,11 @@ def complexGet(req_dict):
     # Parse out params into single dict
     try:
         the_dict = req_dict['body']
+        if isinstance(the_dict, str):
+            try:
+                the_dict = ast.literal_eval(the_dict)
+            except:
+                the_dict = json.loads(the_dict)
     except KeyError:
         the_dict = req_dict
     
@@ -224,7 +229,7 @@ def complexGet(req_dict):
             args['stored__lte'] = date_object   
     
     # If searching by activity or actor
-    pdb.set_trace()
+    # pdb.set_trace()
     if 'object' in the_dict:
         objectData = the_dict['object']
         obj = parse_incoming_object(objectData, args)
@@ -248,7 +253,7 @@ def complexGet(req_dict):
     # If searching by actor
     if 'actor' in the_dict:
         actorData = the_dict['actor']
-        actor = parse_incoming_actor(actorData, args)
+        actor = parse_incoming_actor(actorData)
         if actor:
             args['actor'] = actor
 

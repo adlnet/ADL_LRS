@@ -242,7 +242,7 @@ class StatementsMoreTests(TestCase):
 
 
         # Post statements
-        post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),content_type="application/json",HTTP_AUTHORIZATION=self.auth)
+        post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
@@ -330,11 +330,11 @@ class StatementsMoreTests(TestCase):
 
 
     def test_unknown_more_id_url(self):
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="0.95")
         self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
 
     def test_not_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
 
         self.assertEqual(sincePostResponse.status_code, 200)
         self.assertContains(sincePostResponse, self.guid5)
@@ -369,7 +369,7 @@ class StatementsMoreTests(TestCase):
 
         sincePostResponse = self.client.post(reverse(views.statements),
             {"until":self.thirdTime},
-            content_type="application/x-www-form-urlencoded")
+            content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
         self.assertEqual(sincePostResponse.status_code, 200)
         self.assertContains(sincePostResponse, self.guid10)
         self.assertContains(sincePostResponse, self.guid9)
@@ -399,7 +399,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid11, sincePostResponse)
 
     def test_single_full_second_not_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
         resp_json = json.loads(sincePostResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -433,7 +433,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sincePostResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
 
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid5)
@@ -464,7 +464,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
     def test_two_pages_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
         resp_json = json.loads(sincePostResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -498,7 +498,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sincePostResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
 
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid10)
@@ -530,7 +530,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_url(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -564,7 +564,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, sinceGetResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         more_json = json.loads(moreURLGet.content)
         more_resp_url = more_json['more']
         more_resp_id = more_resp_url[-32:]
@@ -598,7 +598,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(more2URLGet.status_code, 200)
         self.assertContains(more2URLGet, self.guid4)
         self.assertContains(more2URLGet, self.guid3)                
@@ -628,7 +628,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2URLGet)        
     
     def test_limit_less_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -663,7 +663,7 @@ class StatementsMoreTests(TestCase):
 
 
     def test_limit_same_as_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -698,7 +698,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn('more', sinceGetResponse)    
 
     def test_limit_more_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -732,7 +732,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sinceGetResponse)                
         self.assertNotIn(self.guid25, sinceGetResponse)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid14)
         self.assertContains(moreURLGet, self.guid13)
@@ -764,7 +764,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_multiple_hits(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95")
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -798,7 +798,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, sinceGetResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         more_json = json.loads(moreURLGet.content)
         more_resp_url = more_json['more']
         more_resp_id = more_resp_url[-32:]
@@ -832,7 +832,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(more2URLGet.status_code, 200)
         self.assertContains(more2URLGet, self.guid4)
         self.assertContains(more2URLGet, self.guid3)                
@@ -862,7 +862,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2URLGet)        
 
         # Simulate user clicking returned 'more' URL
-        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         another_more_json = json.loads(anotherMoreURLGet.content)
         another_more_resp_url = another_more_json['more']
         another_more_resp_id = another_more_resp_url[-32:]
@@ -896,7 +896,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, anotherMoreURLGet)
 
         # Simulate user clicking returned 'more' URL
-        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}))
+        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(anotherMore2URLGet.status_code, 200)
         self.assertContains(anotherMore2URLGet, self.guid4)
         self.assertContains(anotherMore2URLGet, self.guid3)                

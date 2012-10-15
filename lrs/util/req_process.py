@@ -5,20 +5,26 @@ import json
 from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
 import uuid
 import pdb
+import ast
 import retrieve_statement
 
 import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
-    if not type(req_dict['body']) is list:
-        stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
-        stmtResponses.append(str(stmt.statement_id))
-    else:
-        for st in req_dict['body']:
-            stmt = Statement.Statement(st, auth=req_dict['user']).statement
+    if isinstance(req_dict['body'], str):
+        try:
+            req_dict['body'] = ast.literal_eval(req_dict['body'])
+        except:
+            req_dict['body'] = json.loads(req_dict['body'])    
+        if not type(req_dict['body']) is list:
+            stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
             stmtResponses.append(str(stmt.statement_id))
-    # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
+        else:
+            for st in req_dict['body']:
+                stmt = Statement.Statement(st, auth=req_dict['user']).statement
+                stmtResponses.append(str(stmt.statement_id))
+        # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
