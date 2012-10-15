@@ -297,8 +297,8 @@ class ActivityTests(TestCase):
         response = self.client.get(reverse(views.activities), {'activityId': 'foo'}, X_Experience_API_Version="0.95")
         rsp = response.content
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(rsp, '[]')
+        self.assertEqual(response.status_code, 404)
+
 
     def test_get_no_activity(self):
         response = self.client.get(reverse(views.activities), X_Experience_API_Version="0.95")

@@ -125,11 +125,17 @@ def activities_get(req_dict):
     activityId = req_dict['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
     try:
-        a = Activity.Activity(activity_id=activityId, get=True)
+        # a = Activity.Activity(activity_id=activityId, get=True)
+        acts = models.activity.objects.filter(activity_id=activityId)
     except Activity.IDNotFoundError:
-        return HttpResponse(json.dumps([]), mimetype="application/json", status=200)
-    data = a.get_full_activity_json()
-    return HttpResponse(stream_response_generator(data), mimetype="application/json")
+        raise IDNotFoundError("No activities found with ID %s" % activityId)
+    # data = a.get_full_activity_json()
+    activity_list = []
+    for act in acts:
+        activity_list.append(act.object_return())
+    # return HttpResponse(stream_response_generator(data), mimetype="application/json")
+    return HttpResponse(activity_list, mimetype="application/json", status=200)
+
     
 #Generate JSON
 def stream_response_generator(data):
@@ -203,7 +209,7 @@ def agents_get(req_dict):
 
 
 # so far unnecessary
-class ProcessError(Exception):
+class IDNotFoundError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):

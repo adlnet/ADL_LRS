@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
 from lrs import forms, models
+from objects import Agent, Activity
 import logging
 import json
 import pdb
@@ -74,16 +75,20 @@ def statements_more(request, more_id):
 def statements(request):
     try: 
         resp = handle_request(request)
+    except req_validate.ParamError as perr:
+        return HttpResponse(perr.message, status=400)
+    except req_validate.NoParamsError as nperr:
+        return HttpResponse(nperr.message, status=400)        
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except req_validate.ParamConflictError as err:
-        return HttpResponse(err.message, status=409)
-    except req_validate.NoParamsError as err:
-        return HttpResponse(err.message, status=204)
+    except req_process.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)    
+    except req_validate.ParamConflictError as pcerr:
+        return HttpResponse(pcerr.message, status=409)
     except Exception as err:
-        return HttpResponse(err.message, status=400)
+        return HttpResponse(err.message, status=500)
     return resp
     
 
@@ -92,38 +97,42 @@ def statements(request):
 def activity_state(request):
     try: 
         resp = handle_request(request)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except models.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
+    except req_validate.ParamError as err:
+        return HttpResponse(err.message, status=400)        
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except Agent.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)
+    except etag.MissingEtagInfo as mei:
+        return HttpResponse(mei.message, status=409)
+    except etag.EtagPreconditionFail as epf:
+        return HttpResponse(epf.message, status=412)
     except Exception as err:
-        return HttpResponse(err.message, status=400)
+        return HttpResponse(err.message, status=500)
     return resp
     
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_profile(request):
-    try: 
+    try:
         resp = handle_request(request)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except models.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
+    except req_validate.ParamError as err:
+        return HttpResponse(err.message, status=400)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except Activity.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)
+    except etag.MissingEtagInfo as mei:
+        return HttpResponse(mei.message, status=409)
+    except etag.EtagPreconditionFail as epf:
+        return HttpResponse(epf.message, status=412)
     except Exception as err:
-        return HttpResponse(err.message, status=400)
+        return HttpResponse(err.message, status=500)
     return resp
 
 
@@ -133,15 +142,15 @@ def activities(request):
     try: 
         resp = handle_request(request)
     except req_validate.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
+        return HttpResponse(err.message, status=400)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except req_process.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)
     except Exception as err:
-        return HttpResponse(err.message, status=400)
+        return HttpResponse(err.message, status=500)
     return resp
 
 
@@ -150,18 +159,18 @@ def activities(request):
 def agent_profile(request):
     try: 
         resp = handle_request(request)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except models.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except Agent.IDNotFoundError as nf:
+        return HttpResponse(nf.message, status=404)
+    except etag.MissingEtagInfo as mei:
+        return HttpResponse(mei.message, status=409)
+    except etag.EtagPreconditionFail as epf:
+        return HttpResponse(epf.message, status=412)
     except Exception as err:
-        return HttpResponse(err.message, status=400)
+        return HttpResponse(err.message, status=500)
     return resp
 
 # returns a 405 (Method Not Allowed) if not a GET
@@ -171,14 +180,14 @@ def agent_profile(request):
 def agents(request):
     try: 
         resp = handle_request(request)
-    except models.IDNotFoundError as iderr:
-        return HttpResponse(iderr, status=404)
     except req_validate.NotAuthorizedException as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except Agent.IDNotFoundError as iderr:
+        return HttpResponse(iderr, status=404)
     except Exception as err:
-        return HttpResponse(err.message, status=400)
+        return HttpResponse(err.message, status=500)
     return resp
 
 def handle_request(request):
