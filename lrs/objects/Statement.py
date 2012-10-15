@@ -277,8 +277,9 @@ class Statement():
 
 
         if 'registration' not in stmt_data['context']:
-            raise Exception('Registration UUID required for context')
-
+            # raise Exception('Registration UUID required for context')
+            stmt_data['context']['registration'] = uuid.uuid4()
+            
         # if 'contextActivities' not in stmt_data['context']:
         #     raise Exception('contextActivities required for context')
 
