@@ -119,7 +119,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.status_code, 409)
         self.assertIn('If-Match and If-None-Match headers were missing', response.content)
         
-        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
 
@@ -131,7 +131,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId1)
 
-        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
@@ -143,7 +143,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.status_code, 412)
         self.assertIn('No resources matched', response.content)
 
-        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
 
@@ -155,7 +155,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % 'http://etag.nomatch.good')
 
-        r = self.client.get(reverse(views.activity_profile), params, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.activity_profile), params, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
@@ -168,13 +168,13 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
 
-        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
   
     #TODO: Need etag for ID list?
     def test_get_activity_only(self):
-        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId2}, X_Experience_API_Version="0.95")
+        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId2}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.testprofileId2)
         #resp_hash = hashlib.sha1(response.content).hexdigest()
@@ -184,7 +184,7 @@ class ActivityProfileTests(TestCase):
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
 
     def test_get_activity_profileId(self):
-        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="0.95")
+        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.testprofile1)
         resp_hash = hashlib.sha1(response.content).hexdigest()
@@ -193,11 +193,18 @@ class ActivityProfileTests(TestCase):
 
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
 
+    def test_get_activity_profileId_no_auth(self):
+        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="0.95")
+        self.assertEqual(response.status_code, 401)
 
+    def test_get_activity_profileId_activity_dne(self):
+        response = self.client.get(reverse(views.activity_profile), {'activityId':'http://actID','profileId':self.testprofileId1}, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(response.status_code, 404)
+        
     def test_get_activity_since(self):
         #Convert since to string since will be string in header
         since = str(time.time())
-        response = self.client.get(reverse(views.activity_profile), {'activityId': self.test_activityId3,'since':since}, X_Experience_API_Version="0.95")
+        response = self.client.get(reverse(views.activity_profile), {'activityId': self.test_activityId3,'since':since}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.testprofileId3)
         self.assertEqual(response['since'], since)
@@ -208,13 +215,13 @@ class ActivityProfileTests(TestCase):
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
     
     def test_get_no_activity_profileId(self):
-        response = self.client.get(reverse(views.activity_profile), {'profileId': self.testprofileId3}, X_Experience_API_Version="0.95")
+        response = self.client.get(reverse(views.activity_profile), {'profileId': self.testprofileId3}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')
 
     def test_get_no_activity_since(self):
         since = str(time.time())
-        response = self.client.get(reverse(views.activity_profile), {'since':since}, X_Experience_API_Version="0.95")
+        response = self.client.get(reverse(views.activity_profile), {'since':since}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')
     
@@ -258,7 +265,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % pid)
 
-        r = self.client.get(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % params['content'])
 
@@ -273,7 +280,7 @@ class ActivityProfileTests(TestCase):
         the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': "tetris.snafu"}))
         p_r = self.client.put(path, json.dumps(profile), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(p_r.status_code, 200)
-        r = self.client.get(reverse(views.activity_profile), {'activityId': "tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.activity_profile), {'activityId': "tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], self.content_type)
         self.assertIn("\"", r.content)        

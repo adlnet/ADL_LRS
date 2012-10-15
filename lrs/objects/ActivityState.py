@@ -82,7 +82,7 @@ class ActivityState():
             state_set = models.activity_state.objects.filter(agent=agent, activity=self.activity)
         return state_set
 
-    # TODO RETURN NO MATCH
+
     def get_ids(self, auth):
         try:
             state_set = self.get_set(auth)

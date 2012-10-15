@@ -97,3 +97,8 @@ class ActivityProfile():
         except IDNotFoundError:
             pass
 
+class ForbiddenException(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)

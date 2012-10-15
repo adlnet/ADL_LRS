@@ -141,6 +141,7 @@ def activity_profile_put(r_dict):
     
     return r_dict
 
+@basic_http_auth
 def activity_profile_get(r_dict):
     try:
         r_dict['activityId']

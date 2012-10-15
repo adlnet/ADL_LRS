@@ -131,6 +131,8 @@ def activity_profile(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except Activity.ForbiddenException as forberr:
+        return HttpResponse(forberr.message, status=403)        
     except Activity.IDNotFoundError as nf:
         return HttpResponse(nf.message, status=404)
     except etag.MissingEtagInfo as mei:

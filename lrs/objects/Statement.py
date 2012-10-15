@@ -29,6 +29,7 @@ class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None, get=False):
+        # pdb.set_trace()
         if get and statement_id is not None:
             self.statement_id = statement_id
             self.statement = None
@@ -313,7 +314,8 @@ class Statement():
 
         if 'statement' in context:
             # stmt = Statement(context['statement']).statement.id 
-            stmt = Statement(statement_id=context['statement']['id'], get=True)
+            stmt = models.statement.objects.get(statement_id=context['statement']['id'])
+            # stmt = Statement(statement_id=context['statement']['id'], get=True)
             stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
             stmt_ref.save()
             context['statement'] = stmt_ref
