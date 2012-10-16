@@ -1005,7 +1005,6 @@ class StatementsTests(TestCase):
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
         cguid1 = str(uuid.uuid4())
-        # print cguid1
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},
             "object": {"objectType": "Activity", "id":"test_wrong_list_post",
             "definition": {"name": {"en-US":"wrongactName", "en-GB": "anotherActName"},
@@ -1025,8 +1024,7 @@ class StatementsTests(TestCase):
             "wrongkey2": "wrongval2"}}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"test_wrong_list_post2"},
             "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
-            "extensions":{"resultwrongkey1": "value1", "resultwrongkey2":"value2"}}},
-            
+            "extensions":{"resultwrongkey1": "value1", "resultwrongkey2":"value2"}}},            
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"test_wrong_list_post2"}},            
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"test_wrong_list_post4"}, "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}}])
         
@@ -1055,3 +1053,22 @@ class StatementsTests(TestCase):
         self.assertEqual(len(activity_definitions), 3)
         self.assertEqual(len(crp_answers), 0)
         self.assertEqual(len(activity_definition_exts), 0)
+
+    def test_post_list_rollback_part_2(self):
+        stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answer"]},
+            "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}}},
+            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"test_wrong_list_post2"}}])
+        pdb.set_trace()
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+
+        verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
+        activities = models.activity.objects.filter(activity_id='foogie')
+
+        self.assertEqual(len(verbs), 1)
+        self.assertEqual(len(activities), 1)

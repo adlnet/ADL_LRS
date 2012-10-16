@@ -519,7 +519,7 @@ class ContextActivity(models.Model):
 class context(models.Model):    
     registration = models.CharField(max_length=200)
     instructor = models.ForeignKey(agent,blank=True, null=True)
-    team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
+    team = models.ForeignKey(agent,blank=True, null=True, related_name="context_team")
     contextActivities = models.ManyToManyField(ContextActivity)
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
@@ -652,6 +652,31 @@ class SubStatement(statement_object):
         ret['objectType'] = "SubStatement"
         return ret
 
+    def delete(self, *args, **kwargs):
+        # pdb.set_trace()
+        if not self.result is None:
+            self.result.delete()
+        if not self.context is None:
+            self.context.delete()
+        
+        stmt_object, object_type = self.get_object()
+    
+        # If this is the only statement using the activity
+        # If not 1 there are other statements using this object
+        if len(SubStatement.objects.filter(stmt_object__id=stmt_object.id)) <= 1 and \
+            len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
+            stmt_object.delete()
+
+        # If this is the only statement using the verb - if not 1 it is being used elsewhere
+        if len(SubStatement.objects.filter(verb__id=self.verb.id)) <= 1 and \
+            len(statement.objects.filter(verb__id=self.verb.id)) <= 1:
+            self.verb.delete()
+
+        try:
+            super(SubStatement, self).delete(*args, **kwargs)            
+        except SubStatement.DoesNotExist:
+            pass # onetoone fields already deleted        
+
 class statement(models.Model):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
@@ -716,25 +741,42 @@ class statement(models.Model):
         super(statement, self).save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        # pdb.set_trace()
+        pdb.set_trace()
         if not self.result is None:
             self.result.delete()
         if not self.context is None:
             self.context.delete()
+
+
+        links = [rel.get_accessor_name() for rel in self.actor._meta.get_all_related_objects()]
+
+        for link in links:
+            objects = getattr(self.actor, link).all()
+            for object in objects:
+                # do something with related object instance
+                pass
+
         
         stmt_object, object_type = self.get_object()
-    
-        # If this is the only statement using the activity
-        # If not 1 there are other statements using this object
-        if len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
-            stmt_object.delete()
+        if object_type == 'activity' or object_type == 'substatement':
+            # If this is the only statement using the activity
+            # If not 1 there are other statements using this object
+            if len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1 and \
+                len(SubStatement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
+                stmt_object.delete()
 
-        # If this is the only statement using the verb - if not 1 it is being used elsewhere
-        # SubStatement can be 0 or 1 since there isn't necessarily a sub in each stmt
-        if len(statement.objects.filter(verb__id=self.verb.id)) <= 1 and \
-            len(SubStatement.objects.filter(verb__id=self.verb.id)) <= 1:
-            self.verb.delete()
+            # If this is the only statement using the verb - if not 1 it is being used elsewhere
+            if len(statement.objects.filter(verb__id=self.verb.id)) <= 1 and \
+                len(SubStatement.objects.filter(verb__id=self.verb.id)) <= 1:
+                self.verb.delete()
+        else:
+            links = [rel.get_accessor_name() for rel in self.stmt_object._meta.get_all_related_objects()]
 
+            for link in links:
+                objects = getattr(self.stmt_object, link).all()
+                for object in objects:
+                    # do something with related object instance
+                    pass
         try:
             super(statement, self).delete(*args, **kwargs)            
         except statement.DoesNotExist:
