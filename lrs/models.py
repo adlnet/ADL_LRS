@@ -7,6 +7,7 @@ from django.core import serializers
 from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.utils.timezone import utc
+# from django.db.models.signals import post_delete
 import ast
 import json
 import pdb
@@ -60,6 +61,8 @@ class score(models.Model):
                     ret[field.name] = value
         return ret
 
+
+
 class result(models.Model): 
     success = models.NullBooleanField(blank=True,null=True)
     completion = models.NullBooleanField(blank=True,null=True)
@@ -83,6 +86,18 @@ class result(models.Model):
         for ext in result_ext:
             ret['extensions'][ext.key] = ext.value        
         return ret
+    
+    def delete(self, *args, **kwargs):
+        # pdb.set_trace()
+        if not self.score is None:
+            self.score.delete()
+        exts = result_extensions.objects.filter(result=self)
+        for ext in exts:
+            ext.delete()
+        try:
+            super(result, self).delete(*args, **kwargs)            
+        except score.DoesNotExist:
+            pass # score field already deleted
 
 class result_extensions(models.Model):
     key=models.CharField(max_length=200)
@@ -239,6 +254,16 @@ class LanguageMap(models.Model):
 class activity_def_correctresponsespattern(models.Model):
     pass
 
+    def delete(self, *args,**kwargs):
+        answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=self)
+        for answer in answers:
+            answer.delete()
+        try:
+            super(activity_def_correctresponsespattern, self).delete(*args, **kwargs)
+        except Exception, e:
+            raise e
+
+
 class activity_definition(models.Model):
     name = models.ManyToManyField(LanguageMap, related_name="activity_definition_name", blank=True, null=True)
     description = models.ManyToManyField(LanguageMap, related_name="activity_definition_description", blank=True, null=True)
@@ -309,7 +334,35 @@ class activity_definition(models.Model):
                 ret['extensions'][ext.key] = ext.value        
         return ret
 
+    def delete(self, *args, **kwargs):
+        if not self.correctresponsespattern is None:
+            self.correctresponsespattern.delete()
 
+            scales = activity_definition_scale.objects.filter(activity_definition=self)
+            for scale in scales:
+                scale.delete()            
+            choices = activity_definition_choice.objects.filter(activity_definition=self)
+            for choice in choices:
+                choice.delete()            
+            steps = activity_definition_step.objects.filter(activity_definition=self)
+            for step in steps:
+                step.delete()
+            sources = activity_definition_source.objects.filter(activity_definition=self)
+            for source in sources:
+                source.delete()
+            targets = activity_definition_target.objects.filter(activity_definition=self)
+            for target in targets:
+                target.delete()
+
+
+        activity_definition_exts = activity_extensions.objects.filter(activity_definition=self)
+        for ext in activity_definition_exts:
+            ext.delete()
+
+        try:
+            super(activity_definition, self).delete(*args, **kwargs)
+        except Exception, e:
+            raise e       
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)
@@ -325,6 +378,15 @@ class activity(statement_object):
         if not self.activity_definition is None:
             ret['definition'] = self.activity_definition.object_return(lang)
         return ret
+
+    def delete(self, *args, **kwargs):
+        if not self.activity_definition is None:
+            self.activity_definition.delete()
+
+        try:
+            super(activity, self).delete(*args, **kwargs)
+        except statement_object.DoesNotExist:
+            pass # already deleted
 
 class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
@@ -465,7 +527,6 @@ class context(models.Model):
     statement = models.OneToOneField(StatementRef, blank=True, null=True)
 
     def object_return(self):
-
         ret = {}
         linked_fields = ['instructor', 'team', 'statement', 'contextActivities']
         for field in self._meta.fields:
@@ -492,6 +553,19 @@ class context(models.Model):
         for ext in context_ext:
             ret['extensions'][ext.key] = ext.value        
         return ret
+
+    def delete(self, *args, **kwargs):
+        if not self.statement is None:
+            self.statement.delete()
+        exts = context_extensions.objects.filter(context=self)
+        for ext in exts:
+            ext.delete()
+
+        try:
+            super(context, self).delete(*args, **kwargs)
+        except Exception, e:
+            raise e
+
 
 class context_extensions(models.Model):
     key=models.CharField(max_length=200)
@@ -578,11 +652,11 @@ class SubStatement(statement_object):
         ret['objectType'] = "SubStatement"
         return ret
 
-class statement(statement_object):
+class statement(models.Model):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
-    verb = models.ForeignKey(Verb)    
+    verb = models.ForeignKey(Verb)
     result = models.OneToOneField(result, blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())    
@@ -591,15 +665,12 @@ class statement(statement_object):
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
     authoritative = models.BooleanField(default=True)
 
-    def object_return(self, lang=None):
-        object_type = 'activity'
-        ret = {}
-        ret['id'] = self.statement_id
-        ret['actor'] = self.actor.get_agent_json()
-        ret['verb'] = self.verb.object_return(lang)
-
+    def get_object(self):
+        stmt_object = None
+        object_type = None
         try:
             stmt_object = activity.objects.get(id=self.stmt_object.id)
+            object_type = 'activity'
         except activity.DoesNotExist:
             try:
                 stmt_object = agent.objects.get(id=self.stmt_object.id)
@@ -610,6 +681,16 @@ class statement(statement_object):
                     object_type = 'substatement'            
                 except SubStatement.DoesNotExist:
                     raise IDNotFoundError("No activity, agent, or substatement found with given ID")
+        return stmt_object, object_type
+
+    def object_return(self, lang=None):
+        object_type = 'activity'
+        ret = {}
+        ret['id'] = self.statement_id
+        ret['actor'] = self.actor.get_agent_json()
+        ret['verb'] = self.verb.object_return(lang)
+
+        stmt_object, object_type = self.get_object()
 
         if object_type == 'activity' or object_type == 'substatement':
             ret['object'] = stmt_object.object_return(lang)  
@@ -634,6 +715,37 @@ class statement(statement_object):
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        # pdb.set_trace()
+        if not self.result is None:
+            self.result.delete()
+        if not self.context is None:
+            self.context.delete()
+        
+        stmt_object, object_type = self.get_object()
+    
+        # If this is the only statement using the activity
+        # If not 1 there are other statements using this object
+        if len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
+            stmt_object.delete()
+
+        # If this is the only statement using the verb - if not 1 it is being used elsewhere
+        # SubStatement can be 0 or 1 since there isn't necessarily a sub in each stmt
+        if len(statement.objects.filter(verb__id=self.verb.id)) <= 1 and \
+            len(SubStatement.objects.filter(verb__id=self.verb.id)) <= 1:
+            self.verb.delete()
+
+        try:
+            super(statement, self).delete(*args, **kwargs)            
+        except statement.DoesNotExist:
+            pass # onetoone fields already deleted    
+
+# def delete_attached_objects(sender, **kwargs):
+#     model = kwargs.get('instance')
+#     pdb.set_trace()
+
+
+# post_delete.connect(delete_attached_objects, statement)
 
 # - from http://djangosnippets.org/snippets/2283/
 # @transaction.commit_on_success

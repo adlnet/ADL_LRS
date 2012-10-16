@@ -3,6 +3,7 @@ from lrs import objects, models
 from lrs.util import etag
 import json
 from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
+from django.db import transaction
 import uuid
 import pdb
 import ast
@@ -21,10 +22,15 @@ def statements_post(req_dict):
             stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
             stmtResponses.append(str(stmt.statement_id))
         else:
-            for st in req_dict['body']:
-                stmt = Statement.Statement(st, auth=req_dict['user']).statement
-                stmtResponses.append(str(stmt.statement_id))
-        # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
+            try:
+                for st in req_dict['body']:
+                    stmt = Statement.Statement(st, auth=req_dict['user']).statement
+                    stmtResponses.append(str(stmt.statement_id))
+            except Exception, e:
+                for stmt_id in stmtResponses:
+                    models.statement.objects.get(statement_id=stmt_id).delete()
+                raise e
+
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
@@ -48,8 +54,7 @@ def statements_get(req_dict):
         statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
-    # pdb.set_trace()
-    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
+    return HttpResponse(json.dumps(statementResult), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency

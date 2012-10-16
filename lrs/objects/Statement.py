@@ -280,9 +280,6 @@ class Statement():
             # raise Exception('Registration UUID required for context')
             stmt_data['context']['registration'] = uuid.uuid4()
 
-        # if 'contextActivities' not in stmt_data['context']:
-        #     raise Exception('contextActivities required for context')
-
         # Statement Actor and Object supercede context instructor and team
         # If there is an actor or object is an agent in the stmt then remove the instructor
         if 'actor' in stmt_data:
@@ -461,7 +458,6 @@ class Statement():
         # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args, sub)
-
 
 class SubStatement(Statement):
     @transaction.commit_on_success
