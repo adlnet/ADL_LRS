@@ -1005,6 +1005,7 @@ class StatementsTests(TestCase):
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
         cguid1 = str(uuid.uuid4())
+        # print cguid1
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"test_wrong_list_post2"},
             "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
             "extensions":{"resultwrongkey1": "value1", "resultwrongkey2":"value2"}}},
@@ -1031,12 +1032,16 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 500)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        
         results = models.result.objects.filter(response='wrong')
         scores = models.score.objects.filter(scaled=.99)
         result_exts = models.result_extensions.objects.filter(key__contains='wrong')
+        
         contexts = models.context.objects.filter(registration=cguid1)
         context_exts = models.context_extensions.objects.filter(key__contains='wrong')
+        
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
+        
         activities = models.activity.objects.filter(activity_id__contains='test_wrong_list_post')
         activity_definitions = models.activity_definition.objects.all()
         crp_answers = models.correctresponsespattern_answer.objects.filter(answer__contains='wrong')

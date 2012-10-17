@@ -209,13 +209,13 @@ class Statement():
             con_act_data = context['contextActivities']
             del context['contextActivities']
 
-        if 'instructor' in context:
-            del context['instructor']
-        if 'team' in context:
-            del context['team']
-        if 'cntx_statement' in context:
-            del context['cntx_statement']
-            
+        # if 'instructor' in context:
+        #     del context['instructor']
+        # if 'team' in context:
+        #     del context['team']
+        # if 'cntx_statement' in context:
+        #     del context['cntx_statement']
+        # pdb.set_trace()
         cntx = models.context(**context)    
         cntx.save()
 
@@ -324,6 +324,7 @@ class Statement():
             stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
             stmt_ref.save()
             context['cntx_statement'] = stmt_ref
+            del context['statement']
 
         return self._saveContextToDB(context, contextExts)
 
@@ -343,6 +344,7 @@ class Statement():
         if 'id' not in incoming_verb:
             raise Exception("ID field is not included in statement verb")
 
+        # verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'], statement=self.statement)
         verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
 
         if not created:
@@ -403,6 +405,7 @@ class Statement():
 
         valid_agent_objects = ['agent', 'group']
         # Check to see if voiding statement
+        # if raw_verb['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         if args['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             # objectType must be statementRef if want to void another statement
             if statementObjectData['objectType'].lower() == 'statementref' and 'id' in statementObjectData.keys():
@@ -431,6 +434,7 @@ class Statement():
 
         #Set result when present - result object can be string or JSON object
         if 'result' in stmt_data:
+            # args['result'] = self._populateResult(stmt_data, raw_verb)
             args['result'] = self._populateResult(stmt_data, args['verb'])
 
 	    # Set context when present
@@ -465,6 +469,7 @@ class Statement():
         # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args, sub)
+        # self._build_verb_object(raw_verb)
 
 class SubStatement(Statement):
     @transaction.commit_on_success

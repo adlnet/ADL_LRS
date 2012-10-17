@@ -90,12 +90,15 @@ class result(models.Model):
     def delete(self, *args, **kwargs):
         # pdb.set_trace()
         exts = result_extensions.objects.filter(result=self)
+        has_score = False
         for ext in exts:
             ext.delete()
         #Since OnetoOne fields are backwards, should delete result (self) 
         if not self.score is None:
-            self.score.delete()        
-        # super(result, self).delete(*args, **kwargs)            
+            self.score.delete()
+            has_score = True
+        if not has_score:            
+            super(result, self).delete(*args, **kwargs)            
 
 class result_extensions(models.Model):
     key=models.CharField(max_length=200)
@@ -107,6 +110,7 @@ class result_extensions(models.Model):
 
 class statement_object(models.Model):
     pass
+    
 
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
@@ -216,11 +220,15 @@ class agent(statement_object):
         return ret
 
     def delete(self, *args, **kwargs):
+        # pdb.set_trace()
+        has_account = False
         # OnetoOne field backwards-should delete agent (self)
         if not self.account is None:
             self.account.delete()
+            has_account = True
 
-        # super(agent, self).delete(*args, **kwargs)
+        if not has_account:
+            super(agent, self).delete(*args, **kwargs)
 
 class group(agent):
     member = models.ManyToManyField(agent, related_name="agents")
@@ -337,6 +345,7 @@ class activity_definition(models.Model):
         return ret
 
     def delete(self, *args, **kwargs):
+        has_crp = False
         activity_definition_exts = activity_extensions.objects.filter(activity_definition=self)
         for ext in activity_definition_exts:
             ext.delete()
@@ -360,8 +369,9 @@ class activity_definition(models.Model):
                 target.delete()
 
             self.correctresponsespattern.delete()
-        
-        super(activity_definition, self).delete(*args, **kwargs)
+            has_crp = True
+        if not has_crp:
+            super(activity_definition, self).delete(*args, **kwargs)
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)
@@ -379,10 +389,13 @@ class activity(statement_object):
         return ret
 
     def delete(self, *args, **kwargs):
+        # pdb.set_trace()
+        has_def = False
         if not self.activity_definition is None:
             self.activity_definition.delete()
-
-        # super(activity, self).delete(*args, **kwargs)
+            has_def = True
+        if not has_def:    
+            super(activity, self).delete(*args, **kwargs)
 
 
 class correctresponsespattern_answer(models.Model):
@@ -525,7 +538,7 @@ class context(models.Model):
 
     def object_return(self):
         ret = {}
-        linked_fields = ['instructor', 'team', 'statement', 'contextActivities']
+        linked_fields = ['instructor', 'team', 'cntx_statement', 'contextActivities']
         for field in self._meta.fields:
             if not field.name == 'id':
                 value = getattr(self, field.name)
@@ -537,7 +550,7 @@ class context(models.Model):
                     elif field.name == 'team':
                         ret[field.name] = self.team.get_agent_json()
                     elif field.name == 'cntx_statement':
-                        ret['cntx_statement'] = self.statement.object_return()                    
+                        ret['statement'] = self.cntx_statement.object_return()                    
         if self.contextActivities:
             con_act_set = self.contextActivities.all()
             ret['contextActivities'] = {}
@@ -552,14 +565,26 @@ class context(models.Model):
         return ret
 
     def delete(self, *args, **kwargs):
+        # pdb.set_trace()
         exts = context_extensions.objects.filter(context=self)
         for ext in exts:
             ext.delete()
 
+        has_related = False
         if not self.cntx_statement is None:
             self.cntx_statement.delete()
-        
-        # super(context, self).delete(*args, **kwargs)
+            has_related = True
+
+        if not self.instructor is None:
+            self.instructor.delete()
+            has_related = True
+
+        if not self.team is None:
+            self.team.delete()
+            has_related = True
+        # pdb.set_trace()
+        if not has_related:
+            super(context, self).delete(*args, **kwargs)
 
 
 class context_extensions(models.Model):
@@ -653,23 +678,109 @@ class SubStatement(statement_object):
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
-
-    def delete(self, *args, **kwargs):        
-        stmt_object, object_type = self.get_object()
-    
-        # If this is the only statement using the activity
-        # If not 1 there are other statements using this object
-        if len(SubStatement.objects.filter(stmt_object__id=stmt_object.id)) <= 1 and \
-            len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
-            stmt_object.delete()
-
-        # If this is the only statement using the verb - if not 1 it is being used elsewhere
-        if len(SubStatement.objects.filter(verb__id=self.verb.id)) <= 1 and \
-            len(statement.objects.filter(verb__id=self.verb.id)) <= 1:
+        
+    def delete(self, *args, **kwargs):
+        # Get all possible relationships for actor
+        # pdb.set_trace()
+        actor_agent = agent.objects.get(id=self.actor.id)
+        actor_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+        in_use = False
+        # Loop through each relationship
+        for link in actor_links:
+            try:
+                # Get all objects for that relationship that the agent is related to
+                objects = getattr(actor_agent, link).all()
+            except Exception, e:
+                # Throws exception when querying 'group'
+                objects = []
+            # If objects are more than one, other objects are using it
+            if len(objects) > 1:
+                in_use = True
+                break
+        # If nothing else is using it, delete it
+        if not in_use:
+            self.actor.delete()
+             
+        verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
+        in_use = False
+        # Loop through each relationship
+        for link in verb_links:
+            # Get all objects for that relationship that the verb is related to
+            objects = getattr(self.verb, link).all()
+            # If objects are more than one, other objects are using it
+            if len(objects) > 1:
+                in_use = True
+                break
+        # If nothing else is using it, delete it
+        if not in_use:
             self.verb.delete()
 
+        # Get all possible relationships for actor
+        authority_agent = agent.objects.get(id=self.authority.id)
+        auth_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+        in_use = False
+        # Loop through each relationship
+        for link in auth_links:
+            try:
+                # Get all objects for that relationship that the agent is related to
+                objects = getattr(authority_agent, link).all()
+            except Exception, e:
+                # Throws exception when querying 'group'
+                objects = []
+            # If objects are more than one, other objects are using it
+            if len(objects) > 1:
+                in_use = True
+                break
+        # If nothing else is using it, delete it
+        if not in_use:
+            self.authority.delete()
+
+        stmt_object, object_type = self.get_object()
+        # pdb.set_trace()
+        # TODO FIGURE OUT WHY NEED >= WHEN DEALING WITH STMT_OBJECTS
+        object_in_use = False
+        if object_type == 'activity':
+            activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
+            # Loop through each relationship
+            for link in activity_links:
+                # Get all objects for that relationship that the activity is related to
+                objects = getattr(stmt_object, link).all()
+                # If objects are more than one, other objects are using it
+                if len(objects) >= 1:
+                    object_in_use = True
+                    break
+        elif object_type == 'substatement':
+            sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
+            # Loop through each relationship
+            for link in sub_links:
+                # Get all objects for that relationship that the activity is related to
+                objects = getattr(stmt_object, link).all()
+                # If objects are more than one, other objects are using it
+                if len(objects) >= 1:
+                    object_in_use = True
+                    break
+        elif object_type == 'agent':
+            agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+            # Loop through each relationship
+            for link in agent_links:
+                try:
+                    # Get all objects for that relationship that the agent is related to
+                    objects = getattr(stmt_object, link).all()
+                except Exception, e:
+                    # Throws exception when querying 'group'
+                    objects = []
+                # If objects are more than one, other objects are using it
+                if len(objects) >= 1:
+                    object_in_use = True
+                    break
+
+        # If nothing else is using it, delete it
+        if not object_in_use:
+            stmt_object.delete()
+
         if not self.result is None:
-            self.result.delete()
+            self.result.delete()            
+
         if not self.context is None:
             self.context.delete()
 
@@ -679,7 +790,7 @@ class statement(models.Model):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
-    verb = models.ForeignKey(Verb, on_delete=models.PROTECT)
+    verb = models.ForeignKey(Verb)
     result = models.OneToOneField(result, blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())    
@@ -701,7 +812,7 @@ class statement(models.Model):
             except agent.DoesNotExist:
                 try:
                     stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
-                    object_type = 'substatement'            
+                    object_type = 'substatement'
                 except SubStatement.DoesNotExist:
                     raise IDNotFoundError("No activity, agent, or substatement found with given ID")
         return stmt_object, object_type
@@ -739,8 +850,8 @@ class statement(models.Model):
         super(statement, self).save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        pdb.set_trace()
         # Get all possible relationships for actor
+        # pdb.set_trace()
         actor_agent = agent.objects.get(id=self.actor.id)
         actor_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         in_use = False
@@ -759,23 +870,23 @@ class statement(models.Model):
         # If nothing else is using it, delete it
         if not in_use:
             self.actor.delete()
-             
-        # verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
-        # in_use = False
-        # # Loop through each relationship
-        # for link in verb_links:
-        #     # Get all objects for that relationship that the verb is related to
-        #     objects = getattr(self.verb, link).all()
-        #     # If objects are more than one, other objects are using it
-        #     if len(objects) > 1:
-        #         in_use = True
-        #         break
-        # # If nothing else is using it, delete it
+        
         # pdb.set_trace()
-        # if not in_use:
-        #     self.verb.delete()
+        verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
+        in_use = False
+        # Loop through each relationship
+        for link in verb_links:
+            # Get all objects for that relationship that the verb is related to
+            objects = getattr(self.verb, link).all()
+            # If objects are more than one, other objects are using it
+            if len(objects) > 1:
+                in_use = True
+                break
+        # If nothing else is using it, delete it
+        if not in_use:
+            self.verb.delete()
 
-
+        # pdb.set_trace()
         # Get all possible relationships for actor
         authority_agent = agent.objects.get(id=self.authority.id)
         auth_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
@@ -796,20 +907,74 @@ class statement(models.Model):
         if not in_use:
             self.authority.delete()
 
+        # pdb.set_trace()
         stmt_object, object_type = self.get_object()
-        if object_type == 'activity' or object_type == 'substatement':
-            # If this is the only statement using the activity
-            # If not 1 there are other statements using this object
-            if len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1 and \
-                len(SubStatement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
-                stmt_object.delete()
-        
-        pdb.set_trace()
-        if not self.result is None:
-            self.result.delete()            
+        # pdb.set_trace()
+        # TODO FIGURE OUT WHY NEED >= WHEN DEALING WITH STMT_OBJECTS
+        object_in_use = False
+        if object_type == 'activity':
+            activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
+            # Loop through each relationship
+            for link in activity_links:
+                # Get all objects for that relationship that the activity is related to
+                objects = getattr(stmt_object, link).all()
+                # If objects are more than one, other objects are using it
+                if len(objects) >= 1:
+                    object_in_use = True
+                    break
+        elif object_type == 'substatement':
+            sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
+            # Loop through each relationship
+            for link in sub_links:
+                # Get all objects for that relationship that the activity is related to
+                objects = getattr(stmt_object, link).all()
+                # If objects are more than one, other objects are using it
+                if len(objects) >= 1:
+                    object_in_use = True
+                    break
+        elif object_type == 'agent':
+            agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+            # Loop through each relationship
+            for link in agent_links:
+                try:
+                    # Get all objects for that relationship that the agent is related to
+                    objects = getattr(stmt_object, link).all()
+                except Exception, e:
+                    # Throws exception when querying 'group'
+                    objects = []
+                # If objects are more than one, other objects are using it
+                if len(objects) >= 1:
+                    object_in_use = True
+                    break
+        # If nothing else is using it, delete it
+        if not object_in_use:
+            stmt_object.delete()
 
-        if not self.context is None:
-            self.context.delete()
+        # pdb.set_trace()
+        try:
+            # Need if stmt - if it is None and DNE it throws no attribute delete error
+            if not self.result is None:
+                self.result.delete()
+        except result.DoesNotExist:
+            pass # already deleted- could be caused by substatement?
+                        
+
+        try:
+            if not self.context is None:
+                self.context.delete()
+        except context.DoesNotExist:
+            pass # already deleted - caused by agent cascade delete
+            
+
+
+
+        # if object_type == 'activity' or object_type == 'substatement':
+        #     # If this is the only statement using the activity
+        #     # If not 1 there are other statements using this object
+        #     if len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1 and \
+        #         len(SubStatement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
+        #         stmt_object.delete()
+
 
         # super(statement, self).delete(*args, **kwargs)
 
