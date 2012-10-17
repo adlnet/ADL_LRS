@@ -1097,3 +1097,21 @@ class StatementsTests(TestCase):
         self.assertEqual(len(s_agent), 1)
 
         self.assertEqual(len(auth_agent), 1)
+
+    def test_post_rollback_with_void(self):
+        stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"only-s@s.com"},
+            "object": {"objectType":"StatementRef","id":str(self.exist_stmt_id)},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/voided","display": {"en-US":"voided"}}},
+            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"test_wrong_list_post2"}}])
+
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        
+        voided_st = models.statement.objects.get(statement_id=str(self.exist_stmt_id))
+        voided_verb = models.Verb.objects.filter(verb_id__contains='voided')
+        only_actor = models.agent.objects.filter(mbox="only-s@s.com")
+
+        self.assertEqual(voided_st.voided, False)
+        self.assertEqual(len(voided_verb), 1)
+        self.assertEqual(len(only_actor), 0)

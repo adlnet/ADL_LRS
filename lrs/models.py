@@ -683,10 +683,10 @@ class SubStatement(statement_object):
         # Get all possible relationships for actor
         # pdb.set_trace()
         actor_agent = agent.objects.get(id=self.actor.id)
-        actor_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+        agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         in_use = False
         # Loop through each relationship
-        for link in actor_links:
+        for link in agent_links:
             try:
                 # Get all objects for that relationship that the agent is related to
                 objects = getattr(actor_agent, link).all()
@@ -849,143 +849,118 @@ class statement(models.Model):
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
 
+    def unvoid_statement(self):
+        statement_ref = StatementRef.objects.get(id=self.stmt_object.id)
+        voided_stmt = statement.objects.filter(statement_id=statement_ref.ref_id).update(voided=False)
+
     def delete(self, *args, **kwargs):
+        # actor, verb, auth all detect this statement-stmt_object does not
+        # Unvoid stmt if verb is voided
+        if self.verb.verb_id == 'http://adlnet.gov/expapi/verbs/voided':
+            self.unvoid_statement()
+
+
+        agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
-        # pdb.set_trace()
         actor_agent = agent.objects.get(id=self.actor.id)
-        actor_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         in_use = False
         # Loop through each relationship
-        for link in actor_links:
-            try:
+        for link in agent_links:
+            if link != 'group':
                 # Get all objects for that relationship that the agent is related to
                 objects = getattr(actor_agent, link).all()
-            except Exception, e:
-                # Throws exception when querying 'group'
-                objects = []
-            # If objects are more than one, other objects are using it
-            if len(objects) > 1:
-                in_use = True
-                break
+                # If objects are more than one, other objects are using it
+                if len(objects) > 1:
+                    in_use = True
+                    break
         # If nothing else is using it, delete it
         if not in_use:
             self.actor.delete()
         
-        # pdb.set_trace()
-        verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
-        in_use = False
-        # Loop through each relationship
-        for link in verb_links:
-            # Get all objects for that relationship that the verb is related to
-            objects = getattr(self.verb, link).all()
-            # If objects are more than one, other objects are using it
-            if len(objects) > 1:
-                in_use = True
-                break
-        # If nothing else is using it, delete it
-        if not in_use:
-            self.verb.delete()
+        if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
+            verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
+            in_use = False
+            # Loop through each relationship
+            for link in verb_links:
+                # Get all objects for that relationship that the verb is related to
+                objects = getattr(self.verb, link).all()
+                # If objects are more than one, other objects are using it
+                if len(objects) > 1:
+                    in_use = True
+                    break
+            # If nothing else is using it, delete it
+            if not in_use:
+                self.verb.delete()
 
-        # pdb.set_trace()
+
         # Get all possible relationships for actor
         authority_agent = agent.objects.get(id=self.authority.id)
-        auth_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         in_use = False
         # Loop through each relationship
-        for link in auth_links:
-            try:
+        for link in agent_links:
+            if link != 'group':
                 # Get all objects for that relationship that the agent is related to
                 objects = getattr(authority_agent, link).all()
-            except Exception, e:
-                # Throws exception when querying 'group'
-                objects = []
-            # If objects are more than one, other objects are using it
-            if len(objects) > 1:
-                in_use = True
-                break
+                # If objects are more than one, other objects are using it
+                if len(objects) > 1:
+                    in_use = True
+                    break
         # If nothing else is using it, delete it
         if not in_use:
             self.authority.delete()
 
-        # pdb.set_trace()
-        stmt_object, object_type = self.get_object()
-        # pdb.set_trace()
-        # TODO FIGURE OUT WHY NEED >= WHEN DEALING WITH STMT_OBJECTS
-        object_in_use = False
-        if object_type == 'activity':
-            activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
-            # Loop through each relationship
-            for link in activity_links:
-                # Get all objects for that relationship that the activity is related to
-                objects = getattr(stmt_object, link).all()
-                # If objects are more than one, other objects are using it
-                if len(objects) >= 1:
-                    object_in_use = True
-                    break
-        elif object_type == 'substatement':
-            sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
-            # Loop through each relationship
-            for link in sub_links:
-                # Get all objects for that relationship that the activity is related to
-                objects = getattr(stmt_object, link).all()
-                # If objects are more than one, other objects are using it
-                if len(objects) >= 1:
-                    object_in_use = True
-                    break
-        elif object_type == 'agent':
-            agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
-            # Loop through each relationship
-            for link in agent_links:
-                try:
-                    # Get all objects for that relationship that the agent is related to
+        if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
+            # Note - links pick up child classes...which is what the try is for-can rewrite to skip
+            stmt_object, object_type = self.get_object()
+            object_in_use = False
+            if object_type == 'activity':
+                activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
+                # Loop through each relationship
+                for link in activity_links:
+                    # Get all objects for that relationship that the activity is related to
                     objects = getattr(stmt_object, link).all()
-                except Exception, e:
-                    # Throws exception when querying 'group'
-                    objects = []
-                # If objects are more than one, other objects are using it
-                if len(objects) >= 1:
-                    object_in_use = True
-                    break
-        # If nothing else is using it, delete it
-        if not object_in_use:
-            stmt_object.delete()
+                    # If objects are more than one, other objects are using it
+                    if len(objects) > 0:
+                        object_in_use = True
+                        break
+            elif object_type == 'substatement':
+                sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
+                # Loop through each relationship
+                for link in sub_links:
+                    # Get all objects for that relationship that the activity is related to
+                    objects = getattr(stmt_object, link).all()
+                    # If objects are more than one, other objects are using it
+                    if len(objects) > 0:
+                        object_in_use = True
+                        break
+            elif object_type == 'agent':
+                # Loop through each relationship
+                for link in agent_links:
+                    if link != 'group':
+                        # Get all objects for that relationship that the agent is related to
+                        objects = getattr(stmt_object, link).all()
+                        # If objects are more than one, other objects are using it
+                        if len(objects) > 0:
+                            object_in_use = True
+                            break
+            # If nothing else is using it, delete it
+            if not object_in_use:
+                stmt_object.delete()
 
-        # pdb.set_trace()
+
         try:
             # Need if stmt - if it is None and DNE it throws no attribute delete error
             if not self.result is None:
                 self.result.delete()
         except result.DoesNotExist:
-            pass # already deleted- could be caused by substatement?
+            pass # already deleted- could be caused by substatement
                         
-
         try:
             if not self.context is None:
                 self.context.delete()
         except context.DoesNotExist:
             pass # already deleted - caused by agent cascade delete
             
-
-
-
-        # if object_type == 'activity' or object_type == 'substatement':
-        #     # If this is the only statement using the activity
-        #     # If not 1 there are other statements using this object
-        #     if len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1 and \
-        #         len(SubStatement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
-        #         stmt_object.delete()
-
-
-        # super(statement, self).delete(*args, **kwargs)
-
-
-# def delete_attached_objects(sender, **kwargs):
-#     model = kwargs.get('instance')
-#     pdb.set_trace()
-
-
-# post_delete.connect(delete_attached_objects, statement)
-
 # - from http://djangosnippets.org/snippets/2283/
 # @transaction.commit_on_success
 def merge_model_objects(primary_object, alias_objects=[], save=True, keep_old=False):
