@@ -89,15 +89,13 @@ class result(models.Model):
     
     def delete(self, *args, **kwargs):
         # pdb.set_trace()
-        if not self.score is None:
-            self.score.delete()
         exts = result_extensions.objects.filter(result=self)
         for ext in exts:
             ext.delete()
-        try:
-            super(result, self).delete(*args, **kwargs)            
-        except score.DoesNotExist:
-            pass # score field already deleted
+        #Since OnetoOne fields are backwards, should delete result (self) 
+        if not self.score is None:
+            self.score.delete()        
+        # super(result, self).delete(*args, **kwargs)            
 
 class result_extensions(models.Model):
     key=models.CharField(max_length=200)
@@ -217,6 +215,12 @@ class agent(statement_object):
             ret['account'] = [self.account.get_json()]
         return ret
 
+    def delete(self, *args, **kwargs):
+        # OnetoOne field backwards-should delete agent (self)
+        if not self.account is None:
+            self.account.delete()
+
+        # super(agent, self).delete(*args, **kwargs)
 
 class group(agent):
     member = models.ManyToManyField(agent, related_name="agents")
@@ -258,10 +262,8 @@ class activity_def_correctresponsespattern(models.Model):
         answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=self)
         for answer in answers:
             answer.delete()
-        try:
-            super(activity_def_correctresponsespattern, self).delete(*args, **kwargs)
-        except Exception, e:
-            raise e
+
+        super(activity_def_correctresponsespattern, self).delete(*args, **kwargs)
 
 
 class activity_definition(models.Model):
@@ -335,8 +337,11 @@ class activity_definition(models.Model):
         return ret
 
     def delete(self, *args, **kwargs):
+        activity_definition_exts = activity_extensions.objects.filter(activity_definition=self)
+        for ext in activity_definition_exts:
+            ext.delete()
+
         if not self.correctresponsespattern is None:
-            self.correctresponsespattern.delete()
 
             scales = activity_definition_scale.objects.filter(activity_definition=self)
             for scale in scales:
@@ -354,15 +359,9 @@ class activity_definition(models.Model):
             for target in targets:
                 target.delete()
 
-
-        activity_definition_exts = activity_extensions.objects.filter(activity_definition=self)
-        for ext in activity_definition_exts:
-            ext.delete()
-
-        try:
-            super(activity_definition, self).delete(*args, **kwargs)
-        except Exception, e:
-            raise e       
+            self.correctresponsespattern.delete()
+        
+        super(activity_definition, self).delete(*args, **kwargs)
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200)
@@ -383,10 +382,8 @@ class activity(statement_object):
         if not self.activity_definition is None:
             self.activity_definition.delete()
 
-        try:
-            super(activity, self).delete(*args, **kwargs)
-        except statement_object.DoesNotExist:
-            pass # already deleted
+        # super(activity, self).delete(*args, **kwargs)
+
 
 class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
@@ -518,13 +515,13 @@ class ContextActivity(models.Model):
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)
-    instructor = models.ForeignKey(agent,blank=True, null=True)
-    team = models.ForeignKey(agent,blank=True, null=True, related_name="context_team")
+    instructor = models.ForeignKey(agent,blank=True, null=True, related_name="instructor_of_context")
+    team = models.ForeignKey(agent,blank=True, null=True, related_name="team_of_context")
     contextActivities = models.ManyToManyField(ContextActivity)
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
-    statement = models.OneToOneField(StatementRef, blank=True, null=True)
+    cntx_statement = models.OneToOneField(StatementRef, blank=True, null=True)
 
     def object_return(self):
         ret = {}
@@ -539,8 +536,8 @@ class context(models.Model):
                         ret[field.name] = self.instructor.get_agent_json()
                     elif field.name == 'team':
                         ret[field.name] = self.team.get_agent_json()
-                    elif field.name == 'statement':
-                        ret[field.name] = self.statement.object_return()                    
+                    elif field.name == 'cntx_statement':
+                        ret['cntx_statement'] = self.statement.object_return()                    
         if self.contextActivities:
             con_act_set = self.contextActivities.all()
             ret['contextActivities'] = {}
@@ -555,16 +552,14 @@ class context(models.Model):
         return ret
 
     def delete(self, *args, **kwargs):
-        if not self.statement is None:
-            self.statement.delete()
         exts = context_extensions.objects.filter(context=self)
         for ext in exts:
             ext.delete()
 
-        try:
-            super(context, self).delete(*args, **kwargs)
-        except Exception, e:
-            raise e
+        if not self.cntx_statement is None:
+            self.cntx_statement.delete()
+        
+        # super(context, self).delete(*args, **kwargs)
 
 
 class context_extensions(models.Model):
@@ -618,6 +613,13 @@ class Verb(models.Model):
             ret['display'][lang_map.key] = lang_map.value        
         return ret
 
+    def delete(self, *args, **kwargs):
+        displays = self.display.all()
+        for display in displays:
+            display.delete()
+
+        super(Verb, self).delete(*args, **kwargs)            
+
 class SubStatement(statement_object):
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_substatement")
     actor = models.ForeignKey(agent,related_name="actor_of_substatement")
@@ -652,13 +654,7 @@ class SubStatement(statement_object):
         ret['objectType'] = "SubStatement"
         return ret
 
-    def delete(self, *args, **kwargs):
-        # pdb.set_trace()
-        if not self.result is None:
-            self.result.delete()
-        if not self.context is None:
-            self.context.delete()
-        
+    def delete(self, *args, **kwargs):        
         stmt_object, object_type = self.get_object()
     
         # If this is the only statement using the activity
@@ -672,16 +668,18 @@ class SubStatement(statement_object):
             len(statement.objects.filter(verb__id=self.verb.id)) <= 1:
             self.verb.delete()
 
-        try:
-            super(SubStatement, self).delete(*args, **kwargs)            
-        except SubStatement.DoesNotExist:
-            pass # onetoone fields already deleted        
+        if not self.result is None:
+            self.result.delete()
+        if not self.context is None:
+            self.context.delete()
+
+        super(SubStatement, self).delete(*args, **kwargs)            
 
 class statement(models.Model):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
-    verb = models.ForeignKey(Verb)
+    verb = models.ForeignKey(Verb, on_delete=models.PROTECT)
     result = models.OneToOneField(result, blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())    
@@ -742,21 +740,62 @@ class statement(models.Model):
 
     def delete(self, *args, **kwargs):
         pdb.set_trace()
-        if not self.result is None:
-            self.result.delete()
-        if not self.context is None:
-            self.context.delete()
+        # Get all possible relationships for actor
+        actor_agent = agent.objects.get(id=self.actor.id)
+        actor_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+        in_use = False
+        # Loop through each relationship
+        for link in actor_links:
+            try:
+                # Get all objects for that relationship that the agent is related to
+                objects = getattr(actor_agent, link).all()
+            except Exception, e:
+                # Throws exception when querying 'group'
+                objects = []
+            # If objects are more than one, other objects are using it
+            if len(objects) > 1:
+                in_use = True
+                break
+        # If nothing else is using it, delete it
+        if not in_use:
+            self.actor.delete()
+             
+        # verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
+        # in_use = False
+        # # Loop through each relationship
+        # for link in verb_links:
+        #     # Get all objects for that relationship that the verb is related to
+        #     objects = getattr(self.verb, link).all()
+        #     # If objects are more than one, other objects are using it
+        #     if len(objects) > 1:
+        #         in_use = True
+        #         break
+        # # If nothing else is using it, delete it
+        # pdb.set_trace()
+        # if not in_use:
+        #     self.verb.delete()
 
 
-        links = [rel.get_accessor_name() for rel in self.actor._meta.get_all_related_objects()]
+        # Get all possible relationships for actor
+        authority_agent = agent.objects.get(id=self.authority.id)
+        auth_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+        in_use = False
+        # Loop through each relationship
+        for link in auth_links:
+            try:
+                # Get all objects for that relationship that the agent is related to
+                objects = getattr(authority_agent, link).all()
+            except Exception, e:
+                # Throws exception when querying 'group'
+                objects = []
+            # If objects are more than one, other objects are using it
+            if len(objects) > 1:
+                in_use = True
+                break
+        # If nothing else is using it, delete it
+        if not in_use:
+            self.authority.delete()
 
-        for link in links:
-            objects = getattr(self.actor, link).all()
-            for object in objects:
-                # do something with related object instance
-                pass
-
-        
         stmt_object, object_type = self.get_object()
         if object_type == 'activity' or object_type == 'substatement':
             # If this is the only statement using the activity
@@ -764,23 +803,16 @@ class statement(models.Model):
             if len(statement.objects.filter(stmt_object__id=stmt_object.id)) <= 1 and \
                 len(SubStatement.objects.filter(stmt_object__id=stmt_object.id)) <= 1:
                 stmt_object.delete()
+        
+        pdb.set_trace()
+        if not self.result is None:
+            self.result.delete()            
 
-            # If this is the only statement using the verb - if not 1 it is being used elsewhere
-            if len(statement.objects.filter(verb__id=self.verb.id)) <= 1 and \
-                len(SubStatement.objects.filter(verb__id=self.verb.id)) <= 1:
-                self.verb.delete()
-        else:
-            links = [rel.get_accessor_name() for rel in self.stmt_object._meta.get_all_related_objects()]
+        if not self.context is None:
+            self.context.delete()
 
-            for link in links:
-                objects = getattr(self.stmt_object, link).all()
-                for object in objects:
-                    # do something with related object instance
-                    pass
-        try:
-            super(statement, self).delete(*args, **kwargs)            
-        except statement.DoesNotExist:
-            pass # onetoone fields already deleted    
+        # super(statement, self).delete(*args, **kwargs)
+
 
 # def delete_attached_objects(sender, **kwargs):
 #     model = kwargs.get('instance')

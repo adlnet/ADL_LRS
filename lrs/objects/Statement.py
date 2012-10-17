@@ -209,6 +209,13 @@ class Statement():
             con_act_data = context['contextActivities']
             del context['contextActivities']
 
+        if 'instructor' in context:
+            del context['instructor']
+        if 'team' in context:
+            del context['team']
+        if 'cntx_statement' in context:
+            del context['cntx_statement']
+            
         cntx = models.context(**context)    
         cntx.save()
 
@@ -316,7 +323,7 @@ class Statement():
             # stmt = Statement(statement_id=context['statement']['id'], get=True)
             stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
             stmt_ref.save()
-            context['statement'] = stmt_ref
+            context['cntx_statement'] = stmt_ref
 
         return self._saveContextToDB(context, contextExts)
 

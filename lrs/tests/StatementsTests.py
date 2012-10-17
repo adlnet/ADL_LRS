@@ -1005,7 +1005,10 @@ class StatementsTests(TestCase):
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
         cguid1 = str(uuid.uuid4())
-        stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},
+        stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"test_wrong_list_post2"},
+            "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
+            "extensions":{"resultwrongkey1": "value1", "resultwrongkey2":"value2"}}},
+            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},
             "object": {"objectType": "Activity", "id":"test_wrong_list_post",
             "definition": {"name": {"en-US":"wrongactName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
@@ -1021,10 +1024,7 @@ class StatementsTests(TestCase):
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-passed","display": {"en-US":"wrong-passed"}},"object": {"id":"test_wrong_list_post1"},
             "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"},"context":{"registration": cguid1, "contextActivities": {"other": {"id": "wrongActivityID2"}},
             "revision": "wrong", "platform":"wrong","language": "en-US", "extensions":{"wrongkey1": "wrongval1",
-            "wrongkey2": "wrongval2"}}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"test_wrong_list_post2"},
-            "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
-            "extensions":{"resultwrongkey1": "value1", "resultwrongkey2":"value2"}}},            
+            "wrongkey2": "wrongval2"}}},            
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"test_wrong_list_post2"}},            
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"test_wrong_list_post4"}, "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}}])
         
@@ -1055,20 +1055,40 @@ class StatementsTests(TestCase):
         self.assertEqual(len(activity_definition_exts), 0)
 
     def test_post_list_rollback_part_2(self):
-        stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
+        stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"john@john.com"},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
+            "actor":{"objectType":"Agent","mbox":"s@s.com"}},
+            {"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
             "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
-            "interactionType": "fill-in","correctResponsesPattern": ["answer"]},
-            "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}}},
+            "interactionType": "fill-in","correctResponsesPattern": ["answer"]}},
+            "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"test_wrong_list_post2"}}])
-        pdb.set_trace()
+
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 500)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
 
-        verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
+        created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
+        wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
+        
         activities = models.activity.objects.filter(activity_id='foogie')
+        
+        wrong_agent = models.agent.objects.filter(mbox='wrong-t@t.com')
+        john_agent = models.agent.objects.filter(mbox='john@john.com')
+        s_agent = models.agent.objects.filter(mbox='s@s.com')
+        auth_agent = models.agent.objects.filter(mbox='test1@tester.com')
+        verb_display = models.LanguageMap.objects.filter(key__contains='wrong')
 
-        self.assertEqual(len(verbs), 1)
+        self.assertEqual(len(created_verbs), 1)
+        self.assertEqual(len(wrong_verbs), 0)
+        self.assertEqual(len(verb_display), 0)
+
         self.assertEqual(len(activities), 1)
+        
+        self.assertEqual(len(wrong_agent), 0)
+        self.assertEqual(len(john_agent), 1)
+        self.assertEqual(len(s_agent), 1)
+
+        self.assertEqual(len(auth_agent), 1)

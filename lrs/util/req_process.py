@@ -28,6 +28,7 @@ def statements_post(req_dict):
                     stmtResponses.append(str(stmt.statement_id))
             except Exception, e:
                 for stmt_id in stmtResponses:
+                    pdb.set_trace()                    
                     models.statement.objects.get(statement_id=stmt_id).delete()
                 raise e
 
