@@ -276,20 +276,17 @@ class StatementModelsTests(TestCase):
         self.assertIn('value2', extVals)
 
     def test_no_registration_context_stmt(self):
-
-
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"failed","object": {'id':'activity14'},
-                         'context': {'contextActivities': {'foo':'bar'}}})) 
+        # expect the LRS to assign a context registration uuid
+        stmt = Statement.Statement(json.dumps({"verb":"failed","object": {'id':'activity14'},
+                         'context': {'contextActivities': {'foo':'bar'}}})).statement
+        context = models.context.objects.get(id=stmt.context.id)
+        self.assertIsNotNone(context.registration)
 
     def test_no_contextActivities_content_stmt(self):
-
-
         self.assertRaises(Exception, Statement.Statement, json.dumps({"verb":"failed","object": {'id':'activity14'},
                          'context': {'registration':'uuid'}})) 
 
     def test_context_stmt(self):
-
-
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({"verb":"kicked","object": {'id':'activity15'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
