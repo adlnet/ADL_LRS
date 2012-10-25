@@ -340,7 +340,7 @@ class Statement():
         #If verb is imported then create either the actor or activity it is importing              
         elif args['verb'] == 'imported':
             if statementObjectData['objectType'].lower() == 'activity':
-                if auth is not None:
+                if auth is not None and auth.is_authenticated():
                     importedActivity = Activity(json.dumps(statementObjectData), auth=auth.username).activity
                 else:
                     importedActivity = Activity(json.dumps(statementObjectData)).activity
@@ -351,7 +351,7 @@ class Statement():
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
-                if auth is not None:        
+                if auth is not None and auth.is_authenticated():        
                     args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=auth.username).activity
                 else:
                     args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
@@ -367,11 +367,13 @@ class Statement():
         if 'actor' in stmt_data:
             args['actor'] = Actor(json.dumps(stmt_data['actor']), create=True).agent
         else:
-             if auth:
+            if auth and auth.is_authenticated():
                 authArgs = {}
                 authArgs['name'] = [auth.username]
                 authArgs['mbox'] = [auth.email]
                 args['actor'] = Actor(json.dumps(authArgs), create=True).agent
+            else:
+                raise Exception("Unable to determine the actor of this statement")
 
         #Set inProgress to false
         args['inProgress'] = False
@@ -398,12 +400,11 @@ class Statement():
         if 'authority' in stmt_data:
             args['authority'] = Actor(json.dumps(stmt_data['authority']), create=True).agent
         else:
-            if auth:
+            if auth and auth.is_authenticated():
                 authArgs = {}
                 authArgs['name'] = [auth.username]
                 authArgs['mbox'] = [auth.email]
                 args['authority'] = Actor(json.dumps(authArgs), create=True).agent
-
 
         #See if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:
