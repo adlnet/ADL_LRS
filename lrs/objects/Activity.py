@@ -11,24 +11,24 @@ import pdb
 
 class Activity():
 
-    #Activity definition required fields
+    # Activity definition required fields
     ADRFs = ['name', 'description', 'type']
 
-    #Activity definition types
-    ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
-            'interaction', 'cmi.interaction', 'question', 'objective', 'link']
+    # Activity definition types
+    # ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
+    #         'interaction', 'cmi.interaction', 'question', 'objective', 'link']
 
-    #URL Validator
+    # URL Validator
     validator = URLValidator(verify_exists=True)
 
-    #XMLschema for Activity IDs
+    # XMLschema for Activity IDs
     req = urllib2.Request('http://tincanapi.com/wp-content/assets/tincan.xsd')
     resp = urllib2.urlopen(req)
     XML = resp.read()
     XMLschema_doc = etree.parse(StringIO(XML))
     XMLschema = etree.XMLSchema(XMLschema_doc)
 
-    #Use single transaction for all the work done in function
+    # Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, activity_id=None, get=False, auth=None):
         #Get activity object
@@ -46,7 +46,7 @@ class Activity():
             self.obj = self._parse(initial)
             self._populate(self.obj)
 
-    #Make sure initial data being received is JSON
+    # Make sure initial data being received is JSON
     def _parse(self,initial):
         if initial:
             try:
@@ -172,7 +172,7 @@ class Activity():
         return act_def    
 
     def get_full_activity_json(self):
-        ret = models.objsReturn(self.activity)
+        ret = self.activity.object_return()
         return ret
 
     # Called when need to check if existing activity definition has the same name/desc as the incoming one
@@ -277,7 +277,7 @@ class Activity():
                     self.activity = existing_activity
                 # Someone with wrong auth trying to update activity
                 else:
-                    raise Exception("This ActivityID already exists, and you do not have" + 
+                    raise ForbiddenException("This ActivityID already exists, and you do not have" + 
                         " the correct authority to create or update it.") 
             # No auth required to update activity
             else:
@@ -352,14 +352,14 @@ class Activity():
                     raise Exception("Activity definition error with key: %s" % k)
 
             #Check definition type
-            if act_def['type'] not in Activity.ADTs:
-                raise Exception("Activity definition type not valid")
+            # if act_def['type'] not in Activity.ADTs:
+            #     raise Exception("Activity definition type not valid")
 
 
             #If the type is cmi.interaction, have to check interactionType
             if act_def['type'] == 'cmi.interaction':
 
-                scormInteractionTypes = ['true-false', 'multiple-choice', 'fill-in', 'long-fill-in',
+                scormInteractionTypes = ['true-false', 'choice', 'fill-in', 'long-fill-in',
                                          'matching', 'performance', 'sequencing', 'likert', 'numeric',
                                          'other']
             
@@ -374,7 +374,7 @@ class Activity():
                     raise Exception("Activity definition missing correctResponsesPattern")    
 
                 #Multiple choice and sequencing must have choices
-                if act_def['interactionType'] == 'multiple-choice' or \
+                if act_def['interactionType'] == 'choice' or \
                     act_def['interactionType'] == 'sequencing':
                         try:
                             act_def['choices']
@@ -552,4 +552,10 @@ class InvalidLanguageMapError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
-        return repr(self.message)            
+        return repr(self.message)
+
+class ForbiddenException(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)

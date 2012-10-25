@@ -28,13 +28,19 @@ class default_on_exception(object):
 class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, auth=None, statement_id=None,get=False):
+    def __init__(self, initial=None, auth=None, statement_id=None, get=False):
+        # pdb.set_trace()
         if get and statement_id is not None:
             self.statement_id = statement_id
+            self.statement = None
             try:
-                self.statement = models.statement.objects.get(statement_id=self.statement_id)            
+                self.statement = models.statement.objects.get(statement_id=self.statement_id)
             except models.statement.DoesNotExist:
                 raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
+
+            if not self.statement.authority.mbox is None:            
+                if self.statement.authority.mbox != auth.email:
+                    raise ForbiddenException("Unauthorized to retrieve statement with statement ID %s" % statement_id)            
         else:
             obj = self._parse(initial)
             self._populate(obj, auth)
@@ -51,8 +57,8 @@ class Statement():
 
 
     def _voidStatement(self,stmt_id):
-        #Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
-        #since you cannot unvoid a statement and should just reissue the statement under a new ID.
+        # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
+        # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
             stmt = models.statement.objects.get(statement_id=stmt_id)
         except Exception, e:
@@ -61,28 +67,11 @@ class Statement():
         if not stmt.voided:
             stmt.voided = True
             stmt.save()
-            return stmt
+            stmt_ref = models.StatementRef(ref_id=stmt_id)
+            stmt_ref.save()
+            return stmt_ref
         else:
-            raise Exception('Statment already voided, cannot unvoid. Please reissure the statement under a new ID.')
-
-    def _validateResultResponse(self, result, obj_data):
-        pass
-        # #Check if there is a response in result, and check the activity type 
-        # if 'response' in result and 'definition' in obj_data:
-        #     actDef = obj_data['definition']
-        #     if 'type' in actDef:
-        #         #If activity is not a cmi.interaction  or interaction type then throw exception
-        #         if not actDef['type'] == 'cmi.interaction' or actDef['type'] == 'interaction':
-        #             raise Exception("Response only valid for interaction or cmi.interaction activity types")
-        #         else:
-        #             #Check each type of interactionType if it is a cmi.interaction
-        #             if actDef['type'] == 'cmi.interaction':
-        #                 actDefIntType = actDef['interactionType']
-        #                 #Throw exception if it is true-false type yet response isn't string of true or false
-        #                 if actDefIntType == 'true-false' and result['response'] not in ['true', 'false']:
-        #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
-        #                 if actDefIntType == 'multiple-choice' and result['response'] not in ['true', 'false']:
-        #                     raise Exception("Activity is true-false interactionType, your response must either be 'true' or 'false'")
+            raise Exception('Statment already voided, cannot unvoid. Please re-issue the statement under a new ID.')
 
     def _remove_extra_agent_info(self, ret, fieldName):
         if 'familyName' in ret[fieldName]:
@@ -106,8 +95,8 @@ class Statement():
 
     def get_full_statement_json(self, sparse=False, language=None):
         # Set statement to return
-        ret = models.objsReturn(self.statement, language)
-
+        # ret = models.objsReturn(self.statement, language)
+        ret = self.statement.object_return(language)
         # Remove details if sparse is true
         if sparse:
             # Remove responses and only return language for name and description
@@ -175,7 +164,6 @@ class Statement():
             #Throw exception b/c failed and success contradict each other or completion is false
             raise Exception('Result success must be False if verb is ' + verb)
 
-    #TODO: Validate score results against cmi.score in scorm 2004 4th ed. RTE
     def _validateScoreResult(self, score_data):
         if 'min' in score_data:
             score_data['score_min'] = score_data['min']
@@ -215,9 +203,21 @@ class Statement():
         return rslt
 
     def _saveContextToDB(self, context, contextExts):
-        
+        # pdb.set_trace()
+        con_act_data = None
+        if 'contextActivities' in context:
+            con_act_data = context['contextActivities']
+            del context['contextActivities']
+
         cntx = models.context(**context)    
         cntx.save()
+
+        if con_act_data:
+            for con_act in con_act_data.items():
+                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'])
+                ca.save()
+                cntx.contextActivities.add(ca)
+            cntx.save()
 
         if contextExts:
             for k, v in contextExts.items():
@@ -227,9 +227,18 @@ class Statement():
         return cntx        
 
     #Save statement to DB
-    def _saveStatementToDB(self, args):
-        stmt = models.statement(**args)
-        stmt.save()
+    def _saveStatementToDB(self, args, sub):
+        # pdb.set_trace()
+        if sub:
+            del args['voided']
+            del args['statement_id']
+            if 'authority' in args:
+                del args['authority']
+            stmt = models.SubStatement(**args)
+            stmt.save()
+        else:
+            stmt = models.statement(**args)
+            stmt.save()
         return stmt
 
     def _populateResult(self, stmt_data, verb):
@@ -268,10 +277,11 @@ class Statement():
 
 
         if 'registration' not in stmt_data['context']:
-            raise Exception('Registration UUID required for context')
-
-        if 'contextActivities' not in stmt_data['context']:
-            raise Exception('contextActivities required for context')
+            # raise Exception('Registration UUID required for context')
+            stmt_data['context']['registration'] = uuid.uuid4()
+            
+        # if 'contextActivities' not in stmt_data['context']:
+        #     raise Exception('contextActivities required for context')
 
         # Statement Actor and Object supercede context instructor and team
         # If there is an actor or object is an agent in the stmt then remove the instructor
@@ -304,16 +314,52 @@ class Statement():
             context = stmt_data['context']
 
         if 'statement' in context:
-            context['statement'] = Statement(context['statement']).statement.id
+            # stmt = Statement(context['statement']).statement.id 
+            stmt = models.statement.objects.get(statement_id=context['statement']['id'])
+            # stmt = Statement(statement_id=context['statement']['id'], get=True)
+            stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
+            stmt_ref.save()
+            context['statement'] = stmt_ref
 
         return self._saveContextToDB(context, contextExts)
 
+
+    def _save_lang_map(self, lang_map):
+        k = lang_map[0]
+        v = lang_map[1]
+
+        language_map = models.LanguageMap(key = k, value = v)
+        
+        language_map.save()        
+        return language_map
+
+    def _build_verb_object(self, incoming_verb):
+        verb = {}
+        
+        if 'id' not in incoming_verb:
+            raise Exception("ID field is not included in statement verb")
+
+        verb_object = models.Verb(verb_id=incoming_verb['id'])
+        verb_object.save()
+
+        # Save verb displays
+        if 'display' in incoming_verb:
+            for verb_lang_map in incoming_verb['display'].items():
+                if isinstance(verb_lang_map, tuple):
+                    lang_map = self._save_lang_map(verb_lang_map)
+                    verb_object.display.add(lang_map)  
+                else:
+                    raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
+            verb_object.save()
+        return verb_object
+
     #Once JSON is verified, populate the statement object
-    def _populate(self, stmt_data, auth):
+    def _populate(self, stmt_data, auth, sub=False):
+        # pdb.set_trace()
         args ={}
-        #Must include verb - set statement verb - set to lower too
+        #Must include verb - set statement verb 
         try:
-            args['verb'] = stmt_data['verb'].lower()
+            raw_verb = stmt_data['verb']
         except KeyError:
             raise Exception("No verb provided, must provide 'verb' field")
 
@@ -323,34 +369,31 @@ class Statement():
         except KeyError:
             raise Exception("No object provided, must provide 'object' field")
 
-        #Throw error since you can't set voided to True
+        try:
+            raw_actor = stmt_data['actor']
+        except KeyError:
+            raise Exception("No actor provided, must provide 'actor' field")
+
+        # Throw error since you can't set voided to True
         if 'voided' in stmt_data:
             if stmt_data['voided']:
                 raise Exception('Cannot have voided statement unless it is being voided by another statement')
         
         # If not specified, the object is assumed to be an activity
-
         if not 'objectType' in statementObjectData:
             statementObjectData['objectType'] = 'Activity'
 
+        args['verb'] = self._build_verb_object(raw_verb)
+
         valid_agent_objects = ['agent', 'group']
-        #Check to see if voiding statement
-        if args['verb'] == 'voided':
-            #objectType must be statement if want to void another statement
-            if statementObjectData['objectType'].lower() == 'statement' and 'id' in statementObjectData.keys():
-                voidedStmt = self._voidStatement(statementObjectData['id'])
-                args['stmt_object'] = voidedStmt
-        #If verb is imported then create either the agent or activity it is importing              
-        elif args['verb'] == 'imported':
-            if statementObjectData['objectType'].lower() == 'activity':
-                if auth is not None:
-                    importedActivity = Activity(json.dumps(statementObjectData), auth=auth.username).activity
-                else:
-                    importedActivity = Activity(json.dumps(statementObjectData)).activity
-                args['stmt_object'] = importedActivity
-            elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                importedAgent = Agent(initial=statementObjectData, create=True).agent
-                args['stmt_object'] = importedAgent
+        # Check to see if voiding statement
+        if args['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
+            # objectType must be statementRef if want to void another statement
+            if statementObjectData['objectType'].lower() == 'statementref' and 'id' in statementObjectData.keys():
+                stmt_ref = self._voidStatement(statementObjectData['id'])
+                args['stmt_object'] = stmt_ref
+            else:
+                raise Exception("There was a problem voiding the Statement")
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
@@ -360,28 +403,12 @@ class Statement():
                     args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True).agent
-            elif statementObjectData['objectType'].lower() == 'statement':
-                args['stmt_object'] = Statement(json.dumps(statementObjectData)).statement  
+            elif statementObjectData['objectType'].lower() == 'substatement':
+                sub_statement = SubStatement(statementObjectData, auth)
+                args['stmt_object'] = sub_statement.statement
 
-
-
-
-        #Retrieve actor if in JSON only for now
-        if 'actor' in stmt_data:
-            args['actor'] = Agent(initial=stmt_data['actor'], create=True).agent
-        else:
-             if auth:
-                authArgs = {}
-                authArgs['name'] = auth.username
-                authArgs['mbox'] = auth.email
-                args['actor'] = Agent(initial=authArgs, create=True).agent
-
-        #Set inProgress to false
-        args['inProgress'] = False
-
-        #Set inProgress when present
-        if 'inProgress' in stmt_data:
-            args['inProgress'] = stmt_data['inProgress']
+        #Retrieve actor
+        args['actor'] = Agent(initial=stmt_data['actor'], create=True).agent
 
         #Set voided to default false
         args['voided'] = False
@@ -390,11 +417,11 @@ class Statement():
         if 'result' in stmt_data:
             args['result'] = self._populateResult(stmt_data, args['verb'])
 
-	    #Set context when present
+	    # Set context when present
         if 'context' in stmt_data:
             args['context'] = self._populateContext(stmt_data)
 
-      	#Set timestamp when present
+      	# Set timestamp when present
       	if 'timestamp' in stmt_data:
       		args['timestamp'] = stmt_data['timestamp']
 
@@ -421,5 +448,33 @@ class Statement():
 
         # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
-        self.statement = self._saveStatementToDB(args)
+        self.statement = self._saveStatementToDB(args, sub)
 
+
+class SubStatement(Statement):
+    @transaction.commit_on_success
+    def __init__(self, data, auth):
+        # pdb.set_trace()
+        unallowed_fields = ['id', 'stored', 'authority']
+
+        for field in unallowed_fields:
+            if field in data:
+                raise Exception("%s is not allowed in a SubStatement.")
+
+        if 'objectType' in data['object']:
+            if data['object']['objectType'].lower() == 'substatement':
+                raise Exception("SubStatements cannot be nested inside of other SubStatements")
+
+        self._populate(data, auth, sub=True)
+
+class ForbiddenException(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)
+
+class IDNotFoundError(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    def __str__(self):
+        return repr(self.message)        

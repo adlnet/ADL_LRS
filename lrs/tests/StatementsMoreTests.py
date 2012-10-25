@@ -17,8 +17,8 @@ class StatementsMoreTests(TestCase):
     def setUp(self):
 
 
-        self.username = "tester2"
-        self.email = "test2@tester.com"
+        self.username = "auth1"
+        self.email = "auth1@example.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
@@ -56,18 +56,24 @@ class StatementsMoreTests(TestCase):
         self.cguid4 = str(uuid.uuid4())
         self.cguid5 = str(uuid.uuid4())
         self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+        stmt_list = []
 
-        self.existStmt1 = json.dumps({"statement_id":self.guid1,"verb":"attempted", "object": {'objectType': 'Activity',
+        self.existStmt1 = json.dumps({"statement_id":self.guid1,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "verb":{"id":"verb/attempted",
+            "display":{"en-US":"attempted", 'en-GB':"altattempted"}},"object": {'objectType': 'Activity',
             'id':'foogie','definition': {'name': {'en-US':'testname2', 'en-GB':'altname'},
             'description': {'en-US':'testdesc2','en-GB':'altdesc'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],'extensions': {'key1': 'value1', \
+            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],'extensions': {'key1': 'value1',
             'key2': 'value2','key3': 'value3'}}}, "result": {'score':{'scaled':.85}, 'completion': True, 'success': True,
             'response': 'kicked','duration': self.mytime, 'extensions':{'key1': 'value1', 'key2':'value2'}},
             'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':['auth'],'mbox':['auth@example.com']}})        
+            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
+        stmt_list.append(self.existStmt1)
 
-        self.existStmt2 = json.dumps({"statement_id":self.guid2,"verb":"created", "object": {'objectType': 'Activity',
+        self.existStmt2 = json.dumps({"statement_id":self.guid2,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "verb":{"id":"verb/created",
+            "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'foogie','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
             'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
@@ -75,9 +81,12 @@ class StatementsMoreTests(TestCase):
             'duration': self.mytime, 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
             'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID24'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
-            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
+            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
+        stmt_list.append(self.existStmt2)
 
-        self.existStmt3 = json.dumps({"statement_id":self.guid3,"verb":"created", "object": {'objectType': 'Activity',
+        self.existStmt3 = json.dumps({"statement_id":self.guid3,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "verb":{"id":"verb/created",
+            "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'foogals','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
             'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
@@ -87,10 +96,12 @@ class StatementsMoreTests(TestCase):
             'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID23'}},
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'],
             'mbox':['bill@bill.com']} , 'extensions':{'ckey111': 'cval111',
-            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})        
+            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
+        stmt_list.append(self.existStmt3)
 
-        self.existStmt4 = json.dumps({"statement_id":self.guid4,
-            "verb":"passed", "object": {'objectType': 'Activity', 'id':'foogal',
+        self.existStmt4 = json.dumps({"statement_id":self.guid4,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "verb":{"id":"verb/created",
+            "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity', 'id':'foogal',
             'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
@@ -99,197 +110,238 @@ class StatementsMoreTests(TestCase):
             'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'],
             'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
-            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':['auth1'],'mbox':['auth1@example.com']}})
+            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})
+        stmt_list.append(self.existStmt4)
 
-        self.existStmt5 = json.dumps({"statement_id":self.guid5, "object":{'objectType':'Agent','name':'jon1',
-            'mbox':'jon1@jon.com'},"verb":"passed"})
+        self.existStmt5 = json.dumps({"statement_id":self.guid5,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon1',
+            'mbox':'jon1@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt5)
 
-        self.existStmt6 = json.dumps({"statement_id":self.guid6, "object":{'objectType':'Agent','name':'jon2',
-            'mbox':'jon2@jon.com'},"verb":"passed"})
+        self.existStmt6 = json.dumps({"statement_id":self.guid6,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon2',
+            'mbox':'jon2@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt6)
 
-        self.existStmt7 = json.dumps({"statement_id":self.guid7, "object":{'objectType':'Agent','name':'jon3',
-            'mbox':'jon3@jon.com'},"verb":"passed"})
+        self.existStmt7 = json.dumps({"statement_id":self.guid7,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon3',
+            'mbox':'jon3@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt7)
 
-        self.existStmt8 = json.dumps({"statement_id":self.guid8, "object":{'objectType':'Agent','name':'jon4',
-            'mbox':'jon4@jon.com'},"verb":"passed"})
+        self.existStmt8 = json.dumps({"statement_id":self.guid8,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon4',
+            'mbox':'jon4@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt8)
 
-        self.existStmt9 = json.dumps({"statement_id":self.guid9, "object":{'objectType':'Agent','name':'jon5',
-            'mbox':'jon5@jon.com'},"verb":"passed"})
+        self.existStmt9 = json.dumps({"statement_id":self.guid9,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon5',
+            'mbox':'jon5@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt9)
 
-        self.existStmt10 = json.dumps({"statement_id":self.guid10, "object":{'objectType':'Agent','name':'jon33',
-            'mbox':'jon33@jon.com'},"verb":"passed"})       
+        self.existStmt10 = json.dumps({"statement_id":self.guid10,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon33',
+            'mbox':'jon33@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})       
+        stmt_list.append(self.existStmt10)
 
-        self.existStmt11 = json.dumps({"statement_id":self.guid11, "object":{'objectType':'Agent','name':'jon6',
-            'mbox':'jon6@jon.com'},"verb":"passed"})
+        self.existStmt11 = json.dumps({"statement_id":self.guid11,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon6',
+            'mbox':'jon6@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt11)
 
-        self.existStmt12 = json.dumps({"statement_id":self.guid12, "object":{'objectType':'Agent','name':'jon7',
-            'mbox':'jon7@jon.com'},"verb":"passed"})
+        self.existStmt12 = json.dumps({"statement_id":self.guid12,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon7',
+            'mbox':'jon7@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt12)
 
-        self.existStmt13 = json.dumps({"statement_id":self.guid13, "object":{'objectType':'Agent','name':'jon8',
-            'mbox':'jon8@jon.com'},"verb":"passed"})
+        self.existStmt13 = json.dumps({"statement_id":self.guid13,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon8',
+            'mbox':'jon8@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt13)
 
-        self.existStmt14 = json.dumps({"statement_id":self.guid14, "object":{'objectType':'Agent','name':'jon9',
-            'mbox':'jon9@jon.com'},"verb":"passed"})
+        self.existStmt14 = json.dumps({"statement_id":self.guid14,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon9',
+            'mbox':'jon9@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt14)
 
-        self.existStmt15 = json.dumps({"statement_id":self.guid15, "object":{'objectType':'Agent','name':'jon10',
-            'mbox':'jon10@jon.com'},"verb":"passed"})
+        self.existStmt15 = json.dumps({"statement_id":self.guid15,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon10',
+            'mbox':'jon10@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt15)
 
-        self.existStmt16 = json.dumps({"statement_id":self.guid16, "object":{'objectType':'Agent','name':'jon11',
-            'mbox':'jon11@jon.com'},"verb":"passed"})
+        self.existStmt16 = json.dumps({"statement_id":self.guid16,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon11',
+            'mbox':'jon11@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt16)
 
-        self.existStmt17 = json.dumps({"statement_id":self.guid17, "object":{'objectType':'Agent','name':'jon12',
-            'mbox':'jon12@jon.com'},"verb":"passed"})
+        self.existStmt17 = json.dumps({"statement_id":self.guid17,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon12',
+            'mbox':'jon12@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt17)
 
-        self.existStmt18 = json.dumps({"statement_id":self.guid18, "object":{'objectType':'Agent','name':'jon13',
-            'mbox':'jon13@jon.com'},"verb":"passed"})
+        self.existStmt18 = json.dumps({"statement_id":self.guid18,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon13',
+            'mbox':'jon13@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt18)
 
-        self.existStmt19 = json.dumps({"statement_id":self.guid19, "object":{'objectType':'Agent','name':'jon14',
-            'mbox':'jon14@jon.com'},"verb":"passed"})
+        self.existStmt19 = json.dumps({"statement_id":self.guid19,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon14',
+            'mbox':'jon14@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt19)
 
-        self.existStmt20 = json.dumps({"statement_id":self.guid20, "object":{'objectType':'Agent','name':'jon15',
-            'mbox':'jon15@jon.com'},"verb":"passed"})       
+        self.existStmt20 = json.dumps({"statement_id":self.guid20,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon15',
+            'mbox':'jon15@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})       
+        stmt_list.append(self.existStmt20)
 
-        self.existStmt21 = json.dumps({"statement_id":self.guid21, "object":{'objectType':'Agent','name':'jon16',
-            'mbox':'jon16@jon.com'},"verb":"passed"})
+        self.existStmt21 = json.dumps({"statement_id":self.guid21,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon16',
+            'mbox':'jon16@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt21)
 
-        self.existStmt22 = json.dumps({"statement_id":self.guid22, "object":{'objectType':'Agent','name':'jon17',
-            'mbox':'jon17@jon.com'},"verb":"passed"})
+        self.existStmt22 = json.dumps({"statement_id":self.guid22,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon17',
+            'mbox':'jon17@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt22)
 
-        self.existStmt23 = json.dumps({"statement_id":self.guid23, "object":{'objectType':'Agent','name':'jon18',
-            'mbox':'jon18@jon.com'},"verb":"passed"})
+        self.existStmt23 = json.dumps({"statement_id":self.guid23,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon18',
+            'mbox':'jon18@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt23)
 
-        self.existStmt24 = json.dumps({"statement_id":self.guid24, "object":{'objectType':'Agent','name':'jon19',
-            'mbox':'jon19@jon.com'},"verb":"passed"})
+        self.existStmt24 = json.dumps({"statement_id":self.guid24,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon19',
+            'mbox':'jon19@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt24)
 
-        self.existStmt25 = json.dumps({"statement_id":self.guid25, "object":{'objectType':'Agent','name':'jon20',
-            'mbox':'jon20@jon.com'},"verb":"passed"})
+        self.existStmt25 = json.dumps({"statement_id":self.guid25,"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object":{'objectType':'Agent','name':'jon20',
+            'mbox':'jon20@jon.com'},"verb":{"id":"verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+        stmt_list.append(self.existStmt25)
+
+
 
         # Post statements
-        self.postresponse1 = self.client.post(reverse(views.statements), self.existStmt1,
-            content_type="application/json", HTTP_AUTHORIZATION=self.auth)
+        post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
-        self.postresponse2 = self.client.post(reverse(views.statements), self.existStmt2,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
-        self.postresponse3 = self.client.post(reverse(views.statements), self.existStmt3,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
-        self.postresponse4 = self.client.post(reverse(views.statements), self.existStmt4,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
-        self.postresponse5 = self.client.post(reverse(views.statements), self.existStmt5,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=5)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
 
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat())
 
-        self.postresponse6 = self.client.post(reverse(views.statements), self.existStmt6,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
-        self.postresponse7 = self.client.post(reverse(views.statements), self.existStmt7,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
 
-        self.postresponse8 = self.client.post(reverse(views.statements), self.existStmt8,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
 
-        self.postresponse9 = self.client.post(reverse(views.statements), self.existStmt9,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
 
-        self.postresponse10 = self.client.post(reverse(views.statements), self.existStmt10,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
         self.thirdTime = str((datetime.utcnow()+timedelta(seconds=12)).replace(tzinfo=utc).isoformat())
 
-        self.postresponse11 = self.client.post(reverse(views.statements), self.existStmt11,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=13)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid11).update(stored=time)
 
-        self.postresponse12 = self.client.post(reverse(views.statements), self.existStmt12,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=14)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid12).update(stored=time)
 
-        self.postresponse13 = self.client.post(reverse(views.statements), self.existStmt13,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=15)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid13).update(stored=time)
 
-        self.postresponse14 = self.client.post(reverse(views.statements), self.existStmt14,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)     
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=16)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid14).update(stored=time)
 
-        self.postresponse15 = self.client.post(reverse(views.statements), self.existStmt15,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=17)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid15).update(stored=time)
 
         self.fourthTime = str((datetime.utcnow()+timedelta(seconds=18)).replace(tzinfo=utc).isoformat())
 
-        self.postresponse16 = self.client.post(reverse(views.statements), self.existStmt16,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=19)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid16).update(stored=time)
 
-        self.postresponse17 = self.client.post(reverse(views.statements), self.existStmt17,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=20)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid17).update(stored=time)
 
-        self.postresponse18 = self.client.post(reverse(views.statements), self.existStmt18,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=21)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid18).update(stored=time)
 
-        self.postresponse19 = self.client.post(reverse(views.statements), self.existStmt19,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=22)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid19).update(stored=time)
 
-        self.postresponse20 = self.client.post(reverse(views.statements), self.existStmt20,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=23)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid20).update(stored=time)
 
         self.fifthTime = str((datetime.utcnow()+timedelta(seconds=24)).replace(tzinfo=utc).isoformat())
  
-        self.postresponse21 = self.client.post(reverse(views.statements), self.existStmt21,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=25)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid21).update(stored=time)
 
-        self.postresponse22 = self.client.post(reverse(views.statements), self.existStmt22,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=26)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid22).update(stored=time)
 
-        self.postresponse23 = self.client.post(reverse(views.statements), self.existStmt23,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=27)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid23).update(stored=time)
 
-        self.postresponse24 = self.client.post(reverse(views.statements), self.existStmt24,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=28)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid24).update(stored=time)
 
         self.sixthTime = str((datetime.utcnow()+timedelta(seconds=29)).replace(tzinfo=utc).isoformat())
 
-        self.postresponse25 = self.client.post(reverse(views.statements), self.existStmt25,  content_type="application/json", HTTP_AUTHORIZATION=self.auth)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=30)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid25).update(stored=time)
 
 
     def test_unknown_more_id_url(self):
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="0.95")
         self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
 
     def test_not_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(sincePostResponse.status_code, 200)
         self.assertContains(sincePostResponse, self.guid5)
         self.assertContains(sincePostResponse, self.guid4)                
         self.assertContains(sincePostResponse, self.guid3)
         self.assertContains(sincePostResponse, self.guid2)
-        self.assertContains(sincePostResponse, self.guid1)                
+        self.assertContains(sincePostResponse, self.guid1)
 
         self.assertNotIn(self.guid25, sincePostResponse)
         self.assertNotIn(self.guid24, sincePostResponse)
@@ -310,19 +362,22 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid9, sincePostResponse)
         self.assertNotIn(self.guid7, sincePostResponse)
         self.assertNotIn(self.guid8, sincePostResponse)
-        self.assertNotIn(self.guid6, sincePostResponse)        
+        self.assertNotIn(self.guid6, sincePostResponse)
 
     def test_single_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.thirdTime},content_type="application/x-www-form-urlencoded")
 
+
+        sincePostResponse = self.client.post(reverse(views.statements),
+            {"until":self.thirdTime},
+            content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sincePostResponse.status_code, 200)
         self.assertContains(sincePostResponse, self.guid10)
-        self.assertContains(sincePostResponse, self.guid9)                
+        self.assertContains(sincePostResponse, self.guid9)
         self.assertContains(sincePostResponse, self.guid8)
         self.assertContains(sincePostResponse, self.guid7)
         self.assertContains(sincePostResponse, self.guid6)
         self.assertContains(sincePostResponse, self.guid5)
-        self.assertContains(sincePostResponse, self.guid4)               
+        self.assertContains(sincePostResponse, self.guid4)
         self.assertContains(sincePostResponse, self.guid3)
         self.assertContains(sincePostResponse, self.guid2)
         self.assertContains(sincePostResponse, self.guid1)
@@ -331,7 +386,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid24, sincePostResponse)
         self.assertNotIn(self.guid23, sincePostResponse)
         self.assertNotIn(self.guid22, sincePostResponse)
-        self.assertNotIn(self.guid21, sincePostResponse)        
+        self.assertNotIn(self.guid21, sincePostResponse)
         self.assertNotIn(self.guid20, sincePostResponse)
         self.assertNotIn(self.guid19, sincePostResponse)
         self.assertNotIn(self.guid18, sincePostResponse)
@@ -344,7 +399,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid11, sincePostResponse)
 
     def test_single_full_second_not_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         resp_json = json.loads(sincePostResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -378,7 +433,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sincePostResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid5)
@@ -409,7 +464,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
     def test_two_pages_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded")
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         resp_json = json.loads(sincePostResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -443,7 +498,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sincePostResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
 
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid10)
@@ -475,7 +530,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_url(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95", HTTP_AUTHORIZATION=self.auth)
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -509,7 +564,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, sinceGetResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         more_json = json.loads(moreURLGet.content)
         more_resp_url = more_json['more']
         more_resp_id = more_resp_url[-32:]
@@ -543,7 +598,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(more2URLGet.status_code, 200)
         self.assertContains(more2URLGet, self.guid4)
         self.assertContains(more2URLGet, self.guid3)                
@@ -573,7 +628,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2URLGet)        
     
     def test_limit_less_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         resp_json = json.loads(sinceGetResponse.content)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -608,7 +663,7 @@ class StatementsMoreTests(TestCase):
 
 
     def test_limit_same_as_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         resp_json = json.loads(sinceGetResponse.content)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -643,7 +698,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn('more', sinceGetResponse)    
 
     def test_limit_more_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -677,7 +732,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, sinceGetResponse)                
         self.assertNotIn(self.guid25, sinceGetResponse)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(moreURLGet.status_code, 200)
         self.assertContains(moreURLGet, self.guid14)
         self.assertContains(moreURLGet, self.guid13)
@@ -709,7 +764,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_multiple_hits(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime})
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         resp_json = json.loads(sinceGetResponse.content)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -743,7 +798,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, sinceGetResponse)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         more_json = json.loads(moreURLGet.content)
         more_resp_url = more_json['more']
         more_resp_id = more_resp_url[-32:]
@@ -777,7 +832,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, moreURLGet)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}))
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more2URLGet.status_code, 200)
         self.assertContains(more2URLGet, self.guid4)
         self.assertContains(more2URLGet, self.guid3)                
@@ -807,7 +862,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2URLGet)        
 
         # Simulate user clicking returned 'more' URL
-        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}))
+        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         another_more_json = json.loads(anotherMoreURLGet.content)
         another_more_resp_url = another_more_json['more']
         another_more_resp_id = another_more_resp_url[-32:]
@@ -841,7 +896,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, anotherMoreURLGet)
 
         # Simulate user clicking returned 'more' URL
-        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}))
+        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}), X_Experience_API_Version="0.95")
         self.assertEqual(anotherMore2URLGet.status_code, 200)
         self.assertContains(anotherMore2URLGet, self.guid4)
         self.assertContains(anotherMore2URLGet, self.guid3)                

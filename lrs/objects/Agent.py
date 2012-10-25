@@ -4,6 +4,7 @@ from lrs.models import agent, group, agent_profile, IDNotFoundError
 from lrs.util import etag
 from django.core.files.base import ContentFile
 from django.db import transaction
+import pdb
 
 class Agent():
     @transaction.commit_on_success
