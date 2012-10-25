@@ -581,4 +581,17 @@ class StatementsTests(TestCase):
 
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth)
-        self.assertEqual(put_stmt.status_code, 204)      
+        self.assertEqual(put_stmt.status_code, 204)  
+
+    # this is testing that statements can still be entered even if there is no authentication method
+    # enabled in the LRS. To test this, remove the auth decorator from req_validate.statements_put and 
+    # comment out setUp in this file.
+    # def test_next_put_issue(self):
+    #     stmt_id = '2aac3def-d21d-4dc5-b771-6ed864493dae'
+    #     stmt = json.dumps({"verb":"imported","object":{"id":"http://localhost/ClientPrototypes9/LRSGame/#SignUp","definition":{"type":"Course","name":{"en-US":"LRSGame"},"description":{"en-US":"A simple game to demo the LRS"}}},"actor":{"mbox":["mailto:nhruska@gmail.com"],"name":["nhruska"]},"context":{"contextActivities":{"grouping":{"id":"MTExMQ=="}}}})
+    #     path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+    #     put_stmt = self.client.put(path, stmt, content_type="application/json")#, Authorization=self.auth)
+    #     f = open('/home/ubuntu/Desktop/error.html', 'w')
+    #     f.write(put_stmt.content)
+    #     f.close()
+    #     self.assertEqual(put_stmt.status_code, 204)
