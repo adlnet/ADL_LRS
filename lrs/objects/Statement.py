@@ -372,8 +372,6 @@ class Statement():
                 authArgs['name'] = [auth.username]
                 authArgs['mbox'] = [auth.email]
                 args['actor'] = Actor(json.dumps(authArgs), create=True).agent
-            else:
-                raise Exception("Unable to determine the actor of this statement")
 
         #Set inProgress to false
         args['inProgress'] = False

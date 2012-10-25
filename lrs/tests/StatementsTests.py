@@ -38,7 +38,7 @@ class StatementsTests(TestCase):
         self.cguid4 = str(uuid.uuid4())
         self.cguid5 = str(uuid.uuid4())
 
-        self.existStmt = Statement.Statement(json.dumps({"actor":{"mbox":["mailto:testactor@example.com"]},"verb":"created", "object": {"id":"activity"}}))
+        self.existStmt = Statement.Statement(json.dumps({"verb":"created", "object": {"id":"activity"}}))
 
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
@@ -262,7 +262,7 @@ class StatementsTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid4())
 
-        existStmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"mbox":["mailto:existingstmtid@example.com"]},"verb":"created", "object": {"id":"activity"}}))
+        existStmt = Statement.Statement(json.dumps({"statement_id":guid,"verb":"created", "object": {"id":"activity"}}))
 
         param = {"statementId":guid}
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode(param))        
@@ -586,7 +586,6 @@ class StatementsTests(TestCase):
     # this is testing that statements can still be entered even if there is no authentication method
     # enabled in the LRS. To test this, remove the auth decorator from req_validate.statements_put and 
     # comment out setUp in this file.
-    #
     # def test_next_put_issue(self):
     #     stmt_id = '2aac3def-d21d-4dc5-b771-6ed864493dae'
     #     stmt = json.dumps({"verb":"imported","object":{"id":"http://localhost/ClientPrototypes9/LRSGame/#SignUp","definition":{"type":"Course","name":{"en-US":"LRSGame"},"description":{"en-US":"A simple game to demo the LRS"}}},"actor":{"mbox":["mailto:nhruska@gmail.com"],"name":["nhruska"]},"context":{"contextActivities":{"grouping":{"id":"MTExMQ=="}}}})
