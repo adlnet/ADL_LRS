@@ -5,20 +5,26 @@ import json
 from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
 import uuid
 import pdb
+import ast
 import retrieve_statement
 
 import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
-    if not type(req_dict['body']) is list:
-        stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
-        stmtResponses.append(str(stmt.statement_id))
-    else:
-        for st in req_dict['body']:
-            stmt = Statement.Statement(st, auth=req_dict['user']).statement
+    if isinstance(req_dict['body'], str):
+        try:
+            req_dict['body'] = ast.literal_eval(req_dict['body'])
+        except:
+            req_dict['body'] = json.loads(req_dict['body'])    
+        if not type(req_dict['body']) is list:
+            stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
             stmtResponses.append(str(stmt.statement_id))
-    # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
+        else:
+            for st in req_dict['body']:
+                stmt = Statement.Statement(st, auth=req_dict['user']).statement
+                stmtResponses.append(str(stmt.statement_id))
+        # return HttpResponse("StatementID(s) = %s" % stmtResponses, status=200)
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
@@ -30,23 +36,20 @@ def statements_get(req_dict):
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']
-        
         # Try to retrieve stmt, if DNE then return empty else return stmt info
         try:
-            st = Statement.Statement(statement_id=statementId, get=True)
+            st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
         except Exception, e:
-            return HttpResponse(json.dumps([]), mimetype="application/json", status=200)
-        
+            raise e
         stmt_data = st.get_full_statement_json()
-        return HttpResponse(json.dumps(stmt_data, indent=4), mimetype="application/json", status=200)
-    
+        return HttpResponse(json.dumps(stmt_data), mimetype="application/json", status=200)    
     # If statementId is not in req_dict then it is a complex GET
     else:
         statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
-    
-    return HttpResponse(json.dumps(statementResult), mimetype="application/json", status=200)
+    # pdb.set_trace()
+    return HttpResponse(json.dumps(statementResult, indent=4), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -59,17 +62,17 @@ def activity_state_get(req_dict):
     actstate = ActivityState.ActivityState(req_dict)
     stateId = req_dict.get('stateId', None)
     if stateId: # state id means we want only 1 item
-        resource = actstate.get()
+        resource = actstate.get(req_dict['user'])
         response = HttpResponse(resource.state.read())
         response['ETag'] = '"%s"' %resource.etag
     else: # no state id means we want an array of state ids
-        resource = actstate.get_ids()
+        resource = actstate.get_ids(req_dict['user'])
         response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     return response
 
 def activity_state_delete(req_dict):
     actstate = ActivityState.ActivityState(req_dict)
-    actstate.delete()
+    actstate.delete(req_dict['user'])
     return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):
@@ -117,12 +120,15 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     activityId = req_dict['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
-    try:
-        a = Activity.Activity(activity_id=activityId, get=True)
-    except Activity.IDNotFoundError:
-        return HttpResponse(json.dumps([]), mimetype="application/json", status=200)
-    data = a.get_full_activity_json()
-    return HttpResponse(stream_response_generator(data), mimetype="application/json")
+    act_list = models.activity.objects.filter(activity_id=activityId)
+    if len(act_list) == 0:
+        raise IDNotFoundError("No activities found with ID %s" % activityId)
+    full_act_list = []
+    for act in act_list:
+        full_act_list.append(act.object_return())
+    # return HttpResponse(stream_response_generator(data), mimetype="application/json")
+    return HttpResponse(full_act_list, mimetype="application/json", status=200)
+
     
 #Generate JSON
 def stream_response_generator(data):
@@ -196,7 +202,7 @@ def agents_get(req_dict):
 
 
 # so far unnecessary
-class ProcessError(Exception):
+class IDNotFoundError(Exception):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
