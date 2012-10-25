@@ -27,15 +27,14 @@ def convertToUTC(timestr):
     date_object = pytz.timezone("UTC").localize(date_object)
     return date_object
 
-def retrieve_result(objectData):
-    # pdb.set_trace()
-    if 'score' in objectData:
-        objectData['score'] = models.score.objects.filter(**objectData['score'])[0]
-    try:
-        result = models.result.objects.filter()[0]
-    except models.result.DoesNotExist:
-        result = None
-    return result
+# def retrieve_result(objectData):
+#     if 'score' in objectData:
+#         objectData['score'] = models.score.objects.filter(**objectData['score'])[0]
+#     try:
+#         result = models.result.objects.filter(**objectData)
+#     except models.result.DoesNotExist:
+#         result = None
+#     return result
 
 def retrieve_context(objectData):
     # pdb.set_trace()
@@ -51,11 +50,8 @@ def retrieve_context(objectData):
     # if 'contextActivities' in objectData:
     #     del objectData['contextActivities']
 
-    try:
-        # context = models.context.objects.filter(**objectData)[0]
+    if 'registration' in objectData:
         context = models.context.objects.get(registration=objectData['registration'])
-    except models.result.DoesNotExist:
-        context = None
     return context
 
 
@@ -109,10 +105,10 @@ def parse_incoming_object(objectData, args):
             if 'timestamp' in objectData:
                 sub_args['timestamp'] = objectData['timestamp']
 
-            if 'result' in objectData:
-                result = retrieve_result(objectData['result'])
-                if result:
-                    sub_args['result'] = result
+            # if 'result' in objectData:
+            #     result = retrieve_result(objectData['result'])
+            #     if result:
+            #         sub_args['result'] = result
 
             if 'context' in objectData:
                 context = retrieve_context(objectData['context'])
@@ -147,7 +143,6 @@ def parse_incoming_object(objectData, args):
     return obj
 
 def parse_incoming_actor(actorData):
-    # pdb.set_trace()
     actor = None
     if not type(actorData) is dict:
         try:
@@ -163,7 +158,6 @@ def parse_incoming_actor(actorData):
     return actor
 
 def parse_incoming_instructor(instData):
-    pdb.set_trace()
     inst = None
     if not type(instData) is dict:
         try:
@@ -241,13 +235,14 @@ def complexGet(req_dict):
             args['stmt_object'] = obj
 
     # If searching by verb
+    # pdb.set_trace()
     if 'verb' in the_dict:
         verb_id = the_dict['verb']
-        try:
-            args['verb'] = models.Verb.objects.get(verb_id=verb_id)
-        except models.Verb.DoesNotExist:
-            pass # no verb filter added
-    
+        verb = models.Verb.objects.filter(verb_id=verb_id)
+        if verb:
+            args['verb'] = verb
+
+
     # If searching by registration
     if 'registration' in the_dict:
         uuid = str(the_dict['registration'])
@@ -264,7 +259,7 @@ def complexGet(req_dict):
     # If searching by instructor
     if 'instructor' in the_dict:
         instData = the_dict['instructor']
-        inst = parse_incoming_instructor(instData, args)
+        inst = parse_incoming_instructor(instData)
         if inst:
             args['context__in'] = inst
     
