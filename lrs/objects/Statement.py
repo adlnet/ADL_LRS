@@ -278,7 +278,7 @@ class Statement():
         if 'registration' not in stmt_data['context']:
             # raise Exception('Registration UUID required for context')
             stmt_data['context']['registration'] = uuid.uuid4()
-            
+
         # if 'contextActivities' not in stmt_data['context']:
         #     raise Exception('contextActivities required for context')
 
@@ -338,15 +338,27 @@ class Statement():
         if 'id' not in incoming_verb:
             raise exceptions.ParamError("ID field is not included in statement verb")
 
-        verb_object = models.Verb(verb_id=incoming_verb['id'])
-        verb_object.save()
+        verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
+
+        if not created:
+            existing_lang_map_keys = verb_object.display.all().values_list('key', flat=True)
+        else:
+            existing_lang_map_keys = []
 
         # Save verb displays
         if 'display' in incoming_verb:
+            # Iterate incoming lang maps
             for verb_lang_map in incoming_verb['display'].items():
+                # Make sure it's a dict
                 if isinstance(verb_lang_map, tuple):
-                    lang_map = self._save_lang_map(verb_lang_map)
-                    verb_object.display.add(lang_map)  
+                    # If incoming key doesn't already exist in verb's lang maps - add it
+                    if not verb_lang_map[0] in existing_lang_map_keys: 
+                        lang_map = self._save_lang_map(verb_lang_map)    
+                        verb_object.display.add(lang_map)
+                    else:
+                        existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
+                        models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
+                        # existing_verb_lang_map.update(value=verb_lang_map[1])
                 else:
                     raise exceptions.ParamError("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
             verb_object.save()

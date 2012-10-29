@@ -471,20 +471,21 @@ class StatementsTests(TestCase):
         dbstmts = models.statement.objects.all()
         self.assertEqual(len(stmts["statements"]), len(dbstmts))
 
-    # def test_verb_filter(self):
-    #     param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     verb_response = self.client.get(path, X_Experience_API_Version="0.95")
+    def test_verb_filter(self):
+        param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        verb_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
 
-    #     self.assertEqual(verb_response.status_code, 200)
-    #     self.assertContains(verb_response, self.guid8)
-    #     self.assertNotIn(self.guid7, verb_response)
-    #     self.assertNotIn(self.guid6, verb_response)
-    #     self.assertNotIn(self.guid5, verb_response)
-    #     self.assertNotIn(self.guid4, verb_response)
-    #     self.assertNotIn(self.guid2, verb_response)
-    #     self.assertNotIn(self.guid3, verb_response)
-    #     self.assertNotIn(self.guid1, verb_response)
+        self.assertEqual(verb_response.status_code, 200)
+        self.assertContains(verb_response, self.guid8)
+        self.assertContains(verb_response, self.guid9)        
+        self.assertNotIn(self.guid7, verb_response)
+        self.assertNotIn(self.guid6, verb_response)
+        self.assertNotIn(self.guid5, verb_response)
+        self.assertNotIn(self.guid4, verb_response)
+        self.assertNotIn(self.guid2, verb_response)
+        self.assertNotIn(self.guid3, verb_response)
+        self.assertNotIn(self.guid1, verb_response)
 
 
     def test_actor_object_filter(self):
@@ -500,7 +501,7 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid3, actorObjectGetResponse)
         self.assertNotIn(self.guid1, actorObjectGetResponse)
 
-    # TODO
+    
     def test_substatement_object_filter(self):
         param = {"object":{"objectType": "SubStatement", "actor":{"objectType":"Agent","mbox":"ss@ss.com"},
         "verb": {"id":"verb/url/nested"},"object":{"objectType":"activity", "id":"testex.com"},
@@ -510,7 +511,16 @@ class StatementsTests(TestCase):
             
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         sub_object_get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-        # print sub_object_get_response
+        self.assertEqual(sub_object_get_response.status_code, 200)
+        self.assertContains(sub_object_get_response,self.guid9)
+        self.assertNotIn(self.guid2, sub_object_get_response)
+        self.assertNotIn(self.guid3, sub_object_get_response)
+        self.assertNotIn(self.guid1, sub_object_get_response)
+        self.assertNotIn(self.guid5, sub_object_get_response)
+        self.assertNotIn(self.guid4, sub_object_get_response)
+        self.assertNotIn(self.guid7, sub_object_get_response)
+        self.assertNotIn(self.guid8, sub_object_get_response)        
+        self.assertNotIn(self.guid8, sub_object_get_response)
 
 
     def test_registration_filter(self):
@@ -561,22 +571,22 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid8, actorGetResponse)                
         self.assertNotIn(self.guid2, actorGetResponse)
 
-    # def test_instructor_filter(self):
-    #     # Test instructor - will only return one b/c actor in stmt supercedes instructor in context
-    #     instructorGetResponse = self.client.post(reverse(views.statements), 
-    #                                             {"instructor":{"name":"bill","mbox":"bill@bill.com"}},  
-    #                                             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
+    def test_instructor_filter(self):
+        # Test instructor - will only return one b/c actor in stmt supercedes instructor in context
+        instructorGetResponse = self.client.post(reverse(views.statements), 
+                                                {"instructor":{"name":"bill","mbox":"bill@bill.com"}},  
+                                                content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
         
-    #     self.assertEqual(instructorGetResponse.status_code, 200)
-    #     self.assertContains(instructorGetResponse, self.guid4)
-    #     self.assertNotIn(self.guid2, instructorGetResponse)
-    #     self.assertNotIn(self.guid3, instructorGetResponse)
-    #     self.assertNotIn(self.guid1, instructorGetResponse)
-    #     self.assertNotIn(self.guid5, instructorGetResponse)
-    #     self.assertNotIn(self.guid4, instructorGetResponse)
-    #     self.assertNotIn(self.guid6, instructorGetResponse)
-    #     self.assertNotIn(self.guid7, instructorGetResponse)
-    #     self.assertNotIn(self.guid8, instructorGetResponse)
+        self.assertEqual(instructorGetResponse.status_code, 200)
+        self.assertContains(instructorGetResponse, self.guid4)
+        self.assertNotIn(self.guid2, instructorGetResponse)
+        self.assertNotIn(self.guid3, instructorGetResponse)
+        self.assertNotIn(self.guid1, instructorGetResponse)
+        self.assertNotIn(self.guid5, instructorGetResponse)
+        self.assertNotIn(self.guid4, instructorGetResponse)
+        self.assertNotIn(self.guid6, instructorGetResponse)
+        self.assertNotIn(self.guid7, instructorGetResponse)
+        self.assertNotIn(self.guid8, instructorGetResponse)
 
     def test_authoritative_filter(self):
         # Test authoritative
@@ -639,13 +649,13 @@ class StatementsTests(TestCase):
         # Should display full lang map (won"t find testdesc2 since activity class will merge activities with same id together)
         self.assertContains(sparseGetResponse, "testdesc3")
 
-    # def test_linked_filters(self):
-    #     # Test reasonable linked query
-    #     param = {"verb":"http://adlnet.gov/expapi/verbs/created", "object":{"objectType": "Activity", "id":"foogie"}, "since":self.secondTime, "authoritative":"False", "sparse": False}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     linkedGetResponse = self.client.get(path, X_Experience_API_Version="0.95")
-    #     self.assertEqual(linkedGetResponse.status_code, 200)
-    #     self.assertContains(linkedGetResponse, self.guid2)
+    def test_linked_filters(self):
+        # Test reasonable linked query
+        param = {"verb":"http://adlnet.gov/expapi/verbs/created", "object":{"objectType": "Activity", "id":"foogie"}, "since":self.secondTime, "authoritative":"False", "sparse": False}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        linkedGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(linkedGetResponse.status_code, 200)
+        self.assertContains(linkedGetResponse, self.guid2)
 
     def test_language_header_filter(self):
         param = {"limit":1, "object":{"objectType": "Activity", "id":"foogie"}}
@@ -802,130 +812,195 @@ class StatementsTests(TestCase):
         self.assertEqual(put_stmt.status_code, 400)
 
 
-    # Use this test to make sure stmts are being returned correctly with all data
-    # def test_all_fields_activity_as_object(self):
-    #     nested_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
-    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
-    #     nested_st_id = nested_stmt.statement.statement_id
+    # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp and stored fields
+    def test_all_fields_activity_as_object(self):
+        nested_st_id = "12345678-1233-1234-1234-12345678901n"
+        nest_param = {"statementId":nested_st_id}
+        nest_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_param))
+        nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
+        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(put_sub_stmt.status_code, 204)        
 
-    #     stmt_id = str(uuid.uuid4())
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
+        stmt_id = "12345678-1233-1234-1234-12345678901o"
+        context_id= "12345678-1233-1234-1234-12345678901c"
+        param = {"statementId":stmt_id} 
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"uniqueName"}},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
+            "object": {"objectType": "Activity", "id":"/my/Activity/URL",
+            "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
+            "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
+            "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+            "interactionType": "choice",
+            "correctResponsesPattern": ["golf", "tetris"],
+            "choices":[{"id": "golf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
+            {"id": "tetris","description":{"en-US": "Tetris Example", "en-GB": "TETRIS"}},
+            {"id":"facebook", "description":{"en-US":"Facebook App", "en-GB": "FACEBOOK"}},
+            {"id":"scrabble", "description": {"en-US": "Scrabble Example", "en-GB": "SCRABBLE"}}],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+            "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
+            "context":{"registration": context_id, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"},
+            "grouping":{"id":"http://groupingID"} },
+            "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+            "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
+            "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
+            "timestamp":self.firstTime})
+
+        put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(put_stmt.status_code, 204)
+        param = {"statementId":stmt_id}
+        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertIn('"object": {"definition": {"name": {"en-GB": "anotherActName", "en-US": "actName"}, "description": {"en-GB": '
+            '"This is another activity description.", "en-US": "This is my activity description."}, "extensions": {"key3": "value3", '
+            '"key2": "value2", "key1": "value1"}, "correctResponsesPattern": ["golf", "tetris"], "type": "http://adlnet.gov/expapi/activities/cmi.interaction", '
+            '"interactionType": "choice"}, "id": "/my/Activity/URL", "objectType": "Activity"}, "actor": {"account": {"homePage": "http://example.com", "name": '
+            '"uniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
+
+        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-GB": "made", "en-US": "created"}}, '
+            '"result": {"completion": true, "success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, '
+            '"extensions": {"resultKey2": "resultValue2", "resultKey1": "resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, '
+            '"context": {"language": "en-US", "platform": "Platform is web browser.", "extensions": {"contextKey1": "contextVal1", "contextKey2": '
+            '"contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}, "grouping": {"id": '
+            '"http://groupingID"}}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
+            '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "uniqueName"}, "name": '
+            '"Lou Wolford", "objectType": "Agent"}, "revision": "Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", '
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)
+
+
+    # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp, stored fields
+    def test_all_fields_agent_as_object(self):
+        nested_st_id = "12345678-1233-1234-1234-12345678901n"
+        nest_param = {"statementId":nested_st_id}
+        nest_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_param))
+        nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
+        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(put_sub_stmt.status_code, 204)        
+
+
+        stmt_id = "12345678-1233-1234-1234-12345678901o"
+        context_id= "12345678-1233-1234-1234-12345678901c"
+        param = {"statementId":stmt_id} 
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        msha = hashlib.sha1("tom@example.com").hexdigest()                
+        stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/helped","display": {"en-US":"helped", "en-GB":"assisted"}},
+            "object": {"objectType":"Agent","name": "Tom Creighton","mbox_sha1sum":msha}, 
+            "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
+            "context":{"registration": context_id, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
+            "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+            "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
+            "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
+            "timestamp":self.firstTime})
         
-    #     stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"uniqueName"}},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
-    #         "object": {"objectType": "Activity", "id":"/my/Activity/URL",
-    #         "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
-    #         "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
-    #         "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
-    #         "interactionType": "choice",
-    #         "correctResponsesPattern": ["golf", "tetris"],
-    #         "choices":[{"id": "golf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
-    #         {"id": "tetris","description":{"en-US": "Tetris Example", "en-GB": "TETRIS"}},
-    #         {"id":"facebook", "description":{"en-US":"Facebook App", "en-GB": "FACEBOOK"}},
-    #         {"id":"scrabble", "description": {"en-US": "Scrabble Example", "en-GB": "SCRABBLE"}}],
-    #         "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
-    #         "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
-    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
-    #         "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"},
-    #         "grouping":{"id":"http://groupingID"} },
-    #         "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
-    #         "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
-    #         "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
-    #         "timestamp":self.firstTime})
+        put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(put_stmt.status_code, 204)
+        param = {"statementId":stmt_id}
+        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         
-    #     put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
-    #     self.assertEqual(put_stmt.status_code, 204)
-
-    #     param = {"statementId":stmt_id}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     get_response = self.client.get(path, X_Experience_API_Version="0.95")
-    #     print get_response
+        self.assertIn('"object": {"mbox_sha1sum": "edb97c2848fc47bdd2091028de8a3b1b24933752", "name": "Tom Creighton", "objectType": "Agent"}, "actor": '
+            '{"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
 
 
+        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/helped", "display": {"en-GB": "assisted", "en-US": "helped"}}, "result": {"completion": true, '
+            '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
+            '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "extensions": {"contextKey1": "contextVal1", '
+            '"contextKey2": "contextVal2"}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
+            '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", '
+            '"objectType": "Agent"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}}, "id": "12345678-1233-1234-1234-12345678901o", '
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)        
 
-    # Use this test to make sure stmts are being returned correctly with all data
-    # def test_all_fields_agent_as_object(self):
-    #     nested_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
-    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
-    #     nested_st_id = nested_stmt.statement.statement_id
 
-    #     stmt_id = str(uuid.uuid4())
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
-    #     msha = hashlib.sha1("tom@example.com").hexdigest()        
+    # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamps or stored fields
+    def test_all_fields_substatement_as_object(self):
+        nested_st_id = "12345678-1233-1234-1234-12345678901n"
+        nest_param = {"statementId":nested_st_id}
+        nest_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_param))
+        nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "tincannest@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB":"graded"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
+        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(put_sub_stmt.status_code, 204)        
+
+
+        nested_sub_st_id = "12345678-1233-1234-1234-1234567890ns"
+        nest_sub_param = {"statementId":nested_sub_st_id}
+        nest_sub_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_sub_param))        
+        nested_sub_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "tincannestsub@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/verb","display": {"en-US":"verb", "en-GB":"altVerb"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplenestedsubstatement"}})
+        put_nest_sub_stmt = self.client.put(nest_sub_path, nested_sub_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(put_nest_sub_stmt.status_code, 204)
+
+
+        stmt_id = "12345678-1233-1234-1234-12345678901o"
+        context_id= "12345678-1233-1234-1234-12345678901c"
+        sub_context_id= "12345678-1233-1234-1234-1234567890sc"        
+        param = {"statementId":stmt_id} 
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        msha = hashlib.sha1("tom@example.com").hexdigest()        
         
-    #     stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/helped","display": {"en-US":"helped", "en-GB":"assisted"}},
-    #         "object": {"objectType":"Agent","name": "Tom Creighton","mbox_sha1sum":msha}, 
-    #         "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
-    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
-    #         "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
-    #         "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
-    #         "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
-    #         "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
-    #         "timestamp":self.firstTime})
+        stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
+            "object": {"objectType": "SubStatement", "actor":{"objectType":"Agent","name":"Tom Creighton","mbox": "tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB": "Graded"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement",'definition': {'name': {'en-US':'SubStatement name'},
+            'description': {'en-US':'SubStatement description'},
+            'type': 'cmi.interaction','interactionType': 'matching',
+            'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
+            'description': {'en-US':'Lou', 'it': 'Luigi'}},{'id': 'tom','description':{'en-US': 'Tom', 'it':'Tim'}},
+            {'id':'andy', 'description':{'en-US':'Andy'}}],'target':[{'id':'1',
+            'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
+            {'id':'3', 'description':{'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}}]}},
+            "result": {"score":{"scaled":.50, "raw": 50, "min":1, "max":51}, "completion": True,
+            "success": True, "response": "Poorly done",
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey11": "resultValue11", "resultKey22":"resultValue22"}},
+            "context":{"registration": sub_context_id,
+            "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test/nest"}},
+            "revision": "Spelling error in target.", "platform":"Ipad.","language": "en-US",
+            "statement":{"objectType":"StatementRef", "id":str(nested_sub_st_id)},
+            "extensions":{"contextKey11": "contextVal11","contextKey22": "contextVal22"}}}, 
+            "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
+            "context":{"registration": context_id, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
+            "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+            "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
+            "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
+            "timestamp":self.firstTime})
         
-    #     put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
-    #     self.assertEqual(put_stmt.status_code, 204)
-
-    #     param = {"statementId":stmt_id}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     get_response = self.client.get(path, X_Experience_API_Version="0.95")
-    #     print get_response
-
-
-    # Use this test to make sure stmts are being returned correctly with all data
-    # def test_all_fields_substatement_as_object(self):
-    #     nested_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincannest@adlnet.gov"},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB":"graded"}},
-    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
-    #     nested_st_id = nested_stmt.statement.statement_id
-
-    #     nested_sub_stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincannestsub@adlnet.gov"},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/verb","display": {"en-US":"verb", "en-GB":"altVerb"}},
-    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplenestedsubstatement"}}))
-    #     nested_sub_st_id = nested_stmt.statement.statement_id
-
-    #     stmt_id = str(uuid.uuid4())
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
-    #     msha = hashlib.sha1("tom@example.com").hexdigest()        
+        put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(put_stmt.status_code, 204)
+        param = {"statementId":stmt_id}
+        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         
-    #     stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
-    #         "object": {"objectType": "SubStatement", "actor":{"objectType":"Agent","name":"Tom Creighton","mbox": "tom@adlnet.gov"},
-    #         "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB": "Graded"}},
-    #         "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement",'definition': {'name': {'en-US':'SubStatement name'},
-    #         'description': {'en-US':'SubStatement description'},
-    #         'type': 'cmi.interaction','interactionType': 'matching',
-    #         'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
-    #         'description': {'en-US':'Lou', 'it': 'Luigi'}},{'id': 'tom','description':{'en-US': 'Tom', 'it':'Tim'}},
-    #         {'id':'andy', 'description':{'en-US':'Andy'}}],'target':[{'id':'1',
-    #         'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
-    #         {'id':'3', 'description':{'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}}]}},
-    #         "result": {"score":{"scaled":.50, "raw": 50, "min":1, "max":51}, "completion": True,
-    #         "success": True, "response": "Poorly done",
-    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey11": "resultValue11", "resultKey22":"resultValue22"}},
-    #         "context":{"registration": str(uuid.uuid4()),
-    #         "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test/nest"}},
-    #         "revision": "Spelling error in target.", "platform":"Ipad.","language": "en-US",
-    #         "statement":{"objectType":"StatementRef", "id":str(nested_sub_st_id)},
-    #         "extensions":{"contextKey11": "contextVal11","contextKey22": "contextVal22"}}}, 
-    #         "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
-    #         "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey1": "resultValue1", "resultKey2":"resultValue2"}},
-    #         "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
-    #         "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
-    #         "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
-    #         "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
-    #         "timestamp":self.firstTime})
+        self.assertIn('"object": {"id": "http://example.adlnet.gov/tincan/example/simplestatement", "objectType": "Activity"}, "actor": '
+            '{"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "verb": {"id": "http://adlnet.gov/expapi/verbs/assess", '
+            '"display": {"en-GB": "Graded", "en-US": "assessed"}}, "result": {"completion": true, "success": true, "score": {"scaled": 0.5, '
+            '"raw": 50, "score_min": 1, "score_max": 51}, "extensions": {"resultKey11": "resultValue11", "resultKey22": "resultValue22"}, "duration": '
+            '"P3Y6M4DT12H30M5S", "response": "Poorly done"}, "context": {"language": "en-US", "platform": "Ipad.", "extensions": {"contextKey11": '
+            '"contextVal11", "contextKey22": "contextVal22"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test/nest"}}, '
+            '"statement": {"id": "12345678-1233-1234-1234-1234567890ns", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-1234567890sc", '
+            '"instructor": {"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "revision": "Spelling error in target."}, "objectType": '
+            '"SubStatement"}, "actor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, '
+            '"voided": false,', get_response.content)
         
-    #     put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
-    #     self.assertEqual(put_stmt.status_code, 204)
 
-    #     param = {"statementId":stmt_id}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     get_response = self.client.get(path, X_Experience_API_Version="0.95")
-    #     print get_response
+        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/said", "display": {"en-GB": "talked", "en-US": "said"}}, "result": {"completion": true, '
+            '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
+            '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "platform": "Platform is web browser.", '
+            '"extensions": {"contextKey1": "contextVal1", "contextKey2": "contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}, '
+            '"statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-12345678901c", '
+            '"instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "revision": '
+            '"Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", "authority": {"mbox": "test1@tester.com", "name": "tester1", '
+            '"objectType": "Agent"}}', get_response.content)
 
 
     # def test_post_list_rollback(self):
