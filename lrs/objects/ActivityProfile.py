@@ -1,7 +1,8 @@
 from lrs import models
+from lrs.exceptions import IDNotFoundError
 from lrs.util import etag
 from django.core.files.base import ContentFile
-from Activity import IDNotFoundError
+from django.core.exceptions import ValidationError
 
 class ActivityProfile():
 
@@ -96,9 +97,3 @@ class ActivityProfile():
             pass #we don't want it anyway
         except IDNotFoundError:
             pass
-
-class ForbiddenException(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)

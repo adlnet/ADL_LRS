@@ -4,9 +4,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
-from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.utils.timezone import utc
+from lrs.exceptions import IDNotFoundError, ParamError
 import ast
 import json
 import pdb
@@ -29,12 +29,6 @@ import time
 def filename(instance, filename):
     print filename
     return filename
-
-class IDNotFoundError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
 
 class score(models.Model):  
     scaled = models.FloatField(blank=True, null=True)
@@ -101,7 +95,7 @@ class agentmgr(models.Manager):
         group = kwargs.get('objectType', None) == "Group"
         attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
         if not group and len(attrs) != 1:
-            raise ValidationError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
+            raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
         val = kwargs.pop('account', None)
         if val:
             if isinstance(val, agent_account):

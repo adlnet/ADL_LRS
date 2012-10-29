@@ -1,5 +1,6 @@
 import json
 from lrs import models
+from lrs.exceptions import Unauthorized, ParamConflict, ParamError
 from django.contrib.auth import authenticate
 import base64
 import ast
@@ -21,15 +22,10 @@ def basic_http_auth(f):
                 r['user'] = user
                 return f(r, *args, **kwargs)
                 
-        raise NotAuthorizedException("Auth Required")
+        raise Unauthorized("Auth Required")
         
     return wrap
 
-class NotAuthorizedException(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
 
 @basic_http_auth
 def statements_post(r_dict):
@@ -68,10 +64,10 @@ def statements_put(r_dict):
         raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method'])
     
     if check_for_existing_statementId(statement_id):
-        raise ParamConflictError("StatementId conflict")
+        raise ParamConflict("StatementId conflict")
 
     if not check_for_no_other_params_supplied(r_dict['body']):
-        raise NoParamsError("No Content supplied")
+        raise ParamError("No Content supplied")
     return r_dict
 
 
@@ -216,20 +212,3 @@ def agents_get(r_dict):
     return r_dict
 
 
-class ParamError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
-
-class ParamConflictError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
-
-class NoParamsError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
