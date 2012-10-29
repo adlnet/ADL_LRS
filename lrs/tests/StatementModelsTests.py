@@ -1,14 +1,9 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from lrs import models
+from lrs.exceptions import ParamError, Forbidden, ParamConflict
 import json
-from django.core.exceptions import ValidationError
-import urllib
 from datetime import datetime
-from os import path
-import sys
 import uuid
-import pdb
 
 from lrs.objects import Statement
 
@@ -62,7 +57,7 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":{"id":"verb/url",
             "display":{"en-US":"myverb"}}, "object": {"id":"activity"}, "actor":{"objectType":"Agent",
             "mbox":"t@t.com"}}))
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"statement_id":"blahID",
+        self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"statement_id":"blahID",
             "verb":{"id":"verb/url","display":{"en-US":"myverb"}},"object": {'id':'activity2'},
             "actor":{"objectType":"Agent", "mbox":"t@t.com"}}))
         
@@ -98,39 +93,39 @@ class StatementModelsTests(TestCase):
 
         st_id = stmt.statement.statement_id
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"actor":{"name":"Example Admin", "mbox":"admin@example.com"},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{"name":"Example Admin", "mbox":"admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement',
             'id': str(st_id)}}))
 
     def test_no_verb_stmt(self):
 
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"actor":{"objectType":"Agent", "mbox":"t@t.com"},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{"objectType":"Agent", "mbox":"t@t.com"},
             "object": {'id':'activity2'}}))
 
     def test_no_object_stmt(self):
         
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"actor":{"objectType":"Agent", "mbox":"t@t.com"},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{"objectType":"Agent", "mbox":"t@t.com"},
             "verb": {"id":"verb/url"}}))
 
 
     def test_no_actor_stmt(self):
 
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({"object":{"id":"activity_test"},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"object":{"id":"activity_test"},
             "verb": {"id":"verb/url"}}))
 
 
     def test_not_json_stmt(self):
     	
 
-        self.assertRaises(Exception, Statement.Statement, "This will fail.")
+        self.assertRaises(ParamError, Statement.Statement, "This will fail.")
 
     def test_voided_true_stmt(self):
 
 
-        self.assertRaises(Exception, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'l@l.com'},
+        self.assertRaises(Forbidden, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'l@l.com'},
             'verb': {"id":'verb/url/kicked'},'voided': True,
             'object': {'id':'activity3'}}))
 
@@ -138,28 +133,28 @@ class StatementModelsTests(TestCase):
     def test_contradictory_completion_result_stmt(self):
 
 
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
+    	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
             "object": {'id':'activity4'},"result":{"completion": False}}))
 
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
+    	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
             "object": {'id':'activity5'},"result":{"completion": False}}))
 
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
+    	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
             "object": {'id':'activity6'},"result":{"completion": False}}))
     	
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"}
+    	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"}
             ,"object": {'id':'activity7'},"result":{"completion": False}})) 
 		
     def test_contradictory_success_result_stmt(self):
 
 
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
+    	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
             "object": {'id':'activity8'},"result":{"success": False}}))
     	
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
+    	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
             "object": {'id':'activity9'},"result":{"success": False}}))
     	
-    	self.assertRaises(Exception, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
+    	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
             "object": {'id':'activity10'},"result":{"success": True}})) 
 
     def test_string_result_stmt(self):
@@ -564,7 +559,7 @@ class StatementModelsTests(TestCase):
             'actor':{'objectType':'Agent','mbox':'ss@ss.com'},'verb': {"id":"verb/url/nest"},
             'object': {'objectType':'activity', 'id':'testex.com'},
             'authority':{'objectType':'Agent','mbox':'s@s.com'}}}
-        self.assertRaises(Exception, Statement.Statement, json.dumps(stmt))
+        self.assertRaises(ParamError, Statement.Statement, json.dumps(stmt))
 
     def test_nested_substatement(self):
 
@@ -574,7 +569,7 @@ class StatementModelsTests(TestCase):
             'actor':{'objectType':'Agent','mbox':'ss@ss.com'},'verb': {"id":"verb/url/nest"},
             'object': {'objectType':'SubStatement', 'actor':{'objectType':'Agent','mbox':'sss@sss.com'},
             'verb':{'id':'verb/url/nest/nest'}, 'object':{'id':'activity/url'}}}}
-        self.assertRaises(Exception, Statement.Statement, json.dumps(stmt))
+        self.assertRaises(ParamError, Statement.Statement, json.dumps(stmt))
 
     def test_substatement_as_object(self):
 

@@ -1,6 +1,7 @@
 import json
 import datetime
-from lrs.models import agent, group, agent_profile, IDNotFoundError
+from lrs.models import agent, group, agent_profile
+from lrs.exceptions import IDNotFoundError
 from lrs.util import etag
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -94,9 +95,3 @@ class Agent():
 
     def get_person_json(self):
         return json.dumps(self.agent.get_person_json(), sort_keys=True)
-
-class MultipleAgentError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)

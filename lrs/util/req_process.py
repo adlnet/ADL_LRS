@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from lrs import objects, models
+from lrs import objects, models, exceptions
 from lrs.util import etag
 import json
 from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
@@ -37,10 +37,7 @@ def statements_get(req_dict):
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']
         # Try to retrieve stmt, if DNE then return empty else return stmt info
-        try:
-            st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
-        except Exception, e:
-            raise e
+        st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
         stmt_data = st.get_full_statement_json()
         return HttpResponse(json.dumps(stmt_data), mimetype="application/json", status=200)    
     # If statementId is not in req_dict then it is a complex GET
@@ -122,7 +119,7 @@ def activities_get(req_dict):
     # Try to retrieve activity, if DNE then return empty else return activity info
     act_list = models.activity.objects.filter(activity_id=activityId)
     if len(act_list) == 0:
-        raise IDNotFoundError("No activities found with ID %s" % activityId)
+        raise exceptions.IDNotFoundError("No activities found with ID %s" % activityId)
     full_act_list = []
     for act in act_list:
         full_act_list.append(act.object_return())
@@ -199,11 +196,3 @@ def agents_get(req_dict):
     agent = req_dict['agent']
     a = Agent.Agent(agent)
     return HttpResponse(a.get_person_json(), mimetype="application/json")
-
-
-# so far unnecessary
-class IDNotFoundError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
