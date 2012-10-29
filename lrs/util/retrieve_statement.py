@@ -66,11 +66,8 @@ def parse_incoming_object(objectData, args):
             try:
                 objectData = json.loads(objectData.replace("'",'"'))
             except Exception, e:
-                try:
-                    objectData = ast.literal_eval(objectData)
-                except Exception, e:
-                    raise e
-
+                objectData = ast.literal_eval(objectData)
+                
     # Check the objectType
     if 'objectType' in objectData:
         # If type is activity try go retrieve object

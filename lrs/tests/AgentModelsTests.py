@@ -1,5 +1,5 @@
 from django.test import TestCase
-from django.core.exceptions import ValidationError
+from lrs.exceptions import ParamError
 from lrs.models import agent, group, agent_account
 from lrs.objects.Agent import Agent
 import hashlib
@@ -88,11 +88,11 @@ class AgentModelsTests(TestCase):
         self.assertEquals(a.name, "freakshow")
 
     def test_agent_json_no_ids(self):
-        self.assertRaises(ValidationError, agent.objects.gen, 
+        self.assertRaises(ParamError, agent.objects.gen, 
             **{"name":"bob bobson"})
 
     def test_agent_json_many_ids(self):
-        self.assertRaises(ValidationError, agent.objects.gen, 
+        self.assertRaises(ParamError, agent.objects.gen, 
             **{"mbox":"mailto:bob@example.com",
                "openid":"bob.bobson.openid.org"})
 

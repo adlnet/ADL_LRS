@@ -5,8 +5,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
-from lrs import forms, models
-from objects import Agent, Activity, Statement, ActivityState
+from lrs import forms, models, exceptions
 import logging
 import json
 import pdb
@@ -73,142 +72,59 @@ def statements_more(request, more_id):
 @require_http_methods(["PUT","GET","POST"])
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements(request):
-    try: 
-        resp = handle_request(request)
-    except req_validate.ParamError as perr:
-        return HttpResponse(perr.message, status=400)
-    except req_validate.NoParamsError as nperr:
-        return HttpResponse(nperr.message, status=400)        
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Statement.ForbiddenException as forberr:
-        return HttpResponse(forberr.message, status=403)
-    except Activity.ForbiddenException as forberr:
-        return HttpResponse(forberr.message, status=403)        
-    except Statement.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)    
-    except req_validate.ParamConflictError as pcerr:
-        return HttpResponse(pcerr.message, status=409)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
-    return resp
-    
+    return handle_request(request)   
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_state(request):
-    try: 
-        resp = handle_request(request)
-    except req_validate.ParamError as err:
-        return HttpResponse(err.message, status=400)        
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except ActivityState.ForbiddenException as forberr:
-        return HttpResponse(forberr.message, status=403)
-    except models.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
-    return resp
-    
+    return handle_request(request)  
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_profile(request):
-    try:
-        resp = handle_request(request)
-    except req_validate.ParamError as err:
-        return HttpResponse(err.message, status=400)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Activity.ForbiddenException as forberr:
-        return HttpResponse(forberr.message, status=403)        
-    except Activity.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
-    return resp
-
+    return handle_request(request)
 
 @require_GET
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activities(request):
-    try: 
-        resp = handle_request(request)
-    except req_validate.ParamError as err:
-        return HttpResponse(err.message, status=400)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except req_process.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
-    return resp
-
+    return handle_request(request)
 
 @require_http_methods(["PUT","POST","GET","DELETE"])    
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def agent_profile(request):
-    try: 
-        resp = handle_request(request)
-    except req_validate.ParamError as err:
-        return HttpResponse(err.message, status=400)        
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Agent.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
-    return resp
+    return handle_request(request)
 
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def agents(request):
-    try: 
-        resp = handle_request(request)
-    except req_validate.ParamError as err:
+    return handle_request(request)
+
+def handle_request(request):
+    try:
+        r_dict = req_parse.parse(request)
+        path = request.path
+        if path.endswith('/'):
+            path = path.rstrip('/')
+        req_dict = validators[path][r_dict['method']](r_dict)
+        return processors[path][req_dict['method']](req_dict)
+    except exceptions.BadRequest as err:
         return HttpResponse(err.message, status=400)        
-    except req_validate.NotAuthorizedException as autherr:
+    except exceptions.Unauthorized as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except Agent.IDNotFoundError as iderr:
-        return HttpResponse(iderr, status=404)
+    except exceptions.Forbidden as forb:
+        return HttpResponse(forb.message, status=403)
+    except exceptions.NotFound as nf:
+        return HttpResponse(nf.message, status=404)
+    except exceptions.Conflict as c:
+        return HttpResponse(c.message, status=409)
+    except exceptions.PreconditionFail as pf:
+        return HttpResponse(pf.message, status=412)
     except Exception as err:
         return HttpResponse(err.message, status=500)
-    return resp
-
-def handle_request(request):
-    r_dict = req_parse.parse(request)
-    path = request.path
-    if path.endswith('/'):
-        path = path.rstrip('/')
-    req_dict = validators[path][r_dict['method']](r_dict)
-    return processors[path][req_dict['method']](req_dict)
 
 validators = {
     reverse(statements) : {

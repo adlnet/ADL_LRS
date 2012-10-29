@@ -1,6 +1,6 @@
 from lrs import models
 from lrs.objects.Agent import Agent
-from lrs.models import IDNotFoundError
+from lrs.exceptions import IDNotFoundError #, Forbidden
 from lrs.util import etag
 from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
@@ -58,9 +58,9 @@ class ActivityState():
     def get(self, auth):
         agent = self.__get_agent()
         # pdb.set_trace()
-        if not agent.mbox is None:            
-            if agent.mbox != auth.email:
-                raise ForbiddenException("Unauthorized to retrieve activity state with ID %s" % self.stateId)
+        # if not agent.mbox is None:            
+        #     if agent.mbox != auth.email:
+        #         raise Forbidden("Unauthorized to retrieve activity state with ID %s" % self.stateId)
 
         try:
             if self.registrationId:
@@ -72,9 +72,9 @@ class ActivityState():
     def get_set(self,auth,**kwargs):
         agent = self.__get_agent()
 
-        if not agent.mbox is None:            
-            if agent.mbox != auth.email:
-                raise ForbiddenException("Unauthorized to retrieve activity state with ID %s" % self.stateId)
+        # if not agent.mbox is None:            
+        #     if agent.mbox != auth.email:
+        #         raise Forbidden("Unauthorized to retrieve activity state with ID %s" % self.stateId)
 
         if self.registrationId:
             state_set = models.activity_state.objects.filter(agent=agent, activity=self.activity, registration_id=self.registrationId)
@@ -105,9 +105,4 @@ class ActivityState():
             pass
         except IDNotFoundError:
             pass
-
-class ForbiddenException(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)            
+            

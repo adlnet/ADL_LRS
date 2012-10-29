@@ -2,7 +2,7 @@ import json
 import types
 import uuid
 import datetime
-from lrs import models
+from lrs import models, exceptions
 from lrs.objects.Agent import Agent
 from django.core.exceptions import FieldError
 from django.db import transaction
@@ -36,11 +36,7 @@ class Statement():
             try:
                 self.statement = models.statement.objects.get(statement_id=self.statement_id)
             except models.statement.DoesNotExist:
-                raise IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
-
-            if not self.statement.authority.mbox is None:            
-                if self.statement.authority.mbox != auth.email:
-                    raise ForbiddenException("Unauthorized to retrieve statement with statement ID %s" % statement_id)            
+                raise exceptions.IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
         else:
             obj = self._parse(initial)
             self._populate(obj, auth)
@@ -52,7 +48,10 @@ class Statement():
                 initial=json.dumps(initial)
 
             #Don't put in try..catching exception to raise exception removes stack trace-will have better stack trace if this fails
-            return json.loads(initial)
+            try:
+                return json.loads(initial)
+            except:
+                raise exceptions.ParamError("Invalid JSON")
         return {}		
 
 
@@ -61,8 +60,8 @@ class Statement():
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
             stmt = models.statement.objects.get(statement_id=stmt_id)
-        except Exception, e:
-            raise e
+        except Exception:
+            raise exceptions.IDNotFoundError("Statement with that ID does not exist")
         
         if not stmt.voided:
             stmt.voided = True
@@ -71,7 +70,7 @@ class Statement():
             stmt_ref.save()
             return stmt_ref
         else:
-            raise Exception('Statment already voided, cannot unvoid. Please re-issue the statement under a new ID.')
+            raise exceptions.Forbidden('Statment already voided, cannot unvoid. Please re-issue the statement under a new ID.')
 
     def _remove_extra_agent_info(self, ret, fieldName):
         if 'familyName' in ret[fieldName]:
@@ -150,19 +149,19 @@ class Statement():
             if result['completion'] == False:                
                 if verb in completedVerbs:
                     #Throw exceptions b/c those verbs must have true completion
-                    raise Exception('Completion must be True if using the verb ' + verb)
+                    raise exceptions.ParamError('Completion must be True if using the verb ' + verb)
 
         if verb == 'mastered' and result['success'] == False:
             #Throw exception b/c mastered and success contradict each other or completion is false
-            raise Exception('Result success must be True if verb is ' + verb)
+            raise exceptions.ParamError('Result success must be True if verb is ' + verb)
 
         if verb == 'passed' and result['success'] == False:
             #Throw exception b/c passed and success contradict each other or completion is false
-            raise Exception('Result success must be True if verb is ' + verb)
+            raise exceptions.ParamError('Result success must be True if verb is ' + verb)
 
         if verb == 'failed' and result['success'] == True:
             #Throw exception b/c failed and success contradict each other or completion is false
-            raise Exception('Result success must be False if verb is ' + verb)
+            raise exceptions.ParamError('Result success must be False if verb is ' + verb)
 
     def _validateScoreResult(self, score_data):
         if 'min' in score_data:
@@ -337,7 +336,7 @@ class Statement():
         verb = {}
         
         if 'id' not in incoming_verb:
-            raise Exception("ID field is not included in statement verb")
+            raise exceptions.ParamError("ID field is not included in statement verb")
 
         verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
 
@@ -361,7 +360,7 @@ class Statement():
                         models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
                         # existing_verb_lang_map.update(value=verb_lang_map[1])
                 else:
-                    raise Exception("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
+                    raise exceptions.ParamError("Verb display for verb %s is not a correct language map" % incoming_verb['id'])        
             verb_object.save()
         return verb_object
 
@@ -373,23 +372,23 @@ class Statement():
         try:
             raw_verb = stmt_data['verb']
         except KeyError:
-            raise Exception("No verb provided, must provide 'verb' field")
+            raise exceptions.ParamError("No verb provided, must provide 'verb' field")
 
         #Must include object - set statement object
         try:
             statementObjectData = stmt_data['object']
         except KeyError:
-            raise Exception("No object provided, must provide 'object' field")
+            raise exceptions.ParamError("No object provided, must provide 'object' field")
 
         try:
             raw_actor = stmt_data['actor']
         except KeyError:
-            raise Exception("No actor provided, must provide 'actor' field")
+            raise exceptions.ParamError("No actor provided, must provide 'actor' field")
 
         # Throw error since you can't set voided to True
         if 'voided' in stmt_data:
             if stmt_data['voided']:
-                raise Exception('Cannot have voided statement unless it is being voided by another statement')
+                raise exceptions.Forbidden('Cannot have voided statement unless it is being voided by another statement')
         
         # If not specified, the object is assumed to be an activity
         if not 'objectType' in statementObjectData:
@@ -405,7 +404,7 @@ class Statement():
                 stmt_ref = self._voidStatement(statementObjectData['id'])
                 args['stmt_object'] = stmt_ref
             else:
-                raise Exception("There was a problem voiding the Statement")
+                raise exceptions.ParamError("There was a problem voiding the Statement")
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
@@ -453,7 +452,7 @@ class Statement():
             except models.statement.DoesNotExist:
                 args['statement_id'] = stmt_data['statement_id']
             else:
-                raise Exception("The Statement ID %s already exists in the system" % args['statement_id'])
+                raise exceptions.ParamConflict("The Statement ID %s already exists in the system" % stmt_data['statement_id'])
         else:
             #Create uuid for ID
             args['statement_id'] = uuid.uuid4()
@@ -471,22 +470,12 @@ class SubStatement(Statement):
 
         for field in unallowed_fields:
             if field in data:
-                raise Exception("%s is not allowed in a SubStatement.")
+                raise exceptions.ParamError("%s is not allowed in a SubStatement.")
 
         if 'objectType' in data['object']:
             if data['object']['objectType'].lower() == 'substatement':
-                raise Exception("SubStatements cannot be nested inside of other SubStatements")
+                raise exceptions.ParamError("SubStatements cannot be nested inside of other SubStatements")
 
         self._populate(data, auth, sub=True)
 
-class ForbiddenException(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
-
-class IDNotFoundError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)        
+        
