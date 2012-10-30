@@ -3,9 +3,12 @@ from django.http import HttpResponseBadRequest
 class TCAPIversionHeaderMiddleware(object):
     def process_request(self, request):
         try:
-            version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
+            version = request.META['X-Experience-APIVersion']
         except:
-            version = request.META.get('X-Experience-APIVersion', None)
+            try:
+                version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
+            except:
+                version = request.META.get('X_Experience_API_Version', None)
         if version:
             if version == "0.95":
                 return None
