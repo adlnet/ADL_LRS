@@ -543,7 +543,7 @@ class SubStatement(statement_object):
     actor = models.ForeignKey(agent,related_name="actor_of_substatement")
     verb = models.ForeignKey(Verb)    
     result = models.OneToOneField(result, blank=True,null=True)
-    timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())
+    timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = models.OneToOneField(context, related_name="context_of_statement",blank=True, null=True)
 
     def object_return(self, lang=None):
