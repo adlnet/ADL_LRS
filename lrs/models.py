@@ -579,7 +579,7 @@ class statement(statement_object):
     verb = models.ForeignKey(Verb)    
     result = models.OneToOneField(result, blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
-    timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())    
+    timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
