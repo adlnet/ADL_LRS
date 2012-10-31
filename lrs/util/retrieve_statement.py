@@ -388,7 +388,7 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
             # Create cache key from hashed data (always 32 digits)
             cache_key = createCacheKey(stmt_list)
             # Set result to have selected page of stmts and more endpoing
-            result['statement'] = stmt_pager.page(start_page).object_list
+            result['statements'] = stmt_pager.page(start_page).object_list
             result['more'] = MORE_ENDPOINT + cache_key
             more_cache_list = []
             # Increment next page
