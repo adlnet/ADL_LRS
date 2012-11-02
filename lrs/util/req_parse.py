@@ -35,17 +35,19 @@ def parse_body(r, request):
             r['files'] = files
         else:
             if request.body:
-                # try:
-                #     r['body'] = ast.literal_eval(request.body)
-                # except:
-                #     r['body'] = json.loads(request.body)
                 r['body'] = request.body    
+                # if isinstance(request.body, basestring):
+                #     try:
+                #         r['body'] = ast.literal_eval(request.body)
+                #     except:
+                #         r['body'] = json.loads(request.body)
             if request.raw_post_data:
-                # try:
-                #     r['raw_post_data'] = ast.literal_eval(request.raw_post_data)
-                # except:
-                #     r['raw_post_data'] = json.loads(request.raw_post_data)
                 r['raw_post_data'] = request.raw_post_data    
+                # if isinstance(request.raw_post_data, basestring):
+                #     try:
+                #         r['raw_post_data'] = ast.literal_eval(request.raw_post_data)
+                #     except:
+                #         r['raw_post_data'] = json.loads(request.raw_post_data)
     return r
 
 def get_headers(headers, r):
