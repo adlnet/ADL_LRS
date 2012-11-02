@@ -1047,6 +1047,11 @@ class StatementsTests(TestCase):
         crp_answers = models.correctresponsespattern_answer.objects.filter(answer__contains='wrong')
         activity_definition_exts = models.activity_extensions.objects.filter(key__contains='wrong')
 
+        statements = models.statement.objects.all()
+
+        # 10 statements from setup
+        self.assertEqual(len(statements), 10)
+
         self.assertEqual(len(results), 0)
         self.assertEqual(len(scores), 0)
         self.assertEqual(len(result_exts), 0)
@@ -1080,6 +1085,8 @@ class StatementsTests(TestCase):
         
         activities = models.activity.objects.filter(activity_id='foogie')
         
+        statements = models.statement.objects.all()
+
         wrong_agent = models.agent.objects.filter(mbox='wrong-t@t.com')
         john_agent = models.agent.objects.filter(mbox='john@john.com')
         s_agent = models.agent.objects.filter(mbox='s@s.com')
@@ -1092,13 +1099,15 @@ class StatementsTests(TestCase):
 
         self.assertEqual(len(activities), 1)
         
+        self.assertEqual(len(statements), 10)
+
         self.assertEqual(len(wrong_agent), 0)
         self.assertEqual(len(john_agent), 1)
         self.assertEqual(len(s_agent), 1)
 
         self.assertEqual(len(auth_agent), 1)
 
-    def test_post_rollback_with_void(self):
+    def test_post_list_rollback_with_void(self):
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"only-s@s.com"},
             "object": {"objectType":"StatementRef","id":str(self.exist_stmt_id)},
             "verb": {"id": "http://adlnet.gov/expapi/verbs/voided","display": {"en-US":"voided"}}},
@@ -1107,11 +1116,55 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 500)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
-        
+
         voided_st = models.statement.objects.get(statement_id=str(self.exist_stmt_id))
         voided_verb = models.Verb.objects.filter(verb_id__contains='voided')
         only_actor = models.agent.objects.filter(mbox="only-s@s.com")
+        statements = models.statement.objects.all()
 
+        self.assertEqual(len(statements), 10)
         self.assertEqual(voided_st.voided, False)
         self.assertEqual(len(voided_verb), 1)
         self.assertEqual(len(only_actor), 0)
+
+    def test_post_list_rollback_with_subs(self):
+        sub_context_id = str(uuid.uuid4())
+        stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"wrong-s@s.com"},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
+            "object": {"objectType":"Agent","name":"john","mbox":"john@john.com"}},
+            {"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"wrong-en-US":"wrong-next"}},
+            "object":{"objectType":"SubStatement",
+            "actor":{"objectType":"Agent","mbox":"wrong-ss@ss.com"},"verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
+            "object": {"objectType":"activity", "id":"wrong-testex.com"}, "result":{"completion": True, "success": True,
+            "response": "sub-wrong-kicked"}, "context":{"registration": sub_context_id,
+            "contextActivities": {"other": {"id": "sub-wrong-ActivityID"}},"revision": "foo", "platform":"bar",
+            "language": "en-US", "extensions":{"wrong-k1": "v1", "wrong-k2": "v2"}}}},
+            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"test_wrong_list_post2"}}])
+
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+
+        s_agent = models.agent.objects.filter(mbox="wrong-ss@s.com")
+        ss_agent = models.agent.objects.filter(mbox="wrong-ss@ss.com")
+        john_agent  = models.agent.objects.filter(mbox="john@john.com")
+        subs = models.SubStatement.objects.all()
+        wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
+        activities = models.activity.objects.filter(activity_id__contains="wrong")
+        results = models.result.objects.filter(response__contains="wrong")
+        contexts = models.context.objects.filter(registration=sub_context_id)
+        con_exts = models.context_extensions.objects.filter(key__contains="wrong")
+        con_acts = models.ContextActivity.objects.filter(context_activity__contains="wrong")
+
+        self.assertEqual(len(s_agent), 0)
+        self.assertEqual(len(ss_agent), 0)
+        self.assertEqual(len(john_agent), 1)
+        # Only 1 sub from setup
+        self.assertEqual(len(subs), 1)
+        self.assertEqual(len(wrong_verb), 0)
+        self.assertEqual(len(activities), 0)
+        self.assertEqual(len(results), 0)
+        self.assertEqual(len(contexts), 0)
+        self.assertEqual(len(con_exts), 0)
+        self.assertEqual(len(con_acts), 0)                                                                
