@@ -172,19 +172,7 @@ def parse_incoming_instructor(instData):
     return inst
 
 def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
-    # If no limit and no retrieving paging results from buildStatementResult
-    if limit == 0 and 'more_start' not in the_dict:
-        # Retrieve statements from DB
-        stmt_list = models.statement.objects.filter(**args).order_by(stored_param)
-    # If need paging results (limit doesn't matter here since paging will handle it)
-    elif 'more_start' in the_dict:
-        # If more start then start at that page point
-        start = int(the_dict['more_start'])
-        stmt_list = models.statement.objects.filter(**args).order_by(stored_param)[start:]
-    # Limiting results since limit won't be 0
-    else:
-        stmt_list = models.statement.objects.filter(**args).order_by(stored_param)[:limit]
-    return stmt_list
+    return models.statement.objects.filter(**args).order_by(stored_param)
 
 def complexGet(req_dict):
 
@@ -266,8 +254,8 @@ def complexGet(req_dict):
 
     limit = 0    
     # If want results limited
-    if 'limit' in the_dict:
-        limit = int(the_dict['limit'])
+    # if 'limit' in the_dict:
+    #     limit = int(the_dict['limit'])
    
     sparse = True    
     # If want sparse results
@@ -303,17 +291,16 @@ def createCacheKey(stmt_list):
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
     return key
 
-def initialCacheReturn(stmt_list, encoded_list, req_dict):
+def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
     # First time someone queries POST/GET
     result = {}
-    stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)
+    stmt_pager = Paginator(stmt_list, limit)
  
     cache_list = []
     
     # Always going to start on page 1
     current_page = 1
     total_pages = stmt_pager.num_pages
-    
     # Create cache key from hashed data (always 32 digits)
     cache_key = createCacheKey(stmt_list)
 
@@ -321,20 +308,22 @@ def initialCacheReturn(stmt_list, encoded_list, req_dict):
     cache_list.append(req_dict)
     cache_list.append(current_page)
     cache_list.append(total_pages)
+    cache_list.append(limit)
 
     # Encode data
     encoded_info = pickle.dumps(cache_list)
 
     # Save encoded_dict in cache
     cache.set(cache_key,encoded_info)
-
     # Return first page of results
-    result['statements'] = stmt_pager.page(1).object_list
+    stmts = stmt_pager.page(1).object_list
+    result['statements'] = stmts
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
 
 def getStatementRequest(req_id):  
     # Retrieve encoded info for statements
+    #pdb.set_trace()
     encoded_info = cache.get(req_id)
 
     # Could have expired or never existed
@@ -344,12 +333,13 @@ def getStatementRequest(req_id):
     # Decode info
     decoded_info = pickle.loads(encoded_info)
 
-    # Info is always cached as [query_dict, start_page, total_pages]
+    # Info is always cached as [query_dict, start_page, total_pages, limit]
     query_dict = decoded_info[0]
     start_page = decoded_info[1]
+    limit = decoded_info[3]
 
     # Set 'more_start' to slice query from where you left off 
-    query_dict['more_start'] = start_page * settings.SERVER_STMT_LIMIT
+    query_dict['more_start'] = start_page * limit
 
     #Build list from query_dict
     stmt_list = complexGet(query_dict)
@@ -359,7 +349,9 @@ def getStatementRequest(req_id):
     return stmt_result
 
 def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_more_id=None):
+    #pdb.set_trace()
     result = {}
+    limit = None
     # Get length of stmt list
     statement_amount = len(stmt_list)  
     # See if something is already stored in cache
@@ -372,10 +364,12 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
         # Get page info 
         start_page = query_info[1]
         total_pages = query_info[2]
-        next_page = start_page + 1
+        limit = query_info[3]
+        current_page = start_page + 1
         # If that was the last page to display then just return the remaining stmts
-        if next_page == total_pages:
-            result['statements'] = stmt_list
+        if current_page == total_pages:
+            stmt_pager = Paginator(stmt_list, limit)
+            result['statements'] = stmt_pager.page(current_page).object_list
             result['more'] = ''
             # Set current page back for when someone hits the URL again
             query_info[1] = query_info[1] - 1
@@ -384,11 +378,11 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
             return result
         # There are more pages to display
         else:
-            stmt_pager = Paginator(stmt_list, settings.SERVER_STMT_LIMIT)
+            stmt_pager = Paginator(stmt_list, limit)
             # Create cache key from hashed data (always 32 digits)
             cache_key = createCacheKey(stmt_list)
             # Set result to have selected page of stmts and more endpoing
-            result['statements'] = stmt_pager.page(start_page).object_list
+            result['statements'] = stmt_pager.page(current_page).object_list
             result['more'] = MORE_ENDPOINT + cache_key
             more_cache_list = []
             # Increment next page
@@ -396,14 +390,32 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
             more_cache_list.append(req_dict)
             more_cache_list.append(start_page)
             more_cache_list.append(query_info[2])
+            more_cache_list.append(limit)
             # Encode info
             encoded_list = pickle.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
             return result
     # List will only be larger first time - getStatementRequest should truncate rest of results
     # of more URLs.
-    if statement_amount > settings.SERVER_STMT_LIMIT:
-        result = initialCacheReturn(stmt_list, encoded_list, req_dict)
+    if not limit:
+        try:
+            limit = int(req_dict['limit'])
+        except KeyError:
+            try:
+                bdy = req_dict['body']
+                if isinstance(bdy, basestring):
+                    try:
+                        bdy = ast.literal_eval(bdy)
+                    except:
+                        bdy = json.loads(bdy)
+                limit = int(bdy['limit'])
+            except:
+                limit = None
+        if not limit or limit > settings.SERVER_STMT_LIMIT:
+            limit = settings.SERVER_STMT_LIMIT
+
+    if statement_amount > limit:
+        result = initialCacheReturn(stmt_list, encoded_list, req_dict, limit)
     # Just provide statements since the list is under the limit
     else:
         result['statements'] = stmt_list

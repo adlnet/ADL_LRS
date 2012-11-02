@@ -10,9 +10,10 @@ from lrs.objects import Activity
 import time
 import pdb
 from lrs.util import retrieve_statement
+from django.conf import settings
 
 class StatementsMoreTests(TestCase):
-
+    settings.SERVER_STMT_LIMIT=10
 
     def setUp(self):
 
