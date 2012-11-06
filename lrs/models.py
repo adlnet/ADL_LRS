@@ -4,10 +4,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
-from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.utils.timezone import utc
-# from django.db.models.signals import post_delete
+from lrs.exceptions import IDNotFoundError, ParamError
 import ast
 import json
 import pdb
@@ -30,12 +29,6 @@ import time
 def filename(instance, filename):
     print filename
     return filename
-
-class IDNotFoundError(Exception):
-    def __init__(self, msg):
-        self.message = msg
-    def __str__(self):
-        return repr(self.message)
 
 class score(models.Model):  
     scaled = models.FloatField(blank=True, null=True)
@@ -60,8 +53,6 @@ class score(models.Model):
                 if not value is None:
                     ret[field.name] = value
         return ret
-
-
 
 class result(models.Model): 
     success = models.NullBooleanField(blank=True,null=True)
@@ -110,7 +101,6 @@ class result_extensions(models.Model):
 
 class statement_object(models.Model):
     pass
-    
 
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
@@ -118,7 +108,7 @@ class agentmgr(models.Manager):
         group = kwargs.get('objectType', None) == "Group"
         attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
         if not group and len(attrs) != 1:
-            raise ValidationError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
+            raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
         val = kwargs.pop('account', None)
         if val:
             if isinstance(val, agent_account):
@@ -528,8 +518,8 @@ class ContextActivity(models.Model):
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)
-    instructor = models.ForeignKey(agent,blank=True, null=True, related_name="instructor_of_context")
-    team = models.ForeignKey(agent,blank=True, null=True, related_name="team_of_context")
+    instructor = models.ForeignKey(agent,blank=True, null=True)
+    team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
     contextActivities = models.ManyToManyField(ContextActivity)
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
@@ -654,7 +644,7 @@ class SubStatement(statement_object):
     actor = models.ForeignKey(agent,related_name="actor_of_substatement")
     verb = models.ForeignKey(Verb)    
     result = models.OneToOneField(result, blank=True,null=True)
-    timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())
+    timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = models.OneToOneField(context, related_name="context_of_statement",blank=True, null=True)
 
     def object_return(self, lang=None):
@@ -697,58 +687,6 @@ class SubStatement(statement_object):
                 raise IDNotFoundError("No activity, or agent found with given ID")
         return stmt_object, object_type
 
-    # def check_usage(self, links, obj, num):
-    #     in_use = False
-    #     # Loop through each relationship
-    #     for link in links:
-    #         if link != 'group':
-    #             # Get all objects for that relationship that the agent is related to
-    #             objects = getattr(obj, link).all()
-    #             # If objects are more than one, other objects are using it
-    #             if len(objects) > num:
-    #                 in_use = True
-    #                 break
-    #     return in_use
-
-    # def delete(self, *args, **kwargs):
-    #     # actor, verb, auth all detect this statement-stmt_object does not
-    #     agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
-    #     # Get all possible relationships for actor
-    #     actor_agent = agent.objects.get(id=self.actor.id)
-    #     actor_in_use = self.check_usage(agent_links, actor_agent, 1)
-    #     if not actor_in_use:
-    #         self.actor.delete()
-        
-    #     verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
-    #     verb_in_use = self.check_usage(verb_links, self.verb, 1)
-    #     # If nothing else is using it, delete it
-    #     if not verb_in_use:
-    #         self.verb.delete()
-
-    #     stmt_object, object_type = self.get_object()
-    #     object_in_use = False
-    #     if object_type == 'activity':
-    #         activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
-    #         object_in_use = self.check_usage(activity_links, stmt_object, 0)
-    #     elif object_type == 'agent':
-    #         object_in_use = self.check_usage(agent_links, stmt_object, 1)
-        
-    #     # If nothing else is using it, delete it
-    #     if not object_in_use:
-    #         stmt_object.delete()
-
-    #     try:
-    #         # Need if stmt - if it is None and DNE it throws no attribute delete error
-    #         if not self.result is None:
-    #             self.result.delete()
-    #     except result.DoesNotExist:
-    #         pass # already deleted- could be caused by substatement
-                        
-    #     try:
-    #         if not self.context is None:
-    #             self.context.delete()
-    #     except context.DoesNotExist:
-    #         pass # already deleted - caused by agent cascade delete           
     def delete(self, *args, **kwargs):
         # actor, verb, auth all detect this statement-stmt_object does not
         # Unvoid stmt if verb is voided
@@ -876,32 +814,14 @@ class statement(models.Model):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
-    verb = models.ForeignKey(Verb)
+    verb = models.ForeignKey(Verb)    
     result = models.OneToOneField(result, blank=True,null=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
-    timestamp = models.DateTimeField(blank=True,null=True, default=datetime.utcnow().replace(tzinfo=utc).isoformat())    
+    timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
     context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
     authoritative = models.BooleanField(default=True)
-
-    def get_object(self):
-        stmt_object = None
-        object_type = None
-        try:
-            stmt_object = activity.objects.get(id=self.stmt_object.id)
-            object_type = 'activity'
-        except activity.DoesNotExist:
-            try:
-                stmt_object = agent.objects.get(id=self.stmt_object.id)
-                object_type = 'agent'
-            except agent.DoesNotExist:
-                try:
-                    stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
-                    object_type = 'substatement'
-                except SubStatement.DoesNotExist:
-                    raise IDNotFoundError("No activity, agent, or substatement found with given ID")
-        return stmt_object, object_type
 
     def object_return(self, lang=None):
         object_type = 'activity'
@@ -910,7 +830,18 @@ class statement(models.Model):
         ret['actor'] = self.actor.get_agent_json()
         ret['verb'] = self.verb.object_return(lang)
 
-        stmt_object, object_type = self.get_object()
+        try:
+            stmt_object = activity.objects.get(id=self.stmt_object.id)
+        except activity.DoesNotExist:
+            try:
+                stmt_object = agent.objects.get(id=self.stmt_object.id)
+                object_type = 'agent'
+            except agent.DoesNotExist:
+                try:
+                    stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
+                    object_type = 'substatement'            
+                except SubStatement.DoesNotExist:
+                    raise IDNotFoundError("No activity, agent, or substatement found with given ID")
 
         if object_type == 'activity' or object_type == 'substatement':
             ret['object'] = stmt_object.object_return(lang)  
@@ -934,6 +865,24 @@ class statement(models.Model):
         # actor object context authority
         statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
+
+    def get_object(self):
+        stmt_object = None
+        object_type = None
+        try:
+            stmt_object = activity.objects.get(id=self.stmt_object.id)
+            object_type = 'activity'
+        except activity.DoesNotExist:
+            try:
+                stmt_object = agent.objects.get(id=self.stmt_object.id)
+                object_type = 'agent'
+            except agent.DoesNotExist:
+                try:
+                    stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
+                    object_type = 'substatement'
+                except SubStatement.DoesNotExist:
+                    raise IDNotFoundError("No activity, agent, or substatement found with given ID")
+        return stmt_object, object_type
 
     def unvoid_statement(self):
         statement_ref = StatementRef.objects.get(id=self.stmt_object.id)
