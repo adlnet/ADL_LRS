@@ -13,3 +13,4 @@ uuid==1.30
 wsgiref==0.1.2
 lxml==2.3.4
 bencode==1.0
+psycopg2
