@@ -14,10 +14,6 @@ class Activity():
     # Activity definition required fields
     ADRFs = ['name', 'description', 'type']
 
-    # Activity definition types
-    # ADTs = ['course', 'module', 'meeting', 'media', 'performance', 'simulation', 'assessment',
-    #         'interaction', 'cmi.interaction', 'question', 'objective', 'link']
-
     # URL Validator
     validator = URLValidator(verify_exists=True)
 
