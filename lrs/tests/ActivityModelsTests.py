@@ -1034,7 +1034,6 @@ class ActivityModelsTests(TestCase):
         # Should only have 2 total
         self.assertEqual(len(models.LanguageMap.objects.all()), 2)
 
-    # When you switch to postgres backend, it saves the lang maps in the opposite order (just switch index in array) 
     def test_multiple_activities_update_both_and_add(self):
         act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
             'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
@@ -1051,15 +1050,15 @@ class ActivityModelsTests(TestCase):
         name_set1 = act_def1[0].name.all()
         desc_set1 = act_def1[0].description.all()
         
-        self.assertEqual(name_set1[1].key, 'en-CH')
-        self.assertEqual(name_set1[1].value, 'actname2')
-        self.assertEqual(name_set1[0].key, 'en-US')
-        self.assertEqual(name_set1[0].value, 'altname')
+        self.assertEqual(name_set1[0].key, 'en-CH')
+        self.assertEqual(name_set1[0].value, 'actname2')
+        self.assertEqual(name_set1[1].key, 'en-US')
+        self.assertEqual(name_set1[1].value, 'altname')
 
-        self.assertEqual(desc_set1[1].key, 'en-FR')
-        self.assertEqual(desc_set1[1].value, 'actdesc2')
-        self.assertEqual(desc_set1[0].key, 'en-GB')
-        self.assertEqual(desc_set1[0].value, 'altdesc')
+        self.assertEqual(desc_set1[0].key, 'en-FR')
+        self.assertEqual(desc_set1[0].value, 'actdesc2')
+        self.assertEqual(desc_set1[1].key, 'en-GB')
+        self.assertEqual(desc_set1[1].value, 'altdesc')
 
 
         self.do_activity_definition_model(fk1, 'cmi.interaction', 'other')
@@ -1072,15 +1071,15 @@ class ActivityModelsTests(TestCase):
         desc_set2 = act_def2[0].description.all()
         
 
-        self.assertEqual(name_set2[1].key, 'en-CH')
-        self.assertEqual(name_set2[1].value, 'actname2')
-        self.assertEqual(name_set2[0].key, 'en-US')
-        self.assertEqual(name_set2[0].value, 'altname')
+        self.assertEqual(name_set2[0].key, 'en-CH')
+        self.assertEqual(name_set2[0].value, 'actname2')
+        self.assertEqual(name_set2[1].key, 'en-US')
+        self.assertEqual(name_set2[1].value, 'altname')
 
-        self.assertEqual(desc_set2[1].key, 'en-FR')
-        self.assertEqual(desc_set2[1].value, 'actdesc2')         
-        self.assertEqual(desc_set2[0].key, 'en-GB')
-        self.assertEqual(desc_set2[0].value, 'altdesc')
+        self.assertEqual(desc_set2[0].key, 'en-FR')
+        self.assertEqual(desc_set2[0].value, 'actdesc2')         
+        self.assertEqual(desc_set2[1].key, 'en-GB')
+        self.assertEqual(desc_set2[1].value, 'altdesc')
 
         self.do_activity_definition_model(fk2,'cmi.interaction', 'other')
 
