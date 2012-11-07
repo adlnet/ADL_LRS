@@ -622,14 +622,15 @@ class Verb(models.Model):
     def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.verb_id
-        ret['display'] = {}
         if lang is not None:
             lang_map_set = self.display.filter(key=lang)
         else:
             lang_map_set = self.display.all()        
 
-        for lang_map in lang_map_set:
-            ret['display'][lang_map.key] = lang_map.value        
+        if len(lang_map_set) > 0:
+            ret['display'] = {}
+            for lang_map in lang_map_set:
+                ret['display'][lang_map.key] = lang_map.value        
         return ret
 
     def delete(self, *args, **kwargs):

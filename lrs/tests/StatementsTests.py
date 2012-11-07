@@ -308,36 +308,36 @@ class StatementsTests(TestCase):
 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-
         self.assertEqual(get_response.status_code, 200)
-        self.assertContains(get_response, "objectType")
-        self.assertContains(get_response, "SubStatement")
-        self.assertContains(get_response, "actor")
-        self.assertContains(get_response, "ss@ss.com")
-        self.assertContains(get_response, "verb")
-        self.assertContains(get_response, "verb/url/nested")
-        self.assertContains(get_response, "Activity")
-        self.assertContains(get_response, "testex.com")
-        self.assertContains(get_response, "result")
-        self.assertContains(get_response, "completion")
-        self.assertContains(get_response, "success")
-        self.assertContains(get_response, "response")
-        self.assertContains(get_response, "kicked")
-        self.assertContains(get_response, "context")
-        self.assertContains(get_response, con_guid)
-        self.assertContains(get_response, "contextActivities")
-        self.assertContains(get_response, "other")
-        self.assertContains(get_response, "revision")
-        self.assertContains(get_response, "foo")
-        self.assertContains(get_response, "platform")
-        self.assertContains(get_response, "bar")
-        self.assertContains(get_response, "language")
-        self.assertContains(get_response, "en-US")
-        self.assertContains(get_response, "extensions")
-        self.assertContains(get_response, "k1")
-        self.assertContains(get_response, "v1")
-        self.assertContains(get_response, "k2")
-        self.assertContains(get_response, "v2")                                                                                                                                                                                                                
+        rsp = get_response.content
+        self.assertIn("objectType",rsp)
+        self.assertIn("SubStatement", rsp)
+        self.assertIn("actor",rsp)
+        self.assertIn("ss@ss.com",rsp)
+        self.assertIn("verb",rsp)
+        self.assertIn("verb/url/nested", rsp)
+        self.assertIn("Activity", rsp)
+        self.assertIn("testex.com", rsp)
+        self.assertIn("result", rsp)
+        self.assertIn("completion",rsp)
+        self.assertIn("success", rsp)
+        self.assertIn("response", rsp)
+        self.assertIn("kicked", rsp)
+        self.assertIn("context", rsp)
+        self.assertIn(con_guid, rsp)
+        self.assertIn("contextActivities", rsp)
+        self.assertIn("other", rsp)
+        self.assertIn("revision", rsp)
+        self.assertIn("foo", rsp)
+        self.assertIn("platform", rsp)
+        self.assertIn("bar", rsp)
+        self.assertIn("language", rsp)
+        self.assertIn("en-US", rsp)
+        self.assertIn("extensions", rsp)
+        self.assertIn("k1", rsp)
+        self.assertIn("v1", rsp)
+        self.assertIn("k2", rsp)
+        self.assertIn("v2", rsp)                                                                                                                                                                                                                
 
     def test_no_content_put(self):
         guid = str(uuid.uuid4())
@@ -377,7 +377,9 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         getResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(getResponse.status_code, 200)
-        self.assertContains(getResponse, self.guid1)
+        rsp = getResponse.content
+        self.assertIn(self.guid1, rsp)
+
 
     # def test_get_wrong_auth(self):
     #     username = "tester2"
@@ -855,11 +857,12 @@ class StatementsTests(TestCase):
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+        rsp = get_response.content
         self.assertIn('"object": {"definition": {"name": {"en-GB": "anotherActName", "en-US": "actName"}, "description": {"en-GB": '
             '"This is another activity description.", "en-US": "This is my activity description."}, "extensions": {"key3": "value3", '
             '"key2": "value2", "key1": "value1"}, "correctResponsesPattern": ["golf", "tetris"], "type": "http://adlnet.gov/expapi/activities/cmi.interaction", '
             '"interactionType": "choice"}, "id": "/my/Activity/URL", "objectType": "Activity"}, "actor": {"account": {"homePage": "http://example.com", "name": '
-            '"uniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
+            '"uniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', rsp)
 
         self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-GB": "made", "en-US": "created"}}, '
             '"result": {"completion": true, "success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, '
@@ -869,7 +872,7 @@ class StatementsTests(TestCase):
             '"http://groupingID"}}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
             '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "uniqueName"}, "name": '
             '"Lou Wolford", "objectType": "Agent"}, "revision": "Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", '
-            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', rsp)
 
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp, stored fields
@@ -905,9 +908,10 @@ class StatementsTests(TestCase):
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-        
+        rsp = get_response.content
+
         self.assertIn('"object": {"mbox_sha1sum": "edb97c2848fc47bdd2091028de8a3b1b24933752", "name": "Tom Creighton", "objectType": "Agent"}, "actor": '
-            '{"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
+            '{"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', rsp)
 
 
         self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/helped", "display": {"en-GB": "assisted", "en-US": "helped"}}, "result": {"completion": true, '
@@ -916,7 +920,7 @@ class StatementsTests(TestCase):
             '"contextKey2": "contextVal2"}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
             '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", '
             '"objectType": "Agent"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}}, "id": "12345678-1233-1234-1234-12345678901o", '
-            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)        
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', rsp)        
 
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamps or stored fields
@@ -981,7 +985,8 @@ class StatementsTests(TestCase):
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-        
+        rsp = get_response.content
+
         self.assertIn('"object": {"id": "http://example.adlnet.gov/tincan/example/simplestatement", "objectType": "Activity"}, "actor": '
             '{"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "verb": {"id": "http://adlnet.gov/expapi/verbs/assess", '
             '"display": {"en-GB": "Graded", "en-US": "assessed"}}, "result": {"completion": true, "success": true, "score": {"scaled": 0.5, '
@@ -991,7 +996,7 @@ class StatementsTests(TestCase):
             '"statement": {"id": "12345678-1233-1234-1234-1234567890ns", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-1234567890sc", '
             '"instructor": {"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "revision": "Spelling error in target."}, "objectType": '
             '"SubStatement"}, "actor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, '
-            '"voided": false,', get_response.content)
+            '"voided": false,', rsp)
         
         self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/said", "display": {"en-GB": "talked", "en-US": "said"}}, "result": {"completion": true, '
             '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
@@ -1000,7 +1005,7 @@ class StatementsTests(TestCase):
             '"statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-12345678901c", '
             '"instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "revision": '
             '"Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", "authority": {"mbox": "test1@tester.com", "name": "tester1", '
-            '"objectType": "Agent"}}', get_response.content)
+            '"objectType": "Agent"}}', rsp)
 
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
