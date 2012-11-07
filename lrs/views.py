@@ -3,15 +3,13 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
-from django.template import RequestContext
-from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement
-from lrs import forms, models
-from objects import Actor, Activity
+from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
+from lrs import forms, models, exceptions
 import logging
 import json
 import pdb
+from django.utils.decorators import decorator_from_middleware
 
 logger = logging.getLogger(__name__)
 
@@ -66,116 +64,42 @@ def reg_success(request, user_id):
     return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
-    # pdb.set_trace()
     statementResult = retrieve_statement.getStatementRequest(more_id) 
-    return HttpResponse(json.dumps(statementResult, indent=4),mimetype="application/json",status=200)
+    return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements(request):
-    try: 
-        resp = handle_request(request)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except req_validate.ParamConflictError as err:
-        return HttpResponse(err.message, status=409)
-    except req_validate.NoParamsError as err:
-        return HttpResponse(err.message, status=204)
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
-    return resp
-    
+    return handle_request(request)   
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_state(request):
-    try: 
-        resp = handle_request(request)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except Actor.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
-    return resp
-    
+    return handle_request(request)  
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activity_profile(request):
-    try: 
-        resp = handle_request(request)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except Activity.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
-    return resp
-
+    return handle_request(request)
 
 @require_GET
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def activities(request):
-    try: 
-        resp = handle_request(request)
-    except req_validate.ParamError as err:
-        return HttpResponse(err.message)
-    except req_process.ProcessError as err:
-        return HttpResponse(err.message)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
-    return resp
-
+    return handle_request(request)
 
 @require_http_methods(["PUT","POST","GET","DELETE"])    
-def actor_profile(request):
-    try: 
-        resp = handle_request(request)
-    except etag.MissingEtagInfo as mei:
-        return HttpResponse(mei.message, status=409)
-    except etag.EtagPreconditionFail as epf:
-        return HttpResponse(epf.message, status=412)
-    except Actor.IDNotFoundError as nf:
-        return HttpResponse(nf.message, status=404)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
-    return resp
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+def agent_profile(request):
+    return handle_request(request)
 
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
-def actors(request):
-    try: 
-        resp = handle_request(request)
-    except Actor.IDNotFoundError as iderr:
-        return HttpResponse(iderr, status=404)
-    except req_validate.NotAuthorizedException as autherr:
-        r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except Exception as err:
-        return HttpResponse(err.message, status=400)
-    return resp
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+def agents(request):
+    return handle_request(request)
 
 def handle_request(request):
     try:
@@ -184,11 +108,23 @@ def handle_request(request):
         if path.endswith('/'):
             path = path.rstrip('/')
         req_dict = validators[path][r_dict['method']](r_dict)
-        # Depending on if authentication is required, req_dict will either be a dict containing the request info
-        # or a list with the request info dict being the first item, with the auth info being the second item
         return processors[path][req_dict['method']](req_dict)
-    except:
-        raise 
+    except exceptions.BadRequest as err:
+        return HttpResponse(err.message, status=400)        
+    except exceptions.Unauthorized as autherr:
+        r = HttpResponse(autherr, status = 401)
+        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        return r
+    except exceptions.Forbidden as forb:
+        return HttpResponse(forb.message, status=403)
+    except exceptions.NotFound as nf:
+        return HttpResponse(nf.message, status=404)
+    except exceptions.Conflict as c:
+        return HttpResponse(c.message, status=409)
+    except exceptions.PreconditionFail as pf:
+        return HttpResponse(pf.message, status=412)
+    except Exception as err:
+        return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements) : {
@@ -209,13 +145,13 @@ validators = {
     reverse(activities) : {
         "GET" : req_validate.activities_get
     },
-    reverse(actor_profile) : {
-        "PUT" : req_validate.actor_profile_put,
-        "GET" : req_validate.actor_profile_get,
-        "DELETE" : req_validate.actor_profile_delete
+    reverse(agent_profile) : {
+        "PUT" : req_validate.agent_profile_put,
+        "GET" : req_validate.agent_profile_get,
+        "DELETE" : req_validate.agent_profile_delete
     },
-   reverse(actors) : {
-       "GET" : req_validate.actors_get
+   reverse(agents) : {
+       "GET" : req_validate.agents_get
    }
 }
 
@@ -238,13 +174,13 @@ processors = {
     reverse(activities) : {
         "GET" : req_process.activities_get
     },
-    reverse(actor_profile) : {
-        "PUT" : req_process.actor_profile_put,
-        "GET" : req_process.actor_profile_get,
-        "DELETE" : req_process.actor_profile_delete
+    reverse(agent_profile) : {
+        "PUT" : req_process.agent_profile_put,
+        "GET" : req_process.agent_profile_get,
+        "DELETE" : req_process.agent_profile_delete
     },
-   reverse(actors) : {
-       "GET" : req_process.actors_get
+   reverse(agents) : {
+       "GET" : req_process.agents_get
    }
 }
 
