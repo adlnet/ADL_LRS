@@ -4,7 +4,7 @@
                 <activity id="scorm.ex/module/example" type="cmi.interaction">
                         <name lang="en-CH">Example Name</name>
                         <description lang="en-US">Example Desc</description>
-                        <interactionType>multiple-choice</interactionType>
+                        <interactionType>choice</interactionType>
 						<correctResponsesPatterns>
 							<correctResponsePattern>golf</correctResponsePattern>
 							<correctResponsePattern>tetris</correctResponsePattern>

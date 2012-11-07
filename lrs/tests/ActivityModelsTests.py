@@ -1,11 +1,7 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from lrs import models
 import json
-from django.core.exceptions import ValidationError
-import urllib
-from os import path
-import sys
+from lrs.exceptions import ParamError, InvalidXML
 from lrs.objects import Activity
 import pdb
 
@@ -156,7 +152,7 @@ class ActivityModelsTests(TestCase):
 
     # Test activity that doesn't have a def, isn't a link and resolves (will not create Activity object)
     def test_activity_no_def_not_link_resolve(self):
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
             'id': 'http://yahoo.com'}))
 
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,
@@ -201,7 +197,7 @@ class ActivityModelsTests(TestCase):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
             'id': 'http://localhost:8000/TCAPI/tcexample/'}))
         
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
             'id': 'http://localhost:8000/TCAPI/tcexample/'}))
 
     '''
@@ -218,11 +214,11 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_object(act,'http://localhost:8000/TCAPI/tcexample3/', 'Activity')
         self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'cmi.interaction',
-            'multiple-choice')
+            'choice')
 
         self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample3/', 'Activity')        
         self.do_activity_definition_model(fk, 'Example Name', 'Example Desc', 'cmi.interaction',
-            'multiple-choice')
+            'choice')
     
         self.assertEqual(act.answers[0].answer, 'golf')
         self.assertEqual(act.answers[1].answer, 'tetris')
@@ -257,7 +253,7 @@ class ActivityModelsTests(TestCase):
     # Test an activity that has a def,is not a link yet the ID resolves, but doesn't conform to XML schema
     # (will not create one)
     def test_activity_not_link_resolve(self):
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
                 'id': 'http://tincanapi.wikispaces.com','definition': {'name': {'en-US':'testname'},
                 'description': {'en-US':'testdesc'}, 'type': 'course','interactionType': 'intType'}}))
 
@@ -336,7 +332,7 @@ class ActivityModelsTests(TestCase):
 
     #Test an activity that has a def, is a link and the ID does not resolve (will not create one)
     def test_activity_link_no_resolve(self):
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity', 
                 'id': 'http://foo','definition': {'name': {'en-GB':'testname'},
                 'description': {'en-GB':'testdesc'}, 'type': 'link','interactionType': 'intType'}}))
 
@@ -345,7 +341,7 @@ class ActivityModelsTests(TestCase):
 
     #Throws exception because incoming data is not JSON
     def test_activity_not_json(self):
-        self.assertRaises(Exception, Activity.Activity,
+        self.assertRaises(ParamError, Activity.Activity,
             "This string should throw exception since it's not JSON")
 
     #Test an activity where there is no given objectType, won't be created with one
@@ -362,7 +358,7 @@ class ActivityModelsTests(TestCase):
 
     #Test activity where given URL doesn't resolve
     def test_activity_invalid_activity_id(self):
-        self.assertRaises(ValidationError, Activity.Activity, json.dumps({'id': 'http://foo',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'id': 'http://foo',
                 'objectType':'Activity','definition': {'name': {'en-GB':'testname'},
                 'description': {'en-GB':'testdesc'}, 'type': 'link','interactionType': 'intType'}}))
 
@@ -390,7 +386,7 @@ class ActivityModelsTests(TestCase):
 
     #Test activity with definition given wrong type (won't create it)
     def test_activity_definition_wrong_type(self):
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
                 'id':'http://msn.com','definition': {'NAME': {'en-CH':'testname'},
                 'descripTION': {'en-CH':'testdesc'}, 'tYpe': 'wrong','interactionType': 'intType'}}))
 
@@ -399,7 +395,7 @@ class ActivityModelsTests(TestCase):
     
     #Test activity with definition missing name in definition (won't create it)
     def test_activity_definition_required_fields(self):
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
                 'id':'http://google.com','definition': {'description': {'en-CH':'testdesc'},
                 'type': 'wrong','interactionType': 'intType'}}))
 
@@ -466,7 +462,7 @@ class ActivityModelsTests(TestCase):
     #Test activity with definition given wrong interactionType (won't create one)
     def test_activity_definition_wrong_interactionType(self):
 
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity', 
                 'id':'http://facebook.com','definition': {'name': {'en-US':'testname2'},
                 'description': {'en-GB':'testdesc2'}, 'type': 'cmi.interaction',
                 'interactionType': 'intType2', 'correctResponsesPatteRN': 'response',
@@ -478,7 +474,7 @@ class ActivityModelsTests(TestCase):
     #Test activity with definition and valid interactionType-it must also provide the
     # correctResponsesPattern field (wont' create it)
     def test_activity_definition_no_correctResponsesPattern(self):
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
                 'id':'http://twitter.com','definition': {'name': {'en-US':'testname2'},
                 'description': {'en-CH':'testdesc2'},'type': 'cmi.interaction',
                 'interactionType': 'true-false', 'extensions': {'key1': 'value1',
@@ -522,7 +518,7 @@ class ActivityModelsTests(TestCase):
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foof',
                 'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
-                'type': 'cmi.interaction','interactionType': 'multiple-choice',
+                'type': 'cmi.interaction','interactionType': 'choice',
                 'correctResponsesPattern': ['golf', 'tetris'],'choices':[{'id': 'golf', 
                 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},{'id': 'tetris',
                 'description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}}, {'id':'facebook', 
@@ -546,7 +542,7 @@ class ActivityModelsTests(TestCase):
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
         self.do_activity_model(act.activity.id,'foof', 'Activity')
-        self.do_activity_definition_model(fk, 'cmi.interaction', 'multiple-choice')
+        self.do_activity_definition_model(fk, 'cmi.interaction', 'choice')
 
         self.do_activity_definition_extensions_model(act_def, 'key1', 'key2', 'key3', 'value1', 'value2',
                                                      'value3')
@@ -563,10 +559,10 @@ class ActivityModelsTests(TestCase):
         
     #Test activity with definition that is cmi.interaction and multiple choice but missing choices (won't create it)
     def test_activity_definition_cmiInteraction_multiple_choice_no_choices(self):
-        self.assertRaises(Exception, Activity.Activity, json.dumps({'objectType': 'Activity', 
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity', 
                 'id':'http://wikipedia.org','definition': {'name': {'en-US':'testname2'},
                 'description': {'en-US':'testdesc2'},'type': 'cmi.interaction',
-                'interactionType': 'multiple-choice','correctResponsesPattern': ['golf', 'tetris'],
+                'interactionType': 'choice','correctResponsesPattern': ['golf', 'tetris'],
                 'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}))   
 
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,

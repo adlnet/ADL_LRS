@@ -1,4 +1,5 @@
 import hashlib
+from lrs.exceptions import Conflict, PreconditionFail
 
 IF_MATCH = "HTTP_IF_MATCH"
 IF_NONE_MATCH = "HTTP_IF_NONE_MATCH"
@@ -45,13 +46,13 @@ def check_preconditions(request, contents, required=False):
     else:
         raise MissingEtagInfo("If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
 
-class MissingEtagInfo(Exception):
+class MissingEtagInfo(Conflict):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
         return repr(self.message)
 
-class EtagPreconditionFail(Exception):
+class EtagPreconditionFail(PreconditionFail):
     def __init__(self, msg):
         self.message = msg
     def __str__(self):
