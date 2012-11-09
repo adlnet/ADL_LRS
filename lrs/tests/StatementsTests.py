@@ -35,6 +35,7 @@ class StatementsTests(TestCase):
         self.guid7 = str(uuid.uuid4())
         self.guid8 = str(uuid.uuid4())
         self.guid9 = str(uuid.uuid4())        
+        self.guid10 = str(uuid.uuid4())
         self.cguid1 = str(uuid.uuid4())
         self.cguid2 = str(uuid.uuid4())    
         self.cguid3 = str(uuid.uuid4())
@@ -125,6 +126,10 @@ class StatementsTests(TestCase):
             "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"k1": "v1", "k2": "v2"}}}})
 
+        self.existStmt10 = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
+            "id":str(self.exist_stmt_id)}})
+
         # Put statements
         param = {"statementId":self.guid1}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -205,9 +210,14 @@ class StatementsTests(TestCase):
         self.assertEqual(self.putresponse9.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
-        # stmt = models.statement.objects.filter(statement_id=self.guid9)[0]
-        # sub = models.SubStatement.objects.get(id=stmt.stmt_object.id)
-        # act = models.activity.objects.get(id=sub.stmt_object.id)
+
+        param = {"statementId": self.guid10}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = self.existStmt10        
+        self.putresponse10 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(self.putresponse10.status_code, 204)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
+        stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
 
     def test_post_with_no_valid_params(self):
@@ -228,6 +238,16 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, "test_post")
         agent = models.agent.objects.get(mbox="t@t.com")
         self.assertEqual(agent.name, "bob")
+
+    def test_post_stmt_ref_no_existing_stmt(self):
+        stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
+            "id":"aaaaaaaaa"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="0.95")        
+
+        self.assertEqual(response.status_code, 404)
+
 
     def test_post_with_actor(self):
         stmt = json.dumps({"actor":{"mbox":"mailto:mr.t@example.com"},
@@ -410,7 +430,8 @@ class StatementsTests(TestCase):
         getResponse = self.client.get(reverse(views.statements), X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
-        self.assertEqual(len(jsn["statements"]), models.statement.objects.all().count())
+        # Will only return 10 since that is server limit
+        self.assertEqual(len(jsn["statements"]), 10)
         
     def test_since_filter(self):
         # Test since - should only get existStmt1-8 since existStmt is stored at same time as firstTime
@@ -472,7 +493,8 @@ class StatementsTests(TestCase):
         self.assertEqual(actorObjectGetResponse.status_code, 200)
         stmts = json.loads(actorObjectGetResponse.content)
         dbstmts = models.statement.objects.all()
-        self.assertEqual(len(stmts["statements"]), len(dbstmts))
+        # Will return 10 since that is server limit
+        self.assertEqual(len(stmts["statements"]), 10)
 
     def test_verb_filter(self):
         param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}
@@ -505,17 +527,13 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid1, actorObjectGetResponse)
 
     
-    def test_substatement_object_filter(self):
-        param = {"object":{"objectType": "SubStatement", "actor":{"objectType":"Agent","mbox":"ss@ss.com"},
-        "verb": {"id":"verb/url/nested"},"object":{"objectType":"activity", "id":"testex.com"},
-        "result":{"completion": True, "success": True,"response": "kicked"},"context":{"registration": self.cguid6,
-            "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
-            "language": "en-US"}}}
+    def test_statement_ref_object_filter(self):
+        param = {"object":{"objectType": "StatementRef", "id":str(self.exist_stmt_id)}}
             
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         sub_object_get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(sub_object_get_response.status_code, 200)
-        self.assertContains(sub_object_get_response,self.guid9)
+        self.assertContains(sub_object_get_response,self.guid10)
         self.assertNotIn(self.guid2, sub_object_get_response)
         self.assertNotIn(self.guid3, sub_object_get_response)
         self.assertNotIn(self.guid1, sub_object_get_response)
@@ -523,7 +541,7 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid4, sub_object_get_response)
         self.assertNotIn(self.guid7, sub_object_get_response)
         self.assertNotIn(self.guid8, sub_object_get_response)        
-        self.assertNotIn(self.guid8, sub_object_get_response)
+        self.assertNotIn(self.guid9, sub_object_get_response)
 
 
     def test_registration_filter(self):
@@ -637,7 +655,7 @@ class StatementsTests(TestCase):
         respList = json.loads(limitGetResponse.content)
         stmts = respList["statements"]
         self.assertEqual(len(stmts), 1)
-        self.assertContains(limitGetResponse, self.guid9)
+        self.assertContains(limitGetResponse, self.guid10)
 
     def test_sparse_filter(self):
         # Test sparse
@@ -672,7 +690,7 @@ class StatementsTests(TestCase):
         self.assertContains(lang_get_response, "en-US")
         self.assertNotContains(lang_get_response, "en-GB")
 
-    # Sever activities are PUT, but should be 6 since two have same ID and auth
+    # Sever activities are PUT, but should be 5 since two have same ID and auth
     def test_number_of_activities(self):
         acts = len(models.activity.objects.all())
         self.assertEqual(6, acts)
@@ -1054,8 +1072,8 @@ class StatementsTests(TestCase):
 
         statements = models.statement.objects.all()
 
-        # 10 statements from setup
-        self.assertEqual(len(statements), 10)
+        # 11 statements from setup
+        self.assertEqual(len(statements), 11)
 
         self.assertEqual(len(results), 0)
         self.assertEqual(len(scores), 0)
@@ -1104,7 +1122,7 @@ class StatementsTests(TestCase):
 
         self.assertEqual(len(activities), 1)
         
-        self.assertEqual(len(statements), 10)
+        self.assertEqual(len(statements), 11)
 
         self.assertEqual(len(wrong_agent), 0)
         self.assertEqual(len(john_agent), 1)
@@ -1127,7 +1145,7 @@ class StatementsTests(TestCase):
         only_actor = models.agent.objects.filter(mbox="only-s@s.com")
         statements = models.statement.objects.all()
 
-        self.assertEqual(len(statements), 10)
+        self.assertEqual(len(statements), 11)
         self.assertEqual(voided_st.voided, False)
         self.assertEqual(len(voided_verb), 1)
         self.assertEqual(len(only_actor), 0)
@@ -1161,7 +1179,9 @@ class StatementsTests(TestCase):
         contexts = models.context.objects.filter(registration=sub_context_id)
         con_exts = models.context_extensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context_activity__contains="wrong")
+        statements = models.statement.objects.all()
 
+        self.assertEqual(len(statements), 11)
         self.assertEqual(len(s_agent), 0)
         self.assertEqual(len(ss_agent), 0)
         self.assertEqual(len(john_agent), 1)

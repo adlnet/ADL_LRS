@@ -28,15 +28,6 @@ def convertToUTC(timestr):
     date_object = pytz.timezone("UTC").localize(date_object)
     return date_object
 
-# def retrieve_result(objectData):
-#     if 'score' in objectData:
-#         objectData['score'] = models.score.objects.filter(**objectData['score'])[0]
-#     try:
-#         result = models.result.objects.filter(**objectData)
-#     except models.result.DoesNotExist:
-#         result = None
-#     return result
-
 def retrieve_context(objectData):
     # pdb.set_trace()
     # if 'instructor' in objectData:
@@ -68,16 +59,13 @@ def parse_incoming_object(objectData, args):
                 objectData = json.loads(objectData.replace("'",'"'))
             except Exception, e:
                 objectData = ast.literal_eval(objectData)
-                
     # Check the objectType
     if 'objectType' in objectData:
         # If type is activity try go retrieve object
         if objectData['objectType'].lower() == 'activity':
             try:
-                activity = models.activity.objects.filter(activity_id=objectData['id'])[0]
-                # If there is an activity set it to the found one, else it's empty
+                activity = models.activity.objects.get(activity_id=objectData['id'])
                 if activity:
-                    # args['stmt_object'] = activity
                     obj = activity
             except models.activity.DoesNotExist:
                 pass # no object found
@@ -86,49 +74,16 @@ def parse_incoming_object(objectData, args):
             try:
                 agent = Agent.Agent(json.dumps(objectData)).agent
                 if agent:
-                    # args['stmt_object'] = agent
                     obj = agent
             except models.IDNotFoundError:
                 pass # no stmt_object filter added
-        elif objectData['objectType'].lower() == 'substatement':
-            # pdb.set_trace()
-            sub_args = {}
-            if 'verb' in objectData:
-                verb_id = objectData['verb']['id']
-                try:
-                    sub_args['verb'] = models.Verb.objects.get(verb_id=verb_id)
-                except models.Verb.DoesNotExist:
-                    pass # no verb filter added                
-
-            if 'timestamp' in objectData:
-                sub_args['timestamp'] = objectData['timestamp']
-
-            # if 'result' in objectData:
-            #     result = retrieve_result(objectData['result'])
-            #     if result:
-            #         sub_args['result'] = result
-
-            if 'context' in objectData:
-                context = retrieve_context(objectData['context'])
-                if context:
-                    sub_args['context'] = context
-
-            if 'actor' in objectData:
-                actor = parse_incoming_actor(objectData['actor'])
-                if actor:
-                    sub_args['actor'] = actor
-
-            if 'object' in objectData:
-                stmt_object = parse_incoming_object(objectData['object'], sub_args)
-                sub_args['stmt_object'] = stmt_object
-
+        elif objectData['objectType'].lower() == 'statementref':
             try:
-                sub = models.SubStatement.objects.get(**sub_args)
-                if sub:
-                    # args['stmt_object'] = sub
-                    obj = sub
-            except Exception, e:
-                pass # no object filter added
+                stmt_ref = models.StatementRef.objects.get(ref_id=objectData['id'])
+                if stmt_ref:
+                    obj = stmt_ref
+            except models.StatementRef.DoesNotExist:
+                pass
     # Default to activity
     else:
         try:
@@ -176,7 +131,7 @@ def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
     return models.statement.objects.filter(**args).order_by(stored_param)
 
 def complexGet(req_dict):
-
+    # pdb.set_trace()
 
     args = {}
     language = None
@@ -276,10 +231,9 @@ def complexGet(req_dict):
     stmt_list = retrieve_stmts_from_db(the_dict, limit, stored_param, args)
     full_stmt_list = []
     # For each stmt convert to our Statement class and retrieve all json
-    # pdb.set_trace()
     for stmt in stmt_list:
-        stmt = Statement.Statement(statement_id=stmt.statement_id, get=True, auth=user)
-        full_stmt_list.append(stmt.get_full_statement_json(sparse, language))
+        st = Statement.Statement(statement_id=stmt.statement_id, get=True, auth=user)
+        full_stmt_list.append(st.get_full_statement_json(sparse, language))
     return full_stmt_list
 
 def createCacheKey(stmt_list):
@@ -350,7 +304,6 @@ def getStatementRequest(req_id):
     return stmt_result
 
 def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_more_id=None):
-    #pdb.set_trace()
     result = {}
     limit = None
     # Get length of stmt list
@@ -412,6 +365,7 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
                 limit = int(bdy['limit'])
             except:
                 limit = None
+        # pdb.set_trace()
         if not limit or limit > settings.SERVER_STMT_LIMIT:
             limit = settings.SERVER_STMT_LIMIT
 

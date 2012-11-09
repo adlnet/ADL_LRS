@@ -47,12 +47,8 @@ def statements_get(req_dict):
         statementId = req_dict['statementId']
         # Try to retrieve stmt, if DNE then return empty else return stmt info
         st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
-        # stmt_data = st.get_full_statement_json()
-        # pdb.set_trace()
         stmt_data = st.statement.object_return()
-        return HttpResponse(json.dumps(stmt_data), mimetype="application/json", status=200)    
-        # return HttpResponse(stream_response_generator_single(stmt_data), mimetype="application/json", status=200)    
-
+        return HttpResponse(stream_response_generator_single(stmt_data), mimetype="application/json", status=200)
     # If statementId is not in req_dict then it is a complex GET
     else:
         statementResult = {}
@@ -135,9 +131,7 @@ def activities_get(req_dict):
     full_act_list = []
     for act in act_list:
         full_act_list.append(act.object_return())
-        # pdb.set_trace()
     return HttpResponse(stream_response_generator_list(full_act_list), mimetype="application/json", status=200)
-    # return HttpResponse(full_act_list, mimetype="application/json", status=200)
 
 
 #Generate JSON

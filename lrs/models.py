@@ -842,10 +842,16 @@ class statement(models.Model):
                     stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
                     object_type = 'substatement'            
                 except SubStatement.DoesNotExist:
-                    raise IDNotFoundError("No activity, agent, or substatement found with given ID")
+                    try:
+                        stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
+                        object_type = 'statementref'
+                    except Exception, e:
+                        raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
 
         if object_type == 'activity' or object_type == 'substatement':
             ret['object'] = stmt_object.object_return(lang)  
+        elif object_type == 'statementref':
+            ret['object'] = stmt_object.object_return()
         else:
             ret['object'] = stmt_object.get_agent_json()
         if not self.result is None:
@@ -882,7 +888,11 @@ class statement(models.Model):
                     stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
                     object_type = 'substatement'
                 except SubStatement.DoesNotExist:
-                    raise IDNotFoundError("No activity, agent, or substatement found with given ID")
+                    try:
+                        stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
+                        object_type = 'statementref'
+                    except Exception, e:
+                        raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
         return stmt_object, object_type
 
     def unvoid_statement(self):

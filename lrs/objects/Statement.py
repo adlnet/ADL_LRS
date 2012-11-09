@@ -29,7 +29,6 @@ class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None, get=False):
-        # pdb.set_trace()
         if get and statement_id is not None:
             self.statement_id = statement_id
             self.statement = None
@@ -424,6 +423,15 @@ class Statement():
             elif statementObjectData['objectType'].lower() == 'substatement':
                 sub_statement = SubStatement(statementObjectData, auth)
                 args['stmt_object'] = sub_statement.statement
+            elif statementObjectData['objectType'].lower() == 'statementref':
+                try:
+                    existing_stmt = models.statement.objects.get(statement_id=statementObjectData['id'])
+                except models.statement.DoesNotExist:
+                    raise exceptions.IDNotFoundError("No statement with ID %s was found" % statementObjectData['id'])
+                else:
+                    stmt_ref = models.StatementRef(ref_id=statementObjectData['id'])
+                    stmt_ref.save()
+                    args['stmt_object'] = stmt_ref
 
         #Retrieve actor
         args['actor'] = Agent(initial=stmt_data['actor'], create=True).agent
