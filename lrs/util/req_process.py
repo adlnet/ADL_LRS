@@ -29,7 +29,6 @@ def statements_post(req_dict):
             except Exception, e:
                 for stmt_id in stmtResponses:
                     try:
-                        # pdb.set_trace()
                         models.statement.objects.get(statement_id=stmt_id).delete()
                     except models.statement.DoesNotExist:
                         pass # stmt already deleted
@@ -48,8 +47,12 @@ def statements_get(req_dict):
         statementId = req_dict['statementId']
         # Try to retrieve stmt, if DNE then return empty else return stmt info
         st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
-        stmt_data = st.get_full_statement_json()
+        # stmt_data = st.get_full_statement_json()
+        # pdb.set_trace()
+        stmt_data = st.statement.object_return()
         return HttpResponse(json.dumps(stmt_data), mimetype="application/json", status=200)    
+        # return HttpResponse(stream_response_generator_single(stmt_data), mimetype="application/json", status=200)    
+
     # If statementId is not in req_dict then it is a complex GET
     else:
         statementResult = {}
@@ -132,43 +135,88 @@ def activities_get(req_dict):
     full_act_list = []
     for act in act_list:
         full_act_list.append(act.object_return())
-    # return HttpResponse(stream_response_generator(data), mimetype="application/json")
-    return HttpResponse(full_act_list, mimetype="application/json", status=200)
+        # pdb.set_trace()
+    return HttpResponse(stream_response_generator_list(full_act_list), mimetype="application/json", status=200)
+    # return HttpResponse(full_act_list, mimetype="application/json", status=200)
 
-    
+
 #Generate JSON
-def stream_response_generator(data):
+def stream_response_generator_single(data):
     first = True
-    yield '{'
+    yield "{"
     for k,v in data.items():
         if not first:
-            yield ', '
+            yield ", "
         else:
             first = False
         #Catch next dictionaries
         if type(v) is dict:
-            stream_response_generator(v)
+            stream_response_generator_single(v)
         #Catch lists as dictionary values
         if type(v) is list:
             lfirst = True
             yield json.dumps(k)
-            yield ': '
-            yield '['
+            yield ": "
+            yield "["
             for item in v:
                 if not lfirst:
-                    yield ', '
+                    yield ", "
                 else:
                     lfirst = False
                 #Catch dictionaries as items in a list
                 if type(item) is dict:
-                    stream_response_generator(item)
+                    stream_response_generator_single(item)
                 yield json.dumps(item)
-            yield ']'
+            yield "]"
         else:
             yield json.dumps(k)
-            yield ': '
+            yield ": "
             yield json.dumps(v)
-    yield '}'
+    yield "}"
+
+    
+#Generate JSON
+def stream_response_generator_list(data):
+    list_first = True
+    yield "["
+    for i in data:
+        if not list_first:
+            yield ", "
+        else:
+            list_first = True    
+        first = True
+        yield "{"
+        # pdb.set_trace()
+        for k,v in i.items():
+            if not first:
+                yield ", "
+            else:
+                first = False
+            #Catch next dictionaries
+            if type(v) is dict:
+                stream_response_generator_list(v)
+            #Catch lists as dictionary values
+            if type(v) is list:
+                lfirst = True
+                yield json.dumps(k)
+                yield ": "
+                yield "["
+                for item in v:
+                    if not lfirst:
+                        yield ", "
+                    else:
+                        lfirst = False
+                    #Catch dictionaries as items in a list
+                    if type(item) is dict:
+                        stream_response_generator_list(item)
+                    yield json.dumps(item)
+                yield "]"
+            else:
+                yield json.dumps(k)
+                yield ": "
+                yield json.dumps(v)
+        yield "}"
+    yield "]"
 
 def agent_profile_put(req_dict):
     # test ETag for concurrency
