@@ -440,49 +440,51 @@ class StatementsTests(TestCase):
         sinceGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
-        self.assertContains(sinceGetResponse, self.guid1)
-        self.assertContains(sinceGetResponse, self.guid2)
-        self.assertContains(sinceGetResponse, self.guid3)
-        self.assertContains(sinceGetResponse, self.guid4)
-        self.assertContains(sinceGetResponse, self.guid5)
-        self.assertContains(sinceGetResponse, self.guid6)
-        self.assertContains(sinceGetResponse, self.guid7)
-        self.assertContains(sinceGetResponse, self.guid8)
+        rsp = sinceGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid2, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)
+        self.assertIn(self.guid5, rsp)
+        self.assertIn(self.guid6, rsp)
+        self.assertIn(self.guid7, rsp)
+        self.assertIn(self.guid8, rsp)
 
     def test_until_filter(self):
         # Test until
         param = {"until": self.secondTime}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         untilGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
- 
         self.assertEqual(untilGetResponse.status_code, 200)
-        self.assertContains(untilGetResponse, self.guid1)
-        self.assertContains(untilGetResponse, self.guid3)
-        self.assertContains(untilGetResponse, self.guid4)
-        self.assertNotIn(self.guid2, untilGetResponse)
-        self.assertNotIn(self.guid5, untilGetResponse)
-        self.assertNotIn(self.guid6, untilGetResponse)
-        self.assertNotIn(self.guid7, untilGetResponse)
-        self.assertNotIn(self.guid8, untilGetResponse)
+        rsp = untilGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)
+        self.assertNotIn(self.guid2, rsp)
+        self.assertNotIn(self.guid5, rsp)
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid7, rsp)
+        self.assertNotIn(self.guid8, rsp)
 
     def test_activity_object_filter(self):
         # Test activity object
         param = {"object":{"objectType": "Activity", "id":"foogie"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        activityObjectGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-
+        activityObjectGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth,
+            Accept_Language='en-GB')
         self.assertEqual(activityObjectGetResponse.status_code, 200)
-        self.assertContains(activityObjectGetResponse, self.guid1)
-        self.assertContains(activityObjectGetResponse, self.guid2)
-        self.assertNotIn(self.guid3, activityObjectGetResponse)
-        self.assertNotIn(self.guid4, activityObjectGetResponse)
-        self.assertNotIn(self.guid5, activityObjectGetResponse)
-        self.assertNotIn(self.guid6, activityObjectGetResponse)
-        self.assertNotIn(self.guid7, activityObjectGetResponse)
-        self.assertNotIn(self.guid8, activityObjectGetResponse)
-        # Should not be in response since sparse is true
-        self.assertNotIn("testdesc3", activityObjectGetResponse)
-        self.assertNotIn("testname3", activityObjectGetResponse)
+        rsp = activityObjectGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid2, rsp)
+        self.assertNotIn(self.guid3, rsp)
+        self.assertNotIn(self.guid4, rsp)
+        self.assertNotIn(self.guid5, rsp)
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid7, rsp)
+        self.assertNotIn(self.guid8, rsp)
+        # Should not be in response b/c of language header
+        self.assertNotIn("testdesc3", rsp)
+        self.assertNotIn("testname3", rsp)
 
     def test_no_actor(self):
         # Test actor object
@@ -500,17 +502,17 @@ class StatementsTests(TestCase):
         param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         verb_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-
         self.assertEqual(verb_response.status_code, 200)
-        self.assertContains(verb_response, self.guid8)
-        self.assertContains(verb_response, self.guid9)        
-        self.assertNotIn(self.guid7, verb_response)
-        self.assertNotIn(self.guid6, verb_response)
-        self.assertNotIn(self.guid5, verb_response)
-        self.assertNotIn(self.guid4, verb_response)
-        self.assertNotIn(self.guid2, verb_response)
-        self.assertNotIn(self.guid3, verb_response)
-        self.assertNotIn(self.guid1, verb_response)
+        rsp = verb_response.content
+        self.assertIn(self.guid8, rsp)
+        self.assertIn(self.guid9, rsp)        
+        self.assertNotIn(self.guid7, rsp)
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid5, rsp)
+        self.assertNotIn(self.guid4, rsp)
+        self.assertNotIn(self.guid2, rsp)
+        self.assertNotIn(self.guid3, rsp)
+        self.assertNotIn(self.guid1, rsp)
 
 
     def test_actor_object_filter(self):
@@ -566,15 +568,16 @@ class StatementsTests(TestCase):
             {"ascending": True},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
 
         self.assertEqual(ascending_get_response.status_code, 200)
-        self.assertContains(ascending_get_response,self.guid1)
-        self.assertContains(ascending_get_response,self.guid2)
-        self.assertContains(ascending_get_response,self.guid3)
-        self.assertContains(ascending_get_response,self.guid4)
-        self.assertContains(ascending_get_response,self.guid5)
-        self.assertContains(ascending_get_response,self.guid6)
-        self.assertContains(ascending_get_response,self.guid7)
-        self.assertContains(ascending_get_response,self.guid8)
-        self.assertContains(ascending_get_response, str(self.exist_stmt_id))
+        rsp = ascending_get_response.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid2, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)
+        self.assertIn(self.guid5, rsp)
+        self.assertIn(self.guid6, rsp)
+        self.assertIn(self.guid7, rsp)
+        self.assertIn(self.guid8, rsp)
+        self.assertIn(str(self.exist_stmt_id), rsp)
 
     def test_actor_filter(self):
         # Test actor
@@ -583,14 +586,16 @@ class StatementsTests(TestCase):
              content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
         
         self.assertEqual(actorGetResponse.status_code, 200)
-        self.assertContains(actorGetResponse,self.guid1)
-        self.assertContains(actorGetResponse,self.guid3)
-        self.assertContains(actorGetResponse,self.guid4)                        
-        self.assertNotIn(self.guid5, actorGetResponse)
-        self.assertNotIn(self.guid6, actorGetResponse)
-        self.assertNotIn(self.guid7, actorGetResponse)
-        self.assertNotIn(self.guid8, actorGetResponse)                
-        self.assertNotIn(self.guid2, actorGetResponse)
+        rsp = actorGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)                        
+        self.assertIn(self.guid5, rsp)
+        self.assertIn(self.guid7, rsp)
+        self.assertIn(self.guid8, rsp)
+        self.assertIn(str(self.exist_stmt_id), rsp)        
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid2, rsp)
 
     def test_instructor_filter(self):
         # Test instructor - will only return one b/c actor in stmt supercedes instructor in context
@@ -652,23 +657,27 @@ class StatementsTests(TestCase):
     def test_limit_filter(self):
         # Test limit
         limitGetResponse = self.client.post(reverse(views.statements),{"limit":1}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
-        respList = json.loads(limitGetResponse.content)
+        self.assertEqual(limitGetResponse.status_code, 200)
+        rsp = limitGetResponse.content
+        respList = json.loads(rsp)
         stmts = respList["statements"]
         self.assertEqual(len(stmts), 1)
-        self.assertContains(limitGetResponse, self.guid10)
+        self.assertIn(self.guid10, rsp)
 
     def test_sparse_filter(self):
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{"sparse": False}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(sparseGetResponse.status_code, 200)
-        self.assertContains(sparseGetResponse, "definition")        
-        self.assertContains(sparseGetResponse, "en-GB")
-        self.assertContains(sparseGetResponse, "altdesc")
-        self.assertContains(sparseGetResponse, "altname")
+        rsp = sparseGetResponse.content
+
+        self.assertIn("definition", rsp)        
+        self.assertIn("en-GB", rsp)
+        self.assertIn("altdesc", rsp)
+        self.assertIn("altname", rsp)
 
 
         # Should display full lang map (won"t find testdesc2 since activity class will merge activities with same id together)
-        self.assertContains(sparseGetResponse, "testdesc3")
+        self.assertIn("testdesc3", rsp)
 
     def test_linked_filters(self):
         # Test reasonable linked query
@@ -682,13 +691,13 @@ class StatementsTests(TestCase):
         param = {"limit":1, "object":{"objectType": "Activity", "id":"foogie"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         lang_get_response = self.client.get(path, Accept_Language="en-US", X_Experience_API_Version="0.95", Authorization=self.auth)
-
         self.assertEqual(lang_get_response.status_code, 200)
-        resp_list = json.loads(lang_get_response.content)
+        rsp = lang_get_response.content
+        resp_list = json.loads(rsp)
         stmts = resp_list["statements"]
         self.assertEqual(len(stmts), 1)
-        self.assertContains(lang_get_response, "en-US")
-        self.assertNotContains(lang_get_response, "en-GB")
+        self.assertIn("en-US", rsp)
+        self.assertNotIn("en-GB", rsp)
 
     # Sever activities are PUT, but should be 5 since two have same ID and auth
     def test_number_of_activities(self):

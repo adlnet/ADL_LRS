@@ -210,8 +210,8 @@ def complexGet(req_dict):
 
     limit = 0    
     # If want results limited
-    # if 'limit' in the_dict:
-    #     limit = int(the_dict['limit'])
+    if 'limit' in the_dict:
+        limit = int(the_dict['limit'])
    
     sparse = True    
     # If want sparse results
@@ -248,6 +248,7 @@ def createCacheKey(stmt_list):
 
 def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
     # First time someone queries POST/GET
+    # pdb.set_trace()
     result = {}
     stmt_pager = Paginator(stmt_list, limit)
  
@@ -278,7 +279,8 @@ def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
 
 def getStatementRequest(req_id):  
     # Retrieve encoded info for statements
-    #pdb.set_trace()
+    print 'incoming req_id: ' + str(req_id)
+    pdb.set_trace()
     encoded_info = cache.get(req_id)
 
     # Could have expired or never existed
@@ -304,6 +306,7 @@ def getStatementRequest(req_id):
     return stmt_result
 
 def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_more_id=None):
+    # pdb.set_trace()
     result = {}
     limit = None
     # Get length of stmt list
@@ -348,6 +351,7 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
             # Encode info
             encoded_list = pickle.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
+            print 'cache key set: ' + str(cache_key)
             return result
     # List will only be larger first time - getStatementRequest should truncate rest of results
     # of more URLs.

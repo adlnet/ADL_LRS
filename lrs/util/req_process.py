@@ -48,13 +48,13 @@ def statements_get(req_dict):
         # Try to retrieve stmt, if DNE then return empty else return stmt info
         st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
         stmt_data = st.statement.object_return()
-        return HttpResponse(stream_response_generator_single(stmt_data), mimetype="application/json", status=200)
+        return HttpResponse(stream_response_generator_dictionary(stmt_data), mimetype="application/json", status=200)
     # If statementId is not in req_dict then it is a complex GET
     else:
         statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
-    return HttpResponse(json.dumps(statementResult), mimetype="application/json", status=200)
+    return HttpResponse(stream_response_generator_dictionary(statementResult), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -131,11 +131,12 @@ def activities_get(req_dict):
     full_act_list = []
     for act in act_list:
         full_act_list.append(act.object_return())
-    return HttpResponse(stream_response_generator_list(full_act_list), mimetype="application/json", status=200)
+    # return HttpResponse(stream_response_generator_list(full_act_list), mimetype="application/json", status=200)
+    return HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
 
 
 #Generate JSON
-def stream_response_generator_single(data):
+def stream_response_generator_dictionary(data):
     first = True
     yield "{"
     for k,v in data.items():
@@ -143,9 +144,9 @@ def stream_response_generator_single(data):
             yield ", "
         else:
             first = False
-        #Catch next dictionaries
+        #Catch nested dictionaries
         if type(v) is dict:
-            stream_response_generator_single(v)
+            stream_response_generator_dictionary(v)
         #Catch lists as dictionary values
         if type(v) is list:
             lfirst = True
@@ -159,7 +160,7 @@ def stream_response_generator_single(data):
                     lfirst = False
                 #Catch dictionaries as items in a list
                 if type(item) is dict:
-                    stream_response_generator_single(item)
+                    stream_response_generator_dictionary(item)
                 yield json.dumps(item)
             yield "]"
         else:

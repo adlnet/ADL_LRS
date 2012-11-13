@@ -96,6 +96,7 @@ class Statement():
         # ret = models.objsReturn(self.statement, language)
         ret = self.statement.object_return(language)
         # Remove details if sparse is true
+        # pdb.set_trace()
         if sparse:
             # Remove responses and only return language for name and description
             if 'definition' in ret['object']:
