@@ -35,6 +35,7 @@ class StatementsTests(TestCase):
         self.guid7 = str(uuid.uuid4())
         self.guid8 = str(uuid.uuid4())
         self.guid9 = str(uuid.uuid4())        
+        self.guid10 = str(uuid.uuid4())
         self.cguid1 = str(uuid.uuid4())
         self.cguid2 = str(uuid.uuid4())    
         self.cguid3 = str(uuid.uuid4())
@@ -125,6 +126,10 @@ class StatementsTests(TestCase):
             "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"k1": "v1", "k2": "v2"}}}})
 
+        self.existStmt10 = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
+            "id":str(self.exist_stmt_id)}})
+
         # Put statements
         param = {"statementId":self.guid1}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -205,9 +210,14 @@ class StatementsTests(TestCase):
         self.assertEqual(self.putresponse9.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
-        # stmt = models.statement.objects.filter(statement_id=self.guid9)[0]
-        # sub = models.SubStatement.objects.get(id=stmt.stmt_object.id)
-        # act = models.activity.objects.get(id=sub.stmt_object.id)
+
+        param = {"statementId": self.guid10}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = self.existStmt10        
+        self.putresponse10 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(self.putresponse10.status_code, 204)
+        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
+        stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
 
     def test_post_with_no_valid_params(self):
@@ -228,6 +238,16 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, "test_post")
         agent = models.agent.objects.get(mbox="t@t.com")
         self.assertEqual(agent.name, "bob")
+
+    def test_post_stmt_ref_no_existing_stmt(self):
+        stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
+            "id":"aaaaaaaaa"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="0.95")        
+
+        self.assertEqual(response.status_code, 404)
+
 
     def test_post_with_actor(self):
         stmt = json.dumps({"actor":{"mbox":"mailto:mr.t@example.com"},
@@ -308,36 +328,36 @@ class StatementsTests(TestCase):
 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-
         self.assertEqual(get_response.status_code, 200)
-        self.assertContains(get_response, "objectType")
-        self.assertContains(get_response, "SubStatement")
-        self.assertContains(get_response, "actor")
-        self.assertContains(get_response, "ss@ss.com")
-        self.assertContains(get_response, "verb")
-        self.assertContains(get_response, "verb/url/nested")
-        self.assertContains(get_response, "Activity")
-        self.assertContains(get_response, "testex.com")
-        self.assertContains(get_response, "result")
-        self.assertContains(get_response, "completion")
-        self.assertContains(get_response, "success")
-        self.assertContains(get_response, "response")
-        self.assertContains(get_response, "kicked")
-        self.assertContains(get_response, "context")
-        self.assertContains(get_response, con_guid)
-        self.assertContains(get_response, "contextActivities")
-        self.assertContains(get_response, "other")
-        self.assertContains(get_response, "revision")
-        self.assertContains(get_response, "foo")
-        self.assertContains(get_response, "platform")
-        self.assertContains(get_response, "bar")
-        self.assertContains(get_response, "language")
-        self.assertContains(get_response, "en-US")
-        self.assertContains(get_response, "extensions")
-        self.assertContains(get_response, "k1")
-        self.assertContains(get_response, "v1")
-        self.assertContains(get_response, "k2")
-        self.assertContains(get_response, "v2")                                                                                                                                                                                                                
+        rsp = get_response.content
+        self.assertIn("objectType",rsp)
+        self.assertIn("SubStatement", rsp)
+        self.assertIn("actor",rsp)
+        self.assertIn("ss@ss.com",rsp)
+        self.assertIn("verb",rsp)
+        self.assertIn("verb/url/nested", rsp)
+        self.assertIn("Activity", rsp)
+        self.assertIn("testex.com", rsp)
+        self.assertIn("result", rsp)
+        self.assertIn("completion",rsp)
+        self.assertIn("success", rsp)
+        self.assertIn("response", rsp)
+        self.assertIn("kicked", rsp)
+        self.assertIn("context", rsp)
+        self.assertIn(con_guid, rsp)
+        self.assertIn("contextActivities", rsp)
+        self.assertIn("other", rsp)
+        self.assertIn("revision", rsp)
+        self.assertIn("foo", rsp)
+        self.assertIn("platform", rsp)
+        self.assertIn("bar", rsp)
+        self.assertIn("language", rsp)
+        self.assertIn("en-US", rsp)
+        self.assertIn("extensions", rsp)
+        self.assertIn("k1", rsp)
+        self.assertIn("v1", rsp)
+        self.assertIn("k2", rsp)
+        self.assertIn("v2", rsp)                                                                                                                                                                                                                
 
     def test_no_content_put(self):
         guid = str(uuid.uuid4())
@@ -377,7 +397,9 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         getResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(getResponse.status_code, 200)
-        self.assertContains(getResponse, self.guid1)
+        rsp = getResponse.content
+        self.assertIn(self.guid1, rsp)
+
 
     # def test_get_wrong_auth(self):
     #     username = "tester2"
@@ -408,7 +430,8 @@ class StatementsTests(TestCase):
         getResponse = self.client.get(reverse(views.statements), X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
-        self.assertEqual(len(jsn["statements"]), models.statement.objects.all().count())
+        # Will only return 10 since that is server limit
+        self.assertEqual(len(jsn["statements"]), 10)
         
     def test_since_filter(self):
         # Test since - should only get existStmt1-8 since existStmt is stored at same time as firstTime
@@ -417,49 +440,51 @@ class StatementsTests(TestCase):
         sinceGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
-        self.assertContains(sinceGetResponse, self.guid1)
-        self.assertContains(sinceGetResponse, self.guid2)
-        self.assertContains(sinceGetResponse, self.guid3)
-        self.assertContains(sinceGetResponse, self.guid4)
-        self.assertContains(sinceGetResponse, self.guid5)
-        self.assertContains(sinceGetResponse, self.guid6)
-        self.assertContains(sinceGetResponse, self.guid7)
-        self.assertContains(sinceGetResponse, self.guid8)
+        rsp = sinceGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid2, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)
+        self.assertIn(self.guid5, rsp)
+        self.assertIn(self.guid6, rsp)
+        self.assertIn(self.guid7, rsp)
+        self.assertIn(self.guid8, rsp)
 
     def test_until_filter(self):
         # Test until
         param = {"until": self.secondTime}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         untilGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
- 
         self.assertEqual(untilGetResponse.status_code, 200)
-        self.assertContains(untilGetResponse, self.guid1)
-        self.assertContains(untilGetResponse, self.guid3)
-        self.assertContains(untilGetResponse, self.guid4)
-        self.assertNotIn(self.guid2, untilGetResponse)
-        self.assertNotIn(self.guid5, untilGetResponse)
-        self.assertNotIn(self.guid6, untilGetResponse)
-        self.assertNotIn(self.guid7, untilGetResponse)
-        self.assertNotIn(self.guid8, untilGetResponse)
+        rsp = untilGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)
+        self.assertNotIn(self.guid2, rsp)
+        self.assertNotIn(self.guid5, rsp)
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid7, rsp)
+        self.assertNotIn(self.guid8, rsp)
 
     def test_activity_object_filter(self):
         # Test activity object
         param = {"object":{"objectType": "Activity", "id":"foogie"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        activityObjectGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-
+        activityObjectGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth,
+            Accept_Language='en-GB')
         self.assertEqual(activityObjectGetResponse.status_code, 200)
-        self.assertContains(activityObjectGetResponse, self.guid1)
-        self.assertContains(activityObjectGetResponse, self.guid2)
-        self.assertNotIn(self.guid3, activityObjectGetResponse)
-        self.assertNotIn(self.guid4, activityObjectGetResponse)
-        self.assertNotIn(self.guid5, activityObjectGetResponse)
-        self.assertNotIn(self.guid6, activityObjectGetResponse)
-        self.assertNotIn(self.guid7, activityObjectGetResponse)
-        self.assertNotIn(self.guid8, activityObjectGetResponse)
-        # Should not be in response since sparse is true
-        self.assertNotIn("testdesc3", activityObjectGetResponse)
-        self.assertNotIn("testname3", activityObjectGetResponse)
+        rsp = activityObjectGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid2, rsp)
+        self.assertNotIn(self.guid3, rsp)
+        self.assertNotIn(self.guid4, rsp)
+        self.assertNotIn(self.guid5, rsp)
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid7, rsp)
+        self.assertNotIn(self.guid8, rsp)
+        # Should not be in response b/c of language header
+        self.assertNotIn("testdesc3", rsp)
+        self.assertNotIn("testname3", rsp)
 
     def test_no_actor(self):
         # Test actor object
@@ -470,23 +495,24 @@ class StatementsTests(TestCase):
         self.assertEqual(actorObjectGetResponse.status_code, 200)
         stmts = json.loads(actorObjectGetResponse.content)
         dbstmts = models.statement.objects.all()
-        self.assertEqual(len(stmts["statements"]), len(dbstmts))
+        # Will return 10 since that is server limit
+        self.assertEqual(len(stmts["statements"]), 10)
 
     def test_verb_filter(self):
         param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         verb_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-
         self.assertEqual(verb_response.status_code, 200)
-        self.assertContains(verb_response, self.guid8)
-        self.assertContains(verb_response, self.guid9)        
-        self.assertNotIn(self.guid7, verb_response)
-        self.assertNotIn(self.guid6, verb_response)
-        self.assertNotIn(self.guid5, verb_response)
-        self.assertNotIn(self.guid4, verb_response)
-        self.assertNotIn(self.guid2, verb_response)
-        self.assertNotIn(self.guid3, verb_response)
-        self.assertNotIn(self.guid1, verb_response)
+        rsp = verb_response.content
+        self.assertIn(self.guid8, rsp)
+        self.assertIn(self.guid9, rsp)        
+        self.assertNotIn(self.guid7, rsp)
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid5, rsp)
+        self.assertNotIn(self.guid4, rsp)
+        self.assertNotIn(self.guid2, rsp)
+        self.assertNotIn(self.guid3, rsp)
+        self.assertNotIn(self.guid1, rsp)
 
 
     def test_actor_object_filter(self):
@@ -503,17 +529,13 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid1, actorObjectGetResponse)
 
     
-    def test_substatement_object_filter(self):
-        param = {"object":{"objectType": "SubStatement", "actor":{"objectType":"Agent","mbox":"ss@ss.com"},
-        "verb": {"id":"verb/url/nested"},"object":{"objectType":"activity", "id":"testex.com"},
-        "result":{"completion": True, "success": True,"response": "kicked"},"context":{"registration": self.cguid6,
-            "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
-            "language": "en-US"}}}
+    def test_statement_ref_object_filter(self):
+        param = {"object":{"objectType": "StatementRef", "id":str(self.exist_stmt_id)}}
             
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         sub_object_get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(sub_object_get_response.status_code, 200)
-        self.assertContains(sub_object_get_response,self.guid9)
+        self.assertContains(sub_object_get_response,self.guid10)
         self.assertNotIn(self.guid2, sub_object_get_response)
         self.assertNotIn(self.guid3, sub_object_get_response)
         self.assertNotIn(self.guid1, sub_object_get_response)
@@ -521,7 +543,7 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid4, sub_object_get_response)
         self.assertNotIn(self.guid7, sub_object_get_response)
         self.assertNotIn(self.guid8, sub_object_get_response)        
-        self.assertNotIn(self.guid8, sub_object_get_response)
+        self.assertNotIn(self.guid9, sub_object_get_response)
 
 
     def test_registration_filter(self):
@@ -546,15 +568,16 @@ class StatementsTests(TestCase):
             {"ascending": True},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
 
         self.assertEqual(ascending_get_response.status_code, 200)
-        self.assertContains(ascending_get_response,self.guid1)
-        self.assertContains(ascending_get_response,self.guid2)
-        self.assertContains(ascending_get_response,self.guid3)
-        self.assertContains(ascending_get_response,self.guid4)
-        self.assertContains(ascending_get_response,self.guid5)
-        self.assertContains(ascending_get_response,self.guid6)
-        self.assertContains(ascending_get_response,self.guid7)
-        self.assertContains(ascending_get_response,self.guid8)
-        self.assertContains(ascending_get_response, str(self.exist_stmt_id))
+        rsp = ascending_get_response.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid2, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)
+        self.assertIn(self.guid5, rsp)
+        self.assertIn(self.guid6, rsp)
+        self.assertIn(self.guid7, rsp)
+        self.assertIn(self.guid8, rsp)
+        self.assertIn(str(self.exist_stmt_id), rsp)
 
     def test_actor_filter(self):
         # Test actor
@@ -563,14 +586,16 @@ class StatementsTests(TestCase):
              content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
         
         self.assertEqual(actorGetResponse.status_code, 200)
-        self.assertContains(actorGetResponse,self.guid1)
-        self.assertContains(actorGetResponse,self.guid3)
-        self.assertContains(actorGetResponse,self.guid4)                        
-        self.assertNotIn(self.guid5, actorGetResponse)
-        self.assertNotIn(self.guid6, actorGetResponse)
-        self.assertNotIn(self.guid7, actorGetResponse)
-        self.assertNotIn(self.guid8, actorGetResponse)                
-        self.assertNotIn(self.guid2, actorGetResponse)
+        rsp = actorGetResponse.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)                        
+        self.assertIn(self.guid5, rsp)
+        self.assertIn(self.guid7, rsp)
+        self.assertIn(self.guid8, rsp)
+        self.assertIn(str(self.exist_stmt_id), rsp)        
+        self.assertNotIn(self.guid6, rsp)
+        self.assertNotIn(self.guid2, rsp)
 
     def test_instructor_filter(self):
         # Test instructor - will only return one b/c actor in stmt supercedes instructor in context
@@ -632,23 +657,27 @@ class StatementsTests(TestCase):
     def test_limit_filter(self):
         # Test limit
         limitGetResponse = self.client.post(reverse(views.statements),{"limit":1}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
-        respList = json.loads(limitGetResponse.content)
+        self.assertEqual(limitGetResponse.status_code, 200)
+        rsp = limitGetResponse.content
+        respList = json.loads(rsp)
         stmts = respList["statements"]
         self.assertEqual(len(stmts), 1)
-        self.assertContains(limitGetResponse, self.guid9)
+        self.assertIn(self.guid10, rsp)
 
     def test_sparse_filter(self):
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{"sparse": False}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(sparseGetResponse.status_code, 200)
-        self.assertContains(sparseGetResponse, "definition")        
-        self.assertContains(sparseGetResponse, "en-GB")
-        self.assertContains(sparseGetResponse, "altdesc")
-        self.assertContains(sparseGetResponse, "altname")
+        rsp = sparseGetResponse.content
+
+        self.assertIn("definition", rsp)        
+        self.assertIn("en-GB", rsp)
+        self.assertIn("altdesc", rsp)
+        self.assertIn("altname", rsp)
 
 
         # Should display full lang map (won"t find testdesc2 since activity class will merge activities with same id together)
-        self.assertContains(sparseGetResponse, "testdesc3")
+        self.assertIn("testdesc3", rsp)
 
     def test_linked_filters(self):
         # Test reasonable linked query
@@ -662,15 +691,15 @@ class StatementsTests(TestCase):
         param = {"limit":1, "object":{"objectType": "Activity", "id":"foogie"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         lang_get_response = self.client.get(path, Accept_Language="en-US", X_Experience_API_Version="0.95", Authorization=self.auth)
-
         self.assertEqual(lang_get_response.status_code, 200)
-        resp_list = json.loads(lang_get_response.content)
+        rsp = lang_get_response.content
+        resp_list = json.loads(rsp)
         stmts = resp_list["statements"]
         self.assertEqual(len(stmts), 1)
-        self.assertContains(lang_get_response, "en-US")
-        self.assertNotContains(lang_get_response, "en-GB")
+        self.assertIn("en-US", rsp)
+        self.assertNotIn("en-GB", rsp)
 
-    # Sever activities are PUT, but should be 6 since two have same ID and auth
+    # Sever activities are PUT, but should be 5 since two have same ID and auth
     def test_number_of_activities(self):
         acts = len(models.activity.objects.all())
         self.assertEqual(6, acts)
@@ -855,11 +884,12 @@ class StatementsTests(TestCase):
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+        rsp = get_response.content
         self.assertIn('"object": {"definition": {"name": {"en-GB": "anotherActName", "en-US": "actName"}, "description": {"en-GB": '
             '"This is another activity description.", "en-US": "This is my activity description."}, "extensions": {"key3": "value3", '
             '"key2": "value2", "key1": "value1"}, "correctResponsesPattern": ["golf", "tetris"], "type": "http://adlnet.gov/expapi/activities/cmi.interaction", '
             '"interactionType": "choice"}, "id": "/my/Activity/URL", "objectType": "Activity"}, "actor": {"account": {"homePage": "http://example.com", "name": '
-            '"uniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
+            '"uniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', rsp)
 
         self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-GB": "made", "en-US": "created"}}, '
             '"result": {"completion": true, "success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, '
@@ -869,7 +899,7 @@ class StatementsTests(TestCase):
             '"http://groupingID"}}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
             '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "uniqueName"}, "name": '
             '"Lou Wolford", "objectType": "Agent"}, "revision": "Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", '
-            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', rsp)
 
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp, stored fields
@@ -905,9 +935,10 @@ class StatementsTests(TestCase):
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-        
+        rsp = get_response.content
+
         self.assertIn('"object": {"mbox_sha1sum": "edb97c2848fc47bdd2091028de8a3b1b24933752", "name": "Tom Creighton", "objectType": "Agent"}, "actor": '
-            '{"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
+            '{"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', rsp)
 
 
         self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/helped", "display": {"en-GB": "assisted", "en-US": "helped"}}, "result": {"completion": true, '
@@ -916,7 +947,7 @@ class StatementsTests(TestCase):
             '"contextKey2": "contextVal2"}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
             '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", '
             '"objectType": "Agent"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}}, "id": "12345678-1233-1234-1234-12345678901o", '
-            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)        
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', rsp)        
 
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamps or stored fields
@@ -981,7 +1012,8 @@ class StatementsTests(TestCase):
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-        
+        rsp = get_response.content
+
         self.assertIn('"object": {"id": "http://example.adlnet.gov/tincan/example/simplestatement", "objectType": "Activity"}, "actor": '
             '{"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "verb": {"id": "http://adlnet.gov/expapi/verbs/assess", '
             '"display": {"en-GB": "Graded", "en-US": "assessed"}}, "result": {"completion": true, "success": true, "score": {"scaled": 0.5, '
@@ -991,7 +1023,7 @@ class StatementsTests(TestCase):
             '"statement": {"id": "12345678-1233-1234-1234-1234567890ns", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-1234567890sc", '
             '"instructor": {"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "revision": "Spelling error in target."}, "objectType": '
             '"SubStatement"}, "actor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, '
-            '"voided": false,', get_response.content)
+            '"voided": false,', rsp)
         
         self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/said", "display": {"en-GB": "talked", "en-US": "said"}}, "result": {"completion": true, '
             '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
@@ -1000,7 +1032,7 @@ class StatementsTests(TestCase):
             '"statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-12345678901c", '
             '"instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "revision": '
             '"Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", "authority": {"mbox": "test1@tester.com", "name": "tester1", '
-            '"objectType": "Agent"}}', get_response.content)
+            '"objectType": "Agent"}}', rsp)
 
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
@@ -1049,8 +1081,8 @@ class StatementsTests(TestCase):
 
         statements = models.statement.objects.all()
 
-        # 10 statements from setup
-        self.assertEqual(len(statements), 10)
+        # 11 statements from setup
+        self.assertEqual(len(statements), 11)
 
         self.assertEqual(len(results), 0)
         self.assertEqual(len(scores), 0)
@@ -1099,7 +1131,7 @@ class StatementsTests(TestCase):
 
         self.assertEqual(len(activities), 1)
         
-        self.assertEqual(len(statements), 10)
+        self.assertEqual(len(statements), 11)
 
         self.assertEqual(len(wrong_agent), 0)
         self.assertEqual(len(john_agent), 1)
@@ -1122,7 +1154,7 @@ class StatementsTests(TestCase):
         only_actor = models.agent.objects.filter(mbox="only-s@s.com")
         statements = models.statement.objects.all()
 
-        self.assertEqual(len(statements), 10)
+        self.assertEqual(len(statements), 11)
         self.assertEqual(voided_st.voided, False)
         self.assertEqual(len(voided_verb), 1)
         self.assertEqual(len(only_actor), 0)
@@ -1156,7 +1188,9 @@ class StatementsTests(TestCase):
         contexts = models.context.objects.filter(registration=sub_context_id)
         con_exts = models.context_extensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context_activity__contains="wrong")
+        statements = models.statement.objects.all()
 
+        self.assertEqual(len(statements), 11)
         self.assertEqual(len(s_agent), 0)
         self.assertEqual(len(ss_agent), 0)
         self.assertEqual(len(john_agent), 1)
