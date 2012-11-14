@@ -1,10 +1,10 @@
 from django.test import TestCase
 from lrs import models
-from lrs.exceptions import ParamError, Forbidden, ParamConflict
+from lrs.exceptions import ParamError, Forbidden, ParamConflict, IDNotFoundError
 import json
 from datetime import datetime
 import uuid
-
+import pdb
 from lrs.objects import Statement
 
 class StatementModelsTests(TestCase):
@@ -83,6 +83,31 @@ class StatementModelsTests(TestCase):
         stmt_ref = models.StatementRef.objects.get(ref_id=str(st_id))
         self.assertEqual(stmt_ref.object_type, 'StatementRef')
 
+
+    def test_stmt_ref_as_object(self):
+        
+
+        stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "tincan@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"},
+            "statement_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}))
+
+        stmt2 = Statement.Statement(json.dumps({"actor":{"name":"Example Admin", "mbox":"admin@example.com"},
+            'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
+            'id': "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}))
+
+        stmts = models.statement.objects.all()
+        stmt_refs = models.StatementRef.objects.filter(ref_id="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        self.assertEqual(len(stmt_refs), 1)
+        self.assertEqual(stmt_refs[0].ref_id, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        self.assertEqual(len(stmts), 2)
+
+    def test_stmt_ref_no_existing_stmt(self):
+
+
+        self.assertRaises(IDNotFoundError, Statement.Statement, json.dumps({"actor":{"name":"Example Admin", "mbox":"admin@example.com"},
+            'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
+            'id': "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}))
 
     def test_voided_wrong_type(self):
 
