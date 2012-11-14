@@ -288,9 +288,6 @@ def getStatementRequest(req_id):
     start_page = decoded_info[1]
     limit = decoded_info[3]
 
-    # Set 'more_start' to slice query from where you left off -- TODO: is this needed?
-    query_dict['more_start'] = start_page * limit
-
     #Build list from query_dict
     stmt_list = complexGet(query_dict)
 

@@ -48,13 +48,14 @@ def statements_get(req_dict):
         # Try to retrieve stmt, if DNE then return empty else return stmt info
         st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
         stmt_data = st.statement.object_return()
-        return HttpResponse(stream_response_generator_dictionary(stmt_data), mimetype="application/json", status=200)
+        return HttpResponse(stream_response_generator(stmt_data), mimetype="application/json", status=200)
+
     # If statementId is not in req_dict then it is a complex GET
     else:
         statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
-    return HttpResponse(stream_response_generator_dictionary(statementResult), mimetype="application/json", status=200)
+    return HttpResponse(stream_response_generator(statementResult), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
@@ -118,7 +119,7 @@ def activity_profile_delete(req_dict):
     #Instantiate activity profile
     ap = ActivityProfile.ActivityProfile()
 
-    #Delete profile and return success
+    # Delete profile and return success
     ap.delete_profile(req_dict)
     return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
 
@@ -131,12 +132,11 @@ def activities_get(req_dict):
     full_act_list = []
     for act in act_list:
         full_act_list.append(act.object_return())
-    # return HttpResponse(stream_response_generator_list(full_act_list), mimetype="application/json", status=200)
     return HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
 
 
 #Generate JSON
-def stream_response_generator_dictionary(data):
+def stream_response_generator(data):
     first = True
     yield "{"
     for k,v in data.items():
@@ -146,7 +146,7 @@ def stream_response_generator_dictionary(data):
             first = False
         #Catch nested dictionaries
         if type(v) is dict:
-            stream_response_generator_dictionary(v)
+            stream_response_generator(v)
         #Catch lists as dictionary values
         if type(v) is list:
             lfirst = True
@@ -160,7 +160,7 @@ def stream_response_generator_dictionary(data):
                     lfirst = False
                 #Catch dictionaries as items in a list
                 if type(item) is dict:
-                    stream_response_generator_dictionary(item)
+                    stream_response_generator(item)
                 yield json.dumps(item)
             yield "]"
         else:
@@ -169,49 +169,49 @@ def stream_response_generator_dictionary(data):
             yield json.dumps(v)
     yield "}"
 
-    
-#Generate JSON
-def stream_response_generator_list(data):
-    list_first = True
-    yield "["
-    for i in data:
-        if not list_first:
-            yield ", "
-        else:
-            list_first = True    
-        first = True
-        yield "{"
-        # pdb.set_trace()
-        for k,v in i.items():
-            if not first:
-                yield ", "
-            else:
-                first = False
-            #Catch next dictionaries
-            if type(v) is dict:
-                stream_response_generator_list(v)
-            #Catch lists as dictionary values
-            if type(v) is list:
-                lfirst = True
-                yield json.dumps(k)
-                yield ": "
-                yield "["
-                for item in v:
-                    if not lfirst:
-                        yield ", "
-                    else:
-                        lfirst = False
-                    #Catch dictionaries as items in a list
-                    if type(item) is dict:
-                        stream_response_generator_list(item)
-                    yield json.dumps(item)
-                yield "]"
-            else:
-                yield json.dumps(k)
-                yield ": "
-                yield json.dumps(v)
-        yield "}"
-    yield "]"
+# Not needed for now 
+# # Generate JSON
+# def stream_response_generator_list(data):
+#     list_first = True
+#     yield "["
+#     for i in data:
+#         if not list_first:
+#             yield ", "
+#         else:
+#             list_first = True    
+#         first = True
+#         yield "{"
+#         # pdb.set_trace()
+#         for k,v in i.items():
+#             if not first:
+#                 yield ", "
+#             else:
+#                 first = False
+#             #Catch next dictionaries
+#             if type(v) is dict:
+#                 stream_response_generator_list(v)
+#             #Catch lists as dictionary values
+#             if type(v) is list:
+#                 lfirst = True
+#                 yield json.dumps(k)
+#                 yield ": "
+#                 yield "["
+#                 for item in v:
+#                     if not lfirst:
+#                         yield ", "
+#                     else:
+#                         lfirst = False
+#                     #Catch dictionaries as items in a list
+#                     if type(item) is dict:
+#                         stream_response_generator_list(item)
+#                     yield json.dumps(item)
+#                 yield "]"
+#             else:
+#                 yield json.dumps(k)
+#                 yield ": "
+#                 yield json.dumps(v)
+#         yield "}"
+#     yield "]"
 
 def agent_profile_put(req_dict):
     # test ETag for concurrency
