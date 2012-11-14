@@ -49,7 +49,6 @@ def retrieve_context(objectData):
 
 def parse_incoming_object(objectData, args):
     # If object is not dict, try to load as one
-    # pdb.set_trace()
     obj = None
     if not type(objectData) is dict:
         try:
@@ -131,8 +130,6 @@ def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
     return models.statement.objects.filter(**args).order_by(stored_param)
 
 def complexGet(req_dict):
-    # pdb.set_trace()
-
     args = {}
     language = None
     # Set language if one
@@ -168,7 +165,6 @@ def complexGet(req_dict):
             args['stored__lte'] = date_object   
     
     # If searching by activity or actor
-    # pdb.set_trace()
     if 'object' in the_dict:
         objectData = the_dict['object']
         obj = parse_incoming_object(objectData, args)
@@ -176,7 +172,6 @@ def complexGet(req_dict):
             args['stmt_object'] = obj
 
     # If searching by verb
-    # pdb.set_trace()
     if 'verb' in the_dict:
         verb_id = the_dict['verb']
         verb = models.Verb.objects.filter(verb_id=verb_id)
@@ -248,7 +243,6 @@ def createCacheKey(stmt_list):
 
 def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
     # First time someone queries POST/GET
-    # pdb.set_trace()
     result = {}
     stmt_pager = Paginator(stmt_list, limit)
  
@@ -279,8 +273,7 @@ def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
 
 def getStatementRequest(req_id):  
     # Retrieve encoded info for statements
-    print 'incoming req_id: ' + str(req_id)
-    pdb.set_trace()
+
     encoded_info = cache.get(req_id)
 
     # Could have expired or never existed
@@ -295,7 +288,7 @@ def getStatementRequest(req_id):
     start_page = decoded_info[1]
     limit = decoded_info[3]
 
-    # Set 'more_start' to slice query from where you left off 
+    # Set 'more_start' to slice query from where you left off -- TODO: is this needed?
     query_dict['more_start'] = start_page * limit
 
     #Build list from query_dict
@@ -306,7 +299,6 @@ def getStatementRequest(req_id):
     return stmt_result
 
 def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_more_id=None):
-    # pdb.set_trace()
     result = {}
     limit = None
     # Get length of stmt list
@@ -351,7 +343,6 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
             # Encode info
             encoded_list = pickle.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
-            print 'cache key set: ' + str(cache_key)
             return result
     # List will only be larger first time - getStatementRequest should truncate rest of results
     # of more URLs.
@@ -369,7 +360,6 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
                 limit = int(bdy['limit'])
             except:
                 limit = None
-        # pdb.set_trace()
         if not limit or limit > settings.SERVER_STMT_LIMIT:
             limit = settings.SERVER_STMT_LIMIT
 

@@ -536,15 +536,15 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
     def test_two_pages_full_third_not_full_more_stmts_url(self):
-        # Make initial complex get so 'more' will be required
-        pdb.set_trace()
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95", HTTP_AUTHORIZATION=self.auth)
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
         resp_json = json.loads(rsp)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
-        print 'first more ID just created:' + str(resp_id)
-        self.assertEqual(sinceGetResponse.status_code, 200)
+
+        self.assertEqual(len(resp_json['statements']), 10)
+
         self.assertIn(self.guid24, rsp)
         self.assertIn(self.guid23, rsp)
         self.assertIn(self.guid22, rsp)
@@ -569,18 +569,16 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid4, rsp)
         self.assertNotIn(self.guid3, rsp)
         self.assertNotIn(self.guid2, rsp)
-        self.assertNotIn(self.guid1, rsp)        
+        self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        pdb.set_trace()
-        # Simulate user clicking returned 'more' URL
         moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
+        self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
-        more_json = json.loads(rsp)
+        more_json = json.loads(more_rsp)
         more_resp_url = more_json['more']
         more_resp_id = more_resp_url[-32:]
-        print "second more ID just created: " + str(more_resp_id)
-        self.assertEqual(moreURLGet.status_code, 200)
+
         self.assertIn(self.guid14, more_rsp)
         self.assertIn(self.guid13, more_rsp)
         self.assertIn(self.guid12, more_rsp)
@@ -605,40 +603,39 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid4, more_rsp)
         self.assertNotIn(self.guid3, more_rsp)
         self.assertNotIn(self.guid2, more_rsp)
-        self.assertNotIn(self.guid1, more_rsp)        
+        self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        pdb.set_trace()
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
-        self.assertEqual(more2URLGet.status_code, 200)
-        more2_rsp = more2URLGet.content
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
+        self.assertEqual(anotherURLGet.status_code, 200)
+        another_rsp = anotherURLGet.content
 
-        self.assertIn(self.guid4, more2_rsp)
-        self.assertIn(self.guid3, more2_rsp)
-        self.assertIn(self.guid2, more2_rsp)
-        self.assertIn(self.guid1, more2_rsp)
+        self.assertIn(self.guid4, another_rsp)
+        self.assertIn(self.guid3, another_rsp)
+        self.assertIn(self.guid2, another_rsp)
+        self.assertIn(self.guid1, another_rsp)
 
-        self.assertNotIn(self.guid25, more2_rsp)
-        self.assertNotIn(self.guid24, more2_rsp)
-        self.assertNotIn(self.guid23, more2_rsp)
-        self.assertNotIn(self.guid22, more2_rsp)
-        self.assertNotIn(self.guid21, more2_rsp)
-        self.assertNotIn(self.guid20, more2_rsp)
-        self.assertNotIn(self.guid19, more2_rsp)
-        self.assertNotIn(self.guid18, more2_rsp)
-        self.assertNotIn(self.guid17, more2_rsp)
-        self.assertNotIn(self.guid16, more2_rsp)
-        self.assertNotIn(self.guid15, more2_rsp)
-        self.assertNotIn(self.guid14, more2_rsp)
-        self.assertNotIn(self.guid13, more2_rsp)
-        self.assertNotIn(self.guid12, more2_rsp)
-        self.assertNotIn(self.guid11, more2_rsp)        
-        self.assertNotIn(self.guid10, more2_rsp)
-        self.assertNotIn(self.guid9, more2_rsp)
-        self.assertNotIn(self.guid8, more2_rsp)
-        self.assertNotIn(self.guid7, more2_rsp)
-        self.assertNotIn(self.guid6, more2_rsp)
-        self.assertNotIn(self.guid5, more2_rsp)        
+        self.assertNotIn(self.guid24, another_rsp)
+        self.assertNotIn(self.guid23, another_rsp)
+        self.assertNotIn(self.guid22, another_rsp)
+        self.assertNotIn(self.guid21, another_rsp)
+        self.assertNotIn(self.guid20, another_rsp)
+        self.assertNotIn(self.guid19, another_rsp)
+        self.assertNotIn(self.guid18, another_rsp)
+        self.assertNotIn(self.guid17, another_rsp)
+        self.assertNotIn(self.guid16, another_rsp)
+        self.assertNotIn(self.guid15, another_rsp)
+        self.assertNotIn(self.guid14, another_rsp)
+        self.assertNotIn(self.guid13, another_rsp)
+        self.assertNotIn(self.guid12, another_rsp)
+        self.assertNotIn(self.guid11, another_rsp)
+        self.assertNotIn(self.guid10, another_rsp)
+        self.assertNotIn(self.guid9, another_rsp)                
+        self.assertNotIn(self.guid8, another_rsp)
+        self.assertNotIn(self.guid7, another_rsp)
+        self.assertNotIn(self.guid6, another_rsp)
+        self.assertNotIn(self.guid5, another_rsp)
+        self.assertNotIn(self.guid25, another_rsp)    
     
     def test_limit_less_than_server_limit(self):
         sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
