@@ -101,6 +101,11 @@ def agent_profile(request):
 def agents(request):
     return handle_request(request)
 
+def oauth_authorize(request, request_token, callback_url, params):
+    rsp = """
+    <html><head></head><body><h1>Oauth Authorize</h1><h2>%s</h2></body></html>""" % params
+    return HttpResponse(rsp)    
+
 def handle_request(request):
     try:
         r_dict = req_parse.parse(request)

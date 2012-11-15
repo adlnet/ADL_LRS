@@ -15,4 +15,5 @@ urlpatterns = patterns('lrs.views',
     url(r'^tcexample4/$', 'tcexample4'),
     url(r'^register/$', 'register'),
     url(r'^regsuccess/(?P<user_id>\d+)$', 'reg_success'),
+    url(r'^OAuth/', include('oauth_provider.urls'))
 )

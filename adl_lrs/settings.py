@@ -123,9 +123,9 @@ TEMPLATE_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
-# SERIALIZATION_MODULES = {
-#     'json': 'wadofstuff.django.serializers.json'
-# }
+OAUTH_AUTHORIZE_VIEW = 'lrs.views.oauth_authorize'
+OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
+OAUTH_REALM_KEY_NAME = 'http://localhost:8000/TCAPI'
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -136,6 +136,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'lrs',
     'gunicorn',
+    'oauth_provider',
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
