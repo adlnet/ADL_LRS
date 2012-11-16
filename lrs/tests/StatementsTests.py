@@ -217,6 +217,7 @@ class StatementsTests(TestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
+        # pdb.set_trace()
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_post"}})
