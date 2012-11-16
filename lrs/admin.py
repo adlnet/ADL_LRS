@@ -2,7 +2,7 @@ from django.contrib import admin
 from lrs import models
 
 class Result_ExtensionsAdmin(admin.StackedInline):
-    model = models.result_extensions
+    model = models.extensions
 
 class ResultAdmin(admin.ModelAdmin):
     inlines = [
@@ -14,7 +14,7 @@ class AgentProfileAdmin(admin.ModelAdmin):
     readonly_fields = ('profileId','updated','etag')
 
 admin.site.register(models.result, ResultAdmin)
-admin.site.register(models.result_extensions)
+admin.site.register(models.extensions)
 admin.site.register(models.score)
 admin.site.register(models.activity_state)
 admin.site.register(models.activity_profile)

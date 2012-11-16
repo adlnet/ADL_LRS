@@ -328,11 +328,13 @@ class Statement():
         return self._saveContextToDB(context, contextExts)
 
 
-    def _save_lang_map(self, lang_map):
+    def _save_lang_map(self, lang_map, verb):
+        if not verb.id:
+            verb.save()
         k = lang_map[0]
         v = lang_map[1]
 
-        language_map = models.LanguageMap(key = k, value = v)
+        language_map = models.LanguageMap(key = k, value = v, content_object=verb)
         
         language_map.save()        
         return language_map
@@ -359,8 +361,8 @@ class Statement():
                 if isinstance(verb_lang_map, tuple):
                     # If incoming key doesn't already exist in verb's lang maps - add it
                     if not verb_lang_map[0] in existing_lang_map_keys: 
-                        lang_map = self._save_lang_map(verb_lang_map)    
-                        verb_object.display.add(lang_map)
+                        lang_map = self._save_lang_map(verb_lang_map, verb_object)    
+                        #verb_object.display.add(lang_map)
                     else:
                         existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
                         models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])

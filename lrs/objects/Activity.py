@@ -163,7 +163,7 @@ class Activity():
     #Save activity definition to DB
     def _save_activity_definition_to_db(self,act_def_type, intType):
         act_def = models.activity_definition(activity_definition_type=act_def_type,
-                  interactionType=intType)
+                  interactionType=intType, activity=self.activity)
         act_def.save()
         return act_def    
 
@@ -346,7 +346,7 @@ class Activity():
         k = lang_map[0]
         v = lang_map[1]
 
-        language_map = models.LanguageMap(key = k, value = v)
+        language_map = models.LanguageMap(key = k, value = v, content_object=self.activity)
         
         language_map.save()        
         return language_map
@@ -418,6 +418,8 @@ class Activity():
                     raise exceptions.ParamError("Activity definition missing scale for likert")
                 interactionFlag = 'scale'
 
+        self.activity = self._save_actvity_to_db(act_id, objType)
+
         self.activity_definition = self._save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', None))
 
         # Save activity definition name and description
@@ -437,7 +439,6 @@ class Activity():
             else:
                 raise exceptions.ParamError("Activity with id %s has a description that is not a language map" % act_id)
 
-        self.activity = self._save_actvity_to_db(act_id, objType, self.activity_definition)
 
         #If there is a correctResponsesPattern then save the pattern
         if 'correctResponsesPattern' in act_def.keys():
