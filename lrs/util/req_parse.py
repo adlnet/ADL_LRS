@@ -7,7 +7,7 @@ import pdb
 import pprint
 
 def parse(request):
-
+    # pdb.set_trace()
     r_dict = {}
     r_dict['user'] = request.user
 

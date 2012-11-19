@@ -994,39 +994,40 @@ class statement(models.Model):
                 self.verb.delete()
 
         # Get all possible relationships for actor
-        authority_agent = agent.objects.get(id=self.authority.id)
-        auth_in_use = False
-        # If agents are the same and you already deleted the actor since it was in use, no use checking this
-        if authority_agent != actor_agent:
-            for link in agent_links:
-                if link != 'group':
-                    objects = getattr(authority_agent, link).all()
+        if self.authority:
+            authority_agent = agent.objects.get(id=self.authority.id)
+            auth_in_use = False
+            # If agents are the same and you already deleted the actor since it was in use, no use checking this
+            if authority_agent != actor_agent:
+                for link in agent_links:
+                    if link != 'group':
+                        objects = getattr(authority_agent, link).all()
 
-                    if link == "authority_statement":
-                        # Will already have one (self)
-                        if len(objects) > 1:
-                            auth_in_use = True
-                            break
-                    elif link == "object_of_statement":
-                        # If for some reason auth is same as stmt_object, there will be at least one
-                        if authority_agent == stmt_object :
+                        if link == "authority_statement":
+                            # Will already have one (self)
                             if len(objects) > 1:
                                 auth_in_use = True
                                 break
-                        # If they are not the same and theres at least one object, it's in use
+                        elif link == "object_of_statement":
+                            # If for some reason auth is same as stmt_object, there will be at least one
+                            if authority_agent == stmt_object :
+                                if len(objects) > 1:
+                                    auth_in_use = True
+                                    break
+                            # If they are not the same and theres at least one object, it's in use
+                            else:
+                                if len(objects) > 0:
+                                    auth_in_use = True
+                                    break
+                        # Don't have to check actor b/c you know it's different, and if it's in anything else outside
+                        # of stmt then it's in use
                         else:
                             if len(objects) > 0:
                                 auth_in_use = True
-                                break
-                    # Don't have to check actor b/c you know it's different, and if it's in anything else outside
-                    # of stmt then it's in use
-                    else:
-                        if len(objects) > 0:
-                            auth_in_use = True
-                            break                        
+                                break                        
 
-        if not auth_in_use:
-            self.authority.delete()
+            if not auth_in_use:
+                self.authority.delete()
 
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             object_in_use = False

@@ -29,7 +29,6 @@ class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None, get=False):
-        # pdb.set_trace()
         if get and statement_id is not None:
             self.statement_id = statement_id
             self.statement = None
@@ -38,6 +37,7 @@ class Statement():
             except models.statement.DoesNotExist:
                 raise exceptions.IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
         else:
+            # pdb.set_trace()
             obj = self._parse(initial)
             self._populate(obj, auth)
 
@@ -447,6 +447,7 @@ class Statement():
         if 'authority' in stmt_data:
             args['authority'] = Agent(initial=stmt_data['authority'], create=True).agent
         else:
+            # pdb.set_trace()
             if auth:
                 authArgs = {}
                 authArgs['name'] = auth.username
@@ -465,10 +466,8 @@ class Statement():
             #Create uuid for ID
             args['statement_id'] = uuid.uuid4()
 
-        # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args, sub)
-        # self._build_verb_object(raw_verb)
 
 class SubStatement(Statement):
     @transaction.commit_on_success

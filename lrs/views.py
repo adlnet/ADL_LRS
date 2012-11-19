@@ -70,7 +70,7 @@ def statements_more(request, more_id):
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+# @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements(request):
     return handle_request(request)   
 
@@ -102,6 +102,7 @@ def agents(request):
     return handle_request(request)
 
 def handle_request(request):
+    # pdb.set_trace()
     try:
         r_dict = req_parse.parse(request)
         path = request.path

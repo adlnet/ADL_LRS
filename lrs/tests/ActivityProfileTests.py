@@ -192,7 +192,7 @@ class ActivityProfileTests(TestCase):
         params = {'activityId': self.test_activityId1, 'profileId': self.testprofileId1}
 
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
-
+    # Comment out this test if not using auth
     def test_get_activity_profileId_no_auth(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 401)

@@ -102,6 +102,7 @@ class ActivityStateTests(TestCase):
         del_r = self.client.delete(self.url, testparamsregid, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(del_r.status_code, 204)
 
+    # Comment out this test if not using auth
     def test_put_without_auth(self):
         testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
