@@ -1,49 +1,42 @@
 <html>
-<head>
-	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-<script type="text/javascript">
-     $(document).ready(function(){
-
-     	function uuid() {
-			var result='';
-			for(var i=0; i<32; i++){
-				result += Math.floor(Math.random()*16).toString(16).toUpperCase();
-			}
-			return result
-		}
-     	
-       $('#tcapi_form').submit(function(event){
-       		event.preventDefault();
-       		var verb = $("#verb").val();
-       		var requestType = $('form input[type=radio]:checked').val();
-       		var statementId = uuid();
-       		var data = JSON.stringify({verb: verb, statementId: statementId});
-
-       		$.ajax({
-          			url: '/TCAPI/statements/',
-          			type: requestType,
-          			data: data,
-          			contentType: 'application/json; charset=UTF-8',
-          			success: function(data) {
- 	     				alert(data);
-          			},
-          			error: function(xhr, result, error){
-          				alert(error);
-          			}
-				});
-       			
-     	});
-     });
-   </script>
-</head>
-<body>
-	<form id="tcapi_form">
-		verb: <input id="verb" type="text" name="verb"/><br/>
-		post<input type="radio" name="group1" value="post"><br/>
-		get<input type="radio" name="group1" value="get"><br/>
-		put<input type="radio" name="group1" value="put"><br/>
-		delete<input type="radio" name="group1" value="delete"><br/>
-    	<input id="submitbutton" type="submit" value="Submit"/>
-	</form>
+  <head>
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
+  </head>
+  <body>
+    <div id="container">
+        <h1>Welcome to the ADL LRS</h1>
+        <br />
+        <div id="content">
+          <ul>
+            <li>Register a user via HTTP
+              <ul>
+                <li>Visit our <a href="{% url lrs.views.register %}">register</a> page</li>
+                <li>Create a username and supply an email address with it</li>
+                <li>Click register!</li>
+              </ul>
+            </li>
+            <br />
+            <li>Running the LRS tests
+              <ul>
+                <li>Once the LRS is running, open another terminal</li>
+                <li>Activate your virtual env: <code>source env/bin/activate
+                </code></li>
+                <li>Then run the test: <code>python manage.py test lrs</code></li>
+                <li>To run individual test modules, separate by a '.' Ex: <code>
+                  python manage.py test lrs.StatementsTests.test_get
+                </code></li>
+              </ul>  
+            </li>
+            <br />
+            <li>Github Examples
+              <ul>
+                <li>Visit our GitHub prototype <a href="https://github.com/adlnet/experienceapi_client_examples">page</a>
+                 to run some of the updated .95 prototypes against the LRS</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+    </div>
+  </body>
 </html>    
 
