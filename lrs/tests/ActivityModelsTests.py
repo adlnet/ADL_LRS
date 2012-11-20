@@ -1033,7 +1033,7 @@ class ActivityModelsTests(TestCase):
         
         # Should only have 2 total
         self.assertEqual(len(models.LanguageMap.objects.all()), 2)
-        
+
     def test_multiple_activities_update_both_and_add(self):
         act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
             'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 

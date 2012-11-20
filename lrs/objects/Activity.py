@@ -10,7 +10,6 @@ from django.db import transaction
 import pdb
 
 class Activity():
-
     # Activity definition required fields
     ADRFs = ['name', 'description', 'type']
 
@@ -58,7 +57,7 @@ class Activity():
         #Retrieve XML doc since function is only called when not a link. ID should either not resolve or 
         #only conform to the TC schema - if it fails that means the URL didn't resolve at all
         try:    
-            act_resp = urllib2.urlopen(act_id)
+            act_resp = urllib2.urlopen(act_id, timeout=10)
         except Exception, e:
             resolves = False
         else:
