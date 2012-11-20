@@ -1,0 +1,35 @@
+code
+{
+  background-color:#4B4B57;
+  color:#D1D1E0;
+}
+h1
+{
+  background-color: #D1D1E0;
+  color:#2C6E6E;
+  text-align:center;
+  border-style:solid;
+  -moz-border-radius-bottomright:25px;
+  border-bottom-right-radius:25px;
+  -moz-border-radius-bottomleft:25px;
+  border-bottom-left-radius:25px;
+  -moz-border-radius-topright:25px;
+  border-top-right-radius:25px;
+  -moz-border-radius-topleft:25px;
+  border-top-left-radius:25px;
+
+}
+#content
+{
+  background-color: #D1D1E0;
+  color:#2C6E6E;
+  border-style:solid;
+  -moz-border-radius-bottomright:25px;
+  border-bottom-right-radius:25px;
+  -moz-border-radius-bottomleft:25px;
+  border-bottom-left-radius:25px;
+  -moz-border-radius-topright:25px;
+  border-top-right-radius:25px;
+  -moz-border-radius-topleft:25px;
+  border-top-left-radius:25px;
+}
