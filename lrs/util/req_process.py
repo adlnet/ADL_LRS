@@ -13,6 +13,7 @@ import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
+    # pdb.set_trace()
     auth = None
     if 'user' in req_dict:
         if req_dict['user'].is_authenticated() == True:

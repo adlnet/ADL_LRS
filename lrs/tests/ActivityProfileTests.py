@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from lrs import models, views
 import json
@@ -27,7 +28,8 @@ class ActivityProfileTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email': self.email,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
+        if settings.HTTP_AUTH:
+            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
         self.act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': self.test_activityId1}))
         self.act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': self.test_activityId2}))
@@ -192,10 +194,12 @@ class ActivityProfileTests(TestCase):
         params = {'activityId': self.test_activityId1, 'profileId': self.testprofileId1}
 
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
-    # Comment out this test if not using auth
+    
     def test_get_activity_profileId_no_auth(self):
-        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="0.95")
-        self.assertEqual(response.status_code, 401)
+        # Will return 200 if HTTP_AUTH is not enabled
+        if settings.HTTP_AUTH:
+            response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="0.95")
+            self.assertEqual(response.status_code, 401)
 
     def test_get_activity_profileId_activity_dne(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':'http://actID','profileId':self.testprofileId1}, X_Experience_API_Version="0.95", Authorization=self.auth)

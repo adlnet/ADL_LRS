@@ -12,7 +12,8 @@ def http_auth(func):
     """
     @wraps(func)
     def inner(request, *args, **kwargs):
-        _http_auth_helper(request)
+        if settings.HTTP_AUTH:
+            _http_auth_helper(request)
         return func(request, *args, **kwargs)
     return inner
 
