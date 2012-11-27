@@ -13,18 +13,24 @@ import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
+    # pdb.set_trace()
+    auth = None
+    if 'user' in req_dict:
+        if req_dict['user'].is_authenticated() == True:
+            auth = req_dict['user']
+
     if isinstance(req_dict['body'], str):
         try:
             req_dict['body'] = ast.literal_eval(req_dict['body'])
         except:
             req_dict['body'] = json.loads(req_dict['body'])    
         if not type(req_dict['body']) is list:
-            stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
+            stmt = Statement.Statement(req_dict['body'], auth=auth).statement
             stmtResponses.append(str(stmt.statement_id))
         else:
             try:
                 for st in req_dict['body']:
-                    stmt = Statement.Statement(st, auth=req_dict['user']).statement
+                    stmt = Statement.Statement(st, auth=auth).statement
                     stmtResponses.append(str(stmt.statement_id))
             except Exception, e:
                 for stmt_id in stmtResponses:
@@ -37,19 +43,31 @@ def statements_post(req_dict):
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
+    auth = None
+    if 'user' in req_dict:
+        if req_dict['user'].is_authenticated() == True:
+            auth = req_dict['user']
+
     req_dict['body']['statement_id'] = req_dict['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=req_dict['user']).statement
+    stmt = Statement.Statement(req_dict['body'], auth=auth).statement
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
+    auth = None
+    if 'user' in req_dict:
+        if req_dict['user'].is_authenticated() == True:
+            auth = req_dict['user']
+
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']
         # Try to retrieve stmt, if DNE then return empty else return stmt info
+        st = Statement.Statement(statement_id=statementId, get=True, auth=auth)
+        stmt_data = st.get_full_statement_json()
+        return HttpResponse(json.dumps(stmt_data), mimetype="application/json", status=200)    
         st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
         stmt_data = st.statement.object_return()
         return HttpResponse(stream_response_generator(stmt_data), mimetype="application/json", status=200)
-
     # If statementId is not in req_dict then it is a complex GET
     else:
         statementResult = {}
@@ -77,6 +95,7 @@ def activity_state_get(req_dict):
     return response
 
 def activity_state_delete(req_dict):
+    # pdb.set_trace()
     actstate = ActivityState.ActivityState(req_dict)
     actstate.delete(req_dict['user'])
     return HttpResponse('', status=204)

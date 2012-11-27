@@ -7,7 +7,7 @@ import pdb
 import pprint
 
 def parse(request):
-
+    # pdb.set_trace()
     r_dict = {}
     r_dict['user'] = request.user
 
@@ -51,6 +51,7 @@ def parse_body(r, request):
     return r
 
 def get_headers(headers, r):
+    # pdb.set_trace()
     if 'HTTP_UPDATED' in headers:
         r['updated'] = headers['HTTP_UPDATED']
     else:

@@ -5,10 +5,10 @@
                         <name lang="en-CH">Example Name</name>
                         <description lang="en-US">Example Desc</description>
                         <interactionType>choice</interactionType>
-						<correctResponsesPatterns>
-							<correctResponsePattern>golf</correctResponsePattern>
-							<correctResponsePattern>tetris</correctResponsePattern>
-						</correctResponsesPatterns>
-				</activity>
+				<correctResponsesPatterns>
+					<correctResponsePattern>golf</correctResponsePattern>
+					<correctResponsePattern>tetris</correctResponsePattern>
+				</correctResponsesPatterns>
+		</activity>
         </activities>
 </tincan>
