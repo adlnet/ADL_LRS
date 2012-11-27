@@ -1,5 +1,6 @@
 from django.db import models
 from django.db import transaction
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
@@ -9,10 +10,23 @@ from django.utils.timezone import utc
 from lrs.exceptions import IDNotFoundError, ParamError
 import ast
 import json
+import uuid
 import pdb
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
+
+gen_pwd = User.objects.make_random_password
+
+def gen_uuid():
+    return uuid.uuid4().hex
+
+class client(models.Model):
+    app_id = models.CharField(max_length=64, unique=True, default=gen_uuid)
+    shared_secret = models.CharField(max_length=64, default=gen_pwd)
+    name = models.CharField(max_length=200, blank=True, null=True)
+    description = models.TextField()
+    active = models.BooleanField(default=True)
 
 def convertToUTC(timestr):
     # Strip off TZ info

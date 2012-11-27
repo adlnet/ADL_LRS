@@ -1,0 +1,26 @@
+<html>
+    <body>
+        <head>
+            <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
+        </head>
+        <div id="container">
+            <h1>ADL LRS Client Registration</h1>
+            <div class="content">
+                <p>
+                	Registration is used to enable OAuth Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public.
+                </p>
+                {% if error_message %}
+                <p class="error">
+                	<strong>{{ error_message }}</strong>
+                </p>
+                {% endif %}
+                <form action="{% url lrs.views.reg_client %}" method="post">
+                    <table>
+                        {% include 'table_form.html' %}
+                    </table>
+                    <input type="submit" value="Register" />
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

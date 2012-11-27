@@ -5,15 +5,37 @@
         </head>
         <div id="container">
             <h1>ADL LRS Registration</h1>
-            <div id="content">
-                <p>Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public.</p>
-                {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+            <div class="content">
+                <div>
+                <p>
+                    Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public.
+                </p>
+                {% if error_message %}
+                <p class="error">
+                    <strong>{{ error_message }}</strong>
+                </p>
+                {% endif %}
+                </div>
+                <div>
+                <h3>Register or Login</h3>
                 <form action="{% url lrs.views.register %}" method="post">
                     <table>
-                        {{ form.as_table }}
+                        {% include 'table_form.html' %}
                     </table>
-                    <input type="submit" value="Register" />
+                    <input type="submit" value="Register/Login" />
                 </form>
+                <!-- {% if not request.user.is_authenticated %}     -->
+<!--                     <br/>
+                    <form action="{% url lrs.views.register %}" method="post">
+                        <table>
+                            {% include 'table_form.html' with form=login_form %}
+                        </table>
+                        <input type="submit" name="login" value="Login" />
+                    </form>
+                {% else %}
+                <p>Logout</p>
+                {% endif %}   
+ -->            </div>
             </div>
         </div>
     </body>

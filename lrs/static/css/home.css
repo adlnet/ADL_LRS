@@ -1,3 +1,8 @@
+*
+{
+  font-family: Arial,Helvetica,sans-serif;
+  
+}
 code
 {
   background-color:#4B4B57;
@@ -19,7 +24,7 @@ h1
   border-top-left-radius:25px;
 
 }
-#content
+.content
 {
   background-color: #D1D1E0;
   color:#2C6E6E;
@@ -32,4 +37,28 @@ h1
   border-top-right-radius:25px;
   -moz-border-radius-topleft:25px;
   border-top-left-radius:25px;
+}
+.error
+{
+  color:#FF0000;
+}
+.register
+{
+  float: left;
+
+}
+.login
+{
+  float:right;
+}
+table
+{
+ color:#2C6E6E; 
+}
+div
+{
+  padding-left: 10px;
+  padding-top: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
 }

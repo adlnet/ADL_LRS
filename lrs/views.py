@@ -1,15 +1,17 @@
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login
 from django.template import RequestContext
 from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
+from django.contrib.auth.decorators import login_required
 from django.utils.decorators import decorator_from_middleware
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
 from lrs import forms, models, exceptions
 import logging
 import json
+import urllib
 import pdb
 
 
@@ -30,6 +32,50 @@ def tcexample3(request):
 def tcexample4(request):
     return render_to_response('tcexample4.xml')
 
+# def register(request):
+#     if request.method == 'GET':
+#         register_form = forms.RegisterForm()
+#         login_form = forms.LoginForm()
+#         return render_to_response('register.html', {"register_form": register_form, "login_form":login_form}, context_instance=RequestContext(request))
+#     elif request.method == 'POST':
+#         if 'register' in request.POST:
+#             register_form = forms.RegisterForm(request.POST)
+#             login_form = forms.LoginForm()
+#             if register_form.is_valid():
+#                 name = register_form.cleaned_data['username']
+#                 pword = register_form.cleaned_data['password']
+#                 email = register_form.cleaned_data['email']
+#                 try:
+#                     user = User.objects.get(username__exact=name)
+#                     user = authenticate(username=name, password=pword)
+#                     if user is None:
+#                         return render_to_response('register.html', {"register_form": register_form, "login_form":login_form, "error_message": "%s's password was incorrect." % name},
+#                             context_instance=RequestContext(request))
+#                 except User.DoesNotExist:
+#                     user = User.objects.create_user(name, email, pword)
+#                     return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
+#                 return render_to_response('register.html',{"register_form": register_form, "login_form":login_form, "error_message": "%s already exists." % name},
+#                         context_instance=RequestContext(request) )
+#             else:
+#                 return render_to_response('register.html', {"register_form": register_form, "login_form":login_form}, context_instance=RequestContext(request))
+#         if 'login' in request.POST:
+#             register_form = forms.RegisterForm()
+#             login_form = forms.LoginForm(request.POST)
+#             if login_form.is_valid():
+#                 name = login_form.cleaned_data['username']
+#                 pword = login_form.cleaned_data['password']
+#                 email = login_form.cleaned_data['email']
+#                 user = authenticate(username=name, password=pword)
+#                 if user is None:
+#                     return render_to_response('register.html', {"register_form": register_form, "login_form":login_form, "error_message": "%s's password was incorrect." % name},
+#                         context_instance=RequestContext(request))
+#                 # else:
+#                 #     login(request, user)
+#                 return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
+#             else:
+#                 return render_to_response('register.html', {"register_form": register_form, "login_form":login_form}, context_instance=RequestContext(request))            
+#     else:
+#         return Http404
 def register(request):
     if request.method == 'GET':
         form = forms.RegisterForm()
@@ -44,7 +90,7 @@ def register(request):
                 user = User.objects.get(username__exact=name)
                 user = authenticate(username=name, password=pword)
                 if user is None:
-                    return render_to_response('register.html', {"form": form, "error_message": "%s is already registered but the password was incorrect." % name},
+                    return render_to_response('register.html', {"form": form, "error_message": "%s's password was incorrect." % name},
                         context_instance=RequestContext(request))
             except User.DoesNotExist:
                 user = User.objects.create_user(name, email, pword)
@@ -54,10 +100,41 @@ def register(request):
     else:
         return Http404
 
+
+
+@require_http_methods(["GET","POST"])
+def reg_client(request):
+    if request.method == 'GET':
+        form = forms.RegClientForm()
+        return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
+    elif request.method == 'POST':
+        form = forms.RegClientForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data['name']
+            description = form.cleaned_data['description']
+            try:
+                client = models.client.objects.get(name__exact=name)
+            except models.client.DoesNotExist:
+                client = models.client(name=name, description=description)
+                client.save()
+            else:
+                return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
+            url = "%s?%s" % (reverse('lrs.views.reg_success', args=[client.pk]),urllib.urlencode({"type":"client"}))
+            return HttpResponseRedirect(url)
+        else:
+            return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))        
+    else:
+        return Http404
+
 def reg_success(request, user_id):
-    user = User.objects.get(id=user_id)
-    return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username},
-        context_instance=RequestContext(request))
+    if "type" in request.GET and request.GET['type'] == 'client':
+        client = models.client.objects.get(id=user_id)
+        d = {"name":client.name,"app_id":client.app_id, "secret":client.shared_secret,
+             "info_message": "Your Client Credentials"}
+    else:
+        user = User.objects.get(id=user_id)
+        d = {"info_message": "Thanks for registering %s" % user.username}
+    return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
@@ -101,6 +178,10 @@ def oauth_authorize(request, request_token, callback_url, params):
     rsp = """
     <html><head></head><body><h1>Oauth Authorize</h1><h2>%s</h2></body></html>""" % params
     return HttpResponse(rsp)    
+
+@login_required
+def user_profile(request):
+    return render_to_response('registration/profile.html')
 
 def handle_request(request):
     try:
