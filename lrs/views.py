@@ -2,27 +2,21 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib.auth import authenticate
+from django.template import RequestContext
 from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
+from django.utils.decorators import decorator_from_middleware
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
 from lrs import forms, models, exceptions
 import logging
 import json
 import pdb
-from django.utils.decorators import decorator_from_middleware
+
 
 logger = logging.getLogger(__name__)
 
 def home(request):
-    rsp = """
-    <html><head></head><body><form method="POST" action="/TCAPI/statements/">
-    verb: <input type="text" name="verb"/><br/>
-    sparse: <input type="radio" name="sparse" value="True"/><input type="radio" name="sparse" value="False"/><br/>
-    <input type="submit" value="Submit"/>
-    </form>
-    """
-    return HttpResponse(rsp)
-    #return render_to_response('home.html')
+    return render_to_response('home.html', context_instance=RequestContext(request))
 
 def tcexample(request):
     return render_to_response('tcexample.xml')
@@ -39,7 +33,7 @@ def tcexample4(request):
 def register(request):
     if request.method == 'GET':
         form = forms.RegisterForm()
-        return render_to_response('register.html', {"form": form})
+        return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
     elif request.method == 'POST':
         form = forms.RegisterForm(request.POST)
         if form.is_valid():
@@ -50,18 +44,20 @@ def register(request):
                 user = User.objects.get(username__exact=name)
                 user = authenticate(username=name, password=pword)
                 if user is None:
-                    return render_to_response('register.html', {"form": form, "error_message": "%s is already registered but the password was incorrect." % name})
+                    return render_to_response('register.html', {"form": form, "error_message": "%s is already registered but the password was incorrect." % name},
+                        context_instance=RequestContext(request))
             except User.DoesNotExist:
                 user = User.objects.create_user(name, email, pword)
             return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
         else:
-            return render_to_response('register.html', {"form": form})
+            return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
     else:
         return Http404
 
 def reg_success(request, user_id):
     user = User.objects.get(id=user_id)
-    return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username})
+    return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username},
+        context_instance=RequestContext(request))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
@@ -70,7 +66,7 @@ def statements_more(request, more_id):
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+# @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements(request):
     return handle_request(request)   
 

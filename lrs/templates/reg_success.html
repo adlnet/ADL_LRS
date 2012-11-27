@@ -1,2 +1,13 @@
-<h3>Thanks</h3>
-{% if info_message %}{{info_message|safe}}{% endif %}
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
+	</head>	
+	<body>
+		<div id="container">
+			<h1>Thanks</h1>
+		</div>
+		<div id="content">
+			{% if info_message %}{{info_message|safe}}{% endif %}
+		</div>
+	</body>
+</html>

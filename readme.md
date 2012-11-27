@@ -1,6 +1,6 @@
-# ADL LRS
+# ADL LRS 
 
-## Installation on Ubuntu machine
+## Installation on Ubuntu machine (Note: This is still in the development stage and NOT ready for production)
 
 If python is not installed, run
 
@@ -45,13 +45,13 @@ Run fabric file to install all local dependencies and create needed directories
 
     sudo fab deps_local
 
-Create LRS cache table
-
-    python manage.py createcachetable cache_statement_list
-
 Activate your virtual environment (while still in ADL_LRS)
 
     . env/bin/activate
+
+Create LRS cache table
+
+    python manage.py createcachetable cache_statement_list
 
 While still in the ADL_LRS directory, update the database
     

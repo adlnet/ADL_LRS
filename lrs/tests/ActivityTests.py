@@ -4,10 +4,12 @@ from lrs import views
 import json
 from lrs.objects import Activity
 import pdb
+import base64
 
 class ActivityTests(TestCase):
-    
+
     def test_get(self):
+        # pdb.set_trace()
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'foobar'}))
         response = self.client.get(reverse(views.activities), {'activityId':'foobar'}, X_Experience_API_Version="0.95")
         rsp = response.content
