@@ -158,3 +158,21 @@ class AgentModelsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn('the agent', mems)
         self.assertIn('the user', mems)
+
+
+    def test_agent_del(self):
+        ag = agent(name="the agent")
+        ag.save()
+        acc = agent_account(agent=ag, homePage="http://adlnet.gov/agent/1", name="agent 1 account")
+        acc.save()
+
+        self.assertEquals(ag.name, "the agent")
+        self.assertEquals(ag.agent_account.name, "agent 1 account")
+        self.assertEquals(ag.agent_account.homePage, "http://adlnet.gov/agent/1")
+        self.assertEquals(1, len(agent.objects.all()))
+        self.assertEquals(1, len(agent_account.objects.all()))
+
+        ag.delete()
+
+        self.assertEquals(0, len(agent.objects.all()))
+        self.assertEquals(0, len(agent_account.objects.all()))

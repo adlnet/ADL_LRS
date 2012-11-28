@@ -185,18 +185,22 @@ class Statement():
             rslt = models.result()
             rslt.save()
 
-            res_ext = models.result_extensions(key='resultString', value=result, result=rslt)
+            res_ext = models.extensions(key='resultString', value=result, content_object=rslt)
             res_ext.save()
             return rslt
 
         #Save the result with all of the args
+        sc = result.pop('score', None)
         rslt = models.result(**result)
         rslt.save()
+        if sc:
+            sc.result = rslt
+            sc.save()
 
         #If it has extensions, save them all
         if resultExts:
             for k, v in resultExts.items():
-                resExt = models.result_extensions(key=k, value=v, result=rslt)
+                resExt = models.extensions(key=k, value=v, content_object=rslt)
                 resExt.save()
 
         return rslt
@@ -222,12 +226,12 @@ class Statement():
             for con_act in con_act_data.items():
                 ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'])
                 ca.save()
-                cntx.contextActivities.add(ca)
+                cntx.contextactivity_set.add(ca)
             cntx.save()
 
         if contextExts:
             for k, v in contextExts.items():
-                conExt = models.context_extensions(key=k, value=v, context=cntx)
+                conExt = models.extensions(key=k, value=v, content_object=cntx)
                 conExt.save()
 
         return cntx        

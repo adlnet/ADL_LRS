@@ -32,7 +32,7 @@ def filename(instance, filename):
 
 
 class LanguageMap(models.Model):
-    key = models.CharField(max_length=200)
+    key = models.CharField(max_length=200, db_index=True)
     value = models.CharField(max_length=200)
     content_type = models.ForeignKey(ContentType)
     object_id = models.CharField(max_length=200)
@@ -46,7 +46,7 @@ class LanguageMap(models.Model):
 
 
 class Verb(models.Model):
-    verb_id = models.CharField(max_length=200)
+    verb_id = models.CharField(max_length=200, db_index=True)
     display = generic.GenericRelation(LanguageMap)
 
     def object_return(self, lang=None):
@@ -67,7 +67,7 @@ class Verb(models.Model):
 
 
 class extensions(models.Model):
-    key=models.CharField(max_length=200)
+    key=models.CharField(max_length=200, db_index=True)
     value=models.CharField(max_length=200)
     content_type = models.ForeignKey(ContentType)
     object_id = models.CharField(max_length=200)
@@ -198,10 +198,9 @@ class agentmgr(models.Manager):
 class agent(statement_object):
     objectType = models.CharField(max_length=200, blank=True, default="Agent")
     name = models.CharField(max_length=200, blank=True, null=True)
-    mbox = models.CharField(max_length=200, blank=True, null=True)
-    mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True)
-    openid = models.CharField(max_length=200, blank=True, null=True)
-    #account = models.OneToOneField('agent_account', blank=True, null=True)
+    mbox = models.CharField(max_length=200, blank=True, null=True, db_index=True)
+    mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True, db_index=True)
+    openid = models.CharField(max_length=200, blank=True, null=True, db_index=True)
     objects = agentmgr()
 
     def get_agent_json(self):
@@ -241,17 +240,6 @@ class agent(statement_object):
     def __unicode__(self):
         return json.dumps(self.get_agent_json())
 
-    # def delete(self, *args, **kwargs):
-    #     # pdb.set_trace()
-    #     has_account = False
-    #     # OnetoOne field backwards-should delete agent (self)
-    #     if not self.account is None:
-    #         self.account.delete()
-    #         has_account = True
-
-    #     if not has_account:
-    #         super(agent, self).delete(*args, **kwargs)
-
 
 class agent_account(models.Model):  
     homePage = models.CharField(max_length=200, blank=True, null=True)
@@ -288,7 +276,7 @@ class group(agent):
 
 
 class agent_profile(models.Model):
-    profileId = models.CharField(max_length=200)
+    profileId = models.CharField(max_length=200, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(agent)
     profile = models.FileField(upload_to="agent_profile")
@@ -301,7 +289,7 @@ class agent_profile(models.Model):
 
 
 class activity(statement_object):
-    activity_id = models.CharField(max_length=200)
+    activity_id = models.CharField(max_length=200, db_index=True)
     objectType = models.CharField(max_length=200,blank=True, null=True) 
     authoritative = models.CharField(max_length=200, blank=True, null=True)
 
@@ -310,36 +298,36 @@ class activity(statement_object):
         ret['id'] = self.activity_id
         ret['objectType'] = self.objectType
         try:
-            ret['definition'] = self.activity_definition.object_return()
+            ret['definition'] = self.activity_definition.object_return(lang)
         except activity_definition.DoesNotExist:
             pass
         return ret
-
-    def delete(self, *args, **kwargs):
-        # pdb.set_trace()
-        has_def = False
-        if not self.activity_definition is None:
-            self.activity_definition.delete()
-            has_def = True
-        if not has_def:    
-            super(activity, self).delete(*args, **kwargs)
 
     def __unicode__(self):
         return json.dumps(self.object_return())
 
 
+class name_lang(LanguageMap):
+    pass
+
+
+class desc_lang(LanguageMap):
+    pass
+
+
 class activity_definition(models.Model):
-    name = generic.GenericRelation(LanguageMap, related_name="activity_definition_name", blank=True, null=True)
-    description = generic.GenericRelation(LanguageMap, related_name="activity_definition_description", blank=True, null=True)
+    name = generic.GenericRelation(name_lang)
+    description = generic.GenericRelation(desc_lang)
     activity_definition_type = models.CharField(max_length=200, blank=True, null=True)
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     activity = models.OneToOneField(activity)
+    extensions = generic.GenericRelation(extensions)
 
     def object_return(self, lang=None):
         ret = {}
         if lang is not None:
             name_lang_map_set = self.name.filter(key=lang)
-            desc_lang_map_set = self.name.filter(key=lang)
+            desc_lang_map_set = self.description.filter(key=lang)
         else:
             name_lang_map_set = self.name.all()
             desc_lang_map_set = self.description.all()
@@ -396,53 +384,19 @@ class activity_definition(models.Model):
                 ret['target'] = []
                 for t in targets:
                     ret['target'].append(t.object_return(lang))            
-        act_def_ext = activity_extensions.objects.filter(activity_definition=self)
-        if act_def_ext:
-            ret['extensions'] = {}             
-            for ext in act_def_ext:
-                ret['extensions'][ext.key] = ext.value        
+        result_ext = self.extensions.all()
+        if result_ext:
+            ret['extensions'] = {}
+            for ext in result_ext:
+                ret['extensions'].update(ext.object_return())        
         return ret
 
-    def delete(self, *args, **kwargs):
-        has_crp = False
-        activity_definition_exts = activity_extensions.objects.filter(activity_definition=self)
-        for ext in activity_definition_exts:
-            ext.delete()
-
-        if not self.correctresponsespattern is None:
-
-            scales = activity_definition_scale.objects.filter(activity_definition=self)
-            for scale in scales:
-                scale.delete()            
-            choices = activity_definition_choice.objects.filter(activity_definition=self)
-            for choice in choices:
-                choice.delete()            
-            steps = activity_definition_step.objects.filter(activity_definition=self)
-            for step in steps:
-                step.delete()
-            sources = activity_definition_source.objects.filter(activity_definition=self)
-            for source in sources:
-                source.delete()
-            targets = activity_definition_target.objects.filter(activity_definition=self)
-            for target in targets:
-                target.delete()
-
-            self.correctresponsespattern.delete()
-            has_crp = True
-        if not has_crp:
-            super(activity_definition, self).delete(*args, **kwargs)
+    def __unicode__(self):
+        return json.dumps(self.object_return())
 
 
 class activity_def_correctresponsespattern(models.Model):
     activity_definition = models.OneToOneField(activity_definition, blank=True, null=True)
-
-    # def delete(self, *args,**kwargs):
-    #     answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=self)
-    #     for answer in answers:
-    #         answer.delete()
-
-    #     super(activity_def_correctresponsespattern, self).delete(*args, **kwargs)
-
 
 
 class correctresponsespattern_answer(models.Model):
@@ -457,7 +411,7 @@ class correctresponsespattern_answer(models.Model):
 
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
     def object_return(self, lang=None):
@@ -471,13 +425,13 @@ class activity_definition_choice(models.Model):
             lang_map_set = self.description.all()
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         
         return ret
 
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)        
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
     def object_return(self, lang=None):
@@ -491,12 +445,12 @@ class activity_definition_scale(models.Model):
             lang_map_set = self.description.all()
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
     
     def object_return(self, lang=None):
@@ -509,12 +463,12 @@ class activity_definition_source(models.Model):
             lang_map_set = self.description.all()        
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
     
     def object_return(self, lang=None):
@@ -527,12 +481,12 @@ class activity_definition_target(models.Model):
             lang_map_set = self.description.all()        
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
     def object_return(self, lang=None):
@@ -545,16 +499,9 @@ class activity_definition_step(models.Model):
             lang_map_set = self.description.all()        
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
-class activity_extensions(models.Model):
-    key = models.TextField()
-    value = models.TextField()
-    activity_definition = models.ForeignKey(activity_definition)
-
-    def object_return(self):
-        return (self.key, self.value) 
 
 class StatementRef(statement_object):
     object_type = models.CharField(max_length=12, default="StatementRef")
@@ -566,9 +513,11 @@ class StatementRef(statement_object):
         ret['id'] = self.ref_id
         return ret
 
+
 class ContextActivity(models.Model):
     key = models.CharField(max_length=20, null=True)
     context_activity = models.CharField(max_length=200, null=True)
+    context = models.ManyToManyField('context')
     
     def object_return(self):
         ret = {}
@@ -576,15 +525,17 @@ class ContextActivity(models.Model):
         ret[self.key]['id'] = self.context_activity
         return ret
 
+
 class context(models.Model):    
     registration = models.CharField(max_length=200)
     instructor = models.ForeignKey(agent,blank=True, null=True)
     team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
-    contextActivities = models.ManyToManyField(ContextActivity)
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
     cntx_statement = models.OneToOneField(StatementRef, blank=True, null=True)
+    extensions = generic.GenericRelation(extensions)
+    # TODO: add statement FK
 
     def object_return(self):
         ret = {}
@@ -601,26 +552,26 @@ class context(models.Model):
                         ret[field.name] = self.team.get_agent_json()
                     elif field.name == 'cntx_statement':
                         ret['statement'] = self.cntx_statement.object_return()                    
-        if self.contextActivities:
-            con_act_set = self.contextActivities.all()
+        if self.contextactivity_set:
+            con_act_set = self.contextactivity_set.all()
             ret['contextActivities'] = {}
             for con_act in con_act_set:
                 ret['contextActivities'][con_act.key] = {}
                 ret['contextActivities'][con_act.key]['id'] = con_act.context_activity    
 
         ret['extensions'] = {}
-        context_ext = context_extensions.objects.filter(context=self)
+        context_ext = self.extensions.all()
         for ext in context_ext:
-            ret['extensions'][ext.key] = ext.value        
+            ret['extensions'].update(ext.object_return())        
         return ret
 
     def delete(self, *args, **kwargs):
-        exts = context_extensions.objects.filter(context=self)
-        for ext in exts:
-            ext.delete()
+        # exts = self.extensions.all()
+        # for ext in exts:
+        #     ext.delete()
 
-        if not self.contextActivities is None:
-            con_act_set = self.contextActivities.all()
+        if not self.contextactivity_set is None:
+            con_act_set = self.contextactivity_set.all()
             for con_act in con_act_set:
                 con_act.delete()
 
@@ -641,13 +592,13 @@ class context(models.Model):
             super(context, self).delete(*args, **kwargs)
 
 
-class context_extensions(models.Model):
-    key=models.CharField(max_length=200)
-    value=models.TextField()
-    context = models.ForeignKey(context)
+# class context_extensions(models.Model):
+#     key=models.CharField(max_length=200)
+#     value=models.TextField()
+#     context = models.ForeignKey(context)
     
-    def objReturn(self):
-        return (self.key, self.value)
+#     def objReturn(self):
+#         return (self.key, self.value)
 
 class activity_state(models.Model):
     state_id = models.CharField(max_length=200)
@@ -740,7 +691,10 @@ class SubStatement(statement_object):
         for link in agent_links:
             if link != 'group':
                 # Get all objects for that relationship that the agent is related to
-                objects = getattr(actor_agent, link).all()
+                try:
+                    objects = getattr(actor_agent, link).all()
+                except:
+                    continue
                 # If looking at statement actors, if there's another stmt with same actor-in use
                 if link == "actor_statement":
                     # Will already have one (self)
@@ -774,7 +728,10 @@ class SubStatement(statement_object):
         # Loop through each relationship
         for link in verb_links:
             # Get all objects for that relationship that the agent is related to
-            objects = getattr(self.verb, link).all()
+            try:
+                objects = getattr(self.verb, link).all()
+            except:
+                continue
 
             if link == "statement_set":
                 if object_type == "substatement":
@@ -802,7 +759,10 @@ class SubStatement(statement_object):
         if object_type == 'activity':
             activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
             for link in activity_links:
-                objects = getattr(stmt_object, link).all()
+                try:
+                    objects = getattr(stmt_object, link).all()
+                except:
+                    continue
                 # There will be at least one (self)
                 if link == 'object_of_statement':
                     if len(objects) > 1:
@@ -817,7 +777,10 @@ class SubStatement(statement_object):
             # Know it's not same as auth or actor
             for link in agent_links:
                 if link != 'group':
-                    objects = getattr(stmt_object, link).all()
+                    try:
+                        objects = getattr(stmt_object, link).all()
+                    except:
+                        continue
                     # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
                     if link == 'object_of_statement':
                         if len(objects) > 0:
@@ -957,7 +920,10 @@ class statement(models.Model):
         for link in agent_links:
             if link != 'group':
                 # Get all objects for that relationship that the agent is related to
-                objects = getattr(actor_agent, link).all()
+                try:
+                    objects = getattr(actor_agent, link).all()
+                except:
+                    continue
                 # If looking at statement actors, if there's another stmt with same actor-in use
                 if link == "actor_statement":
                     # Will already have one (self)
@@ -1006,7 +972,10 @@ class statement(models.Model):
             # Loop through each relationship
             for link in verb_links:
                 # Get all objects for that relationship that the agent is related to
-                objects = getattr(self.verb, link).all()
+                try:
+                    objects = getattr(self.verb, link).all()
+                except:
+                    continue
 
                 if link == "substatement_set":
                     if object_type == "substatement":
@@ -1037,7 +1006,10 @@ class statement(models.Model):
         if authority_agent != actor_agent:
             for link in agent_links:
                 if link != 'group':
-                    objects = getattr(authority_agent, link).all()
+                    try:
+                        objects = getattr(authority_agent, link).all()
+                    except:
+                        continue
 
                     if link == "authority_statement":
                         # Will already have one (self)
@@ -1070,7 +1042,10 @@ class statement(models.Model):
             if object_type == 'activity':
                 activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
                 for link in activity_links:
-                    objects = getattr(stmt_object, link).all()
+                    try:
+                        objects = getattr(stmt_object, link).all()
+                    except:
+                        continue
                     # There will be at least one (self)
                     if link == 'object_of_statement':
                         if len(objects) > 1:
@@ -1085,7 +1060,10 @@ class statement(models.Model):
                 sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
                 # object_in_use = self.check_usage(sub_links, stmt_object, 1)
                 for link in sub_links:
-                    objects = getattr(stmt_object, link).all()
+                    try:
+                        objects = getattr(stmt_object, link).all()
+                    except:
+                        continue
                     # There will be at least one (self)
                     if link == 'object_of_statement':
                         if len(objects) > 1:
@@ -1100,7 +1078,10 @@ class statement(models.Model):
                 # Know it's not same as auth or actor
                 for link in agent_links:
                     if link != 'group':
-                        objects = getattr(stmt_object, link).all()
+                        try:
+                            objects = getattr(stmt_object, link).all()
+                        except:
+                            continue
                         # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
                         if link == 'object_of_statement':
                             if len(objects) > 0:

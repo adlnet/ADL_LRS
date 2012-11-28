@@ -23,7 +23,8 @@ class ActivityModelsTests(TestCase):
     # fields and values. All extensions are created with the same three values and keys
     def do_activity_definition_extensions_model(self, def_fk, key1, key2, key3, value1, value2, value3):
         #Create list comprehesions to easier assess keys and values
-        extList = models.activity_extensions.objects.values_list().filter(activity_definition=def_fk)
+        # extList = models.activity_extensions.objects.values_list().filter(activity_definition=def_fk)
+        extList = models.activity_definition(pk=def_fk).extensions.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 
@@ -1092,4 +1093,29 @@ class ActivityModelsTests(TestCase):
         # Should only have 4 total
         self.assertEqual(len(models.LanguageMap.objects.all()), 4)
         
+    def test_del_act(self):
+        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+            'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
+            'type': 'cmi.interaction','interactionType': 'other',
+            'correctResponsesPattern': ['(35,-86)']}}))
 
+        the_act = models.activity.objects.all()[0]
+        the_def = the_act.activity_definition
+
+        self.assertEqual(act1.activity.id, the_act.id)
+        self.assertEqual(1, len(models.activity.objects.all()))
+        self.assertEqual(1, len(models.activity_definition.objects.all()))
+        self.assertEqual(1, len(models.name_lang.objects.all()))
+        self.assertEqual(1, len(models.desc_lang.objects.all()))
+        self.assertEqual(1, len(models.name_lang.objects.all()))
+        self.assertEqual(1, len(models.activity_def_correctresponsespattern.objects.all()))
+
+        the_act.delete()
+
+        self.assertEqual(act1.activity.id, the_act.id)
+        self.assertEqual(0, len(models.activity.objects.all()))
+        self.assertEqual(0, len(models.activity_definition.objects.all()))
+        self.assertEqual(0, len(models.name_lang.objects.all()))
+        self.assertEqual(0, len(models.desc_lang.objects.all()))
+        self.assertEqual(0, len(models.name_lang.objects.all()))
+        self.assertEqual(0, len(models.activity_def_correctresponsespattern.objects.all()))

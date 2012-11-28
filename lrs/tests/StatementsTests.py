@@ -15,6 +15,7 @@ import urllib
 from lrs.util import retrieve_statement
 import pdb
 import hashlib
+import pprint
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -662,7 +663,7 @@ class StatementsTests(TestCase):
         param = {"limit":1, "object":{"objectType": "Activity", "id":"foogie"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         lang_get_response = self.client.get(path, Accept_Language="en-US", X_Experience_API_Version="0.95", Authorization=self.auth)
-
+        
         self.assertEqual(lang_get_response.status_code, 200)
         resp_list = json.loads(lang_get_response.content)
         stmts = resp_list["statements"]
@@ -1035,18 +1036,16 @@ class StatementsTests(TestCase):
         
         results = models.result.objects.filter(response='wrong')
         scores = models.score.objects.filter(scaled=.99)
-        result_exts = models.result_extensions.objects.filter(key__contains='wrong')
+        exts = models.extensions.objects.filter(key__contains='wrong')
         
         contexts = models.context.objects.filter(registration=cguid1)
-        context_exts = models.context_extensions.objects.filter(key__contains='wrong')
         
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
         activities = models.activity.objects.filter(activity_id__contains='test_wrong_list_post')
         activity_definitions = models.activity_definition.objects.all()
         crp_answers = models.correctresponsespattern_answer.objects.filter(answer__contains='wrong')
-        activity_definition_exts = models.activity_extensions.objects.filter(key__contains='wrong')
-
+        
         statements = models.statement.objects.all()
 
         # 10 statements from setup
@@ -1054,15 +1053,13 @@ class StatementsTests(TestCase):
 
         self.assertEqual(len(results), 0)
         self.assertEqual(len(scores), 0)
-        self.assertEqual(len(result_exts), 0)
+        self.assertEqual(len(exts), 0)
         self.assertEqual(len(contexts), 0)
-        self.assertEqual(len(context_exts), 0)
         self.assertEqual(len(verbs), 0)
         self.assertEqual(len(activities), 0)
         # Should only be 3 from setup (4 there but 2 get merged together to make 1, equaling 3)
         self.assertEqual(len(activity_definitions), 3)
         self.assertEqual(len(crp_answers), 0)
-        self.assertEqual(len(activity_definition_exts), 0)
 
     def test_post_list_rollback_part_2(self):
         stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"john@john.com"},
@@ -1154,7 +1151,7 @@ class StatementsTests(TestCase):
         activities = models.activity.objects.filter(activity_id__contains="wrong")
         results = models.result.objects.filter(response__contains="wrong")
         contexts = models.context.objects.filter(registration=sub_context_id)
-        con_exts = models.context_extensions.objects.filter(key__contains="wrong")
+        con_exts = models.extensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context_activity__contains="wrong")
 
         self.assertEqual(len(s_agent), 0)

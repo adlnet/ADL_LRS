@@ -176,8 +176,6 @@ def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
     return models.statement.objects.filter(**args).order_by(stored_param)
 
 def complexGet(req_dict):
-
-
     args = {}
     language = None
     # Set language if one

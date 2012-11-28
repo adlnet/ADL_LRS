@@ -231,11 +231,10 @@ class Activity():
                     name_same = self._check_activity_definition_value(new_name_lang_map[1], existing_lang_map.value)
                     # If names are different, update the language map with the new name
                     if not name_same:
-                        models.LanguageMap.objects.filter(id=existing_lang_map.id).update(value=new_name_lang_map[1])
+                        existing_act_def.name.filter(id=existing_lang_map.id).update(value=new_name_lang_map[1])
                 # Else it's a new lang map and needs added
                 else:
-                    lang_map = self._save_lang_map(new_name_lang_map)
-                    existing_act_def.name.add(lang_map)
+                    existing_act_def.name.create(key=new_name_lang_map[0], value=new_name_lang_map[1])
                     existing_act_def.save()                    
 
             # Loop through all language maps in description
@@ -252,10 +251,9 @@ class Activity():
                     desc_same = self._check_activity_definition_value(new_desc_lang_map[1], existing_lang_map.value)
                     # If desc are different, update the langage map with the new desc
                     if not desc_same:
-                        models.LanguageMap.objects.filter(id=existing_lang_map.id).update(value=new_desc_lang_map[1])
+                        existing_act_def.description.filter(id=existing_lang_map.id).update(value=new_desc_lang_map[1])
                 else:
-                    lang_map = self._save_lang_map(new_desc_lang_map)
-                    existing_act_def.description.add(lang_map)
+                    existing_act_def.description.create(key=new_desc_lang_map[0], value=new_desc_lang_map[1])
                     existing_act_def.save()                    
 
     #Once JSON is verified, populate the activity objects
@@ -342,11 +340,11 @@ class Activity():
                 self._populate_definition(activity_definition, activity_id, objectType)
         
     # Save language map object for activity definition name or description
-    def _save_lang_map(self, lang_map):
+    def _save_lang_map(self, lang_map, parent):
         k = lang_map[0]
         v = lang_map[1]
 
-        language_map = models.LanguageMap(key = k, value = v, content_object=self.activity)
+        language_map = models.LanguageMap(key = k, value = v, content_object=parent)
         
         language_map.save()        
         return language_map
@@ -425,21 +423,23 @@ class Activity():
         # Save activity definition name and description
         for name_lang_map in act_def['name'].items():
             if isinstance(name_lang_map, tuple):
-                lang_map = self._save_lang_map(name_lang_map)
-                self.activity_definition.name.add(lang_map)
-                self.activity_definition.save()
+                n = models.name_lang(key=name_lang_map[0],
+                              value=name_lang_map[1],
+                              content_object=self.activity_definition)
+                n.save()
             else:
                 raise exceptions.ParamError("Activity with id %s has a name that is not a language map" % act_id)
 
         for desc_lang_map in act_def['description'].items():
             if isinstance(desc_lang_map, tuple):
-                lang_map = self._save_lang_map(desc_lang_map)
-                self.activity_definition.description.add(lang_map)
-                self.activity_definition.save()
+                d = models.desc_lang(key=desc_lang_map[0],
+                              value=desc_lang_map[1],
+                              content_object=self.activity_definition)
+                d.save()
             else:
                 raise exceptions.ParamError("Activity with id %s has a description that is not a language map" % act_id)
-
-
+        self.activity_definition.save()
+        #print('\n---activity--\n%s' % self.activity_definition)
         #If there is a correctResponsesPattern then save the pattern
         if 'correctResponsesPattern' in act_def.keys():
             self._populate_correctResponsesPattern(act_def, interactionFlag)
@@ -449,8 +449,8 @@ class Activity():
             self._populate_extensions(act_def) 
 
     def _populate_correctResponsesPattern(self, act_def, interactionFlag):
-        # crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
-        crp = models.activity_def_correctresponsespattern()
+        crp = models.activity_def_correctresponsespattern(activity_definition=self.activity_definition)
+        #crp = models.activity_def_correctresponsespattern()
         crp.save()
         self.activity_definition.correctresponsespattern = crp
         self.activity_definition.save()
@@ -472,8 +472,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in c['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self._save_lang_map(desc_lang_map)
-                        choice.description.add(lang_map)
+                        lang_map = self._save_lang_map(desc_lang_map, choice)
                         choice.save()
                     else:
                         raise exceptions.ParamError("Choice description must be a language map")
@@ -488,8 +487,7 @@ class Activity():
                 # Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self._save_lang_map(desc_lang_map)
-                        scale.description.add(lang_map)
+                        lang_map = self._save_lang_map(desc_lang_map, scale)
                         scale.save()
                     else:
                         raise exceptions.ParamError("Scale description must be a language map")                        
@@ -504,8 +502,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self._save_lang_map(desc_lang_map)
-                        step.description.add(lang_map)
+                        lang_map = self._save_lang_map(desc_lang_map, step)
                         step.save()
                     else:
                         raise exceptions.ParamError("Step description must be a language map")                        
@@ -521,8 +518,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self._save_lang_map(desc_lang_map)
-                        source.description.add(lang_map)
+                        lang_map = self._save_lang_map(desc_lang_map, source)
                         source.save()
                     else:
                         raise exceptions.ParamError("Source description must be a language map")                        
@@ -534,8 +530,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in t['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self._save_lang_map(desc_lang_map)
-                        target.description.add(lang_map)
+                        lang_map = self._save_lang_map(desc_lang_map, target)
                         target.save()
                     else:
                         raise exceptions.ParamError("Target description must be a language map")                        
@@ -547,7 +542,6 @@ class Activity():
         self.activity_definition_extensions = []
 
         for k, v in act_def['extensions'].items():
-            act_def_ext = models.activity_extensions(key=k, value=v,
-                activity_definition=self.activity_definition)
-            act_def_ext.save()
-            self.activity_definition_extensions.append(act_def_ext)    
+            act_def_ext = models.extensions(key=k, value=v,
+                content_object=self.activity_definition)
+            act_def_ext.save()    
