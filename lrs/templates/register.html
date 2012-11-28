@@ -8,7 +8,7 @@
             <div class="content">
                 <div>
                 <p>
-                    Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public.
+                    Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register a user, you can use the HTTP_AUTHORIZATION header with your encoded username and password. If the user name already exists then you will simply just be 'logged in'.
                 </p>
                 {% if error_message %}
                 <p class="error">
@@ -24,18 +24,7 @@
                     </table>
                     <input type="submit" value="Register/Login" />
                 </form>
-                <!-- {% if not request.user.is_authenticated %}     -->
-<!--                     <br/>
-                    <form action="{% url lrs.views.register %}" method="post">
-                        <table>
-                            {% include 'table_form.html' with form=login_form %}
-                        </table>
-                        <input type="submit" name="login" value="Login" />
-                    </form>
-                {% else %}
-                <p>Logout</p>
-                {% endif %}   
- -->            </div>
+                </div>
             </div>
         </div>
     </body>

@@ -1,15 +1,15 @@
 from django.contrib import admin
 
-from oauth_provider.models import Resource, Consumer, Token
+from lrs.models import Resource, Consumer, Token
 
 class ResourceAdmin(admin.ModelAdmin):
 	pass
 	
 class ConsumerAdmin(admin.ModelAdmin):
-	raw_id_fields = ['user',]
+	pass
 
 class TokenAdmin(admin.ModelAdmin):
-	raw_id_fields = ['user', 'consumer', 'resource']
+	pass
 	
 
 admin.site.register(Resource, ResourceAdmin)

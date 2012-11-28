@@ -32,50 +32,6 @@ def tcexample3(request):
 def tcexample4(request):
     return render_to_response('tcexample4.xml')
 
-# def register(request):
-#     if request.method == 'GET':
-#         register_form = forms.RegisterForm()
-#         login_form = forms.LoginForm()
-#         return render_to_response('register.html', {"register_form": register_form, "login_form":login_form}, context_instance=RequestContext(request))
-#     elif request.method == 'POST':
-#         if 'register' in request.POST:
-#             register_form = forms.RegisterForm(request.POST)
-#             login_form = forms.LoginForm()
-#             if register_form.is_valid():
-#                 name = register_form.cleaned_data['username']
-#                 pword = register_form.cleaned_data['password']
-#                 email = register_form.cleaned_data['email']
-#                 try:
-#                     user = User.objects.get(username__exact=name)
-#                     user = authenticate(username=name, password=pword)
-#                     if user is None:
-#                         return render_to_response('register.html', {"register_form": register_form, "login_form":login_form, "error_message": "%s's password was incorrect." % name},
-#                             context_instance=RequestContext(request))
-#                 except User.DoesNotExist:
-#                     user = User.objects.create_user(name, email, pword)
-#                     return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
-#                 return render_to_response('register.html',{"register_form": register_form, "login_form":login_form, "error_message": "%s already exists." % name},
-#                         context_instance=RequestContext(request) )
-#             else:
-#                 return render_to_response('register.html', {"register_form": register_form, "login_form":login_form}, context_instance=RequestContext(request))
-#         if 'login' in request.POST:
-#             register_form = forms.RegisterForm()
-#             login_form = forms.LoginForm(request.POST)
-#             if login_form.is_valid():
-#                 name = login_form.cleaned_data['username']
-#                 pword = login_form.cleaned_data['password']
-#                 email = login_form.cleaned_data['email']
-#                 user = authenticate(username=name, password=pword)
-#                 if user is None:
-#                     return render_to_response('register.html', {"register_form": register_form, "login_form":login_form, "error_message": "%s's password was incorrect." % name},
-#                         context_instance=RequestContext(request))
-#                 # else:
-#                 #     login(request, user)
-#                 return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
-#             else:
-#                 return render_to_response('register.html', {"register_form": register_form, "login_form":login_form}, context_instance=RequestContext(request))            
-#     else:
-#         return Http404
 def register(request):
     if request.method == 'GET':
         form = forms.RegisterForm()
@@ -99,7 +55,6 @@ def register(request):
             return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
     else:
         return Http404
-
 
 
 @require_http_methods(["GET","POST"])
@@ -174,6 +129,7 @@ def agent_profile(request):
 def agents(request):
     return handle_request(request)
 
+# THIS VIEW IS BEING USED
 def oauth_authorize(request, request_token, callback_url, params):
     rsp = """
     <html><head></head><body><h1>Oauth Authorize</h1><h2>%s</h2></body></html>""" % params
