@@ -140,6 +140,8 @@ OAUTH_AUTHORIZE_VIEW = 'lrs.views.oauth_authorize'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/TCAPI'
 
+# OAUTH_REALM_KEY_NAME = 'http://photos.example.net'
+
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',

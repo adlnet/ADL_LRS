@@ -22,17 +22,18 @@ from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONS
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
 gen_pwd = User.objects.make_random_password
+generate_random = User.objects.make_random_password
 
 def gen_uuid():
     return uuid.uuid4().hex
 
-class client(models.Model):
-    app_id = models.CharField(max_length=64, unique=True, default=gen_uuid)
-    shared_secret = models.CharField(max_length=64, default=gen_pwd)
-    name = models.CharField(max_length=200, blank=True, null=True)
-    description = models.TextField()
-    active = models.BooleanField(default=True)
-generate_random = User.objects.make_random_password
+# class client(models.Model):
+#     app_id = models.CharField(max_length=64, unique=True, default=gen_uuid)
+#     shared_secret = models.CharField(max_length=64, default=gen_pwd)
+#     name = models.CharField(max_length=200, blank=True, null=True)
+#     description = models.TextField()
+#     active = models.BooleanField(default=True)
+# generate_random = User.objects.make_random_password
 
 class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
@@ -58,8 +59,8 @@ class Consumer(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
     
-    key = models.CharField(max_length=CONSUMER_KEY_SIZE)
-    secret = models.CharField(max_length=SECRET_SIZE, blank=True)
+    key = models.CharField(max_length=CONSUMER_KEY_SIZE, unique=True, default=gen_uuid)
+    secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
 
     status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
     user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user")

@@ -59,6 +59,7 @@ def register(request):
 
 @require_http_methods(["GET","POST"])
 def reg_client(request):
+    # pdb.set_trace()
     if request.method == 'GET':
         form = forms.RegClientForm()
         return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
@@ -68,9 +69,9 @@ def reg_client(request):
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
             try:
-                client = models.client.objects.get(name__exact=name)
-            except models.client.DoesNotExist:
-                client = models.client(name=name, description=description)
+                client = models.Consumer.objects.get(name__exact=name)
+            except models.Consumer.DoesNotExist:
+                client = models.Consumer(name=name, description=description)
                 client.save()
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
@@ -82,9 +83,10 @@ def reg_client(request):
         return Http404
 
 def reg_success(request, user_id):
+    # pdb.set_trace()
     if "type" in request.GET and request.GET['type'] == 'client':
-        client = models.client.objects.get(id=user_id)
-        d = {"name":client.name,"app_id":client.app_id, "secret":client.shared_secret,
+        client = models.Consumer.objects.get(id=user_id)
+        d = {"name":client.name,"app_id":client.key, "secret":client.secret,
              "info_message": "Your Client Credentials"}
     else:
         user = User.objects.get(id=user_id)

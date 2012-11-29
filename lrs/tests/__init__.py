@@ -8,3 +8,4 @@ from AgentModelsTests import *
 from ActivityTests import *
 from StatementModelsTests import *
 from StatementsMoreTests import *
+from OAuthTests import *
