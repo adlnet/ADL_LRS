@@ -1,5 +1,4 @@
 from django.test import TestCase
-from HTMLParser import HTMLParser
 from django.core.urlresolvers import reverse
 from lrs import views, models
 from oauth_provider.oauth.oauth import OAuthRequest, OAuthSignatureMethod_HMAC_SHA1
@@ -7,10 +6,6 @@ from django.test.utils import setup_test_environment
 from django.contrib.auth.models import User
 import time
 import pdb
-
-class MyHTMLParser(HTMLParser):
-	def handle_data(self, data):
-	    return data
 
 class OAuthTests(TestCase):
 	def setUp(self):
@@ -34,12 +29,12 @@ class OAuthTests(TestCase):
 
 
 	def simple_test(self):
-		# # Test request_token without appropriate headers
-		# resp = self.client.get("/TCAPI/OAuth/request_token/")
-		# self.assertEqual(resp.status_code, 401)
-		# self.assertIn('WWW-Authenticate', resp._headers['www-authenticate'])
-		# self.assertIn('OAuth realm="http://localhost:8000/TCAPI"', resp._headers['www-authenticate'])
-		# self.assertEqual(resp.content, 'Invalid request parameters.')
+		# Test request_token without appropriate headers
+		resp = self.client.get("/TCAPI/OAuth/request_token/")
+		self.assertEqual(resp.status_code, 401)
+		self.assertIn('WWW-Authenticate', resp._headers['www-authenticate'])
+		self.assertIn('OAuth realm="http://localhost:8000/TCAPI"', resp._headers['www-authenticate'])
+		self.assertEqual(resp.content, 'Invalid request parameters.')
 
 		# Test request_token
 		params = {'oauth_consumer_key': self.consumer.key,'oauth_signature_method': 'PLAINTEXT',
@@ -57,18 +52,18 @@ class OAuthTests(TestCase):
 		self.assertEqual(token.callback, 'http://example.com/request_token_ready')
 		self.assertEqual(token.callback_confirmed, True)
 
-		# # Test wrong scope
-		# params['scope'] = 'videos'
-		# scope_resp = self.client.get("/TCAPI/OAuth/request_token/", params)
-		# self.assertEqual(scope_resp.status_code, 401)
-		# self.assertEqual(scope_resp.content, 'Resource videos does not exist.')
-		# params['scope'] = 'photos'
+		# Test wrong scope
+		params['scope'] = 'videos'
+		scope_resp = self.client.get("/TCAPI/OAuth/request_token/", params)
+		self.assertEqual(scope_resp.status_code, 401)
+		self.assertEqual(scope_resp.content, 'Resource videos does not exist.')
+		params['scope'] = 'photos'
 
-		# # Test wrong callback
-		# params['oauth_callback'] = 'wrongcallback'
-		# call_resp = self.client.get("/TCAPI/OAuth/request_token/", params)
-		# self.assertEqual(call_resp.status_code, 401)
-		# self.assertEqual(call_resp.content, 'Invalid callback URL.')
+		# Test wrong callback
+		params['oauth_callback'] = 'wrongcallback'
+		call_resp = self.client.get("/TCAPI/OAuth/request_token/", params)
+		self.assertEqual(call_resp.status_code, 401)
+		self.assertEqual(call_resp.content, 'Invalid callback URL.')
 
 		# Test authorize
 		params = {'oauth_token': token.key}
@@ -90,10 +85,10 @@ class OAuthTests(TestCase):
 		self.assertIn(token.key, auth_post['Location'])
 		self.assertEqual(token.is_approved, True)
 
-		# # Test without session param (previous POST removed it)
-		# auth_post = self.client.post("/TCAPI/OAuth/authorize/", params)
-		# self.assertEqual(auth_post.status_code, 401)
-		# self.assertEqual(auth_post.content, 'Action not allowed.')
+		# Test without session param (previous POST removed it)
+		auth_post = self.client.post("/TCAPI/OAuth/authorize/", params)
+		self.assertEqual(auth_post.status_code, 401)
+		self.assertEqual(auth_post.content, 'Action not allowed.')
 
 		# Test fake access
 		auth_resp = self.client.get("/TCAPI/OAuth/authorize/", params)
@@ -113,59 +108,61 @@ class OAuthTests(TestCase):
 		self.assertIn(access_token.key, access_resp.content)
 		self.assertEqual(access_token.user.username, u'jane')
 
-		# # Test same Nonce
-		# access_resp = self.client.get("/TCAPI/OAuth/access_token/", params)
-		# self.assertEqual(access_resp.status_code, 401)
-		# self.assertEqual(access_resp.content, 'Nonce already used: accessnonce')
+		# Test same Nonce
+		access_resp = self.client.get("/TCAPI/OAuth/access_token/", params)
+		self.assertEqual(access_resp.status_code, 401)
+		self.assertEqual(access_resp.content, 'Nonce already used: accessnonce')
 
-		# # Test missing/invalid verifier
-		# params['oauth_nonce'] = 'yetanotheraccessnonce'
-		# params['oauth_verifier'] = 'invalidverifier'
-		# access_resp = self.client.get("/TCAPI/OAuth/access_token/", params)
-		# self.assertEqual(access_resp.status_code, 401)
-		# self.assertEqual(access_resp.content, 'Consumer key or token key does not match. Make sure your request token is approved. Check your verifier too if you use OAuth 1.0a.')    	
-		# params['oauth_verifier'] = token.verifier
+		# Test missing/invalid verifier
+		params['oauth_nonce'] = 'yetanotheraccessnonce'
+		params['oauth_verifier'] = 'invalidverifier'
+		access_resp = self.client.get("/TCAPI/OAuth/access_token/", params)
+		self.assertEqual(access_resp.status_code, 401)
+		self.assertEqual(access_resp.content, 'Consumer key or token key does not match. Make sure your request token is approved. Check your verifier too if you use OAuth 1.0a.')    	
+		params['oauth_verifier'] = token.verifier
 
-		# # Test token not approved
-		# params['oauth_nonce'] = 'anotheraccessnonce'
-		# token.is_approved = False
-		# token.save()
-		# access_resp = self.client.get("/TCAPI/OAuth/access_token/", params)
-		# self.assertEqual(access_resp.status_code, 401)
-		# self.assertEqual(access_resp.content, 'Consumer key or token key does not match. Make sure your request token is approved. Check your verifier too if you use OAuth 1.0a.')
+		# Test token not approved
+		params['oauth_nonce'] = 'anotheraccessnonce'
+		token.is_approved = False
+		token.save()
+		access_resp = self.client.get("/TCAPI/OAuth/access_token/", params)
+		self.assertEqual(access_resp.status_code, 401)
+		self.assertEqual(access_resp.content, 'Consumer key or token key does not match. Make sure your request token is approved. Check your verifier too if you use OAuth 1.0a.')
 
 		# Test access resource
-		params = {'oauth_consumer_key': self.consumer.key,'oauth_token': token.key,'oauth_signature_method': 'HMAC-SHA1',
-				'oauth_timestamp': str(int(time.time())),'oauth_nonce': 'accessresourcenonce', 'oauth_version': '1.0'}
+		params = {
+			'oauth_consumer_key': self.consumer.key,
+			'oauth_token': access_token.key,
+			'oauth_signature_method': 'HMAC-SHA1',
+			'oauth_timestamp': str(int(time.time())),
+			'oauth_nonce': 'accessresourcenonce',
+			'oauth_version': '1.0'
+		}
 		oauth_request = OAuthRequest.from_token_and_callback(access_token,
-			http_url='http://localhost:8000/TCAPI/OAuth/photo/', parameters=params)
+			http_url='http://testserver/TCAPI/OAuth/photo/', parameters=params)
 		signature_method = OAuthSignatureMethod_HMAC_SHA1()
 		signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
 		params['oauth_signature'] = signature
-		print params
 		resp = self.client.get("/TCAPI/OAuth/photo/", params)
-		print resp.content
-		pdb.set_trace()
-
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(resp.content, 'Protected Resource access!')
 
-		# # Test wrong signature
-		# params['oauth_signature'] = 'wrongsignature'
-		# params['oauth_nonce'] = 'anotheraccessresourcenonce'
-		# resp = self.client.get("/TCAPI/OAuth/photo/", params)
-		# self.assertEqual(resp.status_code, 401)
-		# self.assertIn('Invalid signature.', resp.content)
+		# Test wrong signature
+		params['oauth_signature'] = 'wrongsignature'
+		params['oauth_nonce'] = 'anotheraccessresourcenonce'
+		resp = self.client.get("/TCAPI/OAuth/photo/", params)
+		self.assertEqual(resp.status_code, 401)
+		self.assertIn('Invalid signature.', resp.content)
 
-		# # Test wrong params
-		# resp = self.client.get("/TCAPI/OAuth/photo/")
-		# self.assertEqual(resp.status_code, 401)
-		# self.assertEqual(resp.content, 'Invalid request parameters.')
+		# Test wrong params
+		resp = self.client.get("/TCAPI/OAuth/photo/")
+		self.assertEqual(resp.status_code, 401)
+		self.assertEqual(resp.content, 'Invalid request parameters.')
 
-		# # Test revoke access
-		# access_token.delete()
-		# params['oauth_signature'] = signature
-		# params['oauth_nonce'] = 'yetanotheraccessresourcenonce'
-		# resp = self.client.get("/TCAPI/OAuth/photo/", params)
-		# self.assertEqual(resp.status_code, 401)
-		# self.assertIn('Invalid access token', resp.content)
+		# Test revoke access
+		access_token.delete()
+		params['oauth_signature'] = signature
+		params['oauth_nonce'] = 'yetanotheraccessresourcenonce'
+		resp = self.client.get("/TCAPI/OAuth/photo/", params)
+		self.assertEqual(resp.status_code, 401)
+		self.assertIn('Invalid access token', resp.content)

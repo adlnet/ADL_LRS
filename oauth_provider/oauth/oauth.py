@@ -368,7 +368,7 @@ class OAuthRequest(object):
 
 class OAuthServer(object):
     """A worker to check the validity of a request against a data store."""
-    timestamp_threshold = 300 # In seconds, five minutes.
+    timestamp_threshold = 600 # In seconds, ten minutes.
     version = VERSION
     signature_methods = None
     data_store = None
@@ -492,7 +492,6 @@ class OAuthServer(object):
         return oauth_request.get_parameter('oauth_verifier')
 
     def _check_signature(self, oauth_request, consumer, token):
-        pdb.set_trace()
         timestamp, nonce = oauth_request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
         self._check_nonce(consumer, token, nonce)
@@ -609,7 +608,6 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         return 'HMAC-SHA1'
         
     def build_signature_base_string(self, oauth_request, consumer, token):
-        pdb.set_trace()
         sig = (
             escape(oauth_request.get_normalized_http_method()),
             escape(oauth_request.get_normalized_http_url()),
@@ -623,7 +621,6 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         return key, raw
 
     def build_signature(self, oauth_request, consumer, token):
-        pdb.set_trace()
         """Builds the base signature string."""
         key, raw = self.build_signature_base_string(oauth_request, consumer,
             token)
