@@ -11,7 +11,7 @@ from utils import initialize_server_request, send_oauth_error
 from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
-
+import pdb
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
 INVALID_PARAMS_RESPONSE = send_oauth_error(OAuthError(
@@ -28,6 +28,7 @@ def request_token(request):
     Provider to issue a Token. The Request Token's sole purpose is to receive 
     User approval and can only be used to obtain an Access Token.
     """
+    # pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_server is None:
         return INVALID_PARAMS_RESPONSE
@@ -46,6 +47,7 @@ def user_authorization(request):
     The Consumer cannot use the Request Token until it has been authorized by 
     the User.
     """
+    pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
@@ -126,7 +128,7 @@ def user_authorization(request):
             response = send_oauth_error(OAuthError(_('Action not allowed.')))
         return response
     
-def access_token(request):
+def access_token(request):    
     """
     The Consumer exchanges the Request Token for an Access Token capable of 
     accessing the Protected Resources.

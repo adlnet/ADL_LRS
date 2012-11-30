@@ -5,7 +5,7 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from stores import DataStore
-
+import pdb
 OAUTH_REALM_KEY_NAME = getattr(settings, 'OAUTH_REALM_KEY_NAME', '')
 OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', ['plaintext', 'hmac-sha1'])
 
@@ -13,6 +13,7 @@ def initialize_server_request(request):
     """Shortcut for initialization."""
     # Django converts Authorization header in HTTP_AUTHORIZATION
     # Warning: it doesn't happen in tests but it's useful, do not remove!
+    # pdb.set_trace()
     auth_header = {}
     if 'Authorization' in request.META:
         auth_header = {'Authorization': request.META['Authorization']}
@@ -29,7 +30,7 @@ def initialize_server_request(request):
         (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
             or request.META.get('SERVER_NAME') == 'testserver'):
         parameters = dict(request.REQUEST.items())
-
+        
     oauth_request = OAuthRequest.from_request(request.method, 
                                               request.build_absolute_uri(), 
                                               headers=auth_header,
