@@ -10,6 +10,7 @@ from lrs.exceptions import IDNotFoundError, ParamError
 import ast
 import json
 import pdb
+import pprint
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
@@ -135,7 +136,12 @@ class score(models.Model):
             if field.name != 'id' and field.name != 'result':
                 value = getattr(self, field.name)
                 if not value is None:
-                    ret[field.name] = value
+                    if field.name is 'score_min':
+                        ret['min'] = value
+                    elif field.name is 'score_max':
+                        ret['max'] = value
+                    else:
+                        ret[field.name] = value
         return ret
 
     def __unicode__(self):
@@ -290,7 +296,7 @@ class agent_profile(models.Model):
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=200, db_index=True)
-    objectType = models.CharField(max_length=200,blank=True, null=True) 
+    objectType = models.CharField(max_length=200,blank=True, null=True, default="Activity") 
     authoritative = models.CharField(max_length=200, blank=True, null=True)
 
     def object_return(self, lang=None):
@@ -506,6 +512,7 @@ class activity_definition_step(models.Model):
 class StatementRef(statement_object):
     object_type = models.CharField(max_length=12, default="StatementRef")
     ref_id = models.CharField(max_length=200)
+    context = models.OneToOneField('context', blank=True, null=True)
 
     def object_return(self):
         ret = {}
@@ -528,12 +535,11 @@ class ContextActivity(models.Model):
 
 class context(models.Model):    
     registration = models.CharField(max_length=200)
-    instructor = models.ForeignKey(agent,blank=True, null=True)
-    team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
+    instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL)
+    team = models.ForeignKey(group,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
-    cntx_statement = models.OneToOneField(StatementRef, blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
     # TODO: add statement FK
 
@@ -557,7 +563,11 @@ class context(models.Model):
             ret['contextActivities'] = {}
             for con_act in con_act_set:
                 ret['contextActivities'][con_act.key] = {}
-                ret['contextActivities'][con_act.key]['id'] = con_act.context_activity    
+                ret['contextActivities'][con_act.key]['id'] = con_act.context_activity 
+        try:
+            ret['statement'] = self.statementref.object_return()
+        except:
+            pass  
 
         ret['extensions'] = {}
         context_ext = self.extensions.all()
@@ -566,39 +576,13 @@ class context(models.Model):
         return ret
 
     def delete(self, *args, **kwargs):
-        # exts = self.extensions.all()
-        # for ext in exts:
-        #     ext.delete()
-
         if not self.contextactivity_set is None:
             con_act_set = self.contextactivity_set.all()
             for con_act in con_act_set:
                 con_act.delete()
 
-        has_related = False
-        if not self.cntx_statement is None:
-            self.cntx_statement.delete()
-            has_related = True
+        super(context, self).delete(*args, **kwargs)
 
-        if not self.instructor is None:
-            self.instructor.delete()
-            has_related = True
-
-        if not self.team is None:
-            self.team.delete()
-            has_related = True
-
-        if not has_related:
-            super(context, self).delete(*args, **kwargs)
-
-
-# class context_extensions(models.Model):
-#     key=models.CharField(max_length=200)
-#     value=models.TextField()
-#     context = models.ForeignKey(context)
-    
-#     def objReturn(self):
-#         return (self.key, self.value)
 
 class activity_state(models.Model):
     state_id = models.CharField(max_length=200)
@@ -649,7 +633,6 @@ class SubStatement(statement_object):
                 activity_object = False
             except agent.DoesNotExist:
                 raise IDNotFoundError('No activity or agent object found with given ID')
-
         if activity_object:
             ret['object'] = stmt_object.object_return(lang)  
         else:
@@ -682,6 +665,19 @@ class SubStatement(statement_object):
         object_type = None
 
         stmt_object, object_type = self.get_object()
+
+        try:
+            # Need if stmt - if it is None and DNE it throws no attribute delete error
+            if not self.result is None:
+                self.result.delete()
+        except result.DoesNotExist:
+            pass # already deleted- could be caused by substatement
+              
+        try:
+            if not self.context is None:
+                self.context.delete()
+        except context.DoesNotExist:
+            pass # already deleted - caused by agent cascade delete
         
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
@@ -718,11 +714,9 @@ class SubStatement(statement_object):
                     if len(objects) > 0:
                         actor_in_use = True
                         break
-
         if not actor_in_use:
             self.actor.delete()
         
-
         verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
         verb_in_use = False
         # Loop through each relationship
@@ -797,18 +791,6 @@ class SubStatement(statement_object):
         if not object_in_use:
             stmt_object.delete()
 
-        try:
-            # Need if stmt - if it is None and DNE it throws no attribute delete error
-            if not self.result is None:
-                self.result.delete()
-        except result.DoesNotExist:
-            pass # already deleted- could be caused by substatement
-              
-        try:
-            if not self.context is None:
-                self.context.delete()
-        except context.DoesNotExist:
-            pass # already deleted - caused by agent cascade delete
 
 class statement(models.Model):
     statement_id = models.CharField(max_length=200)
@@ -911,6 +893,19 @@ class statement(models.Model):
         # Else retrieve its object
         else:
             stmt_object, object_type = self.get_object()
+        
+        try:
+            # Need if stmt - if it is None and DNE it throws no attribute delete error
+            if not self.result is None:
+                self.result.delete()
+        except result.DoesNotExist:
+            pass # already deleted- could be caused by substatement
+              
+        try:
+            if not self.context is None:
+                self.context.delete()
+        except context.DoesNotExist:
+            pass # already deleted - caused by agent cascade delete
         
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
@@ -1098,18 +1093,6 @@ class statement(models.Model):
             if not object_in_use:
                 stmt_object.delete()
 
-        try:
-            # Need if stmt - if it is None and DNE it throws no attribute delete error
-            if not self.result is None:
-                self.result.delete()
-        except result.DoesNotExist:
-            pass # already deleted- could be caused by substatement
-              
-        try:
-            if not self.context is None:
-                self.context.delete()
-        except context.DoesNotExist:
-            pass # already deleted - caused by agent cascade delete
 
 
 

@@ -11,6 +11,7 @@ from Activity import Activity
 from functools import wraps
 from django.utils.timezone import utc
 import pdb
+import pprint
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -216,11 +217,17 @@ class Statement():
         #     del context['instructor']
         # if 'team' in context:
         #     del context['team']
-        # if 'cntx_statement' in context:
-        #     del context['cntx_statement']
+        cs = None
+        if 'cntx_statement' in context:
+            cs = context['cntx_statement'] 
+            del context['cntx_statement']
         # pdb.set_trace()
         cntx = models.context(**context)    
         cntx.save()
+
+        if cs:
+            cs.context = cntx
+            cs.save()
 
         if con_act_data:
             for con_act in con_act_data.items():
@@ -322,7 +329,7 @@ class Statement():
 
         if 'statement' in context:
             # stmt = Statement(context['statement']).statement.id 
-            stmt = models.statement.objects.get(statement_id=context['statement']['id'])
+            #stmt = models.statement.objects.get(statement_id=context['statement']['id'])
             # stmt = Statement(statement_id=context['statement']['id'], get=True)
             stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
             stmt_ref.save()
@@ -391,7 +398,6 @@ class Statement():
             statementObjectData = stmt_data['object']
         except KeyError:
             raise exceptions.ParamError("No object provided, must provide 'object' field")
-
         try:
             raw_actor = stmt_data['actor']
         except KeyError:

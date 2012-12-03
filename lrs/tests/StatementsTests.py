@@ -55,7 +55,7 @@ class StatementsTests(TestCase):
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
@@ -68,7 +68,7 @@ class StatementsTests(TestCase):
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@t.com"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname3", "en-GB": "altname"},
-            "description": {"en-US":"testdesc3","en-GB":"altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc3","en-GB":"altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"key11": "value11", "key22": "value22","key33": "value33"}}}, 
             "result": {"score":{"scaled":.75}, "completion": True, "success": True, "response": "shouted",
@@ -603,7 +603,7 @@ class StatementsTests(TestCase):
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
@@ -619,7 +619,7 @@ class StatementsTests(TestCase):
         params = {"authoritative": False, "actor":{"objectType":"Agent","mbox":"s@s.com"},
             "object":{"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}}
 
@@ -688,7 +688,7 @@ class StatementsTests(TestCase):
         stmt = json.dumps({"verb":{"id":"verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"r@r.com"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
-            "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
@@ -706,7 +706,7 @@ class StatementsTests(TestCase):
         stmt = json.dumps({"verb": {"id":"verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"l@l.com"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
-            "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
@@ -831,10 +831,10 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"uniqueName"}},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
-            "object": {"objectType": "Activity", "id":"/my/Activity/URL",
+            "object": {"objectType": "Activity", "id":"http:adlnet.gov/my/Activity/URL",
             "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
-            "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+            "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
             "interactionType": "choice",
             "correctResponsesPattern": ["golf", "tetris"],
             "choices":[{"id": "golf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
@@ -850,27 +850,79 @@ class StatementsTests(TestCase):
             "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
             "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
-
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
-        self.assertIn('"object": {"definition": {"name": {"en-GB": "anotherActName", "en-US": "actName"}, "description": {"en-GB": '
-            '"This is another activity description.", "en-US": "This is my activity description."}, "extensions": {"key3": "value3", '
-            '"key2": "value2", "key1": "value1"}, "correctResponsesPattern": ["golf", "tetris"], "type": "http://adlnet.gov/expapi/activities/cmi.interaction", '
-            '"interactionType": "choice"}, "id": "/my/Activity/URL", "objectType": "Activity"}, "actor": {"account": {"homePage": "http://example.com", "name": '
-            '"uniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
+        
+        the_returned = json.loads(get_response.content)
+        self.assertEqual(the_returned['id'], stmt_id)
+        self.assertEqual(the_returned['actor']['objectType'], 'Agent')
+        self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
+        self.assertEqual(the_returned['actor']['account']['name'], 'uniqueName')
+        self.assertEqual(the_returned['actor']['account']['homePage'], 'http://example.com')
 
-        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-GB": "made", "en-US": "created"}}, '
-            '"result": {"completion": true, "success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, '
-            '"extensions": {"resultKey2": "resultValue2", "resultKey1": "resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, '
-            '"context": {"language": "en-US", "platform": "Platform is web browser.", "extensions": {"contextKey1": "contextVal1", "contextKey2": '
-            '"contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}, "grouping": {"id": '
-            '"http://groupingID"}}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
-            '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "uniqueName"}, "name": '
-            '"Lou Wolford", "objectType": "Agent"}, "revision": "Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", '
-            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)
+        self.assertEqual(the_returned['verb']['id'], 'http://adlnet.gov/expapi/verbs/created')
+        self.assertEqual(the_returned['verb']['display']['en-GB'], 'made')
+        self.assertEqual(the_returned['verb']['display']['en-US'], 'created')
+
+        self.assertEqual(the_returned['result']['completion'], True)
+        self.assertEqual(the_returned['result']['duration'], 'P3Y6M4DT12H30M5S')
+        self.assertEqual(the_returned['result']['extensions']['resultKey1'], 'resultValue1')
+        self.assertEqual(the_returned['result']['extensions']['resultKey2'], 'resultValue2')
+        self.assertEqual(the_returned['result']['response'], 'Well done')
+        self.assertEqual(the_returned['result']['score']['max'], 100)
+        self.assertEqual(the_returned['result']['score']['min'], 0)
+        self.assertEqual(the_returned['result']['score']['raw'], 85)
+        self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
+        self.assertEqual(the_returned['result']['success'], True)
+
+        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['extensions']['contextKey1'], 'contextVal1')
+        self.assertEqual(the_returned['context']['extensions']['contextKey2'], 'contextVal2')
+        self.assertEqual(the_returned['context']['language'], 'en-US')
+        self.assertEqual(the_returned['context']['platform'], 'Platform is web browser.')
+        self.assertEqual(the_returned['context']['registration'], context_id)
+        self.assertEqual(the_returned['context']['revision'], 'Spelling error in choices.')
+        self.assertEqual(the_returned['context']['statement']['id'], str(nested_st_id))
+        self.assertEqual(the_returned['context']['statement']['objectType'], 'StatementRef')
+
+        self.assertEqual(the_returned['authority']['objectType'], 'Agent')
+        self.assertEqual(the_returned['authority']['name'], 'tester1')
+        self.assertEqual(the_returned['authority']['mbox'], 'test1@tester.com')
+
+        self.assertEqual(the_returned['object']['id'], 'http:adlnet.gov/my/Activity/URL')
+        self.assertEqual(the_returned['object']['objectType'], 'Activity')
+        self.assertEqual(the_returned['object']['definition']['description']['en-US'], 'This is my activity description.')
+        self.assertEqual(the_returned['object']['definition']['description']['en-GB'], 'This is another activity description.')
+        self.assertEqual(the_returned['object']['definition']['interactionType'], 'choice')
+        self.assertEqual(the_returned['object']['definition']['name']['en-US'], 'actName')
+        self.assertEqual(the_returned['object']['definition']['name']['en-GB'], 'anotherActName')
+        self.assertEqual(the_returned['object']['definition']['type'], 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction')
+        self.assertEqual(the_returned['object']['definition']['extensions']['key1'], 'value1')
+        self.assertEqual(the_returned['object']['definition']['extensions']['key2'], 'value2')
+        self.assertEqual(the_returned['object']['definition']['extensions']['key3'], 'value3')
+        # arrays.. testing slightly differently
+        choices_str = json.dumps(the_returned['object']['definition']['choices'])
+        self.assertIn('description', choices_str)
+        self.assertIn('id', choices_str)
+        self.assertIn('GOLF', choices_str)
+        self.assertIn('Golf Example', choices_str)
+        self.assertIn('golf', choices_str)
+        self.assertIn('TETRIS', choices_str)
+        self.assertIn('Tetris Example', choices_str)
+        self.assertIn('tetris', choices_str)
+        self.assertIn('FACEBOOK', choices_str)
+        self.assertIn('Facebook App', choices_str)
+        self.assertIn('Facebook', choices_str)
+        self.assertIn('SCRABBLE', choices_str)
+        self.assertIn('Scrabble Example', choices_str)
+        self.assertIn('scrabble', choices_str)
+
+        crp_str = json.dumps(the_returned['object']['definition']['correctResponsesPattern'])
+        self.assertIn('golf', crp_str)
+        self.assertIn('tetris', crp_str)
 
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp, stored fields
@@ -907,17 +959,47 @@ class StatementsTests(TestCase):
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         
-        self.assertIn('"object": {"mbox_sha1sum": "edb97c2848fc47bdd2091028de8a3b1b24933752", "name": "Tom Creighton", "objectType": "Agent"}, "actor": '
-            '{"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', get_response.content)
+        the_returned = json.loads(get_response.content)
+        self.assertEqual(the_returned['id'], stmt_id)
+        self.assertEqual(the_returned['actor']['objectType'], 'Agent')
+        self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
+        self.assertEqual(the_returned['actor']['account']['name'], 'louUniqueName')
+        self.assertEqual(the_returned['actor']['account']['homePage'], 'http://example.com')
+
+        self.assertEqual(the_returned['verb']['id'], 'http://adlnet.gov/expapi/verbs/helped')
+        self.assertEqual(the_returned['verb']['display']['en-GB'], 'assisted')
+        self.assertEqual(the_returned['verb']['display']['en-US'], 'helped')
+
+        self.assertEqual(the_returned['result']['completion'], True)
+        self.assertEqual(the_returned['result']['duration'], 'P3Y6M4DT12H30M5S')
+        self.assertEqual(the_returned['result']['extensions']['resultKey1'], 'resultValue1')
+        self.assertEqual(the_returned['result']['extensions']['resultKey2'], 'resultValue2')
+        self.assertEqual(the_returned['result']['response'], 'Well done')
+        self.assertEqual(the_returned['result']['score']['max'], 100)
+        self.assertEqual(the_returned['result']['score']['min'], 0)
+        self.assertEqual(the_returned['result']['score']['raw'], 85)
+        self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
+        self.assertEqual(the_returned['result']['success'], True)
+
+        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['extensions']['contextKey1'], 'contextVal1')
+        self.assertEqual(the_returned['context']['extensions']['contextKey2'], 'contextVal2')
+        self.assertEqual(the_returned['context']['language'], 'en-US')
+        # registration and revision don't apply when object is an agent
+        # self.assertEqual(the_returned['context']['platform'], 'Platform is web browser.')
+        self.assertEqual(the_returned['context']['registration'], context_id)
+        # self.assertEqual(the_returned['context']['revision'], 'Spelling error in choices.')
+        self.assertEqual(the_returned['context']['statement']['id'], str(nested_st_id))
+        self.assertEqual(the_returned['context']['statement']['objectType'], 'StatementRef')
+
+        self.assertEqual(the_returned['authority']['objectType'], 'Agent')
+        self.assertEqual(the_returned['authority']['name'], 'tester1')
+        self.assertEqual(the_returned['authority']['mbox'], 'test1@tester.com')
 
 
-        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/helped", "display": {"en-GB": "assisted", "en-US": "helped"}}, "result": {"completion": true, '
-            '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
-            '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "extensions": {"contextKey1": "contextVal1", '
-            '"contextKey2": "contextVal2"}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
-            '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", '
-            '"objectType": "Agent"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}}, "id": "12345678-1233-1234-1234-12345678901o", '
-            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)        
+        self.assertEqual(the_returned['object']['objectType'], 'Agent')
+        self.assertEqual(the_returned['object']['name'], 'Tom Creighton')
+        self.assertEqual(the_returned['object']['mbox_sha1sum'], 'edb97c2848fc47bdd2091028de8a3b1b24933752')
 
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamps or stored fields
@@ -953,14 +1035,15 @@ class StatementsTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
             "object": {"objectType": "SubStatement", "actor":{"objectType":"Agent","name":"Tom Creighton","mbox": "tom@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB": "Graded"}},
-            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement",'definition': {'name': {'en-US':'SubStatement name'},
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement",
+            'definition': {'name': {'en-US':'SubStatement name'},
             'description': {'en-US':'SubStatement description'},
-            'type': 'cmi.interaction','interactionType': 'matching',
+            'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'matching',
             'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
             'description': {'en-US':'Lou', 'it': 'Luigi'}},{'id': 'tom','description':{'en-US': 'Tom', 'it':'Tim'}},
             {'id':'andy', 'description':{'en-US':'Andy'}}],'target':[{'id':'1',
-            'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
-            {'id':'3', 'description':{'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}}]}},
+            'description':{'en-US': 'ADL LRS'}},{'id':'2','description':{'en-US': 'lrs'}},
+            {'id':'3', 'description':{'en-US': 'the adl lrs', 'en-CH': 'the lrs'}}]}},
             "result": {"score":{"scaled":.50, "raw": 50, "min":1, "max":51}, "completion": True,
             "success": True, "response": "Poorly done",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"resultKey11": "resultValue11", "resultKey22":"resultValue22"}},
@@ -976,32 +1059,107 @@ class StatementsTests(TestCase):
             "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
             "extensions":{"contextKey1": "contextVal1","contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
-        
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+
+        the_returned = json.loads(get_response.content)
+        self.assertEqual(the_returned['id'], stmt_id)
+        self.assertEqual(the_returned['actor']['objectType'], 'Agent')
+        self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
+        self.assertEqual(the_returned['actor']['account']['name'], 'louUniqueName')
+        self.assertEqual(the_returned['actor']['account']['homePage'], 'http://example.com')
+
+        self.assertEqual(the_returned['verb']['id'], 'http://adlnet.gov/expapi/verbs/said')
+        self.assertEqual(the_returned['verb']['display']['en-GB'], 'talked')
+        self.assertEqual(the_returned['verb']['display']['en-US'], 'said')
         
-        self.assertIn('"object": {"id": "http://example.adlnet.gov/tincan/example/simplestatement", "objectType": "Activity"}, "actor": '
-            '{"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "verb": {"id": "http://adlnet.gov/expapi/verbs/assess", '
-            '"display": {"en-GB": "Graded", "en-US": "assessed"}}, "result": {"completion": true, "success": true, "score": {"scaled": 0.5, '
-            '"raw": 50, "score_min": 1, "score_max": 51}, "extensions": {"resultKey11": "resultValue11", "resultKey22": "resultValue22"}, "duration": '
-            '"P3Y6M4DT12H30M5S", "response": "Poorly done"}, "context": {"language": "en-US", "platform": "Ipad.", "extensions": {"contextKey11": '
-            '"contextVal11", "contextKey22": "contextVal22"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test/nest"}}, '
-            '"statement": {"id": "12345678-1233-1234-1234-1234567890ns", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-1234567890sc", '
-            '"instructor": {"mbox": "tom@adlnet.gov", "name": "Tom Creighton", "objectType": "Agent"}, "revision": "Spelling error in target."}, "objectType": '
-            '"SubStatement"}, "actor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, '
-            '"voided": false,', get_response.content)
+        self.assertEqual(the_returned['object']['actor']['objectType'], 'Agent')
+        self.assertEqual(the_returned['object']['actor']['name'], 'Tom Creighton')
+        self.assertEqual(the_returned['object']['actor']['mbox'], 'tom@adlnet.gov')
         
-        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/said", "display": {"en-GB": "talked", "en-US": "said"}}, "result": {"completion": true, '
-            '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
-            '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "platform": "Platform is web browser.", '
-            '"extensions": {"contextKey1": "contextVal1", "contextKey2": "contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}, '
-            '"statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-12345678901c", '
-            '"instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "revision": '
-            '"Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", "authority": {"mbox": "test1@tester.com", "name": "tester1", '
-            '"objectType": "Agent"}}', get_response.content)
+        self.assertEqual(the_returned['object']['context']['registration'], sub_context_id)
+        self.assertEqual(the_returned['object']['context']['language'], 'en-US')
+        self.assertEqual(the_returned['object']['context']['platform'], 'Ipad.')
+        self.assertEqual(the_returned['object']['context']['revision'], 'Spelling error in target.')
+        self.assertEqual(the_returned['object']['context']['statement']['id'], '12345678-1233-1234-1234-1234567890ns')
+        self.assertEqual(the_returned['object']['context']['statement']['objectType'], 'StatementRef')
+        self.assertEqual(the_returned['object']['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
+        self.assertEqual(the_returned['object']['context']['extensions']['contextKey11'], 'contextVal11')
+        self.assertEqual(the_returned['object']['context']['extensions']['contextKey22'], 'contextVal22')
+        self.assertEqual(the_returned['object']['object']['id'], 'http://example.adlnet.gov/tincan/example/simplestatement')
+        self.assertEqual(the_returned['object']['object']['definition']['type'], 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction')
+        self.assertEqual(the_returned['object']['object']['definition']['description']['en-US'], 'SubStatement description')
+        self.assertEqual(the_returned['object']['object']['definition']['interactionType'], 'matching')
+        self.assertEqual(the_returned['object']['object']['definition']['name']['en-US'], 'SubStatement name')
+        # arrays.. testing slightly differently
+        source_str = json.dumps(the_returned['object']['object']['definition']['source'])
+        self.assertIn('description', source_str)
+        self.assertIn('id', source_str)
+        self.assertIn('Lou', source_str)
+        self.assertIn('Luigi', source_str)
+        self.assertIn('lou', source_str)
+        self.assertIn('Tom', source_str)
+        self.assertIn('Tim', source_str)
+        self.assertIn('tom', source_str)
+        self.assertIn('Andy', source_str)
+        self.assertIn('andy', source_str)
+
+        target_str = json.dumps(the_returned['object']['object']['definition']['target'])
+        self.assertIn('description', target_str)
+        self.assertIn('id', target_str)
+        self.assertIn('ADL LRS', target_str)
+        self.assertIn('1', target_str)
+        self.assertIn('lrs', target_str)
+        self.assertIn('2', target_str)
+        self.assertIn('the lrs', target_str)
+        self.assertIn('the adl lrs', target_str)
+        self.assertIn('3', target_str)
+        
+        self.assertEqual(the_returned['object']['objectType'], 'SubStatement')
+
+        self.assertEqual(the_returned['object']['result']['completion'], True)
+        self.assertEqual(the_returned['object']['result']['duration'], 'P3Y6M4DT12H30M5S')
+        self.assertEqual(the_returned['object']['result']['extensions']['resultKey11'], 'resultValue11')
+        self.assertEqual(the_returned['object']['result']['extensions']['resultKey22'], 'resultValue22')
+        self.assertEqual(the_returned['object']['result']['response'], 'Poorly done')
+        self.assertEqual(the_returned['object']['result']['score']['max'], 51)
+        self.assertEqual(the_returned['object']['result']['score']['min'], 1)
+        self.assertEqual(the_returned['object']['result']['score']['raw'], 50)
+        self.assertEqual(the_returned['object']['result']['score']['scaled'], 0.5)
+        self.assertEqual(the_returned['object']['result']['success'], True)
+        
+        self.assertEqual(the_returned['object']['verb']['id'], 'http://adlnet.gov/expapi/verbs/assess')
+        self.assertEqual(the_returned['object']['verb']['display']['en-GB'], 'Graded')
+        self.assertEqual(the_returned['object']['verb']['display']['en-US'], 'assessed')
+
+        self.assertEqual(the_returned['result']['completion'], True)
+        self.assertEqual(the_returned['result']['duration'], 'P3Y6M4DT12H30M5S')
+        self.assertEqual(the_returned['result']['extensions']['resultKey1'], 'resultValue1')
+        self.assertEqual(the_returned['result']['extensions']['resultKey2'], 'resultValue2')
+        self.assertEqual(the_returned['result']['response'], 'Well done')
+        self.assertEqual(the_returned['result']['score']['max'], 100)
+        self.assertEqual(the_returned['result']['score']['min'], 0)
+        self.assertEqual(the_returned['result']['score']['raw'], 85)
+        self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
+        self.assertEqual(the_returned['result']['success'], True)
+
+        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['extensions']['contextKey1'], 'contextVal1')
+        self.assertEqual(the_returned['context']['extensions']['contextKey2'], 'contextVal2')
+        self.assertEqual(the_returned['context']['language'], 'en-US')
+        self.assertEqual(the_returned['context']['platform'], 'Platform is web browser.')
+        self.assertEqual(the_returned['context']['registration'], context_id)
+        self.assertEqual(the_returned['context']['revision'], 'Spelling error in choices.')
+        self.assertEqual(the_returned['context']['statement']['id'], '12345678-1233-1234-1234-12345678901n')
+        self.assertEqual(the_returned['context']['statement']['objectType'], 'StatementRef')
+
+        self.assertEqual(the_returned['authority']['objectType'], 'Agent')
+        self.assertEqual(the_returned['authority']['name'], 'tester1')
+        self.assertEqual(the_returned['authority']['mbox'], 'test1@tester.com')
+
 
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
@@ -1014,7 +1172,7 @@ class StatementsTests(TestCase):
             "object": {"objectType": "Activity", "id":"test_wrong_list_post",
             "definition": {"name": {"en-US":"wrongactName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
-            "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+            "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
             "interactionType": "choice",
             "correctResponsesPattern": ["wronggolf", "wrongtetris"],
             "choices":[{"id": "wronggolf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
@@ -1068,7 +1226,7 @@ class StatementsTests(TestCase):
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answer"]}},
             "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"test_wrong_list_post2"}}])
@@ -1138,12 +1296,11 @@ class StatementsTests(TestCase):
             "contextActivities": {"other": {"id": "sub-wrong-ActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"wrong-k1": "v1", "wrong-k2": "v2"}}}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"test_wrong_list_post2"}}])
-
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
 
-        s_agent = models.agent.objects.filter(mbox="wrong-ss@s.com")
+        s_agent = models.agent.objects.filter(mbox="wrong-s@s.com")
         ss_agent = models.agent.objects.filter(mbox="wrong-ss@ss.com")
         john_agent  = models.agent.objects.filter(mbox="john@john.com")
         subs = models.SubStatement.objects.all()
