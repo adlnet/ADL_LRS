@@ -173,7 +173,6 @@ class OAuthTests(TestCase):
 
 		# Test wrong params - will not return 'Invalid request parameters.' like oauth example states
 		# because there is no Authorization header. With no auth header the lrs reads as no auth supplied at all
-		pdb.set_trace()
 		resp = self.client.get("/TCAPI/statements/")
 		self.assertEqual(resp.status_code, 401)
 		self.assertEqual(resp.content, 'Auth is enabled but no authentication was sent with the request.')

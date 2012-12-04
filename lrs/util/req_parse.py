@@ -20,7 +20,7 @@ def handle_oauth_request(request, r_dict):
 
 def parse(request):
     r_dict = {}
-    pdb.set_trace()
+    # pdb.set_trace()
     # Traditional authorization should be passed in headers
     if 'Authorization' in request.META:
         if type(request.META['Authorization']) is dict:
@@ -34,7 +34,7 @@ def parse(request):
             r_dict['lrs_auth'] = 'http'
 
     # Authorization could be passed into body if cross origin request
-    if 'Authorization' or 'HTTP_AUTHORIZATION' in request.body: 
+    if 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body: 
         r_dict['lrs_auth'] = 'http'
 
     if 'lrs_auth' not in r_dict:
