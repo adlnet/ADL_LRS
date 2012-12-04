@@ -6,8 +6,7 @@ import StringIO
 import pdb
 import pprint
 
-def handle_oauth_request(request):
-    r_dict = {}
+def handle_oauth_request(request, r_dict):
     r_dict = get_headers(request.META, r_dict)
     r_dict.update(request.GET.dict())
     if 'method' not in r_dict:
@@ -20,14 +19,27 @@ def handle_oauth_request(request):
     return r_dict
 
 def parse(request):
+    r_dict = {}
+    pdb.set_trace()
+    # Traditional authorization should be passed in headers
     if 'Authorization' in request.META:
         if type(request.META['Authorization']) is dict:
-            return handle_oauth_request(request)
+            return handle_oauth_request(request, r_dict)
+        else:
+            r_dict['lrs_auth'] = 'http'
     elif 'HTTP_AUTHORIZATION' in request.META:
         if type(request.META['HTTP_AUTHORIZATION']) is dict:
-            return handle_oauth_request(request)
+            return handle_oauth_request(request, r_dict)
+        else:
+            r_dict['lrs_auth'] = 'http'
 
-    r_dict = {}
+    # Authorization could be passed into body if cross origin request
+    if 'Authorization' or 'HTTP_AUTHORIZATION' in request.body: 
+        r_dict['lrs_auth'] = 'http'
+
+    if 'lrs_auth' not in r_dict:
+        r_dict['lrs_auth'] = 'none'
+
     r_dict['user'] = request.user
 
     if request.method == 'POST' and 'method' in request.GET:
@@ -42,7 +54,6 @@ def parse(request):
     r_dict.update(request.GET.dict())
     if 'method' not in r_dict:
         r_dict['method'] = request.method
-    r_dict['lrs_auth'] = 'http'
     return r_dict
 
 def parse_body(r, request):

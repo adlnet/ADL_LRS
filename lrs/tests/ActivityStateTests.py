@@ -29,8 +29,7 @@ class ActivityStateTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username,'email': self.email,'password':self.password,'password2':self.password}
-        if settings.HTTP_AUTH:
-            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
         self.activity = models.activity(activity_id=self.activityId)
         self.activity.save()
@@ -106,13 +105,12 @@ class ActivityStateTests(TestCase):
 
     def test_put_without_auth(self):
         # Will return 200 if HTTP_AUTH is not enabled
-        if settings.HTTP_AUTH:
-            testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
-            path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
-            teststateregid = {"test":"put activity state w/ registrationId","obj":{"agent":"test"}}
-            put1 = self.client.put(path, teststateregid, content_type=self.content_type, X_Experience_API_Version="0.95")
+        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        teststateregid = {"test":"put activity state w/ registrationId","obj":{"agent":"test"}}
+        put1 = self.client.put(path, teststateregid, content_type=self.content_type, X_Experience_API_Version="0.95")
 
-            self.assertEqual(put1.status_code, 401)
+        self.assertEqual(put1.status_code, 401)
 
     def test_put_etag_conflict_if_none_match(self):
         teststateetaginm = {"test":"etag conflict - if none match *","obj":{"agent":"test"}}

@@ -74,8 +74,8 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
-HTTP_AUTH = True
-OAUTH = True
+HTTP_AUTH_ENABLED = True
+OAUTH_ENABLED = False
 SERVER_STMT_LIMIT = 100
 
 CACHES = {

@@ -3,7 +3,6 @@ from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import views, models
 from os import path
-from django.conf import settings
 import sys
 import json
 import base64
@@ -25,8 +24,7 @@ class StatementsTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        if settings.HTTP_AUTH:
-            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
         self.guid1 = str(uuid.uuid4())
         self.guid2 = str(uuid.uuid4())
@@ -45,15 +43,10 @@ class StatementsTests(TestCase):
         self.cguid5 = str(uuid.uuid4())
         self.cguid6 = str(uuid.uuid4())
 
-        if settings.HTTP_AUTH:
-            self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
-                "display": {"en-US":"created"}}, "object": {"id":"activity"},
-                "actor":{"objectType":"Agent","mbox":"s@s.com"},
-                "authority":{"objectType":"Agent","name":"tester1","mbox":"test1@tester.com"}}))
-        else:
-            self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
-                "display": {"en-US":"created"}}, "object": {"id":"activity"},
-                "actor":{"objectType":"Agent","mbox":"s@s.com"}}))            
+        self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}}, "object": {"id":"activity"},
+            "actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "authority":{"objectType":"Agent","name":"tester1","mbox":"test1@tester.com"}}))            
         
         self.exist_stmt_id = self.existStmt.statement.statement_id
 
@@ -311,9 +304,8 @@ class StatementsTests(TestCase):
 
         self.assertEqual(stmt.actor.mbox, "t@t.com")
 
-        if settings.HTTP_AUTH:
-            self.assertEqual(stmt.authority.name, "tester1")
-            self.assertEqual(stmt.authority.mbox, "test1@tester.com")
+        self.assertEqual(stmt.authority.name, "tester1")
+        self.assertEqual(stmt.authority.mbox, "test1@tester.com")
         
         
         self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
@@ -432,11 +424,10 @@ class StatementsTests(TestCase):
 
     def test_get_no_auth(self):
         # Will return 200 if HTTP_AUTH is enabled
-        if settings.HTTP_AUTH:
-            param = {"statementId":self.guid1}
-            path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-            getResponse = self.client.get(path, X_Experience_API_Version="0.95")
-            self.assertEqual(getResponse.status_code, 401)
+        param = {"statementId":self.guid1}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        getResponse = self.client.get(path, X_Experience_API_Version="0.95")
+        self.assertEqual(getResponse.status_code, 401)
 
     def test_get_no_statementid(self):
         getResponse = self.client.get(reverse(views.statements), X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -718,31 +709,30 @@ class StatementsTests(TestCase):
 
     def test_update_activity_wrong_auth(self):
         # Will respond with 200 if HTTP_AUTH is enabled
-        if settings.HTTP_AUTH:
-            wrong_username = "tester2"
-            wrong_email = "test2@tester.com"
-            wrong_password = "test2"
-            wrong_auth = "Basic %s" % base64.b64encode("%s:%s" % (wrong_username, wrong_password))
-            form = {"username":wrong_username, "email":wrong_email,"password":wrong_password,
-                "password2":wrong_password}
-            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
+        wrong_username = "tester2"
+        wrong_email = "test2@tester.com"
+        wrong_password = "test2"
+        wrong_auth = "Basic %s" % base64.b64encode("%s:%s" % (wrong_username, wrong_password))
+        form = {"username":wrong_username, "email":wrong_email,"password":wrong_password,
+            "password2":wrong_password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
-            stmt = json.dumps({"verb":{"id":"verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"r@r.com"},
-                "object": {"objectType": "Activity", "id":"foogie",
-                "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
-                "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
-                "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
-                "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-                "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
-                "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
-                "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
-                "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
-            
-            post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-                Authorization=wrong_auth, X_Experience_API_Version="0.95")
-            self.assertEqual(post_response.status_code, 403)
-            self.assertEqual(post_response.content, "This ActivityID already exists, and you do not have" + 
-                            " the correct authority to create or update it.")
+        stmt = json.dumps({"verb":{"id":"verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"r@r.com"},
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
+            "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+            "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
+            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
+            "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
+        
+        post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=wrong_auth, X_Experience_API_Version="0.95")
+        self.assertEqual(post_response.status_code, 403)
+        self.assertEqual(post_response.content, "This ActivityID already exists, and you do not have" + 
+                        " the correct authority to create or update it.")
 
     def test_update_activity_correct_auth(self):
         stmt = json.dumps({"verb": {"id":"verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"l@l.com"},
@@ -755,18 +745,6 @@ class StatementsTests(TestCase):
             "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
-
-        if not settings.HTTP_AUTH:
-            stmt = json.dumps({"verb": {"id":"verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"l@l.com"},
-                "object": {"objectType": "Activity", "id":"foogie",
-                "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
-                "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
-                "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
-                "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-                "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
-                "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
-                "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
-                "ckey2": "cval2"}}})
 
         post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="0.95")
@@ -803,10 +781,9 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, "test_cors_post_put")
 
         # This agent is created from registering an auth user, so won't be created if no HTTP_AUTH
-        if settings.HTTP_AUTH:
-            agent = models.agent.objects.get(mbox="test1@tester.com")
-            self.assertEqual(agent.name, "tester1")
-            self.assertEqual(agent.mbox, "test1@tester.com")
+        agent = models.agent.objects.get(mbox="test1@tester.com")
+        self.assertEqual(agent.name, "tester1")
+        self.assertEqual(agent.mbox, "test1@tester.com")
 
     def test_issue_put(self):
         stmt_id = "33f60b35-e1b2-4ddc-9c6f-7b3f65244430" 
@@ -919,26 +896,15 @@ class StatementsTests(TestCase):
             '"interactionType": "choice"}, "id": "/my/Activity/URL", "objectType": "Activity"}, "actor": {"account": {"homePage": "http://example.com", "name": '
             '"uniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', rsp)
 
-
-        if settings.HTTP_AUTH:
-            self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-GB": "made", "en-US": "created"}}, '
-                '"result": {"completion": true, "success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, '
-                '"extensions": {"resultKey2": "resultValue2", "resultKey1": "resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, '
-                '"context": {"language": "en-US", "platform": "Platform is web browser.", "extensions": {"contextKey1": "contextVal1", "contextKey2": '
-                '"contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}, "grouping": {"id": '
-                '"http://groupingID"}}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
-                '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "uniqueName"}, "name": '
-                '"Lou Wolford", "objectType": "Agent"}, "revision": "Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", '
-                '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)
-        else:
-            self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-GB": "made", "en-US": "created"}}, '
-                '"result": {"completion": true, "success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, '
-                '"extensions": {"resultKey2": "resultValue2", "resultKey1": "resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, '
-                '"context": {"language": "en-US", "platform": "Platform is web browser.", "extensions": {"contextKey1": "contextVal1", "contextKey2": '
-                '"contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}, "grouping": {"id": '
-                '"http://groupingID"}}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
-                '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "uniqueName"}, "name": '
-                '"Lou Wolford", "objectType": "Agent"}, "revision": "Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o"}', get_response.content)
+        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-GB": "made", "en-US": "created"}}, '
+            '"result": {"completion": true, "success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, '
+            '"extensions": {"resultKey2": "resultValue2", "resultKey1": "resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, '
+            '"context": {"language": "en-US", "platform": "Platform is web browser.", "extensions": {"contextKey1": "contextVal1", "contextKey2": '
+            '"contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}, "grouping": {"id": '
+            '"http://groupingID"}}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
+            '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "uniqueName"}, "name": '
+            '"Lou Wolford", "objectType": "Agent"}, "revision": "Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", '
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp, stored fields
     def test_all_fields_agent_as_object(self):
@@ -978,22 +944,13 @@ class StatementsTests(TestCase):
         self.assertIn('"object": {"mbox_sha1sum": "edb97c2848fc47bdd2091028de8a3b1b24933752", "name": "Tom Creighton", "objectType": "Agent"}, "actor": '
             '{"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "voided": false,', rsp)
 
-
-        if settings.HTTP_AUTH:
-            self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/helped", "display": {"en-GB": "assisted", "en-US": "helped"}}, "result": {"completion": true, '
-                '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
-                '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "extensions": {"contextKey1": "contextVal1", '
-                '"contextKey2": "contextVal2"}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
-                '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", '
-                '"objectType": "Agent"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}}, "id": "12345678-1233-1234-1234-12345678901o", '
-                '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)        
-        else:
-            self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/helped", "display": {"en-GB": "assisted", "en-US": "helped"}}, "result": {"completion": true, '
-                '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
-                '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "extensions": {"contextKey1": "contextVal1", '
-                '"contextKey2": "contextVal2"}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
-                '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", '
-                '"objectType": "Agent"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}}, "id": "12345678-1233-1234-1234-12345678901o"}', get_response.content)        
+        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/helped", "display": {"en-GB": "assisted", "en-US": "helped"}}, "result": {"completion": true, '
+            '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
+            '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "extensions": {"contextKey1": "contextVal1", '
+            '"contextKey2": "contextVal2"}, "statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": '
+            '"12345678-1233-1234-1234-12345678901c", "instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", '
+            '"objectType": "Agent"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}}, "id": "12345678-1233-1234-1234-12345678901o", '
+            '"authority": {"mbox": "test1@tester.com", "name": "tester1", "objectType": "Agent"}}', get_response.content)        
 
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamps or stored fields
@@ -1071,24 +1028,14 @@ class StatementsTests(TestCase):
             '"SubStatement"}, "actor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, '
             '"voided": false,', rsp)
         
-
-        if settings.HTTP_AUTH:
-            self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/said", "display": {"en-GB": "talked", "en-US": "said"}}, "result": {"completion": true, '
-                '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
-                '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "platform": "Platform is web browser.", '
-                '"extensions": {"contextKey1": "contextVal1", "contextKey2": "contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}, '
-                '"statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-12345678901c", '
-                '"instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "revision": '
-                '"Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", "authority": {"mbox": "test1@tester.com", "name": "tester1", '
-                '"objectType": "Agent"}}', get_response.content)
-        else:
-            self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/said", "display": {"en-GB": "talked", "en-US": "said"}}, "result": {"completion": true, '
-                '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
-                '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "platform": "Platform is web browser.", '
-                '"extensions": {"contextKey1": "contextVal1", "contextKey2": "contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}, '
-                '"statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-12345678901c", '
-                '"instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "revision": '
-                '"Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o"}', get_response.content)            
+        self.assertIn('"verb": {"id": "http://adlnet.gov/expapi/verbs/said", "display": {"en-GB": "talked", "en-US": "said"}}, "result": {"completion": true, '
+            '"success": true, "score": {"scaled": 0.85, "raw": 85, "score_min": 0, "score_max": 100}, "extensions": {"resultKey2": "resultValue2", "resultKey1": '
+            '"resultValue1"}, "duration": "P3Y6M4DT12H30M5S", "response": "Well done"}, "context": {"language": "en-US", "platform": "Platform is web browser.", '
+            '"extensions": {"contextKey1": "contextVal1", "contextKey2": "contextVal2"}, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}}, '
+            '"statement": {"id": "12345678-1233-1234-1234-12345678901n", "objectType": "StatementRef"}, "registration": "12345678-1233-1234-1234-12345678901c", '
+            '"instructor": {"account": {"homePage": "http://example.com", "name": "louUniqueName"}, "name": "Lou Wolford", "objectType": "Agent"}, "revision": '
+            '"Spelling error in choices."}, "id": "12345678-1233-1234-1234-12345678901o", "authority": {"mbox": "test1@tester.com", "name": "tester1", '
+            '"objectType": "Agent"}}', get_response.content)
 
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
@@ -1193,8 +1140,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(john_agent), 1)
         self.assertEqual(len(s_agent), 1)
 
-        if settings.HTTP_AUTH:
-            self.assertEqual(len(auth_agent), 1)
+        self.assertEqual(len(auth_agent), 1)
 
     def test_post_list_rollback_with_void(self):
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"only-s@s.com"},

@@ -9,3 +9,4 @@ from ActivityTests import *
 from StatementModelsTests import *
 from StatementsMoreTests import *
 from OAuthTests import *
+# from AuthTests import *
