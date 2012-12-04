@@ -27,14 +27,6 @@ generate_random = User.objects.make_random_password
 def gen_uuid():
     return uuid.uuid4().hex
 
-# class client(models.Model):
-#     app_id = models.CharField(max_length=64, unique=True, default=gen_uuid)
-#     shared_secret = models.CharField(max_length=64, default=gen_pwd)
-#     name = models.CharField(max_length=200, blank=True, null=True)
-#     description = models.TextField()
-#     active = models.BooleanField(default=True)
-# generate_random = User.objects.make_random_password
-
 class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
     consumer_key = models.CharField(max_length=CONSUMER_KEY_SIZE)

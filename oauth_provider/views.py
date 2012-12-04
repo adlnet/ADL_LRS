@@ -47,7 +47,6 @@ def user_authorization(request):
     The Consumer cannot use the Request Token until it has been authorized by 
     the User.
     """
-    pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
@@ -145,12 +144,13 @@ def access_token(request):
         response = send_oauth_error(err)
     return response
 
-@oauth_required
-def protected_resource_example(request):
-    """
-    Test view for accessing a Protected Resource.
-    """
-    return HttpResponse('Protected Resource access!')
+# @oauth_required
+# def protected_resource_example(request):
+#     pdb.set_trace()
+#     """
+#     Test view for accessing a Protected Resource.
+#     """
+#     return HttpResponse('Protected Resource access!')
 
 @login_required
 def fake_authorize_view(request, token, callback, params):

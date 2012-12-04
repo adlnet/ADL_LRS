@@ -10,9 +10,9 @@ from django.utils.translation import ugettext as _
 
 from utils import initialize_server_request, send_oauth_error
 from consts import OAUTH_PARAMETERS_NAMES
-
-def oauth_required(view_func=None, resource_name=None):
-    return CheckOAuth(view_func, resource_name)
+import pdb
+def oauth_required(request):
+    return CheckOAuth.handle_request(request)
 
 class CheckOAuth(object):
     """
@@ -24,28 +24,48 @@ class CheckOAuth(object):
     CheckOAuth object is used as a method decorator, the view function
     is properly bound to its instance.
     """
-    def __init__(self, view_func, resource_name):
-        self.view_func = view_func
-        self.resource_name = resource_name
-        update_wrapper(self, view_func)
+    def __init__(self, request):
+        pdb.set_trace()
+        self.request = request
+    #     self.view_func = view_func
+    #     self.resource_name = resource_name
+    #     update_wrapper(self, request)
         
-    def __get__(self, obj, cls=None):
-        view_func = self.view_func.__get__(obj, cls)
-        return CheckOAuth(view_func, self.resource_name)
+    # def __get__(self, obj, cls=None):
+    #     return CheckOAuth(request)
     
-    def __call__(self, request, *args, **kwargs):
+    # def __call__(self, request):
+    #     pdb.set_trace()
+    #     if self.is_valid_request(request):
+    #         try:
+    #             consumer, token, parameters = self.validate_token(request)
+    #         except OAuthError, e:
+    #             return send_oauth_error(e)
+
+    #         # Not sure how self.resource_name was being passed...the model class should handle this later 
+    #         # if self.resource_name and token.resource.name != self.resource_name:
+    #         #     return send_oauth_error(OAuthError(_('You are not allowed to access this resource.')))
+    #         # elif consumer and token:
+    #         #     return self.view_func(request, *args, **kwargs)
+    #         if consumer and token:
+    #             request['user'] = token.user
+    #     else:
+    #         return send_oauth_error(OAuthError(_('Invalid request parameters.')))
+    @staticmethod
+    def handle_request(self, request):
+        pdb.set_trace()
         if self.is_valid_request(request):
             try:
                 consumer, token, parameters = self.validate_token(request)
             except OAuthError, e:
                 return send_oauth_error(e)
-            
-            if self.resource_name and token.resource.name != self.resource_name:
-                return send_oauth_error(OAuthError(_('You are not allowed to access this resource.')))
-            elif consumer and token:
-                return self.view_func(request, *args, **kwargs)
-        
-        return send_oauth_error(OAuthError(_('Invalid request parameters.')))
+
+            if consumer and token:
+                request['user'] = token.user
+        else:
+            return send_oauth_error(OAuthError(_('Invalid request parameters.')))
+
+
 
     @staticmethod
     def is_valid_request(request):
@@ -57,7 +77,8 @@ class CheckOAuth(object):
         """
         is_in = lambda l: all((p in l) for p in OAUTH_PARAMETERS_NAMES)
         auth_params = request.META.get("HTTP_AUTHORIZATION", [])
-        return is_in(auth_params) or is_in(request.REQUEST)
+        auth_params_1 = request.META.get("Authorization", [])
+        return is_in(auth_params) or is_in(request.REQUEST) or is_in(auth_params_1)
 
     @staticmethod
     def validate_token(request):

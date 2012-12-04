@@ -155,6 +155,8 @@ def handle_request(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except exceptions.OauthUnauthorized as oauth_err:
+        return oauth_err.response
     except exceptions.Forbidden as forb:
         return HttpResponse(forb.message, status=403)
     except exceptions.NotFound as nf:

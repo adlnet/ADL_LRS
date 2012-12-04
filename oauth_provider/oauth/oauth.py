@@ -269,7 +269,7 @@ class OAuthRequest(object):
         if parameters is None:
             parameters = {}
 
-        # Headers
+        # Headers - he wasn't sending in oauth 'headers' in the header
         # if headers and 'Authorization' in headers:
         #     auth_header = headers['Authorization']
         #     # Check that the authorization header is OAuth.

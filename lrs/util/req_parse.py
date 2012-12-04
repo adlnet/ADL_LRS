@@ -6,8 +6,27 @@ import StringIO
 import pdb
 import pprint
 
+def handle_oauth_request(request):
+    r_dict = {}
+    r_dict = get_headers(request.META, r_dict)
+    r_dict.update(request.GET.dict())
+    if 'method' not in r_dict:
+        r_dict['method'] = request.method
+    r_dict['absolute_uri'] = request.build_absolute_uri()
+    r_dict['parameters'] = request.REQUEST.items()
+    r_dict['query_string'] = request.META.get('QUERY_STRING', '')
+    r_dict['server_name'] = request.META.get('SERVER_NAME', '')
+    r_dict['lrs_auth'] = 'oauth'
+    return r_dict
+
 def parse(request):
-    # pdb.set_trace()
+    if 'Authorization' in request.META:
+        if type(request.META['Authorization']) is dict:
+            return handle_oauth_request(request)
+    elif 'HTTP_AUTHORIZATION' in request.META:
+        if type(request.META['HTTP_AUTHORIZATION']) is dict:
+            return handle_oauth_request(request)
+
     r_dict = {}
     r_dict['user'] = request.user
 
@@ -23,7 +42,7 @@ def parse(request):
     r_dict.update(request.GET.dict())
     if 'method' not in r_dict:
         r_dict['method'] = request.method
-    
+    r_dict['lrs_auth'] = 'http'
     return r_dict
 
 def parse_body(r, request):
@@ -36,18 +55,10 @@ def parse_body(r, request):
         else:
             if request.body:
                 r['body'] = request.body    
-                # if isinstance(request.body, basestring):
-                #     try:
-                #         r['body'] = ast.literal_eval(request.body)
-                #     except:
-                #         r['body'] = json.loads(request.body)
+
             if request.raw_post_data:
                 r['raw_post_data'] = request.raw_post_data    
-                # if isinstance(request.raw_post_data, basestring):
-                #     try:
-                #         r['raw_post_data'] = ast.literal_eval(request.raw_post_data)
-                #     except:
-                #         r['raw_post_data'] = json.loads(request.raw_post_data)
+
     return r
 
 def get_headers(headers, r):
