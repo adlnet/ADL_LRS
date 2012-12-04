@@ -26,8 +26,10 @@ class StatementsTests(TestCase):
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
-
+        self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         self.guid1 = str(uuid.uuid4())
+
+    def bunchostmts(self):
         self.guid2 = str(uuid.uuid4())
         self.guid3 = str(uuid.uuid4())    
         self.guid4 = str(uuid.uuid4())
@@ -49,7 +51,6 @@ class StatementsTests(TestCase):
             "authority":{"objectType":"Agent","name":"tester1","mbox":"test1@tester.com"}}))
         self.exist_stmt_id = self.existStmt.statement.statement_id
 
-        self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
         self.existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
@@ -374,6 +375,7 @@ class StatementsTests(TestCase):
         self.assertIn(response.content, "Error -- statements - method = PUT, but statementId paramater is missing")
 
     def test_get(self):
+        self.bunchostmts()
         param = {"statementId":self.guid1}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         getResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -412,6 +414,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(jsn["statements"]), models.statement.objects.all().count())
         
     def test_since_filter(self):
+        self.bunchostmts()
         # Test since - should only get existStmt1-8 since existStmt is stored at same time as firstTime
         param = {"since": self.firstTime}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -428,6 +431,7 @@ class StatementsTests(TestCase):
         self.assertContains(sinceGetResponse, self.guid8)
 
     def test_until_filter(self):
+        self.bunchostmts()
         # Test until
         param = {"until": self.secondTime}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -444,6 +448,7 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid8, untilGetResponse)
 
     def test_activity_object_filter(self):
+        self.bunchostmts()
         # Test activity object
         param = {"object":{"objectType": "Activity", "id":"foogie"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -474,6 +479,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(stmts["statements"]), len(dbstmts))
 
     def test_verb_filter(self):
+        self.bunchostmts()
         param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         verb_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -491,6 +497,7 @@ class StatementsTests(TestCase):
 
 
     def test_actor_object_filter(self):
+        self.bunchostmts()
         # Test actor object
         param = {"object":{"objectType": "Agent", "name":"jon","mbox":"jon@jon.com"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -505,6 +512,7 @@ class StatementsTests(TestCase):
 
     
     def test_substatement_object_filter(self):
+        self.bunchostmts()
         param = {"object":{"objectType": "SubStatement", "actor":{"objectType":"Agent","mbox":"ss@ss.com"},
         "verb": {"id":"verb/url/nested"},"object":{"objectType":"activity", "id":"testex.com"},
         "result":{"completion": True, "success": True,"response": "kicked"},"context":{"registration": self.cguid6,
@@ -526,6 +534,7 @@ class StatementsTests(TestCase):
 
 
     def test_registration_filter(self):
+        self.bunchostmts()
         # Test Registration
         param = {"registration": self.cguid4}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -542,6 +551,7 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid8, registrationPostResponse)
 
     def test_ascending_filter(self):
+        self.bunchostmts()
         # Test actor
         ascending_get_response = self.client.get(reverse(views.statements), 
             {"ascending": True},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -558,6 +568,7 @@ class StatementsTests(TestCase):
         self.assertContains(ascending_get_response, str(self.exist_stmt_id))
 
     def test_actor_filter(self):
+        self.bunchostmts()
         # Test actor
         actorGetResponse = self.client.post(reverse(views.statements), 
             {"actor":{"objectType": "Agent", "mbox":"s@s.com"}},
@@ -574,6 +585,7 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid2, actorGetResponse)
 
     def test_instructor_filter(self):
+        self.bunchostmts()
         # Test instructor - will only return one b/c actor in stmt supercedes instructor in context
         instructorGetResponse = self.client.post(reverse(views.statements), 
                                                 {"instructor":{"name":"bill","mbox":"bill@bill.com"}},  
@@ -591,6 +603,7 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid8, instructorGetResponse)
 
     def test_authoritative_filter(self):
+        self.bunchostmts()
         # Test authoritative
         self.username = "tester1"
         self.email = "test1@tester.com"
@@ -631,6 +644,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(stmts["statements"]), 2)
 
     def test_limit_filter(self):
+        self.bunchostmts()
         # Test limit
         limitGetResponse = self.client.post(reverse(views.statements),{"limit":1}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
         respList = json.loads(limitGetResponse.content)
@@ -639,6 +653,7 @@ class StatementsTests(TestCase):
         self.assertContains(limitGetResponse, self.guid9)
 
     def test_sparse_filter(self):
+        self.bunchostmts()
         # Test sparse
         sparseGetResponse = self.client.post(reverse(views.statements),{"sparse": False}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(sparseGetResponse.status_code, 200)
@@ -652,6 +667,7 @@ class StatementsTests(TestCase):
         self.assertContains(sparseGetResponse, "testdesc3")
 
     def test_linked_filters(self):
+        self.bunchostmts()
         # Test reasonable linked query
         param = {"verb":"http://adlnet.gov/expapi/verbs/created", "object":{"objectType": "Activity", "id":"foogie"}, "since":self.secondTime, "authoritative":"False", "sparse": False}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -660,6 +676,7 @@ class StatementsTests(TestCase):
         self.assertContains(linkedGetResponse, self.guid2)
 
     def test_language_header_filter(self):
+        self.bunchostmts()
         param = {"limit":1, "object":{"objectType": "Activity", "id":"foogie"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         lang_get_response = self.client.get(path, Accept_Language="en-US", X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -673,10 +690,28 @@ class StatementsTests(TestCase):
 
     # Sever activities are PUT, but should be 6 since two have same ID and auth
     def test_number_of_activities(self):
+        self.bunchostmts()
         acts = len(models.activity.objects.all())
         self.assertEqual(6, acts)
 
     def test_update_activity_wrong_auth(self):
+        existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
+            "object": {"objectType": "Activity", "id":"foogie",
+            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
+            "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
+            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
+            "ckey2": "cval2"}}})
+        param = {"statementId":self.guid1}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = existStmt1
+        putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        
         wrong_username = "tester2"
         wrong_email = "test2@tester.com"
         wrong_password = "test2"
@@ -692,7 +727,7 @@ class StatementsTests(TestCase):
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
-            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
         
@@ -703,6 +738,7 @@ class StatementsTests(TestCase):
                         " the correct authority to create or update it.")
 
     def test_update_activity_correct_auth(self):
+        self.bunchostmts()
         stmt = json.dumps({"verb": {"id":"verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"l@l.com"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
@@ -816,6 +852,7 @@ class StatementsTests(TestCase):
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp and stored fields
     def test_all_fields_activity_as_object(self):
+        self.bunchostmts()
         nested_st_id = "12345678-1233-1234-1234-12345678901n"
         nest_param = {"statementId":nested_st_id}
         nest_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_param))
@@ -1163,6 +1200,7 @@ class StatementsTests(TestCase):
 
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
+        self.bunchostmts()
         cguid1 = str(uuid.uuid4())
         # print cguid1
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"test_wrong_list_post2"},
@@ -1220,6 +1258,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(crp_answers), 0)
 
     def test_post_list_rollback_part_2(self):
+        self.bunchostmts()
         stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"john@john.com"},
             "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
             "actor":{"objectType":"Agent","mbox":"s@s.com"}},
@@ -1263,6 +1302,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(auth_agent), 1)
 
     def test_post_list_rollback_with_void(self):
+        self.bunchostmts()
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"only-s@s.com"},
             "object": {"objectType":"StatementRef","id":str(self.exist_stmt_id)},
             "verb": {"id": "http://adlnet.gov/expapi/verbs/voided","display": {"en-US":"voided"}}},
@@ -1283,6 +1323,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(only_actor), 0)
 
     def test_post_list_rollback_with_subs(self):
+        self.bunchostmts()
         sub_context_id = str(uuid.uuid4())
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"wrong-s@s.com"},
             "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},

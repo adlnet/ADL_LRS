@@ -183,7 +183,7 @@ class Statement():
     def _saveResultToDB(self, result, resultExts, resultString):
         #If the result is a string, create empty result and save the string in a result extension with the key resultString
         if resultString:
-            rslt = models.result()
+            rslt = models.result(content_object=self.statement)
             rslt.save()
 
             res_ext = models.extensions(key='resultString', value=result, content_object=rslt)
@@ -192,7 +192,7 @@ class Statement():
 
         #Save the result with all of the args
         sc = result.pop('score', None)
-        rslt = models.result(**result)
+        rslt = models.result(content_object=self.statement, **result)
         rslt.save()
         if sc:
             sc.result = rslt
@@ -213,10 +213,6 @@ class Statement():
             con_act_data = context['contextActivities']
             del context['contextActivities']
 
-        # if 'instructor' in context:
-        #     del context['instructor']
-        # if 'team' in context:
-        #     del context['team']
         cs = None
         if 'cntx_statement' in context:
             cs = context['cntx_statement'] 
@@ -231,9 +227,8 @@ class Statement():
 
         if con_act_data:
             for con_act in con_act_data.items():
-                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'])
+                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'], context=cntx)
                 ca.save()
-                cntx.contextactivity_set.add(ca)
             cntx.save()
 
         if contextExts:
@@ -443,10 +438,7 @@ class Statement():
         #Set voided to default false
         args['voided'] = False
 
-        #Set result when present - result object can be string or JSON object
-        if 'result' in stmt_data:
-            # args['result'] = self._populateResult(stmt_data, raw_verb)
-            args['result'] = self._populateResult(stmt_data, args['verb'])
+        
 
 	    # Set context when present
         if 'context' in stmt_data:
@@ -480,6 +472,9 @@ class Statement():
         # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args, sub)
+        #Set result when present - result object can be string or JSON object
+        if 'result' in stmt_data:
+            self._populateResult(stmt_data, args['verb'])
         # self._build_verb_object(raw_verb)
 
 class SubStatement(Statement):

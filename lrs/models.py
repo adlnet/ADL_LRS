@@ -88,15 +88,24 @@ class result(models.Model):
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=200, blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
-    #TODO: OTO to statement
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def object_return(self):
         ret = {}
-        for field in self._meta.fields:
-            if not field.name == 'id':
-                value = getattr(self, field.name)
-                if not value is None:
-                    ret[field.name] = value
+        
+        if self.success:
+            ret['success'] = self.success
+
+        if self.completion:
+            ret['completion'] = self.completion
+
+        if self.response:
+            ret['response'] = self.response
+
+        if self.duration:
+            ret['duration'] = self.duration
                         
         try:
             ret['score'] = self.score.object_return()
@@ -524,7 +533,7 @@ class StatementRef(statement_object):
 class ContextActivity(models.Model):
     key = models.CharField(max_length=20, null=True)
     context_activity = models.CharField(max_length=200, null=True)
-    context = models.ManyToManyField('context')
+    context = models.ForeignKey('context')
     
     def object_return(self):
         ret = {}
@@ -541,7 +550,7 @@ class context(models.Model):
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
-    # TODO: add statement FK
+    # TODO: add statement FK?
 
     def object_return(self):
         ret = {}
@@ -559,11 +568,9 @@ class context(models.Model):
                     elif field.name == 'cntx_statement':
                         ret['statement'] = self.cntx_statement.object_return()                    
         if self.contextactivity_set:
-            con_act_set = self.contextactivity_set.all()
             ret['contextActivities'] = {}
-            for con_act in con_act_set:
-                ret['contextActivities'][con_act.key] = {}
-                ret['contextActivities'][con_act.key]['id'] = con_act.context_activity 
+            for con_act in self.contextactivity_set.all():
+                ret['contextActivities'].update(con_act.object_return())
         try:
             ret['statement'] = self.statementref.object_return()
         except:
@@ -574,14 +581,6 @@ class context(models.Model):
         for ext in context_ext:
             ret['extensions'].update(ext.object_return())        
         return ret
-
-    def delete(self, *args, **kwargs):
-        if not self.contextactivity_set is None:
-            con_act_set = self.contextactivity_set.all()
-            for con_act in con_act_set:
-                con_act.delete()
-
-        super(context, self).delete(*args, **kwargs)
 
 
 class activity_state(models.Model):
@@ -614,8 +613,8 @@ class activity_profile(models.Model):
 class SubStatement(statement_object):
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_substatement")
     actor = models.ForeignKey(agent,related_name="actor_of_substatement")
-    verb = models.ForeignKey(Verb)    
-    result = models.OneToOneField(result, blank=True,null=True)
+    verb = models.ForeignKey(Verb)
+    result = generic.GenericRelation(result)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = models.OneToOneField(context, related_name="context_of_statement",blank=True, null=True)
 
@@ -638,7 +637,9 @@ class SubStatement(statement_object):
         else:
             ret['object'] = stmt_object.get_agent_json()
 
-        ret['result'] = self.result.object_return()
+        if len(self.result.all()) > 0:
+            # if any, should only be 1
+            ret['result'] = self.result.all()[0].object_return()
         ret['context'] = self.context.object_return()
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
@@ -665,14 +666,7 @@ class SubStatement(statement_object):
         object_type = None
 
         stmt_object, object_type = self.get_object()
-
-        try:
-            # Need if stmt - if it is None and DNE it throws no attribute delete error
-            if not self.result is None:
-                self.result.delete()
-        except result.DoesNotExist:
-            pass # already deleted- could be caused by substatement
-              
+      
         try:
             if not self.context is None:
                 self.context.delete()
@@ -796,8 +790,8 @@ class statement(models.Model):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
-    verb = models.ForeignKey(Verb)    
-    result = models.OneToOneField(result, blank=True,null=True)
+    verb = models.ForeignKey(Verb)
+    result = generic.GenericRelation(result)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
@@ -829,8 +823,9 @@ class statement(models.Model):
             ret['object'] = stmt_object.object_return(lang)  
         else:
             ret['object'] = stmt_object.get_agent_json()
-        if not self.result is None:
-            ret['result'] = self.result.object_return()        
+        if len(self.result.all()) > 0:
+            # should only ever be one.. used generic fk to handle sub stmt and stmt
+            ret['result'] = self.result.all()[0].object_return()        
         if not self.context is None:
             ret['context'] = self.context.object_return()
         
@@ -894,13 +889,6 @@ class statement(models.Model):
         else:
             stmt_object, object_type = self.get_object()
         
-        try:
-            # Need if stmt - if it is None and DNE it throws no attribute delete error
-            if not self.result is None:
-                self.result.delete()
-        except result.DoesNotExist:
-            pass # already deleted- could be caused by substatement
-              
         try:
             if not self.context is None:
                 self.context.delete()

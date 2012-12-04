@@ -276,7 +276,7 @@ class Activity():
 
     def _do_definition(self, the_object, act_created):
         activity_definition = the_object['definition']
-        activity_id = self.activity.activity_id #the_object['id']
+        activity_id = self.activity.activity_id
         #Verify the given activity_id resolves if it is a link (has to resolve if link) 
         xml_data = {}
         try:
@@ -306,10 +306,7 @@ class Activity():
         
     # Save language map object for activity definition name or description
     def _save_lang_map(self, lang_map, parent):
-        k = lang_map[0]
-        v = lang_map[1]
-
-        language_map = models.LanguageMap(key = k, value = v, content_object=parent)
+        language_map = models.LanguageMap(key = lang_map[0], value = lang_map[1], content_object=parent)
         
         language_map.save()        
         return language_map
@@ -441,11 +438,9 @@ class Activity():
         crp = models.activity_def_correctresponsespattern(activity_definition=self.activity.activity_definition)
         crp.save()
         #For each answer in the pattern save it
-        self.answers = []
         for i in act_def['correctResponsesPattern']:
             answer = models.correctresponsespattern_answer(answer=i, correctresponsespattern=crp)
             answer.save()
-            self.answers.append(answer)
 
         #Depending on which type of interaction, save the unique fields accordingly
         if interactionFlag == 'choices' or interactionFlag == 'sequencing':
@@ -462,7 +457,6 @@ class Activity():
                         raise exceptions.ParamError("Choice description must be a language map")
 
         elif interactionFlag == 'scale':
-            self.scale_choices = []
             for s in act_def['scale']:
                 scale = models.activity_definition_scale(scale_id=s['id'], activity_definition=self.activity.activity_definition)        
                 scale.save()
@@ -473,12 +467,9 @@ class Activity():
                         scale.save()
                     else:
                         scale.delete()
-                        raise exceptions.ParamError("Scale description must be a language map")                        
-
-                self.scale_choices.append(scale)
+                        raise exceptions.ParamError("Scale description must be a language map")
 
         elif interactionFlag == 'steps':
-            self.steps = []
             for s in act_def['steps']:
                 step = models.activity_definition_step(step_id=s['id'], activity_definition=self.activity.activity_definition)
                 step.save()
@@ -491,11 +482,7 @@ class Activity():
                         step.delete()
                         raise exceptions.ParamError("Step description must be a language map")                        
 
-                self.steps.append(step)
-
         elif interactionFlag == 'source':
-            self.source_choices = []
-            self.target_choices = []
             for s in act_def['source']:
                 source = models.activity_definition_source(source_id=s['id'], activity_definition=self.activity.activity_definition)
                 source.save()                        
@@ -507,8 +494,7 @@ class Activity():
                     else:
                         source.delete()
                         raise exceptions.ParamError("Source description must be a language map")                        
-                self.source_choices.append(source)
-            
+
             for t in act_def['target']:
                 target = models.activity_definition_target(target_id=t['id'], activity_definition=self.activity.activity_definition)
                 target.save()
@@ -521,12 +507,7 @@ class Activity():
                         target.delete()
                         raise exceptions.ParamError("Target description must be a language map")                        
 
-                self.target_choices.append(target)        
-
-
     def _populate_extensions(self, act_def):
-        self.activity_definition_extensions = []
-
         for k, v in act_def['extensions'].items():
             act_def_ext = models.extensions(key=k, value=v,
                 content_object=self.activity.activity_definition)

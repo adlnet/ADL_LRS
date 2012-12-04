@@ -145,16 +145,19 @@ class StatementModelsTests(TestCase):
             "result": "This is a string."}))
         
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        result = models.result.objects.get(id=stmt.statement.result.id)
+        # if any result, should only be one
+        self.assertEqual(len(stmt.statement.result.all()), 1)
+        resid = stmt.statement.result.all()[0].id
+        result = models.result.objects.get(id=resid)
         ext = result.extensions.all()
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.result.id, result.id)
+        self.assertEqual(stmt.statement.result.all()[0].id, result.id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.id, result.id)
+        self.assertEqual(st.result.all()[0].id, result.id)
 
         self.assertEqual(1, len(ext))
         res_str = ext[0]
@@ -168,15 +171,17 @@ class StatementModelsTests(TestCase):
             'verb': {"id":"verb/url"},"object": {'id':'activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        result = models.result.objects.get(id=stmt.statement.result.id)
+        self.assertEqual(len(stmt.statement.result.all()), 1)
+        resid = stmt.statement.result.all()[0].id
+        result = models.result.objects.get(id=resid)
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.result.id, result.id)
+        self.assertEqual(stmt.statement.result.all()[0].id, result.id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.id, result.id)
+        self.assertEqual(st.result.all()[0].id, result.id)
 
         self.assertEqual(result.completion, True)
         self.assertEqual(result.success, True)
@@ -191,7 +196,9 @@ class StatementModelsTests(TestCase):
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'key1': 'value1', 'key2':'value2'}}}))
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        result = models.result.objects.get(id=stmt.statement.result.id)
+        self.assertEqual(len(stmt.statement.result.all()), 1)
+        resid = stmt.statement.result.all()[0].id
+        result = models.result.objects.get(id=resid)
         actor = models.agent.objects.get(id=stmt.statement.actor.id)
         extList = result.extensions.values_list()
         extKeys = [ext[1] for ext in extList]
@@ -199,12 +206,12 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.result.id, result.id)
+        self.assertEqual(stmt.statement.result.all()[0].id, result.id)
         self.assertEqual(stmt.statement.actor.id, actor.id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.id, result.id)
+        self.assertEqual(st.result.all()[0].id, result.id)
         self.assertEqual(st.actor.id, actor.id)
 
         self.assertEqual(result.completion, True)
@@ -229,8 +236,10 @@ class StatementModelsTests(TestCase):
             'extensions':{'key1': 'value1', 'key2':'value2'}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        result = models.result.objects.get(id=stmt.statement.result.id)
-        score = models.score.objects.get(id=stmt.statement.result.score.id)
+        self.assertEqual(len(stmt.statement.result.all()), 1)
+        resid = stmt.statement.result.all()[0].id
+        result = models.result.objects.get(id=resid)
+        score = models.score.objects.get(id=stmt.statement.result.all()[0].score.id)
         actor = models.agent.objects.get(id=stmt.statement.actor.id)
         extList = result.extensions.values_list()
         extKeys = [ext[1] for ext in extList]
@@ -238,12 +247,12 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.result.id, result.id)
+        self.assertEqual(stmt.statement.result.all()[0].id, result.id)
         self.assertEqual(stmt.statement.actor.id, actor.id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.id, result.id)
+        self.assertEqual(st.result.all()[0].id, result.id)
         self.assertEqual(st.actor.id, actor.id)
 
         self.assertEqual(result.completion, True)
@@ -559,7 +568,9 @@ class StatementModelsTests(TestCase):
         sub_obj = models.activity.objects.get(id=sub_stmt.stmt_object.id)
         sub_act = models.agent.objects.get(id=sub_stmt.actor.id)
         sub_con = models.context.objects.get(id=sub_stmt.context.id)
-        sub_res = models.result.objects.get(id=sub_stmt.result.id)
+        self.assertEqual(len(sub_stmt.result.all()), 1)
+        resid = sub_stmt.result.all()[0].id
+        sub_res = models.result.objects.get(id=resid)
 
         self.assertEqual(outer_stmt.verb.verb_id, "verb/url")
         self.assertEqual(outer_stmt.actor.mbox, 's@s.com')        
