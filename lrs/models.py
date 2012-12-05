@@ -550,13 +550,17 @@ class context(models.Model):
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
-    # TODO: add statement FK?
+    # for statement and sub statement
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def object_return(self):
         ret = {}
         linked_fields = ['instructor', 'team', 'cntx_statement', 'contextActivities']
+        ignore = ['id', 'content_type', 'object_id', 'content_object']
         for field in self._meta.fields:
-            if not field.name == 'id':
+            if not field.name in ignore:
                 value = getattr(self, field.name)
                 if not value is None:
                     if not field.name in linked_fields:
@@ -616,8 +620,8 @@ class SubStatement(statement_object):
     verb = models.ForeignKey(Verb)
     result = generic.GenericRelation(result)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
-    context = models.OneToOneField(context, related_name="context_of_statement",blank=True, null=True)
-
+    context = generic.GenericRelation(context)
+    
     def object_return(self, lang=None):
         activity_object = True
         ret = {}
@@ -640,7 +644,8 @@ class SubStatement(statement_object):
         if len(self.result.all()) > 0:
             # if any, should only be 1
             ret['result'] = self.result.all()[0].object_return()
-        ret['context'] = self.context.object_return()
+        if len(self.context.all()) > 0:
+            ret['context'] = self.context.all()[0].object_return()
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
@@ -666,13 +671,10 @@ class SubStatement(statement_object):
         object_type = None
 
         stmt_object, object_type = self.get_object()
-      
-        try:
-            if not self.context is None:
-                self.context.delete()
-        except context.DoesNotExist:
-            pass # already deleted - caused by agent cascade delete
-        
+
+        if len(self.context.all()) > 0:
+            self.context.all().delete()
+
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
         actor_agent = agent.objects.get(id=self.actor.id)
@@ -686,7 +688,7 @@ class SubStatement(statement_object):
                 except:
                     continue
                 # If looking at statement actors, if there's another stmt with same actor-in use
-                if link == "actor_statement":
+                if link == "actor_statement" or link == "actor_of_substatement":
                     # Will already have one (self)
                     if len(objects) > 1:
                         actor_in_use = True
@@ -796,7 +798,7 @@ class statement(models.Model):
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
-    context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
+    context = generic.GenericRelation(context)
     authoritative = models.BooleanField(default=True)
 
     def object_return(self, lang=None):
@@ -826,8 +828,8 @@ class statement(models.Model):
         if len(self.result.all()) > 0:
             # should only ever be one.. used generic fk to handle sub stmt and stmt
             ret['result'] = self.result.all()[0].object_return()        
-        if not self.context is None:
-            ret['context'] = self.context.object_return()
+        if len(self.context.all()) > 0:
+            ret['context'] = self.context.all()[0].object_return()
         
         ret['timestamp'] = str(self.timestamp)
         ret['stored'] = str(self.stored)
@@ -839,8 +841,14 @@ class statement(models.Model):
         return ret
 
     def save(self, *args, **kwargs):
-        # actor object context authority
-        statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
+        stmts = statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, authority=self.authority)
+        cs = self.context.all()
+        sl = [x for x in stmts if len(x.context.all()) == len(cs)]
+        if len(cs) > 0:
+            sl = [s for s in sl if s.context.all()[0].id == cs.context.all().id]
+        
+        for s in sl:
+            statement.objects.filter(id=s.id).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
 
     def get_object(self):
@@ -889,12 +897,9 @@ class statement(models.Model):
         else:
             stmt_object, object_type = self.get_object()
         
-        try:
-            if not self.context is None:
-                self.context.delete()
-        except context.DoesNotExist:
-            pass # already deleted - caused by agent cascade delete
-        
+        if len(self.context.all()) > 0:
+            self.context.all().delete()
+
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
         actor_agent = agent.objects.get(id=self.actor.id)

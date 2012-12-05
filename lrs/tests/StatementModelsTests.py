@@ -7,6 +7,11 @@ import uuid
 
 from lrs.objects import Statement
 
+def get_ctx_id(stmt):
+    if len(stmt.context.all()) > 0:
+        return stmt.context.all()[0].id
+    return None
+
 class StatementModelsTests(TestCase):
          
     def test_minimum_stmt(self):
@@ -278,7 +283,8 @@ class StatementModelsTests(TestCase):
         # expect the LRS to assign a context registration uuid
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'s@s.com'},"verb":{"id":"verb/url"},"object": {'id':'activity14'},
                          'context': {'contextActivities': {'other': {'id': 'NewActivityID'}}}})).statement
-        context = models.context.objects.get(id=stmt.context.id)
+        ctxid = get_ctx_id(stmt)
+        context = models.context.objects.get(id=ctxid)
         self.assertIsNotNone(context.registration)   
 
 
@@ -291,16 +297,17 @@ class StatementModelsTests(TestCase):
                 'language': 'en-US'}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        context = models.context.objects.get(id=stmt.statement.context.id)
-        context_activities = stmt.statement.context.contextactivity_set.all()
+        ctxid = get_ctx_id(stmt.statement)
+        context = models.context.objects.get(id=ctxid)
+        context_activities = stmt.statement.context.all()[0].contextactivity_set.all()
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.context.id, context.id)
+        self.assertEqual(ctxid, context.id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
         self.assertEqual(context_activities[1].key, 'grouping')
         self.assertEqual(context_activities[1].context_activity, 'GroupID')
         self.assertEqual(context_activities[0].key, 'other')
@@ -320,19 +327,20 @@ class StatementModelsTests(TestCase):
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'k1': 'v1', 'k2': 'v2'}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        context = models.context.objects.get(id=stmt.statement.context.id)
+        ctxid = get_ctx_id(stmt.statement)
+        context = models.context.objects.get(id=ctxid)
         extList = context.extensions.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
-        context_activities = stmt.statement.context.contextactivity_set.all()
+        context_activities = stmt.statement.context.all()[0].contextactivity_set.all()
 
         self.assertEqual(stmt.statement.verb.verb_id, "verb/url")
         self.assertEqual(stmt.statement.stmt_object.id, activity.id)
-        self.assertEqual(stmt.statement.context.id, context.id)
+        self.assertEqual(ctxid, context.id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
@@ -360,14 +368,15 @@ class StatementModelsTests(TestCase):
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        context = models.context.objects.get(id=stmt.statement.context.id)
+        ctxid = get_ctx_id(stmt.statement)
+        context = models.context.objects.get(id=ctxid)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
 
         self.assertEqual(context.registration, guid)
 
@@ -390,17 +399,18 @@ class StatementModelsTests(TestCase):
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        context = models.context.objects.get(id=stmt.statement.context.id)
-        conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
+        ctxid = get_ctx_id(stmt.statement)
+        context = models.context.objects.get(id=ctxid)
+        conactor = models.agent.objects.get(id=stmt.statement.context.all()[0].instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.statement.context.contextactivity_set.all()
+        context_activities = stmt.statement.context.all()[0].contextactivity_set.all()
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.instructor.id, conactor.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
+        self.assertEqual(st.context.all()[0].instructor.id, conactor.id)
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
@@ -430,16 +440,17 @@ class StatementModelsTests(TestCase):
             'language': 'en-US', 'statement': {'id':stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
-        context = models.context.objects.get(id=stmt.statement.context.id)
-        conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
+        ctxid = get_ctx_id(stmt.statement)
+        context = models.context.objects.get(id=ctxid)
+        conactor = models.agent.objects.get(id=stmt.statement.context.all()[0].instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
         st = models.statement.objects.get(id=stmt.statement.id)
-        context_activities = stmt.statement.context.contextactivity_set.all()
+        context_activities = stmt.statement.context.all()[0].contextactivity_set.all()
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.instructor.id, conactor.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
+        self.assertEqual(st.context.all()[0].instructor.id, conactor.id)
         self.assertEqual(st.verb.verb_id, "verb/url" )
 
         self.assertEqual(context.registration, guid)
@@ -497,16 +508,17 @@ class StatementModelsTests(TestCase):
             )
         )
 
-        context = models.context.objects.get(id=stmt.statement.context.id)
-        conactor = models.agent.objects.get(id=stmt.statement.context.instructor.id)
+        ctxid = get_ctx_id(stmt.statement)
+        context = models.context.objects.get(id=ctxid)
+        conactor = models.agent.objects.get(id=stmt.statement.context.all()[0].instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.statement.context.contextactivity_set.all()
+        context_activities = stmt.statement.context.all()[0].contextactivity_set.all()
 
         st = models.statement.objects.get(id=stmt.statement.id)
 
-        self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.instructor.id, conactor.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
+        self.assertEqual(st.context.all()[0].instructor.id, conactor.id)
         self.assertEqual(st.verb.verb_id, "verb/url")
 
         self.assertEqual(context.registration, guid)
@@ -567,7 +579,7 @@ class StatementModelsTests(TestCase):
         sub_stmt = models.SubStatement.objects.get(id=outer_stmt.stmt_object.id)
         sub_obj = models.activity.objects.get(id=sub_stmt.stmt_object.id)
         sub_act = models.agent.objects.get(id=sub_stmt.actor.id)
-        sub_con = models.context.objects.get(id=sub_stmt.context.id)
+        sub_con = models.context.objects.get(id=sub_stmt.context.all()[0].id)
         self.assertEqual(len(sub_stmt.result.all()), 1)
         resid = sub_stmt.result.all()[0].id
         sub_res = models.result.objects.get(id=resid)

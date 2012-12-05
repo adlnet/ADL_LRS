@@ -218,7 +218,7 @@ class Statement():
             cs = context['cntx_statement'] 
             del context['cntx_statement']
         # pdb.set_trace()
-        cntx = models.context(**context)    
+        cntx = models.context(content_object=self.statement, **context)    
         cntx.save()
 
         if cs:
@@ -437,16 +437,10 @@ class Statement():
 
         #Set voided to default false
         args['voided'] = False
-
         
-
-	    # Set context when present
-        if 'context' in stmt_data:
-            args['context'] = self._populateContext(stmt_data)
-
-      	# Set timestamp when present
-      	if 'timestamp' in stmt_data:
-      		args['timestamp'] = stmt_data['timestamp']
+        # Set timestamp when present
+        if 'timestamp' in stmt_data:
+            args['timestamp'] = stmt_data['timestamp']
 
         if 'authority' in stmt_data:
             args['authority'] = Agent(initial=stmt_data['authority'], create=True).agent
@@ -469,13 +463,16 @@ class Statement():
             #Create uuid for ID
             args['statement_id'] = uuid.uuid4()
 
-        # args['stored'] = datetime.datetime.utcnow().replace(tzinfo=utc).isoformat()
         #Save statement
         self.statement = self._saveStatementToDB(args, sub)
+
         #Set result when present - result object can be string or JSON object
         if 'result' in stmt_data:
             self._populateResult(stmt_data, args['verb'])
-        # self._build_verb_object(raw_verb)
+
+	    # Set context when present
+        if 'context' in stmt_data:
+            self._populateContext(stmt_data)
 
 class SubStatement(Statement):
     @transaction.commit_on_success
