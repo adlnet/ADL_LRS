@@ -13,7 +13,6 @@ import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
-    # pdb.set_trace()
     auth = None
     if 'user' in req_dict:
         if req_dict['user'].is_authenticated() == True:
@@ -39,7 +38,6 @@ def statements_post(req_dict):
                     except models.statement.DoesNotExist:
                         pass # stmt already deleted
                 raise e
-
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):

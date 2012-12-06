@@ -11,6 +11,7 @@ from Activity import Activity
 from functools import wraps
 from django.utils.timezone import utc
 import pdb
+import pprint
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -183,21 +184,25 @@ class Statement():
     def _saveResultToDB(self, result, resultExts, resultString):
         #If the result is a string, create empty result and save the string in a result extension with the key resultString
         if resultString:
-            rslt = models.result()
+            rslt = models.result(content_object=self.statement)
             rslt.save()
 
-            res_ext = models.result_extensions(key='resultString', value=result, result=rslt)
+            res_ext = models.extensions(key='resultString', value=result, content_object=rslt)
             res_ext.save()
             return rslt
 
         #Save the result with all of the args
-        rslt = models.result(**result)
+        sc = result.pop('score', None)
+        rslt = models.result(content_object=self.statement, **result)
         rslt.save()
+        if sc:
+            sc.result = rslt
+            sc.save()
 
         #If it has extensions, save them all
         if resultExts:
             for k, v in resultExts.items():
-                resExt = models.result_extensions(key=k, value=v, result=rslt)
+                resExt = models.extensions(key=k, value=v, content_object=rslt)
                 resExt.save()
 
         return rslt
@@ -209,26 +214,27 @@ class Statement():
             con_act_data = context['contextActivities']
             del context['contextActivities']
 
-        # if 'instructor' in context:
-        #     del context['instructor']
-        # if 'team' in context:
-        #     del context['team']
-        # if 'cntx_statement' in context:
-        #     del context['cntx_statement']
+        cs = None
+        if 'cntx_statement' in context:
+            cs = context['cntx_statement'] 
+            del context['cntx_statement']
         # pdb.set_trace()
-        cntx = models.context(**context)    
+        cntx = models.context(content_object=self.statement, **context)    
         cntx.save()
+
+        if cs:
+            cs.context = cntx
+            cs.save()
 
         if con_act_data:
             for con_act in con_act_data.items():
-                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'])
+                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'], context=cntx)
                 ca.save()
-                cntx.contextActivities.add(ca)
             cntx.save()
 
         if contextExts:
             for k, v in contextExts.items():
-                conExt = models.context_extensions(key=k, value=v, context=cntx)
+                conExt = models.extensions(key=k, value=v, content_object=cntx)
                 conExt.save()
 
         return cntx        
@@ -319,7 +325,7 @@ class Statement():
 
         if 'statement' in context:
             # stmt = Statement(context['statement']).statement.id 
-            stmt = models.statement.objects.get(statement_id=context['statement']['id'])
+            #stmt = models.statement.objects.get(statement_id=context['statement']['id'])
             # stmt = Statement(statement_id=context['statement']['id'], get=True)
             stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
             stmt_ref.save()
@@ -329,11 +335,13 @@ class Statement():
         return self._saveContextToDB(context, contextExts)
 
 
-    def _save_lang_map(self, lang_map):
+    def _save_lang_map(self, lang_map, verb):
+        if not verb.id:
+            verb.save()
         k = lang_map[0]
         v = lang_map[1]
 
-        language_map = models.LanguageMap(key = k, value = v)
+        language_map = models.LanguageMap(key = k, value = v, content_object=verb)
         
         language_map.save()        
         return language_map
@@ -360,8 +368,8 @@ class Statement():
                 if isinstance(verb_lang_map, tuple):
                     # If incoming key doesn't already exist in verb's lang maps - add it
                     if not verb_lang_map[0] in existing_lang_map_keys: 
-                        lang_map = self._save_lang_map(verb_lang_map)    
-                        verb_object.display.add(lang_map)
+                        lang_map = self._save_lang_map(verb_lang_map, verb_object)    
+                        #verb_object.display.add(lang_map)
                     else:
                         existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
                         models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
@@ -386,7 +394,6 @@ class Statement():
             statementObjectData = stmt_data['object']
         except KeyError:
             raise exceptions.ParamError("No object provided, must provide 'object' field")
-
         try:
             raw_actor = stmt_data['actor']
         except KeyError:
@@ -440,19 +447,10 @@ class Statement():
 
         #Set voided to default false
         args['voided'] = False
-
-        #Set result when present - result object can be string or JSON object
-        if 'result' in stmt_data:
-            # args['result'] = self._populateResult(stmt_data, raw_verb)
-            args['result'] = self._populateResult(stmt_data, args['verb'])
-
-	    # Set context when present
-        if 'context' in stmt_data:
-            args['context'] = self._populateContext(stmt_data)
-
-      	# Set timestamp when present
-      	if 'timestamp' in stmt_data:
-      		args['timestamp'] = stmt_data['timestamp']
+        
+        # Set timestamp when present
+        if 'timestamp' in stmt_data:
+            args['timestamp'] = stmt_data['timestamp']
 
         if 'authority' in stmt_data:
             args['authority'] = Agent(initial=stmt_data['authority'], create=True).agent
@@ -478,6 +476,13 @@ class Statement():
 
         #Save statement
         self.statement = self._saveStatementToDB(args, sub)
+
+        if 'result' in stmt_data:
+            self._populateResult(stmt_data, args['verb'])
+
+        if 'context' in stmt_data:
+            self._populateContext(stmt_data)
+
 
 class SubStatement(Statement):
     @transaction.commit_on_success
