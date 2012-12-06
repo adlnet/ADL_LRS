@@ -336,7 +336,7 @@ class StatementsMoreTests(TestCase):
 
     def test_not_full_page_stmts(self):
         sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
-
+        
         self.assertEqual(sincePostResponse.status_code, 200)
         rsp = sincePostResponse.content
         self.assertIn(self.guid5, rsp)
