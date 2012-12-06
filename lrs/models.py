@@ -10,6 +10,7 @@ from lrs.exceptions import IDNotFoundError, ParamError
 import ast
 import json
 import pdb
+import pprint
 #this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
@@ -30,11 +31,104 @@ def filename(instance, filename):
     print filename
     return filename
 
+
+class LanguageMap(models.Model):
+    key = models.CharField(max_length=200, db_index=True)
+    value = models.CharField(max_length=200)
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    
+    def object_return(self):
+        return {self.key: self.value}
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
+
+class Verb(models.Model):
+    verb_id = models.CharField(max_length=200, db_index=True)
+    display = generic.GenericRelation(LanguageMap)
+
+    def object_return(self, lang=None):
+        ret = {}
+        ret['id'] = self.verb_id
+        ret['display'] = {}
+        if lang is not None:
+            lang_map_set = self.display.filter(key=lang)
+        else:
+            lang_map_set = self.display.all()        
+
+        for lang_map in lang_map_set:
+            ret['display'].update(lang_map.object_return())        
+        return ret  
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())         
+
+
+class extensions(models.Model):
+    key=models.CharField(max_length=200, db_index=True)
+    value=models.CharField(max_length=200)
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+
+    def object_return(self):
+        return {self.key:self.value}
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
+
+class result(models.Model): 
+    success = models.NullBooleanField(blank=True,null=True)
+    completion = models.NullBooleanField(blank=True,null=True)
+    response = models.CharField(max_length=200, blank=True, null=True)
+    #Made charfield since it would be stored in ISO8601 duration format
+    duration = models.CharField(max_length=200, blank=True, null=True)
+    extensions = generic.GenericRelation(extensions)
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+
+    def object_return(self):
+        ret = {}
+        
+        if self.success:
+            ret['success'] = self.success
+
+        if self.completion:
+            ret['completion'] = self.completion
+
+        if self.response:
+            ret['response'] = self.response
+
+        if self.duration:
+            ret['duration'] = self.duration
+                        
+        try:
+            ret['score'] = self.score.object_return()
+        except score.DoesNotExist:
+            pass
+
+        result_ext = self.extensions.all()
+        if result_ext:
+            ret['extensions'] = {}
+            for ext in result_ext:
+                ret['extensions'].update(ext.object_return())        
+        return ret
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())            
+
+
 class score(models.Model):  
     scaled = models.FloatField(blank=True, null=True)
     raw = models.PositiveIntegerField(blank=True, null=True)
     score_min = models.PositiveIntegerField(blank=True, null=True)
     score_max = models.PositiveIntegerField(blank=True, null=True)
+    result = models.OneToOneField(result, blank=True, null=True)
     
     def __init__(self, *args, **kwargs):
         the_min = kwargs.pop('min', None)
@@ -48,56 +142,20 @@ class score(models.Model):
     def object_return(self):
         ret = {}
         for field in self._meta.fields:
-            if not field.name == 'id':
+            if field.name != 'id' and field.name != 'result':
                 value = getattr(self, field.name)
                 if not value is None:
-                    ret[field.name] = value
-        return ret
-
-class result(models.Model): 
-    success = models.NullBooleanField(blank=True,null=True)
-    completion = models.NullBooleanField(blank=True,null=True)
-    response = models.CharField(max_length=200, blank=True, null=True)
-    #Made charfield since it would be stored in ISO8601 duration format
-    duration = models.CharField(max_length=200, blank=True, null=True)
-    score = models.OneToOneField(score, blank=True, null=True)
-
-    def object_return(self):
-        ret = {}
-        for field in self._meta.fields:
-            if not field.name == 'id':
-                value = getattr(self, field.name)
-                if not value is None:
-                    if not field.name == 'score':
-                        ret[field.name] = value
+                    if field.name is 'score_min':
+                        ret['min'] = value
+                    elif field.name is 'score_max':
+                        ret['max'] = value
                     else:
-                        ret[field.name] = self.score.object_return()
-        ret['extensions'] = {}
-        result_ext = result_extensions.objects.filter(result=self)
-        for ext in result_ext:
-            ret['extensions'][ext.key] = ext.value        
+                        ret[field.name] = value
         return ret
-    
-    def delete(self, *args, **kwargs):
-        # pdb.set_trace()
-        exts = result_extensions.objects.filter(result=self)
-        has_score = False
-        for ext in exts:
-            ext.delete()
-        #Since OnetoOne fields are backwards, should delete result (self) 
-        if not self.score is None:
-            self.score.delete()
-            has_score = True
-        if not has_score:            
-            super(result, self).delete(*args, **kwargs)            
 
-class result_extensions(models.Model):
-    key=models.CharField(max_length=200)
-    value=models.CharField(max_length=200)
-    result = models.ForeignKey(result)
+    def __unicode__(self):
+        return json.dumps(self.object_return())
 
-    def object_return(self):
-        return (self.key, self.value)
 
 class statement_object(models.Model):
     pass
@@ -111,72 +169,53 @@ class agentmgr(models.Manager):
             raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
         val = kwargs.pop('account', None)
         if val:
-            if isinstance(val, agent_account):
-                kwargs['account'] = val
-            elif isinstance(val, int):
+            if not isinstance(val, dict):
                 try:
-                    kwargs['account'] = agent_account.objects.get(pk=val)
-                except agent_account.DoesNotExist:
-                    raise IDNotFoundError('Agent Account ID was not found')
-            else:
-                if not isinstance(val, dict):
-                    try:
-                        account = ast.literal_eval(val)
-                    except:
-                        account = json.loads(val)
-                else:
-                    account = val
-                try:
-                    acc = agent_account.objects.get(**account)
-                except agent_account.DoesNotExist:
-                    acc = agent_account(**account)
-                    acc.save()
-                kwargs['account'] = acc
-        if group and 'member' in kwargs:
-            mem = kwargs.pop('member')
-            try:
-                members = ast.literal_eval(mem)
-            except:
-                try:
-                    members = json.loads(mem)
+                    account = ast.literal_eval(val)
                 except:
-                    members = mem
-        try:
-            agent = self.get(**kwargs)
-            created = False
-        except self.model.DoesNotExist:
-            agent = self.model(**kwargs)
+                    account = json.loads(val)
+            else:
+                account = val
+            try:
+                acc = agent_account.objects.get(**account)
+                agent = acc.agent
+                created = False
+            except agent_account.DoesNotExist:
+                agent = self.model(**kwargs)
+                agent.save()
+                acc = agent_account(agent=agent, **account)
+                acc.save()
+                created = True
+        else:
+            if group and 'member' in kwargs:
+                mem = kwargs.pop('member')
+                try:
+                    members = ast.literal_eval(mem)
+                except:
+                    try:
+                        members = json.loads(mem)
+                    except:
+                        members = mem
+            try:
+                agent = self.get(**kwargs)
+                created = False
+            except self.model.DoesNotExist:
+                agent = self.model(**kwargs)
+                agent.save()
+                created = True
+            if group:
+                ags = [self.gen(**a) for a in members]
+                agent.member.add(*(a for a, c in ags))
             agent.save()
-            created = True
-        if group:
-            ags = [self.gen(**a) for a in members]
-            agent.member.add(*(a for a, c in ags))
-        agent.save()
         return agent, created
-
-class agent_account(models.Model):  
-    homePage = models.CharField(max_length=200, blank=True, null=True)
-    name = models.CharField(max_length=200)
-
-    def get_json(self):
-        ret = {}
-        ret['homePage'] = self.homePage
-        ret['name'] = self.name
-        return ret
-    
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.name == other.name and self.homePage == other.homePage 
 
 
 class agent(statement_object):
     objectType = models.CharField(max_length=200, blank=True, default="Agent")
     name = models.CharField(max_length=200, blank=True, null=True)
-    mbox = models.CharField(max_length=200, blank=True, null=True)
-    mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True)
-    openid = models.CharField(max_length=200, blank=True, null=True)
-    account = models.OneToOneField('agent_account', blank=True, null=True)
+    mbox = models.CharField(max_length=200, blank=True, null=True, db_index=True)
+    mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True, db_index=True)
+    openid = models.CharField(max_length=200, blank=True, null=True, db_index=True)
     objects = agentmgr()
 
     def get_agent_json(self):
@@ -190,8 +229,10 @@ class agent(statement_object):
             ret['mbox_sha1sum'] = self.mbox_sha1sum
         if self.openid:
             ret['openid'] = self.openid
-        if self.account:
-            ret['account'] = self.account.get_json()
+        try:
+            ret['account'] = self.agent_account.get_json()
+        except:
+            pass
         return ret
 
     def get_person_json(self):
@@ -205,20 +246,35 @@ class agent(statement_object):
             ret['mbox_sha1sum'] = [self.mbox_sha1sum]
         if self.openid:
             ret['openid'] = [self.openid]
-        if self.account:
-            ret['account'] = [self.account.get_json()]
+        try:
+            ret['account'] = [self.agent_account.get_json()]
+        except:
+            pass
         return ret
 
-    def delete(self, *args, **kwargs):
-        # pdb.set_trace()
-        has_account = False
-        # OnetoOne field backwards-should delete agent (self)
-        if not self.account is None:
-            self.account.delete()
-            has_account = True
+    def __unicode__(self):
+        return json.dumps(self.get_agent_json())
 
-        if not has_account:
-            super(agent, self).delete(*args, **kwargs)
+
+class agent_account(models.Model):  
+    homePage = models.CharField(max_length=200, blank=True, null=True)
+    name = models.CharField(max_length=200)
+    agent = models.OneToOneField(agent)
+
+    def get_json(self):
+        ret = {}
+        ret['homePage'] = self.homePage
+        ret['name'] = self.name
+        return ret
+    
+    def equals(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('Only models of same class can be compared')
+        return self.name == other.name and self.homePage == other.homePage 
+
+    def __unicode__(self):
+        return json.dumps(self.get_json())
+
 
 class group(agent):
     member = models.ManyToManyField(agent, related_name="agents")
@@ -235,7 +291,7 @@ class group(agent):
 
 
 class agent_profile(models.Model):
-    profileId = models.CharField(max_length=200)
+    profileId = models.CharField(max_length=200, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(agent)
     profile = models.FileField(upload_to="agent_profile")
@@ -246,36 +302,47 @@ class agent_profile(models.Model):
         self.profile.delete()
         super(agent_profile, self).delete(*args, **kwargs)
 
-class LanguageMap(models.Model):
-    key = models.CharField(max_length=200)
-    value = models.CharField(max_length=200)
-    
-    def object_return(self):
-        return (self.key, self.value)
 
-class activity_def_correctresponsespattern(models.Model):
+class activity(statement_object):
+    activity_id = models.CharField(max_length=200, db_index=True)
+    objectType = models.CharField(max_length=200,blank=True, null=True, default="Activity") 
+    authoritative = models.CharField(max_length=200, blank=True, null=True)
+
+    def object_return(self, lang=None):
+        ret = {}
+        ret['id'] = self.activity_id
+        ret['objectType'] = self.objectType
+        try:
+            ret['definition'] = self.activity_definition.object_return(lang)
+        except activity_definition.DoesNotExist:
+            pass
+        return ret
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
+
+class name_lang(LanguageMap):
     pass
 
-    def delete(self, *args,**kwargs):
-        answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=self)
-        for answer in answers:
-            answer.delete()
 
-        super(activity_def_correctresponsespattern, self).delete(*args, **kwargs)
+class desc_lang(LanguageMap):
+    pass
 
 
 class activity_definition(models.Model):
-    name = models.ManyToManyField(LanguageMap, related_name="activity_definition_name", blank=True, null=True)
-    description = models.ManyToManyField(LanguageMap, related_name="activity_definition_description", blank=True, null=True)
+    name = generic.GenericRelation(name_lang)
+    description = generic.GenericRelation(desc_lang)
     activity_definition_type = models.CharField(max_length=200, blank=True, null=True)
     interactionType = models.CharField(max_length=200, blank=True, null=True)
-    correctresponsespattern = models.OneToOneField(activity_def_correctresponsespattern, blank=True, null=True)
+    activity = models.OneToOneField(activity)
+    extensions = generic.GenericRelation(extensions)
 
     def object_return(self, lang=None):
         ret = {}
         if lang is not None:
             name_lang_map_set = self.name.filter(key=lang)
-            desc_lang_map_set = self.name.filter(key=lang)
+            desc_lang_map_set = self.description.filter(key=lang)
         else:
             name_lang_map_set = self.name.all()
             desc_lang_map_set = self.description.all()
@@ -283,14 +350,19 @@ class activity_definition(models.Model):
         ret['name'] = {}
         ret['description'] = {}
         for lang_map in name_lang_map_set:
-            ret['name'][lang_map.key] = lang_map.value                    
+            ret['name'].update(lang_map.object_return())                   
         for lang_map in desc_lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value 
+            ret['description'].update(lang_map.object_return())
 
         ret['type'] = self.activity_definition_type
         
         if not self.interactionType is None:
             ret['interactionType'] = self.interactionType
+
+        try:
+            self.correctresponsespattern = self.activity_def_correctresponsespattern
+        except activity_def_correctresponsespattern.DoesNotExist:
+            self.correctresponsespattern = None
 
         if not self.correctresponsespattern is None:
             ret['correctResponsesPattern'] = []
@@ -327,65 +399,19 @@ class activity_definition(models.Model):
                 ret['target'] = []
                 for t in targets:
                     ret['target'].append(t.object_return(lang))            
-        act_def_ext = activity_extensions.objects.filter(activity_definition=self)
-        if act_def_ext:
-            ret['extensions'] = {}             
-            for ext in act_def_ext:
-                ret['extensions'][ext.key] = ext.value        
+        result_ext = self.extensions.all()
+        if result_ext:
+            ret['extensions'] = {}
+            for ext in result_ext:
+                ret['extensions'].update(ext.object_return())        
         return ret
 
-    def delete(self, *args, **kwargs):
-        has_crp = False
-        activity_definition_exts = activity_extensions.objects.filter(activity_definition=self)
-        for ext in activity_definition_exts:
-            ext.delete()
+    def __unicode__(self):
+        return json.dumps(self.object_return())
 
-        if not self.correctresponsespattern is None:
 
-            scales = activity_definition_scale.objects.filter(activity_definition=self)
-            for scale in scales:
-                scale.delete()            
-            choices = activity_definition_choice.objects.filter(activity_definition=self)
-            for choice in choices:
-                choice.delete()            
-            steps = activity_definition_step.objects.filter(activity_definition=self)
-            for step in steps:
-                step.delete()
-            sources = activity_definition_source.objects.filter(activity_definition=self)
-            for source in sources:
-                source.delete()
-            targets = activity_definition_target.objects.filter(activity_definition=self)
-            for target in targets:
-                target.delete()
-
-            self.correctresponsespattern.delete()
-            has_crp = True
-        if not has_crp:
-            super(activity_definition, self).delete(*args, **kwargs)
-
-class activity(statement_object):
-    activity_id = models.CharField(max_length=200)
-    objectType = models.CharField(max_length=200,blank=True, null=True) 
+class activity_def_correctresponsespattern(models.Model):
     activity_definition = models.OneToOneField(activity_definition, blank=True, null=True)
-    authoritative = models.CharField(max_length=200, blank=True, null=True)
-
-    def object_return(self, lang=None):
-
-        ret = {}
-        ret['id'] = self.activity_id
-        ret['objectType'] = self.objectType
-        if not self.activity_definition is None:
-            ret['definition'] = self.activity_definition.object_return(lang)
-        return ret
-
-    def delete(self, *args, **kwargs):
-        # pdb.set_trace()
-        has_def = False
-        if not self.activity_definition is None:
-            self.activity_definition.delete()
-            has_def = True
-        if not has_def:    
-            super(activity, self).delete(*args, **kwargs)
 
 
 class correctresponsespattern_answer(models.Model):
@@ -395,9 +421,12 @@ class correctresponsespattern_answer(models.Model):
     def objReturn(self):
         return self.answer
 
+    def __unicode__(self):
+        return objReturn()
+
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
     def object_return(self, lang=None):
@@ -411,13 +440,13 @@ class activity_definition_choice(models.Model):
             lang_map_set = self.description.all()
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         
         return ret
 
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)        
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
     def object_return(self, lang=None):
@@ -431,12 +460,12 @@ class activity_definition_scale(models.Model):
             lang_map_set = self.description.all()
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
     
     def object_return(self, lang=None):
@@ -449,12 +478,12 @@ class activity_definition_source(models.Model):
             lang_map_set = self.description.all()        
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
     
     def object_return(self, lang=None):
@@ -467,12 +496,12 @@ class activity_definition_target(models.Model):
             lang_map_set = self.description.all()        
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=200)
-    description = models.ManyToManyField(LanguageMap, blank=True, null=True)
+    description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
     def object_return(self, lang=None):
@@ -485,20 +514,14 @@ class activity_definition_step(models.Model):
             lang_map_set = self.description.all()        
 
         for lang_map in lang_map_set:
-            ret['description'][lang_map.key] = lang_map.value
+            ret['description'].update(lang_map.object_return())
         return ret
 
-class activity_extensions(models.Model):
-    key = models.TextField()
-    value = models.TextField()
-    activity_definition = models.ForeignKey(activity_definition)
-
-    def object_return(self):
-        return (self.key, self.value) 
 
 class StatementRef(statement_object):
     object_type = models.CharField(max_length=12, default="StatementRef")
     ref_id = models.CharField(max_length=200)
+    context = models.OneToOneField('context', blank=True, null=True)
 
     def object_return(self):
         ret = {}
@@ -506,9 +529,11 @@ class StatementRef(statement_object):
         ret['id'] = self.ref_id
         return ret
 
+
 class ContextActivity(models.Model):
     key = models.CharField(max_length=20, null=True)
     context_activity = models.CharField(max_length=200, null=True)
+    context = models.ForeignKey('context')
     
     def object_return(self):
         ret = {}
@@ -516,21 +541,26 @@ class ContextActivity(models.Model):
         ret[self.key]['id'] = self.context_activity
         return ret
 
+
 class context(models.Model):    
     registration = models.CharField(max_length=200)
-    instructor = models.ForeignKey(agent,blank=True, null=True)
-    team = models.ForeignKey(group,blank=True, null=True, related_name="context_team")
-    contextActivities = models.ManyToManyField(ContextActivity)
+    instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL)
+    team = models.ForeignKey(group,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
     revision = models.CharField(max_length=200,blank=True, null=True)
     platform = models.CharField(max_length=200,blank=True, null=True)
     language = models.CharField(max_length=200,blank=True, null=True)
-    cntx_statement = models.OneToOneField(StatementRef, blank=True, null=True)
+    extensions = generic.GenericRelation(extensions)
+    # for statement and sub statement
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def object_return(self):
         ret = {}
         linked_fields = ['instructor', 'team', 'cntx_statement', 'contextActivities']
+        ignore = ['id', 'content_type', 'object_id', 'content_object']
         for field in self._meta.fields:
-            if not field.name == 'id':
+            if not field.name in ignore:
                 value = getattr(self, field.name)
                 if not value is None:
                     if not field.name in linked_fields:
@@ -541,53 +571,21 @@ class context(models.Model):
                         ret[field.name] = self.team.get_agent_json()
                     elif field.name == 'cntx_statement':
                         ret['statement'] = self.cntx_statement.object_return()                    
-        if self.contextActivities:
-            con_act_set = self.contextActivities.all()
+        if self.contextactivity_set:
             ret['contextActivities'] = {}
-            for con_act in con_act_set:
-                ret['contextActivities'][con_act.key] = {}
-                ret['contextActivities'][con_act.key]['id'] = con_act.context_activity    
+            for con_act in self.contextactivity_set.all():
+                ret['contextActivities'].update(con_act.object_return())
+        try:
+            ret['statement'] = self.statementref.object_return()
+        except:
+            pass  
 
         ret['extensions'] = {}
-        context_ext = context_extensions.objects.filter(context=self)
+        context_ext = self.extensions.all()
         for ext in context_ext:
-            ret['extensions'][ext.key] = ext.value        
+            ret['extensions'].update(ext.object_return())        
         return ret
 
-    def delete(self, *args, **kwargs):
-        exts = context_extensions.objects.filter(context=self)
-        for ext in exts:
-            ext.delete()
-
-        if not self.contextActivities is None:
-            con_act_set = self.contextActivities.all()
-            for con_act in con_act_set:
-                con_act.delete()
-
-        has_related = False
-        if not self.cntx_statement is None:
-            self.cntx_statement.delete()
-            has_related = True
-
-        if not self.instructor is None:
-            self.instructor.delete()
-            has_related = True
-
-        if not self.team is None:
-            self.team.delete()
-            has_related = True
-
-        if not has_related:
-            super(context, self).delete(*args, **kwargs)
-
-
-class context_extensions(models.Model):
-    key=models.CharField(max_length=200)
-    value=models.TextField()
-    context = models.ForeignKey(context)
-    
-    def objReturn(self):
-        return (self.key, self.value)
 
 class activity_state(models.Model):
     state_id = models.CharField(max_length=200)
@@ -615,39 +613,15 @@ class activity_profile(models.Model):
         self.profile.delete()
         super(activity_profile, self).delete(*args, **kwargs)
 
-class Verb(models.Model):
-    verb_id = models.CharField(max_length=200)
-    display = models.ManyToManyField(LanguageMap, null=True, blank=True)
-
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.verb_id
-        if lang is not None:
-            lang_map_set = self.display.filter(key=lang)
-        else:
-            lang_map_set = self.display.all()        
-
-        if len(lang_map_set) > 0:
-            ret['display'] = {}
-            for lang_map in lang_map_set:
-                ret['display'][lang_map.key] = lang_map.value        
-        return ret
-
-    def delete(self, *args, **kwargs):
-        displays = self.display.all()
-        for display in displays:
-            display.delete()
-
-        super(Verb, self).delete(*args, **kwargs)            
 
 class SubStatement(statement_object):
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_substatement")
     actor = models.ForeignKey(agent,related_name="actor_of_substatement")
-    verb = models.ForeignKey(Verb)    
-    result = models.OneToOneField(result, blank=True,null=True)
+    verb = models.ForeignKey(Verb)
+    result = generic.GenericRelation(result)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
-    context = models.OneToOneField(context, related_name="context_of_statement",blank=True, null=True)
-
+    context = generic.GenericRelation(context)
+    
     def object_return(self, lang=None):
         activity_object = True
         ret = {}
@@ -662,14 +636,16 @@ class SubStatement(statement_object):
                 activity_object = False
             except agent.DoesNotExist:
                 raise IDNotFoundError('No activity or agent object found with given ID')
-
         if activity_object:
             ret['object'] = stmt_object.object_return(lang)  
         else:
             ret['object'] = stmt_object.get_agent_json()
 
-        ret['result'] = self.result.object_return()
-        ret['context'] = self.context.object_return()
+        if len(self.result.all()) > 0:
+            # if any, should only be 1
+            ret['result'] = self.result.all()[0].object_return()
+        if len(self.context.all()) > 0:
+            ret['context'] = self.context.all()[0].object_return()
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
@@ -695,7 +671,10 @@ class SubStatement(statement_object):
         object_type = None
 
         stmt_object, object_type = self.get_object()
-        
+
+        if len(self.context.all()) > 0:
+            self.context.all().delete()
+
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
         actor_agent = agent.objects.get(id=self.actor.id)
@@ -704,9 +683,12 @@ class SubStatement(statement_object):
         for link in agent_links:
             if link != 'group':
                 # Get all objects for that relationship that the agent is related to
-                objects = getattr(actor_agent, link).all()
+                try:
+                    objects = getattr(actor_agent, link).all()
+                except:
+                    continue
                 # If looking at statement actors, if there's another stmt with same actor-in use
-                if link == "actor_statement":
+                if link == "actor_statement" or link == "actor_of_substatement":
                     # Will already have one (self)
                     if len(objects) > 1:
                         actor_in_use = True
@@ -728,17 +710,18 @@ class SubStatement(statement_object):
                     if len(objects) > 0:
                         actor_in_use = True
                         break
-
         if not actor_in_use:
             self.actor.delete()
         
-
         verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
         verb_in_use = False
         # Loop through each relationship
         for link in verb_links:
             # Get all objects for that relationship that the agent is related to
-            objects = getattr(self.verb, link).all()
+            try:
+                objects = getattr(self.verb, link).all()
+            except:
+                continue
 
             if link == "statement_set":
                 if object_type == "substatement":
@@ -766,7 +749,10 @@ class SubStatement(statement_object):
         if object_type == 'activity':
             activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
             for link in activity_links:
-                objects = getattr(stmt_object, link).all()
+                try:
+                    objects = getattr(stmt_object, link).all()
+                except:
+                    continue
                 # There will be at least one (self)
                 if link == 'object_of_statement':
                     if len(objects) > 1:
@@ -781,7 +767,10 @@ class SubStatement(statement_object):
             # Know it's not same as auth or actor
             for link in agent_links:
                 if link != 'group':
-                    objects = getattr(stmt_object, link).all()
+                    try:
+                        objects = getattr(stmt_object, link).all()
+                    except:
+                        continue
                     # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
                     if link == 'object_of_statement':
                         if len(objects) > 0:
@@ -798,30 +787,18 @@ class SubStatement(statement_object):
         if not object_in_use:
             stmt_object.delete()
 
-        try:
-            # Need if stmt - if it is None and DNE it throws no attribute delete error
-            if not self.result is None:
-                self.result.delete()
-        except result.DoesNotExist:
-            pass # already deleted- could be caused by substatement
-              
-        try:
-            if not self.context is None:
-                self.context.delete()
-        except context.DoesNotExist:
-            pass # already deleted - caused by agent cascade delete
 
 class statement(models.Model):
     statement_id = models.CharField(max_length=200)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
-    verb = models.ForeignKey(Verb)    
-    result = models.OneToOneField(result, blank=True,null=True)
+    verb = models.ForeignKey(Verb)
+    result = generic.GenericRelation(result)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
     voided = models.NullBooleanField(blank=True, null=True)
-    context = models.OneToOneField(context, related_name="context_statement",blank=True, null=True)
+    context = generic.GenericRelation(context)
     authoritative = models.BooleanField(default=True)
 
     def object_return(self, lang=None):
@@ -854,10 +831,11 @@ class statement(models.Model):
             ret['object'] = stmt_object.object_return()
         else:
             ret['object'] = stmt_object.get_agent_json()
-        if not self.result is None:
-            ret['result'] = self.result.object_return()        
-        if not self.context is None:
-            ret['context'] = self.context.object_return()
+        if len(self.result.all()) > 0:
+            # should only ever be one.. used generic fk to handle sub stmt and stmt
+            ret['result'] = self.result.all()[0].object_return()        
+        if len(self.context.all()) > 0:
+            ret['context'] = self.context.all()[0].object_return()
         
         ret['timestamp'] = str(self.timestamp)
         ret['stored'] = str(self.stored)
@@ -869,8 +847,17 @@ class statement(models.Model):
         return ret
 
     def save(self, *args, **kwargs):
-        # actor object context authority
-        statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
+        stmts = statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, authority=self.authority)
+        cs = self.context.all()
+        # narrow down list of statements to just those that have the same number of
+        # context relations.. should be 0 or 1
+        sl = [x for x in stmts if len(x.context.all()) == len(cs)]
+        if len(cs) > 0:
+            # if self has context, check to see if the statement has the same context
+            sl = [s for s in sl if s.context.all()[0].id == cs.context.all().id]
+        
+        for s in sl:
+            statement.objects.filter(id=s.id).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
 
     def get_object(self):
@@ -931,7 +918,10 @@ class statement(models.Model):
         for link in agent_links:
             if link != 'group':
                 # Get all objects for that relationship that the agent is related to
-                objects = getattr(actor_agent, link).all()
+                try:
+                    objects = getattr(actor_agent, link).all()
+                except:
+                    continue
                 # If looking at statement actors, if there's another stmt with same actor-in use
                 if link == "actor_statement":
                     # Will already have one (self)
@@ -973,14 +963,16 @@ class statement(models.Model):
         if not actor_in_use:
             self.actor.delete()
         
-
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
             verb_in_use = False
             # Loop through each relationship
             for link in verb_links:
                 # Get all objects for that relationship that the agent is related to
-                objects = getattr(self.verb, link).all()
+                try:
+                    objects = getattr(self.verb, link).all()
+                except:
+                    continue
 
                 if link == "substatement_set":
                     if object_type == "substatement":
@@ -1004,7 +996,6 @@ class statement(models.Model):
             if not verb_in_use:
                 self.verb.delete()
 
-        # Get all possible relationships for actor
         if self.authority:
             authority_agent = agent.objects.get(id=self.authority.id)
             auth_in_use = False
@@ -1012,7 +1003,10 @@ class statement(models.Model):
             if authority_agent != actor_agent:
                 for link in agent_links:
                     if link != 'group':
-                        objects = getattr(authority_agent, link).all()
+                        try:
+                            objects = getattr(authority_agent, link).all()
+                        except:
+                            continue
 
                         if link == "authority_statement":
                             # Will already have one (self)
@@ -1036,16 +1030,18 @@ class statement(models.Model):
                             if len(objects) > 0:
                                 auth_in_use = True
                                 break                        
-
-            if not auth_in_use:
-                self.authority.delete()
-
+                if not auth_in_use:
+                    self.authority.delete()
+        
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             object_in_use = False
             if object_type == 'activity':
                 activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
                 for link in activity_links:
-                    objects = getattr(stmt_object, link).all()
+                    try:
+                        objects = getattr(stmt_object, link).all()
+                    except:
+                        continue
                     # There will be at least one (self)
                     if link == 'object_of_statement':
                         if len(objects) > 1:
@@ -1060,7 +1056,10 @@ class statement(models.Model):
                 sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
                 # object_in_use = self.check_usage(sub_links, stmt_object, 1)
                 for link in sub_links:
-                    objects = getattr(stmt_object, link).all()
+                    try:
+                        objects = getattr(stmt_object, link).all()
+                    except:
+                        continue
                     # There will be at least one (self)
                     if link == 'object_of_statement':
                         if len(objects) > 1:
@@ -1075,7 +1074,10 @@ class statement(models.Model):
                 # Know it's not same as auth or actor
                 for link in agent_links:
                     if link != 'group':
-                        objects = getattr(stmt_object, link).all()
+                        try:
+                            objects = getattr(stmt_object, link).all()
+                        except:
+                            continue
                         # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
                         if link == 'object_of_statement':
                             if len(objects) > 0:
@@ -1087,23 +1089,10 @@ class statement(models.Model):
                                 object_in_use = True
                                 break
 
-
             # If nothing else is using it, delete it
             if not object_in_use:
                 stmt_object.delete()
 
-        try:
-            # Need if stmt - if it is None and DNE it throws no attribute delete error
-            if not self.result is None:
-                self.result.delete()
-        except result.DoesNotExist:
-            pass # already deleted- could be caused by substatement
-              
-        try:
-            if not self.context is None:
-                self.context.delete()
-        except context.DoesNotExist:
-            pass # already deleted - caused by agent cascade delete
 
 
 

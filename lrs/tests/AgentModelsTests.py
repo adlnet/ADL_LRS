@@ -29,19 +29,20 @@ class AgentModelsTests(TestCase):
     def test_agent_openid_create(self):
         openid = "bob.openid.com"
         bob = agent(openid=openid)
+        bob.save()
         self.assertEquals(bob.openid, openid)
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
         self.assertFalse(bob.mbox)
         self.assertFalse(bob.mbox_sha1sum)
-        self.assertFalse(bob.account)
 
     def test_agent_account_create(self):
         account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
-        bobacc = agent_account(**account)
-        bob = agent(account=bobacc)
+        bob = agent()
         bob.save()
-        a = bob.account
+        bobacc = agent_account(agent=bob, **account)
+        bobacc.save()
+        a = bob.agent_account
         self.assertEquals(a.name, "freakshow")
         self.assertEquals(a.homePage, "http://www.adlnet.gov")
         self.assertEquals(a.agent, bob)
@@ -83,7 +84,7 @@ class AgentModelsTests(TestCase):
         bob.save()
         self.assertEquals(bob.objectType, ot)
         self.assertEquals(bob.name, name)
-        a = bob.account
+        a = bob.agent_account
         self.assertEquals(a.homePage, "http://www.adlnet.gov")
         self.assertEquals(a.name, "freakshow")
 
@@ -157,3 +158,21 @@ class AgentModelsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn('the agent', mems)
         self.assertIn('the user', mems)
+
+
+    def test_agent_del(self):
+        ag = agent(name="the agent")
+        ag.save()
+        acc = agent_account(agent=ag, homePage="http://adlnet.gov/agent/1", name="agent 1 account")
+        acc.save()
+
+        self.assertEquals(ag.name, "the agent")
+        self.assertEquals(ag.agent_account.name, "agent 1 account")
+        self.assertEquals(ag.agent_account.homePage, "http://adlnet.gov/agent/1")
+        self.assertEquals(1, len(agent.objects.all()))
+        self.assertEquals(1, len(agent_account.objects.all()))
+
+        ag.delete()
+
+        self.assertEquals(0, len(agent.objects.all()))
+        self.assertEquals(0, len(agent_account.objects.all()))
