@@ -843,8 +843,11 @@ class statement(models.Model):
     def save(self, *args, **kwargs):
         stmts = statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, authority=self.authority)
         cs = self.context.all()
+        # narrow down list of statements to just those that have the same number of
+        # context relations.. should be 0 or 1
         sl = [x for x in stmts if len(x.context.all()) == len(cs)]
         if len(cs) > 0:
+            # if self has context, check to see if the statement has the same context
             sl = [s for s in sl if s.context.all()[0].id == cs.context.all().id]
         
         for s in sl:
@@ -897,9 +900,6 @@ class statement(models.Model):
         else:
             stmt_object, object_type = self.get_object()
         
-        if len(self.context.all()) > 0:
-            self.context.all().delete()
-
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
         actor_agent = agent.objects.get(id=self.actor.id)
