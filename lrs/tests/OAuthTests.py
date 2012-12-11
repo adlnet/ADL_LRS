@@ -408,6 +408,9 @@ class OAuthTests(TestCase):
 			Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
 		self.assertEqual(resp.status_code, 200)
 		pdb.set_trace()
+		stid = resp.content
+		st = models.statement.objects.get(statement_id=stid)
+		print st.object_return()
 
 	def test_stmt_simple_get(self):
 		settings.OAUTH_ENABLED = True		
