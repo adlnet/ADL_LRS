@@ -11,6 +11,8 @@ from utils import initialize_server_request, send_oauth_error
 from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
+from django.utils.decorators import decorator_from_middleware
+from lrs.util import TCAPIversionHeaderMiddleware
 import pdb
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
@@ -22,25 +24,30 @@ def oauth_home(request):
     <html><head></head><body><h1>Oauth Authorize</h1></body></html>"""
     return HttpResponse(rsp)
 
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def request_token(request):
     """
     The Consumer obtains an unauthorized Request Token by asking the Service 
     Provider to issue a Token. The Request Token's sole purpose is to receive 
     User approval and can only be used to obtain an Access Token.
     """
-    # pdb.set_trace()
-    oauth_server, oauth_request = initialize_server_request(request)
-    if oauth_server is None:
-        return INVALID_PARAMS_RESPONSE
-    try:
-        # create a request token
-        token = oauth_server.fetch_request_token(oauth_request)
-        # return the token
-        response = HttpResponse(token.to_string(), mimetype="text/plain")
-    except OAuthError, err:
-        response = send_oauth_error(err)
-    return response
-    
+    # If oauth is not enabled, don't initiate the handshake
+    if settings.OAUTH_ENABLED:
+        oauth_server, oauth_request = initialize_server_request(request)
+        if oauth_server is None:
+            return INVALID_PARAMS_RESPONSE
+        try:
+            # create a request token
+            token = oauth_server.fetch_request_token(oauth_request)
+            # return the token
+            response = HttpResponse(token.to_string(), mimetype="text/plain")
+        except OAuthError, err:
+            response = send_oauth_error(err)
+        return response
+    else:
+        return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
+
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
 @login_required
 def user_authorization(request):
     """
@@ -126,7 +133,8 @@ def user_authorization(request):
         else:
             response = send_oauth_error(OAuthError(_('Action not allowed.')))
         return response
-    
+
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
 def access_token(request):    
     """
     The Consumer exchanges the Request Token for an Access Token capable of 

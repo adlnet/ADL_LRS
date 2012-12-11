@@ -40,6 +40,7 @@ class Resource(models.Model):
     name = models.CharField(max_length=255)
     url = models.TextField(max_length=MAX_URL_LENGTH)
     is_readonly = models.BooleanField(default=True)
+    mine_only = models.BooleanField(default=False)
     
     objects = ResourceManager()
 
@@ -145,6 +146,7 @@ class Token(models.Model):
             return urlparse.urlunparse((scheme, netloc, path, params,
                 query, fragment))
         return self.callback
+
 def convertToUTC(timestr):
     # Strip off TZ info
     timestr = timestr[:timestr.rfind('+')]
@@ -311,18 +313,23 @@ class agent(statement_object):
     objects = agentmgr()
 
     def get_agent_json(self):
-        ret = {}
-        ret['objectType'] = self.objectType
-        if self.name:
-            ret['name'] = self.name
-        if self.mbox:
-            ret['mbox'] = self.mbox
-        if self.mbox_sha1sum:
-            ret['mbox_sha1sum'] = self.mbox_sha1sum
-        if self.openid:
-            ret['openid'] = self.openid
-        if self.account:
-            ret['account'] = self.account.get_json()
+        if self.objectType == 'Group':
+            gr = group.objects.get(id=self.id)
+            return gr.get_agent_json()        
+        else:
+            ret = {}
+            ret['objectType'] = self.objectType
+
+            if self.name:
+                ret['name'] = self.name
+            if self.mbox:
+                ret['mbox'] = self.mbox
+            if self.mbox_sha1sum:
+                ret['mbox_sha1sum'] = self.mbox_sha1sum
+            if self.openid:
+                ret['openid'] = self.openid
+            if self.account:
+                ret['account'] = self.account.get_json()
         return ret
 
     def get_person_json(self):
@@ -360,7 +367,10 @@ class group(agent):
         super(group, self).__init__(*args, **kwargs)
 
     def get_agent_json(self):
-        ret = super(group, self).get_agent_json()
+        # ret = super(group, self).get_agent_json()
+        pdb.set_trace()
+        ret = {}
+        ret['objectType'] = self.objectType
         ret['member'] = [a.get_agent_json() for a in self.member.all()]
         return ret
 
@@ -994,8 +1004,13 @@ class statement(models.Model):
         ret['stored'] = str(self.stored)
         
         if not self.authority is None:
-            ret['authority'] = self.authority.get_agent_json()
-        
+            pdb.set_trace()
+            if self.authority.objectType != 'Group':
+                ret['authority'] = self.authority.get_agent_json()
+            else:
+                gr = group.objects.get(id=self.authority.id)
+                ret['authority'] = gr.get_agent_json()
+
         ret['voided'] = self.voided
         return ret
 

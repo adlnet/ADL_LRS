@@ -135,6 +135,7 @@ class StatementsTests(TestCase):
         param = {"statementId":self.guid1}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt1
+        # pdb.set_trace()
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse1.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))

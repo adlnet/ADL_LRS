@@ -6,30 +6,18 @@ import StringIO
 import pdb
 import pprint
 
-def handle_oauth_request(request, r_dict):
-    r_dict = get_headers(request.META, r_dict)
-    r_dict.update(request.GET.dict())
-    if 'method' not in r_dict:
-        r_dict['method'] = request.method
-    r_dict['absolute_uri'] = request.build_absolute_uri()
-    r_dict['parameters'] = request.REQUEST.items()
-    r_dict['query_string'] = request.META.get('QUERY_STRING', '')
-    r_dict['server_name'] = request.META.get('SERVER_NAME', '')
-    r_dict['lrs_auth'] = 'oauth'
-    return r_dict
-
 def parse(request):
     r_dict = {}
-    # pdb.set_trace()
+    r_dict = get_headers(request.META, r_dict)
     # Traditional authorization should be passed in headers
-    if 'Authorization' in request.META:
-        if type(request.META['Authorization']) is dict:
-            return handle_oauth_request(request, r_dict)
-        else:
-            r_dict['lrs_auth'] = 'http'
-    elif 'HTTP_AUTHORIZATION' in request.META:
-        if type(request.META['HTTP_AUTHORIZATION']) is dict:
-            return handle_oauth_request(request, r_dict)
+    if 'Authorization' in r_dict:
+        # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
+        # module
+        if type(r_dict['Authorization']) is dict:
+            r_dict['absolute_uri'] = request.build_absolute_uri()
+            r_dict['query_string'] = request.META.get('QUERY_STRING', '')
+            r_dict['server_name'] = request.META.get('SERVER_NAME', '')
+            r_dict['lrs_auth'] = 'oauth'
         else:
             r_dict['lrs_auth'] = 'http'
 
@@ -37,10 +25,13 @@ def parse(request):
     if 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body: 
         r_dict['lrs_auth'] = 'http'
 
+    # If it is not set then there is no auth being set
     if 'lrs_auth' not in r_dict:
         r_dict['lrs_auth'] = 'none'
 
-    r_dict['user'] = request.user
+    # Only set the user if it is not oauth because oauth will user a group as it's auth
+    if r_dict['lrs_auth'] != 'oauth':
+        r_dict['user'] = request.user
 
     if request.method == 'POST' and 'method' in request.GET:
         bdy = ast.literal_eval(request.body)
@@ -50,7 +41,6 @@ def parse(request):
     else:
         r_dict = parse_body(r_dict, request)
 
-    r_dict = get_headers(request.META, r_dict)
     r_dict.update(request.GET.dict())
     if 'method' not in r_dict:
         r_dict['method'] = request.method

@@ -269,19 +269,7 @@ class OAuthRequest(object):
         if parameters is None:
             parameters = {}
 
-        # Headers - he wasn't sending in oauth 'headers' in the header
-        # if headers and 'Authorization' in headers:
-        #     auth_header = headers['Authorization']
-        #     # Check that the authorization header is OAuth.
-        #     if auth_header[:6] == 'OAuth ':
-        #         auth_header = auth_header[6:]
-        #         try:
-        #             # Get the parameters from the header.
-        #             header_params = OAuthRequest._split_header(auth_header)
-        #             parameters.update(header_params)
-        #         except:
-        #             raise OAuthError('Unable to parse OAuth parameters from '
-        #                 'Authorization header.')
+        # Headers - wasn't sending in oauth 'headers' in the header - had to change process for obtaining them
         if headers and 'Authorization' in headers:
             auth_header = headers['Authorization']
             try:
@@ -292,11 +280,13 @@ class OAuthRequest(object):
                 raise OAuthError('Unable to parse OAuth parameters from '
                     'Authorization header.')
 
+        # TODO-maybe should be setting these in utils initialize_server_request instead
         # GET or POST query string.
         if query_string:
             query_params = OAuthRequest._split_url_string(query_string)
             parameters.update(query_params)
 
+        # TODO-maybe should be setting these in utils initialize_server_request instead
         # URL parameters.
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
@@ -343,6 +333,11 @@ class OAuthRequest(object):
         if not parameters:
             parameters = {}
 
+        # TODO - maybe should be handling this in utils - initialize server request
+        param_str = urlparse.urlparse(http_url)[4] # query
+        url_params = OAuthRequest._split_url_string(param_str)
+        parameters.update(url_params)
+
         parameters['oauth_token'] = token.key
 
         if callback:
@@ -353,19 +348,8 @@ class OAuthRequest(object):
 
     def _split_header(header):
         # pdb.set_trace()
-        """Turn Authorization: header into parameters."""
-        # params = {}
-        # parts = header.split(',')
-        # for param in parts:
-        #     # Ignore realm parameter.
-        #     if param.find('realm') > -1:
-        #         continue
-        #     # Remove whitespace.
-        #     param = param.strip()
-        #     # Split key-value.
-        #     param_parts = param.split('=', 1)
-        #     # Remove quotes and unescape the value.
-        #     params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
+        """Turn Authorization: header into parameters. Changed way to retrieve headers b/c 
+        wasn't sending in oauth 'headers' in the header in from_request"""
         params = {}
         for k, v in header.items():
             # Ignore realm parameter.
@@ -444,6 +428,7 @@ class OAuthServer(object):
 
     def verify_request(self, oauth_request):
         """Verifies an api call and checks all the parameters."""
+        # pdb.set_trace()
         # -> consumer and token
         version = self._get_version(oauth_request)
         consumer = self._get_consumer(oauth_request)
@@ -511,6 +496,7 @@ class OAuthServer(object):
         return oauth_request.get_parameter('oauth_verifier')
 
     def _check_signature(self, oauth_request, consumer, token):
+        # pdb.set_trace()
         timestamp, nonce = oauth_request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
         self._check_nonce(consumer, token, nonce)
@@ -617,6 +603,7 @@ class OAuthSignatureMethod(object):
         raise NotImplementedError
 
     def check_signature(self, oauth_request, consumer, token, signature):
+        # pdb.set_trace()
         built = self.build_signature(oauth_request, consumer, token)
         return built == signature
 
@@ -627,6 +614,7 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         return 'HMAC-SHA1'
         
     def build_signature_base_string(self, oauth_request, consumer, token):
+        # pdb.set_trace()
         sig = (
             escape(oauth_request.get_normalized_http_method()),
             escape(oauth_request.get_normalized_http_url()),
@@ -641,6 +629,7 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
 
     def build_signature(self, oauth_request, consumer, token):
         """Builds the base signature string."""
+        # pdb.set_trace()
         key, raw = self.build_signature_base_string(oauth_request, consumer,
             token)
 

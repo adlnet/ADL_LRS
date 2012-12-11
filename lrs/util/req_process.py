@@ -18,27 +18,34 @@ def statements_post(req_dict):
         if req_dict['user'].is_authenticated() == True:
             auth = req_dict['user']
 
-    if isinstance(req_dict['body'], str):
-        try:
-            req_dict['body'] = ast.literal_eval(req_dict['body'])
-        except:
-            req_dict['body'] = json.loads(req_dict['body'])    
-        if not type(req_dict['body']) is list:
-            stmt = Statement.Statement(req_dict['body'], auth=auth).statement
-            stmtResponses.append(str(stmt.statement_id))
-        else:
-            try:
-                for st in req_dict['body']:
-                    stmt = Statement.Statement(st, auth=auth).statement
-                    stmtResponses.append(str(stmt.statement_id))
-            except Exception, e:
-                for stmt_id in stmtResponses:
-                    try:
-                        models.statement.objects.get(statement_id=stmt_id).delete()
-                    except models.statement.DoesNotExist:
-                        pass # stmt already deleted
-                raise e
+    # Overwrite user if oauth_group is included
+    if 'oauth_group_stmt_auth' in req_dict:
+        auth = req_dict['oauth_group_stmt_auth']
 
+    if 'body' in req_dict:
+        if isinstance(req_dict['body'], str):
+            try:
+                req_dict['body'] = ast.literal_eval(req_dict['body'])
+            except:
+                req_dict['body'] = json.loads(req_dict['body'])    
+            if not type(req_dict['body']) is list:
+                stmt = Statement.Statement(req_dict['body'], auth=auth).statement
+                stmtResponses.append(str(stmt.statement_id))
+            else:
+                try:
+                    for st in req_dict['body']:
+                        stmt = Statement.Statement(st, auth=auth).statement
+                        stmtResponses.append(str(stmt.statement_id))
+                except Exception, e:
+                    for stmt_id in stmtResponses:
+                        try:
+                            models.statement.objects.get(statement_id=stmt_id).delete()
+                        except models.statement.DoesNotExist:
+                            pass # stmt already deleted
+                    raise e
+    else:
+        # Check if body is in the dict first. Received error message of only 'body'-can't replicate
+        raise Exception("Request body was not parsed correctly.")
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
@@ -47,11 +54,16 @@ def statements_put(req_dict):
         if req_dict['user'].is_authenticated() == True:
             auth = req_dict['user']
 
+    # Overwrite user if oauth_group is included
+    if 'oauth_group_stmt_auth' in req_dict:
+        auth = req_dict['oauth_group_stmt_auth']
+
     req_dict['body']['statement_id'] = req_dict['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=auth).statement
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
+    # pdb.set_trace()
     auth = None
     if 'user' in req_dict:
         if req_dict['user'].is_authenticated() == True:
@@ -186,50 +198,6 @@ def stream_response_generator(data):
             yield ": "
             yield json.dumps(v)
     yield "}"
-
-# Not needed for now 
-# # Generate JSON
-# def stream_response_generator_list(data):
-#     list_first = True
-#     yield "["
-#     for i in data:
-#         if not list_first:
-#             yield ", "
-#         else:
-#             list_first = True    
-#         first = True
-#         yield "{"
-#         # pdb.set_trace()
-#         for k,v in i.items():
-#             if not first:
-#                 yield ", "
-#             else:
-#                 first = False
-#             #Catch next dictionaries
-#             if type(v) is dict:
-#                 stream_response_generator_list(v)
-#             #Catch lists as dictionary values
-#             if type(v) is list:
-#                 lfirst = True
-#                 yield json.dumps(k)
-#                 yield ": "
-#                 yield "["
-#                 for item in v:
-#                     if not lfirst:
-#                         yield ", "
-#                     else:
-#                         lfirst = False
-#                     #Catch dictionaries as items in a list
-#                     if type(item) is dict:
-#                         stream_response_generator_list(item)
-#                     yield json.dumps(item)
-#                 yield "]"
-#             else:
-#                 yield json.dumps(k)
-#                 yield ": "
-#                 yield json.dumps(v)
-#         yield "}"
-#     yield "]"
 
 def agent_profile_put(req_dict):
     # test ETag for concurrency

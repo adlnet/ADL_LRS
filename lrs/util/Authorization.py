@@ -13,15 +13,14 @@ from django.utils.translation import ugettext as _
 from oauth_provider.utils import initialize_server_request, send_oauth_error
 from oauth_provider.consts import OAUTH_PARAMETERS_NAMES
 
-
-
 def auth(func):
     """
     A decorator, that can be used to authenticate some requests at the site.
     """
     @wraps(func)
     def inner(request, *args, **kwargs):
-        # pdb.set_trace()
+        # Note: The cases involving OAUTH_ENABLED are here if OAUTH_ENABLED is switched from true to false
+        # after a client has performed the handshake. (Not likely to happen, but could) 
         lrs_auth = request['lrs_auth']
         # There is an http lrs_auth request and http auth is enabled
         if lrs_auth == 'http' and settings.HTTP_AUTH_ENABLED:
@@ -61,14 +60,41 @@ def http_auth_helper(request):
         raise Unauthorized("Unauthorized here")
 
 def oauth_helper(request):
+    # Verifies the oauth request
     if is_valid_request(request):
+        # Validates the incoming consumer, token, and params
         try:
             consumer, token, parameters = validate_token(request)
         except OAuthError, e:
             raise OauthUnauthorized(send_oauth_error(e))
-
         if consumer and token:
-            request['user'] = token.user
+            # All is the only scope being supported
+            if token.resource.name.lower() == 'all':
+                user = token.user
+                user_name = user.username
+                user_email = user.email
+                consumer = token.consumer                
+                members = [
+                            {
+                                "account":{
+                                            "name":consumer.key,
+                                            "homePage":"/TCAPI/OAuth/token/"
+                                },
+                                "objectType": "Agent"
+                            },
+                            {
+                                "name":user_name,
+                                "mbox":user_email,
+                                "objectType": "Agent"
+                            }
+                ]
+                kwargs = {"objectType":"Group", "member":members}
+                oauth_group, created = models.group.objects.gen(**kwargs)
+                oauth_group.save()                
+
+                request['oauth_group_stmt_auth'] = oauth_group
+            else:
+                raise BadRequest("Only the 'all' scope is supported.")
     else:
         raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
 
@@ -84,5 +110,6 @@ def is_valid_request(request):
     return is_in(auth_params)
 
 def validate_token(request):
+    # Creates the oauth server and request. Verifies the request against server
     oauth_server, oauth_request = initialize_server_request(request)
     return oauth_server.verify_request(oauth_request)
