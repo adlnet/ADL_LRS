@@ -37,7 +37,6 @@ Navigate to desired repository directory and clone LRS repository
 
     git clone https://github.com/adlnet/ADL_LRS.git
     cd ADL_LRS
-    git checkout 0.9
     
 NOTE: Be sure in your settings file (ADL_LRS/adl_lrs/settings.py) your USER and PASSWORD entries are correct for your MySQL DB)
 
