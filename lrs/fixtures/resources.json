@@ -1,0 +1,11 @@
+[
+	{
+		"model": "lrs.resource",
+		"pk": 1,
+		"fields":{
+			"name": "all",
+			"url": "*",
+			"is_readonly": 0
+		}
+	}
+]

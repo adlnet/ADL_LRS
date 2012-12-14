@@ -7,13 +7,17 @@ from django.utils.translation import ugettext as _
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import get_callable
 
+from django.template import RequestContext
 from utils import initialize_server_request, send_oauth_error
 from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
 from django.utils.decorators import decorator_from_middleware
 from lrs.util import TCAPIversionHeaderMiddleware
+import uuid
 import pdb
+from django.shortcuts import render_to_response
+
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
 INVALID_PARAMS_RESPONSE = send_oauth_error(OAuthError(
@@ -33,9 +37,11 @@ def request_token(request):
     """
     # If oauth is not enabled, don't initiate the handshake
     if settings.OAUTH_ENABLED:
+        # pdb.set_trace()
         oauth_server, oauth_request = initialize_server_request(request)
         if oauth_server is None:
             return INVALID_PARAMS_RESPONSE
+        # pdb.set_trace()
         try:
             # create a request token
             token = oauth_server.fetch_request_token(oauth_request)
@@ -48,7 +54,6 @@ def request_token(request):
         return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
-@login_required
 def user_authorization(request):
     """
     The Consumer cannot use the Request Token until it has been authorized by 
@@ -98,6 +103,7 @@ def user_authorization(request):
     # user grant access to the service
     elif request.method == 'POST':
         # verify the oauth flag set in previous GET
+        # pdb.set_trace()
         if request.session.get('oauth', '') == token.key:
             request.session['oauth'] = ''
             try:
@@ -110,7 +116,6 @@ def user_authorization(request):
                     args = { 'error': _('Access not granted by user.') }
             except OAuthError, err:
                 response = send_oauth_error(err)
-            
             if callback:
                 if "?" in callback:
                     url_delimiter = "&"
@@ -123,7 +128,7 @@ def user_authorization(request):
                 response = HttpResponseRedirect('%s%s%s' % (callback, url_delimiter, query_args))
             else:
                 # try to get custom callback view
-                callback_view_str = getattr(settings, OAUTH_CALLBACK_VIEW, 
+                callback_view_str = getattr(settings, OAUTH_CALLBACK_VIEW,
                                     'oauth_provider.views.fake_callback_view')
                 try:
                     callback_view = get_callable(callback_view_str)
@@ -140,6 +145,7 @@ def access_token(request):
     The Consumer exchanges the Request Token for an Access Token capable of 
     accessing the Protected Resources.
     """
+    # pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
@@ -169,10 +175,25 @@ def fake_authorize_view(request, token, callback, params):
     """
     return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
 
+def authorize_client(request, token, callback, params):
+        existing_lrs_auth_id = token.lrs_auth_id
+        if not existing_lrs_auth_id:
+            lrs_auth_id = str(uuid.uuid4())
+            token.lrs_auth_id = lrs_auth_id
+            token.save()
+        else:
+            lrs_auth_id = existing_lrs_auth_id
+        return render_to_response('oauth_allow_client.html', {"lrs_auth_id": lrs_auth_id},
+            context_instance=RequestContext(request))
+
+
 def fake_callback_view(request, **args):
     """
     Fake view for tests. It must return an ``HttpResponse``.
     
     You can define your own in ``settings.OAUTH_CALLBACK_VIEW``.
     """
-    return HttpResponse('Fake callback view.')
+    if 'error' in args:
+        return HttpResponse("Error - %s" % args['error'])
+
+    return HttpResponse("Fake callback view. - You've been authenticated!")

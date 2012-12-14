@@ -30,6 +30,7 @@ import urlparse
 import hmac
 import binascii
 import pdb
+import ast
 
 VERSION = '1.0' # Hi Blaine!
 HTTP_METHOD = 'GET'
@@ -271,7 +272,10 @@ class OAuthRequest(object):
 
         # Headers - wasn't sending in oauth 'headers' in the header - had to change process for obtaining them
         if headers and 'Authorization' in headers:
-            auth_header = headers['Authorization']
+            try:
+                auth_header = ast.literal_eval(headers['Authorization'])
+            except Exception, e:
+                auth_header = headers['Authorization']
             try:
                 # Get the parameters from the header.
                 header_params = OAuthRequest._split_header(auth_header)
@@ -280,13 +284,13 @@ class OAuthRequest(object):
                 raise OAuthError('Unable to parse OAuth parameters from '
                     'Authorization header.')
 
-        # TODO-maybe should be setting these in utils initialize_server_request instead
+        # Maybe should be setting these in utils initialize_server_request instead
         # GET or POST query string.
         if query_string:
             query_params = OAuthRequest._split_url_string(query_string)
             parameters.update(query_params)
 
-        # TODO-maybe should be setting these in utils initialize_server_request instead
+        # Maybe should be setting these in utils initialize_server_request instead
         # URL parameters.
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
@@ -333,7 +337,7 @@ class OAuthRequest(object):
         if not parameters:
             parameters = {}
 
-        # TODO - maybe should be handling this in utils - initialize server request
+        # Maybe should be handling this in utils - initialize server request
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
         parameters.update(url_params)

@@ -32,7 +32,7 @@ class ResourceManager(models.Manager):
 
 class TokenManager(models.Manager):
     def create_token(self, consumer, token_type, timestamp, resource, 
-            user=None, callback=None, callback_confirmed=False):
+            user=None, callback=None, callback_confirmed=False, lrs_auth_id=None):
         """Shortcut to create a token with random key/secret."""
         token, created = self.get_or_create(consumer=consumer, 
                                             token_type=token_type, 
@@ -40,7 +40,8 @@ class TokenManager(models.Manager):
                                             resource=resource,
                                             user=user,
                                             callback=callback,
-                                            callback_confirmed=callback_confirmed)
+                                            callback_confirmed=callback_confirmed,
+                                            lrs_auth_id=lrs_auth_id)
         if created:
             token.generate_random_codes()
         return token

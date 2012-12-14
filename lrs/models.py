@@ -40,7 +40,6 @@ class Resource(models.Model):
     name = models.CharField(max_length=255)
     url = models.TextField(max_length=MAX_URL_LENGTH)
     is_readonly = models.BooleanField(default=True)
-    mine_only = models.BooleanField(default=False)
     
     objects = ResourceManager()
 
@@ -88,7 +87,8 @@ class Token(models.Model):
     token_type = models.SmallIntegerField(choices=TOKEN_TYPES)
     timestamp = models.IntegerField(default=long(time()))
     is_approved = models.BooleanField(default=False)
-    
+    lrs_auth_id = models.CharField(max_length=200, null=True)
+
     user = models.ForeignKey(User, null=True, blank=True, related_name='tokens')
     consumer = models.ForeignKey(Consumer)
     resource = models.ForeignKey(Resource)
@@ -212,7 +212,6 @@ class result(models.Model):
         return ret
     
     def delete(self, *args, **kwargs):
-        # pdb.set_trace()
         exts = result_extensions.objects.filter(result=self)
         has_score = False
         for ext in exts:
@@ -275,17 +274,25 @@ class agentmgr(models.Manager):
                 except:
                     members = mem
         try:
-            agent = self.get(**kwargs)
+            # Added in if stmts to check if should get/create group or agent object
+            # Before it was creating agents as groups
+            if group:
+                gr_agent = self.get(**kwargs)
+            else:
+                gr_agent = agent.objects.get(**kwargs)
             created = False
-        except self.model.DoesNotExist:
-            agent = self.model(**kwargs)
-            agent.save()
+        except agent.DoesNotExist:
+            if group:
+                gr_agent = self.model(**kwargs)
+            else:
+                gr_agent = agent(**kwargs)
+            gr_agent.save()
             created = True
         if group:
             ags = [self.gen(**a) for a in members]
-            agent.member.add(*(a for a, c in ags))
-        agent.save()
-        return agent, created
+            gr_agent.member.add(*(a for a, c in ags))
+        gr_agent.save()
+        return gr_agent, created
 
 class agent_account(models.Model):  
     homePage = models.CharField(max_length=200, blank=True, null=True)
@@ -313,23 +320,21 @@ class agent(statement_object):
     objects = agentmgr()
 
     def get_agent_json(self):
-        if self.objectType == 'Group':
-            gr = group.objects.get(id=self.id)
-            return gr.get_agent_json()        
-        else:
-            ret = {}
-            ret['objectType'] = self.objectType
+        # pdb.set_trace()
+        ret = {}
+        # Default to agent, if group subclass calls it displays Group instead of Agent
+        ret['objectType'] = self.objectType
 
-            if self.name:
-                ret['name'] = self.name
-            if self.mbox:
-                ret['mbox'] = self.mbox
-            if self.mbox_sha1sum:
-                ret['mbox_sha1sum'] = self.mbox_sha1sum
-            if self.openid:
-                ret['openid'] = self.openid
-            if self.account:
-                ret['account'] = self.account.get_json()
+        if self.name:
+            ret['name'] = self.name
+        if self.mbox:
+            ret['mbox'] = self.mbox
+        if self.mbox_sha1sum:
+            ret['mbox_sha1sum'] = self.mbox_sha1sum
+        if self.openid:
+            ret['openid'] = self.openid
+        if self.account:
+            ret['account'] = self.account.get_json()
         return ret
 
     def get_person_json(self):
@@ -368,7 +373,7 @@ class group(agent):
 
     def get_agent_json(self):
         # ret = super(group, self).get_agent_json()
-        pdb.set_trace()
+        # pdb.set_trace()
         ret = {}
         ret['objectType'] = self.objectType
         ret['member'] = [a.get_agent_json() for a in self.member.all()]
@@ -520,7 +525,6 @@ class activity(statement_object):
         return ret
 
     def delete(self, *args, **kwargs):
-        # pdb.set_trace()
         has_def = False
         if not self.activity_definition is None:
             self.activity_definition.delete()
@@ -1004,7 +1008,6 @@ class statement(models.Model):
         ret['stored'] = str(self.stored)
         
         if not self.authority is None:
-            pdb.set_trace()
             if self.authority.objectType != 'Group':
                 ret['authority'] = self.authority.get_agent_json()
             else:

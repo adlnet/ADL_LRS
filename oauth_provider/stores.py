@@ -60,7 +60,6 @@ class DataStore(OAuthDataStore):
                     callback_confirmed = True
                 else:
                     raise OAuthError('Invalid callback URL.')
-
         try:
             resource = Resource.objects.get(name=self.scope)
         except:
@@ -76,6 +75,7 @@ class DataStore(OAuthDataStore):
         
 
     def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
+        # pdb.set_trace()
         if oauth_consumer.key == self.consumer.key \
         and oauth_token.key == self.request_token.key \
         and self.request_token.is_approved:
@@ -87,25 +87,29 @@ class DataStore(OAuthDataStore):
                                                                token_type=Token.ACCESS,
                                                                timestamp=self.timestamp,
                                                                user=self.request_token.user,
-                                                               resource=self.request_token.resource)
+                                                               resource=self.request_token.resource,
+                                                               lrs_auth_id=self.request_token.lrs_auth_id)
                 return self.access_token
         raise OAuthError('Consumer key or token key does not match. ' \
                         +'Make sure your request token is approved. ' \
                         +'Check your verifier too if you use OAuth 1.0a.')
 
     def authorize_request_token(self, oauth_token, user):
-        if oauth_token.key == self.request_token.key:
+        # Changed so it looks at lrs_auth_id as well
+        if (oauth_token.key == self.request_token.key) and (oauth_token.lrs_auth_id == self.request_token.lrs_auth_id):
             # authorize the request token in the store
             self.request_token.is_approved = True
-            
+            self.request_token.save()
             # OAuth 1.0a: if there is a callback confirmed, we must set a verifier
             if self.request_token.callback_confirmed:
                 self.request_token.verifier = generate_random(VERIFIER_SIZE)
             
-            self.request_token.user = user
-            self.request_token.save()
+            # If it has the lrs_auth_id, no user is required to login for now
+            if not self.request_token.lrs_auth_id:
+                self.request_token.user = user
+                self.request_token.save()
             return self.request_token
-        raise OAuthError('Token key does not match.')
+        raise OAuthError('Token key or lrs_auth_id does not match.')
 
 
 def check_valid_callback(callback):

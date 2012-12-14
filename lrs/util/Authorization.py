@@ -68,11 +68,15 @@ def oauth_helper(request):
         except OAuthError, e:
             raise OauthUnauthorized(send_oauth_error(e))
         if consumer and token:
-            # All is the only scope being supported
+            # All is the only scope being supported - need to correct the user/auth_id workflow
             if token.resource.name.lower() == 'all':
-                user = token.user
-                user_name = user.username
-                user_email = user.email
+                if not token.lrs_auth_id:
+                    user = token.user
+                    user_name = user.username
+                    user_email = user.email
+                else:
+                    user_name = token.lrs_auth_id
+                    user_email = token.lrs_auth_id
                 consumer = token.consumer                
                 members = [
                             {

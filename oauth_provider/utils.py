@@ -18,6 +18,7 @@ def initialize_server_request(request):
     
     # Check to see if it's a dict if it's being called from the LRS app. The LRS app parses everything in a dict first
     # then will call this in Authorization with the request dict.
+    # pdb.set_trace()
     if type(request) == dict:
         auth_header = {}
         if 'Authorization' in request:
@@ -53,13 +54,12 @@ def initialize_server_request(request):
             (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
                 or request.META.get('SERVER_NAME') == 'testserver'):
             parameters = dict(request.REQUEST.items())
-            
+        # pdb.set_trace() 
         oauth_request = OAuthRequest.from_request(request.method, 
                                                   request.build_absolute_uri(), 
                                                   headers=auth_header,
                                                   parameters=parameters,
                                                   query_string=request.META.get('QUERY_STRING', ''))
-    
     if oauth_request:
         oauth_server = OAuthServer(DataStore(oauth_request))
         if 'plaintext' in OAUTH_SIGNATURE_METHODS:

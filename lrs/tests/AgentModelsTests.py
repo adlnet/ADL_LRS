@@ -4,7 +4,7 @@ from lrs.models import agent, group, agent_account
 from lrs.objects.Agent import Agent
 import hashlib
 import json
-
+import pdb
 ''' TODO:
 recreate this to make agents (personas) at the model level w/in setUp
 then make tests to get merged results (persons)
@@ -112,6 +112,14 @@ class AgentModelsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn('agent1', mems)
         self.assertIn('agent2', mems)
+        gr_dict = g.get_agent_json()
+        self.assertEquals(gr_dict['objectType'],'Group')
+        self.assertEquals(gr_dict['member'][0]['objectType'],'Agent')
+        self.assertEquals(gr_dict['member'][1]['objectType'],'Agent')
+        self.assertEquals(gr_dict['member'][0]['name'],'agent1')
+        self.assertEquals(gr_dict['member'][1]['name'],'agent2')
+        self.assertEquals(gr_dict['member'][0]['mbox'],'mailto:agent1@example.com')
+        self.assertEquals(gr_dict['member'][1]['mbox'],'mailto:agent2@example.com')
 
     def test_group_from_agent_object(self):
         ot = "Group"
