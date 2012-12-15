@@ -73,6 +73,7 @@ def initialize_server_request(request):
 def send_oauth_error(err=None):
     """Shortcut for sending an error."""
     # send a 401 error
+    # pdb.set_trace()
     response = HttpResponse(err.message.encode('utf-8'), mimetype="text/plain")
     response.status_code = 401
     # return the authenticate header

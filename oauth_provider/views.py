@@ -35,6 +35,7 @@ def request_token(request):
     Provider to issue a Token. The Request Token's sole purpose is to receive 
     User approval and can only be used to obtain an Access Token.
     """
+    # pdb.set_trace()
     # If oauth is not enabled, don't initiate the handshake
     if settings.OAUTH_ENABLED:
         # pdb.set_trace()

@@ -398,6 +398,7 @@ class OAuthServer(object):
         """Processes a request_token request and returns the
         request token on success.
         """
+        # pdb.set_trace()
         try:
             # Get the request token for authorization.
             token = self._get_token(oauth_request, 'request')
