@@ -30,6 +30,7 @@ class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, initial=None, auth=None, statement_id=None, get=False):
+        # pdb.set_trace()
         if get and statement_id is not None:
             self.statement_id = statement_id
             self.statement = None
@@ -423,8 +424,13 @@ class Statement():
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
-                if auth is not None:        
-                    args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=auth.username).activity
+                if auth is not None:
+                    # If it's a group, it has no username attribute like the User class, just name
+                    # pdb.set_trace()
+                    if hasattr(auth, 'objectType'):        
+                        args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=auth).activity
+                    else:
+                        args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=auth.username).activity                        
                 else:
                     args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
@@ -456,11 +462,15 @@ class Statement():
             args['authority'] = Agent(initial=stmt_data['authority'], create=True).agent
         else:
             # pdb.set_trace()
+            # Look at request from auth if not supplied in stmt_data
             if auth:
                 authArgs = {}
-                authArgs['name'] = auth.username
-                authArgs['mbox'] = auth.email
-                args['authority'] = Agent(initial=authArgs, create=True).agent
+                if hasattr(auth, 'objectType'):
+                    args['authority'] = auth
+                else:    
+                    authArgs['name'] = auth.username
+                    authArgs['mbox'] = auth.email
+                    args['authority'] = Agent(initial=authArgs, create=True).agent
 
         #See if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:

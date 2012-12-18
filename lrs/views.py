@@ -1,15 +1,17 @@
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login
 from django.template import RequestContext
 from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
+from django.contrib.auth.decorators import login_required
 from django.utils.decorators import decorator_from_middleware
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
 from lrs import forms, models, exceptions
 import logging
 import json
+import urllib
 import pdb
 
 
@@ -44,7 +46,7 @@ def register(request):
                 user = User.objects.get(username__exact=name)
                 user = authenticate(username=name, password=pword)
                 if user is None:
-                    return render_to_response('register.html', {"form": form, "error_message": "%s is already registered but the password was incorrect." % name},
+                    return render_to_response('register.html', {"form": form, "error_message": "%s's password was incorrect." % name},
                         context_instance=RequestContext(request))
             except User.DoesNotExist:
                 user = User.objects.create_user(name, email, pword)
@@ -54,10 +56,42 @@ def register(request):
     else:
         return Http404
 
+
+@require_http_methods(["GET","POST"])
+def reg_client(request):
+    # pdb.set_trace()
+    if request.method == 'GET':
+        form = forms.RegClientForm()
+        return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
+    elif request.method == 'POST':
+        form = forms.RegClientForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data['name']
+            description = form.cleaned_data['description']
+            try:
+                client = models.Consumer.objects.get(name__exact=name)
+            except models.Consumer.DoesNotExist:
+                client = models.Consumer(name=name, description=description)
+                client.save()
+            else:
+                return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
+            url = "%s?%s" % (reverse('lrs.views.reg_success', args=[client.pk]),urllib.urlencode({"type":"client"}))
+            return HttpResponseRedirect(url)
+        else:
+            return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))        
+    else:
+        return Http404
+
 def reg_success(request, user_id):
-    user = User.objects.get(id=user_id)
-    return render_to_response('reg_success.html', {"info_message": "Thanks for registering %s" % user.username},
-        context_instance=RequestContext(request))
+    # pdb.set_trace()
+    if "type" in request.GET and request.GET['type'] == 'client':
+        client = models.Consumer.objects.get(id=user_id)
+        d = {"name":client.name,"app_id":client.key, "secret":client.secret,
+             "info_message": "Your Client Credentials"}
+    else:
+        user = User.objects.get(id=user_id)
+        d = {"info_message": "Thanks for registering %s" % user.username}
+    return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
@@ -97,6 +131,16 @@ def agent_profile(request):
 def agents(request):
     return handle_request(request)
 
+# THIS VIEW IS BEING USED
+def oauth_authorize(request, request_token, callback_url, params):
+    rsp = """
+    <html><head></head><body><h1>Oauth Authorize</h1><h2>%s</h2></body></html>""" % params
+    return HttpResponse(rsp)    
+
+@login_required
+def user_profile(request):
+    return render_to_response('registration/profile.html')
+
 def handle_request(request):
     try:
         r_dict = req_parse.parse(request)
@@ -111,6 +155,8 @@ def handle_request(request):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except exceptions.OauthUnauthorized as oauth_err:
+        return oauth_err.response
     except exceptions.Forbidden as forb:
         return HttpResponse(forb.message, status=403)
     except exceptions.NotFound as nf:
@@ -119,8 +165,8 @@ def handle_request(request):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements) : {

@@ -293,7 +293,7 @@ def getStatementRequest(req_id):
     stmt_result = buildStatementResult(query_dict, stmt_list, req_id)
     return stmt_result
 
-def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_more_id=None):
+def buildStatementResult(req_dict, stmt_list, more_id=None, created=False):
     result = {}
     limit = None
     # Get length of stmt list
@@ -339,7 +339,7 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False, next_
             encoded_list = pickle.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
             return result
-    # List will only be larger first time - getStatementRequest should truncate rest of results
+    # List will only be larger first time
     # of more URLs.
     if not limit:
         try:

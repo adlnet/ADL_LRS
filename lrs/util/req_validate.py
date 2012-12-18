@@ -2,20 +2,20 @@ import json
 from lrs import models
 from lrs.exceptions import Unauthorized, ParamConflict, ParamError
 from django.contrib.auth import authenticate
-import HTTPAuthorization
+import Authorization
 import base64
 import ast
 from django.utils.decorators import decorator_from_middleware
 import pdb
 import pprint
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def statements_post(r_dict):
     if "application/json" not in r_dict['CONTENT_TYPE']:
         r_dict['method'] = 'GET'
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def statements_get(r_dict):
     return r_dict
 
@@ -32,7 +32,7 @@ def check_for_no_other_params_supplied(query_dict):
         supplied = False
     return supplied
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def statements_put(r_dict):
     # pdb.set_trace()
     try:
@@ -53,7 +53,7 @@ def statements_put(r_dict):
         raise ParamError("No Content supplied")
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def activity_state_put(r_dict):
     try:
         r_dict['activityId']
@@ -73,7 +73,7 @@ def activity_state_put(r_dict):
     r_dict['state'] = r_dict.pop('body')
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def activity_state_get(r_dict):
     try:
         r_dict['activityId']
@@ -85,7 +85,7 @@ def activity_state_get(r_dict):
         raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method'])
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def activity_state_delete(r_dict):
     try:
         r_dict['activityId']
@@ -97,7 +97,7 @@ def activity_state_delete(r_dict):
         raise ParamError("Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method'])
     return r_dict
   
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def activity_profile_put(r_dict):
     try:
         r_dict['activityId']
@@ -117,7 +117,7 @@ def activity_profile_put(r_dict):
     
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def activity_profile_get(r_dict):
     try:
         r_dict['activityId']
@@ -125,7 +125,7 @@ def activity_profile_get(r_dict):
          raise ParamError("Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method'])
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def activity_profile_delete(r_dict):
     try:
         r_dict['activityId']
@@ -145,7 +145,7 @@ def activities_get(r_dict):
         raise ParamError("Error -- activities - method = %s, but activityId parameter is missing" % r_dict['method'])
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def agent_profile_put(r_dict):
     try: 
         r_dict['agent']
@@ -169,7 +169,7 @@ def agent_profile_get(r_dict):
         raise ParamError("Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % r_dict['method'])
     return r_dict
 
-@HTTPAuthorization.http_auth
+@Authorization.auth
 def agent_profile_delete(r_dict):
     try: 
         r_dict['agent']

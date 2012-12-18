@@ -1,4 +1,5 @@
 from django import forms
+import pdb
 
 class RegisterForm(forms.Form):
 	username = forms.CharField(max_length=200, label='Name')
@@ -17,3 +18,8 @@ class RegisterForm(forms.Form):
 				return cleaned
 
 		raise forms.ValidationError("Passwords did not match")
+
+class RegClientForm(forms.Form):
+	name = forms.CharField(max_length=200, label='Name')
+	description = forms.CharField(label='Description', required=False, 
+		widget=forms.Textarea())
