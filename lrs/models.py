@@ -1,5 +1,6 @@
 from django.db import models
 from django.db import transaction
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
@@ -9,11 +10,142 @@ from django.utils.timezone import utc
 from lrs.exceptions import IDNotFoundError, ParamError
 import ast
 import json
+import uuid
 import pdb
-import pprint
-#this is BAD, if anyone knows a better way to store kv pairs in MySQL let me know
+import urllib
+import urlparse
+from time import time
+from oauth_provider.managers import TokenManager, ConsumerManager, ResourceManager
+from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
+                   PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
+
+gen_pwd = User.objects.make_random_password
+generate_random = User.objects.make_random_password
+
+def gen_uuid():
+    return uuid.uuid4().hex
+
+class Nonce(models.Model):
+    token_key = models.CharField(max_length=KEY_SIZE)
+    consumer_key = models.CharField(max_length=CONSUMER_KEY_SIZE)
+    key = models.CharField(max_length=255)
+    
+    def __unicode__(self):
+        return u"Nonce %s for %s" % (self.key, self.consumer_key)
+
+
+class Resource(models.Model):
+    name = models.CharField(max_length=255)
+    url = models.TextField(max_length=MAX_URL_LENGTH)
+    is_readonly = models.BooleanField(default=True)
+    
+    objects = ResourceManager()
+
+    def __unicode__(self):
+        return u"Resource %s with url %s" % (self.name, self.url)
+
+
+class Consumer(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    
+    key = models.CharField(max_length=CONSUMER_KEY_SIZE, unique=True, default=gen_uuid)
+    secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
+
+    status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
+    user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user")
+
+    objects = ConsumerManager()
+        
+    def __unicode__(self):
+        return u"Consumer %s with key %s" % (self.name, self.key)
+
+    def generate_random_codes(self):
+        """
+        Used to generate random key/secret pairings.
+        Use this after you've added the other data in place of save().
+        """
+        key = generate_random(length=KEY_SIZE)
+        secret = generate_random(length=SECRET_SIZE)
+        while Consumer.objects.filter(models.Q(key__exact=key) | models.Q(secret__exact=secret)).count():
+            key = generate_random(length=KEY_SIZE)
+            secret = generate_random(length=SECRET_SIZE)
+        self.key = key
+        self.secret = secret
+        self.save()
+
+
+class Token(models.Model):
+    REQUEST = 1
+    ACCESS = 2
+    TOKEN_TYPES = ((REQUEST, u'Request'), (ACCESS, u'Access'))
+    
+    key = models.CharField(max_length=KEY_SIZE, null=True, blank=True)
+    secret = models.CharField(max_length=SECRET_SIZE, null=True, blank=True)
+    token_type = models.SmallIntegerField(choices=TOKEN_TYPES)
+    timestamp = models.IntegerField(default=long(time()))
+    is_approved = models.BooleanField(default=False)
+    lrs_auth_id = models.CharField(max_length=200, null=True)
+
+    user = models.ForeignKey(User, null=True, blank=True, related_name='tokens')
+    consumer = models.ForeignKey(Consumer)
+    resource = models.ForeignKey(Resource)
+    
+    ## OAuth 1.0a stuff
+    verifier = models.CharField(max_length=VERIFIER_SIZE)
+    callback = models.CharField(max_length=MAX_URL_LENGTH, null=True, blank=True)
+    callback_confirmed = models.BooleanField(default=False)
+    
+    objects = TokenManager()
+    
+    def __unicode__(self):
+        return u"%s Token %s for %s" % (self.get_token_type_display(), self.key, self.consumer)
+
+    def to_string(self, only_key=False):
+        token_dict = {
+            'oauth_token': self.key, 
+            'oauth_token_secret': self.secret,
+            'oauth_callback_confirmed': self.callback_confirmed and 'true' or 'error'
+        }
+        if self.verifier:
+            token_dict['oauth_verifier'] = self.verifier
+
+        if only_key:
+            del token_dict['oauth_token_secret']
+            del token_dict['oauth_callback_confirmed']
+
+        return urllib.urlencode(token_dict)
+
+    def generate_random_codes(self):
+        """
+        Used to generate random key/secret pairings. 
+        Use this after you've added the other data in place of save(). 
+        """
+        key = generate_random(length=KEY_SIZE)
+        secret = generate_random(length=SECRET_SIZE)
+        while Token.objects.filter(models.Q(key__exact=key) | models.Q(secret__exact=secret)).count():
+            key = generate_random(length=KEY_SIZE)
+            secret = generate_random(length=SECRET_SIZE)
+        self.key = key
+        self.secret = secret
+        self.save()
+
+    def get_callback_url(self):
+        """
+        OAuth 1.0a, append the oauth_verifier.
+        """
+        if self.callback and self.verifier:
+            parts = urlparse.urlparse(self.callback)
+            scheme, netloc, path, params, query, fragment = parts[:6]
+            if query:
+                query = '%s&oauth_verifier=%s' % (query, self.verifier)
+            else:
+                query = 'oauth_verifier=%s' % self.verifier
+            return urlparse.urlunparse((scheme, netloc, path, params,
+                query, fragment))
+        return self.callback
 
 def convertToUTC(timestr):
     # Strip off TZ info
@@ -178,12 +310,12 @@ class agentmgr(models.Manager):
                 account = val
             try:
                 acc = agent_account.objects.get(**account)
-                agent = acc.agent
+                ret_agent = acc.agent
                 created = False
             except agent_account.DoesNotExist:
-                agent = self.model(**kwargs)
-                agent.save()
-                acc = agent_account(agent=agent, **account)
+                ret_agent = self.model(**kwargs)
+                ret_agent.save()
+                acc = agent_account(agent=ret_agent, **account)
                 acc.save()
                 created = True
         else:
@@ -196,19 +328,26 @@ class agentmgr(models.Manager):
                         members = json.loads(mem)
                     except:
                         members = mem
-            try:
-                agent = self.get(**kwargs)
-                created = False
-            except self.model.DoesNotExist:
-                agent = self.model(**kwargs)
-                agent.save()
-                created = True
+        try:
+            # Added in if stmts to check if should get/create group or agent object
+            # Before it was creating agents as groups
             if group:
-                ags = [self.gen(**a) for a in members]
-                agent.member.add(*(a for a, c in ags))
-            agent.save()
-        return agent, created
-
+                ret_agent = self.get(**kwargs)
+            else:
+                ret_agent = agent.objects.get(**kwargs)
+            created = False
+        except agent.DoesNotExist:
+            if group:
+                ret_agent = self.model(**kwargs)
+            else:
+                ret_agent = agent(**kwargs)
+            ret_agent.save()
+            created = True
+        if group:
+            ags = [self.gen(**a) for a in members]
+            ret_agent.member.add(*(a for a, c in ags))
+        ret_agent.save()
+        return ret_agent, created
 
 class agent(statement_object):
     objectType = models.CharField(max_length=200, blank=True, default="Agent")
@@ -220,6 +359,7 @@ class agent(statement_object):
 
     def get_agent_json(self):
         ret = {}
+        # Default to agent, if group subclass calls it displays Group instead of Agent
         ret['objectType'] = self.objectType
         if self.name:
             ret['name'] = self.name
@@ -285,7 +425,8 @@ class group(agent):
         super(group, self).__init__(*args, **kwargs)
 
     def get_agent_json(self):
-        ret = super(group, self).get_agent_json()
+        ret = {}
+        ret['objectType'] = self.objectType
         ret['member'] = [a.get_agent_json() for a in self.member.all()]
         return ret
 
@@ -412,7 +553,6 @@ class activity_definition(models.Model):
 
 class activity_def_correctresponsespattern(models.Model):
     activity_definition = models.OneToOneField(activity_definition, blank=True, null=True)
-
 
 class correctresponsespattern_answer(models.Model):
     answer = models.TextField()

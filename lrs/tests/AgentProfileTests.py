@@ -7,7 +7,7 @@ import hashlib
 import urllib
 import base64
 import json
-
+import pdb
 #TODO: delete profiles that are being stored
 class AgentProfileTests(TestCase):
     testagent = '{"mbox":"mailto:test@example.com"}'
@@ -218,18 +218,18 @@ class AgentProfileTests(TestCase):
         params = {"profileId": prof_id, "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode({"method":"PUT"}))
         params['content'] = {"test":"delete profile","obj":{"actor":"test", "testcase":"ie cors post for put and delete"}}
-        params['Authorization'] = self.auth
+        # params['Authorization'] = self.auth
         params['Content-Type'] = "application/json"
-        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
-        
+        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="0.95")
+        # pdb.set_trace()
         r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % params['content'])
 
         dparams = {"profileId": prof_id, "agent": self.testagent}
-        dparams['Authorization'] = self.auth
+        # dparams['Authorization'] = self.auth
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode({"method":"DELETE"}))
-        r = self.client.post(path, dparams,content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
+        r = self.client.post(path, dparams,content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 204)
 
         r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, X_Experience_API_Version="0.95")

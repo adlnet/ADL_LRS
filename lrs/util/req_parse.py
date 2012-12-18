@@ -7,9 +7,31 @@ import pdb
 import pprint
 
 def parse(request):
-    # pdb.set_trace()
     r_dict = {}
-    r_dict['user'] = request.user
+    r_dict = get_headers(request.META, r_dict)
+    # Traditional authorization should be passed in headers
+    if 'Authorization' in r_dict:
+        # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
+        # module
+        if type(r_dict['Authorization']) is dict:
+            r_dict['absolute_uri'] = request.build_absolute_uri()
+            r_dict['query_string'] = request.META.get('QUERY_STRING', '')
+            r_dict['server_name'] = request.META.get('SERVER_NAME', '')
+            r_dict['lrs_auth'] = 'oauth'
+        else:
+            r_dict['lrs_auth'] = 'http'
+
+    # Authorization could be passed into body if cross origin request
+    if 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body: 
+        r_dict['lrs_auth'] = 'http'
+
+    # If it is not set then there is no auth being set
+    if 'lrs_auth' not in r_dict:
+        r_dict['lrs_auth'] = 'none'
+
+    # Only set the user if it is not oauth because oauth will user a group as it's auth
+    if r_dict['lrs_auth'] != 'oauth':
+        r_dict['user'] = request.user
 
     if request.method == 'POST' and 'method' in request.GET:
         bdy = ast.literal_eval(request.body)
@@ -19,11 +41,9 @@ def parse(request):
     else:
         r_dict = parse_body(r_dict, request)
 
-    r_dict = get_headers(request.META, r_dict)
     r_dict.update(request.GET.dict())
     if 'method' not in r_dict:
         r_dict['method'] = request.method
-    
     return r_dict
 
 def parse_body(r, request):
@@ -36,18 +56,10 @@ def parse_body(r, request):
         else:
             if request.body:
                 r['body'] = request.body    
-                # if isinstance(request.body, basestring):
-                #     try:
-                #         r['body'] = ast.literal_eval(request.body)
-                #     except:
-                #         r['body'] = json.loads(request.body)
+
             if request.raw_post_data:
                 r['raw_post_data'] = request.raw_post_data    
-                # if isinstance(request.raw_post_data, basestring):
-                #     try:
-                #         r['raw_post_data'] = ast.literal_eval(request.raw_post_data)
-                #     except:
-                #         r['raw_post_data'] = json.loads(request.raw_post_data)
+
     return r
 
 def get_headers(headers, r):
