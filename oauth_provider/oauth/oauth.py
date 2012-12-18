@@ -265,7 +265,7 @@ class OAuthRequest(object):
 
     def from_request(http_method, http_url, headers=None, parameters=None,
             query_string=None):
-        # pdb.set_trace()
+        pdb.set_trace()
         """Combines multiple parameter sources."""
         if parameters is None:
             parameters = {}

@@ -68,9 +68,10 @@ class OAuthTests(TestCase):
 		soup = BeautifulSoup(auth_resp.content)
 		p = soup.findAll('p')
 		oauth_auth_params['lrs_auth_id'] = str(p[1].contents[0])
+		pdb.set_trace()
 		auth_post = self.client.post("/TCAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_post.status_code, 200)
-		self.assertEqual(auth_post.content, "Fake callback view. - You've been authenticated!")
+		self.assertEqual(auth_post.content, "Callback view. - You've been authenticated!")
 
 
 		# Test ACCESS TOKEN
@@ -169,7 +170,7 @@ class OAuthTests(TestCase):
 		oauth_auth_params['lrs_auth_id'] = str(p[1].contents[0])
 		auth_post = self.client.post("/TCAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_post.status_code, 200)
-		self.assertEqual(auth_post.content, "Fake callback view. - You've been authenticated!")
+		self.assertEqual(auth_post.content, "Callback view. - You've been authenticated!")
 
 		# Test without session param (previous POST removed it)
 		auth_post = self.client.post("/TCAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")

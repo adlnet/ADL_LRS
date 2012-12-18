@@ -35,14 +35,11 @@ def request_token(request):
     Provider to issue a Token. The Request Token's sole purpose is to receive 
     User approval and can only be used to obtain an Access Token.
     """
-    # pdb.set_trace()
     # If oauth is not enabled, don't initiate the handshake
     if settings.OAUTH_ENABLED:
-        # pdb.set_trace()
         oauth_server, oauth_request = initialize_server_request(request)
         if oauth_server is None:
             return INVALID_PARAMS_RESPONSE
-        # pdb.set_trace()
         try:
             # create a request token
             token = oauth_server.fetch_request_token(oauth_request)
@@ -60,6 +57,7 @@ def user_authorization(request):
     The Consumer cannot use the Request Token until it has been authorized by 
     the User.
     """
+    pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
@@ -91,7 +89,7 @@ def user_authorization(request):
     if request.method == 'GET':
         # try to get custom authorize view
         authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW, 
-                                    'oauth_provider.views.fake_authorize_view')
+                                    'oauth_provider.views.authorize_client')
         try:
             authorize_view = get_callable(authorize_view_str)
         except AttributeError:
@@ -104,7 +102,6 @@ def user_authorization(request):
     # user grant access to the service
     elif request.method == 'POST':
         # verify the oauth flag set in previous GET
-        # pdb.set_trace()
         if request.session.get('oauth', '') == token.key:
             request.session['oauth'] = ''
             try:
@@ -130,7 +127,7 @@ def user_authorization(request):
             else:
                 # try to get custom callback view
                 callback_view_str = getattr(settings, OAUTH_CALLBACK_VIEW,
-                                    'oauth_provider.views.fake_callback_view')
+                                    'oauth_provider.views.callback_view')
                 try:
                     callback_view = get_callable(callback_view_str)
                 except AttributeError:
@@ -146,7 +143,6 @@ def access_token(request):
     The Consumer exchanges the Request Token for an Access Token capable of 
     accessing the Protected Resources.
     """
-    # pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
@@ -159,22 +155,14 @@ def access_token(request):
         response = send_oauth_error(err)
     return response
 
-# @oauth_required
-# def protected_resource_example(request):
-#     pdb.set_trace()
+# @login_required
+# def fake_authorize_view(request, token, callback, params):
 #     """
-#     Test view for accessing a Protected Resource.
-#     """
-#     return HttpResponse('Protected Resource access!')
-
-@login_required
-def fake_authorize_view(request, token, callback, params):
-    """
-    Fake view for tests. It must return an ``HttpResponse``.
+#     Fake view for tests. It must return an ``HttpResponse``.
     
-    You need to define your own in ``settings.OAUTH_AUTHORIZE_VIEW``.
-    """
-    return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
+#     You need to define your own in ``settings.OAUTH_AUTHORIZE_VIEW``.
+#     """
+#     return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
 
 def authorize_client(request, token, callback, params):
         existing_lrs_auth_id = token.lrs_auth_id
@@ -187,14 +175,8 @@ def authorize_client(request, token, callback, params):
         return render_to_response('oauth_allow_client.html', {"lrs_auth_id": lrs_auth_id},
             context_instance=RequestContext(request))
 
-
-def fake_callback_view(request, **args):
-    """
-    Fake view for tests. It must return an ``HttpResponse``.
-    
-    You can define your own in ``settings.OAUTH_CALLBACK_VIEW``.
-    """
+def callback_view(request, **args):
     if 'error' in args:
         return HttpResponse("Error - %s" % args['error'])
 
-    return HttpResponse("Fake callback view. - You've been authenticated!")
+    return HttpResponse("Callback view. - You've been authenticated!")

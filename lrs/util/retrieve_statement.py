@@ -13,8 +13,6 @@ import ast
 import pdb
 import ast
 
-import pprint
-
 MORE_ENDPOINT = '/TCAPI/statements/more/'
 
 def convertToUTC(timestr):
