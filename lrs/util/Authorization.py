@@ -21,6 +21,7 @@ def auth(func):
     def inner(request, *args, **kwargs):
         # Note: The cases involving OAUTH_ENABLED are here if OAUTH_ENABLED is switched from true to false
         # after a client has performed the handshake. (Not likely to happen, but could) 
+        # pdb.set_trace()
         lrs_auth = request['lrs_auth']
         # There is an http lrs_auth request and http auth is enabled
         if lrs_auth == 'http' and settings.HTTP_AUTH_ENABLED:
