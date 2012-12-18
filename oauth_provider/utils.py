@@ -18,7 +18,6 @@ def initialize_server_request(request):
     
     # Check to see if it's a dict if it's being called from the LRS app. The LRS app parses everything in a dict first
     # then will call this in Authorization with the request dict.
-    # pdb.set_trace()
     if type(request) == dict:
         auth_header = {}
         if 'Authorization' in request:

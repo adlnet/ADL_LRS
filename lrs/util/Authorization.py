@@ -21,7 +21,6 @@ def auth(func):
     def inner(request, *args, **kwargs):
         # Note: The cases involving OAUTH_ENABLED are here if OAUTH_ENABLED is switched from true to false
         # after a client has performed the handshake. (Not likely to happen, but could) 
-        # pdb.set_trace()
         lrs_auth = request['lrs_auth']
         # There is an http lrs_auth request and http auth is enabled
         if lrs_auth == 'http' and settings.HTTP_AUTH_ENABLED:
@@ -71,13 +70,9 @@ def oauth_helper(request):
         if consumer and token:
             # All is the only scope being supported - need to correct the user/auth_id workflow
             if token.resource.name.lower() == 'all':
-                if not token.lrs_auth_id:
-                    user = token.user
-                    user_name = user.username
-                    user_email = user.email
-                else:
-                    user_name = token.lrs_auth_id
-                    user_email = token.lrs_auth_id
+                user = token.user
+                user_name = user.username
+                user_email = user.email
                 consumer = token.consumer                
                 members = [
                             {

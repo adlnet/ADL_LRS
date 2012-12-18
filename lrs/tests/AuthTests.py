@@ -18,9 +18,14 @@ import pdb
 import hashlib
 
 class AuthTests(TestCase):
-
+    # Want to test no auth, so have to disable both auths
     def setUp(self):
-        settings.HTTP_AUTH_ENABLED = False
+        if settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = False
+
+        if settings.OAUTH_ENABLED:
+            settings.OAUTH_ENABLED = False
+        
         self.guid1 = str(uuid.uuid4())
         self.guid2 = str(uuid.uuid4())
         self.guid3 = str(uuid.uuid4())    
@@ -130,6 +135,7 @@ class AuthTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt1
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="0.95")
+        # pdb.set_trace()        
         self.assertEqual(self.putresponse1.status_code, 204)
         time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
@@ -215,7 +221,10 @@ class AuthTests(TestCase):
         stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
     def tearDown(self):
-        settings.HTTP_AUTH_ENABLED = True
+        if not settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = True
+        if not settings.OAUTH_ENABLED:
+            settings.OAUTH_ENABLED = True
 
     def test_send_http_auth_not_enabled(self):
         username = "tester1"
