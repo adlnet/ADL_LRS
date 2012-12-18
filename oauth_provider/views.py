@@ -57,7 +57,7 @@ def user_authorization(request):
     The Consumer cannot use the Request Token until it has been authorized by 
     the User.
     """
-    pdb.set_trace()
+    # pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
