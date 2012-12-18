@@ -31,7 +31,7 @@ class OAuthTests(TestCase):
 		self.consumer = models.Consumer.objects.get(name=self.name)
 
 	def perform_oauth_handshake(self):
-		settings.OAUTH_ENABLED = True		
+		# settings.OAUTH_ENABLED = True		
 
 		# TEST REQUEST TOKEN
 		oauth_header_request_params = {
@@ -68,7 +68,7 @@ class OAuthTests(TestCase):
 		soup = BeautifulSoup(auth_resp.content)
 		p = soup.findAll('p')
 		oauth_auth_params['lrs_auth_id'] = str(p[1].contents[0])
-		pdb.set_trace()
+		# pdb.set_trace()
 		auth_post = self.client.post("/TCAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_post.status_code, 200)
 		self.assertEqual(auth_post.content, "Callback view. - You've been authenticated!")
@@ -105,6 +105,7 @@ class OAuthTests(TestCase):
 		return oauth_header_resource_params, access_token
 
 	def tearDown(self):
+		settings.OAUTH_ENABLED = False
 		# Delete everything
 		models.Token.objects.all().delete()
 		models.Consumer.objects.all().delete()

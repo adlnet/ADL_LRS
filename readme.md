@@ -58,6 +58,10 @@ While still in the ADL_LRS directory, update the database
 
 When prompted to create a superuser, say yes
 
+OPTIONAL: This next step creates the 'all' resource for OAuth. If plan on implementing OAuth now, perform this step. It can always get ran later if you decide to implement OAuth
+
+    python manage.py loaddata resources.json
+
 ## Starting
 While still in the ADL_LRS directory, run
 
