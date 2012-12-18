@@ -11,7 +11,6 @@ from django.conf import settings
 import uuid
 import json
 import urllib
-from BeautifulSoup import BeautifulSoup
 
 class OAuthTests(TestCase):
 	def setUp(self):
