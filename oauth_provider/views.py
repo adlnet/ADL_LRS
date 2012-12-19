@@ -52,12 +52,12 @@ def request_token(request):
         return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
+@login_required
 def user_authorization(request):
     """
     The Consumer cannot use the Request Token until it has been authorized by 
     the User.
     """
-    # pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
@@ -89,7 +89,7 @@ def user_authorization(request):
     if request.method == 'GET':
         # try to get custom authorize view
         authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW, 
-                                    'oauth_provider.views.authorize_client')
+                                    'oauth_provider.views.fake_authorize_view')
         try:
             authorize_view = get_callable(authorize_view_str)
         except AttributeError:
@@ -114,6 +114,7 @@ def user_authorization(request):
                     args = { 'error': _('Access not granted by user.') }
             except OAuthError, err:
                 response = send_oauth_error(err)
+            
             if callback:
                 if "?" in callback:
                     url_delimiter = "&"
@@ -126,8 +127,8 @@ def user_authorization(request):
                 response = HttpResponseRedirect('%s%s%s' % (callback, url_delimiter, query_args))
             else:
                 # try to get custom callback view
-                callback_view_str = getattr(settings, OAUTH_CALLBACK_VIEW,
-                                    'oauth_provider.views.callback_view')
+                callback_view_str = getattr(settings, OAUTH_CALLBACK_VIEW, 
+                                    'oauth_provider.views.fake_callback_view')
                 try:
                     callback_view = get_callable(callback_view_str)
                 except AttributeError:
@@ -165,15 +166,15 @@ def access_token(request):
 #     return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
 
 def authorize_client(request, token, callback, params):
-        existing_lrs_auth_id = token.lrs_auth_id
-        if not existing_lrs_auth_id:
-            lrs_auth_id = str(uuid.uuid4())
-            token.lrs_auth_id = lrs_auth_id
-            token.save()
-        else:
-            lrs_auth_id = existing_lrs_auth_id
-        return render_to_response('oauth_allow_client.html', {"lrs_auth_id": lrs_auth_id},
-            context_instance=RequestContext(request))
+        # existing_lrs_auth_id = token.lrs_auth_id
+        # if not existing_lrs_auth_id:
+        #     lrs_auth_id = str(uuid.uuid4())
+        #     token.lrs_auth_id = lrs_auth_id
+        #     token.save()
+        # else:
+        #     lrs_auth_id = existing_lrs_auth_id
+        # return render_to_response('oauth_allow_client.html',context_instance=RequestContext(request))
+        return HttpResponse('Authorized view for %s.' % token.consumer.name)
 
 def callback_view(request, **args):
     if 'error' in args:

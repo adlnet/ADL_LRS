@@ -75,7 +75,7 @@ STATICFILES_DIRS = (
 )
 
 HTTP_AUTH_ENABLED = True
-OAUTH_ENABLED = False
+OAUTH_ENABLED = True
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 SERVER_STMT_LIMIT = 100

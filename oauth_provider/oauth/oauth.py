@@ -265,7 +265,6 @@ class OAuthRequest(object):
 
     def from_request(http_method, http_url, headers=None, parameters=None,
             query_string=None):
-        # pdb.set_trace()
         """Combines multiple parameter sources."""
         if parameters is None:
             parameters = {}
@@ -351,7 +350,6 @@ class OAuthRequest(object):
     from_token_and_callback = staticmethod(from_token_and_callback)
 
     def _split_header(header):
-        # pdb.set_trace()
         """Turn Authorization: header into parameters. Changed way to retrieve headers b/c 
         wasn't sending in oauth 'headers' in the header in from_request"""
         params = {}
@@ -398,7 +396,6 @@ class OAuthServer(object):
         """Processes a request_token request and returns the
         request token on success.
         """
-        # pdb.set_trace()
         try:
             # Get the request token for authorization.
             token = self._get_token(oauth_request, 'request')
@@ -433,7 +430,6 @@ class OAuthServer(object):
 
     def verify_request(self, oauth_request):
         """Verifies an api call and checks all the parameters."""
-        # pdb.set_trace()
         # -> consumer and token
         version = self._get_version(oauth_request)
         consumer = self._get_consumer(oauth_request)
@@ -501,7 +497,6 @@ class OAuthServer(object):
         return oauth_request.get_parameter('oauth_verifier')
 
     def _check_signature(self, oauth_request, consumer, token):
-        # pdb.set_trace()
         timestamp, nonce = oauth_request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
         self._check_nonce(consumer, token, nonce)
@@ -608,7 +603,6 @@ class OAuthSignatureMethod(object):
         raise NotImplementedError
 
     def check_signature(self, oauth_request, consumer, token, signature):
-        # pdb.set_trace()
         built = self.build_signature(oauth_request, consumer, token)
         return built == signature
 
@@ -619,7 +613,6 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         return 'HMAC-SHA1'
         
     def build_signature_base_string(self, oauth_request, consumer, token):
-        # pdb.set_trace()
         sig = (
             escape(oauth_request.get_normalized_http_method()),
             escape(oauth_request.get_normalized_http_url()),
@@ -634,7 +627,6 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
 
     def build_signature(self, oauth_request, consumer, token):
         """Builds the base signature string."""
-        # pdb.set_trace()
         key, raw = self.build_signature_base_string(oauth_request, consumer,
             token)
 
