@@ -55,6 +55,8 @@ def http_auth_helper(request):
                     # If the user successfully logged in, then add/overwrite
                     # the user object of this request.
                     request['user'] = user
+                else:
+                    raise Unauthorized("Unauthorized here")
     else:
         # The username/password combo was incorrect, or not provided.
         raise Unauthorized("Unauthorized here")
