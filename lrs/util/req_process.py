@@ -7,8 +7,9 @@ from django.db import transaction
 import uuid
 import pdb
 import ast
+import hashlib
 import retrieve_statement
-
+from actstream import action
 import pprint
 
 def statements_post(req_dict):
@@ -30,11 +31,15 @@ def statements_post(req_dict):
                 req_dict['body'] = json.loads(req_dict['body'])    
             if not type(req_dict['body']) is list:
                 stmt = Statement.Statement(req_dict['body'], auth=auth).statement
+                # Add each individual stmt creation to the actions
+                if auth is None:
+                    auth = retrieve_unknown_user()
+                action.send(auth, verb='post', action_object=stmt)
                 stmtResponses.append(str(stmt.statement_id))
             else:
                 try:
                     for st in req_dict['body']:
-                        stmt = Statement.Statement(st, auth=auth).statement
+                        stmt = Statement.Statement(st, auth=auth).statement                        
                         stmtResponses.append(str(stmt.statement_id))
                 except Exception, e:
                     for stmt_id in stmtResponses:
@@ -43,6 +48,10 @@ def statements_post(req_dict):
                         except models.statement.DoesNotExist:
                             pass # stmt already deleted
                     raise e
+                # Add each individual stmt creation to the actions-do it afterwards in case there is a problem when POSTing the batch
+                if auth is None:
+                    auth = retrieve_unknown_user()
+                action.send(auth, verb='post', action_object=stmt)                    
     else:
         # Check if body is in the dict first. Received error message of only 'body'-can't replicate
         raise Exception("Request body was not parsed correctly.")
@@ -60,7 +69,23 @@ def statements_put(req_dict):
 
     req_dict['body']['statement_id'] = req_dict['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=auth).statement
+
+    if auth is None:
+        auth = retrieve_unknown_user()
+
+    action.send(auth, verb='put', action_object=stmt)
     return HttpResponse("No Content", status=204)
+
+def retrieve_unknown_user():
+    try:
+        user = models.User.objects.get(username__exact='Unknown User')
+    except models.User.DoesNotExist:
+        password = 'password of your choice'
+        salt = uuid.uuid4().hex
+        hashed_password = hashlib.sha512(password + salt).hexdigest()
+        user = models.User(username='Unknown User', password=hashed_password)
+        user.save()
+    return user
      
 def statements_get(req_dict):
     # pdb.set_trace()
@@ -72,11 +97,12 @@ def statements_get(req_dict):
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']
-        # Try to retrieve stmt, if DNE then return empty else return stmt info
         st = Statement.Statement(statement_id=statementId, get=True, auth=auth)
-        stmt_data = st.get_full_statement_json()
-        return HttpResponse(json.dumps(stmt_data), mimetype="application/json", status=200)    
-        st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
+        
+        if auth is None:
+            auth = retrieve_unknown_user()
+        action.send(auth, verb='get', action_object=st.statement)
+
         stmt_data = st.statement.object_return()
         return HttpResponse(stream_response_generator(stmt_data), mimetype="application/json", status=200)
     # If statementId is not in req_dict then it is a complex GET

@@ -20,6 +20,8 @@ import pprint
 
 class StatementsTests(TestCase):
     def setUp(self):
+        if not settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = True
         # pdb.set_trace()
         self.username = "tester1"
         self.email = "test1@tester.com"

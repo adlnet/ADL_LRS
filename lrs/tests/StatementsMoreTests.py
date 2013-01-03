@@ -16,8 +16,9 @@ class StatementsMoreTests(TestCase):
     settings.SERVER_STMT_LIMIT=10
 
     def setUp(self):
-
-
+        if not settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = True        
+        
         self.username = "auth1"
         self.email = "auth1@example.com"
         self.password = "test"

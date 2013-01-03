@@ -20,6 +20,17 @@ DATABASES = {
     },
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+#         'NAME': 'lrs',                      # Or path to database file if using sqlite3.
+#         'USER': 'root',                      # Not used with sqlite3.
+#         'PASSWORD': 'password',                  # Not used with sqlite3.
+#         'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
+#         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+#     }
+# }
+
 # DATABASE_ROUTERS = ['lrs.routers.LRSRouter', 'oauth_provider.routers.OAuthRouter']
 # DATABASE_ROUTERS = ['lrs.routers.LRSRouter']
 # Local time zone for this installation. Choices can be found here:
@@ -145,6 +156,15 @@ OAUTH_REALM_KEY_NAME = 'http://localhost:8000/TCAPI'
 
 # OAUTH_REALM_KEY_NAME = 'http://photos.example.net'
 
+ACTSTREAM_SETTINGS = {
+    'MODELS': ('auth.user', 'auth.group', 'sites.site', 'comments.comment', 'lrs.statement', 'lrs.group'),
+    'MANAGER': 'actstream.managers.ActionManager',
+    'FETCH_RELATIONS': True,
+    'USE_PREFETCH': True,
+    'USE_JSONFIELD': True,
+    'GFK_FETCH_DEPTH': 1,
+}
+
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -155,6 +175,7 @@ INSTALLED_APPS = (
     'lrs',
     'gunicorn',
     'oauth_provider',
+    'actstream',
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
