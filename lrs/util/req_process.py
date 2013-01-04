@@ -32,9 +32,7 @@ def statements_post(req_dict):
             if not type(req_dict['body']) is list:
                 stmt = Statement.Statement(req_dict['body'], auth=auth).statement
                 # Add each individual stmt creation to the actions
-                if auth is None:
-                    auth = retrieve_unknown_user()
-                action.send(auth, verb='post', action_object=stmt)
+                send_action(auth, 'post', stmt)
                 stmtResponses.append(str(stmt.statement_id))
             else:
                 try:
@@ -49,9 +47,7 @@ def statements_post(req_dict):
                             pass # stmt already deleted
                     raise e
                 # Add each individual stmt creation to the actions-do it afterwards in case there is a problem when POSTing the batch
-                if auth is None:
-                    auth = retrieve_unknown_user()
-                action.send(auth, verb='post', action_object=stmt)                    
+                send_action(auth, 'post', stmt)                   
     else:
         # Check if body is in the dict first. Received error message of only 'body'-can't replicate
         raise Exception("Request body was not parsed correctly.")
@@ -70,22 +66,8 @@ def statements_put(req_dict):
     req_dict['body']['statement_id'] = req_dict['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=auth).statement
 
-    if auth is None:
-        auth = retrieve_unknown_user()
-
-    action.send(auth, verb='put', action_object=stmt)
+    send_action(auth, 'put', stmt)
     return HttpResponse("No Content", status=204)
-
-def retrieve_unknown_user():
-    try:
-        user = models.User.objects.get(username__exact='Unknown User')
-    except models.User.DoesNotExist:
-        password = 'password of your choice'
-        salt = uuid.uuid4().hex
-        hashed_password = hashlib.sha512(password + salt).hexdigest()
-        user = models.User(username='Unknown User', password=hashed_password)
-        user.save()
-    return user
      
 def statements_get(req_dict):
     # pdb.set_trace()
@@ -99,10 +81,7 @@ def statements_get(req_dict):
         statementId = req_dict['statementId']
         st = Statement.Statement(statement_id=statementId, get=True, auth=auth)
         
-        if auth is None:
-            auth = retrieve_unknown_user()
-        action.send(auth, verb='get', action_object=st.statement)
-
+        send_action(auth, 'get', st.statement)
         stmt_data = st.statement.object_return()
         return HttpResponse(stream_response_generator(stmt_data), mimetype="application/json", status=200)
     # If statementId is not in req_dict then it is a complex GET
@@ -110,25 +89,45 @@ def statements_get(req_dict):
         statementResult = {}
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
+
+        send_action(auth, 'get', data=stmtList)
+
     return HttpResponse(stream_response_generator(statementResult), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
+    auth = None
+    if 'user' in req_dict:
+        if req_dict['user'].is_authenticated() == True:
+            auth = req_dict['user']
+
+    # Overwrite user if oauth_group is included
+    if 'oauth_group_stmt_auth' in req_dict:
+        auth = req_dict['oauth_group_stmt_auth']
+
     # test ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
     actstate.put()
+    # send_action(auth, 'put', actstate.get(auth))
     return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
+    auth = None
+    if 'user' in req_dict:
+        if req_dict['user'].is_authenticated() == True:
+            auth = req_dict['user']
+
     # add ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
     stateId = req_dict.get('stateId', None)
     if stateId: # state id means we want only 1 item
-        resource = actstate.get(req_dict['user'])
+        resource = actstate.get(auth)
         response = HttpResponse(resource.state.read())
         response['ETag'] = '"%s"' %resource.etag
+        # send_action(auth, 'get', resource)
     else: # no state id means we want an array of state ids
-        resource = actstate.get_ids(req_dict['user'])
+        resource = actstate.get_ids(auth)
         response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+        # send_action(auth, 'get', data=response)
     return response
 
 def activity_state_delete(req_dict):
@@ -190,41 +189,6 @@ def activities_get(req_dict):
         full_act_list.append(act.object_return())
     return HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
 
-
-#Generate JSON
-def stream_response_generator(data):
-    first = True
-    yield "{"
-    for k,v in data.items():
-        if not first:
-            yield ", "
-        else:
-            first = False
-        #Catch nested dictionaries
-        if type(v) is dict:
-            stream_response_generator(v)
-        #Catch lists as dictionary values
-        if type(v) is list:
-            lfirst = True
-            yield json.dumps(k)
-            yield ": "
-            yield "["
-            for item in v:
-                if not lfirst:
-                    yield ", "
-                else:
-                    lfirst = False
-                #Catch dictionaries as items in a list
-                if type(item) is dict:
-                    stream_response_generator(item)
-                yield json.dumps(item)
-            yield "]"
-        else:
-            yield json.dumps(k)
-            yield ": "
-            yield json.dumps(v)
-    yield "}"
-
 def agent_profile_put(req_dict):
     # test ETag for concurrency
     agent = req_dict['agent']
@@ -260,3 +224,54 @@ def agents_get(req_dict):
     agent = req_dict['agent']
     a = Agent.Agent(agent)
     return HttpResponse(a.get_person_json(), mimetype="application/json")
+
+def send_action(user, verb, action_object=None, data=None):
+    if user is None:
+        user = retrieve_unknown_user()
+    action.send(user, verb=verb, action_object=action_object, data=data)
+
+def retrieve_unknown_user():
+    try:
+        user = models.User.objects.get(username__exact='Unknown User')
+    except models.User.DoesNotExist:
+        password = 'password of your choice'
+        salt = uuid.uuid4().hex
+        hashed_password = hashlib.sha512(password + salt).hexdigest()
+        user = models.User(username='Unknown User', password=hashed_password)
+        user.save()
+    return user
+
+
+#Generate JSON
+def stream_response_generator(data):
+    first = True
+    yield "{"
+    for k,v in data.items():
+        if not first:
+            yield ", "
+        else:
+            first = False
+        #Catch nested dictionaries
+        if type(v) is dict:
+            stream_response_generator(v)
+        #Catch lists as dictionary values
+        if type(v) is list:
+            lfirst = True
+            yield json.dumps(k)
+            yield ": "
+            yield "["
+            for item in v:
+                if not lfirst:
+                    yield ", "
+                else:
+                    lfirst = False
+                #Catch dictionaries as items in a list
+                if type(item) is dict:
+                    stream_response_generator(item)
+                yield json.dumps(item)
+            yield "]"
+        else:
+            yield json.dumps(k)
+            yield ": "
+            yield json.dumps(v)
+    yield "}"

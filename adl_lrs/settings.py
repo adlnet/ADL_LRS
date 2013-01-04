@@ -157,7 +157,7 @@ OAUTH_REALM_KEY_NAME = 'http://localhost:8000/TCAPI'
 # OAUTH_REALM_KEY_NAME = 'http://photos.example.net'
 
 ACTSTREAM_SETTINGS = {
-    'MODELS': ('auth.user', 'auth.group', 'sites.site', 'comments.comment', 'lrs.statement', 'lrs.group'),
+    'MODELS': ('auth.user', 'auth.group', 'sites.site', 'comments.comment', 'lrs.statement', 'lrs.group','lrs.activity_state'),
     'MANAGER': 'actstream.managers.ActionManager',
     'FETCH_RELATIONS': True,
     'USE_PREFETCH': True,
