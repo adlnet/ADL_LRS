@@ -164,6 +164,11 @@ def filename(instance, filename):
     return filename
 
 
+class UserSystemAction(models.Model):
+    level = models.CharField(max_length=200)
+    action = models.TextField()
+    timestamp = models.DateTimeField('timestamp', null=True, blank=True)
+
 class LanguageMap(models.Model):
     key = models.CharField(max_length=200, db_index=True)
     value = models.CharField(max_length=200)

@@ -18,7 +18,7 @@ urlpatterns = patterns('lrs.views',
     url(r'^regsuccess/(?P<user_id>\d+)$', 'reg_success'),
     url(r'^accounts/profile/$', 'user_profile'),    
     url(r'^OAuth/', include('oauth_provider.urls')),
-    url(r'^activity/', include('actstream.urls')),
+    url(r'^log/', 'log')
 )
 urlpatterns += patterns('',
   (r'^accounts/login/$', 'django.contrib.auth.views.login'),

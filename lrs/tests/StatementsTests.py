@@ -22,7 +22,7 @@ class StatementsTests(TestCase):
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True
-        # pdb.set_trace()
+
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
@@ -242,7 +242,6 @@ class StatementsTests(TestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
-        # pdb.set_trace()
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_post"}})
@@ -254,6 +253,8 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, "test_post")
         agent = models.agent.objects.get(mbox="t@t.com")
         self.assertEqual(agent.name, "bob")
+        actions = models.UserSystemAction.objects.all().count()
+        self.assertEqual(actions, 1)
 
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
@@ -417,20 +418,8 @@ class StatementsTests(TestCase):
         self.assertEqual(getResponse.status_code, 200)
         rsp = getResponse.content
         self.assertIn(self.guid1, rsp)
-
-
-    # def test_get_wrong_auth(self):
-    #     username = "tester2"
-    #     email = "test2@tester.com"
-    #     password = "test"
-    #     auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
-    #     form = {"username":username, "email":email,"password":password,"password2":password}
-    #     response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
-
-    #     param = {"statementId":self.guid1}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     getResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=auth)
-    #     self.assertEqual(getResponse.status_code, 403)
+        actions = models.UserSystemAction.objects.all().count()
+        self.assertEqual(actions, 11)
 
     def test_get_no_existing_ID(self):
         param = {"statementId":"aaaaaa"}

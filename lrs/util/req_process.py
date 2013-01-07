@@ -9,8 +9,10 @@ import pdb
 import ast
 import hashlib
 import retrieve_statement
-from actstream import action
 import pprint
+import logging
+
+logger = logging.getLogger('user_system_actions')
 
 def statements_post(req_dict):
     stmtResponses = []
@@ -32,12 +34,13 @@ def statements_post(req_dict):
             if not type(req_dict['body']) is list:
                 stmt = Statement.Statement(req_dict['body'], auth=auth).statement
                 # Add each individual stmt creation to the actions
-                send_action(auth, 'post', stmt)
+                # send_action(auth, 'post', stmt)
+                logger.info('%s posted statement with ID: %s' % (auth, stmt.statement_id))
                 stmtResponses.append(str(stmt.statement_id))
             else:
                 try:
                     for st in req_dict['body']:
-                        stmt = Statement.Statement(st, auth=auth).statement                        
+                        stmt = Statement.Statement(st, auth=auth).statement
                         stmtResponses.append(str(stmt.statement_id))
                 except Exception, e:
                     for stmt_id in stmtResponses:
@@ -46,8 +49,9 @@ def statements_post(req_dict):
                         except models.statement.DoesNotExist:
                             pass # stmt already deleted
                     raise e
-                # Add each individual stmt creation to the actions-do it afterwards in case there is a problem when POSTing the batch
-                send_action(auth, 'post', stmt)                   
+
+                for stmt in stmtResponses:
+                    logger.info('%s posted statement with ID: %s' % (auth, stmt))
     else:
         # Check if body is in the dict first. Received error message of only 'body'-can't replicate
         raise Exception("Request body was not parsed correctly.")
@@ -66,7 +70,7 @@ def statements_put(req_dict):
     req_dict['body']['statement_id'] = req_dict['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=auth).statement
 
-    send_action(auth, 'put', stmt)
+    logger.info('%s put statement with ID: %s' % (auth, stmt.statement_id))
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
@@ -81,7 +85,7 @@ def statements_get(req_dict):
         statementId = req_dict['statementId']
         st = Statement.Statement(statement_id=statementId, get=True, auth=auth)
         
-        send_action(auth, 'get', st.statement)
+        logger.info('%s got statement with ID: %s' % (auth, st.statement_id))
         stmt_data = st.statement.object_return()
         return HttpResponse(stream_response_generator(stmt_data), mimetype="application/json", status=200)
     # If statementId is not in req_dict then it is a complex GET
@@ -90,7 +94,8 @@ def statements_get(req_dict):
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
 
-        send_action(auth, 'get', data=stmtList)
+        for stmt in stmtList:
+            logger.info('%s put statement with ID: %s' % (auth, stmt['id']))
 
     return HttpResponse(stream_response_generator(statementResult), mimetype="application/json", status=200)
 

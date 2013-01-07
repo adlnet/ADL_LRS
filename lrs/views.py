@@ -14,7 +14,6 @@ import json
 import urllib
 import pdb
 
-
 logger = logging.getLogger(__name__)
 
 def home(request):
@@ -93,6 +92,9 @@ def reg_success(request, user_id):
         d = {"info_message": "Thanks for registering %s" % user.username}
     return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
 
+def log(request):
+    return render_to_response('log.html', context_instance=RequestContext(request))
+
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
@@ -165,8 +167,8 @@ def handle_request(request):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements) : {

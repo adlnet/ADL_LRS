@@ -156,14 +156,6 @@ OAUTH_REALM_KEY_NAME = 'http://localhost:8000/TCAPI'
 
 # OAUTH_REALM_KEY_NAME = 'http://photos.example.net'
 
-ACTSTREAM_SETTINGS = {
-    'MODELS': ('auth.user', 'auth.group', 'sites.site', 'comments.comment', 'lrs.statement', 'lrs.group','lrs.activity_state'),
-    'MANAGER': 'actstream.managers.ActionManager',
-    'FETCH_RELATIONS': True,
-    'USE_PREFETCH': True,
-    'USE_JSONFIELD': True,
-    'GFK_FETCH_DEPTH': 1,
-}
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -175,7 +167,6 @@ INSTALLED_APPS = (
     'lrs',
     'gunicorn',
     'oauth_provider',
-    'actstream',
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
@@ -191,16 +182,24 @@ INSTALLED_APPS = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
     'filters': {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse'
         }
     },
     'handlers': {
-        'default':{
+        'user_actions': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': 'logger.log'
+            'formatter': 'verbose',
+            'class': 'lrs.handlers.DBLogHandler'
         },
         'mail_admins': {
             'level': 'ERROR',
@@ -209,9 +208,9 @@ LOGGING = {
         }
     },
     'loggers': {
-        'django.request': {
-            'handlers': ['default'],
-            'level': 'DEBUG',
+        'user_system_actions': {
+            'handlers': ['user_actions'],
+            'level': 'INFO',
             'propagate': False,
         },
     }
