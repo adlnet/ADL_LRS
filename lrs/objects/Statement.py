@@ -294,18 +294,8 @@ class Statement():
             # raise Exception('Registration UUID required for context')
             stmt_data['context']['registration'] = uuid.uuid4()
 
-        # Statement Actor and Object supercede context instructor and team
-        # If there is an actor or object is an agent in the stmt then remove the instructor
-        if 'actor' in stmt_data:
-            if 'objectType' not in stmt_data['actor'] or (stmt_data['actor']['objectType'].lower() == 'agent' 
-                                                      or stmt_data['actor']['objectType'].lower() == 'group'):
-                stmt_data['context']['instructor'] = Agent(initial=stmt_data['actor'], create=True).agent
-        elif 'objectType' in stmt_data['object'] and (stmt_data['object']['objectType'].lower() == 'agent'
-                                                    or stmt_data['object']['objectType'].lower() == 'group'):
-            stmt_data['context']['instructor'] = Agent(initial=stmt_data['object'], create=True).agent
-        elif 'instructor' in stmt_data['context']:
+        if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'], create=True).agent
-
 
         # If there is an actor or object is a group in the stmt then remove the team
         if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
