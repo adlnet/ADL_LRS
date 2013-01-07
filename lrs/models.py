@@ -185,14 +185,16 @@ class Verb(models.Model):
     def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.verb_id
-        ret['display'] = {}
+        
         if lang is not None:
             lang_map_set = self.display.filter(key=lang)
         else:
-            lang_map_set = self.display.all()        
+            lang_map_set = self.display.all() 
 
-        for lang_map in lang_map_set:
-            ret['display'].update(lang_map.object_return())        
+        if len(lang_map_set) > 0:
+            ret['display'] = {}
+            for lang_map in lang_map_set:
+                ret['display'].update(lang_map.object_return())        
         return ret  
 
     def __unicode__(self):
@@ -245,7 +247,7 @@ class result(models.Model):
             pass
 
         result_ext = self.extensions.all()
-        if result_ext:
+        if len(result_ext) > 0:
             ret['extensions'] = {}
             for ext in result_ext:
                 ret['extensions'].update(ext.object_return())        
@@ -541,7 +543,7 @@ class activity_definition(models.Model):
                 for t in targets:
                     ret['target'].append(t.object_return(lang))            
         result_ext = self.extensions.all()
-        if result_ext:
+        if len(result_ext) > 0:
             ret['extensions'] = {}
             for ext in result_ext:
                 ret['extensions'].update(ext.object_return())        
@@ -720,10 +722,11 @@ class context(models.Model):
         except:
             pass  
 
-        ret['extensions'] = {}
         context_ext = self.extensions.all()
-        for ext in context_ext:
-            ret['extensions'].update(ext.object_return())        
+        if len(context_ext) > 0:
+            ret['extensions'] = {}
+            for ext in context_ext:
+                ret['extensions'].update(ext.object_return())        
         return ret
 
 
