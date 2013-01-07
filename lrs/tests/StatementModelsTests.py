@@ -467,7 +467,7 @@ class StatementModelsTests(TestCase):
         activity = models.activity.objects.get(id=stmt.statement.stmt_object.id)
         ctxid = get_ctx_id(stmt.statement)
         context = models.context.objects.get(id=ctxid)
-        conactor = models.agent.objects.get(id=stmt.statement.context.all()[0].instructor.id)
+        instructor = models.agent.objects.get(id=stmt.statement.context.all()[0].instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
         st = models.statement.objects.get(id=stmt.statement.id)
@@ -475,7 +475,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.all()[0].id, context.id)
-        self.assertEqual(st.context.all()[0].instructor.id, conactor.id)
+        self.assertEqual(st.context.all()[0].instructor.id, instructor.id)
         self.assertEqual(st.verb.verb_id, "verb/url" )
 
         self.assertEqual(context.registration, guid)
@@ -487,10 +487,10 @@ class StatementModelsTests(TestCase):
         
         self.assertEqual(neststmt.verb.verb_id, "verb/url/outer")
         
-        self.assertEqual(conactor.objectType, 'Agent')
+        self.assertEqual(instructor.objectType, 'Agent')
         
-        self.assertEqual(conactor.name, 'steve')
-        self.assertEqual(conactor.mbox, 's@s.com') 
+        self.assertEqual(instructor.name, 'jon')
+        self.assertEqual(instructor.mbox, 'jon@example.com') 
 
 
     def test_agent_as_object_with_context_stmt(self):
@@ -535,7 +535,7 @@ class StatementModelsTests(TestCase):
 
         ctxid = get_ctx_id(stmt.statement)
         context = models.context.objects.get(id=ctxid)
-        conactor = models.agent.objects.get(id=stmt.statement.context.all()[0].instructor.id)
+        instructor = models.agent.objects.get(id=stmt.statement.context.all()[0].instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
         context_activities = stmt.statement.context.all()[0].contextactivity_set.all()
@@ -543,7 +543,7 @@ class StatementModelsTests(TestCase):
         st = models.statement.objects.get(id=stmt.statement.id)
 
         self.assertEqual(st.context.all()[0].id, context.id)
-        self.assertEqual(st.context.all()[0].instructor.id, conactor.id)
+        self.assertEqual(st.context.all()[0].instructor.id, instructor.id)
         self.assertEqual(st.verb.verb_id, "verb/url")
 
         self.assertEqual(context.registration, guid)
@@ -553,11 +553,11 @@ class StatementModelsTests(TestCase):
         
         self.assertEqual(neststmt.verb.verb_id, "verb/url/outer")
         
-        self.assertEqual(conactor.objectType, 'Agent')
+        self.assertEqual(instructor.objectType, 'Agent')
         
-        # Should be lou b/c actor or object of statement overrides instructor
-        self.assertEqual(conactor.name, 'lou')
-        self.assertEqual(conactor.mbox, 'l@l.com') 
+        # Should be jon
+        self.assertEqual(instructor.name, 'jon')
+        self.assertEqual(instructor.mbox, 'jon@example.com') 
 
 
     def test_agent_as_object(self):
