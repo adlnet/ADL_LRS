@@ -11,6 +11,7 @@ import pprint
 
 @Authorization.auth
 def statements_post(r_dict):
+    # Could be a 'GET'
     if "application/json" not in r_dict['CONTENT_TYPE']:
         r_dict['method'] = 'GET'
     return r_dict
@@ -34,10 +35,9 @@ def check_for_no_other_params_supplied(query_dict):
 
 @Authorization.auth
 def statements_put(r_dict):
-    # pdb.set_trace()
+    # Load info as python dict-Must have statementId param-if not raise paramerror
     try:
         if isinstance(r_dict['body'], str):
-            # r_dict['body'] = ast.literal_eval(r_dict['body'])
             try:
                 r_dict['body'] = ast.literal_eval(r_dict['body'])
             except:
@@ -46,9 +46,11 @@ def statements_put(r_dict):
     except KeyError:
         raise ParamError("Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method'])
     
+    # If statement with that ID already exists-raise conflict error
     if check_for_existing_statementId(statement_id):
         raise ParamConflict("StatementId conflict")
 
+    # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
         raise ParamError("No Content supplied")
     return r_dict
@@ -68,6 +70,7 @@ def activity_state_put(r_dict):
     except KeyError:
         raise ParamError("Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method'])
     
+    # Must have body included for state
     if 'body' not in r_dict:
         raise ParamError("Could not find the profile")
     r_dict['state'] = r_dict.pop('body')
@@ -113,7 +116,7 @@ def activity_profile_put(r_dict):
         raise ParamError("Could not find the profile")
 
     bdy = r_dict.pop('body')
-    r_dict['profile'] = bdy #json.dumps([i.values()[::-1] for i in bdy])
+    r_dict['profile'] = bdy
     
     return r_dict
 

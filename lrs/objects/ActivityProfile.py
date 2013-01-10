@@ -3,7 +3,8 @@ from lrs.exceptions import IDNotFoundError
 from lrs.util import etag
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
-
+import json
+import pdb
 class ActivityProfile():
 
 	#Save profile to desired activity

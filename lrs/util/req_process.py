@@ -13,70 +13,39 @@ import pprint
 
 def statements_post(req_dict):
     stmtResponses = []
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
 
-    # Overwrite user if oauth_group is included
-    if 'oauth_group_stmt_auth' in req_dict:
-        auth = req_dict['oauth_group_stmt_auth']
-
-    if 'body' in req_dict:
-        if isinstance(req_dict['body'], str):
-            try:
-                req_dict['body'] = ast.literal_eval(req_dict['body'])
-            except:
-                req_dict['body'] = json.loads(req_dict['body'])    
-            if not type(req_dict['body']) is list:
-                stmt = Statement.Statement(req_dict['body'], auth=auth).statement
-                stmtResponses.append(str(stmt.statement_id))
-            else:
-                try:
-                    for st in req_dict['body']:
-                        stmt = Statement.Statement(st, auth=auth).statement
-                        stmtResponses.append(str(stmt.statement_id))
-                except Exception, e:
-                    for stmt_id in stmtResponses:
-                        try:
-                            models.statement.objects.get(statement_id=stmt_id).delete()
-                        except models.statement.DoesNotExist:
-                            pass # stmt already deleted
-                    raise e
+    if not type(req_dict['body']) is list:
+        stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).statement
+        stmtResponses.append(str(stmt.statement_id))
     else:
-        # Check if body is in the dict first. Received error message of only 'body'-can't replicate
-        raise Exception("Request body was not parsed correctly.")
+        try:
+            for st in req_dict['body']:
+                stmt = Statement.Statement(st, auth=req_dict['auth']).statement
+                stmtResponses.append(str(stmt.statement_id))
+        except Exception, e:
+            for stmt_id in stmtResponses:
+                try:
+                    models.statement.objects.get(statement_id=stmt_id).delete()
+                except models.statement.DoesNotExist:
+                    pass # stmt already deleted
+            raise e
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
-
-    # Overwrite user if oauth_group is included
-    if 'oauth_group_stmt_auth' in req_dict:
-        auth = req_dict['oauth_group_stmt_auth']
-
     req_dict['body']['statement_id'] = req_dict['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=auth).statement
+    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).statement
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
-    # pdb.set_trace()
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
 
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']
         # Try to retrieve stmt, if DNE then return empty else return stmt info
-        st = Statement.Statement(statement_id=statementId, get=True, auth=auth)
+        st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['auth'])
         stmt_data = st.get_full_statement_json()
         return HttpResponse(json.dumps(stmt_data), mimetype="application/json", status=200)    
-        st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['user'])
+        st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['auth'])
         stmt_data = st.statement.object_return()
         return HttpResponse(stream_response_generator(stmt_data), mimetype="application/json", status=200)
     # If statementId is not in req_dict then it is a complex GET
@@ -97,18 +66,18 @@ def activity_state_get(req_dict):
     actstate = ActivityState.ActivityState(req_dict)
     stateId = req_dict.get('stateId', None)
     if stateId: # state id means we want only 1 item
-        resource = actstate.get(req_dict['user'])
+        resource = actstate.get(req_dict['auth'])
         response = HttpResponse(resource.state.read())
         response['ETag'] = '"%s"' %resource.etag
     else: # no state id means we want an array of state ids
-        resource = actstate.get_ids(req_dict['user'])
+        resource = actstate.get_ids(req_dict['auth'])
         response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     return response
 
 def activity_state_delete(req_dict):
     # pdb.set_trace()
     actstate = ActivityState.ActivityState(req_dict)
-    actstate.delete(req_dict['user'])
+    actstate.delete(req_dict['auth'])
     return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):

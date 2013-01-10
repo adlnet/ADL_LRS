@@ -5,6 +5,8 @@ import ast
 import StringIO
 import pdb
 import pprint
+from django.core.urlresolvers import reverse
+import lrs.views
 
 def parse(request):
     r_dict = {}
@@ -29,10 +31,6 @@ def parse(request):
     if 'lrs_auth' not in r_dict:
         r_dict['lrs_auth'] = 'none'
 
-    # Only set the user if it is not oauth because oauth will user a group as it's auth
-    if r_dict['lrs_auth'] != 'oauth':
-        r_dict['user'] = request.user
-
     if request.method == 'POST' and 'method' in request.GET:
         bdy = ast.literal_eval(request.body)
         r_dict.update(bdy)
@@ -47,6 +45,7 @@ def parse(request):
     return r_dict
 
 def parse_body(r, request):
+    # pdb.set_trace()
     if request.method == 'POST' or request.method == 'PUT':
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             r.update(request.POST.dict())
@@ -54,11 +53,18 @@ def parse_body(r, request):
             post, files = parser.parse()
             r['files'] = files
         else:
-            if request.body:
-                r['body'] = request.body    
-
-            if request.raw_post_data:
-                r['raw_post_data'] = request.raw_post_data    
+            # Check in place b/c of quotation issue when using javascript with activity profile
+            if request.path != reverse(lrs.views.activity_profile):
+                if request.body:
+                    try:
+                        r['body'] = ast.literal_eval(request.body)
+                    except:
+                        r['body'] = json.loads(request.body)    
+                else:
+                    # Check if body is in the dict first. Received error message of only 'body'-can't replicate
+                    raise Exception("Request body was not parsed correctly.")
+            else:
+                r['body'] = request.body
 
     return r
 
