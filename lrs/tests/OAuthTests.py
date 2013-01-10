@@ -47,9 +47,9 @@ class OAuthTests(TestCase):
 			param = {
 						"scope":"all"
 					}
-			path = "%s?%s" % ("/TCAPI/OAuth/initiate", urllib.urlencode(param))					
+			path = "%s?%s" % ("/XAPI/OAuth/initiate", urllib.urlencode(param))					
 		else:
-			path = "/TCAPI/OAuth/initiate"
+			path = "/XAPI/OAuth/initiate"
 
 		request_resp = self.client.get(path, Authorization=oauth_header_request_params, X_Experience_API_Version="0.95")		
 		self.assertEqual(request_resp.status_code, 200)
@@ -64,17 +64,17 @@ class OAuthTests(TestCase):
 
 		# Test AUTHORIZE
 		oauth_auth_params = {'oauth_token': token.key}
-		auth_resp = self.client.get("/TCAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_resp = self.client.get("/XAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_resp.status_code, 302)
-		self.assertIn('http://testserver/accounts/login/?next=/TCAPI/OAuth/authorize%3F', auth_resp['Location'])
+		self.assertIn('http://testserver/accounts/login/?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
 		self.assertIn(token.key, auth_resp['Location'])		
 		self.client.login(username='jane', password='toto')
 		self.assertEqual(token.is_approved, False)
-		auth_resp = self.client.get("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
 		oauth_auth_params['authorize_access'] = 1
 
-		auth_post = self.client.post("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_post.status_code, 302)
 		self.assertIn('http://example.com/request_token_ready?oauth_verifier=', auth_post['Location'])
 		token = list(models.Token.objects.all())[-1]
@@ -93,7 +93,7 @@ class OAuthTests(TestCase):
 			'oauth_version': '1.0',
 			'oauth_verifier': token.verifier
 		}
-		access_resp = self.client.get("/TCAPI/OAuth/token/", Authorization=oauth_header_access_params,
+		access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params,
 			X_Experience_API_Version="0.95")
 		self.assertEqual(access_resp.status_code, 200)
 		access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
@@ -124,10 +124,10 @@ class OAuthTests(TestCase):
 
 	def test_all_error_flows(self):
 		# Test request_token without appropriate headers
-		resp = self.client.get("/TCAPI/OAuth/initiate/", X_Experience_API_Version="0.95")
+		resp = self.client.get("/XAPI/OAuth/initiate/", X_Experience_API_Version="0.95")
 		self.assertEqual(resp.status_code, 401)
 		self.assertIn('WWW-Authenticate', resp._headers['www-authenticate'])
-		self.assertIn('OAuth realm="http://localhost:8000/TCAPI"', resp._headers['www-authenticate'])
+		self.assertIn('OAuth realm="http://localhost:8000/XAPI"', resp._headers['www-authenticate'])
 		self.assertEqual(resp.content, 'Invalid request parameters.')
 
 		# TEST REQUEST TOKEN
@@ -144,7 +144,7 @@ class OAuthTests(TestCase):
 		form_data = {
 			'scope':'all',
 		}				
-		request_resp = self.client.get("/TCAPI/OAuth/initiate/", Authorization=oauth_header_request_params, data=form_data, X_Experience_API_Version="0.95")
+		request_resp = self.client.get("/XAPI/OAuth/initiate/", Authorization=oauth_header_request_params, data=form_data, X_Experience_API_Version="0.95")
 		self.assertEqual(request_resp.status_code, 200)
 		self.assertIn('oauth_token_secret=', request_resp.content)
 		self.assertIn('oauth_token=', request_resp.content)
@@ -157,29 +157,29 @@ class OAuthTests(TestCase):
 
 		# Test wrong scope
 		form_data['scope'] = 'videos'
-		scope_resp = self.client.get("/TCAPI/OAuth/initiate/", Authorization=oauth_header_request_params, data=form_data, X_Experience_API_Version="0.95")
+		scope_resp = self.client.get("/XAPI/OAuth/initiate/", Authorization=oauth_header_request_params, data=form_data, X_Experience_API_Version="0.95")
 		self.assertEqual(scope_resp.status_code, 401)
 		self.assertEqual(scope_resp.content, 'Resource videos does not exist.')
 		form_data['scope'] = 'statements'
 
 		# Test wrong callback
 		oauth_header_request_params['oauth_callback'] = 'wrongcallback'
-		call_resp = self.client.get("/TCAPI/OAuth/initiate/", Authorization=oauth_header_request_params, data=form_data, X_Experience_API_Version="0.95")
+		call_resp = self.client.get("/XAPI/OAuth/initiate/", Authorization=oauth_header_request_params, data=form_data, X_Experience_API_Version="0.95")
 		self.assertEqual(call_resp.status_code, 401)
 		self.assertEqual(call_resp.content, 'Invalid callback URL.')
 
 		# Test AUTHORIZE
 		oauth_auth_params = {'oauth_token': token.key}
-		auth_resp = self.client.get("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_resp.status_code, 302)
-		self.assertIn('http://testserver/accounts/login/?next=/TCAPI/OAuth/authorize/%3F', auth_resp['Location'])
+		self.assertIn('http://testserver/accounts/login/?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
 		self.assertIn(token.key, auth_resp['Location'])
 		self.client.login(username='jane', password='toto')
 		self.assertEqual(token.is_approved, False)
-		auth_resp = self.client.get("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
 		oauth_auth_params['authorize_access'] = 1
-		auth_post = self.client.post("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_post.status_code, 302)
 		self.assertIn('http://example.com/request_token_ready?oauth_verifier=', auth_post['Location'])
 		token = list(models.Token.objects.all())[-1]
@@ -187,14 +187,14 @@ class OAuthTests(TestCase):
 		self.assertEqual(token.is_approved, True)
 
 		# Test without session param (previous POST removed it)
-		auth_post = self.client.post("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_post.status_code, 401)
 		self.assertEqual(auth_post.content, 'Action not allowed.')
 
 		# Test fake access
-		auth_resp = self.client.get("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		oauth_auth_params['authorize_access'] = 0
-		auth_resp = self.client.post("/TCAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+		auth_resp = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
 		self.assertEqual(auth_resp.status_code, 302)
 		self.assertEqual(auth_resp['Location'], 'http://example.com/request_token_ready?error=Access%20not%20granted%20by%20user.')
 		self.client.logout()
@@ -210,21 +210,21 @@ class OAuthTests(TestCase):
 			'oauth_version': '1.0',
 			'oauth_verifier': token.verifier
 		}
-		access_resp = self.client.get("/TCAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
+		access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
 		self.assertEqual(access_resp.status_code, 200)
 		access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
 		self.assertIn(access_token.key, access_resp.content)
 		self.assertEqual(access_token.user.username, u'jane')
 
 		# Test same Nonce
-		access_resp = self.client.get("/TCAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
+		access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
 		self.assertEqual(access_resp.status_code, 401)
 		self.assertEqual(access_resp.content, 'Nonce already used: accessnonce')
 
 		# Test missing/invalid verifier
 		oauth_header_access_params['oauth_nonce'] = 'yetanotheraccessnonce'
 		oauth_header_access_params['oauth_verifier'] = 'invalidverifier'
-		access_resp = self.client.get("/TCAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
+		access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
 		self.assertEqual(access_resp.status_code, 401)
 		self.assertEqual(access_resp.content, 'Consumer key or token key does not match. Make sure your request token is approved. Check your verifier too if you use OAuth 1.0a.')    	
 		oauth_header_access_params['oauth_verifier'] = token.verifier
@@ -233,7 +233,7 @@ class OAuthTests(TestCase):
 		oauth_header_access_params['oauth_nonce'] = 'anotheraccessnonce'
 		token.is_approved = False
 		token.save()
-		access_resp = self.client.get("/TCAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
+		access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
 		self.assertEqual(access_resp.status_code, 401)
 		self.assertEqual(access_resp.content, 'Consumer key or token key does not match. Make sure your request token is approved. Check your verifier too if you use OAuth 1.0a.')
 
@@ -247,24 +247,24 @@ class OAuthTests(TestCase):
 			'oauth_version': '1.0'
 		}
 		oauth_request = OAuthRequest.from_token_and_callback(access_token,
-			http_url='http://testserver/TCAPI/statements/', parameters=oauth_header_resource_params)
+			http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params)
 		signature_method = OAuthSignatureMethod_HMAC_SHA1()
 		signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
 		oauth_header_resource_params['oauth_signature'] = signature
-		resp = self.client.get("/TCAPI/statements/", Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+		resp = self.client.get("/XAPI/statements/", Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(resp.content, '{"statements": [], "more": ""}')
 
 		# Test wrong signature
 		oauth_header_resource_params['oauth_signature'] = 'wrongsignature'
 		oauth_header_resource_params['oauth_nonce'] = 'anotheraccessresourcenonce'
-		resp = self.client.get("/TCAPI/statements/", Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+		resp = self.client.get("/XAPI/statements/", Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
 		self.assertEqual(resp.status_code, 401)
 		self.assertIn('Invalid signature.', resp.content)
 
 		# Test wrong params - will not return 'Invalid request parameters.' like oauth example states
 		# because there is no Authorization header. With no auth header the lrs reads as no auth supplied at all
-		resp = self.client.get("/TCAPI/statements/", X_Experience_API_Version="0.95")
+		resp = self.client.get("/XAPI/statements/", X_Experience_API_Version="0.95")
 		self.assertEqual(resp.status_code, 401)
 		self.assertEqual(resp.content, 'Auth is enabled but no authentication was sent with the request.')
 
@@ -272,7 +272,7 @@ class OAuthTests(TestCase):
 		access_token.delete()
 		oauth_header_resource_params['oauth_signature'] = signature
 		oauth_header_resource_params['oauth_nonce'] = 'yetanotheraccessresourcenonce'
-		resp = self.client.get("/TCAPI/statements/", Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+		resp = self.client.get("/XAPI/statements/", Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
 		self.assertEqual(resp.status_code, 401)
 		self.assertIn('Invalid access token', resp.content)
 
@@ -295,7 +295,7 @@ class OAuthTests(TestCase):
 		param = {
 					"scope":"all"
 				}
-		path = "%s?%s" % ("/TCAPI/OAuth/initiate", urllib.urlencode(param))					
+		path = "%s?%s" % ("/XAPI/OAuth/initiate", urllib.urlencode(param))					
 		request_resp = self.client.get(path, Authorization=oauth_header_request_params, X_Experience_API_Version="0.95")		
 		self.assertEqual(request_resp.status_code, 400)
 		self.assertEqual(request_resp.content,'OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings' )
@@ -306,7 +306,7 @@ class OAuthTests(TestCase):
 			"verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
 			"object": {"id":"test_put"}})
 		param = {"statementId":put_guid}
-		path = "%s?%s" % ('http://testserver/TCAPI/statements', urllib.urlencode(param))
+		path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 		
 		oauth_header_resource_params, access_token = self.perform_oauth_handshake()
 		
@@ -329,12 +329,12 @@ class OAuthTests(TestCase):
 		oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope=False)
 
 		oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='POST',
-			http_url='http://testserver/TCAPI/statements/', parameters=oauth_header_resource_params)
+			http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params)
 		signature_method = OAuthSignatureMethod_HMAC_SHA1()
 		signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
 		oauth_header_resource_params['oauth_signature'] = signature
 		
-		resp = self.client.post('/TCAPI/statements/', data=stmt, content_type="application/json",
+		resp = self.client.post('/XAPI/statements/', data=stmt, content_type="application/json",
 			Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
 		self.assertEqual(resp.status_code, 200)
 
@@ -344,7 +344,7 @@ class OAuthTests(TestCase):
 			"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
 			"object": {"id":"test_simple_get"}}))
 		param = {"statementId":guid}
-		path = "%s?%s" % ('http://testserver/TCAPI/statements', urllib.urlencode(param))
+		path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
 		oauth_header_resource_params, access_token = self.perform_oauth_handshake()
 
@@ -364,7 +364,7 @@ class OAuthTests(TestCase):
 			"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
 			"object": {"id":"test_complex_get"}}))
 		param = {"object":{"objectType": "Activity", "id":"test_complex_get"}}
-		path = "%s?%s" % ('http://testserver/TCAPI/statements', urllib.urlencode(param))
+		path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
 		oauth_header_resource_params, access_token = self.perform_oauth_handshake()
 
