@@ -1,12 +1,39 @@
 <html>
-	<body>
-<!-- 		<ul>
-			{% for action in action_list %}
-				<li>{{ action.actor }} {{ action.verb }} {{ action.action_object }}</li>
-			{% empty %}
-				<li>Sorry, no action yet!</li>
-			{% endfor %}	
-		</ul> -->
-		Log here
+	<head>
+		<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>	
+
+		<script type="text/javascript">
+			$(document).ready(function() {
+				$('li:has(ul)').click(function(event) {
+					$(this).css('list-style-image', $(this).children().is(':hidden') ? 'url({{ STATIC_URL }}/img/minus_small_white.png)' : 'url({{ STATIC_URL }}/img/plus_small_white.png)')
+					$(this).children().toggle('fast')
+					return false
+				})
+				.css({cursor:'pointer', 'list-style-image':'url({{ STATIC_URL }}/img/plus_small_white.png)'})
+				.children().hide()
+
+				$('li:not(:has(ul))').click(function(event) { return false })
+				.css({cursor:'default', 'list-style-image':'none'})
+			})
+		</script>
+	</head>
+	<body id="container">
+		<div id="content">
+			Site Action
+			</br>
+			<ul>
+				{% for action in action_list %}
+					<li>{{ action.0.level }} {{ action.0.action }} [{{ action.0.timestamp }}] {{ action.0.status_code }}</li>
+					<ul>
+						{% for ch_action in action.1 %}
+							<li>{{ ch_action.level }} {{ ch_action.action }} [{{ ch_action.timestamp }}]</li>
+						{% endfor %}
+					</ul>
+				{% empty %}
+					<li>Sorry, no action yet!</li>
+				{% endfor %}
+			</ul>
+		</div>
 	</body>
 </html>

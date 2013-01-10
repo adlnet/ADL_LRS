@@ -93,7 +93,16 @@ def reg_success(request, user_id):
     return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
 
 def log(request):
-    return render_to_response('log.html', context_instance=RequestContext(request))
+    action_list = []
+    parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).order_by('-timestamp')
+
+    for pa in parent_action_list:
+        children = models.UserSystemAction.objects.filter(parent_action=pa).order_by('timestamp')
+        action_tup = (pa, children)
+        action_list.append(action_tup)
+
+    return render_to_response('log.html', {'action_list':action_list},
+        context_instance=RequestContext(request))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
@@ -167,8 +176,8 @@ def handle_request(request):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements) : {

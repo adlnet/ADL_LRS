@@ -12,6 +12,9 @@ from functools import wraps
 from django.utils.timezone import utc
 import pdb
 import pprint
+import logging
+
+logger = logging.getLogger('user_system_actions')
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -29,8 +32,9 @@ class default_on_exception(object):
 class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, auth=None, statement_id=None, get=False):
+    def __init__(self, initial=None, auth=None, statement_id=None, get=False, action_id=None):
         # pdb.set_trace()
+        self.action_dict = {'parent_id':action_id, 'user': auth}
         if get and statement_id is not None:
             self.statement_id = statement_id
             self.statement = None
@@ -39,7 +43,9 @@ class Statement():
             except models.statement.DoesNotExist:
                 raise exceptions.IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
         else:
-            # pdb.set_trace()
+            # self.action_dict['msg'] = 'Storing data'
+            # logger.info(msg=self.action_dict)
+            
             obj = self._parse(initial)
             self._populate(obj, auth)
 
@@ -70,6 +76,10 @@ class Statement():
             stmt.save()
             stmt_ref = models.StatementRef(ref_id=stmt_id)
             stmt_ref.save()
+
+            # self.action_dict['msg'] = 'Voided statement'
+            # logger.info(msg=self.action_dict)
+
             return stmt_ref
         else:
             raise exceptions.Forbidden('Statment already voided, cannot unvoid. Please re-issue the statement under a new ID.')
@@ -253,6 +263,10 @@ class Statement():
         else:
             stmt = models.statement(**args)
             stmt.save()
+
+        # self.action_dict['msg'] = 'Saving statement to database'
+        # logger.info(msg=self.action_dict)
+
         return stmt
 
     def _populateResult(self, stmt_data, verb):
@@ -493,6 +507,8 @@ class Statement():
         if 'context' in stmt_data:
             self._populateContext(stmt_data)
 
+        # self.action_dict['msg'] = self.get_full_statement_json()
+        # logger.info(msg=self.action_dict)
 
 class SubStatement(Statement):
     @transaction.commit_on_success

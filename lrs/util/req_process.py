@@ -7,7 +7,6 @@ from django.db import transaction
 import uuid
 import pdb
 import ast
-import hashlib
 import retrieve_statement
 import pprint
 import logging
@@ -16,14 +15,11 @@ logger = logging.getLogger('user_system_actions')
 
 def statements_post(req_dict):
     stmtResponses = []
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
+    # pdb.set_trace()
+    action_dict = req_dict['user_action']
+    action_dict['msg'] = 'Processing data'
 
-    # Overwrite user if oauth_group is included
-    if 'oauth_group_stmt_auth' in req_dict:
-        auth = req_dict['oauth_group_stmt_auth']
+    logger.info(msg=action_dict)
 
     if 'body' in req_dict:
         if isinstance(req_dict['body'], str):
@@ -32,15 +28,14 @@ def statements_post(req_dict):
             except:
                 req_dict['body'] = json.loads(req_dict['body'])    
             if not type(req_dict['body']) is list:
-                stmt = Statement.Statement(req_dict['body'], auth=auth).statement
-                # Add each individual stmt creation to the actions
-                # send_action(auth, 'post', stmt)
-                logger.info('%s posted statement with ID: %s' % (auth, stmt.statement_id))
+                # stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'],
+                #     action_id=action_dict['parent_id']).statement
+                stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).statement
                 stmtResponses.append(str(stmt.statement_id))
             else:
                 try:
                     for st in req_dict['body']:
-                        stmt = Statement.Statement(st, auth=auth).statement
+                        stmt = Statement.Statement(st, auth=req_dict['auth']).statement
                         stmtResponses.append(str(stmt.statement_id))
                 except Exception, e:
                     for stmt_id in stmtResponses:
@@ -49,43 +44,26 @@ def statements_post(req_dict):
                         except models.statement.DoesNotExist:
                             pass # stmt already deleted
                     raise e
-
-                for stmt in stmtResponses:
-                    logger.info('%s posted statement with ID: %s' % (auth, stmt))
     else:
         # Check if body is in the dict first. Received error message of only 'body'-can't replicate
         raise Exception("Request body was not parsed correctly.")
+    
+    parent_action = models.SystemAction.objects.get(id=req_dict['user_action']['parent_id'])
+    parent_action.status_code = 200
+    parent_action.save()
     return HttpResponse(stmtResponses, status=200)
 
 def statements_put(req_dict):
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
+    statement_id = req_dict['statementId']    
+    req_dict['body']['statement_id'] = statement_id
+    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).statement
 
-    # Overwrite user if oauth_group is included
-    if 'oauth_group_stmt_auth' in req_dict:
-        auth = req_dict['oauth_group_stmt_auth']
-
-    req_dict['body']['statement_id'] = req_dict['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=auth).statement
-
-    logger.info('%s put statement with ID: %s' % (auth, stmt.statement_id))
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
-    # pdb.set_trace()
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
-
-    # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:
         statementId = req_dict['statementId']
-        st = Statement.Statement(statement_id=statementId, get=True, auth=auth)
-        
-        logger.info('%s got statement with ID: %s' % (auth, st.statement_id))
+        st = Statement.Statement(statement_id=statementId, get=True, auth=req_dict['auth'])        
         stmt_data = st.statement.object_return()
         return HttpResponse(stream_response_generator(stmt_data), mimetype="application/json", status=200)
     # If statementId is not in req_dict then it is a complex GET
@@ -94,45 +72,25 @@ def statements_get(req_dict):
         stmtList = retrieve_statement.complexGet(req_dict)
         statementResult = retrieve_statement.buildStatementResult(req_dict.copy(), stmtList)
 
-        for stmt in stmtList:
-            logger.info('%s put statement with ID: %s' % (auth, stmt['id']))
-
     return HttpResponse(stream_response_generator(statementResult), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
-
-    # Overwrite user if oauth_group is included
-    if 'oauth_group_stmt_auth' in req_dict:
-        auth = req_dict['oauth_group_stmt_auth']
-
     # test ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
     actstate.put()
-    # send_action(auth, 'put', actstate.get(auth))
     return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
-    auth = None
-    if 'user' in req_dict:
-        if req_dict['user'].is_authenticated() == True:
-            auth = req_dict['user']
-
     # add ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
     stateId = req_dict.get('stateId', None)
     if stateId: # state id means we want only 1 item
-        resource = actstate.get(auth)
+        resource = actstate.get(req_dict['auth'])
         response = HttpResponse(resource.state.read())
         response['ETag'] = '"%s"' %resource.etag
-        # send_action(auth, 'get', resource)
     else: # no state id means we want an array of state ids
-        resource = actstate.get_ids(auth)
+        resource = actstate.get_ids(req_dict['auth'])
         response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
-        # send_action(auth, 'get', data=response)
     return response
 
 def activity_state_delete(req_dict):
@@ -229,23 +187,6 @@ def agents_get(req_dict):
     agent = req_dict['agent']
     a = Agent.Agent(agent)
     return HttpResponse(a.get_person_json(), mimetype="application/json")
-
-def send_action(user, verb, action_object=None, data=None):
-    if user is None:
-        user = retrieve_unknown_user()
-    action.send(user, verb=verb, action_object=action_object, data=data)
-
-def retrieve_unknown_user():
-    try:
-        user = models.User.objects.get(username__exact='Unknown User')
-    except models.User.DoesNotExist:
-        password = 'password of your choice'
-        salt = uuid.uuid4().hex
-        hashed_password = hashlib.sha512(password + salt).hexdigest()
-        user = models.User(username='Unknown User', password=hashed_password)
-        user.save()
-    return user
-
 
 #Generate JSON
 def stream_response_generator(data):

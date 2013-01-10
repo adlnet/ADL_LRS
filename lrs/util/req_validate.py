@@ -8,9 +8,27 @@ import ast
 from django.utils.decorators import decorator_from_middleware
 import pdb
 import pprint
+import logging
+from datetime import datetime
+from django.utils.timezone import utc
+
+REQUEST_TIME = datetime.utcnow().replace(tzinfo=utc).isoformat()
 
 @Authorization.auth
 def statements_post(r_dict):
+    # pdb.set_trace()
+
+    # TODO: MORE EFFICIENT WAY OF DOING THIS
+    if r_dict['auth']:
+        user_action = models.SystemAction(level='REQUEST', timestamp=REQUEST_TIME,
+            message='POST /statements', content_object=r_dict['auth'])
+    else:
+        user_action = models.SystemAction(level='REQUEST', timestamp=REQUEST_TIME,
+            message='POST /statements')
+
+    user_action.save()
+    r_dict['user_action'] = {'user': user_action.content_object, 'parent_id': user_action.id}
+
     if "application/json" not in r_dict['CONTENT_TYPE']:
         r_dict['method'] = 'GET'
     return r_dict
@@ -34,10 +52,8 @@ def check_for_no_other_params_supplied(query_dict):
 
 @Authorization.auth
 def statements_put(r_dict):
-    # pdb.set_trace()
     try:
         if isinstance(r_dict['body'], str):
-            # r_dict['body'] = ast.literal_eval(r_dict['body'])
             try:
                 r_dict['body'] = ast.literal_eval(r_dict['body'])
             except:

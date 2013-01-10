@@ -163,11 +163,17 @@ def filename(instance, filename):
     print filename
     return filename
 
-
-class UserSystemAction(models.Model):
+class SystemAction(models.Model):
     level = models.CharField(max_length=200)
-    action = models.TextField()
+    parent_action = models.ForeignKey('self', blank=True, null=True)
+    message = models.TextField()
     timestamp = models.DateTimeField('timestamp', null=True, blank=True)
+    status_code = models.CharField(max_length=50, blank=True, null=True)
+    #Content_type is the user since it can be a User or group object
+    content_type = models.ForeignKey(ContentType, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+
 
 class LanguageMap(models.Model):
     key = models.CharField(max_length=200, db_index=True)
