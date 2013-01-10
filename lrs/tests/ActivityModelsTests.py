@@ -170,7 +170,7 @@ class ActivityModelsTests(TestCase):
     # (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/TCAPI/tcexample/'}))
+            'id': 'http://localhost:8000/XAPI/tcexample/'}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
         
@@ -189,16 +189,16 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[1].key, 'en-CH')
         self.assertEqual(desc_set[1].value, 'Alt Desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample/', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample/', 'Activity')        
         self.do_activity_definition_model(fk, 'module','course')
 
     # Test that passing in the same info gets the same activity
     def test_activity_no_def_not_link_schema_conform1(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/TCAPI/tcexample/'}))
+            'id': 'http://localhost:8000/XAPI/tcexample/'}))
         
         act2 = Activity.Activity(json.dumps({'objectType': 'Activity',
-            'id': 'http://localhost:8000/TCAPI/tcexample/'}))
+            'id': 'http://localhost:8000/XAPI/tcexample/'}))
 
         self.assertEqual(act2.activity.id, act.activity.id)
 
@@ -208,17 +208,17 @@ class ActivityModelsTests(TestCase):
     # (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform_correctResponsesPattern(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/TCAPI/tcexample3/'}))
+            'id': 'http://localhost:8000/XAPI/tcexample3/'}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
         def_fk = models.activity_definition.objects.filter(activity=fk)
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=def_fk)
 
-        self.do_activity_object(act,'http://localhost:8000/TCAPI/tcexample3/', 'Activity')
+        self.do_activity_object(act,'http://localhost:8000/XAPI/tcexample3/', 'Activity')
         self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
             'choice')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample3/', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample3/', 'Activity')        
         self.do_activity_definition_model(fk, 'Example Name', 'Example Desc', 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
             'choice')
     
@@ -231,7 +231,7 @@ class ActivityModelsTests(TestCase):
     # (populates everything from XML)
     def test_activity_no_def_not_link_schema_conform_extensions(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/TCAPI/tcexample2/'}))
+            'id': 'http://localhost:8000/XAPI/tcexample2/'}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
@@ -246,7 +246,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'Example Desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample2/', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample2/', 'Activity')        
         self.do_activity_definition_model(fk, 'module','course')
 
         self.do_activity_definition_extensions_model(act_def, 'keya', 'keyb', 'keyc','first value',
@@ -289,7 +289,7 @@ class ActivityModelsTests(TestCase):
     # (should use values from XML and override JSON)
     def test_activity_not_link_schema_conform(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity',
-                'id':'http://localhost:8000/TCAPI/tcexample4/','definition': {'name': {'en-FR': 'name'},
+                'id':'http://localhost:8000/XAPI/tcexample4/','definition': {'name': {'en-FR': 'name'},
                 'description': {'en-FR':'desc'}, 'type': 'course','interactionType': 'intType'}}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
@@ -305,12 +305,12 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'Example Desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/tcexample4/', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample4/', 'Activity')        
         self.do_activity_definition_model(fk, 'module','course')
 
     #Test an activity that has a def, is a link and the ID resolves (should use values from JSON)
     def test_activity_link_resolve(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/TCAPI/',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/XAPI/',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-GB':'testdesc1'},
                 'type': 'link','interactionType': 'intType'}}))
 
@@ -328,7 +328,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-GB')
         self.assertEqual(desc_set[0].value, 'testdesc1')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/TCAPI/', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/', 'Activity')        
         self.do_activity_definition_model(fk, 'link', 'intType')
 
     #Test an activity that has a def, is a link and the ID does not resolve (will not create one)
