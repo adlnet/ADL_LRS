@@ -47,7 +47,7 @@ class AuthTests(TestCase):
             "display": {"en-US":"created"}}, "object": {"id":"activity"},
             "actor":{"objectType":"Agent","mbox":"s@s.com"}}))            
         
-        self.exist_stmt_id = self.existStmt.statement.statement_id
+        self.exist_stmt_id = self.existStmt.model_object.statement_id
 
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 

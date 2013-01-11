@@ -61,7 +61,7 @@ class StatementsTests(TestCase):
                 "display": {"en-US":"created"}}, "object": {"id":"activity"},
                 "actor":{"objectType":"Agent","mbox":"s@s.com"}}))            
         
-        self.exist_stmt_id = self.existStmt.statement.statement_id
+        self.exist_stmt_id = self.existStmt.model_object.statement_id
 
 
         self.existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",

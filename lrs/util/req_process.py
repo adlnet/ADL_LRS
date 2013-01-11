@@ -13,7 +13,7 @@ def statements_post(req_dict):
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
-                stmt = Statement.Statement(st, auth=req_dict['auth']).statement
+                stmt = Statement.Statement(st, auth=req_dict['auth']).model_object
                 stmt_responses.append(str(stmt.statement_id))
         except Exception, e:
             for stmt_id in stmt_responses:
@@ -24,7 +24,7 @@ def statements_post(req_dict):
             raise e
     else:
         # Handle single POST
-        stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).statement
+        stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).model_object
         stmt_responses.append(str(stmt.statement_id))
 
     return HttpResponse(stmt_responses, status=200)
@@ -32,7 +32,7 @@ def statements_post(req_dict):
 def statements_put(req_dict):
     # Set statement ID in body so all data is together
     req_dict['body']['statement_id'] = req_dict['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).statement
+    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).model_object
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
