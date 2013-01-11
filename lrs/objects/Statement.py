@@ -25,33 +25,21 @@ class default_on_exception(object):
                 return self.default
         return closure
 
-
 class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, initial=None, auth=None, statement_id=None, get=False):
-        # pdb.set_trace()
-        if get and statement_id is not None:
-            self.statement_id = statement_id
-            self.statement = None
-            try:
-                self.statement = models.statement.objects.get(statement_id=self.statement_id)
-            except models.statement.DoesNotExist:
-                raise exceptions.IDNotFoundError('There is no statement associated with the id: %s' % self.statement_id)
-        else:
-            # pdb.set_trace()
-            obj = self._parse(initial)
-            self._populate(obj, auth)
+    def __init__(self, data=None, auth=None, statement_id=None):
+        obj = self._parse(data)
+        self._populate(obj, auth)
 
     #Make sure initial data being received is JSON
-    def _parse(self,initial):
-        if initial:
-            if type(initial) is dict:
-                initial=json.dumps(initial)
-
+    def _parse(self,data):
+        if data:
+            if type(data) is dict:
+                data=json.dumps(data)
             #Don't put in try..catching exception to raise exception removes stack trace-will have better stack trace if this fails
             try:
-                return json.loads(initial)
+                return json.loads(data)
             except:
                 raise exceptions.ParamError("Invalid JSON")
         return {}		
@@ -100,47 +88,47 @@ class Statement():
         ret = self.statement.object_return(language)
         # Remove details if sparse is true
         # pdb.set_trace()
-        if sparse:
-            # Remove responses and only return language for name and description
-            if 'definition' in ret['object']:
-                if 'correctresponsespattern' in ret['object']['definition']:
-                    del ret['object']['definition']['correctresponsespattern']
-                    ret['object']['definition']['description'] = ret['object']['definition']['description'].keys()
-                    ret['object']['definition']['name'] = ret['object']['definition']['name'].keys()
+        # if sparse:
+            # # Remove responses and only return language for name and description
+            # if 'definition' in ret['object']:
+            #     if 'correctresponsespattern' in ret['object']['definition']:
+            #         del ret['object']['definition']['correctresponsespattern']
+            #         ret['object']['definition']['description'] = ret['object']['definition']['description'].keys()
+            #         ret['object']['definition']['name'] = ret['object']['definition']['name'].keys()
 
             # Remove other names/accounts in actor
-            if 'actor' in ret:
-                self._remove_extra_agent_info(ret, 'actor')
+            # if 'actor' in ret:
+            #     self._remove_extra_agent_info(ret, 'actor')
 
-            # Remove other names/accounts in authority
-            if 'authority' in ret:
-                self._remove_extra_agent_info(ret, 'authority')
+            # # Remove other names/accounts in authority
+            # if 'authority' in ret:
+            #     self._remove_extra_agent_info(ret, 'authority')
 
-            # Remove other names/accounts if agent is the object of statement
-            if 'objectType' in ret['object']:
-                if ret['object']['objectType'].lower() == 'agent' or ret['object']['objectType'].lower() == 'person':
-                    self._remove_extra_agent_info(ret, 'object')
+            # # Remove other names/accounts if agent is the object of statement
+            # if 'objectType' in ret['object']:
+            #     if ret['object']['objectType'].lower() == 'agent' or ret['object']['objectType'].lower() == 'person':
+            #         self._remove_extra_agent_info(ret, 'object')
 
-            # Remove other names/accounts if there is a context and it has an instructor
-            if 'context' in ret:
-                if 'instructor' in ret['context']:
-                    if 'familyName' in ret['context']['instructor']: 
-                        del ret['context']['instructor']['familyName']
+            # # Remove other names/accounts if there is a context and it has an instructor
+            # if 'context' in ret:
+            #     if 'instructor' in ret['context']:
+            #         if 'familyName' in ret['context']['instructor']: 
+            #             del ret['context']['instructor']['familyName']
 
-                    if 'givenName'in ret['context']['instructor']:
-                        del ret['context']['instructor']['givenName']
+            #         if 'givenName'in ret['context']['instructor']:
+            #             del ret['context']['instructor']['givenName']
 
-                    if 'firstName' in ret['context']['instructor']: 
-                        del ret['context']['instructor']['firstName']
+            #         if 'firstName' in ret['context']['instructor']: 
+            #             del ret['context']['instructor']['firstName']
 
-                    if 'lastName'in ret['context']['instructor']:
-                        del ret['context']['instructor']['lastName']
+            #         if 'lastName'in ret['context']['instructor']:
+            #             del ret['context']['instructor']['lastName']
 
-                    if 'openid' in ret['context']['instructor']: 
-                        del ret['context']['instructor']['openid']
+            #         if 'openid' in ret['context']['instructor']: 
+            #             del ret['context']['instructor']['openid']
 
-                    if 'account'in ret['context']['instructor']:
-                        del ret['context']['instructor']['account']
+            #         if 'account'in ret['context']['instructor']:
+            #             del ret['context']['instructor']['account']
 
         return ret
 

@@ -10,7 +10,10 @@ import lrs.views
 
 def parse(request):
     r_dict = {}
+    
+    # Build headers from request in request dict
     r_dict = get_headers(request.META, r_dict)
+    
     # Traditional authorization should be passed in headers
     if 'Authorization' in r_dict:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
@@ -22,13 +25,10 @@ def parse(request):
             r_dict['lrs_auth'] = 'oauth'
         else:
             r_dict['lrs_auth'] = 'http'
-
-    # Authorization could be passed into body if cross origin request
-    if 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body: 
+    elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
+        # Authorization could be passed into body if cross origin request
         r_dict['lrs_auth'] = 'http'
-
-    # If it is not set then there is no auth being set
-    if 'lrs_auth' not in r_dict:
+    else:
         r_dict['lrs_auth'] = 'none'
 
     if request.method == 'POST' and 'method' in request.GET:
@@ -40,12 +40,12 @@ def parse(request):
         r_dict = parse_body(r_dict, request)
 
     r_dict.update(request.GET.dict())
+
     if 'method' not in r_dict:
         r_dict['method'] = request.method
     return r_dict
 
 def parse_body(r, request):
-    # pdb.set_trace()
     if request.method == 'POST' or request.method == 'PUT':
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             r.update(request.POST.dict())
@@ -54,6 +54,7 @@ def parse_body(r, request):
             r['files'] = files
         else:
             # Check in place b/c of quotation issue when using javascript with activity profile
+            # TODO-Standardize what type of data is sent/returned from object classes
             if request.path != reverse(lrs.views.activity_profile):
                 if request.body:
                     try:
@@ -62,14 +63,13 @@ def parse_body(r, request):
                         r['body'] = json.loads(request.body)    
                 else:
                     # Check if body is in the dict first. Received error message of only 'body'-can't replicate
-                    raise Exception("Request body was not parsed correctly.")
+                    raise Exception("No body in request")
             else:
                 r['body'] = request.body
 
     return r
 
 def get_headers(headers, r):
-    # pdb.set_trace()
     if 'HTTP_UPDATED' in headers:
         r['updated'] = headers['HTTP_UPDATED']
     else:

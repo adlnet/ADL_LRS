@@ -225,8 +225,7 @@ def complexGet(req_dict):
     full_stmt_list = []
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
-        st = Statement.Statement(statement_id=stmt.statement_id, get=True, auth=user)
-        full_stmt_list.append(st.get_full_statement_json(sparse, language))
+        full_stmt_list.append(stmt.object_return(sparse, language))
     return full_stmt_list
 
 def createCacheKey(stmt_list):
