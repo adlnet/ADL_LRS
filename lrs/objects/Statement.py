@@ -12,6 +12,7 @@ from functools import wraps
 from django.utils.timezone import utc
 import pdb
 import pprint
+import ast
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -42,7 +43,7 @@ class Statement():
                 return json.loads(data)
             except:
                 raise exceptions.ParamError("Invalid JSON")
-        return {}		
+        return {}
 
     def voidStatement(self,stmt_id):
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
@@ -156,7 +157,7 @@ class Statement():
         return cntx        
 
     #Save statement to DB
-    def saveStatementToDB(self, args):
+    def saveObjectToDB(self, args):
         # If it's a substatement, remove voided, authority, and id keys
         if self.__class__.__name__ == 'SubStatement':
             del args['voided']
@@ -335,14 +336,7 @@ class Statement():
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
-                if self.auth is not None:
-                    # If it's a group, it has no username attribute like the User class, just name
-                    if hasattr(self.auth, 'objectType'):        
-                        args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=self.auth).activity
-                    else:
-                        args['stmt_object'] = Activity(json.dumps(statementObjectData),auth=self.auth.username).activity                        
-                else:
-                    args['stmt_object'] = Activity(json.dumps(statementObjectData)).activity
+                args['stmt_object'] = Activity(statementObjectData,auth=self.auth).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True).agent
             elif statementObjectData['objectType'].lower() == 'substatement':
@@ -374,7 +368,7 @@ class Statement():
             # Look at request from auth if not supplied in stmt_data
             if self.auth:
                 authArgs = {}
-                if hasattr(self.auth, 'objectType'):
+                if self.auth.__class__.__name__ == 'group':
                     args['authority'] = self.auth
                 else:    
                     authArgs['name'] = self.auth.username
@@ -393,8 +387,8 @@ class Statement():
             #Create uuid for ID
             args['statement_id'] = uuid.uuid4()
 
-        #Save statement
-        self.model_object = self.saveStatementToDB(args)
+        #Save statement/substatement
+        self.model_object = self.saveObjectToDB(args)
 
         if 'result' in stmt_data:
             self.populateResult(stmt_data, args['verb'])
@@ -407,17 +401,13 @@ class SubStatement(Statement):
     @transaction.commit_on_success
     def __init__(self, data, auth):
         unallowed_fields = ['id', 'stored', 'authority']
-
         # Raise error if an unallowed field is present
         for field in unallowed_fields:
             if field in data:
                 raise exceptions.ParamError("%s is not allowed in a SubStatement.")
-
         # Make sure object isn't another substatement
         if 'objectType' in data['object']:
             if data['object']['objectType'].lower() == 'substatement':
                 raise exceptions.ParamError("SubStatements cannot be nested inside of other SubStatements")
 
         Statement.__init__(self, data, auth)
-
-        
