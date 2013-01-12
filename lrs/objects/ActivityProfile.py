@@ -10,6 +10,7 @@ class ActivityProfile():
 	#Save profile to desired activity
     def put_profile(self, request_dict):
         #Parse out profile from request_dict
+
         try:
             profile = ContentFile(request_dict['profile'].read())
         except:

@@ -13,7 +13,7 @@ import ast
 import pdb
 import ast
 
-MORE_ENDPOINT = '/TCAPI/statements/more/'
+MORE_ENDPOINT = '/XAPI/statements/more/'
 
 def convertToUTC(timestr):
     # Strip off TZ info

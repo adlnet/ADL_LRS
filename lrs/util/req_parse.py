@@ -53,19 +53,13 @@ def parse_body(r, request):
             post, files = parser.parse()
             r['files'] = files
         else:
-            # Check in place b/c of quotation issue when using javascript with activity profile
-            # TODO-Standardize what type of data is sent/returned from object classes
-            if request.path != reverse(lrs.views.activity_profile):
-                if request.body:
-                    try:
-                        r['body'] = ast.literal_eval(request.body)
-                    except:
-                        r['body'] = json.loads(request.body)    
-                else:
-                    # Check if body is in the dict first. Received error message of only 'body'-can't replicate
-                    raise Exception("No body in request")
+            if request.body:
+                try:
+                    r['body'] = ast.literal_eval(request.body)
+                except Exception, e:
+                    r['body'] = json.loads(request.body)    
             else:
-                r['body'] = request.body
+                raise Exception("No body in request")
 
     return r
 

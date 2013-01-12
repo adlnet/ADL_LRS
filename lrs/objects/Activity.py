@@ -35,23 +35,22 @@ class Activity():
                 self.auth = auth.username
         else:
             self.auth = None
-        self.populate(self.parse(data))
+        self.params = data
+        if not isinstance(data, dict):
+            self.params = self.parse(data)
+        self.populate(self.params)
 
     # Make sure initial data being received is can be transformed into a dict
     def parse(self,data):        
-        if data:
-            if isinstance(data, dict):
-                return data
-            else:
-                try:
-                    data = ast.literal_eval(data)
-                except Exception, e:
-                    try:
-                        data = json.loads(data)
-                    except Exception, e:
-                        raise exceptions.ParamError("Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))) 
-                return data
-        return {}
+        try:
+            params = json.loads(data)
+        except Exception, e:
+            try:
+                params = ast.literal_eval(data)
+            except Exception, e:
+                raise exceptions.ParamError("Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))) 
+        return params
+
 
     def validateID(self,act_id):
         validXML = False

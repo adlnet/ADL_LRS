@@ -512,7 +512,7 @@ class StatementsTests(TestCase):
         # Test actor object
         self.bunchostmts()
         param = {"object":{"objectType": "Agent", "mbox":"nobody@example.com"}}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         actorObjectGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         
         self.assertEqual(actorObjectGetResponse.status_code, 200)

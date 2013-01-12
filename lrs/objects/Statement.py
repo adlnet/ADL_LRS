@@ -31,19 +31,21 @@ class Statement():
     @transaction.commit_on_success
     def __init__(self, data=None, auth=None):
         self.auth = auth
-        self.populate(self.parse(data))
+        self.params = data
+        if not isinstance(data, dict):
+            self.params = self.parse(data)
+        self.populate(self.params)
 
     #Make sure initial data being received is JSON
     def parse(self,data):
-        if data:
-            if type(data) is dict:
-                data=json.dumps(data)
-            #Don't put in try..catching exception to raise exception removes stack trace-will have better stack trace if this fails
+        try:
+            params = json.loads(data)
+        except Exception, e:
             try:
-                return json.loads(data)
-            except:
-                raise exceptions.ParamError("Invalid JSON")
-        return {}
+                params = ast.literal_eval(data)
+            except Exception, e:
+                raise exceptions.ParamError("Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))) 
+        return params
 
     def voidStatement(self,stmt_id):
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
@@ -203,16 +205,7 @@ class Statement():
             # raise Exception('Registration UUID required for context')
             stmt_data['context']['registration'] = uuid.uuid4()
 
-        # Statement Actor and Object supercede context instructor and team
-        # If there is an actor or object is an agent in the stmt then remove the instructor
-        if 'actor' in stmt_data:
-            if 'objectType' not in stmt_data['actor'] or (stmt_data['actor']['objectType'].lower() == 'agent' 
-                                                      or stmt_data['actor']['objectType'].lower() == 'group'):
-                stmt_data['context']['instructor'] = Agent(initial=stmt_data['actor'], create=True).agent
-        elif 'objectType' in stmt_data['object'] and (stmt_data['object']['objectType'].lower() == 'agent'
-                                                    or stmt_data['object']['objectType'].lower() == 'group'):
-            stmt_data['context']['instructor'] = Agent(initial=stmt_data['object'], create=True).agent
-        elif 'instructor' in stmt_data['context']:
+        if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'], create=True).agent
 
         # If there is an actor or object is a group in the stmt then remove the team
