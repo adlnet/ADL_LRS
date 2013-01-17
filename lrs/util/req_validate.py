@@ -96,7 +96,8 @@ def activity_profile_put(r_dict):
     # Set profile - req_parse converts all request bodies to dict, act profile needs it as string and need to replace single quotes with double quotes
     # b/c of quotation issue when using javascript with activity profile
     body_dict = r_dict.pop('body')
-    r_dict['profile'] = str(body_dict).replace("'", '"')
+    # r_dict['profile'] = str(body_dict).replace("'", '"')
+    r_dict['profile'] = str(body_dict)
     
     return r_dict
 

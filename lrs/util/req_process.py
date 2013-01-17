@@ -47,8 +47,8 @@ def statements_get(req_dict):
             raise exceptions.IDNotFoundError('There is no statement associated with the id: %s' % statementId)
         stmt_result = st.object_return()
     else:
-        stmt_list = retrieve_statement.complexGet(req_dict)
-        stmt_result = retrieve_statement.buildStatementResult(req_dict.copy(), stmt_list)
+        stmt_list = retrieve_statement.complex_get(req_dict)
+        stmt_result = retrieve_statement.build_statement_result(req_dict.copy(), stmt_list)
     
     return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
 

@@ -199,7 +199,7 @@ def reg_success(request, user_id):
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
-    statementResult = retrieve_statement.getStatementRequest(more_id) 
+    statementResult = retrieve_statement.get_statement_request(more_id) 
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])

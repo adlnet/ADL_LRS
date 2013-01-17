@@ -57,10 +57,9 @@ def parse_body(r, request):
                 try:
                     r['body'] = ast.literal_eval(request.body)
                 except Exception, e:
-                    r['body'] = json.loads(request.body)    
+                    r['body'] = json.loads(request.body)
             else:
                 raise Exception("No body in request")
-
     return r
 
 def get_headers(headers, r):
