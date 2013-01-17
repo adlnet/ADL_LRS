@@ -55,9 +55,9 @@ def parse_body(r, request):
         else:
             if request.body:
                 try:
-                    r['body'] = ast.literal_eval(request.body)
-                except Exception, e:
                     r['body'] = json.loads(request.body)
+                except Exception, e:
+                    r['body'] = ast.literal_eval(request.body)                    
             else:
                 raise Exception("No body in request")
     return r
