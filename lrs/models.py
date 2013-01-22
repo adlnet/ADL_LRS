@@ -427,10 +427,10 @@ class group(agent):
         kwargs["objectType"] = "Group"
         super(group, self).__init__(*args, **kwargs)
 
-    def get_agent_json(self):
+    def get_agent_json(self, sparse=False):
         ret = {}
         ret['objectType'] = self.objectType
-        ret['member'] = [a.get_agent_json() for a in self.member.all()]
+        ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
         return ret
 
 

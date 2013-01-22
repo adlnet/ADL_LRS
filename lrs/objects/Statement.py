@@ -188,8 +188,10 @@ class Statement():
             stmt.save()
 
         if self.log_dict:
-            self.log_dict['message'] = "Saving statement to database"
+            self.log_dict['message'] = "Saved statement to database in %s" % __name__
             logger.info(msg=self.log_dict)
+            self.log_dict['message'] = stmt.object_return()
+            logger.info(msg=self.log_dict)            
         return stmt
 
     def populateResult(self, stmt_data, verb):
@@ -443,10 +445,6 @@ class Statement():
 
         if 'context' in stmt_data:
             self.populateContext(stmt_data)
-
-
-        # self.self.log_dict['msg'] = self.get_full_statement_json()
-        # logger.info(msg=self.self.log_dict)
 
 class SubStatement(Statement):
     @transaction.commit_on_success

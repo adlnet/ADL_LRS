@@ -17,7 +17,7 @@ def statements_post(req_dict):
     action_dict = req_dict['initial_user_action']
     action_dict['message'] = 'Processing POST data in %s' % __name__
     logger.info(msg=action_dict)
-    # pdb.set_trace()
+
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
