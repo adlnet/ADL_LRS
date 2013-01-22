@@ -51,7 +51,7 @@ class Statement():
                 err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
                 if self.log_dict:
                     self.log_dict['message'] = err_msg
-                    logger.info(msg=self.log_dict)           
+                    logger.info(msg=self.log_dict)        
                 raise exceptions.ParamError(err_msg) 
         return params
 

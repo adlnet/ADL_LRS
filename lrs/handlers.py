@@ -4,12 +4,12 @@ from django.utils.timezone import utc
 import pdb
 
 class DBLogHandler(logging.Handler):
+
 	def __init__(self):
 		logging.Handler.__init__(self)
 
 	def emit(self, record, **kwargs):
 		try:
-			# pdb.set_trace()
 			# Import in func as work around for ciruclar dependency - try to move out of app again
 			from models import SystemAction
 

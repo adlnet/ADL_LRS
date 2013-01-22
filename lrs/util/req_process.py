@@ -11,17 +11,26 @@ import pdb
 
 logger = logging.getLogger('user_system_actions')
 
+def log_processing(log_dict, method, func_name):
+    log_dict['message'] = 'Processing %s data in %s' % (method, func_name)
+    logger.info(msg=log_dict)
+
+def update_parent_log_status(log_dict, status):
+    parent_action = models.SystemAction.objects.get(id=log_dict['parent_id'])
+    parent_action.status_code = status
+    parent_action.save()
+
 def statements_post(req_dict):
     stmt_responses = []
-    # Handle batch POST 
-    action_dict = req_dict['initial_user_action']
-    action_dict['message'] = 'Processing POST data in %s' % __name__
-    logger.info(msg=action_dict)
 
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'POST', __name__)
+
+    # Handle batch POST
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
-                stmt = Statement.Statement(st, auth=req_dict['auth'], log_dict=action_dict).model_object
+                stmt = Statement.Statement(st, auth=req_dict['auth'], log_dict=log_dict).model_object
                 stmt_responses.append(str(stmt.statement_id))
         except Exception, e:
             for stmt_id in stmt_responses:
@@ -32,21 +41,28 @@ def statements_post(req_dict):
             raise e
     else:
         # Handle single POST
-        stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=action_dict).model_object
+        stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
         stmt_responses.append(str(stmt.statement_id))
 
-    parent_action = models.SystemAction.objects.get(id=req_dict['initial_user_action']['parent_id'])
-    parent_action.status_code = 200
-    parent_action.save()
+    update_parent_log_status(log_dict, 200)
+
     return HttpResponse(stmt_responses, status=200)
 
 def statements_put(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'PUT', __name__)
+    
     # Set statement ID in body so all data is together
     req_dict['body']['statement_id'] = req_dict['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).model_object
+    
+    update_parent_log_status(log_dict, 204)
     return HttpResponse("No Content", status=204)
      
 def statements_get(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'GET', __name__)
+
     stmt_result = {}
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:
@@ -61,15 +77,24 @@ def statements_get(req_dict):
         stmt_list = retrieve_statement.complex_get(req_dict)
         stmt_result = retrieve_statement.build_statement_result(req_dict.copy(), stmt_list)
     
+    update_parent_log_status(log_dict, 200)
     return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'PUT', __name__)
+
     # test ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
     actstate.put()
+
+    update_parent_log_status(log_dict, 204)
     return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'GET', __name__)
+
     # add ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
     stateId = req_dict.get('stateId', None)
@@ -83,19 +108,32 @@ def activity_state_get(req_dict):
     return response
 
 def activity_state_delete(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'DELETE', __name__)
+
     actstate = ActivityState.ActivityState(req_dict)
     # Delete state
     actstate.delete(req_dict['auth'])
+
+    update_parent_log_status(log_dict, 204)
     return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'PUT', __name__)
+
     #Instantiate ActivityProfile
     ap = ActivityProfile.ActivityProfile()
     #Put profile and return 204 response
     ap.put_profile(req_dict)
+
+    update_parent_log_status(log_dict, 200)
     return HttpResponse('Success -- activity profile - method = PUT - profileId = %s' % req_dict['profileId'], status=200)
 
 def activity_profile_get(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'GET', __name__)
+
     #TODO:need eTag for returning list of IDs?
     # Instantiate ActivityProfile
     ap = ActivityProfile.ActivityProfile()
@@ -120,13 +158,21 @@ def activity_profile_get(req_dict):
 
 
 def activity_profile_delete(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'DELETE', __name__)
+
     #Instantiate activity profile
     ap = ActivityProfile.ActivityProfile()
     # Delete profile and return success
     ap.delete_profile(req_dict)
+
+    update_parent_log_status(log_dict, 200)
     return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
 
 def activities_get(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'GET', __name__)
+
     activityId = req_dict['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
     act_list = models.activity.objects.filter(activity_id=activityId)
@@ -135,16 +181,26 @@ def activities_get(req_dict):
     full_act_list = []
     for act in act_list:
         full_act_list.append(act.object_return())
+
+    update_parent_log_status(log_dict, 200)
     return HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
 
 def agent_profile_put(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'PUT', __name__)
+
     # test ETag for concurrency
     agent = req_dict['agent']
     a = Agent.Agent(agent, create=True)
     a.put_profile(req_dict)
+
+    update_parent_log_status(log_dict, 204)
     return HttpResponse("", status=204)
 
 def agent_profile_get(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'GET', __name__)
+
     # add ETag for concurrency
     agent = req_dict['agent']
     a = Agent.Agent(agent)
@@ -162,13 +218,21 @@ def agent_profile_get(req_dict):
     return response
 
 def agent_profile_delete(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'DELETE', __name__)
+
     agent = req_dict['agent']
     a = Agent.Agent(agent)
     profileId = req_dict['profileId']
     a.delete_profile(profileId)
+
+    update_parent_log_status(log_dict, 204)
     return HttpResponse('', status=204)
 
 def agents_get(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_processing(log_dict, 'GET', __name__)
+
     agent = req_dict['agent']
     a = Agent.Agent(agent)
     return HttpResponse(a.get_person_json(), mimetype="application/json")
