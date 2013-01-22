@@ -80,7 +80,7 @@ def oauth_helper(request):
                             {
                                 "account":{
                                             "name":consumer.key,
-                                            "homePage":"/TCAPI/OAuth/token/"
+                                            "homePage":"/XAPI/OAuth/token/"
                                 },
                                 "objectType": "Agent"
                             },

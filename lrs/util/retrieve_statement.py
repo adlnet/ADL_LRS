@@ -13,9 +13,9 @@ import ast
 import pdb
 import ast
 
-MORE_ENDPOINT = '/TCAPI/statements/more/'
+MORE_ENDPOINT = '/XAPI/statements/more/'
 
-def convertToUTC(timestr):
+def convert_to_utc(timestr):
     # Strip off TZ info
     timestr = timestr[:timestr.rfind('+')]
     
@@ -26,57 +26,43 @@ def convertToUTC(timestr):
     date_object = pytz.timezone("UTC").localize(date_object)
     return date_object
 
-def retrieve_context(objectData):
-    # pdb.set_trace()
-    # if 'instructor' in objectData:
-    #     objectData['instructor'] = models.agent.objects.filter(**objectData['instructor'])[0]
-
-    # if 'team' in objectData:
-    #     objectData['team'] = models.group.objects.filter(**objectData['team'])[0]
-
-    # if 'statement' in objectData:
-    #     objectData['statement'] = models.StatementRef.filter(ref_id=objectData['statement'['id']])[0]
-
-    # if 'contextActivities' in objectData:
-    #     del objectData['contextActivities']
-
-    if 'registration' in objectData:
-        context = models.context.objects.get(registration=objectData['registration'])
-    return context
-
+def convert_to_dict(incoming_data):
+    data = {}
+    try:
+        data = json.loads(incoming_data)
+    except Exception, e:
+        data = ast.literal_eval(incoming_data)
+    return data
 
 def parse_incoming_object(objectData, args):
-    # If object is not dict, try to load as one
+    # If object is not dict, try to load as one. Even when parsing body in req_parse-data in object key is not converted
     obj = None
     if not type(objectData) is dict:
-        try:
-            objectData = json.loads(objectData)
-        except Exception, e:
-            try:
-                objectData = json.loads(objectData.replace("'",'"'))
-            except Exception, e:
-                objectData = ast.literal_eval(objectData)
+        object_data = convert_to_dict(objectData)
+    else:
+        object_data = objectData
+
     # Check the objectType
-    if 'objectType' in objectData:
+    if 'objectType' in object_data:
         # If type is activity try go retrieve object
-        if objectData['objectType'].lower() == 'activity':
+        if object_data['objectType'].lower() == 'activity':
             try:
-                activity = models.activity.objects.get(activity_id=objectData['id'])
+                activity = models.activity.objects.get(activity_id=object_data['id'])
                 if activity:
                     obj = activity
             except models.activity.DoesNotExist:
                 pass # no object found
         # If type is not an activity then it must be an agent
-        elif objectData['objectType'].lower() == 'agent':
+        elif object_data['objectType'].lower() == 'agent':
             try:
-                agent = Agent.Agent(json.dumps(objectData)).agent
+                agent = Agent.Agent(json.dumps(object_data)).agent
                 if agent:
                     obj = agent
             except models.IDNotFoundError:
                 pass # no stmt_object filter added
-        elif objectData['objectType'].lower() == 'statementref':
+        elif object_data['objectType'].lower() == 'statementref':
             try:
-                stmt_ref = models.StatementRef.objects.get(ref_id=objectData['id'])
+                stmt_ref = models.StatementRef.objects.get(ref_id=object_data['id'])
                 if stmt_ref:
                     obj = stmt_ref
             except models.StatementRef.DoesNotExist:
@@ -84,25 +70,23 @@ def parse_incoming_object(objectData, args):
     # Default to activity
     else:
         try:
-            activity = models.activity.objects.get(activity_id=objectData['id'])
+            activity = models.activity.objects.get(activity_id=object_data['id'])
             if activity:
-                # args['stmt_object'] = activity
                 obj = activity
-        except Exception, e:
+        except models.activity.DoesNotExist:
             pass
     return obj
 
 def parse_incoming_actor(actorData):
     actor = None
+    # agent = convert_to_dict(actorData)
     if not type(actorData) is dict:
         try:
             actorData = json.loads(actorData)
         except Exception, e:
             actorData = json.loads(actorData.replace("'",'"'))
     try:
-        agent = Agent.Agent(json.dumps(actorData)).agent
-        # args['actor'] = agent
-        actor = agent
+        actor = Agent.Agent(json.dumps(actorData)).agent
     except models.IDNotFoundError:
         pass # no actor filter added
     return actor
@@ -118,7 +102,6 @@ def parse_incoming_instructor(instData):
         instructor = Agent.Agent(json.dumps(instData)).agent                 
         if instructor:
             cntxList = models.context.objects.filter(instructor=instructor)
-            # args['context__in'] = cntxList
             inst = cntxList
     except models.IDNotFoundError:
         pass # no actor filter added
@@ -127,7 +110,7 @@ def parse_incoming_instructor(instData):
 def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
     return models.statement.objects.filter(**args).order_by(stored_param)
 
-def complexGet(req_dict):
+def complex_get(req_dict):
     args = {}
     language = None
     # Set language if one
@@ -148,18 +131,21 @@ def complexGet(req_dict):
                 the_dict = json.loads(the_dict)
     except KeyError:
         the_dict = req_dict
-    
+
+    # The ascending initilization statement here sometimes throws mysql warning, but needs to be here
+    ascending = False    
     # If want ordered by ascending
     if 'ascending' in the_dict:
         if the_dict['ascending']:
             ascending = True
+
     # Cycle through the_dict and set since and until params
     for k,v in the_dict.items():
         if k.lower() == 'since':
-            date_object = convertToUTC(v)
+            date_object = convert_to_utc(v)
             args['stored__gt'] = date_object
         elif k.lower() == 'until':
-            date_object = convertToUTC(v)
+            date_object = convert_to_utc(v)
             args['stored__lte'] = date_object   
     
     # If searching by activity or actor
@@ -176,11 +162,10 @@ def complexGet(req_dict):
         if verb:
             args['verb'] = verb
 
-
     # If searching by registration
     if 'registration' in the_dict:
         uuid = str(the_dict['registration'])
-        cntx = models.context.objects.get(registration=uuid)
+        cntx = models.context.objects.filter(registration=uuid)
         args['context'] = cntx
     
     # If searching by actor
@@ -209,27 +194,27 @@ def complexGet(req_dict):
     sparse = True    
     # If want sparse results
     if 'sparse' in the_dict:
+        # If sparse input as string
         if not type(the_dict['sparse']) is bool:
             if the_dict['sparse'].lower() == 'false':
                 sparse = False
         else:
             sparse = the_dict['sparse']
-    
-    ascending = False    
+
     # Set stored param based on ascending
     if ascending:
         stored_param = 'stored'
     else:
-        stored_param = '-stored'
+        stored_param = '-stored'        
+    
     stmt_list = retrieve_stmts_from_db(the_dict, limit, stored_param, args)
     full_stmt_list = []
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
-        st = Statement.Statement(statement_id=stmt.statement_id, get=True, auth=user)
-        full_stmt_list.append(st.get_full_statement_json(sparse, language))
+        full_stmt_list.append(stmt.object_return(sparse, language))
     return full_stmt_list
 
-def createCacheKey(stmt_list):
+def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key
     hash_data = []
     hash_data.append(str(datetime.now()))
@@ -239,7 +224,7 @@ def createCacheKey(stmt_list):
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
     return key
 
-def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
+def initial_cache_return(stmt_list, encoded_list, req_dict, limit):
     # First time someone queries POST/GET
     result = {}
     stmt_pager = Paginator(stmt_list, limit)
@@ -250,7 +235,7 @@ def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
     current_page = 1
     total_pages = stmt_pager.num_pages
     # Create cache key from hashed data (always 32 digits)
-    cache_key = createCacheKey(stmt_list)
+    cache_key = create_cache_key(stmt_list)
 
     # Add data to cache
     cache_list.append(req_dict)
@@ -269,9 +254,8 @@ def initialCacheReturn(stmt_list, encoded_list, req_dict, limit):
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
 
-def getStatementRequest(req_id):  
+def get_statement_request(req_id):  
     # Retrieve encoded info for statements
-
     encoded_info = cache.get(req_id)
 
     # Could have expired or never existed
@@ -287,20 +271,20 @@ def getStatementRequest(req_id):
     limit = decoded_info[3]
 
     #Build list from query_dict
-    stmt_list = complexGet(query_dict)
+    stmt_list = complex_get(query_dict)
 
     # Build statementResult
-    stmt_result = buildStatementResult(query_dict, stmt_list, req_id)
+    stmt_result = build_statement_result(query_dict, stmt_list, req_id)
     return stmt_result
 
-def buildStatementResult(req_dict, stmt_list, more_id=None, created=False):
+def build_statement_result(req_dict, stmt_list, more_id=None):
     result = {}
     limit = None
     # Get length of stmt list
     statement_amount = len(stmt_list)  
     # See if something is already stored in cache
     encoded_list = cache.get(more_id)
-    # If there is a more_id (means this is being called from getStatementRequest)
+    # If there is a more_id (means this is being called from get_statement_request) this is not the initial request (someone is pinging the 'more' link)
     if more_id:
         more_cache_list = []
         # Get query_info and there should always be an encoded_list if there is a more_id
@@ -324,7 +308,7 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False):
         else:
             stmt_pager = Paginator(stmt_list, limit)
             # Create cache key from hashed data (always 32 digits)
-            cache_key = createCacheKey(stmt_list)
+            cache_key = create_cache_key(stmt_list)
             # Set result to have selected page of stmts and more endpoing
             result['statements'] = stmt_pager.page(current_page).object_list
             result['more'] = MORE_ENDPOINT + cache_key
@@ -339,8 +323,8 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False):
             encoded_list = pickle.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
             return result
-    # List will only be larger first time
-    # of more URLs.
+    # If get to here, this is on the initial request
+    # List will only be larger first time of more URLs.
     if not limit:
         try:
             limit = int(req_dict['limit'])
@@ -358,11 +342,11 @@ def buildStatementResult(req_dict, stmt_list, more_id=None, created=False):
         if not limit or limit > settings.SERVER_STMT_LIMIT:
             limit = settings.SERVER_STMT_LIMIT
 
+    # If there are more than the limit, build the initial return
     if statement_amount > limit:
-        result = initialCacheReturn(stmt_list, encoded_list, req_dict, limit)
+        result = initial_cache_return(stmt_list, encoded_list, req_dict, limit)
     # Just provide statements since the list is under the limit
     else:
         result['statements'] = stmt_list
         result['more'] = ''
     return result
-

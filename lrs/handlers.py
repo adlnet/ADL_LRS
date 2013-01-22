@@ -9,6 +9,7 @@ class DBLogHandler(logging.Handler):
 
 	def emit(self, record, **kwargs):
 		try:
+			# pdb.set_trace()
 			# Import in func as work around for ciruclar dependency - try to move out of app again
 			from models import SystemAction
 
@@ -17,10 +18,10 @@ class DBLogHandler(logging.Handler):
 			
 			# TODO: MORE EFFICIENT WAY OF DOING THIS
 			if record.msg['user']:
-				log_action = SystemAction(level=record.levelname, message=record.msg['msg'], timestamp=time,
+				log_action = SystemAction(level=record.levelname, message=record.msg['message'], timestamp=time,
 					content_object=record.msg['user'], parent_action=parent_action)
 			else:
-				log_action = SystemAction(level=record.levelname, message=record.msg['msg'], timestamp=time,
+				log_action = SystemAction(level=record.levelname, message=record.msg['message'], timestamp=time,
 					parent_action=parent_action)
 
 			log_action.save()

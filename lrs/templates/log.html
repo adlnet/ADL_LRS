@@ -24,10 +24,10 @@
 			</br>
 			<ul>
 				{% for action in action_list %}
-					<li>{{ action.0.level }} {{ action.0.action }} [{{ action.0.timestamp }}] {{ action.0.status_code }}</li>
+					<li>{{ action.0.level }} {{ action.0.message }} [{{ action.0.timestamp }}] by {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %} {{ action.0.status_code }}</li>
 					<ul>
 						{% for ch_action in action.1 %}
-							<li>{{ ch_action.level }} {{ ch_action.action }} [{{ ch_action.timestamp }}]</li>
+							<li>{{ ch_action.level }} {{ ch_action.message }} [{{ ch_action.timestamp }}]</li>
 						{% endfor %}
 					</ul>
 				{% empty %}

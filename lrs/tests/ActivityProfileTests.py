@@ -286,5 +286,5 @@ class ActivityProfileTests(TestCase):
         r = self.client.get(reverse(views.activity_profile), {'activityId': "tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], self.content_type)
-        self.assertIn("\"", r.content)        
+        self.assertIn("\"", r.content)
 

@@ -7,17 +7,121 @@ from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware
+from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
 import logging
 import json
 import urllib
 import pdb
+import pprint
 
 logger = logging.getLogger(__name__)
 
+@decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def home(request):
-    return render_to_response('home.html', context_instance=RequestContext(request))
+    lrs_data = { 
+        "xapi": {
+            "version": "0.95",
+            "statements":
+            {
+                "name": "Statements",
+                "methods": ["GET", "POST", "PUT"],
+                "endpoint": reverse('lrs.views.statements'),
+                "description": "Endpoint to submit and retrieve XAPI statments.",
+                "content-types": []
+            },
+            "activities":
+            {
+                "name": "Activities",
+                "methods": ["GET"],
+                "endpoint": reverse('lrs.views.activities'),
+                "description": "Endpoint to retrieve a complete activity object.",
+                "content-types": []
+            },
+            "activities_state":
+            {
+                "name": "Activities State",
+                "methods": ["PUT","POST","GET","DELETE"],
+                "endpoint": reverse('lrs.views.activity_state'),
+                "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
+                "content-types": []
+            },
+            "activities_profile":
+            {
+                "name": "Activities Profile",
+                "methods": ["PUT","POST","GET","DELETE"],
+                "endpoint": reverse('lrs.views.activity_profile'),
+                "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
+                "content-types": []
+            },
+            "agents":
+            {
+                "name": "Agents",
+                "methods": ["GET"],
+                "endpoint": reverse('lrs.views.agents'),
+                "description": "Returns a special, Person object for a specified agent.",
+                "content-types": []
+            },
+            "agents_profile":
+            {
+                "name": "Agent Profile",
+                "methods": ["PUT","POST","GET","DELETE"],
+                "endpoint": reverse('lrs.views.agent_profile'),
+                "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
+                "content-types": []
+            }
+        },
+        "lrs":{
+            "user_register":
+            {
+                "name": "User Registration",
+                "methods": ["POST"],
+                "endpoint": reverse('lrs.views.register'),
+                "description": "Registers a user within the LRS.",
+                "content-types": ["application/x-www-form-urlencoded"]
+            },
+            "client_register":
+            {
+                "name": "Client Registration",
+                "methods": ["POST"],
+                "endpoint": reverse('lrs.views.reg_client'),
+                "description": "Registers a client applicaton with the LRS.",
+                "content-types": ["application/x-www-form-urlencoded"]
+            }
+        },
+        "oauth":
+        {
+            "initiate":
+            {
+                "name": "Oauth Initiate",
+                "methods": ["POST"],
+                "endpoint": reverse('oauth_provider.views.request_token'),
+                "description": "Authorize a client and return temporary credentials.",
+                "content-types": ["application/x-www-form-urlencoded"]
+            },
+            "authorize":
+            {
+                "name": "Oauth Authorize",
+                "methods": ["GET"],
+                "endpoint": reverse('oauth_provider.views.user_authorization'),
+                "description": "Authorize a user.",
+                "content-types": []
+            },
+            "token":
+            {
+                "name": "Oauth Token",
+                "methods": ["POST"],
+                "endpoint": reverse('oauth_provider.views.access_token'),
+                "description": "Provides Oauth token to the client.",
+                "content-types": ["application/x-www-form-urlencoded"]
+            }
+        }
+    }
+    # pprint.pprint(request.accept)
+    # pprint.pprint(request.accepted_types)
+    if "application/json" in request.accepted_types:
+        return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
+    return render_to_response('home.html', {"lrs_data": lrs_data}, context_instance=RequestContext(request))
 
 def tcexample(request):
     return render_to_response('tcexample.xml')
@@ -97,7 +201,7 @@ def log(request):
     parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).order_by('-timestamp')
 
     for pa in parent_action_list:
-        children = models.UserSystemAction.objects.filter(parent_action=pa).order_by('timestamp')
+        children = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')
         action_tup = (pa, children)
         action_list.append(action_tup)
 
@@ -107,7 +211,7 @@ def log(request):
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
-    statementResult = retrieve_statement.getStatementRequest(more_id) 
+    statementResult = retrieve_statement.get_statement_request(more_id) 
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])
