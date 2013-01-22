@@ -54,10 +54,12 @@ def parse_body(r, request):
             r['files'] = files
         else:
             if request.body:
+                # profile uses the request body
+                r['raw_body'] = request.body
                 try:
                     r['body'] = json.loads(request.body)
                 except Exception, e:
-                    r['body'] = ast.literal_eval(request.body)                    
+                    r['body'] = ast.literal_eval(request.body)
             else:
                 raise Exception("No body in request")
     return r
