@@ -156,7 +156,7 @@ class SystemAction(models.Model):
     level = models.CharField(max_length=200)
     parent_action = models.ForeignKey('self', blank=True, null=True)
     message = models.TextField()
-    timestamp = models.DateTimeField('timestamp', null=True, blank=True)
+    timestamp = models.DateTimeField()
     status_code = models.CharField(max_length=50, blank=True, null=True)
     #Content_type is the user since it can be a User or group object
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
