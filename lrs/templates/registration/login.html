@@ -1,0 +1,29 @@
+<html>
+    <body>
+        <head>
+            <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
+        </head>
+        <div id="container">
+            <h1>ADL LRS Login</h1>
+            <div class="content">
+                <div>
+                {% if error_message %}
+                <p class="error">
+                    <strong>{{ error_message }}</strong>
+                </p>
+                {% endif %}
+                </div>
+                <div>
+                <h3>Login</h3>
+                <form method="post">{% csrf_token %}
+                    <table>
+                        {% include 'table_form.html' %}
+                    </table>
+                    <input type="submit" value="Login" />
+                </form>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+
