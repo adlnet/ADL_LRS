@@ -40,6 +40,10 @@ class Statement():
             self.params = self.parse(data)
         self.populate(self.params)
 
+    def log_processing(self, msg):
+        self.log_dict['message'] = msg
+        logger.info(msg=self.log_dict)
+
     #Make sure initial data being received is JSON
     def parse(self,data):
         try:
@@ -50,8 +54,7 @@ class Statement():
             except Exception, e:
                 err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
                 if self.log_dict:
-                    self.log_dict['message'] = err_msg
-                    logger.info(msg=self.log_dict)        
+                    self.log_processing(err_msg)
                 raise exceptions.ParamError(err_msg) 
         return params
 
@@ -61,7 +64,10 @@ class Statement():
         try:
             stmt = models.statement.objects.get(statement_id=stmt_id)
         except Exception:
-            raise exceptions.IDNotFoundError("Statement with that ID does not exist")
+            err_msg = "Statement with ID %s does not exist in %s.%s" % (str(stmt_id),
+                __name__, self.voidStatement.__name__)
+            self.log_processing(err_msg)
+            raise exceptions.IDNotFoundError(err_msg)
 
         # Check if it is already voided 
         if not stmt.voided:
@@ -71,8 +77,9 @@ class Statement():
             stmt_ref = models.StatementRef(ref_id=stmt_id)
             stmt_ref.save()
 
-            # self.self.log_dict['msg'] = 'Voided statement'
-            # logger.info(msg=self.self.log_dict)
+            if self.log_dict:
+                self.log_processing("Voided statement with ID %s in %s.%s" % (str(stmt_id),
+                    __name__, self.voidStatement.__name__))
 
             return stmt_ref
         else:

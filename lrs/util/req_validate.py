@@ -12,6 +12,10 @@ from functools import wraps
 
 logger = logging.getLogger('user_system_actions')
 
+def log_exception(log_dict, err_msg, func_name):
+    log_dict['message'] = err_msg + "in %s" % func_name
+    logger.exception(msg=log_dict)
+
 def log_parent_action(method, endpoint):
     def inner(func):
         @wraps(func)
@@ -29,144 +33,135 @@ def log_parent_action(method, endpoint):
         return wrapper
     return inner
 
-@log_parent_action(method='POST', endpoint='statements')
 @auth
+@log_parent_action(method='POST', endpoint='statements')
 def statements_post(r_dict):
     # Could be a 'GET'
     if "application/json" not in r_dict['CONTENT_TYPE']:
         r_dict['method'] = 'GET'
     return r_dict
 
-@log_parent_action(method='GET', endpoint='statements')
 @auth
+@log_parent_action(method='GET', endpoint='statements')
 def statements_get(r_dict):
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='statements')
 @auth
+@log_parent_action(method='PUT', endpoint='statements')
 def statements_put(r_dict):
+    log_dict = r_dict['initial_user_action']
     # Must have statementId param-if not raise paramerror
     try:
         statement_id = r_dict['statementId']
     except KeyError:
         err_msg = "Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, statements_put.__name__)
         raise ParamError(err_msg)
     
     # If statement with that ID already exists-raise conflict error
     if check_for_existing_statementId(statement_id):
         err_msg = "StatementId conflict"
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, statements_put.__name__)
         raise ParamConflict(err_msg)
 
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
         err_msg = "No Content supplied"
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, statements_put.__name__)
         raise ParamError(err_msg)
 
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='activities/state')
 @auth
+@log_parent_action(method='PUT', endpoint='activities/state')
 def activity_state_put(r_dict):
+    log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])       
+        log_exception(log_dict, err_msg, activity_state_put.__name__)
         raise ParamError(err_msg)
     try:
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, activity_state_put.__name__)
         raise ParamError(err_msg)
     try:
         r_dict['stateId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, activity_state_put.__name__)
         raise ParamError(err_msg)
     
     # Must have body included for state
     if 'body' not in r_dict:
         err_msg = "Could not find the profile"
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, activity_state_put.__name__)
         raise ParamError(err_msg)
     
     # Set state
     r_dict['state'] = r_dict.pop('body')
     return r_dict
 
+@auth
 @log_parent_action(method='GET', endpoint='activities/state')
-@auth
 def activity_state_get(r_dict):
+    log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, activity_state_get.__name__)
         raise ParamError(err_msg)
     try:
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, activity_state_get.__name__)
         raise ParamError(err_msg)
     return r_dict
 
+@auth
 @log_parent_action(method='DELETE', endpoint='activities/state')
-@auth
 def activity_state_delete(r_dict):
+    log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, activity_state_delete.__name__)
         raise ParamError(err_msg)
     try:
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, activity_state_delete.__name__)
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='activities/profile')
 @auth
+@log_parent_action(method='PUT', endpoint='activities/profile')
 def activity_profile_put(r_dict):
+    log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, activity_profile_put.__name__)
         raise ParamError(err_msg)
     
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, activity_profile_put.__name__)
         raise ParamError(err_msg)
     
     if 'body' not in r_dict:
         err_msg = "Could not find the profile"
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, activity_profile_put.__name__)
         raise ParamError(err_msg)
 
     # Set profile - req_parse converts all request bodies to dict, act profile needs it as string and need to replace single quotes with double quotes
@@ -175,70 +170,67 @@ def activity_profile_put(r_dict):
     r_dict['profile'] = str(body_dict)
     return r_dict
 
-@log_parent_action(method='GET', endpoint='activities/profile')
 @auth
+@log_parent_action(method='GET', endpoint='activities/profile')
 def activity_profile_get(r_dict):
+    log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, activity_profile_get.__name__)
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='DELETE', endpoint='activities/profile')
 @auth
+@log_parent_action(method='DELETE', endpoint='activities/profile')
 def activity_profile_delete(r_dict):
+    log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])       
+        log_exception(log_dict, err_msg, activity_profile_delete.__name__)
         raise ParamError(err_msg)
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])       
+        log_exception(log_dict, err_msg, activity_profile_delete.__name__)
         raise ParamError(err_msg)
     return r_dict
 
 @log_parent_action(method='GET', endpoint='activities')
 def activities_get(r_dict):
+    log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activities - method = %s, but activityId parameter is missing" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, activities_get.__name__)
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='agents/profile')
 @auth
+@log_parent_action(method='PUT', endpoint='agents/profile')
 def agent_profile_put(r_dict):
+    log_dict = r_dict['initial_user_action']
     try: 
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, agent_profile_put.__name__)
         raise ParamError(err_msg)
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, agent_profile_put.__name__)
         raise ParamError(msg)
     
     if 'body' not in r_dict:
         err_msg = "Could not find the profile"
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, agent_profile_put.__name__)
         raise ParamError(err_msg)
     
     # Set profile
@@ -247,42 +239,41 @@ def agent_profile_put(r_dict):
 
 @log_parent_action(method='GET', endpoint='agents/profile')
 def agent_profile_get(r_dict):
+    log_dict = r_dict['initial_user_action']
     try: 
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, agent_profile_get.__name__)
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='DELETE', endpoint='agents/profile')
 @auth
+@log_parent_action(method='DELETE', endpoint='agents/profile')
 def agent_profile_delete(r_dict):
+    log_dict = r_dict['initial_user_action']
     try: 
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but no agent parameter.. the agent parameter is required" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, agent_profile_delete.__name__)
         raise ParamError(err_msg)
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method']
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])
+        log_exception(log_dict, err_msg, agent_profile_delete.__name__)
         raise ParamError(err_msg)
     return r_dict
 
 @log_parent_action(method='GET', endpoint='agents')
 def agents_get(r_dict):
+    log_dict = r_dict['initial_user_action']
     try: 
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- agents url, but no agent parameter.. the agent parameter is required"
-        r_dict['initial_user_action']['message'] = err_msg
-        logger.info(msg=r_dict['initial_user_action'])        
+        log_exception(log_dict, err_msg, agents_get.__name__)
         raise ParamError(err_msg)
     return r_dict
 
