@@ -38,6 +38,8 @@ def statements_post(req_dict):
                     models.statement.objects.get(statement_id=stmt_id).delete()
                 except models.statement.DoesNotExist:
                     pass # stmt already deleted 
+            log_dict['message'] = e.message
+            logger.info(msg=log_dict)
             raise e
     else:
         # Handle single POST
@@ -54,7 +56,7 @@ def statements_put(req_dict):
     
     # Set statement ID in body so all data is together
     req_dict['body']['statement_id'] = req_dict['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth']).model_object
+    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
     
     update_parent_log_status(log_dict, 204)
     return HttpResponse("No Content", status=204)
@@ -71,7 +73,10 @@ def statements_get(req_dict):
         try:
             st = models.statement.objects.get(statement_id=statementId)
         except models.statement.DoesNotExist:
-            raise exceptions.IDNotFoundError('There is no statement associated with the id: %s' % statementId)
+            err_msg = 'There is no statement associated with the id: %s' % statementId
+            log_dict['message'] = err_msg
+            logger.info(msg=log_dict)
+            raise exceptions.IDNotFoundError(err_msg)
         stmt_result = st.object_return()
     else:
         stmt_list = retrieve_statement.complex_get(req_dict)

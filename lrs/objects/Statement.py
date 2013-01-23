@@ -188,7 +188,7 @@ class Statement():
             stmt.save()
 
         if self.log_dict:
-            self.log_dict['message'] = "Saved statement to database in %s" % __name__
+            self.log_dict['message'] = "Saved statement to database in %s.%s" % (__name__, self.saveObjectToDB.__name__)
             logger.info(msg=self.log_dict)
             self.log_dict['message'] = stmt.object_return()
             logger.info(msg=self.log_dict)            
@@ -315,7 +315,7 @@ class Statement():
     def populate(self, stmt_data):
         args ={}
         if self.log_dict:
-            self.log_dict['message'] = 'Populating statement data in %s' % __name__
+            self.log_dict['message'] = 'Populating statement data in %s.%s' % (__name__, self.populate.__name__)
             logger.info(msg=self.log_dict)
         # Must include verb - set statement verb 
         try:
