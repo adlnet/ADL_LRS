@@ -1,11 +1,12 @@
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
-from django.contrib.auth import authenticate, login
 from django.template import RequestContext
-from django.contrib.auth.models import User
-from django.shortcuts import render_to_response
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
@@ -196,9 +197,13 @@ def reg_success(request, user_id):
         d = {"info_message": "Thanks for registering %s" % user.username}
     return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
 
-def log(request):
+@login_required(login_url="/XAPI/accounts/login")
+def me(request):
     action_list = []
-    parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).order_by('-timestamp')
+    # b = Bookmark.objects.get(url='https://www.djangoproject.com/')
+    user_type = ContentType.objects.get_for_model(request.user)
+    # TaggedItem.objects.filter(content_type__pk=bookmark_type.id, object_id=b.id)
+    parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).filter(content_type__pk=user_type.id, object_id=request.user.id).order_by('-timestamp')
 
     for pa in parent_action_list:
         children = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')

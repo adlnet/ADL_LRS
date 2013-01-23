@@ -425,7 +425,7 @@ class StatementsTests(TestCase):
         # self.assertEqual(actions, 22)
 
         log_url = self.client.get(reverse(views.log))
-        print(log_url.content)
+        # print(log_url.content)
 
     def test_get_no_existing_ID(self):
         param = {"statementId":"aaaaaa"}

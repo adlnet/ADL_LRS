@@ -29,21 +29,21 @@ def log_parent_action(method, endpoint):
         return wrapper
     return inner
 
-@log_parent_action(method='POST', endpoint='statements')
 @auth
+@log_parent_action(method='POST', endpoint='statements')
 def statements_post(r_dict):
     # Could be a 'GET'
     if "application/json" not in r_dict['CONTENT_TYPE']:
         r_dict['method'] = 'GET'
     return r_dict
 
-@log_parent_action(method='GET', endpoint='statements')
 @auth
+@log_parent_action(method='GET', endpoint='statements')
 def statements_get(r_dict):
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='statements')
 @auth
+@log_parent_action(method='PUT', endpoint='statements')
 def statements_put(r_dict):
     # Must have statementId param-if not raise paramerror
     try:
@@ -70,8 +70,8 @@ def statements_put(r_dict):
 
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='activities/state')
 @auth
+@log_parent_action(method='PUT', endpoint='activities/state')
 def activity_state_put(r_dict):
     try:
         r_dict['activityId']
@@ -106,8 +106,8 @@ def activity_state_put(r_dict):
     r_dict['state'] = r_dict.pop('body')
     return r_dict
 
-@log_parent_action(method='GET', endpoint='activities/state')
 @auth
+@log_parent_action(method='GET', endpoint='activities/state')
 def activity_state_get(r_dict):
     try:
         r_dict['activityId']
@@ -125,8 +125,8 @@ def activity_state_get(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='DELETE', endpoint='activities/state')
 @auth
+@log_parent_action(method='DELETE', endpoint='activities/state')
 def activity_state_delete(r_dict):
     try:
         r_dict['activityId']
@@ -144,8 +144,8 @@ def activity_state_delete(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='activities/profile')
 @auth
+@log_parent_action(method='PUT', endpoint='activities/profile')
 def activity_profile_put(r_dict):
     try:
         r_dict['activityId']
@@ -175,8 +175,8 @@ def activity_profile_put(r_dict):
     r_dict['profile'] = str(body_dict)
     return r_dict
 
-@log_parent_action(method='GET', endpoint='activities/profile')
 @auth
+@log_parent_action(method='GET', endpoint='activities/profile')
 def activity_profile_get(r_dict):
     try:
         r_dict['activityId']
@@ -187,8 +187,8 @@ def activity_profile_get(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='DELETE', endpoint='activities/profile')
 @auth
+@log_parent_action(method='DELETE', endpoint='activities/profile')
 def activity_profile_delete(r_dict):
     try:
         r_dict['activityId']
@@ -206,6 +206,7 @@ def activity_profile_delete(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
+@auth
 @log_parent_action(method='GET', endpoint='activities')
 def activities_get(r_dict):
     try:
@@ -217,8 +218,8 @@ def activities_get(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='PUT', endpoint='agents/profile')
 @auth
+@log_parent_action(method='PUT', endpoint='agents/profile')
 def agent_profile_put(r_dict):
     try: 
         r_dict['agent']
@@ -245,6 +246,7 @@ def agent_profile_put(r_dict):
     r_dict['profile'] = r_dict.pop('body')
     return r_dict
 
+@auth
 @log_parent_action(method='GET', endpoint='agents/profile')
 def agent_profile_get(r_dict):
     try: 
@@ -256,8 +258,8 @@ def agent_profile_get(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
-@log_parent_action(method='DELETE', endpoint='agents/profile')
 @auth
+@log_parent_action(method='DELETE', endpoint='agents/profile')
 def agent_profile_delete(r_dict):
     try: 
         r_dict['agent']
@@ -275,6 +277,7 @@ def agent_profile_delete(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
+@auth
 @log_parent_action(method='GET', endpoint='agents')
 def agents_get(r_dict):
     try: 
