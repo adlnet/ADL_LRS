@@ -12,9 +12,27 @@ from functools import wraps
 
 logger = logging.getLogger('user_system_actions')
 
+def check_for_existing_statementId(stmtID):
+    exists = False
+    stmt = models.statement.objects.filter(statement_id=stmtID)
+    if stmt:
+        exists = True
+    return exists
+
+def check_for_no_other_params_supplied(query_dict):
+    supplied = True
+    if len(query_dict) <= 1:
+        supplied = False
+    return supplied
+
 def log_exception(log_dict, err_msg, func_name):
-    log_dict['message'] = err_msg + "in %s" % func_name
+    log_dict['message'] = err_msg + " in %s" % func_name
     logger.exception(msg=log_dict)
+
+def update_log_status(log_dict, status):
+    parent_action = models.SystemAction.objects.get(id=log_dict['parent_id'])
+    parent_action.status_code = status
+    parent_action.save()
 
 def log_parent_action(method, endpoint):
     def inner(func):
@@ -56,18 +74,21 @@ def statements_put(r_dict):
     except KeyError:
         err_msg = "Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method']
         log_exception(log_dict, err_msg, statements_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
     # If statement with that ID already exists-raise conflict error
     if check_for_existing_statementId(statement_id):
         err_msg = "StatementId conflict"
         log_exception(log_dict, err_msg, statements_put.__name__)
+        update_log_status(log_dict, 409)
         raise ParamConflict(err_msg)
 
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
         err_msg = "No Content supplied"
         log_exception(log_dict, err_msg, statements_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
 
     return r_dict
@@ -81,24 +102,28 @@ def activity_state_put(r_dict):
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_state_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_state_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['stateId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_state_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
     # Must have body included for state
     if 'body' not in r_dict:
         err_msg = "Could not find the profile"
         log_exception(log_dict, err_msg, activity_state_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
     # Set state
@@ -114,12 +139,14 @@ def activity_state_get(r_dict):
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_state_get.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_state_get.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 
@@ -132,12 +159,14 @@ def activity_state_delete(r_dict):
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_state_delete.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['agent']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_state_delete.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 
@@ -150,6 +179,7 @@ def activity_profile_put(r_dict):
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
     try:
@@ -157,11 +187,13 @@ def activity_profile_put(r_dict):
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
     if 'body' not in r_dict:
         err_msg = "Could not find the profile"
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
 
     # Set profile - req_parse converts all request bodies to dict, act profile needs it as string and need to replace single quotes with double quotes
@@ -179,6 +211,7 @@ def activity_profile_get(r_dict):
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method']
         log_exception(log_dict, err_msg, activity_profile_get.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 
@@ -191,12 +224,14 @@ def activity_profile_delete(r_dict):
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method']
         log_exception(log_dict, err_msg, activity_profile_delete.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method']
         log_exception(log_dict, err_msg, activity_profile_delete.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 
@@ -208,6 +243,7 @@ def activities_get(r_dict):
     except KeyError:
         err_msg = "Error -- activities - method = %s, but activityId parameter is missing" % r_dict['method']
         log_exception(log_dict, err_msg, activities_get.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 
@@ -220,17 +256,20 @@ def agent_profile_put(r_dict):
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % r_dict['method']
         log_exception(log_dict, err_msg, agent_profile_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method']
         log_exception(log_dict, err_msg, agent_profile_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(msg)
     
     if 'body' not in r_dict:
         err_msg = "Could not find the profile"
         log_exception(log_dict, err_msg, agent_profile_put.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
     # Set profile
@@ -245,6 +284,7 @@ def agent_profile_get(r_dict):
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % r_dict['method']
         log_exception(log_dict, err_msg, agent_profile_get.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 
@@ -257,12 +297,14 @@ def agent_profile_delete(r_dict):
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but no agent parameter.. the agent parameter is required" % r_dict['method']
         log_exception(log_dict, err_msg, agent_profile_delete.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method']
         log_exception(log_dict, err_msg, agent_profile_delete.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 
@@ -274,18 +316,6 @@ def agents_get(r_dict):
     except KeyError:
         err_msg = "Error -- agents url, but no agent parameter.. the agent parameter is required"
         log_exception(log_dict, err_msg, agents_get.__name__)
+        update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
-
-def check_for_existing_statementId(stmtID):
-    exists = False
-    stmt = models.statement.objects.filter(statement_id=stmtID)
-    if stmt:
-        exists = True
-    return exists
-
-def check_for_no_other_params_supplied(query_dict):
-    supplied = True
-    if len(query_dict) <= 1:
-        supplied = False
-    return supplied

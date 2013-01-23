@@ -16,7 +16,7 @@ def log_info_processing(log_dict, method, func_name):
     logger.info(msg=log_dict)
 
 def log_exception(log_dict, err_msg, func_name):
-    log_dict['message'] = err_msg + "in %s" % func_name
+    log_dict['message'] = err_msg + " in %s" % func_name
     logger.exception(msg=log_dict)
 
 def update_parent_log_status(log_dict, status):
@@ -78,6 +78,7 @@ def statements_get(req_dict):
         except models.statement.DoesNotExist:
             err_msg = 'There is no statement associated with the id: %s' % statementId
             log_exception(log_dict, err_msg, statements_get.__name__)
+            update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
         stmt_result = st.object_return()
     else:
@@ -186,6 +187,7 @@ def activities_get(req_dict):
     if not act_list:
         err_msg = "No activities found with ID %s" % activityId
         log_exception(log_dict, err_msg, activities_get.__name__)
+        update_parent_log_status(log_dict, 404)
         raise exceptions.IDNotFoundError(err_msg)
     
     full_act_list = []

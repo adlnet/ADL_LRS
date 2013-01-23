@@ -280,8 +280,8 @@ def handle_request(request):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements) : {
