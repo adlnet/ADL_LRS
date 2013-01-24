@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
 from django.template import RequestContext
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -200,18 +200,22 @@ def reg_success(request, user_id):
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
     action_list = []
-    # b = Bookmark.objects.get(url='https://www.djangoproject.com/')
     user_type = ContentType.objects.get_for_model(request.user)
-    # TaggedItem.objects.filter(content_type__pk=bookmark_type.id, object_id=b.id)
-    parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).filter(content_type__pk=user_type.id, object_id=request.user.id).order_by('-timestamp')
+    parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).filter(
+        content_type__pk=user_type.id, object_id=request.user.id).order_by('-timestamp')
 
     for pa in parent_action_list:
         children = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')
         action_tup = (pa, children)
         action_list.append(action_tup)
 
-    return render_to_response('log.html', {'action_list':action_list},
+    return render_to_response('me.html', {'action_list':action_list},
         context_instance=RequestContext(request))
+
+def logout_view(request):
+    logout(request)
+    # Redirect to a success page.
+    return HttpResponseRedirect(reverse('lrs.views.home'))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)

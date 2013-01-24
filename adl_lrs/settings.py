@@ -85,6 +85,8 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+LOGIN_REDIRECT_URL = '/XAPI/me'
+
 HTTP_AUTH_ENABLED = True
 OAUTH_ENABLED = True
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
