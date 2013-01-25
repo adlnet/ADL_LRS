@@ -106,6 +106,17 @@ div
   padding-bottom: 10px;
 }
 
+.heading
+{
+  font-weight: bolder;
+  font-size: 1.1em;
+}
+
+.field
+{
+  font-weight: bold;
+}
+
 #menu
 {
   height: 25px;
@@ -147,4 +158,44 @@ div
   color: #FFF;
   text-decoration: none;
   border-top: 3px solid #1a82f7;
+}
+
+#clientapps
+{
+  font-size: .75em;
+  width: 50%;
+  margin-bottom: 1em;
+}
+
+#clientapps ul
+{
+  display: inline-block;
+  padding-left: 5%;
+  margin-bottom: 0;
+}
+
+#clientapps ul li
+{
+  margin-bottom: 3%;
+}
+
+#clientapps ul li.left 
+{
+  float: left;
+  margin-right: 10%;
+}
+
+#clientapps ul li.right
+{
+  float: right;
+}
+
+#clientapps ul ul
+{
+  list-style-type: none;
+}
+
+#recentactivity
+{
+  font-size: .75em;
 }

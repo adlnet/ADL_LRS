@@ -5,11 +5,15 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
+from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 from datetime import datetime
+import datetime as dt
 from django.utils.timezone import utc
 from lrs.exceptions import IDNotFoundError, ParamError
 import ast
+import pytz
 import json
+import logging
 import uuid
 import pdb
 import urllib
@@ -153,7 +157,19 @@ def filename(instance, filename):
     return filename
 
 class SystemAction(models.Model):
-    level = models.CharField(max_length=200)
+    REQUEST = 1 #should fall in debug level
+    LEVEL_TYPES = (
+        (REQUEST, 'REQUEST'),
+        (INFO, logging.getLevelName(INFO)), #20
+        (WARN, logging.getLevelName(WARN)), #30
+        (WARNING, logging.getLevelName(WARNING)), #30 
+        (ERROR, logging.getLevelName(ERROR)), #40
+        (CRITICAL, logging.getLevelName(CRITICAL)), #50
+        (DEBUG, logging.getLevelName(DEBUG)), #10
+        (FATAL, logging.getLevelName(FATAL)), #50
+        (NOTSET, logging.getLevelName(NOTSET)), #0
+    )
+    level = models.SmallIntegerField(choices=LEVEL_TYPES)
     parent_action = models.ForeignKey('self', blank=True, null=True)
     message = models.TextField()
     timestamp = models.DateTimeField('timestamp', null=True, blank=True)
@@ -162,6 +178,13 @@ class SystemAction(models.Model):
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = generic.GenericForeignKey('content_type', 'object_id')
+
+    def days_til_del(self):
+        weeklater = self.timestamp + dt.timedelta(days=7)
+        days = (weeklater - datetime.utcnow().replace(tzinfo = pytz.utc)).days
+        if days <= 0:
+            days = 0
+        return days
 
 
 class LanguageMap(models.Model):

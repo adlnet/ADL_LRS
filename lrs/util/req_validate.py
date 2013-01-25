@@ -18,10 +18,10 @@ def log_parent_action(method, endpoint):
         def wrapper(r_dict, *args, **kwargs):
             request_time = datetime.utcnow().replace(tzinfo=utc).isoformat()
             if 'auth' in r_dict and r_dict['auth']:
-                user_action = models.SystemAction(level='REQUEST', timestamp=request_time,
+                user_action = models.SystemAction(level=models.SystemAction.REQUEST, timestamp=request_time,
                     message='%s /%s' % (method, endpoint), content_object=r_dict['auth'])
             else:
-                user_action = models.SystemAction(level='REQUEST', timestamp=request_time,
+                user_action = models.SystemAction(level=models.SystemAction.REQUEST, timestamp=request_time,
                     message='%s /%s' % (method, endpoint))
             user_action.save()
             r_dict['initial_user_action'] = {'user': user_action.content_object, 'parent_id': user_action.id}         

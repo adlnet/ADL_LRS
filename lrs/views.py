@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
+from oauth_provider.consts import ACCEPTED
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
 import logging
@@ -161,7 +162,7 @@ def register(request):
         return Http404
 
 
-@require_http_methods(["GET","POST"])
+@login_required(login_url="/XAPI/accounts/login")
 def reg_client(request):
     # pdb.set_trace()
     if request.method == 'GET':
@@ -175,7 +176,7 @@ def reg_client(request):
             try:
                 client = models.Consumer.objects.get(name__exact=name)
             except models.Consumer.DoesNotExist:
-                client = models.Consumer(name=name, description=description)
+                client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED)
                 client.save()
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
@@ -199,7 +200,10 @@ def reg_success(request, user_id):
 
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
+    client_apps = models.Consumer.objects.filter(user=request.user)
+
     action_list = []
+    #TODO: need to generate groups (user/clientapp) and get those actions, too
     user_type = ContentType.objects.get_for_model(request.user)
     parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).filter(
         content_type__pk=user_type.id, object_id=request.user.id).order_by('-timestamp')
@@ -209,7 +213,7 @@ def me(request):
         action_tup = (pa, children)
         action_list.append(action_tup)
 
-    return render_to_response('me.html', {'action_list':action_list},
+    return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps},
         context_instance=RequestContext(request))
 
 def logout_view(request):
