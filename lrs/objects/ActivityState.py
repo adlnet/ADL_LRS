@@ -6,15 +6,22 @@ from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
 from django.db import transaction
 import pdb
+import logging
+
+logger = logging.getLogger('user_system_actions')
 
 class ActivityState():
-    def __init__(self, request_dict):
+    def __init__(self, request_dict, log_dict=None):
         self.req_dict = request_dict
+        self.log_dict = log_dict
         self.agent = request_dict['agent']
         try:
             self.activity = models.activity.objects.get(activity_id=request_dict['activityId'])
         except models.activity.DoesNotExist:
-            raise IDNotFoundError("Error with Activity State. The activity id (%s) did not match any activities on record" % (request_dict['activityId']))
+            err_msg = "Error with Activity State. The activity id (%s) did not match any activities on record" % (request_dict['activityId'])
+            if self.log_dict:
+                self.log_activity_state(err_msg, self.__init__.__name__, True)
+            raise IDNotFoundError(err_msg)
         self.registrationId = request_dict.get('registrationId', None)
         self.stateId = request_dict.get('stateId', None)
         self.updated = request_dict.get('updated', None)
@@ -22,6 +29,14 @@ class ActivityState():
         self.state = request_dict.get('state', None)
         self.etag = request_dict.get('ETAG', None)
         self.since = request_dict.get('since', None)
+
+    def log_activity_state(self, msg, func_name, err=False):
+        self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)
+        if err:
+            logger.error(msg=self.log_dict)
+        else:
+            logger.info(msg=self.log_dict)
+
 
     def __get_agent(self, create=False):
         return Agent(self.agent, create).agent
@@ -41,9 +56,18 @@ class ActivityState():
             p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity,registration_id=self.registrationId)
         else:
             p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity)
-        if not created:
+        
+        if created and self.log_dict:
+            self.log_activity_state("Created Activity State", self.put.__name__)
+        elif not created:
             etag.check_preconditions(self.req_dict,p)
             p.state.delete() # remove old state file
+            if self.log_dict:
+                self.log_activity_state("Retrieved Activity State", self.put.__name__)
+
+        # if not created:
+        #     etag.check_preconditions(self.req_dict,p)
+        #     p.state.delete() # remove old state file
         p.content_type = self.content_type
         p.etag = etag.create_tag(state.read())
         if self.updated:
@@ -54,6 +78,10 @@ class ActivityState():
 
         fn = "%s_%s_%s" % (p.agent_id,p.activity_id, self.req_dict.get('filename', p.id))
         p.state.save(fn, state)
+
+        if self.log_dict:
+            self.log_activity_state("Saved Activity State", self.put.__name__)
+
 
     def get(self, auth):
         agent = self.__get_agent()
@@ -67,7 +95,10 @@ class ActivityState():
                 return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity=self.activity, registration_id=self.registrationId)
             return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity=self.activity)
         except models.activity_state.DoesNotExist:
-            raise IDNotFoundError('There is no activity state associated with the id: %s' % self.stateId)
+            err_msg = 'There is no activity state associated with the id: %s' % self.stateId
+            if self.log_dict:
+                self.log_activity_state(err_msg, self.get.__name__, True)
+            raise IDNotFoundError(err_msg)
 
     def get_set(self,auth,**kwargs):
         agent = self.__get_agent()
@@ -87,7 +118,10 @@ class ActivityState():
         try:
             state_set = self.get_set(auth)
         except models.activity_state.DoesNotExist:
-            raise IDNotFoundError('There is no activity state associated with the ID: %s' % self.stateId)
+            err_msg = 'There is no activity state associated with the ID: %s' % self.stateId
+            if self.log_dict:
+                self.log_activity_state(err_msg, self.get_ids.__name__, True)
+            raise IDNotFoundError(err_msg)
         if self.since:
             state_set = state_set.filter(updated__gte=self.since)
         return state_set.values_list('state_id', flat=True)

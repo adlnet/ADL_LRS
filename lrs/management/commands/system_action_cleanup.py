@@ -17,13 +17,14 @@ def convert_to_utc(timestr):
     return date_object
 
 class Command(NoArgsCommand):
-    args = 'None.'
-    help = 'Performs housekeeping operations.'
+    args = 'None'
+    help = 'Performs removal of old system actions.'
 
     def handle_noargs(self, *args, **options):
         # delete SystemActions older than 7 days
-        cutoff = convert_to_utc(str((datetime.utcnow() - timedelta(days=7)).replace(tzinfo=utc).isoformat()))
-        records = SystemAction.objects.filter(timestamp__lt=cutoff)
-        records.delete()
+        cutoff_time = convert_to_utc(str((datetime.utcnow() - timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
+        # cutoff_time = convert_to_utc(str((datetime.utcnow() - timedelta(days=7)).replace(tzinfo=utc).isoformat()))
+        system_actions = SystemAction.objects.filter(timestamp__lt=cutoff_time)
+        system_actions.delete()
         self.stdout.write('Successfully deleted stale SystemActions\n')
         return

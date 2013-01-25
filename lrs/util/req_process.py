@@ -17,7 +17,7 @@ def log_info_processing(log_dict, method, func_name):
 
 def log_exception(log_dict, err_msg, func_name):
     log_dict['message'] = err_msg + " in %s" % func_name
-    logger.exception(msg=log_dict)
+    logger.error(msg=log_dict)
 
 def update_parent_log_status(log_dict, status):
     parent_action = models.SystemAction.objects.get(id=log_dict['parent_id'])
@@ -166,15 +166,15 @@ def activity_profile_get(req_dict):
 
 
 def activity_profile_delete(req_dict):
-    log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'DELETE', __name__)
+    # log_dict = req_dict['initial_user_action']    
+    # log_info_processing(log_dict, 'DELETE', __name__)
 
     #Instantiate activity profile
     ap = ActivityProfile.ActivityProfile()
     # Delete profile and return success
     ap.delete_profile(req_dict)
 
-    update_parent_log_status(log_dict, 200)
+    # update_parent_log_status(log_dict, 200)
     return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
 
 def activities_get(req_dict):

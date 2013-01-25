@@ -48,7 +48,7 @@ class Activity():
         self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)
         
         if err:
-            logger.exception(msg=self.log_dict)
+            logger.error(msg=self.log_dict)
         else:
             logger.info(msg=self.log_dict)
 
@@ -61,8 +61,8 @@ class Activity():
                 params = ast.literal_eval(data)
             except Exception, e:
                 err_msg = "Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))
-                if self.log_dict:
-                    self.log_activity(err_msg, self.parse.__name__, True)                
+                # if self.log_dict:
+                #     self.log_activity(err_msg, self.parse.__name__, True)                
                 raise exceptions.ParamError(err_msg) 
         return params
 

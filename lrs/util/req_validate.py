@@ -27,7 +27,7 @@ def check_for_no_other_params_supplied(query_dict):
 
 def log_exception(log_dict, err_msg, func_name):
     log_dict['message'] = err_msg + " in %s" % func_name
-    logger.exception(msg=log_dict)
+    logger.error(msg=log_dict)
 
 def update_log_status(log_dict, status):
     parent_action = models.SystemAction.objects.get(id=log_dict['parent_id'])
@@ -216,22 +216,22 @@ def activity_profile_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='DELETE', endpoint='activities/profile')
+# @log_parent_action(method='DELETE', endpoint='activities/profile')
 def activity_profile_delete(r_dict):
-    log_dict = r_dict['initial_user_action']
+    # log_dict = r_dict['initial_user_action']
     try:
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method']
-        log_exception(log_dict, err_msg, activity_profile_delete.__name__)
-        update_log_status(log_dict, 400)
+        # log_exception(log_dict, err_msg, activity_profile_delete.__name__)
+        # update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method']
-        log_exception(log_dict, err_msg, activity_profile_delete.__name__)
-        update_log_status(log_dict, 400)
+        # log_exception(log_dict, err_msg, activity_profile_delete.__name__)
+        # update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     return r_dict
 

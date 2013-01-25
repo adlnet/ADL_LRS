@@ -16,7 +16,7 @@ class ActivityProfile():
     def log_activity_profile(self, msg, func_name, err=False):
         self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)
         if err:
-            logger.exception(msg=self.log_dict)
+            logger.error(msg=self.log_dict)
         else:
             logger.info(msg=self.log_dict)
 
