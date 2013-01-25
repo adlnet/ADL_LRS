@@ -41,12 +41,13 @@ class Statement():
         self.populate(self.params)
 
     def log_statement(self, msg, func_name, err=False):
-        self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)
-        
-        if err:
-            logger.error(msg=self.log_dict)
-        else:
-            logger.info(msg=self.log_dict)
+        if self.log_dict:
+            self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)
+            
+            if err:
+                logger.error(msg=self.log_dict)
+            else:
+                logger.info(msg=self.log_dict)
 
     #Make sure initial data being received is JSON
     def parse(self,data):
@@ -57,16 +58,14 @@ class Statement():
                 params = ast.literal_eval(data)
             except Exception, e:
                 err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
-                # if self.log_dict:
-                #     self.log_statement(err_msg, self.parse.__name__, True)
+                self.log_statement(err_msg, self.parse.__name__, True)
                 raise exceptions.ParamError(err_msg) 
         return params
 
     def voidStatement(self,stmt_id):
         str_id = str(stmt_id)
-        if self.log_dict:
-            self.log_statement("Voiding Statement with ID %s" % str_id,
-                self.voidStatement.__name__)        
+        self.log_statement("Voiding Statement with ID %s" % str_id,
+            self.voidStatement.__name__)        
         
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
@@ -74,8 +73,7 @@ class Statement():
             stmt = models.statement.objects.get(statement_id=stmt_id)
         except Exception:
             err_msg = "Statement with ID %s does not exist" % str(stmt_id)
-            if self.log_dict:
-                self.log_statement(err_msg, self.voidStatement.__name__, True)
+            self.log_statement(err_msg, self.voidStatement.__name__, True)
             raise exceptions.IDNotFoundError(err_msg)
         
         # Check if it is already voided 
@@ -89,8 +87,7 @@ class Statement():
             return stmt_ref
         else:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % str_id
-            if self.log_dict:
-                self.log_statement(err_msg, self.voidStatement.__name__, True)
+            self.log_statement(err_msg, self.voidStatement.__name__, True)
             raise exceptions.Forbidden(err_msg)
 
     def validateVerbResult(self,result, verb, obj_data):
@@ -101,29 +98,25 @@ class Statement():
             if result['completion'] == False:                
                 if verb in completedVerbs:
                     err_msg = "Completion must be True if using the verb %s" % verb
-                    if self.log_dict:
-                        self.log_statement(err_msg, self.validateVerbResult.__name__, True)
+                    self.log_statement(err_msg, self.validateVerbResult.__name__, True)
                     #Throw exceptions b/c those verbs must have true completion
                     raise exceptions.ParamError(err_msg)
 
         if verb == 'mastered' and result['success'] == False:
             err_msg = "Result success must be True if verb is %s" % verb
-            if self.log_dict:
-                self.log_statement(err_msg, self.validateVerbResult.__name__, True)
+            self.log_statement(err_msg, self.validateVerbResult.__name__, True)
             #Throw exception b/c mastered and success contradict each other or completion is false
             raise exceptions.ParamError(err_msg)
 
         if verb == 'passed' and result['success'] == False:
             err_msg = "Result success must be True if verb is %s" % verb
-            if self.log_dict:
-                self.log_statement(err_msg, self.validateVerbResult.__name__, True)            
+            self.log_statement(err_msg, self.validateVerbResult.__name__, True)            
             #Throw exception b/c passed and success contradict each other or completion is false
             raise exceptions.ParamError(err_msg)
 
         if verb == 'failed' and result['success'] == True:
             err_msg = "Result success must be False if verb is %s" % verb
-            if self.log_dict:
-                self.log_statement(err_msg, self.validateVerbResult.__name__, True)
+            self.log_statement(err_msg, self.validateVerbResult.__name__, True)
             #Throw exception b/c failed and success contradict each other or completion is false
             raise exceptions.ParamError(err_msg)
 
@@ -140,8 +133,7 @@ class Statement():
     def saveScoreToDB(self, score):
         sc = models.score(**score)
         sc.save()
-        if self.log_dict:        
-            self.log_statement("Score saved to database", self.saveScoreToDB.__name__)
+        self.log_statement("Score saved to database", self.saveScoreToDB.__name__)
         return sc
 
     def saveResultToDB(self, result, resultExts):
@@ -158,8 +150,7 @@ class Statement():
             for k, v in resultExts.items():
                 resExt = models.extensions(key=k, value=v, content_object=rslt)
                 resExt.save()
-        if self.log_dict:        
-            self.log_statement("Result saved to database", self.saveResultToDB.__name__)
+        self.log_statement("Result saved to database", self.saveResultToDB.__name__)
         return rslt
 
     def saveContextToDB(self, context, contextExts):
@@ -197,8 +188,7 @@ class Statement():
                 conExt = models.extensions(key=k, value=v, content_object=cntx)
                 conExt.save()
 
-        if self.log_dict:        
-            self.log_statement("Context saved to database", self.saveContextToDB.__name__)
+        self.log_statement("Context saved to database", self.saveContextToDB.__name__)
 
         return cntx        
 
@@ -217,14 +207,12 @@ class Statement():
             stmt = models.statement(**args)
             stmt.save()
 
-        if self.log_dict:
-            self.log_statement("Statement saved to database", self.saveObjectToDB.__name__)
-            # self.log_dict['message'] = stmt.object_return()
+        self.log_statement("Statement saved to database", self.saveObjectToDB.__name__)
+        # self.log_statement(stmt.object_return(), self.saveObjectToDB.__name__)
         return stmt
 
     def populateResult(self, stmt_data, verb):
-        if self.log_dict:
-            self.log_statement("Populating result", self.populateResult.__name__)
+        self.log_statement("Populating result", self.populateResult.__name__)
 
         resultExts = {}
                     
@@ -252,8 +240,7 @@ class Statement():
         platform = True
         contextExts = {}
 
-        if self.log_dict:
-            self.log_statement("Populating context", self.populateContext.__name__)
+        self.log_statement("Populating context", self.populateContext.__name__)
 
         # Assign UUID if there is no registration for context
         if 'registration' not in stmt_data['context']:
@@ -307,15 +294,13 @@ class Statement():
         return language_map
 
     def build_verb_object(self, incoming_verb):
-        if self.log_dict:
-            self.log_statement("Building verb object", self.build_verb_object.__name__)
+        self.log_statement("Building verb object", self.build_verb_object.__name__)
 
         verb = {}    
         # Must have an ID
         if 'id' not in incoming_verb:
             err_msg = "ID field is not included in statement verb"
-            if self.log_dict:
-                self.log_statement(err_msg, self.build_verb_object.__name__, True)        
+            self.log_statement(err_msg, self.build_verb_object.__name__, True)        
             raise exceptions.ParamError(err_msg)
 
         # Get or create the verb
@@ -341,8 +326,7 @@ class Statement():
                         models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
                 else:
                     err_msg = "Verb display for verb %s is not a correct language map" % incoming_verb['id']
-                    if self.log_dict:
-                        self.log_statement(err_msg, self.build_verb_object.__name__, True)        
+                    self.log_statement(err_msg, self.build_verb_object.__name__, True)        
                     raise exceptions.ParamError(err_msg)
             verb_object.save()
 
@@ -350,8 +334,7 @@ class Statement():
 
     #Once JSON is verified, populate the statement object
     def populate(self, stmt_data):
-        if self.log_dict:
-            self.log_statement("Populating Statement", self.populate.__name__)
+        self.log_statement("Populating Statement", self.populate.__name__)
 
         args ={}
         # Must include verb - set statement verb 
@@ -359,8 +342,7 @@ class Statement():
             raw_verb = stmt_data['verb']
         except KeyError:
             err_msg = "No verb provided, must provide 'verb' field"
-            if self.log_dict:
-                self.log_statement(err_msg, self.populate.__name__, True)        
+            self.log_statement(err_msg, self.populate.__name__, True)        
             raise exceptions.ParamError(err_msg)
 
         # Must include object - set statement object
@@ -368,8 +350,7 @@ class Statement():
             statementObjectData = stmt_data['object']
         except KeyError:
             err_msg = "No object provided, must provide 'object' field"
-            if self.log_dict:
-                self.log_statement(err_msg, self.populate.__name__, True)        
+            self.log_statement(err_msg, self.populate.__name__, True)        
             raise exceptions.ParamError(err_msg)
         
         # Must include actor - set statement actor
@@ -377,8 +358,7 @@ class Statement():
             raw_actor = stmt_data['actor']
         except KeyError:
             err_msg = "No actor provided, must provide 'actor' field"
-            if self.log_dict:
-                self.log_statement(err_msg, self.populate.__name__, True)        
+            self.log_statement(err_msg, self.populate.__name__, True)        
             raise exceptions.ParamError(err_msg)
 
         args['verb'] = self.build_verb_object(raw_verb)
@@ -387,8 +367,7 @@ class Statement():
         if 'voided' in stmt_data:
             if stmt_data['voided']:
                 err_msg = "Cannot have voided statement unless it is being voided by another statement"
-                if self.log_dict:
-                    self.log_statement(err_msg, self.populate.__name__, True)        
+                self.log_statement(err_msg, self.populate.__name__, True)        
                 raise exceptions.Forbidden(err_msg)
         
         # If not specified, the object is assumed to be an activity
@@ -404,8 +383,7 @@ class Statement():
                 args['stmt_object'] = stmt_ref
             else:
                 err_msg = "There was a problem voiding the Statement"
-                if self.log_dict:
-                    self.log_statement(err_msg, self.populate.__name__, True)        
+                self.log_statement(err_msg, self.populate.__name__, True)        
                 raise exceptions.ParamError(err_msg)
         else:
             # Check objectType, get object based on type
@@ -423,8 +401,7 @@ class Statement():
                     existing_stmt = models.statement.objects.get(statement_id=statementObjectData['id'])
                 except models.statement.DoesNotExist:
                     err_msg = "No statement with ID %s was found" % statementObjectData['id']
-                    if self.log_dict:
-                        self.log_statement(err_msg, self.populate.__name__, True)
+                    self.log_statement(err_msg, self.populate.__name__, True)
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
                     stmt_ref = models.StatementRef(ref_id=statementObjectData['id'])
@@ -464,8 +441,7 @@ class Statement():
                 args['statement_id'] = stmt_data['statement_id']
             else:
                 err_msg = "The Statement ID %s already exists in the system" % stmt_data['statement_id']
-                if self.log_dict:
-                    self.log_statement(err_msg, self.populate.__name__, True)                   
+                self.log_statement(err_msg, self.populate.__name__, True)                   
                 raise exceptions.ParamConflict(err_msg)
         else:
             #Create uuid for ID
