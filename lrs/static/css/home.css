@@ -25,15 +25,15 @@ h1
 {
   /*position: absolute;*/
   width: 100%;
-  height: 100px;
+  height: 60px;
   margin-top: 0px;
   margin-bottom: 0px;
   color: #A0A0A0;
   text-align: center;
   text-shadow: 0px 1px 5px #000;
-  font-size: 60px;
+  font-size: 50px;
   font-weight: 900;
-  padding-top: 25px;
+  padding-top: 9px;
   /*background-color: #D1D1E0;*/
   /* Safari 4-5, Chrome 1-9 */
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#1a82f7), to(#2F2727));
@@ -104,4 +104,98 @@ div
   padding-top: 10px;
   padding-right: 10px;
   padding-bottom: 10px;
+}
+
+.heading
+{
+  font-weight: bolder;
+  font-size: 1.1em;
+}
+
+.field
+{
+  font-weight: bold;
+}
+
+#menu
+{
+  height: 25px;
+  width: 100%;
+  background-color: #2F2727;
+  padding: 0;
+  margin: 0;
+  color: #A0A0A0;
+}
+
+#menu ul.left
+{
+  float: left;
+}
+
+#menu ul.right
+{
+  float: right;
+}
+
+#menu ul,
+#menu ul li
+{
+  list-style-type: none;
+  display: inline-block;
+  margin: 0;
+  padding: 2 5 0 5;
+}
+
+#menu ul li a:link,
+#menu ul li a:visited
+{
+  color: #A0A0A0;
+  text-decoration: none;
+}
+
+#menu ul li a:hover 
+{
+  color: #FFF;
+  text-decoration: none;
+  border-top: 3px solid #1a82f7;
+}
+
+#clientapps
+{
+  font-size: .75em;
+  width: 50%;
+  margin-bottom: 1em;
+}
+
+#clientapps ul
+{
+  display: inline-block;
+  padding-left: 5%;
+  margin-bottom: 0;
+}
+
+#clientapps ul li
+{
+  margin-bottom: 3%;
+}
+
+#clientapps ul li.left 
+{
+  float: left;
+  margin-right: 10%;
+}
+
+#clientapps ul li.right
+{
+  float: right;
+}
+
+#clientapps ul ul
+{
+  list-style-type: none;
+}
+
+#recentactivity
+{
+  font-size: .75em;
 }

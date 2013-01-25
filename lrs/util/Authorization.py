@@ -56,10 +56,10 @@ def http_auth_helper(request):
                     # the user object of this request.
                     request['auth'] = user
                 else:
-                    raise Unauthorized("Unauthorized here")
+                    raise Unauthorized("User is not authenticated: %s --- %s" % (uname,passwd))
     else:
         # The username/password combo was incorrect, or not provided.
-        raise Unauthorized("Unauthorized here")
+        raise Unauthorized("Authorization header missing")
 
 def oauth_helper(request):
     # Verifies the oauth request

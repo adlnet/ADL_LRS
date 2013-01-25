@@ -56,7 +56,7 @@ class AgentProfileTests(TestCase):
         a = '{"mbox":["mailto:notfound@example.com"]}'
         p = 'http://agent.not.found'
         param = {"profileId": p, "agent": a}
-        r = self.client.get(reverse(views.agent_profile), param, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), param, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 404)
 
     def test_put(self):
@@ -80,7 +80,7 @@ class AgentProfileTests(TestCase):
         self.assertEqual(response.status_code, 409)
         self.assertIn('If-Match and If-None-Match headers were missing', response.content)
         
-        r = self.client.get(reverse(views.agent_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), self.testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
 
@@ -92,7 +92,7 @@ class AgentProfileTests(TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.content, '')
 
-        r = self.client.get(reverse(views.agent_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), self.testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
@@ -104,7 +104,7 @@ class AgentProfileTests(TestCase):
         self.assertEqual(response.status_code, 412)
         self.assertIn('No resources matched', response.content)
 
-        r = self.client.get(reverse(views.agent_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), self.testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
 
@@ -117,7 +117,7 @@ class AgentProfileTests(TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.content, '')
 
-        r = self.client.get(reverse(views.agent_profile), params, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
@@ -131,49 +131,49 @@ class AgentProfileTests(TestCase):
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
 
-        r = self.client.get(reverse(views.agent_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), self.testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
 
     def test_get(self):
-        r = self.client.get(reverse(views.agent_profile), self.testparams1, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), self.testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         prof1_str = '%s' % self.testprofile1
         self.assertEqual(r.content, prof1_str)
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(prof1_str).hexdigest())
 
-        r2 = self.client.get(reverse(views.agent_profile), self.testparams2, X_Experience_API_Version="0.95")
+        r2 = self.client.get(reverse(views.agent_profile), self.testparams2, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r2.status_code, 200)
         prof2_str = '%s' % self.testprofile2
         self.assertEqual(r2.content, prof2_str)
         self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(prof2_str).hexdigest())
         
-        r3 = self.client.get(reverse(views.agent_profile), self.testparams3, X_Experience_API_Version="0.95")
+        r3 = self.client.get(reverse(views.agent_profile), self.testparams3, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r3.status_code, 200)
         prof3_str = '%s' % self.testprofile3
         self.assertEqual(r3.content, prof3_str)
         self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(prof3_str).hexdigest())
 
-        r4 = self.client.get(reverse(views.agent_profile), self.testparams4, X_Experience_API_Version="0.95")
+        r4 = self.client.get(reverse(views.agent_profile), self.testparams4, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r4.status_code, 200)
         prof4_str = '%s' % self.otherprofile1
         self.assertEqual(r4.content, prof4_str)
         self.assertEqual(r4['etag'], '"%s"' % hashlib.sha1(prof4_str).hexdigest())
 
     def test_get_no_params(self):
-        r = self.client.get(reverse(views.agent_profile), X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 400)
         self.assertIn('agent parameter missing', r.content)
     
     def test_get_no_agent(self):
         params = {"profileId": self.testprofileId1}
-        r = self.client.get(reverse(views.agent_profile), params, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 400)
         self.assertIn('agent parameter missing', r.content)
 
     def test_get_no_profileId(self):
         params = {"agent": self.testagent}
-        r = self.client.get(reverse(views.agent_profile), params, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
     
     def test_delete(self):
@@ -183,14 +183,14 @@ class AgentProfileTests(TestCase):
         profile = {"test":"delete profile","obj":{"agent":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
         
-        r = self.client.get(reverse(views.agent_profile), params, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
         r = self.client.delete(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 204)
 
-        r = self.client.get(reverse(views.agent_profile), params, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 404)
 
     def test_get_agent_since(self):
@@ -202,13 +202,13 @@ class AgentProfileTests(TestCase):
         profile = {"test":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="0.95")
 
-        r = self.client.get(reverse(views.agent_profile), params, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % profile)
 
         since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
         params2 = {"agent": self.testagent, "since":since.isoformat()}
-        r2 = self.client.get(reverse(views.agent_profile), params2, X_Experience_API_Version="0.95")
+        r2 = self.client.get(reverse(views.agent_profile), params2, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertNotIn(prof_id, r2.content)
 
         self.client.delete(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
@@ -222,7 +222,7 @@ class AgentProfileTests(TestCase):
         params['Content-Type'] = "application/json"
         response = self.client.post(path, params, content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="0.95")
         # pdb.set_trace()
-        r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % params['content'])
 
@@ -232,7 +232,7 @@ class AgentProfileTests(TestCase):
         r = self.client.post(path, dparams,content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 204)
 
-        r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, X_Experience_API_Version="0.95")
+        r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(r.status_code, 404)
 
     def test_group_as_agent(self):
@@ -250,7 +250,7 @@ class AgentProfileTests(TestCase):
 
         self.assertEqual(put1.status_code, 204)
 
-        getr = self.client.get(reverse(views.agent_profile), testparams1, X_Experience_API_Version="0.95")
+        getr = self.client.get(reverse(views.agent_profile), testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(getr.status_code, 200)
         self.assertEqual(getr.content, '%s' % testprofile)
 

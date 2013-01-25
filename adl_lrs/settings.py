@@ -85,6 +85,8 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+LOGIN_REDIRECT_URL = '/XAPI/me'
+
 HTTP_AUTH_ENABLED = True
 OAUTH_ENABLED = True
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
@@ -131,7 +133,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    #'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'lrs.util.AllowOriginMiddleware.AllowOriginMiddleware',
