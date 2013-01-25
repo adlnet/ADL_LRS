@@ -30,33 +30,29 @@ class Agent():
             obj = agent
         if create:
             self.agent, created = obj.objects.gen(**params)
-            if created and self.log_dict:
+            if created:
                 self.log_actor("Created Actor in database", self.__init__.__name__)
-            elif not created and self.log_dict:
+            elif not created:
                 self.log_actor("Retrieved Actor from database", self.__init__.__name__)
         else:
             try:
                 if 'member' in params:
                     params.pop('member', None)
                 self.agent = obj.objects.get(**params)
-                if self.log_dict:
-                    self.log_actor("Retrieved Actor from database", self.__init__.__name__)
+                self.log_actor("Retrieved Actor from database", self.__init__.__name__)
 
             except:
                 err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
-                if self.log_dict:
-                    self.log_actor(err_msg, self.__init__.__name__, True)
+                self.log_actor(err_msg, self.__init__.__name__, True)
                 raise IDNotFoundError(err_msg) 
 
-
-
     def log_actor(self, msg, func_name, err=False):
-        self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)
-        
-        if err:
-            logger.error(msg=self.log_dict)
-        else:
-            logger.info(msg=self.log_dict)
+        if self.log_dict:
+            self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)        
+            if err:
+                logger.error(msg=self.log_dict)
+            else:
+                logger.info(msg=self.log_dict)
         
     def put_profile(self, request_dict):
         try:
@@ -87,8 +83,7 @@ class Agent():
             return self.agent.agent_profile_set.get(profileId=profileId)
         except:
             err_msg = 'There is no profile associated with the id: %s' % profileId
-            if self.log_dict:
-                self.log_actor(err_msg, self.get_profile.__name__, True)            
+            self.log_actor(err_msg, self.get_profile.__name__, True)            
             raise IDNotFoundError(err_msg)
 
     def get_profile_ids(self, since=None):
@@ -102,8 +97,7 @@ class Agent():
                 profs = self.agent.agent_profile_set.filter(update__gte=since_dt)
             except:
                 err_msg = 'There are no profiles associated with the id: %s' % profileId
-                if self.log_dict:
-                    self.log_actor(err_msg, self.get_profile_ids.__name__, True)            
+                self.log_actor(err_msg, self.get_profile_ids.__name__, True)            
                 raise IDNotFoundError(err_msg) 
 
             ids = [p.profileId for p in profs]
