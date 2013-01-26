@@ -19,6 +19,7 @@ urlpatterns = patterns('lrs.views',
     url(r'^OAuth/', include('oauth_provider.urls')),
     # just urls for some user interface... not part of xapi
     url(r'^me/statements/', 'my_statements'),
+    url(r'^me/log/(?P<log_id>\d+)$', 'my_log'),
     url(r'^me/', 'me'),
 )
 urlpatterns += patterns('',

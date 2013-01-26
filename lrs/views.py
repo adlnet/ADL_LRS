@@ -229,8 +229,21 @@ def my_statements(request):
             reduce(operator.or_, (Q(authority__agent_account__name=x) for x in ids)) ))
         return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
     except Exception as e:
-        print e
         return HttpResponse(e, status=400)
+
+@login_required(login_url="/XAPI/accounts/login")
+def my_log(request, log_id):
+    try:
+        user_type = ContentType.objects.get_for_model(request.user)
+        pa = models.SystemAction.objects.get(pk=log_id, content_type__pk=user_type.id)
+        obj = pa.object_return()
+        kids = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')
+        if kids:
+            obj['actions'] = [k.object_return() for k in kids]
+        return HttpResponse(json.dumps(obj), mimetype="application/json", status=200)
+    except Exception as e:
+        return HttpResponse(e, status=400)
+
 
 def logout_view(request):
     logout(request)

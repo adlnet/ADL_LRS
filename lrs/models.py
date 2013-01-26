@@ -191,6 +191,29 @@ class SystemAction(models.Model):
             days = 0
         return days
 
+    def get_color(self):
+        color = 'black'
+        try:
+            code = int(self.status_code)
+            if code >= 200 and code < 300:
+                color = 'green'
+            elif code >=300 and code < 400:
+                color = 'darkorange'
+            else:
+                color = 'darkred'
+        except:
+            pass
+        return color
+
+    def object_return(self):
+        ret = {}
+        ret['message_type'] = self.get_level_display()
+        if not self.parent_action:
+            ret['statuscode'] = self.status_code
+        ret['message'] = self.message
+        ret['timestamp'] = str(self.timestamp)
+        return ret
+
 
 class LanguageMap(models.Model):
     key = models.CharField(max_length=200, db_index=True)

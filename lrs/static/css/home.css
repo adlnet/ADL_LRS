@@ -201,6 +201,28 @@ div
   font-size: .75em;
 }
 
+#recentactivity .request
+{
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+#recentactivity ul,
+#recentactivity ul ul
+{
+  display: inline-block;
+  padding-left: 5%;
+  margin-bottom: 0;
+  list-style-type: none;
+}
+
+#recentactivity ul ul li.left, 
+{
+  float: left;
+  margin-right: 10%;
+  display: inline;
+}
+
 /* for json syntax highlighting */
 pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
 .string { color: green; }
