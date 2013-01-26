@@ -6,11 +6,15 @@ from lrs.util import etag
 from django.core.files.base import ContentFile
 from django.db import transaction
 import pdb
+import logging
+
+logger = logging.getLogger('user_system_actions')
 
 class Agent():
     @transaction.commit_on_success
-    def __init__(self, initial=None, create=False):
+    def __init__(self, initial=None, create=False, log_dict=None):
         self.initial = initial
+        self.log_dict = log_dict
         params = self.initial
         if isinstance(params, dict):
             self.initial = json.dumps(self.initial)
@@ -26,13 +30,29 @@ class Agent():
             obj = agent
         if create:
             self.agent, created = obj.objects.gen(**params)
+            if created:
+                self.log_actor("Created Actor in database", self.__init__.__name__)
+            elif not created:
+                self.log_actor("Retrieved Actor from database", self.__init__.__name__)
         else:
             try:
                 if 'member' in params:
                     params.pop('member', None)
                 self.agent = obj.objects.get(**params)
+                self.log_actor("Retrieved Actor from database", self.__init__.__name__)
+
             except:
-                raise IDNotFoundError("Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial) 
+                err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
+                self.log_actor(err_msg, self.__init__.__name__, True)
+                raise IDNotFoundError(err_msg) 
+
+    def log_actor(self, msg, func_name, err=False):
+        if self.log_dict:
+            self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)        
+            if err:
+                logger.error(msg=self.log_dict)
+            else:
+                logger.info(msg=self.log_dict)
         
     def put_profile(self, request_dict):
         try:
@@ -62,7 +82,9 @@ class Agent():
         try:
             return self.agent.agent_profile_set.get(profileId=profileId)
         except:
-            raise IDNotFoundError('There is no profile associated with the id: %s' % profileId)
+            err_msg = 'There is no profile associated with the id: %s' % profileId
+            self.log_actor(err_msg, self.get_profile.__name__, True)            
+            raise IDNotFoundError(err_msg)
 
     def get_profile_ids(self, since=None):
         ids = []
@@ -74,7 +96,9 @@ class Agent():
                 since_dt = datetime.datetime.fromtimestamp(since_i)
                 profs = self.agent.agent_profile_set.filter(update__gte=since_dt)
             except:
-                raise IDNotFoundError('There are no profiles associated with the id: %s' % profileId)                
+                err_msg = 'There are no profiles associated with the id: %s' % profileId
+                self.log_actor(err_msg, self.get_profile_ids.__name__, True)            
+                raise IDNotFoundError(err_msg) 
 
             ids = [p.profileId for p in profs]
         else:

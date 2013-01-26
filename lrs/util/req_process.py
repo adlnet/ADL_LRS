@@ -11,9 +11,13 @@ import pdb
 
 logger = logging.getLogger('user_system_actions')
 
-def log_processing(log_dict, method, func_name):
+def log_info_processing(log_dict, method, func_name):
     log_dict['message'] = 'Processing %s data in %s' % (method, func_name)
     logger.info(msg=log_dict)
+
+def log_exception(log_dict, err_msg, func_name):
+    log_dict['message'] = err_msg + " in %s" % func_name
+    logger.exception(msg=log_dict)
 
 def update_parent_log_status(log_dict, status):
     parent_action = models.SystemAction.objects.get(id=log_dict['parent_id'])
@@ -23,8 +27,8 @@ def update_parent_log_status(log_dict, status):
 def statements_post(req_dict):
     stmt_responses = []
 
-    log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'POST', __name__)
+    log_dict = req_dict['initial_user_action'] 
+    log_info_processing(log_dict, 'POST', __name__)
 
     # Handle batch POST
     if type(req_dict['body']) is list:
@@ -38,8 +42,7 @@ def statements_post(req_dict):
                     models.statement.objects.get(statement_id=stmt_id).delete()
                 except models.statement.DoesNotExist:
                     pass # stmt already deleted 
-            log_dict['message'] = e.message
-            logger.info(msg=log_dict)
+            log_exception(log_dict, e.message, statements_post.__name__)
             raise e
     else:
         # Handle single POST
@@ -52,7 +55,7 @@ def statements_post(req_dict):
 
 def statements_put(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'PUT', __name__)
+    log_info_processing(log_dict, 'PUT', __name__)
     
     # Set statement ID in body so all data is together
     req_dict['body']['statement_id'] = req_dict['statementId']
@@ -63,7 +66,7 @@ def statements_put(req_dict):
      
 def statements_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, 'GET', __name__)
 
     stmt_result = {}
     # If statementId is in req_dict then it is a single get
@@ -74,8 +77,8 @@ def statements_get(req_dict):
             st = models.statement.objects.get(statement_id=statementId)
         except models.statement.DoesNotExist:
             err_msg = 'There is no statement associated with the id: %s' % statementId
-            log_dict['message'] = err_msg
-            logger.info(msg=log_dict)
+            log_exception(log_dict, err_msg, statements_get.__name__)
+            update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
         stmt_result = st.object_return()
     else:
@@ -87,7 +90,7 @@ def statements_get(req_dict):
 
 def activity_state_put(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'PUT', __name__)
+    log_info_processing(log_dict, 'PUT', __name__)
 
     # test ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
@@ -98,7 +101,7 @@ def activity_state_put(req_dict):
 
 def activity_state_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, 'GET', __name__)
 
     # add ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict)
@@ -114,7 +117,7 @@ def activity_state_get(req_dict):
 
 def activity_state_delete(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'DELETE', __name__)
+    log_info_processing(log_dict, 'DELETE', __name__)
 
     actstate = ActivityState.ActivityState(req_dict)
     # Delete state
@@ -125,7 +128,7 @@ def activity_state_delete(req_dict):
 
 def activity_profile_put(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'PUT', __name__)
+    log_info_processing(log_dict, 'PUT', __name__)
 
     #Instantiate ActivityProfile
     ap = ActivityProfile.ActivityProfile()
@@ -137,7 +140,7 @@ def activity_profile_put(req_dict):
 
 def activity_profile_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, 'GET', __name__)
 
     #TODO:need eTag for returning list of IDs?
     # Instantiate ActivityProfile
@@ -164,7 +167,7 @@ def activity_profile_get(req_dict):
 
 def activity_profile_delete(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'DELETE', __name__)
+    log_info_processing(log_dict, 'DELETE', __name__)
 
     #Instantiate activity profile
     ap = ActivityProfile.ActivityProfile()
@@ -176,13 +179,17 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, 'GET', __name__)
 
     activityId = req_dict['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
     act_list = models.activity.objects.filter(activity_id=activityId)
     if not act_list:
-        raise exceptions.IDNotFoundError("No activities found with ID %s" % activityId)
+        err_msg = "No activities found with ID %s" % activityId
+        log_exception(log_dict, err_msg, activities_get.__name__)
+        update_parent_log_status(log_dict, 404)
+        raise exceptions.IDNotFoundError(err_msg)
+    
     full_act_list = []
     for act in act_list:
         full_act_list.append(act.object_return())
@@ -192,7 +199,7 @@ def activities_get(req_dict):
 
 def agent_profile_put(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'PUT', __name__)
+    log_info_processing(log_dict, 'PUT', __name__)
 
     # test ETag for concurrency
     agent = req_dict['agent']
@@ -204,7 +211,7 @@ def agent_profile_put(req_dict):
 
 def agent_profile_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, 'GET', __name__)
 
     # add ETag for concurrency
     agent = req_dict['agent']
@@ -224,7 +231,7 @@ def agent_profile_get(req_dict):
 
 def agent_profile_delete(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'DELETE', __name__)
+    log_info_processing(log_dict, 'DELETE', __name__)
 
     agent = req_dict['agent']
     a = Agent.Agent(agent)
@@ -236,7 +243,7 @@ def agent_profile_delete(req_dict):
 
 def agents_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, 'GET', __name__)
 
     agent = req_dict['agent']
     a = Agent.Agent(agent)
