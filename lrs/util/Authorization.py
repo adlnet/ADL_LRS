@@ -39,7 +39,7 @@ def auth(func):
             raise Unauthorized("Auth is enabled but no authentication was sent with the request.")
         # There is no lrs_auth request and no auth is enabled
         elif lrs_auth == 'none' and not (settings.HTTP_AUTH_ENABLED or settings.OAUTH_ENABLED):
-            pass
+            request['auth'] = None
         return func(request, *args, **kwargs)
     return inner
 
@@ -54,12 +54,12 @@ def http_auth_helper(request):
                 if user:
                     # If the user successfully logged in, then add/overwrite
                     # the user object of this request.
-                    request['user'] = user
+                    request['auth'] = user
                 else:
-                    raise Unauthorized("Unauthorized here")
+                    raise Unauthorized("User is not authenticated: %s --- %s" % (uname,passwd))
     else:
         # The username/password combo was incorrect, or not provided.
-        raise Unauthorized("Unauthorized here")
+        raise Unauthorized("Authorization header missing")
 
 def oauth_helper(request):
     # Verifies the oauth request
@@ -94,7 +94,7 @@ def oauth_helper(request):
                 oauth_group, created = models.group.objects.gen(**kwargs)
                 oauth_group.save()                
 
-                request['oauth_group_stmt_auth'] = oauth_group
+                request['auth'] = oauth_group
             else:
                 raise BadRequest("Only the 'all' scope is supported.")
     else:

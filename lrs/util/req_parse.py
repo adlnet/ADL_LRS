@@ -5,10 +5,15 @@ import ast
 import StringIO
 import pdb
 import pprint
+from django.core.urlresolvers import reverse
+import lrs.views
 
 def parse(request):
     r_dict = {}
+    
+    # Build headers from request in request dict
     r_dict = get_headers(request.META, r_dict)
+    
     # Traditional authorization should be passed in headers
     if 'Authorization' in r_dict:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
@@ -20,18 +25,11 @@ def parse(request):
             r_dict['lrs_auth'] = 'oauth'
         else:
             r_dict['lrs_auth'] = 'http'
-
-    # Authorization could be passed into body if cross origin request
-    if 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body: 
+    elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
+        # Authorization could be passed into body if cross origin request
         r_dict['lrs_auth'] = 'http'
-
-    # If it is not set then there is no auth being set
-    if 'lrs_auth' not in r_dict:
+    else:
         r_dict['lrs_auth'] = 'none'
-
-    # Only set the user if it is not oauth because oauth will user a group as it's auth
-    if r_dict['lrs_auth'] != 'oauth':
-        r_dict['user'] = request.user
 
     if request.method == 'POST' and 'method' in request.GET:
         bdy = ast.literal_eval(request.body)
@@ -42,6 +40,7 @@ def parse(request):
         r_dict = parse_body(r_dict, request)
 
     r_dict.update(request.GET.dict())
+
     if 'method' not in r_dict:
         r_dict['method'] = request.method
     return r_dict
@@ -55,15 +54,17 @@ def parse_body(r, request):
             r['files'] = files
         else:
             if request.body:
-                r['body'] = request.body    
-
-            if request.raw_post_data:
-                r['raw_post_data'] = request.raw_post_data    
-
+                # profile uses the request body
+                r['raw_body'] = request.body
+                try:
+                    r['body'] = json.loads(request.body)
+                except Exception, e:
+                    r['body'] = ast.literal_eval(request.body)
+            else:
+                raise Exception("No body in request")
     return r
 
 def get_headers(headers, r):
-    # pdb.set_trace()
     if 'HTTP_UPDATED' in headers:
         r['updated'] = headers['HTTP_UPDATED']
     else:

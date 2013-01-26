@@ -1,14 +1,18 @@
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.http import require_http_methods, require_GET
-from django.contrib.auth import authenticate, login
 from django.template import RequestContext
-from django.contrib.auth.models import User
-from django.shortcuts import render_to_response
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
+from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
+from oauth_provider.consts import ACCEPTED
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
+import operator
 import logging
 import json
 import urllib
@@ -160,7 +164,7 @@ def register(request):
         return Http404
 
 
-@require_http_methods(["GET","POST"])
+@login_required(login_url="/XAPI/accounts/login")
 def reg_client(request):
     # pdb.set_trace()
     if request.method == 'GET':
@@ -174,7 +178,7 @@ def reg_client(request):
             try:
                 client = models.Consumer.objects.get(name__exact=name)
             except models.Consumer.DoesNotExist:
-                client = models.Consumer(name=name, description=description)
+                client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED)
                 client.save()
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
@@ -196,10 +200,60 @@ def reg_success(request, user_id):
         d = {"info_message": "Thanks for registering %s" % user.username}
     return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
 
+@login_required(login_url="/XAPI/accounts/login")
+def me(request):
+    client_apps = models.Consumer.objects.filter(user=request.user)
+
+    action_list = []
+    #TODO: need to generate groups (user/clientapp) and get those actions, too
+    user_type = ContentType.objects.get_for_model(request.user)
+    parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).filter(
+        content_type__pk=user_type.id, object_id=request.user.id).order_by('-timestamp')
+
+    for pa in parent_action_list:
+        children = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')
+        action_tup = (pa, children)
+        action_list.append(action_tup)
+
+    return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps},
+        context_instance=RequestContext(request))
+
+@login_required(login_url="/XAPI/accounts/login")
+def my_statements(request):
+    try:
+        u_mail = request.user.email
+        ids = list(models.Consumer.objects.filter(user=request.user).values_list('key', flat=True))
+        stmt_id = request.GET["stmt_id"]
+        #get the statement with the stmt id only if it has an authority tied to this user
+        s = models.statement.objects.get(Q(statement_id=stmt_id), Q( Q(authority__mbox=u_mail) | 
+            reduce(operator.or_, (Q(authority__agent_account__name=x) for x in ids)) ))
+        return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
+    except Exception as e:
+        return HttpResponse(e, status=400)
+
+@login_required(login_url="/XAPI/accounts/login")
+def my_log(request, log_id):
+    try:
+        user_type = ContentType.objects.get_for_model(request.user)
+        pa = models.SystemAction.objects.get(pk=log_id, content_type__pk=user_type.id)
+        obj = pa.object_return()
+        kids = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')
+        if kids:
+            obj['actions'] = [k.object_return() for k in kids]
+        return HttpResponse(json.dumps(obj), mimetype="application/json", status=200)
+    except Exception as e:
+        return HttpResponse(e, status=400)
+
+
+def logout_view(request):
+    logout(request)
+    # Redirect to a success page.
+    return HttpResponseRedirect(reverse('lrs.views.home'))
+
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements_more(request, more_id):
-    statementResult = retrieve_statement.getStatementRequest(more_id) 
+    statementResult = retrieve_statement.get_statement_request(more_id) 
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
 
 @require_http_methods(["PUT","GET","POST"])

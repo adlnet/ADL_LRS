@@ -5,11 +5,15 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
+from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 from datetime import datetime
+import datetime as dt
 from django.utils.timezone import utc
 from lrs.exceptions import IDNotFoundError, ParamError
 import ast
+import pytz
 import json
+import logging
 import uuid
 import pdb
 import urllib
@@ -147,21 +151,68 @@ class Token(models.Model):
                 query, fragment))
         return self.callback
 
-def convertToUTC(timestr):
-    # Strip off TZ info
-    timestr = timestr[:timestr.rfind('+')]
-    
-    # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
-    date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
-    
-    # Localize TZ to UTC since everything is being stored in DB as UTC
-    date_object = pytz.timezone("UTC").localize(date_object)
-    return date_object
-
 import time
 def filename(instance, filename):
     print filename
     return filename
+
+class SystemAction(models.Model):
+    REQUEST = 1 #should fall in debug level, only works cuz we manually enter this in db
+    STMT_REF = 21 #using info level so that it's picked up by logger
+    LEVEL_TYPES = (
+        (REQUEST, 'REQUEST'),
+        (STMT_REF, 'The statement'),
+        (INFO, logging.getLevelName(INFO)), #20
+        (WARN, logging.getLevelName(WARN)), #30
+        (WARNING, logging.getLevelName(WARNING)), #30 
+        (ERROR, logging.getLevelName(ERROR)), #40
+        (CRITICAL, logging.getLevelName(CRITICAL)), #50
+        (DEBUG, logging.getLevelName(DEBUG)), #10
+        (FATAL, logging.getLevelName(FATAL)), #50
+        (NOTSET, logging.getLevelName(NOTSET)), #0
+    )
+    level = models.SmallIntegerField(choices=LEVEL_TYPES)
+    parent_action = models.ForeignKey('self', blank=True, null=True)
+    message = models.TextField()
+    timestamp = models.DateTimeField()
+    status_code = models.CharField(max_length=50, blank=True, null=True)
+    #Content_type is the user since it can be a User or group object
+    content_type = models.ForeignKey(ContentType, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+
+    def __unicode__(self):
+        return "[%s(%s)] %s -- by: %s" % (self.get_level_display(),self.level, self.message, self.content_object)
+
+    def days_til_del(self):
+        weeklater = self.timestamp + dt.timedelta(days=7)
+        days = (weeklater - datetime.utcnow().replace(tzinfo = pytz.utc)).days
+        if days <= 0:
+            days = 0
+        return days
+
+    def get_color(self):
+        color = 'black'
+        try:
+            code = int(self.status_code)
+            if code >= 200 and code < 300:
+                color = 'green'
+            elif code >=300 and code < 400:
+                color = 'darkorange'
+            else:
+                color = 'darkred'
+        except:
+            pass
+        return color
+
+    def object_return(self):
+        ret = {}
+        ret['message_type'] = self.get_level_display()
+        if not self.parent_action:
+            ret['statuscode'] = self.status_code
+        ret['message'] = self.message
+        ret['timestamp'] = str(self.timestamp)
+        return ret
 
 
 class LanguageMap(models.Model):
@@ -359,7 +410,7 @@ class agent(statement_object):
     openid = models.CharField(max_length=200, blank=True, null=True, db_index=True)
     objects = agentmgr()
 
-    def get_agent_json(self):
+    def get_agent_json(self, sparse=False):
         ret = {}
         # Default to agent, if group subclass calls it displays Group instead of Agent
         ret['objectType'] = self.objectType
@@ -369,10 +420,11 @@ class agent(statement_object):
             ret['mbox'] = self.mbox
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = self.mbox_sha1sum
-        if self.openid:
+        if self.openid and not sparse:
             ret['openid'] = self.openid
         try:
-            ret['account'] = self.agent_account.get_json()
+            if not sparse:
+                ret['account'] = self.agent_account.get_json()
         except:
             pass
         return ret
@@ -426,10 +478,10 @@ class group(agent):
         kwargs["objectType"] = "Group"
         super(group, self).__init__(*args, **kwargs)
 
-    def get_agent_json(self):
+    def get_agent_json(self, sparse=False):
         ret = {}
         ret['objectType'] = self.objectType
-        ret['member'] = [a.get_agent_json() for a in self.member.all()]
+        ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
         return ret
 
 
@@ -451,7 +503,7 @@ class activity(statement_object):
     objectType = models.CharField(max_length=200,blank=True, null=True, default="Activity") 
     authoritative = models.CharField(max_length=200, blank=True, null=True)
 
-    def object_return(self, lang=None):
+    def object_return(self, sparse=False, lang=None):
         ret = {}
         ret['id'] = self.activity_id
         ret['objectType'] = self.objectType
@@ -459,6 +511,13 @@ class activity(statement_object):
             ret['definition'] = self.activity_definition.object_return(lang)
         except activity_definition.DoesNotExist:
             pass
+
+        if sparse:
+            if 'definition' in ret:
+                if 'correctresponsespattern' in ret['definition']:
+                    del ret['definition']['correctresponsespattern']
+                    ret['definition']['definition'] = ret['definition']['description'].keys()
+                    ret['definition']['name'] = ret['definition']['name'].keys()
         return ret
 
     def __unicode__(self):
@@ -697,7 +756,7 @@ class context(models.Model):
     object_id = models.CharField(max_length=200)
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
-    def object_return(self):
+    def object_return(self, sparse=False):
         ret = {}
         linked_fields = ['instructor', 'team', 'cntx_statement', 'contextActivities']
         ignore = ['id', 'content_type', 'object_id', 'content_object']
@@ -708,7 +767,7 @@ class context(models.Model):
                     if not field.name in linked_fields:
                         ret[field.name] = value
                     elif field.name == 'instructor':
-                        ret[field.name] = self.instructor.get_agent_json()
+                        ret[field.name] = self.instructor.get_agent_json(sparse)
                     elif field.name == 'team':
                         ret[field.name] = self.team.get_agent_json()
                     elif field.name == 'cntx_statement':
@@ -765,10 +824,10 @@ class SubStatement(statement_object):
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = generic.GenericRelation(context)
     
-    def object_return(self, lang=None):
+    def object_return(self, sparse=False, lang=None):
         activity_object = True
         ret = {}
-        ret['actor'] = self.actor.get_agent_json()
+        ret['actor'] = self.actor.get_agent_json(sparse)
         ret['verb'] = self.verb.object_return()
 
         try:
@@ -780,15 +839,15 @@ class SubStatement(statement_object):
             except agent.DoesNotExist:
                 raise IDNotFoundError('No activity or agent object found with given ID')
         if activity_object:
-            ret['object'] = stmt_object.object_return(lang)  
+            ret['object'] = stmt_object.object_return(sparse, lang)  
         else:
-            ret['object'] = stmt_object.get_agent_json()
+            ret['object'] = stmt_object.get_agent_json(sparse)
 
         if len(self.result.all()) > 0:
             # if any, should only be 1
             ret['result'] = self.result.all()[0].object_return()
         if len(self.context.all()) > 0:
-            ret['context'] = self.context.all()[0].object_return()
+            ret['context'] = self.context.all()[0].object_return(sparse)
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
@@ -944,11 +1003,11 @@ class statement(models.Model):
     context = generic.GenericRelation(context)
     authoritative = models.BooleanField(default=True)
 
-    def object_return(self, lang=None):
+    def object_return(self, sparse=False, lang=None):
         object_type = 'activity'
         ret = {}
         ret['id'] = self.statement_id
-        ret['actor'] = self.actor.get_agent_json()
+        ret['actor'] = self.actor.get_agent_json(sparse)
         ret['verb'] = self.verb.object_return(lang)
 
         try:
@@ -969,22 +1028,22 @@ class statement(models.Model):
                         raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
 
         if object_type == 'activity' or object_type == 'substatement':
-            ret['object'] = stmt_object.object_return(lang)  
+            ret['object'] = stmt_object.object_return(sparse, lang)  
         elif object_type == 'statementref':
             ret['object'] = stmt_object.object_return()
         else:
-            ret['object'] = stmt_object.get_agent_json()
+            ret['object'] = stmt_object.get_agent_json(sparse)
         if len(self.result.all()) > 0:
             # should only ever be one.. used generic fk to handle sub stmt and stmt
             ret['result'] = self.result.all()[0].object_return()        
         if len(self.context.all()) > 0:
-            ret['context'] = self.context.all()[0].object_return()
+            ret['context'] = self.context.all()[0].object_return(sparse)
         
         ret['timestamp'] = str(self.timestamp)
         ret['stored'] = str(self.stored)
         
         if not self.authority is None:
-            ret['authority'] = self.authority.get_agent_json()
+            ret['authority'] = self.authority.get_agent_json(sparse)
         
         ret['voided'] = self.voided
         return ret

@@ -1,17 +1,10 @@
-<html>
-    <body>
-        <head>
-            <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
-        </head>
-        <div id="container">
-            <h1>ADL LRS Client Allow Access</h1>
-            <div class="content">
-                <p>
-                    The client is requesting permission to access all of the LRS endpoints. Please
-                    enter following ID in your device to be authenticated:
-                </p>
-                <p>{{ lrs_auth_id }}</p>
-            </div>
-        </div>
-    </body>
-</html>
+{% extends "base.html" %}
+{% block title %}ADL LRS Client Allow Access{% endblock title %}
+{% block heading %}ADL LRS Client Allow Access{% endblock heading %}
+{% block content %}
+<p>
+    The client is requesting permission to access all of the LRS endpoints. Please
+    enter following ID in your device to be authenticated:
+</p>
+<p>{{ lrs_auth_id }}</p>
+{% endblock content %}

@@ -20,6 +20,17 @@ DATABASES = {
     },
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+#         'NAME': 'lrs',                      # Or path to database file if using sqlite3.
+#         'USER': 'root',                      # Not used with sqlite3.
+#         'PASSWORD': 'password',                  # Not used with sqlite3.
+#         'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
+#         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+#     }
+# }
+
 # DATABASE_ROUTERS = ['lrs.routers.LRSRouter', 'oauth_provider.routers.OAuthRouter']
 # DATABASE_ROUTERS = ['lrs.routers.LRSRouter']
 # Local time zone for this installation. Choices can be found here:
@@ -74,6 +85,8 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+LOGIN_REDIRECT_URL = '/XAPI/me'
+
 HTTP_AUTH_ENABLED = True
 OAUTH_ENABLED = True
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
@@ -120,7 +133,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    #'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'lrs.util.AllowOriginMiddleware.AllowOriginMiddleware',
@@ -144,6 +157,7 @@ OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
 
 # OAUTH_REALM_KEY_NAME = 'http://photos.example.net'
+
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -170,16 +184,24 @@ INSTALLED_APPS = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
     'filters': {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse'
         }
     },
     'handlers': {
-        'default':{
+        'user_actions': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': 'logger.log'
+            'formatter': 'verbose',
+            'class': 'lrs.handlers.DBLogHandler'
         },
         'mail_admins': {
             'level': 'ERROR',
@@ -188,9 +210,9 @@ LOGGING = {
         }
     },
     'loggers': {
-        'django.request': {
-            'handlers': ['default'],
-            'level': 'DEBUG',
+        'user_system_actions': {
+            'handlers': ['user_actions'],
+            'level': 'INFO',
             'propagate': False,
         },
     }

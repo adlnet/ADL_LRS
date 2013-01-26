@@ -13,8 +13,9 @@ class AgentsTests(TestCase):
     def setUp(self):
         self.username = "tester"
         self.password = "test"
+        self.email = "test@example.com"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-        form = {'username':self.username,'password':self.password,'password2':self.password}
+        form = {'username':self.username,'password':self.password,'password2':self.password, 'email':self.email}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
     def test_get_no_agents(self):
