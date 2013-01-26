@@ -29,10 +29,10 @@
     <span class="heading">Recent Requests:</span>
     <ul>
         {% for action in action_list %}
-            <li><span style='color:{{ action.0.get_color }}'>{{ action.0.status_code }}</span> <span class="request">{{ action.0.message }}</span> [{{ action.0.timestamp }}]</li>
+            <li class="parentaction"><span style='color:{{ action.0.get_color }}'>{{ action.0.status_code }}</span> <span class="request">{{ action.0.message }}</span> [{{ action.0.timestamp }}]</li>
             <ul class="req_details">
-                <li>Submitted by: {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %}</li>
-                <li>deleted in {{ action.0.days_til_del }} days (<a href="{% url lrs.views.my_log log_id=action.0.id %}">download</a>)</li>
+                <li class="left">Submitted by: {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %}
+                <span class="attn">deleted in {{ action.0.days_til_del }} days (<a href="{% url lrs.views.my_log log_id=action.0.id %}">download</a>)</span></li>
             </ul>
             <ul class="req_actions">
                 {% for ch_action in action.1 %}
@@ -51,6 +51,9 @@ $(document).ready(function() {
     $(".stmt_link").click(function(){
         if(!$(this).parent().siblings('pre#stmts').length){
             getStmt($(this).text(), this);
+        }
+        else{
+            $(this).parent().siblings('pre#stmts').toggle();
         }
         return false;
     });

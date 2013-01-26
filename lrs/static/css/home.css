@@ -205,22 +205,37 @@ div
 {
   font-weight: bold;
   font-size: 1.1em;
+  line-height: 200%;
 }
 
-#recentactivity ul,
-#recentactivity ul ul
+#recentactivity ul
 {
-  display: inline-block;
-  padding-left: 5%;
-  margin-bottom: 0;
+  display: block;
   list-style-type: none;
+  line-height: 175%;
 }
 
-#recentactivity ul ul li.left, 
+#recentactivity ul li.parentaction
 {
-  float: left;
-  margin-right: 10%;
-  display: inline;
+  margin-top: 10px;
+}
+
+#recentactivity .req_details 
+{
+  margin-left: 3%;
+  padding-left: 0px;
+  padding-top: 0px;
+}
+
+#recentactivity .req_details li
+{
+  display: block;
+  white-space: nowrap;
+}
+
+.attn
+{
+  color: red;
 }
 
 /* for json syntax highlighting */
