@@ -20,7 +20,9 @@ import pprint
 
 class StatementsTests(TestCase):
     def setUp(self):
-        # pdb.set_trace()
+        if not settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = True
+
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
@@ -61,7 +63,7 @@ class StatementsTests(TestCase):
                 "display": {"en-US":"created"}}, "object": {"id":"activity"},
                 "actor":{"objectType":"Agent","mbox":"s@s.com"}}))            
         
-        self.exist_stmt_id = self.existStmt.statement.statement_id
+        self.exist_stmt_id = self.existStmt.model_object.statement_id
 
 
         self.existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
@@ -149,7 +151,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt1
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse1.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
 
@@ -158,7 +160,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt3
         self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse3.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
         
@@ -167,7 +169,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt4
         self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse4.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat())
@@ -177,7 +179,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt2
         self.putresponse2 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")       
         self.assertEqual(self.putresponse2.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
 
@@ -186,7 +188,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt5
         self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse5.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
         
 
@@ -195,7 +197,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt6
         self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse6.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
         
@@ -204,7 +206,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt7        
         self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse7.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
         
 
@@ -213,7 +215,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt8        
         self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse8.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
         
         param = {"statementId": self.guid9}
@@ -221,7 +223,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt9        
         self.putresponse9 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse9.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
 
         param = {"statementId": self.guid10}
@@ -229,7 +231,7 @@ class StatementsTests(TestCase):
         stmt_payload = self.existStmt10        
         self.putresponse10 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(self.putresponse10.status_code, 204)
-        time = retrieve_statement.convertToUTC(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
+        time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
 
@@ -240,7 +242,6 @@ class StatementsTests(TestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
-        # pdb.set_trace()
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_post"}})
@@ -252,6 +253,11 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, "test_post")
         agent = models.agent.objects.get(mbox="t@t.com")
         self.assertEqual(agent.name, "bob")
+        # actions = models.UserSystemAction.objects.all().count()
+        # pdb.set_trace()
+        # self.assertEqual(actions, 1)
+        # log_url = self.client.get(reverse(views.log))
+        # print(log_url.content)
 
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
@@ -415,20 +421,11 @@ class StatementsTests(TestCase):
         self.assertEqual(getResponse.status_code, 200)
         rsp = getResponse.content
         self.assertIn(self.guid1, rsp)
+        # actions = models.UserSystemAction.objects.all().count()
+        # self.assertEqual(actions, 22)
 
-
-    # def test_get_wrong_auth(self):
-    #     username = "tester2"
-    #     email = "test2@tester.com"
-    #     password = "test"
-    #     auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
-    #     form = {"username":username, "email":email,"password":password,"password2":password}
-    #     response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
-
-    #     param = {"statementId":self.guid1}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     getResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=auth)
-    #     self.assertEqual(getResponse.status_code, 403)
+        # log_url = self.client.get(reverse(views.log))
+        # print(log_url.content)
 
     def test_get_no_existing_ID(self):
         param = {"statementId":"aaaaaa"}
@@ -512,7 +509,7 @@ class StatementsTests(TestCase):
         # Test actor object
         self.bunchostmts()
         param = {"object":{"objectType": "Agent", "mbox":"nobody@example.com"}}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         actorObjectGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         
         self.assertEqual(actorObjectGetResponse.status_code, 200)

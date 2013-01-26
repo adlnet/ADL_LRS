@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{user.username}} Home{% endblock title %}
+{% block heading %}{{user.username}} Home{% endblock heading %}
+{% block content %}
+</br>
+<div id="clientapps">
+    <span class="heading">Client Apps:</span>
+    {% if client_apps %}
+        {% for app in client_apps %}
+        <ul>
+            <li class="left field">{{ app.name }}</li>
+            <li class="left"><span style="color:
+                {% if app.status == 1 %}goldenrod
+                {% elif app.status == 2 %}green
+                {% elif app.status == 3 %}darkred
+                {% elif app.status == 4 %}darkred
+                {% endif %}">{{ app.get_status_display }}</span></li>
+            <ul>
+                <li><span class="field">Key:</span> {{ app.key }}</li>
+                <li><span class="field">Secret:</span> {{ app.secret }}</li>
+            </ul>
+        </ul>
+        {% endfor %}
+    {% else %}
+    None
+    {% endif %}
+</div>
+<div id="recentactivity">
+    <span class="heading">Recent Requests:</span>
+    <ul>
+        {% for action in action_list %}
+            <li class="parentaction"><span style='color:{{ action.0.get_color }}'>{{ action.0.status_code }}</span> <span class="request">{{ action.0.message }}</span> [{{ action.0.timestamp|date:"r"}}]</li>
+            <ul class="req_details">
+                <li class="left">Submitted by: {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %}
+                <span class="lpad attn">deleted in {{ action.0.days_til_del }} days (<a href="{% url lrs.views.my_log log_id=action.0.id %}">download</a>)</span></li>
+            </ul>
+            <ul class="req_actions">
+                {% for ch_action in action.1 %}
+                    <li>{{ ch_action.get_level_display }} {% if ch_action.level == 21 %}<a href="#" class="stmt_link">{{ ch_action.message }}</a>{% else %}{{ ch_action.message }}{% endif %} [{{ ch_action.timestamp|date:"j M Y H:i:s" }}]</li>
+                {% endfor %}
+            </ul>
+        {% empty %}
+            <li>Sorry, no action yet!</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock content %}
+{% block extra_js %}
+<script type="text/javascript">
+$(document).ready(function() {
+    $(".stmt_link").click(function(){
+        if(!$(this).parent().siblings('pre#stmts').length){
+            getStmt($(this).text(), this);
+        }
+        else{
+            $(this).parent().siblings('pre#stmts').toggle();
+        }
+        return false;
+    });
+});
+function getStmt(stmtid,ele){
+    $.ajax({
+        url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,
+        type: "GET",
+        success: function (data){
+            $(ele).parent().after('<pre id="stmts"></pre>')
+            $(ele).parent().siblings('pre#stmts').append(syntaxHighlight(data));
+            $("span.expandable a").click(function(){
+                $(this).next("span.obj").toggle();
+                return false;
+            });
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError)
+        },
+        timeout : 15000
+    });
+}
+function syntaxHighlight(json) {
+    if (typeof json != 'string') {
+         json = JSON.stringify(json, undefined, 4);
+    }
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        var cls = 'number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'key';
+            } else {
+                cls = 'string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'boolean';
+        } else if (/null/.test(match)) {
+            cls = 'null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+    json = json.replace(/(\{|\[)/g, function(match){return '<span class="expandable"><a href="#">' + match +'</a><span class="obj">';});
+    return json.replace(/(\}|\])/g, function(match){return '</span>' + match + '</span>'});
+}
+</script>
+{% endblock extra_js %}

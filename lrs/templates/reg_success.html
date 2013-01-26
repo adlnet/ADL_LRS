@@ -1,28 +1,23 @@
-<html>
-	<head>
-		<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
-	</head>	
-	<body>
-		<div id="container">
-			<h1>Thanks</h1>	
-			<div class="content results">
-				{% if info_message %}
-					{{info_message|safe}}
-				{% endif %}
-				{% if name %}
-					<br/>Client Name: {{name}}
-				{% endif %}
-				{% if app_id %}
-					<br/>Client Identifier: {{app_id}}
-				{% endif %}
-				{% if secret %}
-					<br/>Client Shared-Secret: {{secret}}
-				{% endif %}
-			</div>
-			<br/>
-			<div>
-				<a href="{% url lrs.views.home %}">Home</a>
-			</div>
-		</div>
-	</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Registraton Success{% endblock title %}
+{% block heading %}Thanks{% endblock heading %}
+{% block content %} 
+<div class="content results">
+    {% if info_message %}
+        {{info_message|safe}}
+    {% endif %}
+    {% if name %}
+        <br/>Client Name: {{name}}
+    {% endif %}
+    {% if app_id %}
+        <br/>Client Identifier: {{app_id}}
+    {% endif %}
+    {% if secret %}
+        <br/>Client Shared-Secret: {{secret}}
+    {% endif %}
+</div>
+<br/>
+<div>
+    <a href="{% url lrs.views.home %}">Home</a>
+</div>
+{% endblock content %}

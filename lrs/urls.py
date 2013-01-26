@@ -15,10 +15,14 @@ urlpatterns = patterns('lrs.views',
     url(r'^tcexample4/$', 'tcexample4'),
     url(r'^register/$', 'register'),
     url(r'^regclient/$', 'reg_client'),
-    url(r'^regsuccess/(?P<user_id>\d+)$', 'reg_success'),
-    url(r'^accounts/profile/$', 'user_profile'),    
+    url(r'^regsuccess/(?P<user_id>\d+)$', 'reg_success'),    
     url(r'^OAuth/', include('oauth_provider.urls')),
+    # just urls for some user interface... not part of xapi
+    url(r'^me/statements/', 'my_statements'),
+    url(r'^me/log/(?P<log_id>\d+)$', 'my_log'),
+    url(r'^me/', 'me'),
 )
 urlpatterns += patterns('',
-  (r'^accounts/login/$', 'django.contrib.auth.views.login'),
+  url(r'^accounts/login/$', 'django.contrib.auth.views.login', name="login"),
+  url(r'^accounts/logout/$', 'lrs.views.logout_view', name="logout"),
 )
