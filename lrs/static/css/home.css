@@ -235,7 +235,12 @@ div
 
 .attn
 {
-  color: red;
+  color: firebrick;
+}
+
+.lpad
+{
+  margin-left: 5%;
 }
 
 /* for json syntax highlighting */
