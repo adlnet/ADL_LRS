@@ -190,8 +190,8 @@ class Statement():
         if self.log_dict:
             self.log_dict['message'] = "Saved statement to database in %s.%s" % (__name__, self.saveObjectToDB.__name__)
             logger.info(msg=self.log_dict)
-            self.log_dict['message'] = stmt.object_return()
-            logger.info(msg=self.log_dict)            
+            self.log_dict['message'] = stmt.statement_id #stmt.object_return()
+            logger.log(models.SystemAction.STMT_REF, msg=self.log_dict)            
         return stmt
 
     def populateResult(self, stmt_data, verb):

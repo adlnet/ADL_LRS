@@ -6,11 +6,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
 from oauth_provider.consts import ACCEPTED
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
+import operator
 import logging
 import json
 import urllib
@@ -215,6 +217,20 @@ def me(request):
 
     return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps},
         context_instance=RequestContext(request))
+
+@login_required(login_url="/XAPI/accounts/login")
+def my_statements(request):
+    try:
+        u_mail = request.user.email
+        ids = list(models.Consumer.objects.filter(user=request.user).values_list('key', flat=True))
+        stmt_id = request.GET["stmt_id"]
+        #get the statement with the stmt id only if it has an authority tied to this user
+        s = models.statement.objects.get(Q(statement_id=stmt_id), Q( Q(authority__mbox=u_mail) | 
+            reduce(operator.or_, (Q(authority__agent_account__name=x) for x in ids)) ))
+        return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
+    except Exception as e:
+        print e
+        return HttpResponse(e, status=400)
 
 def logout_view(request):
     logout(request)

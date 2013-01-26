@@ -33,7 +33,7 @@
             <li>{{ action.0.get_level_display }} {{ action.0.message }} [{{ action.0.timestamp }}] by {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %} {{ action.0.status_code }}</li>
             <ul>
                 {% for ch_action in action.1 %}
-                    <li>{{ ch_action.get_level_display }} {{ ch_action.message }} [{{ ch_action.timestamp }}]</li>
+                    <li>{{ ch_action.get_level_display }} {% if ch_action.level == 21 %}<a href="#" class="stmt_link">{{ ch_action.message }}</a>{% else %}{{ ch_action.message }}{% endif %} [{{ ch_action.timestamp }}]</li>
                 {% endfor %}
             </ul>
         {% empty %}
@@ -42,3 +42,56 @@
     </ul>
 </div>
 {% endblock content %}
+{% block extra_js %}
+<script type="text/javascript">
+$(document).ready(function() {
+    $(".stmt_link").click(function(){
+        if(!$(this).parent().siblings('pre#stmts').length){
+            getStmt($(this).text(), this);
+        }
+        return false;
+    });
+});
+function getStmt(stmtid,ele){
+    $.ajax({
+        url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,
+        type: "GET",
+        success: function (data){
+            $(ele).parent().after('<pre id="stmts"></pre>')
+            $(ele).parent().siblings('pre#stmts').append(syntaxHighlight(data));
+            $("span.expandable a").click(function(){
+                $(this).next("span.obj").toggle();
+                return false;
+            });
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError)
+        },
+        timeout : 15000
+    });
+}
+function syntaxHighlight(json) {
+    if (typeof json != 'string') {
+         json = JSON.stringify(json, undefined, 4);
+    }
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        var cls = 'number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'key';
+            } else {
+                cls = 'string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'boolean';
+        } else if (/null/.test(match)) {
+            cls = 'null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+    json = json.replace(/(\{|\[)/g, function(match){return '<span class="expandable"><a href="#">' + match +'</a><span class="obj">';});
+    return json.replace(/(\}|\])/g, function(match){return '</span>' + match + '</span>'});
+}
+</script>
+{% endblock extra_js %}

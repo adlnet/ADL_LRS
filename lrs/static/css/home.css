@@ -110,6 +110,7 @@ div
 {
   font-weight: bolder;
   font-size: 1.1em;
+  display: block;
 }
 
 .field
@@ -199,3 +200,12 @@ div
 {
   font-size: .75em;
 }
+
+/* for json syntax highlighting */
+pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.string { color: green; }
+.number { color: blue; }
+.boolean { color: red; }
+.null { color: red; }
+.key { color: black; }
+/* end json syntax highlighting */

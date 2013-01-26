@@ -157,9 +157,11 @@ def filename(instance, filename):
     return filename
 
 class SystemAction(models.Model):
-    REQUEST = 1 #should fall in debug level
+    REQUEST = 1 #should fall in debug level, only works cuz we manually enter this in db
+    STMT_REF = 21 #using info level so that it's picked up by logger
     LEVEL_TYPES = (
         (REQUEST, 'REQUEST'),
+        (STMT_REF, 'The statement'),
         (INFO, logging.getLevelName(INFO)), #20
         (WARN, logging.getLevelName(WARN)), #30
         (WARNING, logging.getLevelName(WARNING)), #30 
@@ -178,6 +180,9 @@ class SystemAction(models.Model):
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = generic.GenericForeignKey('content_type', 'object_id')
+
+    def __unicode__(self):
+        return "[%s(%s)] %s -- by: %s" % (self.get_level_display(),self.level, self.message, self.content_object)
 
     def days_til_del(self):
         weeklater = self.timestamp + dt.timedelta(days=7)
