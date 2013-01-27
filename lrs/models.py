@@ -366,7 +366,16 @@ class agentmgr(models.Manager):
                 ret_agent = acc.agent
                 created = False
             except agent_account.DoesNotExist:
-                ret_agent = self.model(**kwargs)
+                if group:
+                    try: 
+                        ret_agent = self.model.objects.get(**kwargs)
+                    except self.model.DoesNotExist:
+                        ret_agent = self.model(**kwargs)
+                else:
+                    try:
+                        ret_agent = agent.objects.get(**kwargs)
+                    except agent.DoesNotExist:
+                        ret_agent = agent(**kwargs)
                 ret_agent.save()
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
