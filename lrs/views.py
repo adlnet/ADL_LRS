@@ -225,8 +225,9 @@ def my_statements(request):
         ids = list(models.Consumer.objects.filter(user=request.user).values_list('key', flat=True))
         stmt_id = request.GET["stmt_id"]
         #get the statement with the stmt id only if it has an authority tied to this user
-        s = models.statement.objects.get(Q(statement_id=stmt_id), Q( Q(authority__mbox=u_mail) | 
-            reduce(operator.or_, (Q(authority__agent_account__name=x) for x in ids)) ))
+        # s = models.statement.objects.get(Q(statement_id=stmt_id), Q( Q(authority__mbox=u_mail) | 
+        #     reduce(operator.or_, (Q(authority__agent_account__name=x) for x in ids)) ))
+        s = models.statement.objects.get(Q(statement_id=stmt_id), Q(user=request.user))
         return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
     except Exception as e:
         return HttpResponse(e, status=400)

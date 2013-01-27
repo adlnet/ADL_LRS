@@ -823,6 +823,7 @@ class SubStatement(statement_object):
     result = generic.GenericRelation(result)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = generic.GenericRelation(context)
+    user = models.ForeignKey(User, null=True, blank=True)
     
     def object_return(self, sparse=False, lang=None):
         activity_object = True
@@ -1002,6 +1003,7 @@ class statement(models.Model):
     voided = models.NullBooleanField(blank=True, null=True)
     context = generic.GenericRelation(context)
     authoritative = models.BooleanField(default=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     def object_return(self, sparse=False, lang=None):
         object_type = 'activity'
