@@ -2,7 +2,7 @@ import json
 import datetime
 from lrs.models import agent, group, agent_profile
 from lrs.exceptions import IDNotFoundError
-from lrs.util import etag
+from lrs.util import etag, get_user_from_auth
 from django.core.files.base import ContentFile
 from django.db import transaction
 import pdb
@@ -63,7 +63,8 @@ class Agent():
             except:
                 profile = ContentFile(str(request_dict['profile']))
 
-        p,created = agent_profile.objects.get_or_create(profileId=request_dict['profileId'],agent=self.agent)
+        user = get_user_from_auth(request_dict.get('auth', None))
+        p,created = agent_profile.objects.get_or_create(profileId=request_dict['profileId'],agent=self.agent, user=user)
         if not created:
             etag.check_preconditions(request_dict,p, required=True)
             p.profile.delete()

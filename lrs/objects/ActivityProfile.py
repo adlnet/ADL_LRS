@@ -1,6 +1,6 @@
 from lrs import models
 from lrs.exceptions import IDNotFoundError
-from lrs.util import etag
+from lrs.util import etag, get_user_from_auth
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 import json
@@ -40,8 +40,9 @@ class ActivityProfile():
             self.log_activity_profile(err_msg, self.put_profile.__name__, True)
             raise IDNotFoundError(err_msg)
 
+        user = get_user_from_auth(request_dict.get('auth', None))
         #Get the profile, or if not already created, create one
-        p,created = models.activity_profile.objects.get_or_create(profileId=request_dict['profileId'],activity=activity)
+        p,created = models.activity_profile.objects.get_or_create(profileId=request_dict['profileId'],activity=activity, user=user)
         
         if created:
             self.log_activity_profile("Created Activity Profile", self.put_profile.__name__)

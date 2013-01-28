@@ -99,6 +99,10 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(models.activity_profile.objects.filter(profileId=self.otherprofileId1)[0].activity, actmodel4)
         self.assertEqual(models.activity_profile.objects.filter(profileId=self.otherprofileId1)[1].activity, actmodel1)
 
+
+    def test_user_in_model(self):
+        prof = models.activity_profile.objects.all()[0]
+        self.assertEquals(self.username, prof.user.username)
         
     def test_put_no_params(self):
         put = self.client.put(reverse(views.activity_profile) ,content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")

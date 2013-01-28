@@ -501,6 +501,7 @@ class agent_profile(models.Model):
     profile = models.FileField(upload_to="agent_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
@@ -807,6 +808,7 @@ class activity_state(models.Model):
     registration_id = models.CharField(max_length=200)
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         self.state.delete()
@@ -819,6 +821,7 @@ class activity_profile(models.Model):
     profile = models.FileField(upload_to="activity_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
