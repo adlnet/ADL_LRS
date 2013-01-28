@@ -243,6 +243,49 @@ div
   margin-left: 5%;
 }
 
+/* tab and panel styling */
+.etabs 
+{ 
+  margin: 0; 
+  padding: 0; 
+  border: 1px solid black;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab 
+{ 
+  margin: 0px;
+  display: inline-block; 
+  zoom:1; 
+  *display:inline; 
+  background: #eee; 
+  border: solid 1px #999; 
+  border-bottom: none;  
+}
+.tab a 
+{ 
+  font-size: 14px; 
+  line-height: 2em; 
+  display: block; 
+  padding: 0 10px; 
+  outline: none; 
+  text-decoration: none; 
+}
+.tab.active 
+{ 
+  background: #fff; 
+  padding-top: 6px; 
+  position: relative; 
+  top: 1px; 
+  border-color: #666; 
+}
+.tab a.active 
+{ 
+  font-weight: bold; 
+}
+/* end tabl and panel styling*/
+
 /* for json syntax highlighting */
 pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
 .string { color: green; }
