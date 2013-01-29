@@ -524,17 +524,36 @@ class activity(statement_object):
         return json.dumps(self.object_return())
 
 
-class name_lang(LanguageMap):
-    pass
+class name_lang(models.Model):
+    key = models.CharField(max_length=200, db_index=True)
+    value = models.CharField(max_length=200)
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    
+    def object_return(self):
+        return {self.key: self.value}
 
+    def __unicode__(self):
+        return json.dumps(self.object_return())
 
-class desc_lang(LanguageMap):
-    pass
+class desc_lang(models.Model):
+    key = models.CharField(max_length=200, db_index=True)
+    value = models.CharField(max_length=200)
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.CharField(max_length=200)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    
+    def object_return(self):
+        return {self.key: self.value}
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
 
 
 class activity_definition(models.Model):
-    name = generic.GenericRelation(name_lang)
-    description = generic.GenericRelation(desc_lang)
+    name = generic.GenericRelation(name_lang, related_name="name_lang")
+    description = generic.GenericRelation(desc_lang, related_name="desc_lang")
     activity_definition_type = models.CharField(max_length=200, blank=True, null=True)
     interactionType = models.CharField(max_length=200, blank=True, null=True)
     activity = models.OneToOneField(activity)
