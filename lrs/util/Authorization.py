@@ -97,8 +97,7 @@ def oauth_helper(request):
                 ]
                 kwargs = {"objectType":"Group", "member":members}
                 oauth_group, created = models.group.objects.gen(**kwargs)
-                oauth_group.save()                
-
+                oauth_group.save()
                 request['auth'] = oauth_group
             else:
                 raise BadRequest("Only the 'all' scope is supported.")

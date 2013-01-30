@@ -3,6 +3,7 @@ import types
 import uuid
 import datetime
 from lrs import models, exceptions
+from lrs.util import get_user_from_auth
 from Agent import Agent
 from django.core.exceptions import FieldError
 from django.db import transaction
@@ -195,7 +196,7 @@ class Statement():
     #Save statement to DB
     def saveObjectToDB(self, args):
         # If it's a substatement, remove voided, authority, and id keys
-
+        args['user'] = get_user_from_auth(self.auth)
         if self.__class__.__name__ == 'SubStatement':
             del args['voided']
             del args['statement_id']

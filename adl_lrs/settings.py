@@ -84,6 +84,13 @@ STATICFILES_DIRS = (
 
 LOGIN_REDIRECT_URL = '/XAPI/me'
 
+# Me view has a tab of user's statements
+STMTS_PER_PAGE = 10
+
+# LRS will delete SystemAction entries after n number of days
+# use 0 if you don't want the entries deleted
+DAYS_TO_LOG_DELETE = 7
+
 HTTP_AUTH_ENABLED = True
 OAUTH_ENABLED = True
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
