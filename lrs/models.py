@@ -343,7 +343,8 @@ class score(models.Model):
 
 
 class statement_object(models.Model):
-    pass
+    def get_a_name(self):
+        return "please override"
 
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
@@ -455,6 +456,21 @@ class agent(statement_object):
             pass
         return ret
 
+    def get_a_name(self):
+        if self.name:
+            return self.name
+        if self.mbox:
+            return self.mbox
+        if self.mbox_sha1sum:
+            return self.mbox_sha1sum
+        if self.openid:
+            return self.openid
+        try:
+            return self.agent_account.get_a_name()
+        except:
+            pass
+        return "unknown"
+
     def __unicode__(self):
         return json.dumps(self.get_agent_json())
 
@@ -475,6 +491,9 @@ class agent_account(models.Model):
             raise TypeError('Only models of same class can be compared')
         return self.name == other.name and self.homePage == other.homePage 
 
+    def get_a_name(self):
+        return self.name
+
     def __unicode__(self):
         return json.dumps(self.get_json())
 
@@ -492,6 +511,12 @@ class group(agent):
         ret['objectType'] = self.objectType
         ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
         return ret
+
+    def get_a_name(self):
+        name = super(group, self).get_a_name()
+        if not name:
+            name = "anonymous group"
+        return name
 
 
 class agent_profile(models.Model):
@@ -529,6 +554,12 @@ class activity(statement_object):
                     ret['definition']['definition'] = ret['definition']['description'].keys()
                     ret['definition']['name'] = ret['definition']['name'].keys()
         return ret
+
+    def get_a_name(self):
+        try:
+            return self.activity_definition.name.get(key='en-US').value
+        except:
+            return self.activity_id
 
     def __unicode__(self):
         return json.dumps(self.object_return())
@@ -836,6 +867,9 @@ class SubStatement(statement_object):
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = generic.GenericRelation(context)
     user = models.ForeignKey(User, null=True, blank=True)
+
+    def get_a_name(self):
+        return self.stmt_object.statement_id
     
     def object_return(self, sparse=False, lang=None):
         activity_object = True
@@ -1017,13 +1051,11 @@ class statement(models.Model):
     authoritative = models.BooleanField(default=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
-    def object_return(self, sparse=False, lang=None):
-        object_type = 'activity'
-        ret = {}
-        ret['id'] = self.statement_id
-        ret['actor'] = self.actor.get_agent_json(sparse)
-        ret['verb'] = self.verb.object_return(lang)
+    def get_a_name(self):
+        return self.statement_id
 
+    def get_stmt_object(self):
+        object_type = 'activity'
         try:
             stmt_object = activity.objects.get(id=self.stmt_object.id)
         except activity.DoesNotExist:
@@ -1040,7 +1072,16 @@ class statement(models.Model):
                         object_type = 'statementref'
                     except Exception, e:
                         raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
+        return (stmt_object, object_type)
 
+    def object_return(self, sparse=False, lang=None):
+        object_type = 'activity'
+        ret = {}
+        ret['id'] = self.statement_id
+        ret['actor'] = self.actor.get_agent_json(sparse)
+        ret['verb'] = self.verb.object_return(lang)
+
+        stmt_object, object_type = self.get_stmt_object()
         if object_type == 'activity' or object_type == 'substatement':
             ret['object'] = stmt_object.object_return(sparse, lang)  
         elif object_type == 'statementref':

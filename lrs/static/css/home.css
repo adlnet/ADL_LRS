@@ -164,7 +164,7 @@ div
 #clientapps
 {
   font-size: .75em;
-  width: 50%;
+  width: 60%;
   margin-bottom: 1em;
 }
 
@@ -178,6 +178,7 @@ div
 #clientapps ul li
 {
   margin-bottom: 3%;
+  text-decoration: none;
 }
 
 #clientapps ul li.left 
@@ -271,6 +272,7 @@ div
   padding: 0 10px; 
   outline: none; 
   text-decoration: none; 
+  color: #505050
 }
 .tab.active 
 { 

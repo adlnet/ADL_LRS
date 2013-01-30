@@ -6,10 +6,11 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
-from oauth_provider.consts import ACCEPTED
+from oauth_provider.consts import CANCELED, ACCEPTED, CONSUMER_STATES
 from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
 import operator
@@ -220,17 +221,44 @@ def me(request):
 
 @login_required(login_url="/XAPI/accounts/login")
 def my_statements(request):
-    try:
-        u_mail = request.user.email
-        ids = list(models.Consumer.objects.filter(user=request.user).values_list('key', flat=True))
-        stmt_id = request.GET["stmt_id"]
-        #get the statement with the stmt id only if it has an authority tied to this user
-        # s = models.statement.objects.get(Q(statement_id=stmt_id), Q( Q(authority__mbox=u_mail) | 
-        #     reduce(operator.or_, (Q(authority__agent_account__name=x) for x in ids)) ))
+    # try:
+    stmt_id = request.GET.get("stmt_id", None)
+    if stmt_id:
         s = models.statement.objects.get(Q(statement_id=stmt_id), Q(user=request.user))
         return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
-    except Exception as e:
-        return HttpResponse(e, status=400)
+    else:
+        s = {}
+        slist = []
+        for stmt in models.statement.objects.filter(user=request.user).order_by('timestamp'):
+            d = {}
+            d['timestamp'] = stmt.timestamp.isoformat()
+            d['statement_id'] = stmt.statement_id
+            d['actor_name'] = stmt.actor.get_a_name()
+            d['verb'] = stmt.verb.display.get(key='en-US').value
+            stmtobj, otype = stmt.get_stmt_object()
+            d['object'] = stmtobj.get_a_name()
+            slist.append(d)
+        
+        paginator = Paginator(slist, 2)
+
+        page_no = request.GET.get('page', 1)
+        try:
+            page = paginator.page(page_no)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            page = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            page = paginator.page(paginator.num_pages)
+
+        s['stmts'] = page.object_list
+        if page.has_previous():
+            s['previous'] = page.previous_page_number()
+        if page.has_next():
+            s['next'] = page.next_page_number()
+        return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
+    # except Exception as e:
+    #     return HttpResponse(e, status=400)
 
 @login_required(login_url="/XAPI/accounts/login")
 def my_log(request, log_id):
@@ -245,6 +273,20 @@ def my_log(request, log_id):
     except Exception as e:
         return HttpResponse(e, status=400)
 
+@login_required(login_url="/XAPI/accounts/login")
+def my_app_status(request):
+    try:
+        name = request.GET['app_name']
+        status = request.GET['status']
+        print status
+        new_status = [s[0] for s in CONSUMER_STATES if s[1] == status][0] #should only be 1
+        client = models.Consumer.objects.get(name__exact=name, user=request.user)
+        client.status = new_status
+        client.save()
+        ret = {"app_name":client.name, "status":client.get_status_display()}
+        return HttpResponse(json.dumps(ret), mimetype="application/json", status=200)
+    except:
+        return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
 def logout_view(request):
     logout(request)
@@ -323,8 +365,8 @@ def handle_request(request):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements) : {
