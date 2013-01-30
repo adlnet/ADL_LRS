@@ -173,21 +173,23 @@ class ActivityModelsTests(TestCase):
             'id': 'http://localhost:8000/XAPI/tcexample/'}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
-        
         act_def = models.activity_definition.objects.filter(activity=fk)
 
         name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()        
+        desc_set = act_def[0].description.all()
 
-        self.assertEqual(name_set[1].key, 'en-FR')
-        self.assertEqual(name_set[1].value, 'Example Name')
-        self.assertEqual(name_set[0].key, 'en-CH')
-        self.assertEqual(name_set[0].value, 'Alt Name')
+        # Set not always returned in the same order
+        for ns in name_set:
+            if ns.key == 'en-FR':
+                self.assertEqual(ns.value, 'Example Name')
+            elif ns.key == 'en-CH':
+                self.assertEqual(ns.value, 'Alt Name')
 
-        self.assertEqual(desc_set[1].key, 'en-US')
-        self.assertEqual(desc_set[1].value, 'Example Desc')
-        self.assertEqual(desc_set[0].key, 'en-CH')
-        self.assertEqual(desc_set[0].value, 'Alt Desc')
+        for ds in desc_set:
+            if ds.key == 'en-US':
+                self.assertEqual(ds.value, 'Example Desc')
+            elif ns.key == 'en-CH':
+                self.assertEqual(ds.value, 'Alt Desc')
 
         self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample/', 'Activity')        
         self.do_activity_definition_model(fk, 'module','course')
@@ -442,15 +444,17 @@ class ActivityModelsTests(TestCase):
         name_set = def_fk[0].name.all()
         desc_set = def_fk[0].description.all()
         
-        self.assertEqual(name_set[1].key, 'en-US')
-        self.assertEqual(name_set[1].value, 'testnameEN')
-        self.assertEqual(name_set[0].key, 'en-FR')
-        self.assertEqual(name_set[0].value, 'testname2')
+        for ns in name_set:
+            if ns.key == 'en-US':
+                self.assertEqual(ns.value, 'testnameEN')
+            elif ns.key == 'en-FR':
+                self.assertEqual(ns.value, 'testname2')
 
-        self.assertEqual(desc_set[1].key, 'en-GB')
-        self.assertEqual(desc_set[1].value, 'testdescGB')
-        self.assertEqual(desc_set[0].key, 'en-CH')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        for ds in desc_set:
+            if ds.key == 'en-GB':
+                self.assertEqual(ds.value, 'testdescGB')
+            elif ds.key == 'en-CH':
+                self.assertEqual(ds.value, 'testdesc2')
 
         self.do_activity_model(act.activity.id,'food', 'Activity')        
         self.do_activity_definition_model(fk, 'course', 'intType2')
@@ -1050,16 +1054,17 @@ class ActivityModelsTests(TestCase):
         name_set1 = act_def1[0].name.all()
         desc_set1 = act_def1[0].description.all()
         
-        self.assertEqual(name_set1[1].key, 'en-CH')
-        self.assertEqual(name_set1[1].value, 'actname2')
-        self.assertEqual(name_set1[0].key, 'en-US')
-        self.assertEqual(name_set1[0].value, 'altname')
+        for ns in name_set1:
+            if ns.key == 'en-CH':
+                self.assertEqual(ns.value, 'actname2')
+            elif ns.key == 'en-US':
+                self.assertEqual(ns.value, 'altname')
 
-        self.assertEqual(desc_set1[1].key, 'en-FR')
-        self.assertEqual(desc_set1[1].value, 'actdesc2')
-        self.assertEqual(desc_set1[0].key, 'en-GB')
-        self.assertEqual(desc_set1[0].value, 'altdesc')
-
+        for ds in desc_set1:
+            if ds.key == 'en-FR':
+                self.assertEqual(ds.value, 'actdesc2')
+            elif ds.key == 'en-GB':
+                self.assertEqual(ds.value, 'altdesc')
 
         self.do_activity_definition_model(fk1, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 
@@ -1070,16 +1075,17 @@ class ActivityModelsTests(TestCase):
         name_set2 = act_def2[0].name.all()
         desc_set2 = act_def2[0].description.all()
         
+        for ns in name_set2:
+            if ns.key == 'en-CH':
+                self.assertEqual(ns.value, 'actname2')
+            elif ns.key == 'en-US':
+                self.assertEqual(ns.value, 'altname')
 
-        self.assertEqual(name_set2[1].key, 'en-CH')
-        self.assertEqual(name_set2[1].value, 'actname2')
-        self.assertEqual(name_set2[0].key, 'en-US')
-        self.assertEqual(name_set2[0].value, 'altname')
-
-        self.assertEqual(desc_set2[1].key, 'en-FR')
-        self.assertEqual(desc_set2[1].value, 'actdesc2')         
-        self.assertEqual(desc_set2[0].key, 'en-GB')
-        self.assertEqual(desc_set2[0].value, 'altdesc')
+        for ds in desc_set2:
+            if ds.key == 'en-FR':
+                self.assertEqual(ds.value, 'actdesc2')
+            elif ns.key == 'en-GB':
+                self.assertEqual(ds.value, 'altdesc')
 
         self.do_activity_definition_model(fk2,'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 

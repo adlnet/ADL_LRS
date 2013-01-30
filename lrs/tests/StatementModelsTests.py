@@ -36,14 +36,14 @@ class StatementModelsTests(TestCase):
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         verb = models.Verb.objects.get(id=stmt.model_object.verb.id)
         actor = models.agent.objects.get(id=stmt.model_object.actor.id)
-        gb_lang = verb.display.all()[1]
-        us_lang = verb.display.all()[0]
+        lang_maps = verb.display.all()
 
-        self.assertEqual(gb_lang.key, 'en-GB')
-        self.assertEqual(gb_lang.value, 'made')
-        self.assertEqual(us_lang.key, 'en-US')
-        self.assertEqual(us_lang.value, 'created')        
-
+        for lm in lang_maps:
+            if lm.key == 'en-GB':
+                self.assertEqual(lm.value, 'made')
+            elif lm.key == 'en-US':
+                self.assertEqual(lm.value, 'created')
+        
         self.assertEqual(activity.activity_id, "http://example.adlnet.gov/tincan/example/simplestatement")
         self.assertEqual(actor.mbox, "tincan@adlnet.gov")
         self.assertEqual(verb.verb_id, "http://adlnet.gov/expapi/verbs/created")
@@ -333,10 +333,12 @@ class StatementModelsTests(TestCase):
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.all()[0].id, context.id)
-        self.assertEqual(context_activities[0].key, 'grouping')
-        self.assertEqual(context_activities[0].context_activity, 'GroupID')
-        self.assertEqual(context_activities[1].key, 'other')
-        self.assertEqual(context_activities[1].context_activity, 'NewActivityID')
+        
+        for ca in context_activities:
+            if ca.key == 'grouping':
+                self.assertEqual(ca.context_activity, 'GroupID')
+            elif ca.key == 'other':
+                self.assertEqual(ca.context_activity, 'NewActivityID')
 
         self.assertEqual(context.registration, guid)        
         self.assertEqual(context.revision, 'foo')
