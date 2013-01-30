@@ -1,28 +1,14 @@
 from django.http import HttpResponse
 from lrs import objects, models, exceptions
 from lrs.util import etag
+from lrs.util import log_info_processing, log_exception, update_parent_log_status
 import json
 from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
 import json
 import retrieve_statement
 import pprint
-import logging
+
 import pdb
-
-logger = logging.getLogger('user_system_actions')
-
-def log_info_processing(log_dict, method, func_name):
-    log_dict['message'] = 'Processing %s data in %s' % (method, func_name)
-    logger.info(msg=log_dict)
-
-def log_exception(log_dict, err_msg, func_name):
-    log_dict['message'] = err_msg + " in %s" % func_name
-    logger.exception(msg=log_dict)
-
-def update_parent_log_status(log_dict, status):
-    parent_action = models.SystemAction.objects.get(id=log_dict['parent_id'])
-    parent_action.status_code = status
-    parent_action.save()
 
 def statements_post(req_dict):
     stmt_responses = []
@@ -43,6 +29,7 @@ def statements_post(req_dict):
                 except models.statement.DoesNotExist:
                     pass # stmt already deleted 
             log_exception(log_dict, e.message, statements_post.__name__)
+            update_parent_log_status(log_dict, 500)
             raise e
     else:
         # Handle single POST
@@ -93,7 +80,7 @@ def activity_state_put(req_dict):
     log_info_processing(log_dict, 'PUT', __name__)
 
     # test ETag for concurrency
-    actstate = ActivityState.ActivityState(req_dict)
+    actstate = ActivityState.ActivityState(req_dict, log_dict=log_dict)
     actstate.put()
 
     update_parent_log_status(log_dict, 204)
@@ -104,7 +91,7 @@ def activity_state_get(req_dict):
     log_info_processing(log_dict, 'GET', __name__)
 
     # add ETag for concurrency
-    actstate = ActivityState.ActivityState(req_dict)
+    actstate = ActivityState.ActivityState(req_dict, log_dict=log_dict)
     stateId = req_dict.get('stateId', None)
     if stateId: # state id means we want only 1 item
         resource = actstate.get(req_dict['auth'])
@@ -113,13 +100,14 @@ def activity_state_get(req_dict):
     else: # no state id means we want an array of state ids
         resource = actstate.get_ids(req_dict['auth'])
         response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+    update_parent_log_status(log_dict, 200)
     return response
 
 def activity_state_delete(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'DELETE', __name__)
 
-    actstate = ActivityState.ActivityState(req_dict)
+    actstate = ActivityState.ActivityState(req_dict, log_dict=log_dict)
     # Delete state
     actstate.delete(req_dict['auth'])
 
@@ -131,7 +119,7 @@ def activity_profile_put(req_dict):
     log_info_processing(log_dict, 'PUT', __name__)
 
     #Instantiate ActivityProfile
-    ap = ActivityProfile.ActivityProfile()
+    ap = ActivityProfile.ActivityProfile(log_dict=log_dict)
     #Put profile and return 204 response
     ap.put_profile(req_dict)
 
@@ -144,7 +132,7 @@ def activity_profile_get(req_dict):
 
     #TODO:need eTag for returning list of IDs?
     # Instantiate ActivityProfile
-    ap = ActivityProfile.ActivityProfile()
+    ap = ActivityProfile.ActivityProfile(log_dict=log_dict)
     # Get profileId and activityId
     profileId = req_dict.get('profileId', None)
     activityId = req_dict.get('activityId', None)
@@ -154,6 +142,7 @@ def activity_profile_get(req_dict):
         resource = ap.get_profile(profileId, activityId)
         response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
         response['ETag'] = '"%s"' % resource.etag
+        update_parent_log_status(log_dict, 200)
         return response
 
     #Return IDs of profiles stored since profileId was not submitted
@@ -162,6 +151,7 @@ def activity_profile_get(req_dict):
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     response['since'] = since
     #response['ETag'] = '"%s"' % resource.etag
+    update_parent_log_status(log_dict, 200)
     return response
 
 
@@ -170,7 +160,7 @@ def activity_profile_delete(req_dict):
     log_info_processing(log_dict, 'DELETE', __name__)
 
     #Instantiate activity profile
-    ap = ActivityProfile.ActivityProfile()
+    ap = ActivityProfile.ActivityProfile(log_dict=log_dict)
     # Delete profile and return success
     ap.delete_profile(req_dict)
 
@@ -203,7 +193,7 @@ def agent_profile_put(req_dict):
 
     # test ETag for concurrency
     agent = req_dict['agent']
-    a = Agent.Agent(agent, create=True)
+    a = Agent.Agent(agent, create=True, log_dict=log_dict)
     a.put_profile(req_dict)
 
     update_parent_log_status(log_dict, 204)
@@ -215,18 +205,20 @@ def agent_profile_get(req_dict):
 
     # add ETag for concurrency
     agent = req_dict['agent']
-    a = Agent.Agent(agent)
+    a = Agent.Agent(agent, log_dict=log_dict)
     
     profileId = req_dict.get('profileId', None)
     if profileId:
         resource = a.get_profile(profileId)
         response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
         response['ETag'] = '"%s"' % resource.etag
+        update_parent_log_status(log_dict, 200)
         return response
 
     since = req_dict.get('since', None)
     resource = a.get_profile_ids(since)
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+    update_parent_log_status(log_dict, 200)
     return response
 
 def agent_profile_delete(req_dict):
@@ -234,7 +226,7 @@ def agent_profile_delete(req_dict):
     log_info_processing(log_dict, 'DELETE', __name__)
 
     agent = req_dict['agent']
-    a = Agent.Agent(agent)
+    a = Agent.Agent(agent, log_dict=log_dict)
     profileId = req_dict['profileId']
     a.delete_profile(profileId)
 
@@ -246,8 +238,10 @@ def agents_get(req_dict):
     log_info_processing(log_dict, 'GET', __name__)
 
     agent = req_dict['agent']
-    a = Agent.Agent(agent)
-    return HttpResponse(a.get_person_json(), mimetype="application/json")
+    a = Agent.Agent(agent,log_dict=log_dict)
+    resp = HttpResponse(a.get_person_json(), mimetype="application/json")
+    update_parent_log_status(log_dict, 200)
+    return resp
 
 #Generate JSON
 def stream_response_generator(data):

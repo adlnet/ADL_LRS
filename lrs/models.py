@@ -247,7 +247,25 @@ class Verb(models.Model):
             ret['display'] = {}
             for lang_map in lang_map_set:
                 ret['display'].update(lang_map.object_return())        
-        return ret  
+        return ret
+
+    # TODO: if this isn't good enough.. fix
+    def get_display(self, lang=None):
+        if not len(self.display.all()) > 0:
+            return self.verb_id
+        if lang:
+            try:
+                return self.display.get(key=lang).value
+            except:
+                pass
+        try:
+            return self.display(key='en-US').value
+        except:
+            try:
+                return self.display(key='en').value
+            except:
+                pass
+        return self.display.all()[0].value
 
     def __unicode__(self):
         return json.dumps(self.object_return())         

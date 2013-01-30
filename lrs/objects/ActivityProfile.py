@@ -1,6 +1,6 @@
 from lrs import models
 from lrs.exceptions import IDNotFoundError
-from lrs.util import etag, get_user_from_auth
+from lrs.util import etag, get_user_from_auth, log_message
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 import json
@@ -12,14 +12,6 @@ logger = logging.getLogger('user_system_actions')
 class ActivityProfile():
     def __init__(self, log_dict=None):
         self.log_dict = log_dict
-
-    def log_activity_profile(self, msg, func_name, err=False):
-        if self.log_dict:
-            self.log_dict['message'] = msg + " in %s.%s" % (__name__, func_name)
-            if err:
-                logger.error(msg=self.log_dict)
-            else:
-                logger.info(msg=self.log_dict)
 
 	#Save profile to desired activity
     def put_profile(self, request_dict):
@@ -37,7 +29,7 @@ class ActivityProfile():
             activity = models.activity.objects.get(activity_id=request_dict['activityId'])
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % request_dict['activityId']
-            self.log_activity_profile(err_msg, self.put_profile.__name__, True)
+            log_message(self.log_dict, err_msg, __name__, self.put_profile.__name__, True)
             raise IDNotFoundError(err_msg)
 
         user = get_user_from_auth(request_dict.get('auth', None))
@@ -45,12 +37,12 @@ class ActivityProfile():
         p,created = models.activity_profile.objects.get_or_create(profileId=request_dict['profileId'],activity=activity, user=user)
         
         if created:
-            self.log_activity_profile("Created Activity Profile", self.put_profile.__name__)
+            log_message(self.log_dict, "Created Activity Profile", __name__, self.put_profile.__name__)
         else:
             #If it already exists delete it
             etag.check_preconditions(request_dict,p, required=True)
             p.profile.delete()
-            self.log_activity_profile("Retrieved Activity Profile", self.put_profile.__name__)
+            log_message(self.log_dict, "Retrieved Activity Profile", __name__, self.put_profile.__name__)
         
         #Save profile content type based on incoming content type header and create etag
         p.content_type = request_dict['CONTENT_TYPE']
@@ -71,16 +63,18 @@ class ActivityProfile():
         fn = "%s_%s" % (p.activity_id,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
 
-        self.log_activity_profile("Saved Activity Profile", self.put_profile.__name__)
+        log_message(self.log_dict, "Saved Activity Profile", __name__, self.put_profile.__name__)
 
 
     def get_profile(self, profileId, activityId):
         #Make sure activityId exists
+        log_message(self.log_dict, "Getting profile with profile id: %s -- activity id: %s" % (profileId, activityId),
+            __name__, self.get_profile.__name__)
         try:
             activity = models.activity.objects.get(activity_id=activityId)
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % activityId
-            self.log_activity_profile(err_msg, self.get_profile.__name__, True)
+            log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)
             raise IDNotFoundError(err_msg)
 
         #Retrieve the profile with the given profileId and activity
@@ -88,7 +82,7 @@ class ActivityProfile():
             return models.activity_profile.objects.get(profileId=profileId, activity=activity)
         except models.activity_profile.DoesNotExist:
             err_msg = 'There is no profile associated with the id: %s' % profileId
-            self.log_activity_profile(err_msg, self.get_profile.__name__, True)
+            log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)
             raise IDNotFoundError(err_msg)
 
 
@@ -100,7 +94,7 @@ class ActivityProfile():
             activity = models.activity.objects.get(activity_id=activityId)
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % activityId
-            self.log_activity_profile(err_msg, self.get_profile_ids.__name__, True)
+            log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True)
             raise IDNotFoundError(err_msg)
 
         #If there is a since param return all profileIds since then
