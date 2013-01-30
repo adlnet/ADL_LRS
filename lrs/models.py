@@ -35,14 +35,14 @@ def gen_uuid():
 class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
     consumer_key = models.CharField(max_length=CONSUMER_KEY_SIZE)
-    key = models.CharField(max_length=255)
+    key = models.CharField(max_length=50)
     
     def __unicode__(self):
         return u"Nonce %s for %s" % (self.key, self.consumer_key)
 
 
 class Resource(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=40)
     url = models.TextField(max_length=MAX_URL_LENGTH)
     is_readonly = models.BooleanField(default=True)
     
@@ -53,7 +53,7 @@ class Resource(models.Model):
 
 
 class Consumer(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=50)
     description = models.TextField()
     
     key = models.CharField(max_length=CONSUMER_KEY_SIZE, unique=True, default=gen_uuid)
@@ -92,7 +92,7 @@ class Token(models.Model):
     token_type = models.SmallIntegerField(choices=TOKEN_TYPES)
     timestamp = models.IntegerField(default=long(time()))
     is_approved = models.BooleanField(default=False)
-    lrs_auth_id = models.CharField(max_length=200, null=True)
+    lrs_auth_id = models.CharField(max_length=50, null=True)
 
     user = models.ForeignKey(User, null=True, blank=True, related_name='tokens')
     consumer = models.ForeignKey(Consumer)
@@ -176,7 +176,7 @@ class SystemAction(models.Model):
     parent_action = models.ForeignKey('self', blank=True, null=True)
     message = models.TextField()
     timestamp = models.DateTimeField()
-    status_code = models.CharField(max_length=50, blank=True, null=True)
+    status_code = models.CharField(max_length=3, blank=True, null=True)
     #Content_type is the user since it can be a User or group object
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
@@ -217,8 +217,8 @@ class SystemAction(models.Model):
 
 
 class LanguageMap(models.Model):
-    key = models.CharField(max_length=200, db_index=True)
-    value = models.CharField(max_length=200)
+    key = models.CharField(max_length=50, db_index=True)
+    value = models.TextField()
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
@@ -231,7 +231,7 @@ class LanguageMap(models.Model):
 
 
 class Verb(models.Model):
-    verb_id = models.CharField(max_length=200, db_index=True)
+    verb_id = models.CharField(max_length=2083, db_index=True)
     display = generic.GenericRelation(LanguageMap)
 
     def object_return(self, lang=None):
@@ -254,8 +254,8 @@ class Verb(models.Model):
 
 
 class extensions(models.Model):
-    key=models.CharField(max_length=200, db_index=True)
-    value=models.CharField(max_length=200)
+    key=models.CharField(max_length=2083, db_index=True)
+    value=models.TextField()
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
@@ -270,9 +270,9 @@ class extensions(models.Model):
 class result(models.Model): 
     success = models.NullBooleanField(blank=True,null=True)
     completion = models.NullBooleanField(blank=True,null=True)
-    response = models.CharField(max_length=200, blank=True, null=True)
+    response = models.TextField(blank=True, null=True)
     #Made charfield since it would be stored in ISO8601 duration format
-    duration = models.CharField(max_length=200, blank=True, null=True)
+    duration = models.CharField(max_length=40, blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
@@ -414,11 +414,11 @@ class agentmgr(models.Manager):
         return ret_agent, created
 
 class agent(statement_object):
-    objectType = models.CharField(max_length=200, blank=True, default="Agent")
-    name = models.CharField(max_length=200, blank=True, null=True)
-    mbox = models.CharField(max_length=200, blank=True, null=True, db_index=True)
-    mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True, db_index=True)
-    openid = models.CharField(max_length=200, blank=True, null=True, db_index=True)
+    objectType = models.CharField(max_length=6, blank=True, default="Agent")
+    name = models.CharField(max_length=50, blank=True, null=True)
+    mbox = models.CharField(max_length=128, blank=True, null=True, db_index=True)
+    mbox_sha1sum = models.CharField(max_length=40, blank=True, null=True, db_index=True)
+    openid = models.CharField(max_length=2083, blank=True, null=True, db_index=True)
     objects = agentmgr()
 
     def get_agent_json(self, sparse=False):
@@ -477,8 +477,8 @@ class agent(statement_object):
 
 
 class agent_account(models.Model):  
-    homePage = models.CharField(max_length=200, blank=True, null=True)
-    name = models.CharField(max_length=200)
+    homePage = models.CharField(max_length=2083, blank=True, null=True)
+    name = models.CharField(max_length=50)
     agent = models.OneToOneField(agent)
 
     def get_json(self):
@@ -521,12 +521,12 @@ class group(agent):
 
 
 class agent_profile(models.Model):
-    profileId = models.CharField(max_length=200, db_index=True)
+    profileId = models.CharField(max_length=2083, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(agent)
     profile = models.FileField(upload_to="agent_profile")
-    content_type = models.CharField(max_length=200,blank=True,null=True)
-    etag = models.CharField(max_length=200,blank=True,null=True)
+    content_type = models.CharField(max_length=255,blank=True,null=True)
+    etag = models.CharField(max_length=50,blank=True,null=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
@@ -535,9 +535,9 @@ class agent_profile(models.Model):
 
 
 class activity(statement_object):
-    activity_id = models.CharField(max_length=200, db_index=True)
-    objectType = models.CharField(max_length=200,blank=True, null=True, default="Activity") 
-    authoritative = models.CharField(max_length=200, blank=True, null=True)
+    activity_id = models.CharField(max_length=2083, db_index=True)
+    objectType = models.CharField(max_length=8,blank=True, null=True, default="Activity") 
+    authoritative = models.CharField(max_length=50, blank=True, null=True)
 
     def object_return(self, sparse=False, lang=None):
         ret = {}
@@ -567,8 +567,8 @@ class activity(statement_object):
 
 
 class name_lang(models.Model):
-    key = models.CharField(max_length=200, db_index=True)
-    value = models.CharField(max_length=200)
+    key = models.CharField(max_length=50, db_index=True)
+    value = models.TextField()
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
@@ -580,8 +580,8 @@ class name_lang(models.Model):
         return json.dumps(self.object_return())
 
 class desc_lang(models.Model):
-    key = models.CharField(max_length=200, db_index=True)
-    value = models.CharField(max_length=200)
+    key = models.CharField(max_length=50, db_index=True)
+    value = models.TextField()
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
@@ -596,8 +596,8 @@ class desc_lang(models.Model):
 class activity_definition(models.Model):
     name = generic.GenericRelation(name_lang, related_name="name_lang")
     description = generic.GenericRelation(desc_lang, related_name="desc_lang")
-    activity_definition_type = models.CharField(max_length=200, blank=True, null=True)
-    interactionType = models.CharField(max_length=200, blank=True, null=True)
+    activity_definition_type = models.CharField(max_length=2083, blank=True, null=True)
+    interactionType = models.CharField(max_length=25, blank=True, null=True)
     activity = models.OneToOneField(activity)
     extensions = generic.GenericRelation(extensions)
 
@@ -687,7 +687,7 @@ class correctresponsespattern_answer(models.Model):
         return objReturn()
 
 class activity_definition_choice(models.Model):
-    choice_id = models.CharField(max_length=200)
+    choice_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
@@ -707,7 +707,7 @@ class activity_definition_choice(models.Model):
         return ret
 
 class activity_definition_scale(models.Model):
-    scale_id = models.CharField(max_length=200)
+    scale_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
@@ -726,7 +726,7 @@ class activity_definition_scale(models.Model):
         return ret
 
 class activity_definition_source(models.Model):
-    source_id = models.CharField(max_length=200)
+    source_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
     
@@ -744,7 +744,7 @@ class activity_definition_source(models.Model):
         return ret
 
 class activity_definition_target(models.Model):
-    target_id = models.CharField(max_length=200)
+    target_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
     
@@ -762,7 +762,7 @@ class activity_definition_target(models.Model):
         return ret
 
 class activity_definition_step(models.Model):
-    step_id = models.CharField(max_length=200)
+    step_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
     activity_definition = models.ForeignKey(activity_definition)
 
@@ -782,7 +782,7 @@ class activity_definition_step(models.Model):
 
 class StatementRef(statement_object):
     object_type = models.CharField(max_length=12, default="StatementRef")
-    ref_id = models.CharField(max_length=200)
+    ref_id = models.CharField(max_length=40)
     context = models.OneToOneField('context', blank=True, null=True)
 
     def object_return(self):
@@ -793,8 +793,8 @@ class StatementRef(statement_object):
 
 
 class ContextActivity(models.Model):
-    key = models.CharField(max_length=20, null=True)
-    context_activity = models.CharField(max_length=200, null=True)
+    key = models.CharField(max_length=8, null=True)
+    context_activity = models.CharField(max_length=2083, null=True)
     context = models.ForeignKey('context')
     
     def object_return(self):
@@ -805,12 +805,12 @@ class ContextActivity(models.Model):
 
 
 class context(models.Model):    
-    registration = models.CharField(max_length=200)
+    registration = models.CharField(max_length=40)
     instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL)
     team = models.ForeignKey(group,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
-    revision = models.CharField(max_length=200,blank=True, null=True)
-    platform = models.CharField(max_length=200,blank=True, null=True)
-    language = models.CharField(max_length=200,blank=True, null=True)
+    revision = models.TextField(blank=True, null=True)
+    platform = models.CharField(max_length=50,blank=True, null=True)
+    language = models.CharField(max_length=50,blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
     # for statement and sub statement
     content_type = models.ForeignKey(ContentType)
@@ -851,14 +851,14 @@ class context(models.Model):
 
 
 class activity_state(models.Model):
-    state_id = models.CharField(max_length=200)
+    state_id = models.CharField(max_length=2083)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     state = models.FileField(upload_to="activity_state")
     agent = models.ForeignKey(agent)
     activity = models.ForeignKey(activity)
-    registration_id = models.CharField(max_length=200)
-    content_type = models.CharField(max_length=200,blank=True,null=True)
-    etag = models.CharField(max_length=200,blank=True,null=True)
+    registration_id = models.CharField(max_length=40)
+    content_type = models.CharField(max_length=255,blank=True,null=True)
+    etag = models.CharField(max_length=50,blank=True,null=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
@@ -866,12 +866,12 @@ class activity_state(models.Model):
         super(activity_state, self).delete(*args, **kwargs)
 
 class activity_profile(models.Model):
-    profileId = models.CharField(max_length=200)
+    profileId = models.CharField(max_length=2083)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     activity = models.ForeignKey(activity)
     profile = models.FileField(upload_to="activity_profile")
-    content_type = models.CharField(max_length=200,blank=True,null=True)
-    etag = models.CharField(max_length=200,blank=True,null=True)
+    content_type = models.CharField(max_length=255,blank=True,null=True)
+    etag = models.CharField(max_length=50,blank=True,null=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
@@ -1058,7 +1058,7 @@ class SubStatement(statement_object):
 
 
 class statement(models.Model):
-    statement_id = models.CharField(max_length=200)
+    statement_id = models.CharField(max_length=50)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
     verb = models.ForeignKey(Verb)
