@@ -1443,4 +1443,80 @@ class StatementsTests(TestCase):
         self.assertEqual(len(results), 0)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(con_exts), 0)
-        self.assertEqual(len(con_acts), 0)                                                                
+        self.assertEqual(len(con_acts), 0)
+
+    def test_object_filter(self):
+        if settings.HTTP_AUTH_ENABLED:
+            exist_stmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+                "display": {"en-US":"created"}}, "object": {"id":"activity"},
+                "actor":{"objectType":"Agent","mbox":"s@s.com"},
+                "authority":{"objectType":"Agent","name":"tester1","mbox":"test1@tester.com"}}))
+        else:
+            exist_stmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+                "display": {"en-US":"created"}}, "object": {"id":"activity"},
+                "actor":{"objectType":"Agent","mbox":"s@s.com"}}))            
+        
+        exist_stmt_id = exist_stmt.model_object.statement_id
+
+        stmt_agent_jon = json.dumps({"object":{"objectType":"Agent","name":"jon","mbox":"jon@jon.com"},
+                                     "verb":{"id": "http://adlnet.gov/expapi/verbs/tutored","display": {"en-US":"tutored"}},
+                                     "actor":{"objectType":"Agent","mbox":"s@s.com"}})
+
+        stmt_act_1 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"max@max.com"}, 
+                                 "object":{"id": "test://adlnet.gov/activities/test/1"},
+                                 "verb":{"id": "http://adlnet.gov/expapi/verbs/completed"}})
+
+        stmt_act_2 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"max@max.com"}, 
+                                 "object":{"id": "test://adlnet.gov/activities/test/2"},
+                                 "verb":{"id": "http://adlnet.gov/expapi/verbs/completed"}})
+
+        stmt_sub_stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"sub@sub.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
+            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb/url/nested"},
+            "object": {"objectType":"activity", "id":"testex.com"}, "result":{"completion": True, "success": True,
+            "response": "kicked"}, "context":{"registration": str(uuid.uuid4()),
+            "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
+            "language": "en-US", "extensions":{"k1": "v1", "k2": "v2"}}}})
+
+        stmt_stmt_ref = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
+            "id":str(exist_stmt_id)}})
+
+        path = reverse(views.statements)
+        stmt_payload = [stmt_agent_jon, stmt_act_1, stmt_act_2, stmt_sub_stmt, stmt_stmt_ref]
+        postresponse1 = self.client.post(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(postresponse1.status_code, 200)
+
+        getallresp = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(getallresp.status_code, 200)
+
+        allstmts = json.loads(getallresp.content)
+        self.assertEqual(len(allstmts['statements']), 6)
+
+        param = {"object":{"objectType": "Agent", "mbox":"jon@jon.com"}}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        agentresp = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+        
+        agentstmts = json.loads(agentresp.content)
+        self.assertEqual(len(agentstmts['statements']), 1)
+
+        param = {"object":{"objectType": "Activity", "id":"test://adlnet.gov/activities/test/1"}}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        acttyperesp = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+
+        acttypestmts = json.loads(acttyperesp.content)
+        self.assertEqual(len(acttypestmts['statements']), 1)
+
+        param = {"object":{"id":"test://adlnet.gov/activities/test/2"}}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        actresp = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+
+        actstmts = json.loads(actresp.content)
+        self.assertEqual(len(actstmts['statements']), 1)
+
+        param = {"object": "test://adlnet.gov/activities/test/2"}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param)) 
+        actnoobjresp = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)            
+        
+        self.assertEqual(actnoobjresp.status_code, 400)
+        self.assertEqual(actnoobjresp.content, "JSON not found, expecting JSON for endpoint and received string instead")
