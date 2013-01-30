@@ -219,7 +219,7 @@ class LanguageMap(models.Model):
     key = models.CharField(max_length=200, db_index=True)
     value = models.CharField(max_length=200)
     content_type = models.ForeignKey(ContentType)
-    object_id = models.CharField(max_length=200)
+    object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
     
     def object_return(self):
@@ -256,7 +256,7 @@ class extensions(models.Model):
     key=models.CharField(max_length=200, db_index=True)
     value=models.CharField(max_length=200)
     content_type = models.ForeignKey(ContentType)
-    object_id = models.CharField(max_length=200)
+    object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def object_return(self):
@@ -274,7 +274,7 @@ class result(models.Model):
     duration = models.CharField(max_length=200, blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
     content_type = models.ForeignKey(ContentType)
-    object_id = models.CharField(max_length=200)
+    object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def object_return(self):
@@ -528,7 +528,7 @@ class name_lang(models.Model):
     key = models.CharField(max_length=200, db_index=True)
     value = models.CharField(max_length=200)
     content_type = models.ForeignKey(ContentType)
-    object_id = models.CharField(max_length=200)
+    object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
     
     def object_return(self):
@@ -541,7 +541,7 @@ class desc_lang(models.Model):
     key = models.CharField(max_length=200, db_index=True)
     value = models.CharField(max_length=200)
     content_type = models.ForeignKey(ContentType)
-    object_id = models.CharField(max_length=200)
+    object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
     
     def object_return(self):
@@ -772,7 +772,7 @@ class context(models.Model):
     extensions = generic.GenericRelation(extensions)
     # for statement and sub statement
     content_type = models.ForeignKey(ContentType)
-    object_id = models.CharField(max_length=200)
+    object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def object_return(self, sparse=False):

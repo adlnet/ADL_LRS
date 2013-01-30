@@ -114,6 +114,7 @@ class AgentModelsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn('agent1', mems)
         self.assertIn('agent2', mems)
+        pdb.set_trace()
         gr_dict = g.get_agent_json()
         self.assertEquals(gr_dict['objectType'],'Group')
         self.assertEquals(gr_dict['member'][0]['objectType'],'Agent')

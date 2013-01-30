@@ -23,15 +23,9 @@ class ActivityModelsTests(TestCase):
     # fields and values. All extensions are created with the same three values and keys
     def do_activity_definition_extensions_model(self, def_fk, key1, key2, key3, value1, value2, value3):
         #Create list comprehesions to easier assess keys and values
-        # extList = models.activity_extensions.objects.values_list().filter(activity_definition=def_fk)
-        # Can't use values list b/c of GenericRelatedObjectManager in postgres
-        ext_list = models.activity_definition.objects.get(pk=def_fk)
-        
-        ext_keys = []
-        ext_vals = []
-        for ex in ext_list.extensions.all():
-            ext_keys.append(ex.key)
-            ext_vals.append(ex.value)
+        ext_list = models.activity_definition(pk=def_fk).extensions.values_list()
+        ext_keys = [ext[1] for ext in ext_list]
+        ext_vals = [ext[2] for ext in ext_list]
 
         self.assertIn(key1, ext_keys)
         self.assertIn(key2, ext_keys)
@@ -51,16 +45,15 @@ class ActivityModelsTests(TestCase):
     #Called on all activity django models with choices because of sequence and choice interactionType
     def do_actvity_definition_choices_model(self, def_fk, clist, dlist):
         # Grab all lang map IDs in act def
-        # Can't use GenericRelatedObjectManager
-        desc_lang_maps = models.activity_definition_choice.objects.filter(activity_definition=def_fk)
+        desc_lang_maps = models.activity_definition_choice.objects.values_list('description',
+                flat=True).filter(activity_definition=def_fk)
         
         # Recreate lang map and add to list for check
         lang_map_list = []
-        for lang_map in desc_lang_maps:
-            desc = lang_map.description.all()
-            for d in desc:
-                tup = (d.key, d.value)
-                lang_map_list.append(tup)
+        for desc in desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            tup = (d.key, d.value)
+            lang_map_list.append(tup)
 
         choices = models.activity_definition_choice.objects.values_list('choice_id',
                 flat=True).filter(activity_definition=def_fk)
@@ -73,15 +66,16 @@ class ActivityModelsTests(TestCase):
 
     #Called on all activity django models with scale because of likert interactionType
     def do_actvity_definition_likert_model(self, def_fk, clist, dlist):
-        desc_lang_maps = models.activity_definition_scale.objects.filter(activity_definition=def_fk)
+
+        desc_lang_maps = models.activity_definition_scale.objects.values_list('description',
+                flat=True).filter(activity_definition=def_fk)
 
         # Recreate lang map and add to list for check
         lang_map_list = []
-        for lang_map in desc_lang_maps:
-            desc = lang_map.description.all()
-            for d in desc:
-                tup = (d.key, d.value)
-                lang_map_list.append(tup)
+        for desc in desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            tup = (d.key, d.value)
+            lang_map_list.append(tup)
         
         choices = models.activity_definition_scale.objects.values_list('scale_id',
                 flat=True).filter(activity_definition=def_fk)
@@ -94,16 +88,16 @@ class ActivityModelsTests(TestCase):
 
     #Called on all activity django models with steps because of performance interactionType
     def do_actvity_definition_performance_model(self, def_fk, slist, dlist):
-        desc_lang_maps = models.activity_definition_step.objects.filter(activity_definition=def_fk)
+
+        desc_lang_maps = models.activity_definition_step.objects.values_list('description',
+                flat=True).filter(activity_definition=def_fk)
 
         # Recreate lang map and add to list for check
         lang_map_list = []
-        for lang_map in desc_lang_maps:
-            desc = lang_map.description.all()
-            for d in desc:
-                tup = (d.key, d.value)
-                lang_map_list.append(tup)
-        
+        for desc in desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            tup = (d.key, d.value)
+            lang_map_list.append(tup)        
         steps = models.activity_definition_step.objects.values_list('step_id',
             flat=True).filter(activity_definition=def_fk)
         
@@ -117,41 +111,41 @@ class ActivityModelsTests(TestCase):
     def do_actvity_definition_matching_model(self, def_fk, source_id_list, source_desc_list,
                                              target_id_list, target_desc_list):
 
-        # Can't use values_list('description') with postgres b/c it's a GenericRelatedObjectManager
-        # Recreate lang map and add to list for check
-        sources = models.activity_definition_source.objects.filter(activity_definition=def_fk)
-        
-        source_lang_map_list = []
-        for s in sources:
-            desc = s.description.all()
-            for d in desc:
-                tup = (d.key, d.value)
-                source_lang_map_list.append(tup)
+        source_desc_lang_maps = models.activity_definition_source.objects.values_list('description',
+                flat=True).filter(activity_definition=def_fk)
 
-        source_ids = sources.values_list('source_id',
+        # Recreate lang map and add to list for check
+        source_lang_map_list = []
+        for desc in source_desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            tup = (d.key, d.value)
+            source_lang_map_list.append(tup)
+
+        sources = models.activity_definition_source.objects.values_list('source_id',
                 flat=True).filter(activity_definition=def_fk)
         
-        targets = models.activity_definition_target.objects.filter(activity_definition=def_fk)
+
+        target_desc_lang_maps = models.activity_definition_target.objects.values_list('description',
+                flat=True).filter(activity_definition=def_fk)
 
         # Recreate lang map and add to list for check
         target_lang_map_list = []
-        for t in targets:
-            desc = t.description.all()
-            for d in desc:
-                tup = (d.key, d.value)
-                target_lang_map_list.append(tup)
+        for desc in target_desc_lang_maps:
+            d = models.LanguageMap.objects.get(id=desc)
+            tup = (d.key, d.value)
+            target_lang_map_list.append(tup)
         
-        target_ids = targets.values_list('target_id',
+        targets = models.activity_definition_target.objects.values_list('target_id',
                 flat=True).filter(activity_definition=def_fk)
         
         for s_id in source_id_list:
-            self.assertIn(s_id,source_ids)
+            self.assertIn(s_id,sources)
 
         for s_desc in source_desc_list:
             self.assertIn(s_desc, source_lang_map_list)
 
         for t_id in target_id_list:
-            self.assertIn(t_id,target_ids)
+            self.assertIn(t_id,targets)
 
         for t_desc in target_desc_list:
             self.assertIn(t_desc, target_lang_map_list)            

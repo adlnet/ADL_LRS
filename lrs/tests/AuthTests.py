@@ -744,17 +744,17 @@ class AuthTests(TestCase):
         name_set = act_def.name.all()
         desc_set = act_def.description.all()
 
-        self.assertEqual(name_set[0].key, "en-GB")
-        self.assertEqual(name_set[0].value, "altname")
+        self.assertEqual(name_set[1].key, "en-GB")
+        self.assertEqual(name_set[1].value, "altname")
 
-        self.assertEqual(name_set[1].key, "en-US")
-        self.assertEqual(name_set[1].value, "testname3")
+        self.assertEqual(name_set[0].key, "en-US")
+        self.assertEqual(name_set[0].value, "testname3")
 
-        self.assertEqual(desc_set[0].key, "en-GB")
-        self.assertEqual(desc_set[0].value, "altdesc")
+        self.assertEqual(desc_set[1].key, "en-GB")
+        self.assertEqual(desc_set[1].value, "altdesc")
 
-        self.assertEqual(desc_set[1].key, "en-US")
-        self.assertEqual(desc_set[1].value, "testdesc3")
+        self.assertEqual(desc_set[0].key, "en-US")
+        self.assertEqual(desc_set[0].value, "testdesc3")
 
     def test_cors_post_put(self):
         bdy = {"statementId": "postputID"}
