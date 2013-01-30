@@ -206,9 +206,10 @@ def complex_get(req_dict):
         stored_param = 'stored'
     else:
         stored_param = '-stored'        
-    
+
     stmt_list = retrieve_stmts_from_db(the_dict, limit, stored_param, args)
     full_stmt_list = []
+
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
         full_stmt_list.append(stmt.object_return(sparse, language))
