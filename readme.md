@@ -27,7 +27,8 @@ Install other dependencies
 
 Currently the LRS supports both Postgres and MySQL backends. Depending on which you want to use, comment out the backend you don't want and follow the instructions below for the one you chose. When xAPI 1.0 is released we will be moving to Postgres full time
 
-MySQL
+**MySQL**
+
 Install MySQL
 
     sudo apt-get install mysql-server
@@ -36,7 +37,10 @@ Create LRS database
 
     mysqladmin -h localhost -u {username} -p create lrs
 
-Postgres
+**End MySQL**
+
+**Postgres**
+
 Install Postgres
 
     sudo apt-get install postgresql-9.1
@@ -65,6 +69,8 @@ Create DB and owner
 Download python-psycopg2 and libpq-dev
 
     sudo apt-get install python-psycopg2 libpq-dev
+
+**End Postgres**
 
 Navigate to desired repository directory and clone LRS repository
 
