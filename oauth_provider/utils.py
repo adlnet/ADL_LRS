@@ -73,7 +73,10 @@ def send_oauth_error(err=None):
     """Shortcut for sending an error."""
     # send a 401 error
     # pdb.set_trace()
-    response = HttpResponse(err.message.encode('utf-8'), mimetype="text/plain")
+    if isinstance(err, str):
+        response = HttpResponse(err, mimetype="text/plain")
+    else:
+        response = HttpResponse(err.message.encode('utf-8'), mimetype="text/plain")
     response.status_code = 401
     # return the authenticate header
     header = build_authenticate_header(realm=OAUTH_REALM_KEY_NAME)
