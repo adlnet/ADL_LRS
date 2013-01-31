@@ -1,7 +1,7 @@
 from lrs import models
 from lrs.objects.Agent import Agent
 from lrs.exceptions import IDNotFoundError #, Forbidden
-from lrs.util import etag
+from lrs.util import etag, get_user_from_auth
 from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
 from django.db import transaction
@@ -15,6 +15,8 @@ class ActivityState():
         self.req_dict = request_dict
         self.log_dict = log_dict
         self.agent = request_dict['agent']
+        self.auth = request_dict.get('auth', None)
+        self.user = get_user_from_auth(self.auth)
         try:
             self.activity = models.activity.objects.get(activity_id=request_dict['activityId'])
         except models.activity.DoesNotExist:
@@ -53,9 +55,9 @@ class ActivityState():
                 state = ContentFile(str(self.state))
 
         if self.registrationId:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity,registration_id=self.registrationId)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity,registration_id=self.registrationId, user=self.user)
         else:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity, user=self.user)
         
         if created:
             self.log_activity_state("Created Activity State", self.put.__name__)

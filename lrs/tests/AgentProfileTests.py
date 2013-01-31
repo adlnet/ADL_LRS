@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
+from lrs.models import agent_profile
 from lrs import views
 import datetime
 from django.utils.timezone import utc
@@ -51,6 +52,10 @@ class AgentProfileTests(TestCase):
         self.client.delete(reverse(views.agent_profile), self.testparams2, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.client.delete(reverse(views.agent_profile), self.testparams3, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.client.delete(reverse(views.agent_profile), self.testparams4, Authorization=self.auth, X_Experience_API_Version="0.95")
+
+    def test_user_in_model(self):
+        prof = agent_profile.objects.all()[0]
+        self.assertEqual(self.username, prof.user.username)
 
     def test_get_agent_not_found(self):
         a = '{"mbox":["mailto:notfound@example.com"]}'

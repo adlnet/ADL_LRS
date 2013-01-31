@@ -1,5 +1,6 @@
 from django.db import models
 from django.db import transaction
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
@@ -185,8 +186,8 @@ class SystemAction(models.Model):
         return "[%s(%s)] %s -- by: %s" % (self.get_level_display(),self.level, self.message, self.content_object)
 
     def days_til_del(self):
-        weeklater = self.timestamp + dt.timedelta(days=7)
-        days = (weeklater - datetime.utcnow().replace(tzinfo = pytz.utc)).days
+        deleteday = self.timestamp + dt.timedelta(days=settings.DAYS_TO_LOG_DELETE)
+        days = (deleteday - datetime.utcnow().replace(tzinfo = pytz.utc)).days
         if days <= 0:
             days = 0
         return days
@@ -343,7 +344,8 @@ class score(models.Model):
 
 
 class statement_object(models.Model):
-    pass
+    def get_a_name(self):
+        return "please override"
 
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
@@ -366,7 +368,16 @@ class agentmgr(models.Manager):
                 ret_agent = acc.agent
                 created = False
             except agent_account.DoesNotExist:
-                ret_agent = self.model(**kwargs)
+                if group:
+                    try: 
+                        ret_agent = self.model.objects.get(**kwargs)
+                    except self.model.DoesNotExist:
+                        ret_agent = self.model(**kwargs)
+                else:
+                    try:
+                        ret_agent = agent.objects.get(**kwargs)
+                    except agent.DoesNotExist:
+                        ret_agent = agent(**kwargs)
                 ret_agent.save()
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
@@ -446,6 +457,21 @@ class agent(statement_object):
             pass
         return ret
 
+    def get_a_name(self):
+        if self.name:
+            return self.name
+        if self.mbox:
+            return self.mbox
+        if self.mbox_sha1sum:
+            return self.mbox_sha1sum
+        if self.openid:
+            return self.openid
+        try:
+            return self.agent_account.get_a_name()
+        except:
+            pass
+        return "unknown"
+
     def __unicode__(self):
         return json.dumps(self.get_agent_json())
 
@@ -466,6 +492,9 @@ class agent_account(models.Model):
             raise TypeError('Only models of same class can be compared')
         return self.name == other.name and self.homePage == other.homePage 
 
+    def get_a_name(self):
+        return self.name
+
     def __unicode__(self):
         return json.dumps(self.get_json())
 
@@ -484,6 +513,12 @@ class group(agent):
         ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
         return ret
 
+    def get_a_name(self):
+        name = super(group, self).get_a_name()
+        if not name:
+            name = "anonymous group"
+        return name
+
 
 class agent_profile(models.Model):
     profileId = models.CharField(max_length=200, db_index=True)
@@ -492,6 +527,7 @@ class agent_profile(models.Model):
     profile = models.FileField(upload_to="agent_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
@@ -519,6 +555,12 @@ class activity(statement_object):
                     ret['definition']['definition'] = ret['definition']['description'].keys()
                     ret['definition']['name'] = ret['definition']['name'].keys()
         return ret
+
+    def get_a_name(self):
+        try:
+            return self.activity_definition.name.get(key='en-US').value
+        except:
+            return self.activity_id
 
     def __unicode__(self):
         return json.dumps(self.object_return())
@@ -817,6 +859,7 @@ class activity_state(models.Model):
     registration_id = models.CharField(max_length=200)
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         self.state.delete()
@@ -829,6 +872,7 @@ class activity_profile(models.Model):
     profile = models.FileField(upload_to="activity_profile")
     content_type = models.CharField(max_length=200,blank=True,null=True)
     etag = models.CharField(max_length=200,blank=True,null=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
@@ -842,6 +886,10 @@ class SubStatement(statement_object):
     result = generic.GenericRelation(result)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = generic.GenericRelation(context)
+    user = models.ForeignKey(User, null=True, blank=True)
+
+    def get_a_name(self):
+        return self.stmt_object.statement_id
     
     def object_return(self, sparse=False, lang=None):
         activity_object = True
@@ -1021,14 +1069,13 @@ class statement(models.Model):
     voided = models.NullBooleanField(blank=True, null=True)
     context = generic.GenericRelation(context)
     authoritative = models.BooleanField(default=True)
+    user = models.ForeignKey(User, null=True, blank=True)
 
-    def object_return(self, sparse=False, lang=None):
+    def get_a_name(self):
+        return self.statement_id
+
+    def get_stmt_object(self):
         object_type = 'activity'
-        ret = {}
-        ret['id'] = self.statement_id
-        ret['actor'] = self.actor.get_agent_json(sparse)
-        ret['verb'] = self.verb.object_return(lang)
-
         try:
             stmt_object = activity.objects.get(id=self.stmt_object.id)
         except activity.DoesNotExist:
@@ -1045,7 +1092,16 @@ class statement(models.Model):
                         object_type = 'statementref'
                     except Exception, e:
                         raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
+        return (stmt_object, object_type)
 
+    def object_return(self, sparse=False, lang=None):
+        object_type = 'activity'
+        ret = {}
+        ret['id'] = self.statement_id
+        ret['actor'] = self.actor.get_agent_json(sparse)
+        ret['verb'] = self.verb.object_return(lang)
+
+        stmt_object, object_type = self.get_stmt_object()
         if object_type == 'activity' or object_type == 'substatement':
             ret['object'] = stmt_object.object_return(sparse, lang)  
         elif object_type == 'statementref':
