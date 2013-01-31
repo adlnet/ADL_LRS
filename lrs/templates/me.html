@@ -122,12 +122,15 @@ $(document).ready(function() {
     });
 });
 
-function stmtLink(){
-    if(!$(this).parent().siblings('pre#stmts').length){
-        getStmt($(this).text(), this);
+function stmtLink(event){
+    if (event && event.currentTarget){
+        ele = event.target;
+    }
+    if(!$(ele).parent().next('pre#stmts').length){
+        getStmt($(ele).text(), this);
     }
     else{
-        $(this).parent().siblings('pre#stmts').toggle();
+        $(ele).parent().next('pre#stmts').toggle();
     }
     return false;
 }
