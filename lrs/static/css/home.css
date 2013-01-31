@@ -234,6 +234,44 @@ div
   white-space: nowrap;
 }
 
+#mystatements
+{
+  font-size: .75em;
+}
+
+#mystatements ul
+{
+  list-style-type: none;
+}
+
+#mystatements ul li
+{
+  margin-bottom: 1.1em;
+}
+
+#mystatements .statement
+{
+  display: block;
+}
+
+#mystatements .timestamp
+{
+  margin-left: 1.3em;
+  display: block;
+  font-size: 85%;
+}
+
+#mystatements .prev-next
+{
+  margin-top: 2em;
+  width: 25%;
+}
+
+#mystatements .prev-next .previous
+{
+  margin-right: 3em;
+}
+
 .attn
 {
   color: firebrick;

@@ -29,8 +29,8 @@
 </div>
 <div id="tab-container" class="tab-container">
   <ul class='etabs'>
-    <li class='tab'><a href="#recentactivity">Recent Activity</a></li>
-    <li class='tab statements'><a href="{% url lrs.views.my_statements %}" data-target="#mystatements">Statements</a></li>
+    <li class='tab default'><a href="#recentactivity">Recent Activity</a></li>
+    <li class='tab statements'><a href="#mystatements">Statements</a></li>
   </ul>
     <div id="recentactivity">
         <span class="heading">Recent Requests:</span>
@@ -52,7 +52,7 @@
         </ul>
     </div>
     <div id="mystatements">
-        <h2>Statements</h2>
+        <span class="heading">Statements:</span>
         <!-- content -->
     </div>
 </div>
@@ -62,16 +62,10 @@
 <script src="{{ STATIC_URL }}scripts/jquery.hashchange.min.js" type="text/javascript"></script>
 <script type="text/javascript">
 $(document).ready(function() {
-    $(".stmt_link").click(function(){
-        if(!$(this).parent().siblings('pre#stmts').length){
-            getStmt($(this).text(), this);
-        }
-        else{
-            $(this).parent().siblings('pre#stmts').toggle();
-        }
-        return false;
+    $(".stmt_link").click(stmtLink);
+    $('#tab-container').easytabs({
+        defaultTab: "li.default"
     });
-    $('#tab-container').easytabs();
     $('.change_app_status').click(function(){
         var appname = $(this).parent().siblings(".field").text();
         var status = "";
@@ -104,17 +98,76 @@ $(document).ready(function() {
             timeout : 15000
         });
     });
-    
-    $('.statements').bind('easytabs:ajax:complete', 
-        function(e, clicked, panel, response, status, xhr) {
-            var $this = $(panel);
-            $this.html().append(response);
-            if (status == "error") {
-                var msg = "Sorry but there was an error: ";
-                $("#error").html(msg + xhr.status + " " + xhr.statusText);
-            }
+    if ($('#mystatements').hasClass('active') && ! $('#mystatements ul').length){
+        getStmts();
+    }
+    $('#tab-container').bind('easytabs:after', function(event, $clicked, $targetPanel, settings){
+        if ($targetPanel.attr("id") == "mystatements"){
+            getStmts();
+        }
     });
 });
+
+function stmtLink(){
+    if(!$(this).parent().siblings('pre#stmts').length){
+        getStmt($(this).text(), this);
+    }
+    else{
+        $(this).parent().siblings('pre#stmts').toggle();
+    }
+    return false;
+}
+
+function getStmts(event){
+    var u = "{% url lrs.views.my_statements %}";
+    if (event && event.data.the_url){
+        u = event.data.the_url;
+    }
+    $.ajax({
+            url: u,
+            type: "GET",
+            context: $('#mystatements'),
+            success: function (data){
+                if ($(this).children('ul').length){
+                    $(this).children('ul').replaceWith(uiData(data));
+                }
+                else {
+                    $(this).append(uiData(data));
+                }
+                $(this).children('ul').find('.stmt_link').click(stmtLink);
+                $(this).children('ul').find('li.prev-next a.previous').click(
+                        {the_url: $(this).children('ul').find('li.prev-next a.previous').attr("data-target")}, getStmts);
+                $(this).children('ul').find('li.prev-next a.next').click(
+                        {the_url: $(this).children('ul').find('li.prev-next a.next').attr("data-target")}, getStmts);
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            },
+            timeout : 15000
+        });
+}
+
+function uiData(data){
+    var ret = "<ul>";
+    for (var i = 0; i < data['stmts'].length; i++) {
+        var stmt = data['stmts'][i];
+        ret += "<li><span class='statement field'>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</span>";
+        ret += "<span class='timestamp'>" + stmt['timestamp'] + "</span>";
+        ret += " <a href='#' class='stmt_link lpad'>" + stmt['statement_id'] + "</a> ";
+        ret += "</li>";
+    }
+    var prev = "<span class='previous'>previous</span>";
+    if (data['previous']) {
+        prev = "<a class='previous' href='#mystatements' data-target='" + data['previous'] + "'>previous</a>";
+    }
+    var next = "<span class='next'>next</span>";
+    if (data['next']) {
+        next = "<a class='next' href='#mystatements' data-target='" + data['next'] + "'>next</a>";
+    }
+    ret += "<li class='prev-next'>" + prev + next + "</li>";
+    ret += "</ul>";
+    return ret;
+}
 
 function getStmt(stmtid,ele){
     $.ajax({

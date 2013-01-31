@@ -221,44 +221,44 @@ def me(request):
 
 @login_required(login_url="/XAPI/accounts/login")
 def my_statements(request):
-    # try:
-    stmt_id = request.GET.get("stmt_id", None)
-    if stmt_id:
-        s = models.statement.objects.get(Q(statement_id=stmt_id), Q(user=request.user))
-        return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
-    else:
-        s = {}
-        slist = []
-        for stmt in models.statement.objects.filter(user=request.user).order_by('timestamp'):
-            d = {}
-            d['timestamp'] = stmt.timestamp.isoformat()
-            d['statement_id'] = stmt.statement_id
-            d['actor_name'] = stmt.actor.get_a_name()
-            d['verb'] = stmt.verb.display.get(key='en-US').value
-            stmtobj, otype = stmt.get_stmt_object()
-            d['object'] = stmtobj.get_a_name()
-            slist.append(d)
-        
-        paginator = Paginator(slist, 2)
+    try:
+        stmt_id = request.GET.get("stmt_id", None)
+        if stmt_id:
+            s = models.statement.objects.get(Q(statement_id=stmt_id), Q(user=request.user))
+            return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
+        else:
+            s = {}
+            slist = []
+            for stmt in models.statement.objects.filter(user=request.user).order_by('-timestamp'):
+                d = {}
+                d['timestamp'] = stmt.timestamp.isoformat()
+                d['statement_id'] = stmt.statement_id
+                d['actor_name'] = stmt.actor.get_a_name()
+                d['verb'] = stmt.verb.display.get(key='en-US').value
+                stmtobj, otype = stmt.get_stmt_object()
+                d['object'] = stmtobj.get_a_name()
+                slist.append(d)
+            
+            paginator = Paginator(slist, 2)
 
-        page_no = request.GET.get('page', 1)
-        try:
-            page = paginator.page(page_no)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            page = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range (e.g. 9999), deliver last page of results.
-            page = paginator.page(paginator.num_pages)
+            page_no = request.GET.get('page', 1)
+            try:
+                page = paginator.page(page_no)
+            except PageNotAnInteger:
+                # If page is not an integer, deliver first page.
+                page = paginator.page(1)
+            except EmptyPage:
+                # If page is out of range (e.g. 9999), deliver last page of results.
+                page = paginator.page(paginator.num_pages)
 
-        s['stmts'] = page.object_list
-        if page.has_previous():
-            s['previous'] = page.previous_page_number()
-        if page.has_next():
-            s['next'] = page.next_page_number()
-        return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
-    # except Exception as e:
-    #     return HttpResponse(e, status=400)
+            s['stmts'] = page.object_list
+            if page.has_previous():
+                s['previous'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.previous_page_number())
+            if page.has_next():
+                s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
+            return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
+    except Exception as e:
+        return HttpResponse(e, status=400)
 
 @login_required(login_url="/XAPI/accounts/login")
 def my_log(request, log_id):
