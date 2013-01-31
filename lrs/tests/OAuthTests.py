@@ -378,3 +378,25 @@ class OAuthTests(TestCase):
 
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")        
         self.assertEqual(resp.status_code, 200)
+
+    def test_consumer_state(self):
+        stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"test_complex_get"}}))
+        param = {"object":{"objectType": "Activity", "id":"test_complex_get"}}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake()
+
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params)
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params['oauth_signature'] = signature
+
+        consumer = access_token.consumer
+        consumer.status = 4
+        consumer.save()
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")        
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.content, 'test client has not been authorized')

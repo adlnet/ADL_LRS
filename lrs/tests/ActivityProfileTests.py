@@ -96,9 +96,15 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId1)[0].activity, actmodel1)
         self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId2)[0].activity, actmodel2)
         self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId3)[0].activity, actmodel3)
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.otherprofileId1)[0].activity, actmodel4)
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.otherprofileId1)[1].activity, actmodel1)
+    
+        other_profiles = models.activity_profile.objects.filter(profileId=self.otherprofileId1)
 
+        # Loop through profiles since not always returned in same order
+        for p in other_profiles:
+            if p.activity.id == 'act-other':
+                self.assertEqual(p.activity, actmodel4)
+            elif p.activity.id == 'act-1':
+                self.assertEqual(p.activity, actmodel1)
 
     def test_user_in_model(self):
         prof = models.activity_profile.objects.all()[0]

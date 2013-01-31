@@ -12,6 +12,7 @@ from oauth_provider.oauth.oauth import OAuthError
 from django.utils.translation import ugettext as _
 from oauth_provider.utils import initialize_server_request, send_oauth_error
 from oauth_provider.consts import OAUTH_PARAMETERS_NAMES
+from oauth_provider.consts import CONSUMER_STATES, ACCEPTED
 
 def auth(func):
     """
@@ -69,7 +70,11 @@ def oauth_helper(request):
             consumer, token, parameters = validate_token(request)
         except OAuthError, e:
             raise OauthUnauthorized(send_oauth_error(e))
+        
         if consumer and token:
+            if consumer.status != ACCEPTED:
+                raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
+
             # All is the only scope being supported - need to correct the user/auth_id workflow
             if token.resource.name.lower() == 'all':
                 user = token.user
