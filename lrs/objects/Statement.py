@@ -197,7 +197,6 @@ class Statement():
     def saveObjectToDB(self, args):
         # If it's a substatement, remove voided, authority, and id keys
         args['user'] = get_user_from_auth(self.auth)
-        print "statement saveObjectToDB: %s" % args['user']
         if self.__class__.__name__ == 'SubStatement':
             del args['voided']
             del args['statement_id']
