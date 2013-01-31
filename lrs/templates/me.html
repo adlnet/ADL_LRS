@@ -4,17 +4,19 @@
 {% block content %}
 </br>
 <div id="clientapps">
-    <span class="heading">Client Apps:</span>
+    <span class="heading">Client Apps:</span><span class="small-link"><a href="{% url lrs.views.reg_client %}">add app</a></span>
     {% if client_apps %}
         {% for app in client_apps %}
         <ul>
             <li class="left field">{{ app.name }}</li>
-            <li class="left"><span style="color:
+            <li class="left app_status" style="color:
                 {% if app.status == 1 %}goldenrod
                 {% elif app.status == 2 %}green
                 {% elif app.status == 3 %}darkred
                 {% elif app.status == 4 %}darkred
-                {% endif %}">{{ app.get_status_display }}</span></li>
+                {% endif %}">{{ app.get_status_display }}</li>
+            {% if app.status != 4 %}
+            <li class="left"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></li>{% endif %}
             <ul>
                 <li><span class="field">Key:</span> {{ app.key }}</li>
                 <li><span class="field">Secret:</span> {{ app.secret }}</li>
@@ -25,39 +27,165 @@
     None
     {% endif %}
 </div>
-<div id="recentactivity">
-    <span class="heading">Recent Requests:</span>
-    <ul>
-        {% for action in action_list %}
-            <li class="parentaction"><span style='color:{{ action.0.get_color }}'>{{ action.0.status_code }}</span> <span class="request">{{ action.0.message }}</span> [{{ action.0.timestamp|date:"r"}}]</li>
-            <ul class="req_details">
-                <li class="left">Submitted by: {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %}
-                <span class="lpad attn">deleted in {{ action.0.days_til_del }} days (<a href="{% url lrs.views.my_log log_id=action.0.id %}">download</a>)</span></li>
-            </ul>
-            <ul class="req_actions">
-                {% for ch_action in action.1 %}
-                    <li>{{ ch_action.get_level_display }} {% if ch_action.level == 21 %}<a href="#" class="stmt_link">{{ ch_action.message }}</a>{% else %}{{ ch_action.message }}{% endif %} [{{ ch_action.timestamp|date:"j M Y H:i:s" }}]</li>
-                {% endfor %}
-            </ul>
-        {% empty %}
-            <li>Sorry, no action yet!</li>
-        {% endfor %}
-    </ul>
+<div id="tab-container" class="tab-container">
+  <ul class='etabs'>
+    <li class='tab default'><a href="#recentactivity">Recent Activity</a></li>
+    <li class='tab statements'><a href="#mystatements">Statements</a></li>
+  </ul>
+    <div id="recentactivity">
+        <span class="heading">Recent Requests:</span>
+        <ul>
+            {% for action in action_list %}
+                <li class="parentaction"><span style='color:{{ action.0.get_color }}'>{% if action.0.status_code %}{{ action.0.status_code }}{% else %}---{% endif %}</span> <span class="request">{{ action.0.message }}</span> [{{ action.0.timestamp|date:"r"}}]</li>
+                <ul class="req_details">
+                    <li class="left">Submitted by: {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %}
+                    <span class="lpad attn">deleted in {{ action.0.days_til_del }} days (<a href="{% url lrs.views.my_log log_id=action.0.id %}">download</a>)</span></li>
+                </ul>
+                <ul class="req_actions">
+                    {% for ch_action in action.1 %}
+                        <li>{{ ch_action.get_level_display }} {% if ch_action.level == 21 %}<a href="#" class="stmt_link">{{ ch_action.message }}</a>{% else %}{{ ch_action.message }}{% endif %} [{{ ch_action.timestamp|date:"j M Y H:i:s" }}]</li>
+                    {% endfor %}
+                </ul>
+            {% empty %}
+                <li>Sorry, no action yet!</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div id="mystatements">
+        <span class="heading">Statements:</span><span class="small-link"><a id="delstmts" href="#mystatements">delete all statements</a></span>
+        <!-- content -->
+    </div>
 </div>
 {% endblock content %}
 {% block extra_js %}
+<script src="{{ STATIC_URL }}scripts/jquery.easytabs.min.js" type="text/javascript"></script>
+<script src="{{ STATIC_URL }}scripts/jquery.hashchange.min.js" type="text/javascript"></script>
 <script type="text/javascript">
 $(document).ready(function() {
-    $(".stmt_link").click(function(){
-        if(!$(this).parent().siblings('pre#stmts').length){
-            getStmt($(this).text(), this);
+    $(".stmt_link").click(stmtLink);
+    $('#tab-container').easytabs({
+        defaultTab: "li.default"
+    });
+    $('.change_app_status').click(function(){
+        var appname = $(this).parent().siblings(".field").text();
+        var status = "";
+        cur_s = $(this).parent().siblings(".app_status").text();
+        if (cur_s == "Accepted") status = "Canceled";
+        else status = "Accepted";
+        $.ajax({
+            url: "{% url lrs.views.my_app_status %}?app_name="+appname+"&status="+status,
+            type: "POST",
+            context: $(this),
+            success: function (data){
+                var link, status, color;
+                if (data['status'] == "Canceled"){
+                    link = "Activate";
+                    status = data['status'];
+                    color = "darkred";
+                }
+                else {
+                    link = "Deactivate";
+                    status = data['status'];
+                    color = "green";
+                }
+                $(this).text(link);
+                $(this).parent().siblings(".app_status").text(status);
+                $(this).parent().siblings(".app_status").css("color", color);
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            },
+            timeout : 15000
+        });
+    });
+    if ($('#mystatements').hasClass('active') && ! $('#mystatements ul').length){
+        getStmts();
+    }
+    $('#tab-container').bind('easytabs:after', function(event, $clicked, $targetPanel, settings){
+        if ($targetPanel.attr("id") == "mystatements"){
+            getStmts();
         }
-        else{
-            $(this).parent().siblings('pre#stmts').toggle();
-        }
-        return false;
+    });
+    $('#mystatements #delstmts').click(function(){
+        $.ajax({
+            url: "{% url lrs.views.my_statements %}",
+            type: "DELETE",
+            context: $(this),
+            success: function (data){
+                getStmts();
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            },
+            timeout : 15000
+        });
     });
 });
+
+function stmtLink(){
+    if(!$(this).parent().siblings('pre#stmts').length){
+        getStmt($(this).text(), this);
+    }
+    else{
+        $(this).parent().siblings('pre#stmts').toggle();
+    }
+    return false;
+}
+
+function getStmts(event){
+    var u = "{% url lrs.views.my_statements %}";
+    if (event && event.data.the_url){
+        u = event.data.the_url;
+    }
+    $.ajax({
+            url: u,
+            type: "GET",
+            context: $('#mystatements'),
+            success: function (data){
+                if ($(this).children('ul').length){
+                    $(this).children('ul').replaceWith(uiData(data));
+                }
+                else {
+                    $(this).append(uiData(data));
+                }
+                $(this).children('ul').find('.stmt_link').click(stmtLink);
+                $(this).children('ul').find('li.prev-next a.previous').click(
+                        {the_url: $(this).children('ul').find('li.prev-next a.previous').attr("data-target")}, getStmts);
+                $(this).children('ul').find('li.prev-next a.next').click(
+                        {the_url: $(this).children('ul').find('li.prev-next a.next').attr("data-target")}, getStmts);
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            },
+            timeout : 15000
+        });
+}
+
+function uiData(data){
+    if (data['stmts'].length == 0){
+        return "<ul><li>no statements</li></ul>"
+    }
+    var ret = "<ul>";
+    for (var i = 0; i < data['stmts'].length; i++) {
+        var stmt = data['stmts'][i];
+        ret += "<li><span class='statement field'>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</span>";
+        ret += "<span class='timestamp'>" + stmt['timestamp'] + "</span>";
+        ret += " <a href='#' class='stmt_link lpad'>" + stmt['statement_id'] + "</a> ";
+        ret += "</li>";
+    }
+    var prev = "<span class='previous'>previous</span>";
+    if (data['previous']) {
+        prev = "<a class='previous' href='#mystatements' data-target='" + data['previous'] + "'>previous</a>";
+    }
+    var next = "<span class='next'>next</span>";
+    if (data['next']) {
+        next = "<a class='next' href='#mystatements' data-target='" + data['next'] + "'>next</a>";
+    }
+    ret += "<li class='prev-next'>" + prev + next + "</li>";
+    ret += "</ul>";
+    return ret;
+}
+
 function getStmt(stmtid,ele){
     $.ajax({
         url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,

@@ -161,10 +161,15 @@ div
   border-top: 3px solid #1a82f7;
 }
 
+.small-link
+{
+  font-size: 85%;
+}
+
 #clientapps
 {
   font-size: .75em;
-  width: 50%;
+  width: 60%;
   margin-bottom: 1em;
 }
 
@@ -178,6 +183,7 @@ div
 #clientapps ul li
 {
   margin-bottom: 3%;
+  text-decoration: none;
 }
 
 #clientapps ul li.left 
@@ -233,6 +239,44 @@ div
   white-space: nowrap;
 }
 
+#mystatements
+{
+  font-size: .75em;
+}
+
+#mystatements ul
+{
+  list-style-type: none;
+}
+
+#mystatements ul li
+{
+  margin-bottom: 1.1em;
+}
+
+#mystatements .statement
+{
+  display: block;
+}
+
+#mystatements .timestamp
+{
+  margin-left: 1.3em;
+  display: block;
+  font-size: 85%;
+}
+
+#mystatements .prev-next
+{
+  margin-top: 2em;
+  width: 25%;
+}
+
+#mystatements .prev-next .previous
+{
+  margin-right: 3em;
+}
+
 .attn
 {
   color: firebrick;
@@ -242,6 +286,50 @@ div
 {
   margin-left: 5%;
 }
+
+/* tab and panel styling */
+.etabs 
+{ 
+  margin: 0; 
+  padding: 0; 
+  border: 1px solid black;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab 
+{ 
+  margin: 0px;
+  display: inline-block; 
+  zoom:1; 
+  *display:inline; 
+  background: #eee; 
+  border: solid 1px #999; 
+  border-bottom: none;  
+}
+.tab a 
+{ 
+  font-size: 14px; 
+  line-height: 2em; 
+  display: block; 
+  padding: 0 10px; 
+  outline: none; 
+  text-decoration: none; 
+  color: #505050
+}
+.tab.active 
+{ 
+  background: #fff; 
+  padding-top: 6px; 
+  position: relative; 
+  top: 1px; 
+  border-color: #666; 
+}
+.tab a.active 
+{ 
+  font-weight: bold; 
+}
+/* end tabl and panel styling*/
 
 /* for json syntax highlighting */
 pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
