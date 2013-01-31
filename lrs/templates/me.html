@@ -4,7 +4,7 @@
 {% block content %}
 </br>
 <div id="clientapps">
-    <span class="heading">Client Apps:</span>
+    <span class="heading">Client Apps:</span><span class="small-link"><a href="{% url lrs.views.reg_client %}">add app</a></span>
     {% if client_apps %}
         {% for app in client_apps %}
         <ul>
@@ -52,7 +52,7 @@
         </ul>
     </div>
     <div id="mystatements">
-        <span class="heading">Statements:</span>
+        <span class="heading">Statements:</span><span class="small-link"><a id="delstmts" href="#mystatements">delete all statements</a></span>
         <!-- content -->
     </div>
 </div>
@@ -106,6 +106,20 @@ $(document).ready(function() {
             getStmts();
         }
     });
+    $('#mystatements #delstmts').click(function(){
+        $.ajax({
+            url: "{% url lrs.views.my_statements %}",
+            type: "DELETE",
+            context: $(this),
+            success: function (data){
+                getStmts();
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            },
+            timeout : 15000
+        });
+    });
 });
 
 function stmtLink(){
@@ -148,6 +162,9 @@ function getStmts(event){
 }
 
 function uiData(data){
+    if (data['stmts'].length == 0){
+        return "<ul><li>no statements</li></ul>"
+    }
     var ret = "<ul>";
     for (var i = 0; i < data['stmts'].length; i++) {
         var stmt = data['stmts'][i];

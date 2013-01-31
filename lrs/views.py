@@ -1,5 +1,6 @@
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.conf import settings
 from django.views.decorators.http import require_http_methods, require_GET
 from django.template import RequestContext
 from django.contrib.auth import authenticate, login, logout
@@ -222,6 +223,13 @@ def me(request):
 @login_required(login_url="/XAPI/accounts/login")
 def my_statements(request):
     try:
+        if request.method == "DELETE":
+            models.statement.objects.filter(user=request.user).delete()
+            stmts = models.statement.objects.filter(user=request.user)
+            if not stmts:
+                return HttpResponse(status=204)
+            else:
+                raise Exception("unable to delete statements")
         stmt_id = request.GET.get("stmt_id", None)
         if stmt_id:
             s = models.statement.objects.get(Q(statement_id=stmt_id), Q(user=request.user))
@@ -239,7 +247,7 @@ def my_statements(request):
                 d['object'] = stmtobj.get_a_name()
                 slist.append(d)
             
-            paginator = Paginator(slist, 2)
+            paginator = Paginator(slist, settings.STMTS_PER_PAGE)
 
             page_no = request.GET.get('page', 1)
             try:

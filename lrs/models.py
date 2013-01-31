@@ -1,5 +1,6 @@
 from django.db import models
 from django.db import transaction
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
@@ -185,8 +186,8 @@ class SystemAction(models.Model):
         return "[%s(%s)] %s -- by: %s" % (self.get_level_display(),self.level, self.message, self.content_object)
 
     def days_til_del(self):
-        weeklater = self.timestamp + dt.timedelta(days=7)
-        days = (weeklater - datetime.utcnow().replace(tzinfo = pytz.utc)).days
+        deleteday = self.timestamp + dt.timedelta(days=settings.DAYS_TO_LOG_DELETE)
+        days = (deleteday - datetime.utcnow().replace(tzinfo = pytz.utc)).days
         if days <= 0:
             days = 0
         return days

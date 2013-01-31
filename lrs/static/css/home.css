@@ -161,6 +161,11 @@ div
   border-top: 3px solid #1a82f7;
 }
 
+.small-link
+{
+  font-size: 85%;
+}
+
 #clientapps
 {
   font-size: .75em;
