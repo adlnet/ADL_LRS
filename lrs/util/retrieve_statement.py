@@ -4,6 +4,7 @@ from lrs.objects import Agent, Statement
 from datetime import datetime
 from django.conf import settings
 from django.core.paginator import Paginator
+from lrs.exceptions import BadRequest
 import bencode
 import pytz
 import hashlib
@@ -31,7 +32,10 @@ def convert_to_dict(incoming_data):
     try:
         data = json.loads(incoming_data)
     except Exception, e:
-        data = ast.literal_eval(incoming_data)
+        try:
+            data = ast.literal_eval(incoming_data)
+        except Exception, e:
+            raise BadRequest("JSON not found, expecting JSON for endpoint and received string instead")
     return data
 
 def parse_incoming_object(objectData, args):
@@ -206,9 +210,10 @@ def complex_get(req_dict):
         stored_param = 'stored'
     else:
         stored_param = '-stored'        
-    
+
     stmt_list = retrieve_stmts_from_db(the_dict, limit, stored_param, args)
     full_stmt_list = []
+
     # For each stmt convert to our Statement class and retrieve all json
     for stmt in stmt_list:
         full_stmt_list.append(stmt.object_return(sparse, language))

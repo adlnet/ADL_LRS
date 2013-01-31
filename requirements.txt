@@ -14,3 +14,4 @@ wsgiref==0.1.2
 lxml==2.3.4
 bencode==1.0
 oauth2==1.5.170
+psycopg2

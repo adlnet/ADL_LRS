@@ -116,12 +116,13 @@ class AgentModelsTests(TestCase):
         self.assertIn('agent2', mems)
         gr_dict = g.get_agent_json()
         self.assertEquals(gr_dict['objectType'],'Group')
-        self.assertEquals(gr_dict['member'][0]['objectType'],'Agent')
-        self.assertEquals(gr_dict['member'][1]['objectType'],'Agent')
-        self.assertEquals(gr_dict['member'][0]['name'],'agent1')
-        self.assertEquals(gr_dict['member'][1]['name'],'agent2')
-        self.assertEquals(gr_dict['member'][0]['mbox'],'mailto:agent1@example.com')
-        self.assertEquals(gr_dict['member'][1]['mbox'],'mailto:agent2@example.com')
+        
+        for member in gr_dict['member']:
+            self.assertEquals(member['objectType'], 'Agent')
+            if member['name'] == 'agent1':
+                self.assertEquals(member['mbox'], 'mailto:agent1@example.com')
+            elif member['name'] == 'agent2':
+                self.assertEquals(member['mbox'], 'mailto:agent2@example.com')
 
     def test_group_from_agent_object(self):
         ot = "Group"
