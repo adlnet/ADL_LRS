@@ -173,6 +173,11 @@ div
   margin-bottom: 1em;
 }
 
+#clientapps .small-link
+{
+  display: block;
+}
+
 #clientapps ul
 {
   display: inline-block;
