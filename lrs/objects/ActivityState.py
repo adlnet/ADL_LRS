@@ -1,7 +1,7 @@
 from lrs import models
 from lrs.objects.Agent import Agent
 from lrs.exceptions import IDNotFoundError #, Forbidden
-from lrs.util import etag, get_user_from_auth, log_message
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
 from django.db import transaction
@@ -87,6 +87,7 @@ class ActivityState():
         except models.activity_state.DoesNotExist:
             err_msg = 'There is no activity state associated with the id: %s' % self.stateId
             log_message(self.log_dict, err_msg, __name__, self.get.__name__, True)
+            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
 
     def get_set(self,auth,**kwargs):
@@ -109,6 +110,7 @@ class ActivityState():
         except models.activity_state.DoesNotExist:
             err_msg = 'There is no activity state associated with the ID: %s' % self.stateId
             log_message(self.log_dict, err_msg, __name__, self.get_ids.__name__, True)
+            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
         if self.since:
             state_set = state_set.filter(updated__gte=self.since)
