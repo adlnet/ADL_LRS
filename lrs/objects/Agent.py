@@ -2,7 +2,7 @@ import json
 import datetime
 from lrs.models import agent, group, agent_profile
 from lrs.exceptions import IDNotFoundError
-from lrs.util import etag, get_user_from_auth, log_message
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 from django.core.files.base import ContentFile
 from django.db import transaction
 import pdb
@@ -44,6 +44,7 @@ class Agent():
             except:
                 err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
                 log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
+                update_parent_log_status(self.log_dict, 404)
                 raise IDNotFoundError(err_msg) 
         
     def put_profile(self, request_dict):
@@ -76,7 +77,8 @@ class Agent():
             return self.agent.agent_profile_set.get(profileId=profileId)
         except:
             err_msg = 'There is no profile associated with the id: %s' % profileId
-            log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)            
+            log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)
+            update_parent_log_status(self.log_dict, 404)            
             raise IDNotFoundError(err_msg)
 
     def get_profile_ids(self, since=None):
@@ -90,7 +92,8 @@ class Agent():
                 profs = self.agent.agent_profile_set.filter(update__gte=since_dt)
             except:
                 err_msg = 'There are no profiles associated with the id: %s' % profileId
-                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True)            
+                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
+                update_parent_log_status(self.log_dict, 404)          
                 raise IDNotFoundError(err_msg) 
 
             ids = [p.profileId for p in profs]

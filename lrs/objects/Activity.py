@@ -3,7 +3,7 @@ import urllib2
 import datetime
 from StringIO import StringIO
 from lrs import models, exceptions
-from lrs.util import log_message
+from lrs.util import log_message, update_parent_log_status
 from lxml import etree
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -54,7 +54,8 @@ class Activity():
                 params = ast.literal_eval(data)
             except Exception, e:
                 err_msg = "Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))
-                log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True)                
+                log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)               
                 raise exceptions.ParamError(err_msg) 
         return params
 
@@ -84,7 +85,8 @@ class Activity():
                 self.activity.delete()
                 self.activity = None
                 err_msg = "The activity id resolved to invalid activity description"
-                log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True)                     
+                log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)                    
                 raise exceptions.ParamError(err_msg)
 
         #Parse XML, create dictionary with the values from the XML doc
@@ -111,7 +113,8 @@ class Activity():
                 act_def['name'][lang] = element.text
         else:
             err_msg = "XML is missing name"
-            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)                                 
+            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)                                
             raise exceptions.ParamError(err_msg)
             
         #Parse the description (required)    
@@ -124,6 +127,7 @@ class Activity():
         else:
             err_msg = "XML is missing description"
             log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
             
         #Parse the interactionType (required)
@@ -131,7 +135,8 @@ class Activity():
             act_def['interactionType'] = root.xpath('//tc:activities/tc:activity/tc:interactionType/text()', namespaces=ns)[0]
         else:
             err_msg = "XML is missing interactionType"
-            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)            
+            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)  
+            update_parent_log_status(self.log_dict, 400)          
             raise exceptions.ParamError(err_msg)
 
         #Parse the type (required)
@@ -139,7 +144,8 @@ class Activity():
             act_def['type'] = root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]
         else:
             err_msg = "XML is missing type"
-            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)            
+            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
 
         #Parse extensions if any
@@ -218,6 +224,7 @@ class Activity():
             except KeyError:
                 err_msg = "Activity definition has no name attribute"
                 log_message(self.log_dict, err_msg, __name__, self.update_activity_name_and_description.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
             for new_name_lang_map in the_names.items():
                 # If there is already an entry in the same language
@@ -240,6 +247,7 @@ class Activity():
             except KeyError:
                 err_msg = "Activity definition has no description attribute"
                 log_message(self.log_dict, err_msg, __name__, self.update_activity_name_and_description.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError()
             for new_desc_lang_map in the_descriptions.items():
                 # If there is already an entry in the same language
@@ -262,7 +270,8 @@ class Activity():
             activity_id = the_object['id']
         except KeyError:
             err_msg = "No id provided, must provide 'id' field"
-            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)           
+            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)          
             raise exceptions.ParamError(err_msg)
 
         self.activity, act_created = models.activity.objects.get_or_create(activity_id=activity_id)
@@ -306,7 +315,8 @@ class Activity():
                         self.activity.delete()
                         self.activity = None
                     err_msg = str(e)    
-                    log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True)                    
+                    log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True) 
+                    update_parent_log_status(self.log_dict, 400)                   
                     raise exceptions.ParamError(err_msg)
             else:
                 #Type is not a link - it can be allowed to not resolve and will just return an empty dictionary    
@@ -316,8 +326,9 @@ class Activity():
             if act_created:
                 self.activity.delete()
                 self.activity = None
-                err_msg = "Activity definition type is missing or malformed"
-                log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True)
+            err_msg = "Activity definition type is missing or malformed"
+            log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
         
         #If the returned data is not empty, it overrides any JSON data sent in
@@ -343,8 +354,9 @@ class Activity():
             if act_created:
                 self.activity.delete()
                 self.activity = None
-                err_msg = "Activity definition interactionType not valid"
-                log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+            err_msg = "Activity definition interactionType not valid"
+            log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
 
         #Must have correctResponsesPattern if they have a valid interactionType
@@ -354,8 +366,9 @@ class Activity():
             if act_created:
                 self.activity.delete()
                 self.activity = None   
-                err_msg = "Activity definition missing correctResponsesPattern"
-                log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+            err_msg = "Activity definition missing correctResponsesPattern"
+            log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)    
 
         #Multiple choice and sequencing must have choices
@@ -367,8 +380,9 @@ class Activity():
                     if act_created:
                         self.activity.delete()
                         self.activity = None
-                        err_msg = "Activity definition missing choices"
-                        log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                    err_msg = "Activity definition missing choices"
+                    log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                    update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)
                 interaction_flag = 'choices' 
 
@@ -381,8 +395,9 @@ class Activity():
                 if act_created:
                     self.activity.delete()
                     self.activity = None
-                    err_msg = "Activity definition missing source/target for matching"
-                    log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                err_msg = "Activity definition missing source/target for matching"
+                log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
             interaction_flag = 'source'
 
@@ -394,8 +409,9 @@ class Activity():
                 if act_created:
                     self.activity.delete()
                     self.activity = None
-                    err_msg = "Activity definition missing steps for performance"
-                    log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                err_msg = "Activity definition missing steps for performance"
+                log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)    
             interaction_flag = 'steps'
 
@@ -407,8 +423,9 @@ class Activity():
                 if act_created:
                     self.activity.delete()
                     self.activity = None
-                    err_msg = "Activity definition missing scale for likert"
-                    log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                err_msg = "Activity definition missing scale for likert"
+                log_message(self.log_dict, err_msg, __name__, self.validate_cmi_interaction.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
             interaction_flag = 'scale'
         return interaction_flag
@@ -421,6 +438,7 @@ class Activity():
         if not act_created and (self.activity.authoritative is not None and self.activity.authoritative != self.auth):
             err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
             log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+            update_parent_log_status(self.log_dict, 403)
             raise exceptions.Forbidden(err_msg)
 
         #Check if all activity definition required fields are present - deletes existing activity model
@@ -430,8 +448,9 @@ class Activity():
                 if act_created:
                     self.activity.delete()
                     self.activity = None
-                    err_msg = "Activity definition error with key: %s" % k
-                    log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+                err_msg = "Activity definition error with key: %s" % k
+                log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
 
         #If the type is cmi.interaction, have to check interactionType
@@ -448,6 +467,7 @@ class Activity():
             else:
                 err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
                 log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+                update_parent_log_status(self.log_dict, 403)
                 raise exceptions.Forbidden(err_msg)
         else:
             # Save activity definition name and description
@@ -460,6 +480,7 @@ class Activity():
                 else:
                     err_msg = "Activity with id %s has a name that is not a language map" % self.activity.activity_id
                     log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+                    update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)
 
             for desc_lang_map in act_def['description'].items():
@@ -470,7 +491,8 @@ class Activity():
                     d.save()
                 else:
                     err_msg = "Activity with id %s has a description that is not a language map" % self.activity.activity_id
-                    log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)                    
+                    log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True) 
+                    update_parent_log_status(self.log_dict, 400)                   
                     raise exceptions.ParamError(err_msg)
         
         #If there is a correctResponsesPattern then save the pattern
@@ -504,7 +526,8 @@ class Activity():
                     else:
                         choice.delete()
                         err_msg = "Choice description must be a language map"
-                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True)                    
+                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True)  
+                        update_parent_log_status(self.log_dict, 400)                  
                         raise exceptions.ParamError(err_msg)
 
         elif interactionFlag == 'scale':
@@ -519,7 +542,8 @@ class Activity():
                     else:
                         scale.delete()
                         err_msg = "Scale description must be a language map"
-                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True)                    
+                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True) 
+                        update_parent_log_status(self.log_dict, 400)                   
                         raise exceptions.ParamError(err_msg)
 
         elif interactionFlag == 'steps':
@@ -534,7 +558,8 @@ class Activity():
                     else:
                         step.delete()
                         err_msg = "Step description must be a language map"
-                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True)                    
+                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True) 
+                        update_parent_log_status(self.log_dict, 400)                   
                         raise exceptions.ParamError(err_msg)  
 
         elif interactionFlag == 'source':
@@ -549,7 +574,8 @@ class Activity():
                     else:
                         source.delete()
                         err_msg = "Source description must be a language map"
-                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True)                    
+                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True) 
+                        update_parent_log_status(self.log_dict, 400)                   
                         raise exceptions.ParamError(err_msg)
 
             for t in act_def['target']:
@@ -563,7 +589,8 @@ class Activity():
                     else:
                         target.delete()
                         err_msg = "Target description must be a language map"
-                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True)                    
+                        log_message(self.log_dict, err_msg, __name__, self.populate_correctResponsesPattern.__name__, True) 
+                        update_parent_log_status(self.log_dict, 400)                   
                         raise exceptions.ParamError(err_msg)
 
     def populate_extensions(self, act_def):
