@@ -1,6 +1,6 @@
 from lrs import models
 from lrs.exceptions import IDNotFoundError
-from lrs.util import etag, get_user_from_auth, log_message
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 import json
@@ -30,6 +30,7 @@ class ActivityProfile():
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % request_dict['activityId']
             log_message(self.log_dict, err_msg, __name__, self.put_profile.__name__, True)
+            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
 
         user = get_user_from_auth(request_dict.get('auth', None))
@@ -75,6 +76,7 @@ class ActivityProfile():
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % activityId
             log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)
+            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
 
         #Retrieve the profile with the given profileId and activity
@@ -83,6 +85,7 @@ class ActivityProfile():
         except models.activity_profile.DoesNotExist:
             err_msg = 'There is no profile associated with the id: %s' % profileId
             log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)
+            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
 
 
@@ -95,6 +98,7 @@ class ActivityProfile():
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % activityId
             log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True)
+            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
 
         #If there is a since param return all profileIds since then
