@@ -19,17 +19,20 @@ def get_user_from_auth(auth):
     return user
 
 def log_info_processing(log_dict, method, func_name):
-    log_dict['message'] = 'Processing %s data in %s' % (method, func_name)
-    logger.info(msg=log_dict)
+    if log_dict:
+        log_dict['message'] = 'Processing %s data in %s' % (method, func_name)
+        logger.info(msg=log_dict)
 
 def log_exception(log_dict, err_msg, func_name):
-    log_dict['message'] = err_msg + " in %s" % func_name
-    logger.exception(msg=log_dict)
+    if log_dict:
+        log_dict['message'] = err_msg + " in %s" % func_name
+        logger.exception(msg=log_dict)
 
 def update_parent_log_status(log_dict, status):
-    parent_action = SystemAction.objects.get(id=log_dict['parent_id'])
-    parent_action.status_code = status
-    parent_action.save()
+    if log_dict:
+        parent_action = SystemAction.objects.get(id=log_dict['parent_id'])
+        parent_action.status_code = status
+        parent_action.save()
 
 def log_message(log_dict, msg, name, func_name, err=False):
     if log_dict:
