@@ -404,7 +404,7 @@ class Statement():
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True,
                     log_dict=self.log_dict).agent
             elif statementObjectData['objectType'].lower() == 'substatement':
-                sub_statement = SubStatement(statementObjectData, self.auth)
+                sub_statement = SubStatement(statementObjectData, self.auth, self.log_dict)
                 args['stmt_object'] = sub_statement.model_object
             elif statementObjectData['objectType'].lower() == 'statementref':
                 try:
@@ -470,7 +470,8 @@ class Statement():
 
 class SubStatement(Statement):
     @transaction.commit_on_success
-    def __init__(self, data, auth):
+    def __init__(self, data, auth, log_dict=None):
+        self.log_dict = log_dict
         unallowed_fields = ['id', 'stored', 'authority']
         # Raise error if an unallowed field is present
         for field in unallowed_fields:
