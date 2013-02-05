@@ -3,7 +3,7 @@ import types
 import uuid
 import datetime
 from lrs import models, exceptions
-from lrs.util import get_user_from_auth, log_message
+from lrs.util import get_user_from_auth, log_message, update_parent_log_status
 from Agent import Agent
 from django.core.exceptions import FieldError
 from django.db import transaction
@@ -51,6 +51,7 @@ class Statement():
             except Exception, e:
                 err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
                 log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg) 
         return params
 
@@ -66,6 +67,7 @@ class Statement():
         except Exception:
             err_msg = "Statement with ID %s does not exist" % str(stmt_id)
             log_message(self.log_dict, err_msg, __name__, self.voidStatement.__name__, True)
+            update_parent_log_status(self.log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
         
         # Check if it is already voided 
@@ -80,6 +82,7 @@ class Statement():
         else:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % str_id
             log_message(self.log_dict, err_msg, __name__, self.voidStatement.__name__, True)
+            update_parent_log_status(self.log_dict, 403)
             raise exceptions.Forbidden(err_msg)
 
     def validateVerbResult(self,result, verb, obj_data):
@@ -92,24 +95,28 @@ class Statement():
                     err_msg = "Completion must be True if using the verb %s" % verb
                     log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)
                     #Throw exceptions b/c those verbs must have true completion
+                    update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)
 
         if verb == 'mastered' and result['success'] == False:
             err_msg = "Result success must be True if verb is %s" % verb
             log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)
             #Throw exception b/c mastered and success contradict each other or completion is false
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
 
         if verb == 'passed' and result['success'] == False:
             err_msg = "Result success must be True if verb is %s" % verb
             log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)            
             #Throw exception b/c passed and success contradict each other or completion is false
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
 
         if verb == 'failed' and result['success'] == True:
             err_msg = "Result success must be False if verb is %s" % verb
             log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)
             #Throw exception b/c failed and success contradict each other or completion is false
+            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
 
     def validateScoreResult(self, score_data):
@@ -296,7 +303,8 @@ class Statement():
         # Must have an ID
         if 'id' not in incoming_verb:
             err_msg = "ID field is not included in statement verb"
-            log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True)        
+            log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         # Get or create the verb
@@ -322,7 +330,8 @@ class Statement():
                         models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
                 else:
                     err_msg = "Verb display for verb %s is not a correct language map" % incoming_verb['id']
-                    log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True)        
+                    log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
+                    update_parent_log_status(self.log_dict, 400)       
                     raise exceptions.ParamError(err_msg)
             verb_object.save()
 
@@ -338,7 +347,8 @@ class Statement():
             raw_verb = stmt_data['verb']
         except KeyError:
             err_msg = "No verb provided, must provide 'verb' field"
-            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)        
+            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         # Must include object - set statement object
@@ -346,7 +356,8 @@ class Statement():
             statementObjectData = stmt_data['object']
         except KeyError:
             err_msg = "No object provided, must provide 'object' field"
-            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)        
+            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
         
         # Must include actor - set statement actor
@@ -354,7 +365,8 @@ class Statement():
             raw_actor = stmt_data['actor']
         except KeyError:
             err_msg = "No actor provided, must provide 'actor' field"
-            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)        
+            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         args['verb'] = self.build_verb_object(raw_verb)
@@ -363,7 +375,8 @@ class Statement():
         if 'voided' in stmt_data:
             if stmt_data['voided']:
                 err_msg = "Cannot have voided statement unless it is being voided by another statement"
-                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)        
+                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)  
+                update_parent_log_status(self.log_dict, 403)      
                 raise exceptions.Forbidden(err_msg)
         
         # If not specified, the object is assumed to be an activity
@@ -379,7 +392,8 @@ class Statement():
                 args['stmt_object'] = stmt_ref
             else:
                 err_msg = "There was a problem voiding the Statement"
-                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)        
+                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)       
                 raise exceptions.ParamError(err_msg)
         else:
             # Check objectType, get object based on type
@@ -390,7 +404,7 @@ class Statement():
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True,
                     log_dict=self.log_dict).agent
             elif statementObjectData['objectType'].lower() == 'substatement':
-                sub_statement = SubStatement(statementObjectData, self.auth)
+                sub_statement = SubStatement(statementObjectData, self.auth, self.log_dict)
                 args['stmt_object'] = sub_statement.model_object
             elif statementObjectData['objectType'].lower() == 'statementref':
                 try:
@@ -398,6 +412,7 @@ class Statement():
                 except models.statement.DoesNotExist:
                     err_msg = "No statement with ID %s was found" % statementObjectData['id']
                     log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                    update_parent_log_status(self.log_dict, 404)
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
                     stmt_ref = models.StatementRef(ref_id=statementObjectData['id'])
@@ -437,7 +452,8 @@ class Statement():
                 args['statement_id'] = stmt_data['statement_id']
             else:
                 err_msg = "The Statement ID %s already exists in the system" % stmt_data['statement_id']
-                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)                   
+                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                update_parent_log_status(self.log_dict, 409)                   
                 raise exceptions.ParamConflict(err_msg)
         else:
             #Create uuid for ID
@@ -454,15 +470,18 @@ class Statement():
 
 class SubStatement(Statement):
     @transaction.commit_on_success
-    def __init__(self, data, auth):
+    def __init__(self, data, auth, log_dict=None):
+        self.log_dict = log_dict
         unallowed_fields = ['id', 'stored', 'authority']
         # Raise error if an unallowed field is present
         for field in unallowed_fields:
             if field in data:
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError("%s is not allowed in a SubStatement.")
         # Make sure object isn't another substatement
         if 'objectType' in data['object']:
             if data['object']['objectType'].lower() == 'substatement':
+                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError("SubStatements cannot be nested inside of other SubStatements")
 
         Statement.__init__(self, data, auth)
