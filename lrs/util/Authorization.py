@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.http import HttpResponse
 from django.contrib.auth import authenticate
-from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest
+from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest, Forbidden
 from lrs import models
 import base64
 from functools import wraps
@@ -14,15 +14,14 @@ from oauth_provider.utils import initialize_server_request, send_oauth_error
 from oauth_provider.consts import OAUTH_PARAMETERS_NAMES
 from oauth_provider.consts import CONSUMER_STATES, ACCEPTED
 
+# A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
-    """
-    A decorator, that can be used to authenticate some requests at the site.
-    """
     @wraps(func)
     def inner(request, *args, **kwargs):
         # Note: The cases involving OAUTH_ENABLED are here if OAUTH_ENABLED is switched from true to false
         # after a client has performed the handshake. (Not likely to happen, but could) 
         lrs_auth = request['lrs_auth']
+
         # There is an http lrs_auth request and http auth is enabled
         if lrs_auth == 'http' and settings.HTTP_AUTH_ENABLED:
             http_auth_helper(request)
@@ -75,34 +74,101 @@ def oauth_helper(request):
             if consumer.status != ACCEPTED:
                 raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
 
+            method = request['method']
+            endpoint = request['endpoint']
+            
+            authorized = handle_everything(token, method, endpoint, request)
+            if not authorized:
+                raise Forbidden("Incorrect permissions to %s at %s" % (str(method), str(endpoint)))
+
             # All is the only scope being supported - need to correct the user/auth_id workflow
-            if token.resource.name.lower() == 'all':
-                user = token.user
-                user_name = user.username
-                user_email = user.email
-                consumer = token.consumer                
-                members = [
-                            {
-                                "account":{
-                                            "name":consumer.key,
-                                            "homePage":"/XAPI/OAuth/token/"
-                                },
-                                "objectType": "Agent"
+            user = token.user
+            user_name = user.username
+            user_email = user.email
+            consumer = token.consumer                
+            members = [
+                        {
+                            "account":{
+                                        "name":consumer.key,
+                                        "homePage":"/XAPI/OAuth/token/"
                             },
-                            {
-                                "name":user_name,
-                                "mbox":user_email,
-                                "objectType": "Agent"
-                            }
-                ]
-                kwargs = {"objectType":"Group", "member":members}
-                oauth_group, created = models.group.objects.gen(**kwargs)
-                oauth_group.save()
-                request['auth'] = oauth_group
-            else:
-                raise BadRequest("Only the 'all' scope is supported.")
+                            "objectType": "Agent"
+                        },
+                        {
+                            "name":user_name,
+                            "mbox":user_email,
+                            "objectType": "Agent"
+                        }
+            ]
+            kwargs = {"objectType":"Group", "member":members}
+            oauth_group, created = models.group.objects.gen(**kwargs)
+            oauth_group.save()
+            request['auth'] = oauth_group
     else:
         raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
+
+def handle_everything(token, method, endpoint, request):
+    resource = token.resource
+    urls = resource.get_urls()
+    scope = resource.name
+    if scope == 'all':
+        return True
+    elif scope == 'all/read':
+        if method == 'GET':
+            return True
+        else:
+            return False
+    elif scope == 'statements/read':
+        if method != 'GET':
+            return False
+        else:
+            if endpoint in urls:
+                return True
+            else:
+                return False
+    elif scope == 'statements/write':
+        if method == 'GET':
+            return False
+        else:
+            if endpoint in urls:
+                return True
+            else:
+                return False
+    elif scope == 'state': 
+        if endpoint in urls:
+            # check for actors associated
+            if request['body']['agent'] != token.user.username:
+                return False
+            else:
+                return True
+        else:
+            return False
+    elif scope == 'profile':
+        if endpoint in urls:
+            # check for actors associated
+            if request['body']['agent'] != token.user.username:
+                return False
+            else:
+                return True        
+        else:
+            return False
+    elif scope == 'statements/read/mine':
+        if method == 'GET':
+            if endpoint in urls:
+                # check for only mine
+                request['mine_read_only'] = True
+                return True                
+            else:
+                return False
+        else:
+            return False
+    elif scope == 'define':
+        if endpoint in urls:
+            # check for actors associated
+            pass    
+        else:
+            return False
+
 
 def is_valid_request(request):
     """

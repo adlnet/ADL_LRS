@@ -10,7 +10,7 @@ import lrs.views
 
 def parse(request):
     r_dict = {}
-    
+
     # Build headers from request in request dict
     r_dict = get_headers(request.META, r_dict)
     
@@ -23,6 +23,13 @@ def parse(request):
             r_dict['query_string'] = request.META.get('QUERY_STRING', '')
             r_dict['server_name'] = request.META.get('SERVER_NAME', '')
             r_dict['lrs_auth'] = 'oauth'
+
+            # Used for OAuth scope
+            endpoint = request.path[5:]
+            # Since we accept with or without / on end
+            if endpoint.endswith("/"):
+                endpoint = endpoint[:-1]
+            r_dict['endpoint'] = endpoint
         else:
             r_dict['lrs_auth'] = 'http'
     elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
@@ -41,8 +48,13 @@ def parse(request):
 
     r_dict.update(request.GET.dict())
 
+    # A 'POST' can actually be a GET
     if 'method' not in r_dict:
-        r_dict['method'] = request.method
+        if request.method == "POST" and "application/json" not in r_dict['CONTENT_TYPE']:
+            r_dict['method'] = 'GET'
+        else:
+            r_dict['method'] = request.method
+
     return r_dict
 
 def parse_body(r, request):

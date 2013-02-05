@@ -42,15 +42,18 @@ class Nonce(models.Model):
 
 
 class Resource(models.Model):
-    name = models.CharField(max_length=20)
-    url = models.TextField(max_length=MAX_URL_LENGTH)
+    name = models.CharField(max_length=25)
+    url = models.TextField()
     is_readonly = models.BooleanField(default=True)
-    
+    is_mineonly = models.BooleanField(default=False)
+
     objects = ResourceManager()
 
     def __unicode__(self):
         return u"Resource %s with url %s" % (self.name, self.url)
 
+    def get_urls(self):
+        return [x for x in str(self.url).split(",")]
 
 class Consumer(models.Model):
     name = models.CharField(max_length=50)

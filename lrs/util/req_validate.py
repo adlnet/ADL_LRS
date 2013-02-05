@@ -54,9 +54,6 @@ def log_parent_action(method, endpoint):
 @auth
 @log_parent_action(method='POST', endpoint='statements')
 def statements_post(r_dict):
-    # Could be a 'GET'
-    if "application/json" not in r_dict['CONTENT_TYPE']:
-        r_dict['method'] = 'GET'
     return r_dict
 
 @auth
