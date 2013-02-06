@@ -49,6 +49,8 @@ def initialize_server_request(request):
         # so an ugly test is made here, if you find a better solution...
         parameters = {}
         
+        print "in %s auth_header: %s" % (__name__, auth_header)
+
         if request.method == "POST" and \
             (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
                 or request.META.get('SERVER_NAME') == 'testserver'):

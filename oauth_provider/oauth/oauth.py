@@ -270,18 +270,37 @@ class OAuthRequest(object):
             parameters = {}
 
         # Headers - wasn't sending in oauth 'headers' in the header - had to change process for obtaining them
+        # if headers and 'Authorization' in headers:
+        #     try:
+        #         auth_header = ast.literal_eval(headers['Authorization'])
+        #     except Exception, e:
+        #         auth_header = headers['Authorization']
+        #     try:
+        #         # Get the parameters from the header.
+        #         import pprint
+        #         print "from %s" % __name__
+        #         pprint.pprint(auth_header)
+        #         header_params = OAuthRequest._split_header(auth_header)
+        #         parameters.update(header_params)
+        #     except:
+        #         raise OAuthError('Unable to parse OAuth parameters from '
+        #             'Authorization header.')
+        # Headers
         if headers and 'Authorization' in headers:
-            try:
-                auth_header = ast.literal_eval(headers['Authorization'])
-            except Exception, e:
-                auth_header = headers['Authorization']
-            try:
-                # Get the parameters from the header.
-                header_params = OAuthRequest._split_header(auth_header)
-                parameters.update(header_params)
-            except:
-                raise OAuthError('Unable to parse OAuth parameters from '
-                    'Authorization header.')
+            auth_header = headers['Authorization']
+            import pprint
+            print "from %s" % __name__
+            pprint.pprint(auth_header)
+            # Check that the authorization header is OAuth.
+            if auth_header[:6] == 'OAuth ':
+                auth_header = auth_header[6:]
+                try:
+                    # Get the parameters from the header.
+                    header_params = OAuthRequest._split_header(auth_header)
+                    parameters.update(header_params)
+                except:
+                    raise OAuthError('Unable to parse OAuth parameters from '
+                        'Authorization header.')
 
         # Maybe should be setting these in utils initialize_server_request instead
         # GET or POST query string.
@@ -352,14 +371,27 @@ class OAuthRequest(object):
     def _split_header(header):
         """Turn Authorization: header into parameters. Changed way to retrieve headers b/c 
         wasn't sending in oauth 'headers' in the header in from_request"""
+        # params = {}
+        # for k, v in header.items():
+        #     # Ignore realm parameter.
+        #     if not 'realm' in k:
+        #         # Remove whitespace.
+        #         v = v.strip()
+        #         # Remove quotes and unescape the value.
+        #         params[k] = urllib.unquote(v.strip('\"'))        
+        # return params
         params = {}
-        for k, v in header.items():
+        parts = header.split(',')
+        for param in parts:
             # Ignore realm parameter.
-            if not 'realm' in k:
-                # Remove whitespace.
-                v = v.strip()
-                # Remove quotes and unescape the value.
-                params[k] = urllib.unquote(v.strip('\"'))        
+            if param.find('realm') > -1:
+                continue
+            # Remove whitespace.
+            param = param.strip()
+            # Split key-value.
+            param_parts = param.split('=', 1)
+            # Remove quotes and unescape the value.
+            params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
         return params
     _split_header = staticmethod(_split_header)
 
