@@ -474,14 +474,8 @@ class OAuthTests(TestCase):
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(put.status_code, 204)
 
-        
-
-
-
-
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state',
             nonce='getaccessnonce')
-        pdb.set_trace()
         oauth_header_resource_params['oauth_nonce'] = 'getresourcenonce'
         oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params)
@@ -489,10 +483,8 @@ class OAuthTests(TestCase):
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params['oauth_signature'] = signature
         
-        pdb.set_trace()
-        get = self.clientself.get(path, data=testparams, content_type="application/json",
+        get = self.client.get(path, data=testparams, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
-        pdb.set_trace()
         self.assertEqual(get.status_code, 200)
         state_str = '%s' % teststate
         self.assertEqual(get.content, state_str)
