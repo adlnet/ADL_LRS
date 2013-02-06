@@ -25,7 +25,6 @@ class CheckOAuth(object):
     is properly bound to its instance.
     """
     def __init__(self, request):
-        # pdb.set_trace()
         self.request = request
         self.view_func = view_func
         self.resource_name = resource_name
@@ -35,13 +34,12 @@ class CheckOAuth(object):
         return CheckOAuth(request)
     
     def __call__(self, request):
-        pdb.set_trace()
         if self.is_valid_request(request):
             try:
                 consumer, token, parameters = self.validate_token(request)
             except OAuthError, e:
                 return send_oauth_error(e)
-
+            # OAuth change
             # Not sure how self.resource_name was being passed...the model class should handle this later 
             # if self.resource_name and token.resource.name != self.resource_name:
             #     return send_oauth_error(OAuthError(_('You are not allowed to access this resource.')))
@@ -51,9 +49,9 @@ class CheckOAuth(object):
                 request['user'] = token.user
         else:
             return send_oauth_error(OAuthError(_('Invalid request parameters.')))
+            
     @staticmethod
     def handle_request(self, request):
-        # pdb.set_trace()
         if self.is_valid_request(request):
             try:
                 consumer, token, parameters = self.validate_token(request)

@@ -11,6 +11,7 @@ from django.conf import settings
 import uuid
 import json
 import urllib
+import hashlib
 
 class OAuthTests(TestCase):
     def setUp(self):
@@ -34,14 +35,17 @@ class OAuthTests(TestCase):
         self.consumer = models.Consumer.objects.get(name=self.name)
         self.client.logout()
 
-    def perform_oauth_handshake(self, scope=True, scope_type=None):
+    def perform_oauth_handshake(self, scope=True, scope_type=None, nonce=None):
         # TEST REQUEST TOKEN
+        oauth_nonce = 'requestnonce'
+        if nonce:
+            oauth_nonce = nonce
         oauth_header_request_params = {
             'oauth_consumer_key': self.consumer.key,
             'oauth_signature_method': 'PLAINTEXT',
             'oauth_signature':'%s&' % self.consumer.secret,
             'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': 'requestnonce',
+            'oauth_nonce': oauth_nonce,
             'oauth_version': '1.0',
             'oauth_callback':'http://example.com/request_token_ready'
         }
@@ -62,7 +66,6 @@ class OAuthTests(TestCase):
             path = "/XAPI/OAuth/initiate"
 
         request_resp = self.client.get(path, Authorization=oauth_header_request_params, X_Experience_API_Version="0.95")        
-        # pdb.set_trace()
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret=', request_resp.content)
         self.assertIn('oauth_token=', request_resp.content)
@@ -76,9 +79,10 @@ class OAuthTests(TestCase):
         # Test AUTHORIZE
         oauth_auth_params = {'oauth_token': token.key}
         auth_resp = self.client.get("/XAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
-        self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login/?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
-        self.assertIn(token.key, auth_resp['Location'])     
+        # pdb.set_trace()
+        # self.assertEqual(auth_resp.status_code, 302)
+        # self.assertIn('http://testserver/accounts/login/?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        # self.assertIn(token.key, auth_resp['Location'])     
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
@@ -227,10 +231,10 @@ class OAuthTests(TestCase):
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'jane')
 
-        # # Test same Nonce
-        # access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
-        # self.assertEqual(access_resp.status_code, 401)
-        # self.assertEqual(access_resp.content, 'Nonce already used: accessnonce')
+        # Test same Nonce
+        access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
+        self.assertEqual(access_resp.status_code, 401)
+        self.assertEqual(access_resp.content, 'Nonce already used: accessnonce')
 
         # Test missing/invalid verifier
         oauth_header_access_params['oauth_nonce'] = 'yetanotheraccessnonce'
@@ -344,11 +348,10 @@ class OAuthTests(TestCase):
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params['oauth_signature'] = signature
-
-        # pdb.set_trace()        
-        resp = self.client.post('/XAPI/statements/', data=stmt, content_type="application/json",
+  
+        post = self.client.post('/XAPI/statements/', data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(post.status_code, 200)
 
     def test_stmt_simple_get(self):
         guid = str(uuid.uuid4())
@@ -389,8 +392,7 @@ class OAuthTests(TestCase):
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")        
         self.assertEqual(resp.status_code, 200)
 
-    def test_activity_state_put_wrong_agent(self):
-        # url = reverse(views.activity_state)
+    def test_activity_state_wrong_permissions_put(self):
         url = 'http://testserver/XAPI/activities/state'
         testagent = '{"name":"jane","mbox":"jane@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
@@ -399,9 +401,11 @@ class OAuthTests(TestCase):
         activity = models.activity(activity_id=activityId)
         activity.save()
 
-        testparams1 = {"stateId": stateId, "activityId": activityId, "agent": testagent}
+        testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
+        teststate = {"test":"put activity state 1","agent":"jane"}
+
         teststate1 = {"test":"put activity state 1","agent":"test"}
-        path = '%s?%s' % (url, urllib.urlencode(testparams1))
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
 
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state')
 
@@ -410,24 +414,103 @@ class OAuthTests(TestCase):
 
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
-        # oauth_header_resource_params['oauth_signature'] = signature
-
+        oauth_header_resource_params['oauth_signature'] = signature
+        # pdb.set_trace()
         put1 = self.client.put(path, data=teststate1, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
-        # pdb.set_trace()
         self.assertEqual(put1.status_code, 403)
         self.assertEqual(put1.content, 'Incorrect permissions to PUT at /activities/state')
-        
-        # self.client.delete(url, testparams1, Authorization=oauth_header_resource_params,
-        #     X_Experience_API_Version="0.95")
 
-        # teststate2 = {"test":"put activity state 1","obj":{"agent":"jane"}}
-        # pdb.set_trace()
-        # oauth_header_resource_params['oauth_nonce'] = "anotheraccessnonce"
-        # put2 = self.client.put(path, data=teststate2, content_type="application/json",
+    def test_activity_state_missing_agent_send_forbidden(self):
+        url = 'http://testserver/XAPI/activities/state'
+        testagent = '{"name":"jane","mbox":"jane@example.com"}'
+        activityId = "http://www.iana.org/domains/example/"
+        stateId = "the_state_id"
+
+        activity = models.activity(activity_id=activityId)
+        activity.save()
+
+        testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
+        teststate = {"test":"put activity state 1"}
+
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
+
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state')
+
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params)
+
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params['oauth_signature'] = signature
+        put = self.client.put(path, data=teststate, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+        self.assertEqual(put.status_code, 403)
+        self.assertEqual(put.content, 'Incorrect permissions to PUT at /activities/state')
+
+    def test_activity_state_put_get_delete(self):
+        url = 'http://testserver/XAPI/activities/state'
+        testagent = '{"name":"jane","mbox":"jane@example.com"}'
+        activityId = "http://www.iana.org/domains/example/"
+        stateId = "the_state_id"
+
+        activity = models.activity(activity_id=activityId)
+        activity.save()
+
+        testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
+        teststate = {"test":"put activity state 1","agent":"jane"}
+
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
+
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state')
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params)
+
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params['oauth_signature'] = signature
+
+        put = self.client.put(path, data=teststate, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+        self.assertEqual(put.status_code, 204)
+
+        
+
+
+
+
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state',
+            nonce='getaccessnonce')
+        pdb.set_trace()
+        oauth_header_resource_params['oauth_nonce'] = 'getresourcenonce'
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params)
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params['oauth_signature'] = signature
+        
+        pdb.set_trace()
+        get = self.clientself.get(path, data=testparams, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+        pdb.set_trace()
+        self.assertEqual(get.status_code, 200)
+        state_str = '%s' % teststate
+        self.assertEqual(get.content, state_str)
+        self.assertEqual(get['etag'], '"%s"' % hashlib.sha1(state_str).hexdigest())
+
+        # oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state',
+        #     nonce='deleteresourcenonce')
+        # oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='DELETE',
+        #     http_url=path, parameters=oauth_header_resource_params)
+        # signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        # signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        # oauth_header_resource_params['oauth_signature'] = signature
+
+        # st_delete = self.client.delete(path, data=testparams, content_type="application/json",
         #     Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
-        # pdb.set_trace()
-        # self.assertEqual(put2.status_code, 200)
+        # self.assertEqual(st_delete.status_code, 204)
+        # self.assertEqual(st_delete.content, '')
+
 
     def test_consumer_state(self):
         stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},

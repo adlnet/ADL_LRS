@@ -13,11 +13,18 @@ OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', ['plainte
 
 def initialize_server_request(request):
     """Shortcut for initialization."""
+    # OAuth change
     # Django converts Authorization header in HTTP_AUTHORIZATION
     # Warning: it doesn't happen in tests but it's useful, do not remove!
+    # auth_header = {}
+    # if 'Authorization' in request.META:
+    #     auth_header = {'Authorization': request.META['Authorization']}
+    # elif 'HTTP_AUTHORIZATION' in request.META:
+    #     auth_header =  {'Authorization': request.META['HTTP_AUTHORIZATION']}
     
     # Check to see if it's a dict if it's being called from the LRS app. The LRS app parses everything in a dict first
     # then will call this in Authorization with the request dict.
+    # OAuth change
     if type(request) == dict:
         auth_header = {}
         if 'Authorization' in request:
@@ -26,9 +33,11 @@ def initialize_server_request(request):
             auth_header =  {'Authorization': request['HTTP_AUTHORIZATION']}
 
         parameters = {}
-        # TODO-WHAT TO DO WITH THIS?
-        # if request['method'] == "POST":
-        #     parameters = ast.literal_eval(request['body'])       
+        # OAuth change
+        if request['method'] == "POST" and \
+            (request['CONTENT_TYPE'] == "application/x-www-form-urlencoded" \
+                or request['SERVER_NAME'] == 'testserver'):
+            parameters = request['parameters']
 
         oauth_request = OAuthRequest.from_request(request['method'], 
                                                   request['absolute_uri'], 
@@ -47,13 +56,12 @@ def initialize_server_request(request):
         # (See http://oauth.net/core/1.0a/#consumer_req_param).
         # But there is an issue with Django's test Client and custom content types
         # so an ugly test is made here, if you find a better solution...
-        parameters = {}
-        
+        parameters = {}        
         if request.method == "POST" and \
             (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
                 or request.META.get('SERVER_NAME') == 'testserver'):
             parameters = dict(request.REQUEST.items())
-        # pdb.set_trace() 
+
         oauth_request = OAuthRequest.from_request(request.method, 
                                                   request.build_absolute_uri(), 
                                                   headers=auth_header,
@@ -72,7 +80,7 @@ def initialize_server_request(request):
 def send_oauth_error(err=None):
     """Shortcut for sending an error."""
     # send a 401 error
-    # pdb.set_trace()
+    # OAuth change
     if isinstance(err, str):
         response = HttpResponse(err, mimetype="text/plain")
     else:

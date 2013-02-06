@@ -19,11 +19,9 @@ CONSUMER_STATES = (
     (REJECTED, _('Rejected')),
 )
 
-# PARAMETERS_NAMES = ('consumer_key', 'token', 'signature',
-#                     'signature_method', 'timestamp', 'nonce')
-
-PARAMETERS_NAMES = ('consumer_key', 'token',
+PARAMETERS_NAMES = ('consumer_key', 'token', 'signature',
                     'signature_method', 'timestamp', 'nonce')
+
 OAUTH_PARAMETERS_NAMES = ['oauth_'+s for s in PARAMETERS_NAMES]
 
 OUT_OF_BAND = 'oob'

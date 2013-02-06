@@ -373,10 +373,13 @@ class statement_object(models.Model):
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
     def gen(self, **kwargs):
-        group = kwargs.get('objectType', None) == "Group"
+        # pdb.set_trace()
+        is_group = kwargs.get('objectType', None) == "Group"
         attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
-        if not group and len(attrs) != 1:
+        if not is_group and len(attrs) != 1:
             raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
+        
+        # this creates the agent_account object and agent object to tie it too
         val = kwargs.pop('account', None)
         if val:
             if not isinstance(val, dict):
@@ -391,22 +394,26 @@ class agentmgr(models.Manager):
                 ret_agent = acc.agent
                 created = False
             except agent_account.DoesNotExist:
-                if group:
+                if is_group:
                     try: 
-                        ret_agent = self.model.objects.get(**kwargs)
-                    except self.model.DoesNotExist:
-                        ret_agent = self.model(**kwargs)
+                        ret_agent = group.objects.get(**kwargs)
+                    except group.DoesNotExist:
+                        ret_agent = group(**kwargs)
                 else:
                     try:
                         ret_agent = agent.objects.get(**kwargs)
                     except agent.DoesNotExist:
+                        # Check for name for empty oauth accounts being created
+                        if not 'name' in kwargs:
+                            kwargs['name'] = 'AccountAgent-%s' % account['name']                            
                         ret_agent = agent(**kwargs)
                 ret_agent.save()
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
                 created = True
+        # else it get's each member of a group
         else:
-            if group and 'member' in kwargs:
+            if is_group and 'member' in kwargs:
                 mem = kwargs.pop('member')
                 try:
                     members = ast.literal_eval(mem)
@@ -415,30 +422,42 @@ class agentmgr(models.Manager):
                         members = json.loads(mem)
                     except:
                         members = mem
+        # Every type (group, agent, agent_acct gets here)
         try:
             # Added in if stmts to check if should get/create group or agent object
             # Before it was creating agents as groups
-            if group:
-                ret_agent = self.get(**kwargs)
+            if is_group:
+                # pdb.set_trace()
+                ret_agent = group.objects.get(**kwargs)
             else:
                 ret_agent = agent.objects.get(**kwargs)
             created = False
-        except agent.DoesNotExist:
-            if group:
-                ret_agent = self.model(**kwargs)
-            else:
-                ret_agent = agent(**kwargs)
+        except group.DoesNotExist:    
+            ret_agent = group(**kwargs)
             ret_agent.save()
             created = True
-        if group:
+        except agent.DoesNotExist:
+            ret_agent = agent(**kwargs)
+            ret_agent.save()
+            created = True
+        # If it is a group, call this process again for each member
+        if is_group and created:
             ags = [self.gen(**a) for a in members]
             ret_agent.member.add(*(a for a, c in ags))
-        ret_agent.save()
+            # Set name of agent the group inherited from since name won't be set for OAuth
+            if not ret_agent.name:
+                namestr = 'Group-'
+                for ag in ags:
+                    name = ag[0].name
+                    namestr += '-' + name    
+                ret_agent.name = namestr
+                ret_agent.save()
+                kwargs['name'] = namestr
         return ret_agent, created
 
 class agent(statement_object):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
-    name = models.CharField(max_length=50, blank=True, null=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
     mbox = models.CharField(max_length=128, blank=True, null=True, db_index=True)
     mbox_sha1sum = models.CharField(max_length=40, blank=True, null=True, db_index=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True, db_index=True)
@@ -560,7 +579,7 @@ class agent_profile(models.Model):
 class activity(statement_object):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, null=True, default="Activity") 
-    authoritative = models.CharField(max_length=50, blank=True, null=True)
+    authoritative = models.CharField(max_length=100, blank=True, null=True)
 
     def object_return(self, sparse=False, lang=None):
         ret = {}

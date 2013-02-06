@@ -100,7 +100,7 @@ def user_authorization(request):
         return authorize_view(request, token, callback, params)
     
     # user grant access to the service
-    elif request.method == 'POST':
+    if request.method == 'POST':
         # verify the oauth flag set in previous GET
         if request.session.get('oauth', '') == token.key:
             request.session['oauth'] = ''

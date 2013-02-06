@@ -271,6 +271,7 @@ class OAuthRequest(object):
 
         # Headers - wasn't sending in oauth 'headers' in the header - had to change process for obtaining them
         if headers and 'Authorization' in headers:
+            # OAuth change
             try:
                 auth_header = ast.literal_eval(headers['Authorization'])
             except Exception, e:
@@ -335,7 +336,7 @@ class OAuthRequest(object):
             http_url=None, parameters=None):
         if not parameters:
             parameters = {}
-
+        # OAuth change
         # Maybe should be handling this in utils - initialize server request
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
@@ -353,6 +354,18 @@ class OAuthRequest(object):
         """Turn Authorization: header into parameters. Changed way to retrieve headers b/c 
         wasn't sending in oauth 'headers' in the header in from_request"""
         params = {}
+        # OAuth change
+        # parts = header.split(',')
+        # for param in parts:
+        #     # Ignore realm parameter.
+        #     if param.find('realm') > -1:
+        #         continue
+        #     # Remove whitespace.
+        #     param = param.strip()
+        #     # Split key-value.
+        #     param_parts = param.split('=', 1)
+        #     # Remove quotes and unescape the value.
+        #     params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"')        
         for k, v in header.items():
             # Ignore realm parameter.
             if not 'realm' in k:
@@ -407,7 +420,7 @@ class OAuthServer(object):
                 callback = self.get_callback(oauth_request)
             except OAuthError:
                 callback = None # 1.0, no callback specified.
-            # self._check_signature(oauth_request, consumer, None)
+            self._check_signature(oauth_request, consumer, None)
             # Fetch a new token.
             token = self.data_store.fetch_request_token(consumer, callback)
         return token
@@ -424,7 +437,7 @@ class OAuthServer(object):
             verifier = None
         # Get the request token.
         token = self._get_token(oauth_request, 'request')
-        # self._check_signature(oauth_request, consumer, token)
+        self._check_signature(oauth_request, consumer, token)
         new_token = self.data_store.fetch_access_token(consumer, token, verifier)
         return new_token
 
@@ -435,7 +448,7 @@ class OAuthServer(object):
         consumer = self._get_consumer(oauth_request)
         # Get the access token.
         token = self._get_token(oauth_request, 'access')
-        # self._check_signature(oauth_request, consumer, token)
+        self._check_signature(oauth_request, consumer, token)
         parameters = oauth_request.get_nonoauth_parameters()
         return consumer, token, parameters
 
@@ -618,7 +631,7 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
             escape(oauth_request.get_normalized_http_url()),
             escape(oauth_request.get_normalized_parameters()),
         )
-
+        # pdb.set_trace()
         key = '%s&' % escape(consumer.secret)
         if token:
             key += escape(token.secret)

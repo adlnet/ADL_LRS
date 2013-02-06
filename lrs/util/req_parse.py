@@ -10,7 +10,6 @@ import lrs.views
 
 def parse(request):
     r_dict = {}
-
     # Build headers from request in request dict
     r_dict = get_headers(request.META, r_dict)
     
@@ -21,8 +20,9 @@ def parse(request):
         if type(r_dict['Authorization']) is dict:
             r_dict['absolute_uri'] = request.build_absolute_uri()
             r_dict['query_string'] = request.META.get('QUERY_STRING', '')
-            r_dict['server_name'] = request.META.get('SERVER_NAME', '')
+            r_dict['SERVER_NAME'] = request.META.get('SERVER_NAME', '')
             r_dict['lrs_auth'] = 'oauth'
+            r_dict['parameters'] = dict(request.REQUEST.items())
 
             # Used for OAuth scope
             endpoint = request.path[5:]

@@ -73,15 +73,7 @@ def oauth_helper(request):
         if consumer and token:
             if consumer.status != ACCEPTED:
                 raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
-
-            method = request['method']
-            endpoint = request['endpoint']
             
-            authorized = handle_everything(token, method, endpoint, request)
-            if not authorized:
-                raise Forbidden("Incorrect permissions to %s at %s" % (str(method), str(endpoint)))
-
-            # All is the only scope being supported - need to correct the user/auth_id workflow
             user = token.user
             user_name = user.username
             user_email = user.email
@@ -102,73 +94,10 @@ def oauth_helper(request):
             ]
             kwargs = {"objectType":"Group", "member":members}
             oauth_group, created = models.group.objects.gen(**kwargs)
-            oauth_group.save()
             request['auth'] = oauth_group
+            request['oauth_token'] = token
     else:
         raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
-
-def handle_everything(token, method, endpoint, request):
-    resource = token.resource
-    urls = resource.get_urls()
-    scope = resource.name
-    if scope == 'all':
-        return True
-    elif scope == 'all/read':
-        if method == 'GET':
-            return True
-        else:
-            return False
-    elif scope == 'statements/read':
-        if method != 'GET':
-            return False
-        else:
-            if endpoint in urls:
-                return True
-            else:
-                return False
-    elif scope == 'statements/write':
-        if method == 'GET':
-            return False
-        else:
-            if endpoint in urls:
-                return True
-            else:
-                return False
-    elif scope == 'state': 
-        if endpoint in urls:
-            # check for actors associated
-            if request['body']['agent'] != token.user.username:
-                return False
-            else:
-                return True
-        else:
-            return False
-    elif scope == 'profile':
-        if endpoint in urls:
-            # check for actors associated
-            if request['body']['agent'] != token.user.username:
-                return False
-            else:
-                return True        
-        else:
-            return False
-    elif scope == 'statements/read/mine':
-        if method == 'GET':
-            if endpoint in urls:
-                # check for only mine
-                request['mine_read_only'] = True
-                return True                
-            else:
-                return False
-        else:
-            return False
-    elif scope == 'define':
-        if endpoint in urls:
-            # check for actors associated
-            pass    
-        else:
-            return False
-
 
 def is_valid_request(request):
     """
