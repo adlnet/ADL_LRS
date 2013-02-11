@@ -55,6 +55,8 @@ class Resource(models.Model):
 class Consumer(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
+
+    default_scopes = models.CharField(max_length=250, default="all")
     
     key = models.CharField(max_length=CONSUMER_KEY_SIZE, unique=True, default=gen_uuid)
     secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
