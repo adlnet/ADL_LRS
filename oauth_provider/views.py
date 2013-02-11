@@ -28,7 +28,6 @@ def oauth_home(request):
     <html><head></head><body><h1>Oauth Authorize</h1></body></html>"""
     return HttpResponse(rsp)
 
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def request_token(request):
     """
     The Consumer obtains an unauthorized Request Token by asking the Service 
@@ -43,6 +42,7 @@ def request_token(request):
         try:
             # create a request token
             token = oauth_server.fetch_request_token(oauth_request)
+            print "oauth views.py request_token token: %s" % token.to_string()
             # return the token
             response = HttpResponse(token.to_string(), mimetype="text/plain")
         except OAuthError, err:
@@ -51,8 +51,9 @@ def request_token(request):
     else:
         return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
-@login_required
+# tom c added login_url
+from django.views.decorators.csrf import csrf_exempt
+@login_required(login_url="/XAPI/accounts/login")
 def user_authorization(request):
     """
     The Consumer cannot use the Request Token until it has been authorized by 
@@ -138,7 +139,6 @@ def user_authorization(request):
             response = send_oauth_error(OAuthError(_('Action not allowed.')))
         return response
 
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
 def access_token(request):    
     """
     The Consumer exchanges the Request Token for an Access Token capable of 

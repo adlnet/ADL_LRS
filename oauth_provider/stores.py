@@ -52,13 +52,19 @@ class DataStore(OAuthDataStore):
         
         # OAuth 1.0a: if there is a callback, check its validity
         callback = None
-        callback_confirmed = False
+        # tom c changed... call back confirmed is supposed to be true
+        # callback_confirmed = False
+        callback_confirmed = True
+        print "stores fetch_request_token oauth_callback: %s" % oauth_callback
         if oauth_callback:
             if oauth_callback != OUT_OF_BAND:
                 if check_valid_callback(oauth_callback):
                     callback = oauth_callback
-                    callback_confirmed = True
+                    # tom c
+                    # callback_confirmed = True
                 else:
+                    # tom c
+                    callback_confirmed = False
                     raise OAuthError('Invalid callback URL.')
         try:
             resource = Resource.objects.get(name=self.scope)
@@ -70,6 +76,9 @@ class DataStore(OAuthDataStore):
                                                         resource=resource,
                                                         callback=callback,
                                                         callback_confirmed=callback_confirmed)
+        
+        print "stores fetch_request - returning request_token---------->"
+        print "callback: %s\ncallback_confirmed: %s" % (callback, callback_confirmed)
         
         return self.request_token
         

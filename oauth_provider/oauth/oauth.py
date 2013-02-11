@@ -269,22 +269,6 @@ class OAuthRequest(object):
         if parameters is None:
             parameters = {}
 
-        # Headers - wasn't sending in oauth 'headers' in the header - had to change process for obtaining them
-        # if headers and 'Authorization' in headers:
-        #     try:
-        #         auth_header = ast.literal_eval(headers['Authorization'])
-        #     except Exception, e:
-        #         auth_header = headers['Authorization']
-        #     try:
-        #         # Get the parameters from the header.
-        #         import pprint
-        #         print "from %s" % __name__
-        #         pprint.pprint(auth_header)
-        #         header_params = OAuthRequest._split_header(auth_header)
-        #         parameters.update(header_params)
-        #     except:
-        #         raise OAuthError('Unable to parse OAuth parameters from '
-        #             'Authorization header.')
         # Headers
         if headers and 'Authorization' in headers:
             auth_header = headers['Authorization']
@@ -439,6 +423,7 @@ class OAuthServer(object):
                 callback = self.get_callback(oauth_request)
             except OAuthError:
                 callback = None # 1.0, no callback specified.
+            print "OAuthServer fetch_request_token callback: %s" % callback
             self._check_signature(oauth_request, consumer, None)
             # Fetch a new token.
             token = self.data_store.fetch_request_token(consumer, callback)

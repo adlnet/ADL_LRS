@@ -183,7 +183,7 @@ def reg_client(request):
                 client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED)
                 client.save()
             else:
-                return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
+                return render_to_response('regclient.html', {"form": form, "error_message": "%s already exists." % name}, context_instance=RequestContext(request))         
             url = "%s?%s" % (reverse('lrs.views.reg_success', args=[client.pk]),urllib.urlencode({"type":"client"}))
             return HttpResponseRedirect(url)
         else:
