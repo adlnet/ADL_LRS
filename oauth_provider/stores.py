@@ -14,7 +14,9 @@ class DataStore(OAuthDataStore):
     def __init__(self, oauth_request):
         self.signature = oauth_request.parameters.get('oauth_signature', None)
         self.timestamp = oauth_request.parameters.get('oauth_timestamp', None)
-        self.scope = oauth_request.parameters.get('scope', 'all')
+        # tom c 
+        # changed default scope to s/w & s/r/m
+        self.scope = oauth_request.parameters.get('scope', None)
 
     def lookup_consumer(self, key):
         try:
@@ -60,14 +62,20 @@ class DataStore(OAuthDataStore):
             if oauth_callback != OUT_OF_BAND:
                 if check_valid_callback(oauth_callback):
                     callback = oauth_callback
-                    # tom c
-                    # callback_confirmed = True
                 else:
                     # tom c
                     callback_confirmed = False
                     raise OAuthError('Invalid callback URL.')
         try:
-            resource = Resource.objects.get(name=self.scope)
+            # tom c - changed... Resource used to represent a specific scope
+            # with xapi scopes could be many.. using resource as a holder of
+            # many scopes
+            if self.scope:
+                scope = self.scope
+            else:
+                scope = self.consumer.default_scopes
+            resource = Resource(name=self.consumer.name, scope=scope)
+            resource.save()
         except:
             raise OAuthError('Resource %s does not exist.' % escape(self.scope))
         self.request_token = Token.objects.create_token(consumer=self.consumer,

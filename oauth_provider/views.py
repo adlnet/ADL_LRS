@@ -2,7 +2,7 @@ from oauth.oauth import OAuthError
 
 from django.conf import settings
 from django.http import (
-    HttpResponse, HttpResponseBadRequest, HttpResponseRedirect)
+    HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
 from django.utils.translation import ugettext as _
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import get_callable
@@ -13,10 +13,12 @@ from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import TCAPIversionHeaderMiddleware
 import uuid
 import pdb
 from django.shortcuts import render_to_response
+from lrs.forms import AuthClientForm
+from lrs.models import Token
+from lrs.util import TCAPIversionHeaderMiddleware
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
@@ -52,7 +54,6 @@ def request_token(request):
         return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
 # tom c added login_url
-from django.views.decorators.csrf import csrf_exempt
 @login_required(login_url="/XAPI/accounts/login")
 def user_authorization(request):
     """
@@ -65,6 +66,9 @@ def user_authorization(request):
     try:
         # get the request token
         token = oauth_server.fetch_request_token(oauth_request)
+        # tom c .. we know user.. save it
+        token.user = request.user
+        token.save()
     except OAuthError, err:
         return send_oauth_error(err)
 
@@ -110,6 +114,9 @@ def user_authorization(request):
                     # authorize the token
                     token = oauth_server.authorize_token(token, request.user)
                     # return the token key
+                    scopes = request.POST.get('scopes', None)
+                    if scopes:
+                        token.resource.scope = scopes
                     args = { 'token': token }
                 else:
                     args = { 'error': _('Access not granted by user.') }
@@ -165,19 +172,18 @@ def access_token(request):
 #     """
 #     return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
 
-def authorize_client(request, token, callback, params):
-        # existing_lrs_auth_id = token.lrs_auth_id
-        # if not existing_lrs_auth_id:
-        #     lrs_auth_id = str(uuid.uuid4())
-        #     token.lrs_auth_id = lrs_auth_id
-        #     token.save()
-        # else:
-        #     lrs_auth_id = existing_lrs_auth_id
-        # return render_to_response('oauth_allow_client.html',context_instance=RequestContext(request))
-        return HttpResponse('Authorized view for %s.' % token.consumer.name)
+def authorize_client(request, token=None, callback=None, params=None):
+    form = AuthClientForm(initial={'scopes': token.consumer.default_scopes.split(','),
+                                      'obj_id': token.pk})
+    d = {}
+    d['form'] = form
+    d['name'] = token.consumer.name
+    d['description'] = token.consumer.description
+    d['params'] = params
+    return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
 def callback_view(request, **args):
     if 'error' in args:
         return HttpResponse("Error - %s" % args['error'])
 
-    return HttpResponse("Callback view. - You've been authenticated!")
+    return HttpResponse("Enter PIN: %s in app" % args['token'].verifier)

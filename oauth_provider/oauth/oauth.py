@@ -339,11 +339,6 @@ class OAuthRequest(object):
         if not parameters:
             parameters = {}
 
-        # Maybe should be handling this in utils - initialize server request
-        param_str = urlparse.urlparse(http_url)[4] # query
-        url_params = OAuthRequest._split_url_string(param_str)
-        parameters.update(url_params)
-
         parameters['oauth_token'] = token.key
 
         if callback:
@@ -355,15 +350,6 @@ class OAuthRequest(object):
     def _split_header(header):
         """Turn Authorization: header into parameters. Changed way to retrieve headers b/c 
         wasn't sending in oauth 'headers' in the header in from_request"""
-        # params = {}
-        # for k, v in header.items():
-        #     # Ignore realm parameter.
-        #     if not 'realm' in k:
-        #         # Remove whitespace.
-        #         v = v.strip()
-        #         # Remove quotes and unescape the value.
-        #         params[k] = urllib.unquote(v.strip('\"'))        
-        # return params
         params = {}
         parts = header.split(',')
         for param in parts:

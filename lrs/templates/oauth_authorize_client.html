@@ -1,0 +1,21 @@
+<p>
+    The application is requesting access to the following scopes.
+</p>
+{% if error_message %}
+<p class="error">
+    <strong>{{ error_message }}</strong>
+</p>
+{% endif %}
+<form action="{% url oauth_provider.views.user_authorization %}?{% if params %}{{ params }}{% endif %}" method="post">
+    <span>{{ form.authorize_access }}</span>
+    <p>Application:<br/>
+        {{ name }}</p>
+    <p>Description:<br/>
+        {{ description }}</p>
+    <p>Scope:<br/>
+        {% for scope in form.scopes %}
+        {{ scope }}        
+        {% endfor %}
+    </p>
+    <input type="submit" value="Register" />
+</form>

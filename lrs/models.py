@@ -43,20 +43,30 @@ class Nonce(models.Model):
 
 class Resource(models.Model):
     name = models.CharField(max_length=255)
-    url = models.TextField(max_length=MAX_URL_LENGTH)
-    is_readonly = models.BooleanField(default=True)
+    url = models.TextField(max_length=MAX_URL_LENGTH, default="/XAPI/")
+    is_readonly = models.BooleanField(default=False)
+    scope = models.CharField(max_length=100, default="statements/write,statements/read/mine")
     
     objects = ResourceManager()
 
     def __unicode__(self):
         return u"Resource %s with url %s" % (self.name, self.url)
 
+    def is_authorized(self, method, url):
+        # needs to check method and url fits into allowed scope
+        if "all/read" in self.scope and "GET" in method:
+            return True
+        elif "all" in self.scope:
+            return True
+        # need to add the rest
+        return False
+
 
 class Consumer(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
 
-    default_scopes = models.CharField(max_length=250, default="all")
+    default_scopes = models.CharField(max_length=100, default="statements/write,statements/read/mine")
     
     key = models.CharField(max_length=CONSUMER_KEY_SIZE, unique=True, default=gen_uuid)
     secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
