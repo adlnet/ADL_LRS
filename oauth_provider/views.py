@@ -44,7 +44,6 @@ def request_token(request):
         try:
             # create a request token
             token = oauth_server.fetch_request_token(oauth_request)
-            print "oauth views.py request_token token: %s" % token.to_string()
             # return the token
             response = HttpResponse(token.to_string(), mimetype="text/plain")
         except OAuthError, err:

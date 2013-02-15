@@ -272,9 +272,6 @@ class OAuthRequest(object):
         # Headers
         if headers and 'Authorization' in headers:
             auth_header = headers['Authorization']
-            import pprint
-            print "from %s" % __name__
-            pprint.pprint(auth_header)
             # Check that the authorization header is OAuth.
             if auth_header[:6] == 'OAuth ':
                 auth_header = auth_header[6:]
@@ -409,7 +406,6 @@ class OAuthServer(object):
                 callback = self.get_callback(oauth_request)
             except OAuthError:
                 callback = None # 1.0, no callback specified.
-            print "OAuthServer fetch_request_token callback: %s" % callback
             self._check_signature(oauth_request, consumer, None)
             # Fetch a new token.
             token = self.data_store.fetch_request_token(consumer, callback)

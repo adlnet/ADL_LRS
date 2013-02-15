@@ -57,7 +57,7 @@ class DataStore(OAuthDataStore):
         # tom c changed... call back confirmed is supposed to be true
         # callback_confirmed = False
         callback_confirmed = True
-        print "stores fetch_request_token oauth_callback: %s" % oauth_callback
+        
         if oauth_callback:
             if oauth_callback != OUT_OF_BAND:
                 if check_valid_callback(oauth_callback):
@@ -84,9 +84,6 @@ class DataStore(OAuthDataStore):
                                                         resource=resource,
                                                         callback=callback,
                                                         callback_confirmed=callback_confirmed)
-        
-        print "stores fetch_request - returning request_token---------->"
-        print "callback: %s\ncallback_confirmed: %s" % (callback, callback_confirmed)
         
         return self.request_token
         
