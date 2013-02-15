@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from django.utils.timezone import utc
 from functools import wraps
+import ast
 
 logger = logging.getLogger('user_system_actions')
 
@@ -85,27 +86,46 @@ def validate_oauth_scope(r_dict):
         else:
             if not endpoint in urls:
                 raise Forbidden(err_msg)
-    elif scope == 'state': 
-        # pdb.set_trace()
+    elif scope == 'state':
         if endpoint in urls:
             # check for actors associated
             try:
-                agent = r_dict['body']['agent']
+                if method == 'PUT':
+                    ag = r_dict['body']['agent']
+                else:
+                    ag = r_dict['parameters']['agent']                    
             except KeyError:
                 raise Forbidden(err_msg)
-            if agent != token.user.username:
+            if not isinstance(ag, dict):
+                try:
+                    ag = ast.literal_eval(ag)
+                except:
+                    ag = json.loads(ag)
+            agent = models.agent.objects.gen(**ag)[0]
+            if agent.name != token.user.username:
                 raise Forbidden(err_msg)
         else:
             raise Forbidden(err_msg)
     elif scope == 'profile':
         if endpoint in urls:
-            # check for actors associated
-            try:
-                agent = r_dict['body']['agent']
-            except KeyError:
-                raise Forbidden(err_msg)
-            if agent != token.user.username:
-                raise Forbidden(err_msg)        
+            if 'activityId' in r_dict['parameters']:
+                pass #Once activities are tied to agents, check here
+            else:
+                try:
+                    if method == 'PUT':
+                        ag = r_dict['body']['agent']
+                    else:
+                        ag = r_dict['parameters']['agent']                    
+                except KeyError:
+                    raise Forbidden(err_msg)
+                if not isinstance(ag, dict):
+                    try:
+                        ag = ast.literal_eval(ag)
+                    except:
+                        ag = json.loads(ag)                
+                agent = models.agent.objects.gen(**ag)[0]            
+                if agent.name != token.user.username:
+                    raise Forbidden(err_msg)        
         else:
             raise Forbidden(err_msg)
     elif scope == 'statements/read/mine':
@@ -203,6 +223,7 @@ def activity_state_put(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='GET', endpoint='activities/state')
 def activity_state_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -224,6 +245,7 @@ def activity_state_get(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='DELETE', endpoint='activities/state')
 def activity_state_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -245,6 +267,7 @@ def activity_state_delete(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='PUT', endpoint='activities/profile')
 def activity_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -276,6 +299,7 @@ def activity_profile_put(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='GET', endpoint='activities/profile')
 def activity_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -289,6 +313,7 @@ def activity_profile_get(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='DELETE', endpoint='activities/profile')
 def activity_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']

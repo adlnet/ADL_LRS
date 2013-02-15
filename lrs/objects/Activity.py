@@ -5,6 +5,7 @@ from StringIO import StringIO
 from lrs import models, exceptions
 from lrs.util import log_message, update_parent_log_status
 from lxml import etree
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
@@ -23,11 +24,15 @@ class Activity():
     validator = URLValidator(verify_exists=True)
 
     # XMLschema for Activity IDs
-    req = urllib2.Request('http://tincanapi.com/wp-content/assets/tincan.xsd')
-    resp = urllib2.urlopen(req)
-    XML = resp.read()
-    XMLschema_doc = etree.parse(StringIO(XML))
-    XMLschema = etree.XMLSchema(XMLschema_doc)
+    try:
+        resp = open('lrs/static/tincan.xsd', 'rb')
+        XML = resp.read()
+        XMLschema_doc = etree.parse(StringIO(XML))
+        XMLschema = etree.XMLSchema(XMLschema_doc)
+        can_validate_xml = True
+    except Exception as e:
+        print e
+        can_validate_xml = False
 
     # Use single transaction for all the work done in function
     @transaction.commit_on_success
@@ -76,7 +81,7 @@ class Activity():
             act_XML = act_resp.read()
 
         #Validate that it is good XML with the schema - if it fails it means the URL resolved but didn't conform to the schema
-        if resolves:
+        if resolves and Activity.can_validate_xml:
             try:
                 act_xmlschema_doc = etree.parse(StringIO(act_XML))    
                 validXML = Activity.XMLschema.validate(act_xmlschema_doc)

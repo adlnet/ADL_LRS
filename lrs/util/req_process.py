@@ -123,8 +123,8 @@ def activity_profile_put(req_dict):
     #Put profile and return 204 response
     ap.put_profile(req_dict)
 
-    update_parent_log_status(log_dict, 200)
-    return HttpResponse('Success -- activity profile - method = PUT - profileId = %s' % req_dict['profileId'], status=200)
+    update_parent_log_status(log_dict, 204)
+    return HttpResponse('', status=204)
 
 def activity_profile_get(req_dict):
     log_dict = req_dict['initial_user_action']    
@@ -164,8 +164,8 @@ def activity_profile_delete(req_dict):
     # Delete profile and return success
     ap.delete_profile(req_dict)
 
-    update_parent_log_status(log_dict, 200)
-    return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
+    update_parent_log_status(log_dict, 204)
+    return HttpResponse('', status=204)
 
 def activities_get(req_dict):
     log_dict = req_dict['initial_user_action']    

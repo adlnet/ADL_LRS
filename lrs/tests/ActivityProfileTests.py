@@ -71,20 +71,20 @@ class ActivityProfileTests(TestCase):
     
     def test_put(self):
         #Test the puts
-        self.assertEqual(self.put1.status_code, 200)
-        self.assertEqual(self.put1.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId1)
+        self.assertEqual(self.put1.status_code, 204)
+        self.assertEqual(self.put1.content, '')
         
-        self.assertEqual(self.put2.status_code, 200)
-        self.assertEqual(self.put2.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId2)
+        self.assertEqual(self.put2.status_code, 204)
+        self.assertEqual(self.put2.content, '')
 
-        self.assertEqual(self.put3.status_code, 200)
-        self.assertEqual(self.put3.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId3)
+        self.assertEqual(self.put3.status_code, 204)
+        self.assertEqual(self.put3.content, '')
 
-        self.assertEqual(self.put4.status_code, 200)
-        self.assertEqual(self.put4.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.otherprofileId1)
+        self.assertEqual(self.put4.status_code, 204)
+        self.assertEqual(self.put4.content, '')
 
-        self.assertEqual(self.put5.status_code, 200)
-        self.assertEqual(self.put5.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.otherprofileId1)
+        self.assertEqual(self.put5.status_code, 204)
+        self.assertEqual(self.put5.content, '')
 
         #Grab the activity models
         actmodel1 = models.activity.objects.filter(activity_id=self.test_activityId1)[0]
@@ -140,8 +140,8 @@ class ActivityProfileTests(TestCase):
         profile = {"test":"good - trying to put new profile w/ etag header","obj":{"activity":"test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
         response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth, X_Experience_API_Version="0.95")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % self.testprofileId1)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '')
 
         r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -164,8 +164,8 @@ class ActivityProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"activity":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', Authorization=self.auth, X_Experience_API_Version="0.95")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % 'http://etag.nomatch.good')
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '')
 
         r = self.client.get(reverse(views.activity_profile), params, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -240,8 +240,8 @@ class ActivityProfileTests(TestCase):
     
     def test_delete(self):
         response = self.client.delete(reverse(views.activity_profile), {'activityId':self.other_activityId, 'profileId':self.otherprofileId1}, Authorization=self.auth, X_Experience_API_Version="0.95")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, 'Success -- activity profile - method = DELETE - profileId = %s' % self.otherprofileId1)        
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '')        
 
     def test_cors_put(self):
         profileid = 'http://test.cors.put'
@@ -251,8 +251,8 @@ class ActivityProfileTests(TestCase):
         path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
         the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': activityid}))
         put1 = self.client.post(path, testparams1, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
-        self.assertEqual(put1.status_code, 200)
-        self.assertEqual(put1.content, 'Success -- activity profile - method = PUT - profileId = %s' % testparams1['profileId'])
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
         self.client.delete(reverse(views.activity_profile), testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
 
     def test_cors_put_etag(self):
@@ -275,8 +275,8 @@ class ActivityProfileTests(TestCase):
 
         response = self.client.post(path, params, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
         
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, 'Success -- activity profile - method = PUT - profileId = %s' % pid)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '')
 
         r = self.client.get(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -292,7 +292,7 @@ class ActivityProfileTests(TestCase):
         profile = {"test":"put profile 1","obj":{"activity":"test"}}
         the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': "tetris.snafu"}))
         p_r = self.client.put(path, json.dumps(profile), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
-        self.assertEqual(p_r.status_code, 200)
+        self.assertEqual(p_r.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), {'activityId': "tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], self.content_type)

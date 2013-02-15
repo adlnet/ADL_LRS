@@ -63,41 +63,43 @@ def http_auth_helper(request):
 
 def oauth_helper(request):
     # Verifies the oauth request
-    if is_valid_request(request):
+    # if is_valid_request(request):
         # Validates the incoming consumer, token, and params
-        try:
-            consumer, token, parameters = validate_token(request)
-        except OAuthError, e:
-            raise OauthUnauthorized(send_oauth_error(e))
+        # try:
+        #     consumer, token, parameters = validate_token(request)
+        # except OAuthError, e:
+        #     raise OauthUnauthorized(send_oauth_error(e))
+    pdb.set_trace()
+    consumer = request['consumer']
+    token = request['token']        
+    if consumer and token:
+        if consumer.status != ACCEPTED:
+            raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
         
-        if consumer and token:
-            if consumer.status != ACCEPTED:
-                raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
-            
-            user = token.user
-            user_name = user.username
-            user_email = user.email
-            consumer = token.consumer                
-            members = [
-                        {
-                            "account":{
-                                        "name":consumer.key,
-                                        "homePage":"/XAPI/OAuth/token/"
-                            },
-                            "objectType": "Agent"
+        user = token.user
+        user_name = user.username
+        user_email = user.email
+        consumer = token.consumer
+        members = [
+                    {
+                        "account":{
+                                    "name":consumer.key,
+                                    "homePage":"/XAPI/OAuth/token/"
                         },
-                        {
-                            "name":user_name,
-                            "mbox":user_email,
-                            "objectType": "Agent"
-                        }
-            ]
-            kwargs = {"objectType":"Group", "member":members}
-            oauth_group, created = models.group.objects.gen(**kwargs)
-            request['auth'] = oauth_group
-            request['oauth_token'] = token
-    else:
-        raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
+                        "objectType": "Agent"
+                    },
+                    {
+                        "name":user_name,
+                        "mbox":user_email,
+                        "objectType": "Agent"
+                    }
+        ]
+        kwargs = {"objectType":"Group", "member":members, "oauth_identifier":base64.b64encode("%s:%s" % (user.id, consumer.id))}
+        oauth_group, created = models.group.objects.gen(**kwargs)
+        request['auth'] = oauth_group
+        request['oauth_token'] = token
+    # else:
+    #     raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
 
 def is_valid_request(request):
     """

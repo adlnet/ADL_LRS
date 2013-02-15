@@ -266,12 +266,25 @@ class OAuthRequest(object):
     def from_request(http_method, http_url, headers=None, parameters=None,
             query_string=None):
         """Combines multiple parameter sources."""
+        pdb.set_trace()
         if parameters is None:
             parameters = {}
 
         # Headers - wasn't sending in oauth 'headers' in the header - had to change process for obtaining them
         if headers and 'Authorization' in headers:
             # OAuth change
+            auth_header = headers['Authorization']
+            # Check that the authorization header is OAuth.
+            # if auth_header[:6] == 'OAuth ':
+            #     auth_header = auth_header[6:]
+            #     try:
+            #         # Get the parameters from the header.
+            #         header_params = OAuthRequest._split_header(auth_header)
+            #         parameters.update(header_params)
+            #     except:
+            #         raise OAuthError('Unable to parse OAuth parameters from '
+            #             'Authorization header.')
+
             try:
                 auth_header = ast.literal_eval(headers['Authorization'])
             except Exception, e:
@@ -284,13 +297,11 @@ class OAuthRequest(object):
                 raise OAuthError('Unable to parse OAuth parameters from '
                     'Authorization header.')
 
-        # Maybe should be setting these in utils initialize_server_request instead
         # GET or POST query string.
         if query_string:
             query_params = OAuthRequest._split_url_string(query_string)
             parameters.update(query_params)
-
-        # Maybe should be setting these in utils initialize_server_request instead
+        
         # URL parameters.
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
@@ -334,13 +345,14 @@ class OAuthRequest(object):
 
     def from_token_and_callback(token, callback=None, http_method=HTTP_METHOD,
             http_url=None, parameters=None):
+        pdb.set_trace()
         if not parameters:
             parameters = {}
         # OAuth change
         # Maybe should be handling this in utils - initialize server request
-        param_str = urlparse.urlparse(http_url)[4] # query
-        url_params = OAuthRequest._split_url_string(param_str)
-        parameters.update(url_params)
+        # param_str = urlparse.urlparse(http_url)[4] # query
+        # url_params = OAuthRequest._split_url_string(param_str)
+        # parameters.update(url_params)
 
         parameters['oauth_token'] = token.key
 
@@ -365,14 +377,14 @@ class OAuthRequest(object):
         #     # Split key-value.
         #     param_parts = param.split('=', 1)
         #     # Remove quotes and unescape the value.
-        #     params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"')        
+        #     params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))   
         for k, v in header.items():
             # Ignore realm parameter.
             if not 'realm' in k:
                 # Remove whitespace.
                 v = v.strip()
                 # Remove quotes and unescape the value.
-                params[k] = urllib.unquote(v.strip('\"'))        
+                params[k] = urllib.unquote(v.strip('\"'))     
         return params
     _split_header = staticmethod(_split_header)
 
@@ -631,7 +643,7 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
             escape(oauth_request.get_normalized_http_url()),
             escape(oauth_request.get_normalized_parameters()),
         )
-        # pdb.set_trace()
+
         key = '%s&' % escape(consumer.secret)
         if token:
             key += escape(token.secret)

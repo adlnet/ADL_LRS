@@ -373,16 +373,12 @@ class statement_object(models.Model):
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
     def gen(self, **kwargs):
-        # pdb.set_trace()
         is_group = kwargs.get('objectType', None) == "Group"
         attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
         if not is_group and len(attrs) != 1:
             raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
-
-        # this creates the agent_account object and agent object to tie it too
         val = kwargs.pop('account', None)
         if val:
-            # create account arguments
             if not isinstance(val, dict):
                 try:
                     account = ast.literal_eval(val)
@@ -390,88 +386,54 @@ class agentmgr(models.Manager):
                     account = json.loads(val)
             else:
                 account = val
-            # See if account alrady exists
             try:
                 acc = agent_account.objects.get(**account)
                 ret_agent = acc.agent
                 created = False
             except agent_account.DoesNotExist:
-                try:
-                    ret_agent = agent.objects.get(**kwargs)
-                    created = False
-                except agent.DoesNotExist:
-                    # Check for name for empty oauth accounts being created
-                    if not 'name' in kwargs:
-                        kwargs['name'] = 'AccountAgent-%s' % account['name']                            
-                    ret_agent = agent(**kwargs)
-                    ret_agent.save()
+                if is_group:
+                    try: 
+                        ret_agent = group.objects.get(**kwargs)
+                    except self.model.DoesNotExist:
+                        ret_agent = group(**kwargs)
+                else:
+                    try:
+                        ret_agent = agent.objects.get(**kwargs)
+                    except agent.DoesNotExist:
+                        ret_agent = agent(**kwargs)
+                ret_agent.save()
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
-                created = True        
-                return ret_agent, created
-        # If not account, check if group
-        elif is_group:
-            # Get member data
-            mem = kwargs.pop('member')
-            try:
-                members = ast.literal_eval(mem)
-            except:
+                created = True
+        else:
+            if is_group and 'member' in kwargs:
+                mem = kwargs.pop('member')
                 try:
-                    members = json.loads(mem)
+                    members = ast.literal_eval(mem)
                 except:
-                    members = mem
-            # See if all members already exist
-            mem_ids =[]
-            try:
-                for mem in members:
-                    if 'account' in mem:
-                        acc = mem['account']
-                        try:
-                            accnt = ast.literal_eval(acc)
-                        except:
-                            try:
-                                accnt = json.loads(acc)
-                            except:
-                                accnt = acc
-                        ag = agent_account.objects.get(**accnt)
-                    else:
-                        ag = agent.objects.get(**mem)
-                    mem_ids.append(ag.id)
-            except agent.DoesNotExist:
-                pass # If one agent doesn't exist, the group DNE
-            except agent_account.DoesNotExist:
-                pass # If one account doesn't exist, the group DNE
-
-            if mem_ids:
-                ret_agent = group.objects.get(member__in=mem_ids, objectType="Group")
-                created = False
+                    try:
+                        members = json.loads(mem)
+                    except:
+                        members = mem
+        try:
+            # Added in if stmts to check if should get/create group or agent object
+            # Before it was creating agents as groups
+            if is_group:
+                ret_agent = group.objects.get(**kwargs)
             else:
-                ret_agent = group(**kwargs)
-                ret_agent.save()
-                created = True
-
-            if created:
-                # If it is a group, call this process again for each member
-                ags = [self.gen(**a) for a in members]
-                ret_agent.member.add(*(a for a, c in ags))
-                # Set name of agent the group inherited from since name won't be set for OAuth
-                if not ret_agent.name:
-                    namestr = 'Group-'
-                    for ag in ags:
-                        name = ag[0].name
-                        namestr += '-' + name    
-                    ret_agent.name = namestr
-                    ret_agent.save()
-                    kwargs['name'] = namestr
-        # Is an agent
-        else:            
-            try:
                 ret_agent = agent.objects.get(**kwargs)
-                created = False
-            except agent.DoesNotExist:
+            created = False
+        except agent.DoesNotExist:
+            if is_group:
+                ret_agent = group(**kwargs)
+            else:
                 ret_agent = agent(**kwargs)
-                ret_agent.save()
-                created = True
+            ret_agent.save()
+            created = True
+        if is_group and created:
+            ags = [self.gen(**a) for a in members]
+            ret_agent.member.add(*(a for a, c in ags))
+        ret_agent.save()
         return ret_agent, created
 
 class agent(statement_object):
@@ -480,6 +442,7 @@ class agent(statement_object):
     mbox = models.CharField(max_length=128, blank=True, null=True, db_index=True)
     mbox_sha1sum = models.CharField(max_length=40, blank=True, null=True, db_index=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True, db_index=True)
+    oauth_identifier = models.CharField(max_length=64, null=True, blank=True)
     objects = agentmgr()
 
     def get_agent_json(self, sparse=False):

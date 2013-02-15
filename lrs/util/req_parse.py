@@ -17,12 +17,25 @@ def parse(request):
     if 'Authorization' in r_dict:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
         # module
+        pdb.set_trace()
         if type(r_dict['Authorization']) is dict:
-            r_dict['absolute_uri'] = request.build_absolute_uri()
-            r_dict['query_string'] = request.META.get('QUERY_STRING', '')
-            r_dict['SERVER_NAME'] = request.META.get('SERVER_NAME', '')
-            r_dict['lrs_auth'] = 'oauth'
-            r_dict['parameters'] = dict(request.REQUEST.items())
+            if is_valid_request(request):
+                try:
+                    consumer, token, parameters = validate_token(request)
+                except OAuthError, e:
+                    raise OauthUnauthorized(send_oauth_error(e))
+                r_dict['consumer'] = consumer
+                r_dict['token'] = token
+                r_dict['oauth_parameters'] = parameters  
+                r_dict['lrs_auth'] = 'oauth'
+            else:
+                raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
+
+            # r_dict['absolute_uri'] = request.build_absolute_uri()
+            # r_dict['query_string'] = request.META.get('QUERY_STRING', '')
+            # r_dict['SERVER_NAME'] = request.META.get('SERVER_NAME', '')
+            # r_dict['lrs_auth'] = 'oauth'
+            # r_dict['parameters'] = dict(request.REQUEST.items())
 
             # Used for OAuth scope
             endpoint = request.path[5:]
@@ -92,3 +105,19 @@ def get_headers(headers, r):
     if 'Accept_Language' in headers:
         r['language'] = headers['Accept_Language']    
     return r
+
+def is_valid_request(request):
+    """
+    Checks whether the required parameters are either in
+    the http-authorization header sent by some clients,
+    which is by the way the preferred method according to
+    OAuth spec, but otherwise fall back to `GET` and `POST`.
+    """
+    is_in = lambda l: all((p in l) for p in OAUTH_PARAMETERS_NAMES)
+    auth_params = request.get("Authorization", [])
+    return is_in(auth_params)
+
+def validate_token(request):
+    # Creates the oauth server and request. Verifies the request against server
+    oauth_server, oauth_request = initialize_server_request(request)
+    return oauth_server.verify_request(oauth_request)

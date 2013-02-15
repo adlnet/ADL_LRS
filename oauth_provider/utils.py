@@ -16,57 +16,54 @@ def initialize_server_request(request):
     # OAuth change
     # Django converts Authorization header in HTTP_AUTHORIZATION
     # Warning: it doesn't happen in tests but it's useful, do not remove!
-    # auth_header = {}
-    # if 'Authorization' in request.META:
-    #     auth_header = {'Authorization': request.META['Authorization']}
-    # elif 'HTTP_AUTHORIZATION' in request.META:
-    #     auth_header =  {'Authorization': request.META['HTTP_AUTHORIZATION']}
-    
+
     # Check to see if it's a dict if it's being called from the LRS app. The LRS app parses everything in a dict first
     # then will call this in Authorization with the request dict.
     # OAuth change
-    if type(request) == dict:
-        auth_header = {}
-        if 'Authorization' in request:
-            auth_header = {'Authorization': request['Authorization']}
-        elif 'HTTP_AUTHORIZATION' in request:
-            auth_header =  {'Authorization': request['HTTP_AUTHORIZATION']}
+    # pdb.set_trace()
+    # if type(request) == dict:
+    #     auth_header = {}
+    #     if 'Authorization' in request:
+    #         auth_header = {'Authorization': request['Authorization']}
+    #     elif 'HTTP_AUTHORIZATION' in request:
+    #         auth_header =  {'Authorization': request['HTTP_AUTHORIZATION']}
 
-        parameters = {}
-        # OAuth change
-        if request['method'] == "POST" and \
-            (request['CONTENT_TYPE'] == "application/x-www-form-urlencoded" \
-                or request['SERVER_NAME'] == 'testserver'):
-            parameters = request['parameters']
+    #     parameters = {}
+    #     # OAuth change
+    #     if request['method'] == "POST" and \
+    #         (request['CONTENT_TYPE'] == "application/x-www-form-urlencoded" \
+    #             or request['SERVER_NAME'] == 'testserver'):
+    #         parameters = request['parameters']
 
-        oauth_request = OAuthRequest.from_request(request['method'], 
-                                                  request['absolute_uri'], 
-                                                  headers=auth_header,
-                                                  parameters=parameters,
-                                                  query_string=request['query_string'])
-    else:
-        auth_header = {}
-        if 'Authorization' in request.META:
-            auth_header = {'Authorization': request.META['Authorization']}
-        elif 'HTTP_AUTHORIZATION' in request.META:
-            auth_header =  {'Authorization': request.META['HTTP_AUTHORIZATION']}
-       
-        # Don't include extra parameters when request.method is POST and 
-        # request.MIME['CONTENT_TYPE'] is "application/x-www-form-urlencoded" 
-        # (See http://oauth.net/core/1.0a/#consumer_req_param).
-        # But there is an issue with Django's test Client and custom content types
-        # so an ugly test is made here, if you find a better solution...
-        parameters = {}        
-        if request.method == "POST" and \
-            (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
-                or request.META.get('SERVER_NAME') == 'testserver'):
-            parameters = dict(request.REQUEST.items())
+    #     oauth_request = OAuthRequest.from_request(request['method'], 
+    #                                               request['absolute_uri'], 
+    #                                               headers=auth_header,
+    #                                               parameters=parameters,
+    #                                               query_string=request['query_string'])
+    # else:
+    pdb.set_trace()
+    auth_header = {}
+    if 'Authorization' in request.META:
+        auth_header = {'Authorization': request.META['Authorization']}
+    elif 'HTTP_AUTHORIZATION' in request.META:
+        auth_header =  {'Authorization': request.META['HTTP_AUTHORIZATION']}
+   
+    # Don't include extra parameters when request.method is POST and 
+    # request.MIME['CONTENT_TYPE'] is "application/x-www-form-urlencoded" 
+    # (See http://oauth.net/core/1.0a/#consumer_req_param).
+    # But there is an issue with Django's test Client and custom content types
+    # so an ugly test is made here, if you find a better solution...
+    parameters = {}        
+    if request.method == "POST" and \
+        (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
+            or request.META.get('SERVER_NAME') == 'testserver'):
+        parameters = dict(request.REQUEST.items())
 
-        oauth_request = OAuthRequest.from_request(request.method, 
-                                                  request.build_absolute_uri(), 
-                                                  headers=auth_header,
-                                                  parameters=parameters,
-                                                  query_string=request.META.get('QUERY_STRING', ''))
+    oauth_request = OAuthRequest.from_request(request.method, 
+                                              request.build_absolute_uri(), 
+                                              headers=auth_header,
+                                              parameters=parameters,
+                                              query_string=request.META.get('QUERY_STRING', ''))
     if oauth_request:
         oauth_server = OAuthServer(DataStore(oauth_request))
         if 'plaintext' in OAUTH_SIGNATURE_METHODS:
