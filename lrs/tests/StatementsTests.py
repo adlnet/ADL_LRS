@@ -74,7 +74,7 @@ class StatementsTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
             "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}})        
@@ -87,7 +87,7 @@ class StatementsTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"key11": "value11", "key22": "value22","key33": "value33"}}}, 
             "result": {"score":{"scaled":.75}, "completion": True, "success": True, "response": "shouted",
-            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
             "context":{"registration": self.cguid2, "contextActivities": {"other": {"id": "NewActivityID22"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey11": "cval11",
             "ckey22": "cval22"}}})        
@@ -99,7 +99,7 @@ class StatementsTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"key111": "value111", "key222": "value222","key333": "value333"}}}, 
             "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
-            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
             "context":{"registration": self.cguid3, "contextActivities": {"other": {"id": "NewActivityID22"}},
             "revision": "food", "platform":"bard","language": "en-US",
             "instructor":{"objectType": "Agent", "name":"bob", "mbox":"bob@bob.com"}, 
@@ -112,7 +112,7 @@ class StatementsTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"key111": "value111", "key222": "value222","key333": "value333"}}}, 
             "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
-            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
             "context":{"registration": self.cguid4, "contextActivities": {"other": {"id": "NewActivityID22"}},
             "revision": "food", "platform":"bard","language": "en-US","instructor":{"name":"bill", "mbox":"bill@bill.com"},
             "extensions":{"ckey111": "cval111","ckey222": "cval222"}}})
@@ -253,11 +253,19 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, "test_post")
         agent = models.agent.objects.get(mbox="t@t.com")
         self.assertEqual(agent.name, "bob")
-        # actions = models.UserSystemAction.objects.all().count()
-        # pdb.set_trace()
-        # self.assertEqual(actions, 1)
-        # log_url = self.client.get(reverse(views.log))
-        # print(log_url.content)
+
+    def test_post_wrong_duration(self):
+        stmt = json.dumps({"actor":{'objectType':'Person','name':'jon',
+            'mbox':'jon@example.com'},'verb': {"id":"verb/url"},"object": {'id':'activity13'}, 
+            "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': 'wrongduration',
+            'extensions':{'key1': 'value1', 'key2':'value2'}}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="0.95")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Unable to parse duration string u'wrongduration'")
+
 
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"ref@ref.com"},
@@ -421,11 +429,6 @@ class StatementsTests(TestCase):
         self.assertEqual(getResponse.status_code, 200)
         rsp = getResponse.content
         self.assertIn(self.guid1, rsp)
-        # actions = models.UserSystemAction.objects.all().count()
-        # self.assertEqual(actions, 22)
-
-        # log_url = self.client.get(reverse(views.log))
-        # print(log_url.content)
 
     def test_get_no_existing_ID(self):
         param = {"statementId":"aaaaaa"}
@@ -658,7 +661,7 @@ class StatementsTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
             "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}})
@@ -748,7 +751,7 @@ class StatementsTests(TestCase):
                 "interactionType": "fill-in","correctResponsesPattern": ["answer"],
                 "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
                 "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-                "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+                "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
                 "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "NewActivityID2"}},
                 "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
                 "ckey2": "cval2"}}})
@@ -771,7 +774,7 @@ class StatementsTests(TestCase):
                 "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
                 "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
                 "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-                "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+                "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
                 "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "NewActivityID2"}},
                 "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
                 "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
@@ -790,7 +793,7 @@ class StatementsTests(TestCase):
             "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
             "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
