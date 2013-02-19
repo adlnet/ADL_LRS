@@ -11,6 +11,8 @@ from functools import wraps
 from Activity import Activity
 from functools import wraps
 from django.utils.timezone import utc
+from isodate.isoduration import parse_duration, duration_isoformat, Duration
+from isodate.isoerror import ISO8601Error
 import pdb
 import pprint
 import logging
@@ -217,8 +219,7 @@ class Statement():
     def populateResult(self, stmt_data, verb):
         log_message(self.log_dict, "Populating result", __name__, self.populateResult.__name__)
 
-        resultExts = {}
-                    
+        resultExts = {}                    
         #Catch contradictory results
         if 'extensions' in stmt_data['result']:
             result = {key: value for key, value in stmt_data['result'].items() if not key == 'extensions'}
@@ -228,10 +229,20 @@ class Statement():
 
         self.validateVerbResult(result, verb, stmt_data['object'])
 
+        # Validate duration, throw error if duration is not formatted correctly
+        if 'duration' in result:
+            try:
+                dur = parse_duration(result['duration'])
+            except ISO8601Error as e:
+                log_message(self.log_dict, e.message, __name__, self.populateResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(e.message)
+
         #Once found that the results are valid against the verb, check score object and save
         if 'score' in result.keys():
             result['score'] = self.validateScoreResult(result['score'])
             result['score'] = self.saveScoreToDB(result['score'])
+
 
         #Save result
         return self.saveResultToDB(result, resultExts)
