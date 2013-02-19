@@ -514,8 +514,8 @@ class AuthTests(TestCase):
         self.assertEqual(actorObjectGetResponse.status_code, 200)
         stmts = json.loads(actorObjectGetResponse.content)
         dbstmts = models.statement.objects.all()
-        # Will return 10 since that is server limit
-        self.assertEqual(len(stmts["statements"]), 10)
+
+        self.assertEqual(len(stmts["statements"]), 0)
 
     def test_verb_filter(self):
         param = {"verb":"http://adlnet.gov/expapi/verbs/missed"}

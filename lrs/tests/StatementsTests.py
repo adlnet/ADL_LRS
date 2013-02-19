@@ -514,9 +514,8 @@ class StatementsTests(TestCase):
         
         self.assertEqual(actorObjectGetResponse.status_code, 200)
         stmts = json.loads(actorObjectGetResponse.content)
-        dbstmts = models.statement.objects.all()
         # Will return 10 since that is server limit
-        self.assertEqual(len(stmts["statements"]), 10)
+        self.assertEqual(len(stmts["statements"]), 0)
 
     def test_verb_filter(self):
         self.bunchostmts()
@@ -554,13 +553,6 @@ class StatementsTests(TestCase):
     def test_statement_ref_object_filter(self):
         self.bunchostmts()
         param = {"object":{"objectType": "StatementRef", "id":str(self.exist_stmt_id)}}
-#     def test_substatement_object_filter(self):
-#         self.bunchostmts()
-#         param = {"object":{"objectType": "SubStatement", "actor":{"objectType":"Agent","mbox":"ss@ss.com"},
-#         "verb": {"id":"verb/url/nested"},"object":{"objectType":"activity", "id":"testex.com"},
-#         "result":{"completion": True, "success": True,"response": "kicked"},"context":{"registration": self.cguid6,
-#             "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
-#             "language": "en-US"}}}
             
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         sub_object_get_response = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -748,30 +740,6 @@ class StatementsTests(TestCase):
     def test_update_activity_wrong_auth(self):
         # Will respond with 200 if HTTP_AUTH_ENABLED is enabled
         if settings.HTTP_AUTH_ENABLED:
-            # wrong_username = "tester2"
-            # wrong_email = "test2@tester.com"
-            # wrong_password = "test2"
-            # wrong_auth = "Basic %s" % base64.b64encode("%s:%s" % (wrong_username, wrong_password))
-            # form = {"username":wrong_username, "email":wrong_email,"password":wrong_password,
-            #     "password2":wrong_password}
-            # response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
-
-            # stmt = json.dumps({"verb":{"id":"verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"r@r.com"},
-            #     "object": {"objectType": "Activity", "id":"foogie",
-            #     "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
-            #     "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
-            #     "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
-            #     "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            #     "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
-            #     "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
-            #     "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
-            #     "ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"auth@example.com"}})
-            
-            # post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-            #     Authorization=wrong_auth, X_Experience_API_Version="0.95")
-            # self.assertEqual(post_response.status_code, 403)
-            # self.assertEqual(post_response.content, "This ActivityID already exists, and you do not have" + 
-            #                 " the correct authority to create or update it.")
             existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"s@s.com"},
                 "object": {"objectType": "Activity", "id":"foogie",
@@ -1520,3 +1488,14 @@ class StatementsTests(TestCase):
         
         self.assertEqual(actnoobjresp.status_code, 400)
         self.assertEqual(actnoobjresp.content, "JSON not found, expecting JSON for endpoint and received string instead")
+
+    def test_no_activity_filter(self):
+        self.bunchostmts()
+        # Test actor
+        actorGetResponse = self.client.post(reverse(views.statements), 
+            {"object":{"objectType": "Activity", "id":"http://notarealactivity.com"}},
+             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(actorGetResponse.status_code, 200)
+        rsp = json.loads(actorGetResponse.content)
+        stmts = rsp['statements']
+        self.assertEqual(len(stmts), 0)
