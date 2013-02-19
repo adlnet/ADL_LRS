@@ -168,35 +168,8 @@ class StatementModelsTests(TestCase):
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb/url"},
             "object": {'id':'activity10'},"result":{"success": True}})) 
 
-    # Result can no longer be string
-    # def test_string_result_stmt(self):
-    #     stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'s@s.com'},
-    #         'verb': {"id":"verb/url"},"object": {"id":"activity11"},
-    #         "result": "This is a string."}))
-        
-    #     activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-    #     # if any result, should only be one
-    #     self.assertEqual(len(stmt.model_object.result.all()), 1)
-    #     resid = stmt.model_object.result.all()[0].id
-    #     result = models.result.objects.get(id=resid)
-    #     ext = result.extensions.all()
-
-    #     self.assertEqual(stmt.model_object.verb.verb_id, "verb/url")
-    #     self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-    #     self.assertEqual(stmt.model_object.result.all()[0].id, result.id)
-
-    #     st = models.statement.objects.get(id=stmt.model_object.id)
-    #     self.assertEqual(st.stmt_object.id, activity.id)
-    #     self.assertEqual(st.result.all()[0].id, result.id)
-
-    #     self.assertEqual(1, len(ext))
-    #     res_str = ext[0]
-    #     self.assertEqual(res_str.key, 'resultString')
-    #     self.assertEqual(res_str.value, 'This is a string.')
-
-
     def test_result_stmt(self):
-        time = str(datetime.now())
+        time = "P0Y0M0DT1H311M01S"
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'s@s.com'}, 
             'verb': {"id":"verb/url"},"object": {'id':'activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
@@ -218,9 +191,13 @@ class StatementModelsTests(TestCase):
         self.assertEqual(result.response, 'kicked')
         self.assertEqual(result.duration, time)
 
+    def test_result__wrong_duration_stmt(self):
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({'actor':{'objectType':'Agent','mbox':'s@s.com'}, 
+            'verb': {"id":"verb/url"},"object": {'id':'activity12'},
+            "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': 'notright'}}))
 
     def test_result_ext_stmt(self):
-        time = str(datetime.now())
+        time = "P0Y0M0DT1H311M01S"
         stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':'jon',
             'mbox':'jon@example.com'},'verb': {"id":"verb/url"},"object": {'id':'activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
@@ -259,7 +236,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_result_score_stmt(self):
-        time = str(datetime.now())
+        time = "P0Y0M0DT1H311M01S"
         stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'jon@example.com'},
             'verb': {"id":"verb/url"},"object": {'id':'activity14'}, "result": {'score':{'scaled':.95},
             'completion': True, 'success': True, 'response': 'yes', 'duration': time,

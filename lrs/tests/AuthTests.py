@@ -59,7 +59,7 @@ class AuthTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
             "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}})        
@@ -72,7 +72,7 @@ class AuthTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"key11": "value11", "key22": "value22","key33": "value33"}}}, 
             "result": {"score":{"scaled":.75}, "completion": True, "success": True, "response": "shouted",
-            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
             "context":{"registration": self.cguid2, "contextActivities": {"other": {"id": "NewActivityID22"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey11": "cval11",
             "ckey22": "cval22"}}})        
@@ -84,7 +84,7 @@ class AuthTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"key111": "value111", "key222": "value222","key333": "value333"}}}, 
             "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
-            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
             "context":{"registration": self.cguid3, "contextActivities": {"other": {"id": "NewActivityID22"}},
             "revision": "food", "platform":"bard","language": "en-US",
             "instructor":{"objectType": "Agent", "name":"bob", "mbox":"bob@bob.com"}, 
@@ -97,7 +97,7 @@ class AuthTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"key111": "value111", "key222": "value222","key333": "value333"}}}, 
             "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
-            "duration": self.firstTime, "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"dkey1": "dvalue1", "dkey2":"dvalue2"}},
             "context":{"registration": self.cguid4, "contextActivities": {"other": {"id": "NewActivityID22"}},
             "revision": "food", "platform":"bard","language": "en-US","instructor":{"name":"bill", "mbox":"bill@bill.com"},
             "extensions":{"ckey111": "cval111","ckey222": "cval222"}}})
@@ -650,7 +650,7 @@ class AuthTests(TestCase):
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
             "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}})
@@ -730,7 +730,7 @@ class AuthTests(TestCase):
             "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"key1": "value1", "key2": "value2","key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            "duration": self.firstTime, "extensions":{"key1": "value1", "key2":"value2"}},
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"key1": "value1", "key2":"value2"}},
             "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ckey1": "cval1",
             "ckey2": "cval2"}}})
