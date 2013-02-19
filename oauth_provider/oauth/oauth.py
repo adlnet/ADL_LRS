@@ -283,13 +283,11 @@ class OAuthRequest(object):
                     raise OAuthError('Unable to parse OAuth parameters from '
                         'Authorization header.')
 
-        # Maybe should be setting these in utils initialize_server_request instead
         # GET or POST query string.
         if query_string:
             query_params = OAuthRequest._split_url_string(query_string)
             parameters.update(query_params)
 
-        # Maybe should be setting these in utils initialize_server_request instead
         # URL parameters.
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)

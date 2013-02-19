@@ -53,7 +53,7 @@ class OAuthTests(TestCase):
             path = "/XAPI/OAuth/initiate"
 
         request_resp = self.client.get(path, Authorization=oauth_header_request_params, X_Experience_API_Version="0.95")        
-        print request_resp.content
+
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret=', request_resp.content)
         self.assertIn('oauth_token=', request_resp.content)
@@ -68,7 +68,7 @@ class OAuthTests(TestCase):
         oauth_auth_params = {'oauth_token': token.key}
         auth_resp = self.client.get("/XAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login/?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])     
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -97,21 +97,20 @@ class OAuthTests(TestCase):
 
         access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params,
             X_Experience_API_Version="0.95")
-        print access_resp.content
+
         self.assertEqual(access_resp.status_code, 200)
         access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'jane')
 
         # Test ACCESS RESOURCE
-        oauth_header_resource_params = {
-            'oauth_consumer_key': self.consumer.key,
-            'oauth_token': access_token.key,
-            'oauth_signature_method': 'HMAC-SHA1',
-            'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': 'accessresourcenonce',
-            'oauth_version': '1.0'
-        }
+        oauth_header_resource_params = "OAuth realm=\"test\", "\
+            "oauth_consumer_key=\"%s\","\
+            "oauth_token=\"%s\","\
+            "oauth_signature_method=\"HMAC-SHA1\","\
+            "oauth_timestamp=\"%s\","\
+            "oauth_nonce=\"accessresourcenonce\","\
+            "oauth_version=\"1.0\"" % (self.consumer.key, access_token.key, str(int(time.time())))
 
         return oauth_header_resource_params, access_token
 
@@ -133,16 +132,15 @@ class OAuthTests(TestCase):
         self.assertIn('OAuth realm="http://localhost:8000/XAPI"', resp._headers['www-authenticate'])
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
-        # TEST REQUEST TOKEN
-        oauth_header_request_params = {
-            'oauth_consumer_key': self.consumer.key,
-            'oauth_signature_method': 'PLAINTEXT',
-            'oauth_signature':'%s&' % self.consumer.secret,
-            'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': 'requestnonce',
-            'oauth_version': '1.0',
-            'oauth_callback':'http://example.com/request_token_ready'
-        }
+        oauth_header_request_params = "OAuth realm=\"test\","\
+               "oauth_consumer_key=\"%s\","\
+               "oauth_signature_method=\"PLAINTEXT\","\
+               "oauth_signature=\"%s&\","\
+               "oauth_timestamp=\"%s\","\
+               "oauth_nonce=\"requestnonce\","\
+               "oauth_version=\"1.0\","\
+               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key,self.consumer.secret,str(int(time.time())))
+
         # Test passing scope as form param
         form_data = {
             'scope':'all',
@@ -393,6 +391,7 @@ class OAuthTests(TestCase):
             http_url=path, parameters=oauth_header_resource_params)
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        pdb.set_trace()
         oauth_header_resource_params['oauth_signature'] = signature
 
         consumer = access_token.consumer

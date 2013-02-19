@@ -10,7 +10,7 @@ from django.utils.translation import ugettext as _
 
 from utils import initialize_server_request, send_oauth_error
 from consts import OAUTH_PARAMETERS_NAMES
-import pdb
+
 def oauth_required(request):
     return CheckOAuth.handle_request(request)
 
@@ -35,37 +35,17 @@ class CheckOAuth(object):
         return CheckOAuth(request)
     
     def __call__(self, request):
-        pdb.set_trace()
         if self.is_valid_request(request):
             try:
                 consumer, token, parameters = self.validate_token(request)
             except OAuthError, e:
                 return send_oauth_error(e)
 
-            # Not sure how self.resource_name was being passed...the model class should handle this later 
-            # if self.resource_name and token.resource.name != self.resource_name:
-            #     return send_oauth_error(OAuthError(_('You are not allowed to access this resource.')))
-            # elif consumer and token:
-            #     return self.view_func(request, *args, **kwargs)
-            if consumer and token:
-                request['user'] = token.user
-        else:
-            return send_oauth_error(OAuthError(_('Invalid request parameters.')))
-    @staticmethod
-    def handle_request(self, request):
-        # pdb.set_trace()
-        if self.is_valid_request(request):
-            try:
-                consumer, token, parameters = self.validate_token(request)
-            except OAuthError, e:
-                return send_oauth_error(e)
-
-            if consumer and token:
-                request['user'] = token.user
-        else:
-            return send_oauth_error(OAuthError(_('Invalid request parameters.')))
-
-
+            if self.resource_name and token.resource.name != self.resource_name:
+                return send_oauth_error(OAuthError(_('You are not allowed to access this resource.')))
+            elif consumer and token:
+                return self.view_func(request, *args, **kwargs)
+        return send_oauth_error(OAuthError(_('Invalid request parameters.')))
 
     @staticmethod
     def is_valid_request(request):
