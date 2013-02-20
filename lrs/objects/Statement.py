@@ -3,9 +3,9 @@ import types
 import uuid
 import datetime
 from lrs import models, exceptions
-from lrs.util import get_user_from_auth, log_message, update_parent_log_status
+from lrs.util import get_user_from_auth, log_message, update_parent_log_status, uri
 from Agent import Agent
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError, ValidationError
 from django.db import transaction
 from functools import wraps
 from Activity import Activity
@@ -86,40 +86,6 @@ class Statement():
             log_message(self.log_dict, err_msg, __name__, self.voidStatement.__name__, True)
             update_parent_log_status(self.log_dict, 403)
             raise exceptions.Forbidden(err_msg)
-
-    def validateVerbResult(self,result, verb, obj_data):
-        completedVerbs = ['completed', 'mastered', 'passed', 'failed']
-
-        #If completion is false then verb cannot be completed, mastered, 
-        if 'completion' in result:
-            if result['completion'] == False:                
-                if verb in completedVerbs:
-                    err_msg = "Completion must be True if using the verb %s" % verb
-                    log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)
-                    #Throw exceptions b/c those verbs must have true completion
-                    update_parent_log_status(self.log_dict, 400)
-                    raise exceptions.ParamError(err_msg)
-
-        if verb == 'mastered' and result['success'] == False:
-            err_msg = "Result success must be True if verb is %s" % verb
-            log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)
-            #Throw exception b/c mastered and success contradict each other or completion is false
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
-
-        if verb == 'passed' and result['success'] == False:
-            err_msg = "Result success must be True if verb is %s" % verb
-            log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)            
-            #Throw exception b/c passed and success contradict each other or completion is false
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
-
-        if verb == 'failed' and result['success'] == True:
-            err_msg = "Result success must be False if verb is %s" % verb
-            log_message(self.log_dict, err_msg, __name__, self.validateVerbResult.__name__, True)
-            #Throw exception b/c failed and success contradict each other or completion is false
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
 
     def validateScoreResult(self, score_data):
         if 'min' in score_data:
@@ -216,7 +182,7 @@ class Statement():
 
         return stmt
 
-    def populateResult(self, stmt_data, verb):
+    def populateResult(self, stmt_data):
         log_message(self.log_dict, "Populating result", __name__, self.populateResult.__name__)
 
         resultExts = {}                    
@@ -227,8 +193,6 @@ class Statement():
         else:
             result = stmt_data['result']
 
-        self.validateVerbResult(result, verb, stmt_data['object'])
-
         # Validate duration, throw error if duration is not formatted correctly
         if 'duration' in result:
             try:
@@ -238,7 +202,6 @@ class Statement():
                 update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(e.message)
 
-        #Once found that the results are valid against the verb, check score object and save
         if 'score' in result.keys():
             result['score'] = self.validateScoreResult(result['score'])
             result['score'] = self.saveScoreToDB(result['score'])
@@ -296,7 +259,11 @@ class Statement():
     def save_lang_map(self, lang_map, verb):
         # If verb is model object but not saved yet
         if not verb.id:
-            verb.save()
+            try:
+                verb.full_clean()
+                verb.save()
+            except ValidationError as e:
+                raise exceptions.ParamError(e.messages[0])
         
         k = lang_map[0]
         v = lang_map[1]
@@ -317,6 +284,9 @@ class Statement():
             log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
+
+        if not uri.validate_uri(incoming_verb['id']):
+            raise exceptions.ParamError('Verb ID %s is not a valid URI' % incoming_verb['id']) 
 
         # Get or create the verb
         verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
@@ -474,7 +444,7 @@ class Statement():
         self.model_object = self.saveObjectToDB(args)
 
         if 'result' in stmt_data:
-            self.populateResult(stmt_data, args['verb'])
+            self.populateResult(stmt_data)
 
         if 'context' in stmt_data:
             self.populateContext(stmt_data)

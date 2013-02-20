@@ -135,7 +135,7 @@ class StatementsTests(TestCase):
 
         self.existStmt9 = json.dumps({"actor":{"objectType":"Agent","mbox":"sub@sub.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
-            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb/url/nested"},
+            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
             "object": {"objectType":"activity", "id":"testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": self.cguid6,
             "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
@@ -256,7 +256,7 @@ class StatementsTests(TestCase):
 
     def test_post_wrong_duration(self):
         stmt = json.dumps({"actor":{'objectType':'Person','name':'jon',
-            'mbox':'jon@example.com'},'verb': {"id":"verb/url"},"object": {'id':'activity13'}, 
+            'mbox':'jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': 'wrongduration',
             'extensions':{'key1': 'value1', 'key2':'value2'}}})
 
@@ -344,8 +344,8 @@ class StatementsTests(TestCase):
         param = {"statementId": st_guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"sass@sass.com"},
-            "verb": {"id":"verb/url/tested"}, "object":{"objectType":"SubStatement",
-            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb/url/nested"},
+            "verb": {"id":"verb:verb/url/tested"}, "object":{"objectType":"SubStatement",
+            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
             "object": {"objectType":"activity", "id":"testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": con_guid,
             "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",
@@ -364,7 +364,7 @@ class StatementsTests(TestCase):
         self.assertIn("actor",rsp)
         self.assertIn("ss@ss.com",rsp)
         self.assertIn("verb",rsp)
-        self.assertIn("verb/url/nested", rsp)
+        self.assertIn("verb:verb/url/nested", rsp)
         self.assertIn("Activity", rsp)
         self.assertIn("testex.com", rsp)
         self.assertIn("result", rsp)
@@ -768,7 +768,7 @@ class StatementsTests(TestCase):
                 "password2":wrong_password}
             response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
-            stmt = json.dumps({"verb":{"id":"verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"r@r.com"},
+            stmt = json.dumps({"verb":{"id":"verb:verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"r@r.com"},
                 "object": {"objectType": "Activity", "id":"foogie",
                 "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
                 "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
@@ -787,7 +787,7 @@ class StatementsTests(TestCase):
 
     def test_update_activity_correct_auth(self):
         self.bunchostmts()
-        stmt = json.dumps({"verb": {"id":"verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"l@l.com"},
+        stmt = json.dumps({"verb": {"id":"verb:verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"l@l.com"},
             "object": {"objectType": "Activity", "id":"foogie",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
             "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
@@ -821,7 +821,7 @@ class StatementsTests(TestCase):
 
     def test_cors_post_put(self):
         bdy = {"statementId": "postputID"}
-        bdy["content"] = {"verb":{"id":"verb/url"}, "actor":{"objectType":"Agent", "mbox": "r@r.com"},
+        bdy["content"] = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "r@r.com"},
             "object": {"id":"test_cors_post_put"}}
         bdy["Authorization"] = self.auth
         bdy["Content-Type"] = "application/json"
@@ -840,7 +840,7 @@ class StatementsTests(TestCase):
 
     def test_issue_put(self):
         stmt_id = "33f60b35-e1b2-4ddc-9c6f-7b3f65244430" 
-        stmt = json.dumps({"verb":{"id":"verb/uri"},"object":{"id":"scorm.com/JsTetris_TCAPI","definition":{"type":"media",
+        stmt = json.dumps({"verb":{"id":"verb:verb/uri"},"object":{"id":"scorm.com/JsTetris_TCAPI","definition":{"type":"media",
             "name":{"en-US":"Js Tetris - Tin Can Prototype"},"description":{"en-US":"A game of tetris."}}},
             "context":{"contextActivities":{"grouping":{"id":"scorm.com/JsTetris_TCAPI"}},
             "registration":"6b1091be-2833-4886-b4a6-59e5e0b3c3f4"},
@@ -873,7 +873,7 @@ class StatementsTests(TestCase):
 
     def test_issue_put_no_version_header(self):
         stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244431'
-        stmt = json.dumps({"verb":"completed","object":{"id":"scorm.com/JsTetris_TCAPI/level2",
+        stmt = json.dumps({"verb":"verb:completed","object":{"id":"scorm.com/JsTetris_TCAPI/level2",
             "definition":{"type":"media","name":{"en-US":"Js Tetris Level2"},
             "description":{"en-US":"Starting at 1, the higher the level, the harder the game."}}},
             "result":{"extensions":{"time":104,"apm":229,"lines":5},"score":{"raw":9911,"min":0}},
@@ -887,7 +887,7 @@ class StatementsTests(TestCase):
 
     def test_issue_put_wrong_version_header(self):
         stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244432'
-        stmt = json.dumps({"verb":"completed","object":{"id":"scorm.com/JsTetris_TCAPI/level2",
+        stmt = json.dumps({"verb":"verb:completed","object":{"id":"scorm.com/JsTetris_TCAPI/level2",
             "definition":{"type":"media","name":{"en-US":"Js Tetris Level2"},
             "description":{"en-US":"Starting at 1, the higher the level, the harder the game."}}},
             "result":{"extensions":{"time":104,"apm":229,"lines":5},"score":{"raw":9911,"min":0}},
@@ -1443,7 +1443,7 @@ class StatementsTests(TestCase):
 
         stmt_sub_stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"sub@sub.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
-            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb/url/nested"},
+            "actor":{"objectType":"Agent","mbox":"ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
             "object": {"objectType":"activity", "id":"testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": str(uuid.uuid4()),
             "contextActivities": {"other": {"id": "NewActivityID"}},"revision": "foo", "platform":"bar",

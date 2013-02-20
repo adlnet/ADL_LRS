@@ -6,6 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
+from django.core.exceptions import ValidationError
 from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 from datetime import datetime
 import datetime as dt
@@ -278,6 +279,13 @@ class extensions(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
+    def clean(self):
+        from lrs.util import uri
+        if self.key is None:
+            raise ValidationError('Key is missing')
+        if not uri.validate_uri(self.key):
+            raise ValidationError('Key is not a valid URI')
+
     def object_return(self):
         return {self.key:self.value}
 
@@ -438,6 +446,11 @@ class agent(statement_object):
     mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True, db_index=True)
     openid = models.CharField(max_length=200, blank=True, null=True, db_index=True)
     objects = agentmgr()
+
+    def clean(self):
+        from lrs.util import uri
+        if self.mbox is not None and not uri.validate_email(self.mbox):
+            raise ValidationError('mbox value did not start with mailto:')
 
     def get_agent_json(self, sparse=False):
         ret = {}
