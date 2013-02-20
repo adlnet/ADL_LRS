@@ -304,6 +304,7 @@ def logout_view(request):
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["GET"])
 def statements_more(request, more_id):
     statementResult = retrieve_statement.get_statement_request(more_id) 
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)

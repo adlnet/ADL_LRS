@@ -1,23 +1,16 @@
 from django.conf import settings
 from django.http import HttpResponse
 from django.contrib.auth import authenticate
-from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest
+from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest, Forbidden
 from lrs import models
 import base64
 from functools import wraps
 import pdb
+from oauth_provider.utils import send_oauth_error
+from oauth_provider.consts import  ACCEPTED
 
-from oauth_provider.decorators import oauth_required
-from oauth_provider.oauth.oauth import OAuthError
-from django.utils.translation import ugettext as _
-from oauth_provider.utils import initialize_server_request, send_oauth_error
-from oauth_provider.consts import OAUTH_PARAMETERS_NAMES
-from oauth_provider.consts import CONSUMER_STATES, ACCEPTED
-
+# A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
-    """
-    A decorator, that can be used to authenticate some requests at the site.
-    """
     @wraps(func)
     def inner(request, *args, **kwargs):
         # Note: The cases involving OAUTH_ENABLED are here if OAUTH_ENABLED is switched from true to false
@@ -63,56 +56,32 @@ def http_auth_helper(request):
         raise Unauthorized("Authorization header missing")
 
 def oauth_helper(request):
-    # Verifies the oauth request
-    if is_valid_request(request):
-        # Validates the incoming consumer, token, and params
-        try:
-            consumer, token, parameters = validate_token(request)
-        except OAuthError, e:
-            raise OauthUnauthorized(send_oauth_error(e))
-        
-        if consumer and token:
-            if consumer.status != ACCEPTED:
-                raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
+    consumer = request['consumer']
+    token = request['token']
+    # Make sure consumer has been accepted by system
+    if consumer and token:
+        if consumer.status != ACCEPTED:
+            raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
 
-            user = token.user
-            user_name = user.username
-            user_email = user.email
-            consumer = token.consumer                
-            members = [
-                        {
-                            "account":{
-                                        "name":consumer.key,
-                                        "homePage":"/XAPI/OAuth/token/"
-                            },
-                            "objectType": "Agent"
+        user = token.user
+        user_name = user.username
+        user_email = user.email
+        consumer = token.consumer                
+        members = [
+                    {
+                        "account":{
+                                    "name":consumer.key,
+                                    "homePage":"/XAPI/OAuth/token/"
                         },
-                        {
-                            "name":user_name,
-                            "mbox":user_email,
-                            "objectType": "Agent"
-                        }
-            ]
-            kwargs = {"objectType":"Group", "member":members}
-            oauth_group, created = models.group.objects.gen(**kwargs)
-            oauth_group.save()
-            request['auth'] = oauth_group
-    else:
-        pdb.set_trace()
-        raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
-
-def is_valid_request(request):
-    """
-    Checks whether the required parameters are either in
-    the http-authorization header sent by some clients,
-    which is by the way the preferred method according to
-    OAuth spec, but otherwise fall back to `GET` and `POST`.
-    """
-    is_in = lambda l: all((p in l) for p in OAUTH_PARAMETERS_NAMES)
-    auth_params = request.get("Authorization", [])
-    return is_in(auth_params)
-
-def validate_token(request):
-    # Creates the oauth server and request. Verifies the request against server
-    oauth_server, oauth_request = initialize_server_request(request)
-    return oauth_server.verify_request(oauth_request)
+                        "objectType": "Agent"
+                    },
+                    {
+                        "name":user_name,
+                        "mbox":user_email,
+                        "objectType": "Agent"
+                    }
+        ]
+        kwargs = {"objectType":"Group", "member":members}
+        oauth_group, created = models.group.objects.gen(**kwargs)
+        oauth_group.save()
+        request['auth'] = oauth_group

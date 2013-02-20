@@ -74,7 +74,7 @@ class AgentModelsTests(TestCase):
         bob3.save()
         self.assertNotEqual(bob.pk, bob3.pk)
 
-    def test_agent_kwargs_basic_account(self):
+    def test_agent_kwargs_basic_account(self):        
         ot = "Agent"
         name = "bob bobson"
         account = json.dumps({"homePage":"http://www.adlnet.gov","name":"freakshow"})
@@ -88,6 +88,51 @@ class AgentModelsTests(TestCase):
         a = bob.agent_account
         self.assertEquals(a.homePage, "http://www.adlnet.gov")
         self.assertEquals(a.name, "freakshow")
+
+    # def test_group_kwargs(self):
+    #     ot = "Agent"
+    #     name = "bob bobson"
+    #     kwargs = {"objectType":ot,"name":name, "mbox": "mailto:bob@example.com"}
+    #     pdb.set_trace()
+    #     bob, created = agent.objects.gen(**kwargs)
+
+    #     ot = "Agent"
+    #     name = "john johnson"
+    #     kwargs = {"objectType":ot,"name":name, "mbox": "mailto:john@example.com"}
+    #     pdb.set_trace()
+    #     john, created = agent.objects.gen(**kwargs)
+        
+    #     ot = "Group"
+    #     members = [{"name":"bob bobson","mbox":"mailto:bob@example.com"},
+    #                 {"name":"john johnson","mbox":"mailto:john@example.com"}]
+        
+    #     kwargs = {"objectType":ot, "member": members}
+    #     pdb.set_trace()
+    #     gr, created = group.objects.gen(**kwargs)
+    #     # Already created from above
+    #     self.assertTrue(created)
+
+    #     kwargs1 = {"objectType":ot, "member": members, "name": "my group"}
+    #     pdb.set_trace()
+    #     gr1, created = group.objects.gen(**kwargs1)
+    #     pdb.set_trace()
+    #     self.assertFalse(created)
+    #     self.assertEquals(gr1.name, "my group")
+    #     self.assertEquals(gr1.id, gr.id)
+
+    # def test_agent_update_kwargs(self):
+    #     ot = "Agent"
+    #     name = "bob bobson"
+    #     kwargs = {"objectType":ot, "mbox": "mailto:bob@example.com"}
+    #     bob, created = agent.objects.gen(**kwargs)
+    #     self.assertTrue(created)
+
+    #     kwargs1 = {"objectType":ot, "mbox": "mailto:bob@example.com", "name": name}
+    #     bob1, created = agent.objects.gen(**kwargs1)
+    #     self.assertFalse(created)
+    #     self.assertEquals(bob1.name, name)
+    #     self.assertEquals(bob.id, bob1.id)
+    #     self.assertEquals(len(agent.objects.all()), 1)
 
     def test_agent_json_no_ids(self):
         self.assertRaises(ParamError, agent.objects.gen, 

@@ -268,7 +268,6 @@ class OAuthRequest(object):
         """Combines multiple parameter sources."""
         if parameters is None:
             parameters = {}
-
         # Headers
         if headers and 'Authorization' in headers:
             auth_header = headers['Authorization']
@@ -292,6 +291,7 @@ class OAuthRequest(object):
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
         parameters.update(url_params)
+        
         if parameters:
             return OAuthRequest(http_method, http_url, parameters)
 
@@ -331,6 +331,7 @@ class OAuthRequest(object):
             http_url=None, parameters=None):
         if not parameters:
             parameters = {}
+
 
         parameters['oauth_token'] = token.key
 

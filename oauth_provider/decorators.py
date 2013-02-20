@@ -25,7 +25,6 @@ class CheckOAuth(object):
     is properly bound to its instance.
     """
     def __init__(self, request):
-        # pdb.set_trace()
         self.request = request
         self.view_func = view_func
         self.resource_name = resource_name
@@ -56,9 +55,9 @@ class CheckOAuth(object):
         OAuth spec, but otherwise fall back to `GET` and `POST`.
         """
         is_in = lambda l: all((p in l) for p in OAUTH_PARAMETERS_NAMES)
-        auth_params = request.META.get("HTTP_AUTHORIZATION", [])
-        auth_params_1 = request.META.get("Authorization", [])
-        return is_in(auth_params) or is_in(request.REQUEST) or is_in(auth_params_1)
+        # lou w = all auth params will be in Authorization or HTTP_AUTHORIZATION
+        auth_params = request.META.get("HTTP_AUTHORIZATION", request.META.get("Authorization", []))
+        return is_in(auth_params) or is_in(request.REQUEST)
 
     @staticmethod
     def validate_token(request):
