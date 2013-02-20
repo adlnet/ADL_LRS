@@ -292,7 +292,6 @@ class OAuthRequest(object):
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
         parameters.update(url_params)
-
         if parameters:
             return OAuthRequest(http_method, http_url, parameters)
 
@@ -325,7 +324,6 @@ class OAuthRequest(object):
         elif callback:
             # 1.0a support for callback in the request token request.
             parameters['oauth_callback'] = callback
-
         return OAuthRequest(http_method, http_url, parameters)
     from_consumer_and_token = staticmethod(from_consumer_and_token)
 
@@ -615,7 +613,6 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
             escape(oauth_request.get_normalized_http_url()),
             escape(oauth_request.get_normalized_parameters()),
         )
-
         key = '%s&' % escape(consumer.secret)
         if token:
             key += escape(token.secret)

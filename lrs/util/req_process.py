@@ -34,11 +34,11 @@ def statements_post(req_dict):
     else:
         # Handle single POST
         stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
-        stmt_responses.append(str(stmt.statement_id))
+        stmt_responses.append(stmt.statement_id)
 
     update_parent_log_status(log_dict, 200)
 
-    return HttpResponse(stmt_responses, status=200)
+    return HttpResponse('%s' % ', '.join(map(str,stmt_responses)), status=200)
 
 def statements_put(req_dict):
     log_dict = req_dict['initial_user_action']    
