@@ -13,12 +13,14 @@ def parse(request):
     
     # Build headers from request in request dict
     r_dict = get_headers(request.META, r_dict)
-    
+    # pdb.set_trace()
     # Traditional authorization should be passed in headers
     if 'Authorization' in r_dict:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
         # module
-        if type(r_dict['Authorization']) is dict:
+        auth_params = r_dict['Authorization']
+        if auth_params[:6] == 'OAuth ':
+            r_dict['Authorization'] = str(r_dict['Authorization'])
             r_dict['absolute_uri'] = request.build_absolute_uri()
             r_dict['query_string'] = request.META.get('QUERY_STRING', '')
             r_dict['server_name'] = request.META.get('SERVER_NAME', '')

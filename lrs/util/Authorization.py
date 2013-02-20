@@ -75,33 +75,30 @@ def oauth_helper(request):
             if consumer.status != ACCEPTED:
                 raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
 
-            # All is the only scope being supported - need to correct the user/auth_id workflow
-            if token.resource.name.lower() == 'all':
-                user = token.user
-                user_name = user.username
-                user_email = user.email
-                consumer = token.consumer                
-                members = [
-                            {
-                                "account":{
-                                            "name":consumer.key,
-                                            "homePage":"/XAPI/OAuth/token/"
-                                },
-                                "objectType": "Agent"
+            user = token.user
+            user_name = user.username
+            user_email = user.email
+            consumer = token.consumer                
+            members = [
+                        {
+                            "account":{
+                                        "name":consumer.key,
+                                        "homePage":"/XAPI/OAuth/token/"
                             },
-                            {
-                                "name":user_name,
-                                "mbox":user_email,
-                                "objectType": "Agent"
-                            }
-                ]
-                kwargs = {"objectType":"Group", "member":members}
-                oauth_group, created = models.group.objects.gen(**kwargs)
-                oauth_group.save()
-                request['auth'] = oauth_group
-            else:
-                raise BadRequest("Only the 'all' scope is supported.")
+                            "objectType": "Agent"
+                        },
+                        {
+                            "name":user_name,
+                            "mbox":user_email,
+                            "objectType": "Agent"
+                        }
+            ]
+            kwargs = {"objectType":"Group", "member":members}
+            oauth_group, created = models.group.objects.gen(**kwargs)
+            oauth_group.save()
+            request['auth'] = oauth_group
     else:
+        pdb.set_trace()
         raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
 
 def is_valid_request(request):

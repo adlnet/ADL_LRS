@@ -8,6 +8,8 @@ from lrs.models import Nonce, Token, Consumer, Resource, generate_random
 from consts import VERIFIER_SIZE, MAX_URL_LENGTH, OUT_OF_BAND
 import pdb
 OAUTH_BLACKLISTED_HOSTNAMES = getattr(settings, 'OAUTH_BLACKLISTED_HOSTNAMES', [])
+OAUTH_SCOPES = ["statements/write", "statements/read/mine", "statements/read", "state", "define",
+                "profile", "all/read", "all"]
 
 class DataStore(OAuthDataStore):
     """Layer between Python OAuth and Django database."""
@@ -66,18 +68,29 @@ class DataStore(OAuthDataStore):
                     # tom c
                     callback_confirmed = False
                     raise OAuthError('Invalid callback URL.')
+
+        # tom c - changed... Resource used to represent a specific scope
+        # with xapi scopes could be many.. using resource as a holder of
+        # many scopes
+        if self.scope:
+            scope = self.scope
+        else:
+            scope = self.consumer.default_scopes
+        # test_no_scope was setting consumer default scopes to blank string
+        if len(scope) == 0:
+            scope = "statements/write,statements/read/mine"
+        
+        scope_list = scope.split(",")
+
+        for x in scope_list:
+            if not x in OAUTH_SCOPES:
+                raise OAuthError('Resource %s is not allowed.' % escape(self.scope)) 
         try:
-            # tom c - changed... Resource used to represent a specific scope
-            # with xapi scopes could be many.. using resource as a holder of
-            # many scopes
-            if self.scope:
-                scope = self.scope
-            else:
-                scope = self.consumer.default_scopes
+            resource = Resource.objects.get(name=self.consumer.name, scope=scope)
+        except Resource.DoesNotExist:
             resource = Resource(name=self.consumer.name, scope=scope)
             resource.save()
-        except:
-            raise OAuthError('Resource %s does not exist.' % escape(self.scope))
+            
         self.request_token = Token.objects.create_token(consumer=self.consumer,
                                                         token_type=Token.REQUEST,
                                                         timestamp=self.timestamp,
