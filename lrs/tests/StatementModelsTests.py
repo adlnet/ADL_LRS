@@ -201,7 +201,7 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':'jon',
             'mbox':'jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
-            'extensions':{'key1': 'value1', 'key2':'value2'}}}))
+            'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         self.assertEqual(len(stmt.model_object.result.all()), 1)
         resid = stmt.model_object.result.all()[0].id
@@ -229,8 +229,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(actor.name, 'jon')
         self.assertEqual(actor.mbox, 'jon@example.com')
 
-        self.assertIn('key1', extKeys)
-        self.assertIn('key2', extKeys)
+        self.assertIn('ext:key1', extKeys)
+        self.assertIn('ext:key2', extKeys)
         self.assertIn('value1', extVals)
         self.assertIn('value2', extVals)
 
@@ -240,7 +240,7 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'jon@example.com'},
             'verb': {"id":"verb:verb/url"},"object": {'id':'activity14'}, "result": {'score':{'scaled':.95},
             'completion': True, 'success': True, 'response': 'yes', 'duration': time,
-            'extensions':{'key1': 'value1', 'key2':'value2'}}}))
+            'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         self.assertEqual(len(stmt.model_object.result.all()), 1)
@@ -275,8 +275,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(actor.name, 'jon')
         self.assertEqual(actor.mbox, 'jon@example.com')
 
-        self.assertIn('key1', extKeys)
-        self.assertIn('key2', extKeys)
+        self.assertIn('ext:key1', extKeys)
+        self.assertIn('ext:key2', extKeys)
         self.assertIn('value1', extVals)
         self.assertIn('value2', extVals)
 
@@ -328,7 +328,7 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'k1': 'v1', 'k2': 'v2'}}}))
+                'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
@@ -353,8 +353,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
 
-        self.assertIn('k1', extKeys)
-        self.assertIn('k2', extKeys)
+        self.assertIn('ext:k1', extKeys)
+        self.assertIn('ext:k2', extKeys)
         self.assertIn('v1', extVals)
         self.assertIn('v2', extVals)
 
@@ -577,7 +577,7 @@ class StatementModelsTests(TestCase):
             'object': {'objectType':'activity', 'id':'testex.com'}, 'result':{'completion': True, 'success': True,
             'response': 'kicked'}, 'context':{'registration': guid,
             'contextActivities': {'other': {'id': 'NewActivityID'}},'revision': 'foo', 'platform':'bar',
-            'language': 'en-US', 'extensions':{'k1': 'v1', 'k2': 'v2'}}}}))
+            'language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}}))
 
         outer_stmt = models.statement.objects.get(id=stmt.model_object.id)
         sub_stmt = models.SubStatement.objects.get(id=outer_stmt.stmt_object.id)

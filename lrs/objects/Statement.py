@@ -115,6 +115,8 @@ class Statement():
         #If it has extensions, save them all
         if resultExts:
             for k, v in resultExts.items():
+                if not uri.validate_uri(k):
+                    raise exceptions.ParamError('Extension ID %s is not a valid URI' % k)
                 resExt = models.extensions(key=k, value=v, content_object=rslt)
                 resExt.save()
         log_message(self.log_dict, "Result saved to database", __name__, self.saveResultToDB.__name__)
@@ -152,6 +154,8 @@ class Statement():
         # Save context extensions
         if contextExts:
             for k, v in contextExts.items():
+                if not uri.validate_uri(k):
+                    raise exceptions.ParamError('Extension ID %s is not a valid URI' % k)
                 conExt = models.extensions(key=k, value=v, content_object=cntx)
                 conExt.save()
 

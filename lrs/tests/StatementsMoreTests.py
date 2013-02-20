@@ -65,12 +65,12 @@ class StatementsMoreTests(TestCase):
             "display":{"en-US":"attempted", 'en-GB':"altattempted"}},"object": {'objectType': 'Activity',
             'id':'foogie','definition': {'name': {'en-US':'testname2', 'en-GB':'altname'},
             'description': {'en-US':'testdesc2','en-GB':'altdesc'}, 'type': 'cmi.interaction',
-            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],'extensions': {'key1': 'value1',
-            'key2': 'value2','key3': 'value3'}}}, "result": {'score':{'scaled':.85}, 'completion': True, 'success': True,
-            'response': 'kicked','duration': "P3Y6M4DT12H30M5S", 'extensions':{'key1': 'value1', 'key2':'value2'}},
+            'interactionType': 'fill-in','correctResponsesPattern': ['answer'],'extensions': {'ext:key1': 'value1',
+            'ext:key2': 'value2','ext:key3': 'value3'}}}, "result": {'score':{'scaled':.85}, 'completion': True, 'success': True,
+            'response': 'kicked','duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}},
             'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'NewActivityID2'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey1': 'cval1',
-            'ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
+            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ext:ckey1': 'cval1',
+            'ext:ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
         stmt_list.append(self.existStmt1)
 
         self.existStmt2 = json.dumps({"statement_id":self.guid2,"actor":{"objectType":"Agent","mbox":"s@s.com"},
@@ -78,12 +78,12 @@ class StatementsMoreTests(TestCase):
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'foogie','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
             'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-            'extensions': {'key11': 'value11', 'key22': 'value22','key33': 'value33'}}}, 
+            'extensions': {'ext:key11': 'value11', 'ext:key22': 'value22','ext:key33': 'value33'}}}, 
             "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
-            'duration': "P3Y6M4DT12H30M5S", 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
+            'duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:dkey1': 'dvalue1', 'ext:dkey2':'dvalue2'}},
             'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'NewActivityID24'}},
-            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ckey11': 'cval11',
-            'ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
+            'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ext:ckey11': 'cval11',
+            'ext:ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
         stmt_list.append(self.existStmt2)
 
         self.existStmt3 = json.dumps({"statement_id":self.guid3,"actor":{"objectType":"Agent","mbox":"s@s.com"},
@@ -92,13 +92,13 @@ class StatementsMoreTests(TestCase):
             'id':'foogals','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
             'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-            'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
+            'extensions': {'ext:key111': 'value111', 'ext:key222': 'value222','ext:key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
-            'duration': "P3Y6M4DT12H30M5S", 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
+            'duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:dkey1': 'dvalue1', 'ext:dkey2':'dvalue2'}},
             'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'NewActivityID23'}},
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'],
-            'mbox':['bill@bill.com']} , 'extensions':{'ckey111': 'cval111',
-            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
+            'mbox':['bill@bill.com']} , 'extensions':{'ext:ckey111': 'cval111',
+            'ext:ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})        
         stmt_list.append(self.existStmt3)
 
         self.existStmt4 = json.dumps({"statement_id":self.guid4,"actor":{"objectType":"Agent","mbox":"s@s.com"},
@@ -106,13 +106,13 @@ class StatementsMoreTests(TestCase):
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity', 'id':'foogal',
             'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
-            'extensions': {'key111': 'value111', 'key222': 'value222','key333': 'value333'}}}, 
+            'extensions': {'ext:key111': 'value111', 'ext:key222': 'value222','ext:key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
-            'duration': "P3Y6M4DT12H30M5S", 'extensions':{'dkey1': 'dvalue1', 'dkey2':'dvalue2'}},
+            'duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:dkey1': 'dvalue1', 'ext:dkey2':'dvalue2'}},
             'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'NewActivityID22'}},
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':['bill'],
-            'mbox':['bill@bill.com']}, 'extensions':{'ckey111': 'cval111',
-            'ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})
+            'mbox':['bill@bill.com']}, 'extensions':{'ext:ckey111': 'cval111',
+            'ext:ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'auth1@example.com'}})
         stmt_list.append(self.existStmt4)
 
         self.existStmt5 = json.dumps({"statement_id":self.guid5,"actor":{"objectType":"Agent","mbox":"s@s.com"},
