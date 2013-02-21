@@ -425,7 +425,10 @@ class Statement():
                     args['authority'] = self.auth
                 else:    
                     authArgs['name'] = self.auth.username
-                    authArgs['mbox'] = self.auth.email
+                    if self.auth.email.startswith("mailto:"):
+                        authArgs['mbox'] = self.auth.email
+                    else:
+                        authArgs['mbox'] = "mailto:%s" % self.auth.email
                     args['authority'] = Agent(initial=authArgs, create=True,
                         log_dict=self.log_dict).agent
 

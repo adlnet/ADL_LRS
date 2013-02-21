@@ -279,13 +279,6 @@ class extensions(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
-    def clean(self):
-        from lrs.util import uri
-        if self.key is None:
-            raise ValidationError('Key is missing')
-        if not uri.validate_uri(self.key):
-            raise ValidationError('Key is not a valid URI')
-
     def object_return(self):
         return {self.key:self.value}
 
@@ -404,6 +397,7 @@ class agentmgr(models.Manager):
                         ret_agent = agent.objects.get(**kwargs)
                     except agent.DoesNotExist:
                         ret_agent = agent(**kwargs)
+                ret_agent.full_clean()
                 ret_agent.save()
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
@@ -431,11 +425,13 @@ class agentmgr(models.Manager):
                 ret_agent = self.model(**kwargs)
             else:
                 ret_agent = agent(**kwargs)
+            ret_agent.full_clean()
             ret_agent.save()
             created = True
         if group:
             ags = [self.gen(**a) for a in members]
             ret_agent.member.add(*(a for a, c in ags))
+        ret_agent.full_clean()
         ret_agent.save()
         return ret_agent, created
 
