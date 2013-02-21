@@ -12,14 +12,14 @@ then make tests to get merged results (persons)
 
 class AgentModelsTests(TestCase):
     def test_agent_mbox_create(self):
-        mbox = "bob@example.com"
+        mbox = "mailto:bob@example.com"
         bob = agent(mbox=mbox)
         self.assertEquals(bob.mbox, mbox)
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
 
     def test_agent_mbox_sha1sum_create(self):
-        msha = hashlib.sha1("bob@example.com").hexdigest()
+        msha = hashlib.sha1("mailto:bob@example.com").hexdigest()
         bob = agent(mbox_sha1sum=msha)
         self.assertEquals(bob.mbox_sha1sum, msha)
         self.assertEquals(bob.objectType, "Agent")

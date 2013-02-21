@@ -304,7 +304,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_put(self):
         put_guid = str(uuid.uuid4())
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bill"},
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test_put"}})
         param = {"statementId":put_guid}
@@ -324,7 +324,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.status_code, 204)
 
     def test_stmt_post_no_scope(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_post"}})
 
@@ -342,7 +342,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_simple_get(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
         param = {"statementId":guid}
@@ -362,7 +362,7 @@ class OAuthTests(TestCase):
         self.assertIn(guid, rsp)
 
     def test_stmt_complex_get(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_complex_get"}}))
         param = {"object":{"objectType": "Activity", "id":"test_complex_get"}}
@@ -380,7 +380,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_consumer_state(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_complex_get"}}))
         param = {"object":{"objectType": "Activity", "id":"test_complex_get"}}

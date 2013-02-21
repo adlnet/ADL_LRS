@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.shortcuts import render_to_response
@@ -358,7 +359,9 @@ def handle_request(request):
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
     except exceptions.BadRequest as err:
-        return HttpResponse(err.message, status=400)        
+        return HttpResponse(err.message, status=400)
+    except ValidationError as ve:
+        return HttpResponse(ve.messages[0], status=400)
     except exceptions.Unauthorized as autherr:
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'

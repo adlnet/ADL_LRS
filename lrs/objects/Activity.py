@@ -3,7 +3,7 @@ import urllib2
 import datetime
 from StringIO import StringIO
 from lrs import models, exceptions
-from lrs.util import log_message, update_parent_log_status
+from lrs.util import log_message, update_parent_log_status, uri
 from lxml import etree
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -604,6 +604,8 @@ class Activity():
 
     def populate_extensions(self, act_def):
         for k, v in act_def['extensions'].items():
+            if not uri.validate_uri(k):
+                raise exceptions.ParamError('Extension ID %s is not a valid URI' % k)
             act_def_ext = models.extensions(key=k, value=v,
                 content_object=self.activity.activity_definition)
             act_def_ext.save()    
