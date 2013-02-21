@@ -48,7 +48,7 @@ class ActivityTests(TestCase):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar2',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'course','interactionType': 'intType2', 
-                'extensions': {'key1': 'value1', 'key2': 'value2'}}}))
+                'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2'}}}))
 
         response = self.client.get(reverse(views.activities), {'activityId':'foobar2'}, Authorization=self.auth, X_Experience_API_Version="0.95")
         rsp = response.content
@@ -259,7 +259,7 @@ class ActivityTests(TestCase):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foobar11',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
-                'extensions': {'key1': 'value1', 'key2': 'value2','key3': 'value3'}}}))        
+                'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}))        
 
         response = self.client.get(reverse(views.activities), {'activityId': 'foobar11'}, Authorization=self.auth, X_Experience_API_Version="0.95")       
         rsp = response.content
