@@ -58,30 +58,30 @@ def http_auth_helper(request):
 def oauth_helper(request):
     consumer = request['consumer']
     token = request['token']
+    
     # Make sure consumer has been accepted by system
-    if consumer and token:
-        if consumer.status != ACCEPTED:
-            raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
+    if consumer.status != ACCEPTED:
+        raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
 
-        user = token.user
-        user_name = user.username
-        user_email = user.email
-        consumer = token.consumer                
-        members = [
-                    {
-                        "account":{
-                                    "name":consumer.key,
-                                    "homePage":"/XAPI/OAuth/token/"
-                        },
-                        "objectType": "Agent"
+    user = token.user
+    user_name = user.username
+    user_email = user.email
+    consumer = token.consumer                
+    members = [
+                {
+                    "account":{
+                                "name":consumer.key,
+                                "homePage":"/XAPI/OAuth/token/"
                     },
-                    {
-                        "name":user_name,
-                        "mbox":user_email,
-                        "objectType": "Agent"
-                    }
-        ]
-        kwargs = {"objectType":"Group", "member":members}
-        oauth_group, created = models.group.objects.gen(**kwargs)
-        oauth_group.save()
-        request['auth'] = oauth_group
+                    "objectType": "Agent"
+                },
+                {
+                    "name":user_name,
+                    "mbox":user_email,
+                    "objectType": "Agent"
+                }
+    ]
+    kwargs = {"objectType":"Group", "member":members}
+    # create/get oauth group and set in dictionary
+    oauth_group, created = models.group.objects.gen(**kwargs)
+    request['auth'] = oauth_group

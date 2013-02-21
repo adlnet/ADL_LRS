@@ -15,7 +15,11 @@ from lrs.exceptions import OauthUnauthorized
 from django.utils.translation import ugettext as _
 
 def parse(request):
-    r_dict = {}    
+    r_dict = {}
+    
+    # Build headers from request in request dict
+    r_dict = get_headers(request.META, r_dict)
+    
     # Traditional authorization should be passed in headers
     if 'Authorization' in r_dict:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
@@ -48,9 +52,6 @@ def parse(request):
         r_dict['lrs_auth'] = 'http'
     else:
         r_dict['lrs_auth'] = 'none'
-
-    # Build headers from request in request dict
-    r_dict = get_headers(request.META, r_dict)
 
     if request.method == 'POST' and 'method' in request.GET:
         bdy = ast.literal_eval(request.body)
