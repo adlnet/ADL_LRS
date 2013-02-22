@@ -1502,3 +1502,49 @@ class StatementsTests(TestCase):
         rsp = json.loads(actorGetResponse.content)
         stmts = rsp['statements']
         self.assertEqual(len(stmts), 0)
+
+    def test_since_filter_tz(self):
+        stmt1_guid = str(uuid.uuid4())
+        stmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+                "display": {"en-US":"created"}}, "object": {"id":"activity"},
+                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T12:00:00-05:00"})
+
+        param = {"statementId":stmt1_guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = stmt1
+        resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(resp.status_code, 204)
+        time = "2013-02-02T12:00:32-05:00"
+        stmt = models.statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
+
+        stmt2_guid = str(uuid.uuid4())
+        stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+                "display": {"en-US":"created"}}, "object": {"id":"activity2"},
+                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T20:00:00+05:00"})
+
+        param = {"statementId":stmt2_guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = stmt2
+        resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(resp.status_code, 204)
+        time = "2013-02-02T10:00:32-05:00"
+        stmt = models.statement.objects.filter(statement_id=stmt2_guid).update(stored=time)
+
+        param = {"since": "2013-02-02T14:00Z"}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))      
+        sinceGetResponse = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
+
+        self.assertEqual(sinceGetResponse.status_code, 200)
+        rsp = sinceGetResponse.content
+        self.assertIn(stmt1_guid, rsp)
+        self.assertIn(stmt2_guid, rsp)
+
+        param2 = {"since": "2013-02-02T16:00Z"}
+        path2 = "%s?%s" % (reverse(views.statements), urllib.urlencode(param2))      
+        sinceGetResponse2 = self.client.get(path2, X_Experience_API_Version="0.95", Authorization=self.auth)
+
+        self.assertEqual(sinceGetResponse2.status_code, 200)
+        rsp2 = sinceGetResponse2.content
+        self.assertIn(stmt1_guid, rsp2)
+        self.assertNotIn(stmt2_guid, rsp2)
+        
