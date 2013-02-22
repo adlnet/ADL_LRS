@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from lrs import models, views
 import datetime
 from django.utils.timezone import utc
+from django.utils import timezone
 import hashlib
 import urllib
 from os import path
@@ -256,7 +257,7 @@ class ActivityStateTests(TestCase):
         testparamssince = {"stateId": state_id, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
         teststatesince = {"test":"get w/ since","obj":{"agent":"test"}}
-        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
+        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=timezone.get_default_timezone())
         put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="0.95")
 
         self.assertEqual(put1.status_code, 204)
@@ -280,6 +281,53 @@ class ActivityStateTests(TestCase):
 
         del_r = self.client.delete(self.url, testparamssince, Authorization=self.auth, X_Experience_API_Version="0.95")
         
+    def test_get_with_since_tz(self):
+        state_id = "old_state_test"
+        testparamssince = {"stateId": state_id, "activityId": self.activityId, "agent": self.testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
+        teststatesince = {"test":"get w/ since","obj":{"agent":"test"}}
+        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=timezone.get_default_timezone())
+        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="0.95")
+
+        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.content, '')
+        
+        r = self.client.get(self.url, testparamssince, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        state1_str = '%s' % teststatesince
+        self.assertEqual(r.content, state1_str)
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
+
+        state_id2 = "new_tz_state_test"
+        testparamssince2 = {"stateId": state_id2, "activityId": self.activityId, "agent": self.testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamssince2))
+        teststatesince2 = {"test":"get w/ since TZ","obj":{"agent":"test"}}
+        updated_tz =  "2012-7-1T13:30:00+04:00"
+        put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated_tz, Authorization=self.auth, X_Experience_API_Version="0.95")
+
+        self.assertEqual(put2.status_code, 204)
+        self.assertEqual(put2.content, '')
+        
+        r2 = self.client.get(self.url, testparamssince2, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(r2.status_code, 200)
+        state2_str = '%s' % teststatesince2
+        self.assertEqual(r2.content, state2_str)
+        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(state2_str).hexdigest())
+
+        since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
+        params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
+        r = self.client.get(self.url, params2, X_Experience_API_Version="0.95", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.stateId, r.content)
+        self.assertIn(self.stateId2, r.content)
+        self.assertNotIn(state_id, r.content)
+        self.assertNotIn(state_id2, r.content)
+        self.assertNotIn(self.stateId3, r.content)
+        self.assertNotIn(self.stateId4, r.content)
+
+        del_r = self.client.delete(self.url, testparamssince, Authorization=self.auth, X_Experience_API_Version="0.95")
+        del_r = self.client.delete(self.url, testparamssince2, Authorization=self.auth, X_Experience_API_Version="0.95")
+
     def test_get_with_since_and_regid(self):
         # create old state w/ no registration id
         state_id = "old_state_test_no_reg"

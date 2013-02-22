@@ -1,20 +1,10 @@
 from django.core.management.base import NoArgsCommand, CommandError
 from lrs.models import SystemAction
+from lrs.util import convert_to_utc
 from django.conf import settings
 from django.utils.timezone import utc
 from datetime import date, timedelta, datetime
-import pytz
 
-def convert_to_utc(timestr):
-    # Strip off TZ info
-    timestr = timestr[:timestr.rfind('+')]
-    
-    # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
-    date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
-    
-    # Localize TZ to UTC since everything is being stored in DB as UTC
-    date_object = pytz.timezone("UTC").localize(date_object)
-    return date_object
 
 class Command(NoArgsCommand):
     args = 'None'

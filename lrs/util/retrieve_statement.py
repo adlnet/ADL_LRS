@@ -5,27 +5,18 @@ from datetime import datetime
 from django.conf import settings
 from django.core.paginator import Paginator
 from lrs.exceptions import BadRequest
+from lrs.util import convert_to_utc
+from dateutil import parser
 import bencode
-import pytz
 import hashlib
 import json
 import pickle
 import ast
 import pdb
-import ast
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
-def convert_to_utc(timestr):
-    # Strip off TZ info
-    timestr = timestr[:timestr.rfind('+')]
-    
-    # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
-    date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
-    
-    # Localize TZ to UTC since everything is being stored in DB as UTC
-    date_object = pytz.timezone("UTC").localize(date_object)
-    return date_object
+
 
 def convert_to_dict(incoming_data):
     data = {}

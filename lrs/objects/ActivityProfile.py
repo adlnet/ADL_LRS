@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 import json
 import pdb
 import logging
+import datetime
 
 logger = logging.getLogger('user_system_actions')
 
@@ -89,7 +90,7 @@ class ActivityProfile():
             raise IDNotFoundError(err_msg)
 
 
-    def get_profile_ids(self, profileId, activityId, since=None):
+    def get_profile_ids(self, activityId, since=None):
         ids = []
 
         #make sure activityId exists
@@ -104,11 +105,13 @@ class ActivityProfile():
         #If there is a since param return all profileIds since then
         if since:
             try:
-                profs = models.activity_profile.objects.filter(updated__gte=since, profileId=profileId, activity=activity)
+                # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
+                profs = models.activity_profile.objects.filter(updated__gte=since, activity=activity)
             except ValidationError:
-                since_i = int(float(since))
-                since_dt = datetime.datetime.fromtimestamp(since_i)
-                profs = models.activity_profile_set.filter(update__gte=since_dt, profileId=profileId, activity=activity)
+                from django.utils import timezone
+                since_i = int(float(since))# this handles timestamp like str(time.time())
+                since_dt = datetime.datetime.fromtimestamp(since_i).replace(tzinfo=timezone.get_default_timezone())
+                profs = models.activity_profile.objects.filter(updated__gte=since_dt, activity=activity)
             ids = [p.profileId for p in profs]
         else:
             #Return all IDs of profiles associated with this activity b/c there is no since param

@@ -218,6 +218,40 @@ class AgentProfileTests(TestCase):
 
         self.client.delete(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
 
+    def test_get_agent_since_tz(self):
+        prof_id = "http://oldprofile/time"
+        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
+
+        params = {"profileId": prof_id, "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        profile = {"test":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
+        response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="0.95")
+
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, '%s' % profile)
+
+        prof_id2 = "http://newprofile/timezone"
+        updated2 =  "2012-7-1T08:30:00-04:00"
+
+        params2 = {"profileId": prof_id2, "agent": self.testagent}
+        path2 = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params2))
+        profile2 = {"test":"agent profile since time: %s" % updated2,"obj":{"agent":"test"}}
+        response = self.client.put(path2, profile2, content_type=self.content_type, updated=updated2, Authorization=self.auth, X_Experience_API_Version="0.95")
+
+        r2 = self.client.get(reverse(views.agent_profile), params2, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(r2.content, '%s' % profile2)
+
+        since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
+        params = {"agent": self.testagent, "since":since.isoformat()}
+        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertNotIn(prof_id, r.content)
+        self.assertIn(prof_id2, r.content)
+
+        self.client.delete(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.client.delete(reverse(views.agent_profile), params2, Authorization=self.auth, X_Experience_API_Version="0.95")
+
     def test_post_put_delete(self):
         prof_id = "http://deleteme.too"
         params = {"profileId": prof_id, "agent": self.testagent}
