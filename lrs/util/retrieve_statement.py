@@ -5,27 +5,18 @@ from datetime import datetime
 from django.conf import settings
 from django.core.paginator import Paginator
 from lrs.exceptions import BadRequest
+from lrs.util import convert_to_utc
+from dateutil import parser
 import bencode
-import pytz
 import hashlib
 import json
 import pickle
 import ast
 import pdb
-import ast
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
-def convert_to_utc(timestr):
-    # Strip off TZ info
-    timestr = timestr[:timestr.rfind('+')]
-    
-    # Convert to date_object (directive for parsing TZ out is buggy, which is why we do it this way)
-    date_object = datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
-    
-    # Localize TZ to UTC since everything is being stored in DB as UTC
-    date_object = pytz.timezone("UTC").localize(date_object)
-    return date_object
+
 
 def convert_to_dict(incoming_data):
     data = {}
@@ -158,6 +149,8 @@ def complex_get(req_dict):
         obj = parse_incoming_object(objectData, args)
         if obj:
             args['stmt_object'] = obj
+        else:
+            return []
 
     # If searching by verb
     if 'verb' in the_dict:
@@ -165,19 +158,26 @@ def complex_get(req_dict):
         verb = models.Verb.objects.filter(verb_id=verb_id)
         if verb:
             args['verb'] = verb
+        else:
+            return []
 
     # If searching by registration
     if 'registration' in the_dict:
         uuid = str(the_dict['registration'])
         cntx = models.context.objects.filter(registration=uuid)
-        args['context'] = cntx
-    
+        if cntx:
+            args['context'] = cntx
+        else:
+            return []
+
     # If searching by actor
     if 'actor' in the_dict:
         actorData = the_dict['actor']
         actor = parse_incoming_actor(actorData)
         if actor:
             args['actor'] = actor
+        else:
+            return []
 
     # If searching by instructor
     if 'instructor' in the_dict:
@@ -185,8 +185,10 @@ def complex_get(req_dict):
         inst = parse_incoming_instructor(instData)
         if inst:
             args['context__in'] = inst
-    
-    # there's a default of true
+        else:
+            return []
+
+    # there's a default of true - ALWAYS GETS SET
     if not 'authoritative' in the_dict or str(the_dict['authoritative']).upper() == 'TRUE':
         args['authoritative'] = True   
 

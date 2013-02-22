@@ -79,7 +79,10 @@ def oauth_helper(request):
             if token.resource.name.lower() == 'all':
                 user = token.user
                 user_name = user.username
-                user_email = user.email
+                if user.email.startswith('mailto:'):
+                    user_email = user.email
+                else:
+                    user_email = 'mailto:%s' % user.email
                 consumer = token.consumer                
                 members = [
                             {

@@ -6,6 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
+from django.core.exceptions import ValidationError
 from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 from datetime import datetime
 import datetime as dt
@@ -408,6 +409,7 @@ class agentmgr(models.Manager):
                         ret_agent = agent.objects.get(**kwargs)
                     except agent.DoesNotExist:
                         ret_agent = agent(**kwargs)
+                ret_agent.full_clean()
                 ret_agent.save()
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
@@ -435,11 +437,13 @@ class agentmgr(models.Manager):
                 ret_agent = self.model(**kwargs)
             else:
                 ret_agent = agent(**kwargs)
+            ret_agent.full_clean()
             ret_agent.save()
             created = True
         if group:
             ags = [self.gen(**a) for a in members]
             ret_agent.member.add(*(a for a, c in ags))
+        ret_agent.full_clean()
         ret_agent.save()
         return ret_agent, created
 
@@ -450,6 +454,11 @@ class agent(statement_object):
     mbox_sha1sum = models.CharField(max_length=200, blank=True, null=True, db_index=True)
     openid = models.CharField(max_length=200, blank=True, null=True, db_index=True)
     objects = agentmgr()
+
+    def clean(self):
+        from lrs.util import uri
+        if self.mbox is not None and not uri.validate_email(self.mbox):
+            raise ValidationError('mbox value did not start with mailto:')
 
     def get_agent_json(self, sparse=False):
         ret = {}

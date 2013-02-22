@@ -1,8 +1,17 @@
 from django.contrib.auth.models import User
 from lrs.models import Consumer, SystemAction
 import logging
+from lrs.exceptions import ParamError
+from dateutil import parser
 
 logger = logging.getLogger('user_system_actions')
+
+def convert_to_utc(timestr):
+    try:
+        date_object = parser.parse(timestr)
+    except ValueError as e:
+        raise ParamError(e)
+    return date_object
 
 def get_user_from_auth(auth):
     if not auth:
