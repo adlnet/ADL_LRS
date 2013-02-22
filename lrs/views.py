@@ -160,7 +160,8 @@ def register(request):
                         context_instance=RequestContext(request))
             except User.DoesNotExist:
                 user = User.objects.create_user(name, email, pword)
-            return HttpResponseRedirect(reverse('lrs.views.reg_success',args=[user.id]))
+            d = {"info_message": "Thanks for registering %s" % user.username}
+            return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
             return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
     else:
@@ -185,23 +186,12 @@ def reg_client(request):
                 client.save()
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
-            url = "%s?%s" % (reverse('lrs.views.reg_success', args=[client.pk]),urllib.urlencode({"type":"client"}))
-            return HttpResponseRedirect(url)
+            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
+            return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))        
     else:
         return Http404
-
-def reg_success(request, user_id):
-    # pdb.set_trace()
-    if "type" in request.GET and request.GET['type'] == 'client':
-        client = models.Consumer.objects.get(id=user_id)
-        d = {"name":client.name,"app_id":client.key, "secret":client.secret,
-             "info_message": "Your Client Credentials"}
-    else:
-        user = User.objects.get(id=user_id)
-        d = {"info_message": "Thanks for registering %s" % user.username}
-    return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
