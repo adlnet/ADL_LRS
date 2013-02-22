@@ -4,7 +4,8 @@ from lrs.objects import Agent, Statement
 from datetime import datetime
 from django.conf import settings
 from django.core.paginator import Paginator
-from lrs.exceptions import BadRequest, ParamError
+from lrs.exceptions import BadRequest
+from lrs.util import convert_to_utc
 from dateutil import parser
 import bencode
 import hashlib
@@ -15,12 +16,7 @@ import pdb
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
-def convert_to_utc(timestr):
-    try:
-        date_object = parser.parse(timestr)
-    except ValueError as e:
-        raise ParamError(e)
-    return date_object
+
 
 def convert_to_dict(incoming_data):
     data = {}
