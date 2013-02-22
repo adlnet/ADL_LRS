@@ -207,19 +207,6 @@ class ActivityProfileTests(TestCase):
         response = self.client.get(reverse(views.activity_profile), {'activityId':'http://actID','profileId':self.testprofileId1}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(response.status_code, 404)
         
-    def test_get_activity_since(self):
-        #Convert since to string since will be string in header
-        since = str(time.time())
-        response = self.client.get(reverse(views.activity_profile), {'activityId': self.test_activityId3,'since':since}, X_Experience_API_Version="0.95", Authorization=self.auth)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.testprofileId3)
-        self.assertEqual(response['since'], since)
-        #resp_hash = hashlib.sha1(response.content).hexdigest()
-        #self.assertEqual(response['etag'], '"%s"' % resp_hash)
-        params = {'activityId': self.test_activityId3, 'profileId': self.testprofileId3}
-
-        self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
-    
     def test_get_activity_since_tz(self):
         actid = "test:activity"
         profid = "test://test/tz"
