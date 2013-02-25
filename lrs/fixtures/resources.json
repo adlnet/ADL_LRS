@@ -4,8 +4,79 @@
 		"pk": 1,
 		"fields":{
 			"name": "all",
-			"url": "*",
-			"is_readonly": 0
+			"url": "/statements, /activities, /activities/state, /activities/profile, /agents, /agents/profile",
+			"is_readonly": 0,
+			"is_mineonly": 0
+		}
+	},
+	{
+		"model": "lrs.resource",
+		"pk": 2,
+		"fields":{
+			"name": "all/read",
+			"url": "/statements, /activities, /activities/state, /activities/profile, /agents, /agents/profile",
+			"is_readonly": 1,
+			"is_mineonly": 0
+		}
+	},
+	{
+		"model": "lrs.resource",
+		"pk": 3,
+		"fields":{
+			"name": "profile",
+			"url": "/activities/profile, /agents/profile",
+			"is_readonly": 0,
+			"is_mineonly": 1			
+		}
+	},
+	{
+		"model": "lrs.resource",
+		"pk": 4,
+		"fields":{
+			"name": "define",
+			"url": "/activities, /agents",
+			"is_readonly": 0,
+			"is_mineonly": 0			
+		}
+	},
+	{
+		"model": "lrs.resource",
+		"pk": 5,
+		"fields":{
+			"name": "state",
+			"url": "/activities/state",
+			"is_readonly": 0,
+			"is_mineonly": 1			
+		}
+	},
+	{
+		"model": "lrs.resource",
+		"pk": 6,
+		"fields":{
+			"name": "statements/read",
+			"url": "/statements",
+			"is_readonly": 1,
+			"is_mineonly": 0			
+		}
+	},
+	{
+		"model": "lrs.resource",
+		"pk": 7,
+		"fields":{
+			"name": "statements/read/mine",
+			"url": "/statements",
+			"is_readonly": 1,
+			"is_mineonly": 1			
+		}
+	},
+	{
+		"model": "lrs.resource",
+		"pk": 8,
+		"fields":{
+			"name": "statements/write",
+			"url": "/statements",
+			"is_readonly": 0,
+			"is_mineonly": 0			
 		}
 	}
 ]

@@ -25,8 +25,6 @@ class Activity():
 
     # XMLschema for Activity IDs
     try:
-        # req = urllib2.Request("%s%s" % (settings.STATIC_URL, 'tincan.xsd'))
-        # resp = urllib2.urlopen(req)
         # oh i don't like this... TODO: can we make this better?
         resp = open('lrs/static/tincan.xsd', 'rb')
         XML = resp.read()

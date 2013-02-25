@@ -179,15 +179,17 @@ def reg_client(request):
         if form.is_valid():
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
+            scopes = form.cleaned_data['scopes']
             try:
                 client = models.Consumer.objects.get(name__exact=name)
             except models.Consumer.DoesNotExist:
-                client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED)
+                client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED, default_scopes=",".join(scopes))
                 client.save()
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
             d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
+
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))        
     else:
@@ -294,6 +296,7 @@ def logout_view(request):
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["GET"])
 def statements_more(request, more_id):
     statementResult = retrieve_statement.get_statement_request(more_id) 
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)

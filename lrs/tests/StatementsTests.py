@@ -869,7 +869,7 @@ class StatementsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
-
+        # pdb.set_trace()
 
     def test_issue_put_no_version_header(self):
         stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244431'

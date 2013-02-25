@@ -34,16 +34,16 @@ def statements_post(req_dict):
     else:
         # Handle single POST
         stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
-        stmt_responses.append(str(stmt.statement_id))
+        stmt_responses.append(stmt.statement_id)
 
     update_parent_log_status(log_dict, 200)
 
-    return HttpResponse(stmt_responses, status=200)
+    return HttpResponse('%s' % ', '.join(map(str,stmt_responses)), status=200)
 
 def statements_put(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'PUT', __name__)
-    
+
     # Set statement ID in body so all data is together
     req_dict['body']['statement_id'] = req_dict['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
@@ -164,8 +164,8 @@ def activity_profile_delete(req_dict):
     # Delete profile and return success
     ap.delete_profile(req_dict)
 
-    update_parent_log_status(log_dict, 200)
-    return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
+    update_parent_log_status(log_dict, 204)
+    return HttpResponse('', status=204)
 
 def activities_get(req_dict):
     log_dict = req_dict['initial_user_action']    
