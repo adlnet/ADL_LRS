@@ -66,7 +66,7 @@ def oauth_helper(request):
     user = token.user
     user_name = user.username
     user_email = user.email
-    consumer = token.consumer                
+    consumer = token.consumer
     members = [
                 {
                     "account":{

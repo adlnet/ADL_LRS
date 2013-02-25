@@ -20,7 +20,7 @@ import pdb
 import urllib
 import urlparse
 from time import time
-from oauth_provider.managers import TokenManager, ConsumerManager, ResourceManager
+from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
 
@@ -39,27 +39,6 @@ class Nonce(models.Model):
     
     def __unicode__(self):
         return u"Nonce %s for %s" % (self.key, self.consumer_key)
-
-
-class Resource(models.Model):
-    name = models.CharField(max_length=255)
-    url = models.TextField(max_length=MAX_URL_LENGTH, default="/XAPI/")
-    is_readonly = models.BooleanField(default=False)
-    scope = models.CharField(max_length=100, default="statements/write,statements/read/mine")
-    
-    objects = ResourceManager()
-
-    def __unicode__(self):
-        return u"Resource %s with url %s" % (self.name, self.url)
-
-    def is_authorized(self, method, url):
-        # needs to check method and url fits into allowed scope
-        if "all/read" in self.scope and "GET" in method:
-            return True
-        elif "all" in self.scope:
-            return True
-        # need to add the rest
-        return False
 
 
 class Consumer(models.Model):
@@ -108,7 +87,7 @@ class Token(models.Model):
 
     user = models.ForeignKey(User, null=True, blank=True, related_name='tokens')
     consumer = models.ForeignKey(Consumer)
-    resource = models.ForeignKey(Resource)
+    scope = models.CharField(max_length=100, default="statements/write,statements/read/mine")
     
     ## OAuth 1.0a stuff
     verifier = models.CharField(max_length=VERIFIER_SIZE)

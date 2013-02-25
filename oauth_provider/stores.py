@@ -4,9 +4,9 @@ from oauth.oauth import OAuthDataStore, OAuthError, escape
 
 from django.conf import settings
 
-from lrs.models import Nonce, Token, Consumer, Resource, generate_random
+from lrs.models import Nonce, Token, Consumer, generate_random
 from consts import VERIFIER_SIZE, MAX_URL_LENGTH, OUT_OF_BAND
-
+import pdb
 OAUTH_BLACKLISTED_HOSTNAMES = getattr(settings, 'OAUTH_BLACKLISTED_HOSTNAMES', [])
 OAUTH_SCOPES = ["statements/write", "statements/read/mine", "statements/read", "state", "define",
                 "profile", "all/read", "all"]
@@ -76,25 +76,23 @@ class DataStore(OAuthDataStore):
             scope = self.scope
         else:
             scope = self.consumer.default_scopes
+        
         # test_no_scope was setting consumer default scopes to blank string
+        # TODO: look into
         if len(scope) == 0:
             scope = "statements/write,statements/read/mine"
         
+        # lou w - Make sure a valid scope(s) is supplied
         scope_list = scope.split(",")
-
         for x in scope_list:
             if not x in OAUTH_SCOPES:
-                raise OAuthError('Resource %s is not allowed.' % escape(self.scope)) 
-        try:
-            resource = Resource.objects.get(name=self.consumer.name, scope=scope)
-        except Resource.DoesNotExist:
-            resource = Resource(name=self.consumer.name, scope=scope)
-            resource.save()
-            
+                raise OAuthError('Resource %s is not allowed.' % escape(self.scope))
+
+        # lou w - save as scope instead of resource
         self.request_token = Token.objects.create_token(consumer=self.consumer,
                                                         token_type=Token.REQUEST,
                                                         timestamp=self.timestamp,
-                                                        resource=resource,
+                                                        scope=scope,
                                                         callback=callback,
                                                         callback_confirmed=callback_confirmed)
         
@@ -102,6 +100,7 @@ class DataStore(OAuthDataStore):
         
 
     def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
+        # lou w - save scope from token scope instead of resource
         if oauth_consumer.key == self.consumer.key \
         and oauth_token.key == self.request_token.key \
         and self.request_token.is_approved:
@@ -113,7 +112,7 @@ class DataStore(OAuthDataStore):
                                                                token_type=Token.ACCESS,
                                                                timestamp=self.timestamp,
                                                                user=self.request_token.user,
-                                                               resource=self.request_token.resource)
+                                                               scope=self.request_token.scope)
                 return self.access_token
         raise OAuthError('Consumer key or token key does not match. ' \
                         +'Make sure your request token is approved. ' \

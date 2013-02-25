@@ -73,6 +73,7 @@ def statements_get(req_dict):
         stmt_result = retrieve_statement.build_statement_result(req_dict.copy(), stmt_list)
     
     update_parent_log_status(log_dict, 200)
+    # pdb.set_trace()
     return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):

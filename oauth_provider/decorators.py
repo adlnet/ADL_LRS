@@ -27,7 +27,8 @@ class CheckOAuth(object):
     def __init__(self, request):
         self.request = request
         self.view_func = view_func
-        self.resource_name = resource_name
+        # lou w - name scope instead of resource
+        self.scopes = resource_name
         update_wrapper(self, request)
         
     def __get__(self, obj, cls=None):
@@ -40,7 +41,8 @@ class CheckOAuth(object):
             except OAuthError, e:
                 return send_oauth_error(e)
 
-            if self.resource_name and token.resource.name != self.resource_name:
+            # lou w - changed to check token scope and self scope instead of resource
+            if self.scopes and token.scope != self.scopes:
                 return send_oauth_error(OAuthError(_('You are not allowed to access this resource.')))
             elif consumer and token:
                 return self.view_func(request, *args, **kwargs)

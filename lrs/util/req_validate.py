@@ -13,6 +13,8 @@ import ast
 
 logger = logging.getLogger('user_system_actions')
 
+# resource_url_dict = {'all':[]}
+
 def check_for_existing_statementId(stmtID):
     exists = False
     stmt = models.statement.objects.filter(statement_id=stmtID)
@@ -61,88 +63,89 @@ def check_oauth(func):
     return inner    
 
 def validate_oauth_scope(r_dict):
-    method = r_dict['method']
-    endpoint = r_dict['endpoint']
-    token = r_dict['oauth_token']
-    resource = token.resource
-    urls = resource.get_urls()
-    scope = resource.name
-    err_msg = "Incorrect permissions to %s at %s" % (str(method), str(endpoint))
+    pass
+    # method = r_dict['method']
+    # endpoint = r_dict['endpoint']
+    # token = r_dict['oauth_token']
+    # resource = token.resource
+    # urls = resource.get_urls()
+    # scope = resource.name
+    # err_msg = "Incorrect permissions to %s at %s" % (str(method), str(endpoint))
     
-    if scope == 'all':
-        pass
-    elif scope == 'all/read':
-        if method != 'GET':
-            raise Forbidden(err_msg)
-    elif scope == 'statements/read':
-        if method != 'GET':
-            raise Forbidden(err_msg)
-        else:
-            if not endpoint in urls:
-                raise Forbidden(err_msg)
-    elif scope == 'statements/write':
-        if method == 'GET':
-            raise Forbidden(err_msg)
-        else:
-            if not endpoint in urls:
-                raise Forbidden(err_msg)
-    elif scope == 'state':
-        if endpoint in urls:
-            # check for actors associated
-            try:
-                if method == 'PUT':
-                    ag = r_dict['body']['agent']
-                else:
-                    ag = r_dict['parameters']['agent']                    
-            except KeyError:
-                raise Forbidden(err_msg)
-            if not isinstance(ag, dict):
-                try:
-                    ag = ast.literal_eval(ag)
-                except:
-                    ag = json.loads(ag)
-            agent = models.agent.objects.gen(**ag)[0]
-            if agent.name != token.user.username:
-                raise Forbidden(err_msg)
-        else:
-            raise Forbidden(err_msg)
-    elif scope == 'profile':
-        if endpoint in urls:
-            if 'activityId' in r_dict['parameters']:
-                pass #Once activities are tied to agents, check here
-            else:
-                try:
-                    if method == 'PUT':
-                        ag = r_dict['body']['agent']
-                    else:
-                        ag = r_dict['parameters']['agent']                    
-                except KeyError:
-                    raise Forbidden(err_msg)
-                if not isinstance(ag, dict):
-                    try:
-                        ag = ast.literal_eval(ag)
-                    except:
-                        ag = json.loads(ag)                
-                agent = models.agent.objects.gen(**ag)[0]            
-                if agent.name != token.user.username:
-                    raise Forbidden(err_msg)        
-        else:
-            raise Forbidden(err_msg)
-    elif scope == 'statements/read/mine':
-        if method == 'GET':
-            if endpoint in urls:
-                # check for only mine
-                request['mine_read_only'] = True
-            else:
-                raise Forbidden(err_msg)
-        else:
-            raise Forbidden(err_msg)
-    elif scope == 'define':
-        if endpoint in urls:
-            # check for actors associated
-            pass    
-        else:
-            raise Forbidden(err_msg)    
+    # if scope == 'all':
+    #     pass
+    # elif scope == 'all/read':
+    #     if method != 'GET':
+    #         raise Forbidden(err_msg)
+    # elif scope == 'statements/read':
+    #     if method != 'GET':
+    #         raise Forbidden(err_msg)
+    #     else:
+    #         if not endpoint in urls:
+    #             raise Forbidden(err_msg)
+    # elif scope == 'statements/write':
+    #     if method == 'GET':
+    #         raise Forbidden(err_msg)
+    #     else:
+    #         if not endpoint in urls:
+    #             raise Forbidden(err_msg)
+    # elif scope == 'state':
+    #     if endpoint in urls:
+    #         # check for actors associated
+    #         try:
+    #             if method == 'PUT':
+    #                 ag = r_dict['body']['agent']
+    #             else:
+    #                 ag = r_dict['parameters']['agent']                    
+    #         except KeyError:
+    #             raise Forbidden(err_msg)
+    #         if not isinstance(ag, dict):
+    #             try:
+    #                 ag = ast.literal_eval(ag)
+    #             except:
+    #                 ag = json.loads(ag)
+    #         agent = models.agent.objects.gen(**ag)[0]
+    #         if agent.name != token.user.username:
+    #             raise Forbidden(err_msg)
+    #     else:
+    #         raise Forbidden(err_msg)
+    # elif scope == 'profile':
+    #     if endpoint in urls:
+    #         if 'activityId' in r_dict['parameters']:
+    #             pass #Once activities are tied to agents, check here
+    #         else:
+    #             try:
+    #                 if method == 'PUT':
+    #                     ag = r_dict['body']['agent']
+    #                 else:
+    #                     ag = r_dict['parameters']['agent']                    
+    #             except KeyError:
+    #                 raise Forbidden(err_msg)
+    #             if not isinstance(ag, dict):
+    #                 try:
+    #                     ag = ast.literal_eval(ag)
+    #                 except:
+    #                     ag = json.loads(ag)                
+    #             agent = models.agent.objects.gen(**ag)[0]            
+    #             if agent.name != token.user.username:
+    #                 raise Forbidden(err_msg)        
+    #     else:
+    #         raise Forbidden(err_msg)
+    # elif scope == 'statements/read/mine':
+    #     if method == 'GET':
+    #         if endpoint in urls:
+    #             # check for only mine
+    #             request['mine_read_only'] = True
+    #         else:
+    #             raise Forbidden(err_msg)
+    #     else:
+    #         raise Forbidden(err_msg)
+    # elif scope == 'define':
+    #     if endpoint in urls:
+    #         # check for actors associated
+    #         pass    
+    #     else:
+    #         raise Forbidden(err_msg)    
 
 @auth
 @log_parent_action(method='POST', endpoint='statements')
@@ -150,6 +153,7 @@ def statements_post(r_dict):
     return r_dict
 
 @auth
+# @validate_oauth_scope
 @log_parent_action(method='GET', endpoint='statements')
 def statements_get(r_dict):
     return r_dict

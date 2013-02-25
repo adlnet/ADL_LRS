@@ -115,7 +115,7 @@ def user_authorization(request):
                     # return the token key
                     scopes = request.POST.get('scopes', None)
                     if scopes:
-                        token.resource.scope = scopes
+                        token.scope = scopes
                     args = { 'token': token }
                 else:
                     args = { 'error': _('Access not granted by user.') }

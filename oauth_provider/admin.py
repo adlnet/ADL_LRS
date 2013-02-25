@@ -1,17 +1,13 @@
 from django.contrib import admin
+from lrs.models import Consumer, Token
 
-from lrs.models import Resource, Consumer, Token
+# lou w - removed any references to Resource
 
-class ResourceAdmin(admin.ModelAdmin):
-	pass
-	
 class ConsumerAdmin(admin.ModelAdmin):
 	pass
 
 class TokenAdmin(admin.ModelAdmin):
 	pass
 	
-
-admin.site.register(Resource, ResourceAdmin)
 admin.site.register(Consumer, ConsumerAdmin)
 admin.site.register(Token, TokenAdmin)
