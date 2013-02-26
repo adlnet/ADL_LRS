@@ -73,9 +73,8 @@ def statements_get(req_dict):
             update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
         
-        # double check if checking against auth group or member
-        # pdb.set_trace()
-        if mine_only and not (st.authority == req_dict['auth']):
+        # check IDs b/c of agent/group inheritance
+        if mine_only and not (st.authority.id == req_dict['auth'].id):
             raise exceptions.Forbidden("Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']))
 
         stmt_result = st.object_return()

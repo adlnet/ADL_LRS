@@ -717,6 +717,7 @@ class OAuthTests(TestCase):
         oauth_agent2 = models.agent.objects.get(mbox="test1@tester.com")
         oauth_group = models.group.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid4())
+
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
@@ -739,5 +740,4 @@ class OAuthTests(TestCase):
         # Put statements
         get = self.client.get(path, content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="0.95")
-        # pdb.set_trace()
-        self.assertEqual(get.status_code, 200)        
+        self.assertEqual(get.status_code, 200)

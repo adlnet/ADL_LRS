@@ -75,7 +75,7 @@ def oauth_helper(request):
                                 "homePage":"/XAPI/OAuth/token/"
                     },
                     "objectType": "Agent",
-                    "oauth_identifier": str(uuid.uuid4())
+                    "oauth_identifier": "Anonymous agent for account %s" % consumer.key
                 },
                 {
                     "name":user_name,
@@ -83,7 +83,7 @@ def oauth_helper(request):
                     "objectType": "Agent"
                 }
     ]
-    kwargs = {"objectType":"Group", "member":members, "oauth_identifier": str(uuid.uuid4())}
+    kwargs = {"objectType":"Group", "member":members, "oauth_identifier": "Anonymous group for %s and %s" % (consumer.key, user_name)}
     # create/get oauth group and set in dictionary
     oauth_group, created = models.group.objects.gen(**kwargs)
     request['auth'] = oauth_group
