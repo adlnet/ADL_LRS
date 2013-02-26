@@ -209,7 +209,7 @@ def complex_get(req_dict):
 
     # For statements/read/mine oauth scope
     if 'statements_mine_only' in the_dict:
-        args['authority'] = the_dict['auth'].member.all()[1]
+        args['authority'] = the_dict['auth']
 
     # Set stored param based on ascending
     if ascending:

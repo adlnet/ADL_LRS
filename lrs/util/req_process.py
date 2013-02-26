@@ -74,7 +74,7 @@ def statements_get(req_dict):
             raise exceptions.IDNotFoundError(err_msg)
         
         # check if stmt authority is in oauth group
-        if mine_only and not (st.authority in req_dict['auth'].member.all()):
+        if mine_only and not (st.authority.id == req_dict['auth'].id):
             raise exceptions.Forbidden("Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']))
 
         stmt_result = st.object_return()

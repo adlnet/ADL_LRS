@@ -76,12 +76,7 @@ class DataStore(OAuthDataStore):
             scope = self.scope
         else:
             scope = self.consumer.default_scopes
-        
-        # test_no_scope was setting consumer default scopes to blank string
-        # TODO: look into
-        if len(scope) == 0:
-            scope = "statements/write,statements/read/mine"
-        
+                
         # lou w - Make sure a valid scope(s) is supplied
         scope_list = scope.split(",")
         for x in scope_list:

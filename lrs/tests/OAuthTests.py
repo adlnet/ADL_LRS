@@ -747,7 +747,7 @@ class OAuthTests(TestCase):
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"test_put"}, "authority":{"objectType":"Agent","mbox":"mailto:jane@example.com"}}))
+            "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
         
@@ -767,8 +767,6 @@ class OAuthTests(TestCase):
         # Put statements
         get = self.client.get(path, content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="0.95")
-        get_content = json.loads(get.content)
-        self.assertEqual(get_content['authority']['name'], 'jane')
         self.assertEqual(get.status_code, 200)
 
     def test_complex_stmt_get_mine_only(self):
@@ -823,9 +821,7 @@ class OAuthTests(TestCase):
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"test_put"}, "authority":{"objectType":"Agent","mbox":"mailto:jane@example.com"}}))
-        # param = {"statementId":guid}
-        # path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+            "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
         
         # add put data
         oauth_header_resource_params_dict['oauth_nonce'] = 'getdiffernonce'
@@ -843,6 +839,77 @@ class OAuthTests(TestCase):
         get = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="0.95")
         get_content = json.loads(get.content)
-        self.assertEqual(get_content['statements'][0]['authority']['name'], 'jane')
+        self.assertEqual(get_content['statements'][0]['actor']['name'], 'bill')
         self.assertEqual(len(get_content['statements']), 1)
-        self.assertEqual(get.status_code, 200)        
+        self.assertEqual(get.status_code, 200)
+
+    def test_state_wrong_auth(self):
+        url = 'http://testserver/XAPI/activities/state'
+        testagent = '{"name":"joe","mbox":"mailto:joe@example.com"}'
+        activityId = "http://www.iana.org/domains/example/"
+        stateId = "the_state_id"
+        activity = models.activity(activity_id=activityId)
+        activity.save()
+        testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
+        teststate = {"test":"put activity state 1"}
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
+
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state',
+            request_nonce='stateforbiddenrequestnonce', access_nonce='stateforbiddenaccessnonce',
+            resource_nonce='stateforbiddenresourcenonce')
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+        # add put data
+        oauth_header_resource_params_dict.update(testparams)
+
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        put = self.client.put(path, data=teststate, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+
+        self.assertEqual(put.status_code, 403)        
+        self.assertEqual(put.content, "Authorization doesn't match agent in state")
+
+    def test_profile_wrong_auth(self):
+        url = 'http://testserver/XAPI/agents/profile'
+        testparams = {"agent": '{"name":"joe","mbox":"mailto:joe@example.com"}'}
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
+
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='profile',
+            request_nonce='profileforbiddenrequestnonce', access_nonce='profileforbiddenaccessnonce',
+            resource_nonce='profileforbiddenresourcenonce')
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+        # add put data
+        oauth_header_resource_params_dict.update(testparams)
+        
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        get = self.client.get(path, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+
+        self.assertEqual(get.status_code, 403)
+        self.assertEqual(get.content, "Authorization doesn't match agent in profile")
