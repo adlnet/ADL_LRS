@@ -112,7 +112,7 @@ class DataStore(OAuthDataStore):
                                                                token_type=Token.ACCESS,
                                                                timestamp=self.timestamp,
                                                                user=self.request_token.user,
-                                                               resource=self.request_token.resource)
+                                                               scope=self.request_token.scope)
                 # tom c says access tokens start as approved
                 self.access_token.is_approved = True
                 self.access_token.save()

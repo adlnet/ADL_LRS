@@ -14,6 +14,7 @@ import urllib
 import ast
 import hashlib
 import base64
+import re
 
 class OAuthTests(TestCase):
     def setUp(self):
@@ -477,7 +478,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_get_then_wrong_scope(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
         param = {"statementId":guid}
@@ -511,7 +512,7 @@ class OAuthTests(TestCase):
         self.assertIn(guid, rsp)
 
         # Test POST (not allowed)
-        post_stmt = {"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_post"}}
         post_stmt_json = json.dumps(post_stmt)
@@ -538,7 +539,7 @@ class OAuthTests(TestCase):
 
     def test_activity_state_put_then_wrong_scope(self):
         url = 'http://testserver/XAPI/activities/state'
-        testagent = '{"name":"jane","mbox":"jane@example.com"}'
+        testagent = '{"name":"jane","mbox":"mailto:jane@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
         stateId = "the_state_id"
         activity = models.activity(activity_id=activityId)
@@ -570,11 +571,12 @@ class OAuthTests(TestCase):
 
         put = self.client.put(path, data=teststate, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+        # pdb.set_trace()
         self.assertEqual(put.status_code, 204)
         
         # Set up for Get
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
         param = {"statementId":guid}
@@ -605,7 +607,7 @@ class OAuthTests(TestCase):
 
     def stmt_get_then_wrong_profile_scope(self):
         guid = str(uuid.uuid4())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
         param = {"statementId":guid}
@@ -706,7 +708,7 @@ class OAuthTests(TestCase):
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_put"},"actor":{"objectType":"Agent", "mbox":"t@t.com"}})
+            "object": {"id":"test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="0.95")
         self.assertEqual(putResponse.status_code, 204)
@@ -740,11 +742,11 @@ class OAuthTests(TestCase):
 
         # build stmt data and path
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
-        oauth_agent2 = models.agent.objects.get(mbox="test1@tester.com")
+        oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.group.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid4())
 
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bill"},
+        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
         param = {"statementId":guid}
@@ -780,7 +782,7 @@ class OAuthTests(TestCase):
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_put"},"actor":{"objectType":"Agent", "mbox":"t@t.com"}})
+            "object": {"id":"test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="0.95")
         self.assertEqual(putResponse.status_code, 204)
@@ -814,11 +816,11 @@ class OAuthTests(TestCase):
 
         # build stmt data and path
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
-        oauth_agent2 = models.agent.objects.get(mbox="test1@tester.com")
+        oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.group.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid4())
 
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"t@t.com", "name":"bill"},
+        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
         # param = {"statementId":guid}
