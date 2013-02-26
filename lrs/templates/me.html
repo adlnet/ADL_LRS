@@ -59,9 +59,23 @@
         {% endif %}
     </div>
     <div id="myaccesstokens">
+        <span class="heading">Access Tokens:</span>
         {% if access_tokens %}
         {% for token in access_tokens %}
-            <p> {{ token.consumer.name }}
+        <ul>
+            <li class="left field"> {{ token.consumer.name }} </li>
+            <li class="left"><a class="delete_token" href='#myaccesstokens'>delete</a>
+                <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span></li>
+            <ul>
+                <li><span class="field">Date created:</span> {{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</li>
+                <li><span class="field">Scopes allowed:</span>
+                    <ul>
+                        {% for scope in token.resource.scope_aslist %}
+                        <li>{{ scope }}</li>
+                        {% endfor %}
+                    </ul>
+            </ul>
+        </ul>
         {% endfor %}
         {% else %}
         <p> no access tokens </p>
@@ -108,6 +122,21 @@ $(document).ready(function() {
                 alert(thrownError);
             },
             timeout : 15000
+        });
+    });
+    $('.delete_token').click(function(){
+        var id = $(this).next('span').text();
+        $.ajax({
+            url: "{% url lrs.views.delete_token %}?id="+id,
+            type: "DELETE",
+            context: $(this),
+            success: function(data){
+                $(this).parent().parent('ul').remove();
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            },
+            timeout:5000
         });
     });
     if ($('#mystatements').hasClass('active') && ! $('#mystatements ul').length){

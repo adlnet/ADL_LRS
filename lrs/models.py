@@ -25,9 +25,6 @@ from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
 
-ENDPOINTS = ['/statements', '/activities', '/activities/profile',
-'/activities/state','/agents', '/agents/profile']
-
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
 gen_pwd = User.objects.make_random_password
@@ -112,26 +109,11 @@ class Token(models.Model):
     def scope_to_list(self):
         return self.scope.split(",")
 
-    def get_allowed_scope_urls(self):
-        scope_list = self.scope_to_list()
-        urls = []
-        for scope in scope_list:
-            if scope == 'all' or scope == 'all/read':
-                for e in ENDPOINTS:
-                    if not e in urls:
-                        urls.append(e)
-                break
-            elif scope == 'statements/write' or scope == 'statements/read' or scope == 'statements/read/mine':
-                urls.append('statements')
-            elif scope == 'profile':
-                urls.append('activities/profile')
-                urls.append('agents/profile')
-            elif scope == 'define':
-                urls.append('activities')
-                urls.append('agents')
-            elif scope == 'state':
-                urls.append('activities/state')
-        return urls
+    def timestamp_asdatetime(self):
+        return datetime.fromtimestamp(self.timestamp)
+
+    def key_partial(self):
+        return self.key[:10]
 
     def to_string(self, only_key=False):
         token_dict = {
