@@ -33,8 +33,8 @@ def parse(request):
                 except OAuthError, e:
                     raise OauthUnauthorized(send_oauth_error(e))
                 # Set consumer and token for authentication piece
-                r_dict['consumer'] = consumer
-                r_dict['token'] = token
+                r_dict['oauth_consumer'] = consumer
+                r_dict['oauth_token'] = token
                 r_dict['lrs_auth'] = 'oauth'
             else:
                 raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))

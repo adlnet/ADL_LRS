@@ -429,6 +429,7 @@ class Statement():
         if 'timestamp' in stmt_data:
             args['timestamp'] = stmt_data['timestamp']
 
+        # pdb.set_trace()
         if 'authority' in stmt_data:
             args['authority'] = Agent(initial=stmt_data['authority'], create=True,
                 log_dict=self.log_dict).agent

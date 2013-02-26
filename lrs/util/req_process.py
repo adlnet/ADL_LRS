@@ -7,7 +7,7 @@ from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Stateme
 import json
 import retrieve_statement
 import pprint
-
+import base64
 import pdb
 
 def statements_post(req_dict):
@@ -54,6 +54,11 @@ def statements_put(req_dict):
 def statements_get(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'GET', __name__)
+    
+    if 'statements_mine_only' in req_dict:
+        mine_only = True
+    else:
+        mine_only = False
 
     stmt_result = {}
     # If statementId is in req_dict then it is a single get
@@ -67,13 +72,19 @@ def statements_get(req_dict):
             log_exception(log_dict, err_msg, statements_get.__name__)
             update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
+        
+        # double check if checking against auth group or member
+        # pdb.set_trace()
+        if mine_only and not (st.authority == req_dict['auth']):
+            raise exceptions.Forbidden("Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']))
+
         stmt_result = st.object_return()
     else:
         stmt_list = retrieve_statement.complex_get(req_dict)
         stmt_result = retrieve_statement.build_statement_result(req_dict.copy(), stmt_list)
     
     update_parent_log_status(log_dict, 200)
-    # pdb.set_trace()
+
     return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):

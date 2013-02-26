@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate
 from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest, Forbidden
 from lrs import models
 import base64
+import uuid
 from functools import wraps
 import pdb
 from oauth_provider.utils import send_oauth_error
@@ -56,8 +57,8 @@ def http_auth_helper(request):
         raise Unauthorized("Authorization header missing")
 
 def oauth_helper(request):
-    consumer = request['consumer']
-    token = request['token']
+    consumer = request['oauth_consumer']
+    token = request['oauth_token']
     
     # Make sure consumer has been accepted by system
     if consumer.status != ACCEPTED:
@@ -73,7 +74,8 @@ def oauth_helper(request):
                                 "name":consumer.key,
                                 "homePage":"/XAPI/OAuth/token/"
                     },
-                    "objectType": "Agent"
+                    "objectType": "Agent",
+                    "oauth_identifier": str(uuid.uuid4())
                 },
                 {
                     "name":user_name,
@@ -81,7 +83,7 @@ def oauth_helper(request):
                     "objectType": "Agent"
                 }
     ]
-    kwargs = {"objectType":"Group", "member":members}
+    kwargs = {"objectType":"Group", "member":members, "oauth_identifier": str(uuid.uuid4())}
     # create/get oauth group and set in dictionary
     oauth_group, created = models.group.objects.gen(**kwargs)
     request['auth'] = oauth_group
