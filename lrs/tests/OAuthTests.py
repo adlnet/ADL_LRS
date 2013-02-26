@@ -747,7 +747,7 @@ class OAuthTests(TestCase):
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
+            "object": {"id":"test_put"}, "authority":{"objectType":"Agent","mbox":"mailto:jane@example.com"}}))
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
         
@@ -767,6 +767,8 @@ class OAuthTests(TestCase):
         # Put statements
         get = self.client.get(path, content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="0.95")
+        get_content = json.loads(get.content)
+        self.assertEqual(get_content['authority']['name'], 'jane')
         self.assertEqual(get.status_code, 200)
 
     def test_complex_stmt_get_mine_only(self):
@@ -821,7 +823,7 @@ class OAuthTests(TestCase):
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
+            "object": {"id":"test_put"}, "authority":{"objectType":"Agent","mbox":"mailto:jane@example.com"}}))
         # param = {"statementId":guid}
         # path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
         
@@ -841,6 +843,6 @@ class OAuthTests(TestCase):
         get = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="0.95")
         get_content = json.loads(get.content)
-        self.assertEqual(get_content['statements'][0]['actor']['name'], 'bill')
+        self.assertEqual(get_content['statements'][0]['authority']['name'], 'jane')
         self.assertEqual(len(get_content['statements']), 1)
         self.assertEqual(get.status_code, 200)        
