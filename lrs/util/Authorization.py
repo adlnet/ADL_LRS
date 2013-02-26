@@ -4,7 +4,6 @@ from django.contrib.auth import authenticate
 from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest, Forbidden
 from lrs import models
 import base64
-import uuid
 from functools import wraps
 import pdb
 from oauth_provider.utils import send_oauth_error
@@ -64,10 +63,17 @@ def oauth_helper(request):
     if consumer.status != ACCEPTED:
         raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
 
+    # make sure the token is an approved access token
+    if token.token_type != models.Token.ACCESS or not token.is_approved:
+        raise OauthUnauthorized(send_oauth_error("The token is not valid"))
+    
     user = token.user
     user_name = user.username
-    user_email = user.email
-    consumer = token.consumer
+    if user.email.startswith('mailto:'):
+        user_email = user.email
+    else:
+        user_email = 'mailto:%s' % user.email
+    consumer = token.consumer                
     members = [
                 {
                     "account":{

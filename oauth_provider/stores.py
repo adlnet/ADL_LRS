@@ -6,7 +6,7 @@ from django.conf import settings
 
 from lrs.models import Nonce, Token, Consumer, generate_random
 from consts import VERIFIER_SIZE, MAX_URL_LENGTH, OUT_OF_BAND
-import pdb
+
 OAUTH_BLACKLISTED_HOSTNAMES = getattr(settings, 'OAUTH_BLACKLISTED_HOSTNAMES', [])
 OAUTH_SCOPES = ["statements/write", "statements/read/mine", "statements/read", "state", "define",
                 "profile", "all/read", "all"]
@@ -112,7 +112,10 @@ class DataStore(OAuthDataStore):
                                                                token_type=Token.ACCESS,
                                                                timestamp=self.timestamp,
                                                                user=self.request_token.user,
-                                                               scope=self.request_token.scope)
+                                                               resource=self.request_token.resource)
+                # tom c says access tokens start as approved
+                self.access_token.is_approved = True
+                self.access_token.save()
                 return self.access_token
         raise OAuthError('Consumer key or token key does not match. ' \
                         +'Make sure your request token is approved. ' \

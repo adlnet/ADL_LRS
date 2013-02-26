@@ -6,6 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.core import serializers
+from django.core.exceptions import ValidationError
 from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 from datetime import datetime
 import datetime as dt
@@ -57,6 +58,12 @@ class Consumer(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user")
 
     objects = ConsumerManager()
+
+    # TODO: why doesn't default on default_scopes work
+    def __init__(self, *args, **kwargs):
+        super(Consumer, self).__init__(*args, **kwargs)
+        if self.default_scopes is None or self.default_scopes == "":
+            self.default_scopes = "statements/write,statements/read/mine"
         
     def __unicode__(self):
         return u"Consumer %s with key %s" % (self.name, self.key)
@@ -414,6 +421,7 @@ class agentmgr(models.Manager):
                         ret_agent = agent.objects.get(**kwargs)
                     except agent.DoesNotExist:
                         ret_agent = agent(**kwargs)
+                ret_agent.full_clean()
                 ret_agent.save()
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
@@ -441,11 +449,13 @@ class agentmgr(models.Manager):
                 ret_agent = group(**kwargs)
             else:
                 ret_agent = agent(**kwargs)
+            ret_agent.full_clean()
             ret_agent.save()
             created = True
         if is_group and created:
             ags = [self.gen(**a) for a in members]
             ret_agent.member.add(*(a for a, c in ags))
+        ret_agent.full_clean()
         ret_agent.save()
         return ret_agent, created
 
@@ -457,6 +467,11 @@ class agent(statement_object):
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True, db_index=True)
     oauth_identifier = models.CharField(max_length=64, null=True, blank=True)
     objects = agentmgr()
+
+    def clean(self):
+        from lrs.util import uri
+        if self.mbox is not None and not uri.validate_email(self.mbox):
+            raise ValidationError('mbox value did not start with mailto:')
 
     def get_agent_json(self, sparse=False):
         ret = {}

@@ -109,16 +109,28 @@ def user_authorization(request):
         if request.session.get('oauth', '') == token.key:
             request.session['oauth'] = ''
             try:
-                if int(request.POST.get('authorize_access', 0)):
-                    # authorize the token
-                    token = oauth_server.authorize_token(token, request.user)
-                    # return the token key
-                    scopes = request.POST.get('scopes', None)
-                    if scopes:
-                        token.scope = scopes
-                    args = { 'token': token }
+                form = AuthClientForm(request.POST)
+                if form.is_valid():
+                    if int(form.cleaned_data.get('authorize_access', 0)):
+                        # authorize the token
+                        token = oauth_server.authorize_token(token, request.user)
+                        # return the token key
+                        token.resource.scope = form.cleaned_data.get('scopes', '')
+                        args = { 'token': token }
+                    else:
+                        args = { 'error': _('Access not granted by user.') }
                 else:
-                    args = { 'error': _('Access not granted by user.') }
+                    # try to get custom authorize view
+                    authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW, 
+                                                'oauth_provider.views.fake_authorize_view')
+                    try:
+                        authorize_view = get_callable(authorize_view_str)
+                    except AttributeError:
+                        raise Exception, "%s view doesn't exist." % authorize_view_str
+                    params = oauth_request.get_normalized_parameters()
+                    # set the oauth flag
+                    request.session['oauth'] = token.key
+                    return authorize_view(request, token, callback, params, form)
             except OAuthError, err:
                 response = send_oauth_error(err)
             
@@ -171,8 +183,9 @@ def access_token(request):
 #     """
 #     return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
 
-def authorize_client(request, token=None, callback=None, params=None):
-    form = AuthClientForm(initial={'scopes': token.consumer.default_scopes.split(','),
+def authorize_client(request, token=None, callback=None, params=None, form=None):
+    if not form:
+        form = AuthClientForm(initial={'scopes': token.consumer.default_scopes.split(','),
                                       'obj_id': token.pk})
     d = {}
     d['form'] = form
@@ -182,7 +195,9 @@ def authorize_client(request, token=None, callback=None, params=None):
     return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
 def callback_view(request, **args):
+    d = {}
     if 'error' in args:
-        return HttpResponse("Error - %s" % args['error'])
+        d['error'] = args['error']
 
-    return HttpResponse("Enter PIN: %s in app" % args['token'].verifier)
+    d['verifier'] = args['token'].verifier
+    return render_to_response('oauth_verifier_pin.html', args, context_instance=RequestContext(request))

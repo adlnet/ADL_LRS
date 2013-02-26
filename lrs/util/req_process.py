@@ -158,7 +158,7 @@ def activity_profile_get(req_dict):
 
     #Return IDs of profiles stored since profileId was not submitted
     since = req_dict.get('since', None)
-    resource = ap.get_profile_ids(since, activityId)
+    resource = ap.get_profile_ids(activityId,since)
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     response['since'] = since
     #response['ETag'] = '"%s"' % resource.etag
