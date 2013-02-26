@@ -70,7 +70,7 @@
                 <li><span class="field">Date created:</span> {{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</li>
                 <li><span class="field">Scopes allowed:</span>
                     <ul>
-                        {% for scope in token.resource.scope_aslist %}
+                        {% for scope in token.scope_to_list %}
                         <li>{{ scope }}</li>
                         {% endfor %}
                     </ul>
