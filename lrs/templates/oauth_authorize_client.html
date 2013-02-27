@@ -1,21 +1,29 @@
-<p>
-    The application is requesting access to the following scopes.
-</p>
-{% if error_message %}
-<p class="error">
-    <strong>{{ error_message }}</strong>
-</p>
-{% endif %}
-<form action="{% url oauth_provider.views.user_authorization %}?{% if params %}{{ params }}{% endif %}" method="post">
-    <span>{{ form.authorize_access }}</span>
-    <p>Application:<br/>
-        {{ name }}</p>
-    <p>Description:<br/>
-        {{ description }}</p>
-    <p>Scope:<br/>
-        {% for scope in form.scopes %}
-        {{ scope }}        
-        {% endfor %}
-    </p>
-    <input type="submit" value="Register" />
-</form>
+{% extends "base.html" %}
+{% block title %}Application Access Approval{% endblock title %}
+{% block heading %}Application Access Approval{% endblock heading %}
+{% block content %}
+        <p>
+            The application is requesting access to the following scopes. Although you can 
+            change the scope, note that you can only limit the access further. You can not 
+            give the application greater permissions than the scopes selected when the 
+            applicaton was registered.
+        </p>
+        {% if form.non_field_errors %}
+        <p class="error">
+            <strong>{{ form.non_field_errors }}</strong>
+        </p>
+        {% endif %}
+        <form action="{% url oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
+            <span>{{ form.authorize_access }}{{ form.obj_id }}</span>
+            <p><span class="field">Application:</span><br/>
+                {{ name }}</p>
+            <p><span class="field">Description:</span><br/>
+                {{ description }}</p>
+            <p><span class="field">Scope:</span><br/>
+                {% for scope in form.scopes %}
+                {{ scope }}        
+                {% endfor %}
+            </p>
+            <input type="submit" value="Register" />
+        </form>
+{% endblock content %}

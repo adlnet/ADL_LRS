@@ -3,6 +3,7 @@ from itertools import chain
 from django.utils.html import conditional_escape
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
+from lrs.models import Token
 import pdb
 
 class RegisterForm(forms.Form):
@@ -67,4 +68,37 @@ class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
 class AuthClientForm(forms.Form):
     scopes = forms.MultipleChoiceField(required=False, initial=SCOPES[0],
         widget=MyCheckboxSelectMultiple(), choices=SCOPES)
-    authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)
+    authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)        
+    obj_id = forms.IntegerField(widget=forms.HiddenInput, initial=0)        
+    
+
+    def clean(self):
+        cleaned = super(AuthClientForm, self).clean()
+        t = Token.objects.get(id=cleaned.get('obj_id'))
+        default_scopes = t.consumer.default_scopes.split(',')
+        scopes = cleaned.get('scopes')
+        if not scopes:
+            raise forms.ValidationError("you need to select permissions for the client")
+
+        if "statements/read/mine" in scopes and "statements/read" in scopes:
+            raise forms.ValidationError("'statements/read/mine' and 'statements/read' are conflicting scope values. choose one.")
+        
+        # if all is in defaults scopes, any changes must just be limiting scope
+        if "all" in default_scopes:
+            return cleaned
+        elif "all" in scopes: 
+            # if all wasn't in default_scopes but it's in scopes, error
+            raise forms.ValidationError("Can't raise permissions beyond what the consumer registered.")
+        
+        # if scope and default aren't the same, see if any scope raises permissions
+        if set(scopes) != set(default_scopes):
+            # now we know all isn't in default scope and something changed from defaults
+            # see if the change is ok
+            nomatch = [k for k in scopes if k not in default_scopes]
+
+            if not ("all/read" in nomatch or 
+                    ("statements/read" in nomatch and "all/read" in default_scopes) or 
+                    ("statements/read/mine" in nomatch and ("all/read" in default_scopes or "statements/read" in default_scopes))):
+                raise forms.ValidationError("Can't raise permissions beyond what the consumer registered.")
+            
+        return cleaned
