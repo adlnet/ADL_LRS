@@ -63,6 +63,10 @@ def oauth_helper(request):
     if consumer.status != ACCEPTED:
         raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
 
+    # make sure the token is an approved access token
+    if token.token_type != models.Token.ACCESS or not token.is_approved:
+        raise OauthUnauthorized(send_oauth_error("The token is not valid"))
+    
     user = token.user
     user_name = user.username
     if user.email.startswith('mailto:'):

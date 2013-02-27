@@ -114,6 +114,9 @@ class DataStore(OAuthDataStore):
                                                                timestamp=self.timestamp,
                                                                user=self.request_token.user,
                                                                resource=self.request_token.resource)
+                # tom c says access tokens start as approved
+                self.access_token.is_approved = True
+                self.access_token.save()
                 return self.access_token
         raise OAuthError('Consumer key or token key does not match. ' \
                         +'Make sure your request token is approved. ' \

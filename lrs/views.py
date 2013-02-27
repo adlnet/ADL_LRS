@@ -198,6 +198,7 @@ def reg_client(request):
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
     client_apps = models.Consumer.objects.filter(user=request.user)
+    access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS)
 
     action_list = []
     #TODO: need to generate groups (user/clientapp) and get those actions, too
@@ -210,7 +211,7 @@ def me(request):
         action_tup = (pa, children)
         action_list.append(action_tup)
 
-    return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps},
+    return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps, 'access_tokens':access_tokens},
         context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
@@ -279,7 +280,6 @@ def my_app_status(request):
     try:
         name = request.GET['app_name']
         status = request.GET['status']
-        print status
         new_status = [s[0] for s in CONSUMER_STATES if s[1] == status][0] #should only be 1
         client = models.Consumer.objects.get(name__exact=name, user=request.user)
         client.status = new_status

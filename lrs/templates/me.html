@@ -3,34 +3,13 @@
 {% block heading %}{{user.username}} Home{% endblock heading %}
 {% block content %}
 </br>
-<div id="clientapps">
-    <span class="heading">Client Apps:</span><span class="small-link"><a href="{% url lrs.views.reg_client %}">add app</a></span>
-    {% if client_apps %}
-        {% for app in client_apps %}
-        <ul>
-            <li class="left field">{{ app.name }}</li>
-            <li class="left app_status" style="color:
-                {% if app.status == 1 %}goldenrod
-                {% elif app.status == 2 %}green
-                {% elif app.status == 3 %}darkred
-                {% elif app.status == 4 %}darkred
-                {% endif %}">{{ app.get_status_display }}</li>
-            {% if app.status != 4 %}
-            <li class="left"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></li>{% endif %}
-            <ul>
-                <li><span class="field">Key:</span> {{ app.key }}</li>
-                <li><span class="field">Secret:</span> {{ app.secret }}</li>
-            </ul>
-        </ul>
-        {% endfor %}
-    {% else %}
-    None
-    {% endif %}
-</div>
+    
 <div id="tab-container" class="tab-container">
   <ul class='etabs'>
     <li class='tab default'><a href="#recentactivity">Recent Activity</a></li>
     <li class='tab statements'><a href="#mystatements">Statements</a></li>
+    <li class='tab'><a href="#clientapps">Client Apps</a></li>
+    <li class='tab'><a href="#myaccesstokens">Access Tokens</a></li>
   </ul>
     <div id="recentactivity">
         <span class="heading">Recent Requests:</span>
@@ -54,6 +33,39 @@
     <div id="mystatements">
         <span class="heading">Statements:</span><span class="small-link"><a id="delstmts" href="#mystatements">delete all statements</a></span>
         <!-- content -->
+    </div>
+    <div id="clientapps">
+        <span class="heading">Client Apps:</span><span class="small-link"><a href="{% url lrs.views.reg_client %}">add app</a></span>
+        {% if client_apps %}
+            {% for app in client_apps %}
+            <ul>
+                <li class="left field">{{ app.name }}</li>
+                <li class="left app_status" style="color:
+                    {% if app.status == 1 %}goldenrod
+                    {% elif app.status == 2 %}green
+                    {% elif app.status == 3 %}darkred
+                    {% elif app.status == 4 %}darkred
+                    {% endif %}">{{ app.get_status_display }}</li>
+                {% if app.status != 4 %}
+                <li class="left"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></li>{% endif %}
+                <ul>
+                    <li><span class="field">Key:</span> {{ app.key }}</li>
+                    <li><span class="field">Secret:</span> {{ app.secret }}</li>
+                </ul>
+            </ul>
+            {% endfor %}
+        {% else %}
+        None
+        {% endif %}
+    </div>
+    <div id="myaccesstokens">
+        {% if access_tokens %}
+        {% for token in access_tokens %}
+            <p> {{ token.consumer.name }}
+        {% endfor %}
+        {% else %}
+        <p> no access tokens </p>
+        {% endif %}
     </div>
 </div>
 {% endblock content %}
