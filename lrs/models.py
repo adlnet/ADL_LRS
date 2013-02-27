@@ -55,12 +55,6 @@ class Consumer(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user")
 
     objects = ConsumerManager()
-
-    # TODO: why doesn't default on default_scopes work
-    def __init__(self, *args, **kwargs):
-        super(Consumer, self).__init__(*args, **kwargs)
-        if self.default_scopes is None or self.default_scopes == "":
-            self.default_scopes = "statements/write,statements/read/mine"
         
     def __unicode__(self):
         return u"Consumer %s with key %s" % (self.name, self.key)
