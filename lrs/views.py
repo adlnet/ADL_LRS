@@ -198,7 +198,7 @@ def reg_client(request):
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
     client_apps = models.Consumer.objects.filter(user=request.user)
-    access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS)
+    access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
 
     action_list = []
     #TODO: need to generate groups (user/clientapp) and get those actions, too
@@ -288,6 +288,28 @@ def my_app_status(request):
         return HttpResponse(json.dumps(ret), mimetype="application/json", status=200)
     except:
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
+
+@login_required(login_url="/XAPI/accounts/login")
+def delete_token(request):
+    if request.method == "DELETE":
+        try:
+            ids = request.GET['id'].split("-")
+            token_key = ids[0]
+            consumer_id = ids[1]
+            ts = ids[2]
+            token = models.Token.objects.get(user=request.user,
+                                             key__startswith=token_key,
+                                             consumer__id=consumer_id,
+                                             timestamp=ts,
+                                             token_type=models.Token.ACCESS,
+                                             is_approved=True)
+            token.is_approved = False
+            token.save()
+            return HttpResponse("", status=204)
+        except:
+            return HttpResponse("Unknown token", status=400)
+    return Http404("Unknown Request")
+
 
 def logout_view(request):
     logout(request)

@@ -62,6 +62,9 @@ class Resource(models.Model):
         # need to add the rest
         return False
 
+    def scope_aslist(self):
+        return self.scope.split(',')
+
 
 class Consumer(models.Model):
     name = models.CharField(max_length=50)
@@ -126,6 +129,12 @@ class Token(models.Model):
     
     def __unicode__(self):
         return u"%s Token %s for %s" % (self.get_token_type_display(), self.key, self.consumer)
+
+    def timestamp_asdatetime(self):
+        return datetime.fromtimestamp(self.timestamp)
+
+    def key_partial(self):
+        return self.key[:10]
 
     def to_string(self, only_key=False):
         token_dict = {
