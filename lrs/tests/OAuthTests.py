@@ -13,6 +13,7 @@ import json
 import urllib
 import ast
 import hashlib
+import re
 
 
 class OAuthTests(TestCase):
@@ -88,6 +89,18 @@ class OAuthTests(TestCase):
         self.assertEqual(token.is_approved, False)
         auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
+        
+        html = auth_resp.content
+        # <input type="hidden" name="obj_id" value="38" id="id_obj_id">
+        # hidden.*name="obj_id"\Wvalue="(.*?)"
+        cap = re.search('name="obj_id"\Wvalue="(.*?)"', html)
+        oauth_auth_params['obj_id'] = cap.group(1)
+
+        # <input checked="checked" type="checkbox" name="scopes" value="statements/write">
+        # input\Wchecked="checked".*?value="(.*?)"
+        caps = re.findall('checked="checked".*?value="(.*?)"', html)
+        oauth_auth_params['scopes'] = [c for c in caps]
+
         oauth_auth_params['authorize_access'] = 1
 
         auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
@@ -193,6 +206,19 @@ class OAuthTests(TestCase):
         self.assertEqual(token.is_approved, False)
         auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
+        html = auth_resp.content
+        # <input type="hidden" name="obj_id" value="38" id="id_obj_id">
+        # hidden.*name="obj_id"\Wvalue="(.*?)"
+        cap = re.search('name="obj_id"\Wvalue="(.*?)"', html)
+        oauth_auth_params['obj_id'] = cap.group(1)
+
+        # <input checked="checked" type="checkbox" name="scopes" value="statements/write">
+        # input\Wchecked="checked".*?value="(.*?)"
+        caps = re.findall('checked="checked".*?value="(.*?)"', html)
+        oauth_auth_params['scopes'] = [c for c in caps]
+
+        oauth_auth_params['authorize_access'] = 1
+
         oauth_auth_params['authorize_access'] = 1
         auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_post.status_code, 302)
