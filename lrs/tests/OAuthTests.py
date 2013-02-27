@@ -28,7 +28,7 @@ class OAuthTests(TestCase):
         #Register a client
         self.name = "test client"
         self.desc = "test desc"
-        form = {"name":self.name, "description":self.desc}
+        form = {"name":self.name, "description":self.desc, "scopes":"all"}
         response = self.client.post(reverse(views.reg_client),form, X_Experience_API_Version="0.95")
         self.consumer = models.Consumer.objects.get(name=self.name)
         self.client.logout()
@@ -36,6 +36,7 @@ class OAuthTests(TestCase):
     def perform_oauth_handshake(self, scope=True, scope_type=None, request_nonce=None,
         access_nonce=None, resource_nonce=None):
         # TEST REQUEST TOKEN
+        # pdb.set_trace()
         oauth_header_request_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
                "oauth_signature_method=\"PLAINTEXT\","\
@@ -60,6 +61,7 @@ class OAuthTests(TestCase):
         else:
             path = "/XAPI/OAuth/initiate"
 
+        # pdb.set_trace()
         request_resp = self.client.get(path, Authorization=oauth_header_request_params, X_Experience_API_Version="0.95")        
 
         self.assertEqual(request_resp.status_code, 200)
@@ -71,7 +73,7 @@ class OAuthTests(TestCase):
         self.assertIn(token.secret, request_resp.content)
         self.assertEqual(token.callback, 'http://example.com/request_token_ready')
         self.assertEqual(token.callback_confirmed, True)
-
+        # pdb.set_trace()
         # Test AUTHORIZE
         oauth_auth_params = {'oauth_token': token.key}
         auth_resp = self.client.get("/XAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
@@ -95,7 +97,7 @@ class OAuthTests(TestCase):
         oauth_auth_params['scopes'] = [c for c in caps]
 
         oauth_auth_params['authorize_access'] = 1
-
+        # pdb.set_trace()
         auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_post.status_code, 302)
         self.assertIn('http://example.com/request_token_ready?oauth_verifier=', auth_post['Location'])
@@ -114,7 +116,7 @@ class OAuthTests(TestCase):
             "oauth_nonce=\"accessnonce\","\
             "oauth_version=\"1.0\","\
             "oauth_verifier=\"%s\"" % (self.consumer.key,token.key,self.consumer.secret,token.secret,str(int(time.time())),token.verifier)
-
+        # pdb.set_trace()
         access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params,
             X_Experience_API_Version="0.95")
 
@@ -122,7 +124,7 @@ class OAuthTests(TestCase):
         access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'jane')
-
+        # pdb.set_trace()
         # Test ACCESS RESOURCE
         oauth_header_resource_params = "OAuth realm=\"test\", "\
             "oauth_consumer_key=\"%s\","\
@@ -419,6 +421,7 @@ class OAuthTests(TestCase):
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
+        # pdb.set_trace()
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(request_nonce='stmtgetrequestnonce',
             access_nonce='stmtgetaccessnonce', resource_nonce='stmtgetresourcenonce')
 
@@ -439,7 +442,7 @@ class OAuthTests(TestCase):
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
-
+        # pdb.set_trace()
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(resp.status_code, 200)
         rsp = resp.content
@@ -878,10 +881,13 @@ class OAuthTests(TestCase):
         put = self.client.put(path, data=teststate, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
 
-        self.assertEqual(put.status_code, 403)        
-        self.assertEqual(put.content, "Authorization doesn't match agent in state")
+        self.assertEqual(put.status_code, 404)        
+        self.assertEqual(put.content, "Agent in state cannot be found to match user in authorization")
 
     def test_profile_wrong_auth(self):
+        agent = models.agent(name="joe", mbox="mailto:joe@example.com")
+        agent.save()
+
         url = 'http://testserver/XAPI/agents/profile'
         testparams = {"agent": '{"name":"joe","mbox":"mailto:joe@example.com"}'}
         path = '%s?%s' % (url, urllib.urlencode(testparams))
