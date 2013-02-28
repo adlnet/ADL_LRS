@@ -571,7 +571,6 @@ class OAuthTests(TestCase):
 
         put = self.client.put(path, data=teststate, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
-        # pdb.set_trace()
         self.assertEqual(put.status_code, 204)
         
         # Set up for Get
