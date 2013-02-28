@@ -7,6 +7,12 @@ import pdb
 import pprint
 from django.core.urlresolvers import reverse
 import lrs.views
+from oauth_provider.consts import OAUTH_PARAMETERS_NAMES, CONSUMER_STATES, ACCEPTED
+from oauth_provider.oauth.oauth import OAuthError
+from oauth_provider.utils import send_oauth_error
+from oauth_provider.decorators import CheckOAuth
+from lrs.exceptions import OauthUnauthorized
+from django.utils.translation import ugettext as _
 
 def parse(request):
     r_dict = {}
@@ -18,11 +24,27 @@ def parse(request):
     if 'Authorization' in r_dict:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
         # module
-        if type(r_dict['Authorization']) is dict:
-            r_dict['absolute_uri'] = request.build_absolute_uri()
-            r_dict['query_string'] = request.META.get('QUERY_STRING', '')
-            r_dict['server_name'] = request.META.get('SERVER_NAME', '')
-            r_dict['lrs_auth'] = 'oauth'
+        auth_params = r_dict['Authorization']
+        if auth_params[:6] == 'OAuth ':
+            # Make sure it has the required/valid oauth headers
+            if CheckOAuth.is_valid_request(request):
+                try:
+                    consumer, token, parameters = CheckOAuth.validate_token(request)
+                except OAuthError, e:
+                    raise OauthUnauthorized(send_oauth_error(e))
+                # Set consumer and token for authentication piece
+                r_dict['oauth_consumer'] = consumer
+                r_dict['oauth_token'] = token
+                r_dict['lrs_auth'] = 'oauth'
+            else:
+                raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
+
+            # Used for OAuth scope
+            endpoint = request.path[5:]
+            # Since we accept with or without / on end
+            if endpoint.endswith("/"):
+                endpoint = endpoint[:-1]
+            r_dict['endpoint'] = endpoint
         else:
             r_dict['lrs_auth'] = 'http'
     elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
@@ -41,8 +63,13 @@ def parse(request):
 
     r_dict.update(request.GET.dict())
 
+    # A 'POST' can actually be a GET
     if 'method' not in r_dict:
-        r_dict['method'] = request.method
+        if request.method == "POST" and "application/json" not in r_dict['CONTENT_TYPE']:
+            r_dict['method'] = 'GET'
+        else:
+            r_dict['method'] = request.method
+
     return r_dict
 
 def parse_body(r, request):

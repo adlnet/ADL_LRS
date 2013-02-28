@@ -11,9 +11,7 @@
 </p>
 {% endif %}
 <form action="{% url lrs.views.reg_client %}" method="post">
-    <table>
-        {% include 'table_form.html' %}
-    </table>
+    {% include 'table_form.html' %}
     <input type="submit" value="Register" />
 </form>
 {% endblock content %}

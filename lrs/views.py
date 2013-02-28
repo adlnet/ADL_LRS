@@ -179,15 +179,17 @@ def reg_client(request):
         if form.is_valid():
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
+            scopes = form.cleaned_data['scopes']
             try:
                 client = models.Consumer.objects.get(name__exact=name)
             except models.Consumer.DoesNotExist:
-                client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED)
+                client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED, default_scopes=",".join(scopes))
                 client.save()
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
             d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
+
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))        
     else:
@@ -196,6 +198,7 @@ def reg_client(request):
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
     client_apps = models.Consumer.objects.filter(user=request.user)
+    access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
 
     action_list = []
     #TODO: need to generate groups (user/clientapp) and get those actions, too
@@ -208,7 +211,7 @@ def me(request):
         action_tup = (pa, children)
         action_list.append(action_tup)
 
-    return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps},
+    return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps, 'access_tokens':access_tokens},
         context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
@@ -277,7 +280,6 @@ def my_app_status(request):
     try:
         name = request.GET['app_name']
         status = request.GET['status']
-        print status
         new_status = [s[0] for s in CONSUMER_STATES if s[1] == status][0] #should only be 1
         client = models.Consumer.objects.get(name__exact=name, user=request.user)
         client.status = new_status
@@ -287,6 +289,28 @@ def my_app_status(request):
     except:
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
+@login_required(login_url="/XAPI/accounts/login")
+def delete_token(request):
+    if request.method == "DELETE":
+        try:
+            ids = request.GET['id'].split("-")
+            token_key = ids[0]
+            consumer_id = ids[1]
+            ts = ids[2]
+            token = models.Token.objects.get(user=request.user,
+                                             key__startswith=token_key,
+                                             consumer__id=consumer_id,
+                                             timestamp=ts,
+                                             token_type=models.Token.ACCESS,
+                                             is_approved=True)
+            token.is_approved = False
+            token.save()
+            return HttpResponse("", status=204)
+        except:
+            return HttpResponse("Unknown token", status=400)
+    return Http404("Unknown Request")
+
+
 def logout_view(request):
     logout(request)
     # Redirect to a success page.
@@ -294,6 +318,7 @@ def logout_view(request):
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["GET"])
 def statements_more(request, more_id):
     statementResult = retrieve_statement.get_statement_request(more_id) 
     return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)

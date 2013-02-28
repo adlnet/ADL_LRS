@@ -21,6 +21,7 @@ CONSUMER_STATES = (
 
 PARAMETERS_NAMES = ('consumer_key', 'token', 'signature',
                     'signature_method', 'timestamp', 'nonce')
+
 OAUTH_PARAMETERS_NAMES = ['oauth_'+s for s in PARAMETERS_NAMES]
 
 OUT_OF_BAND = 'oob'

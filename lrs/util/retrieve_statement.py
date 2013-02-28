@@ -207,6 +207,10 @@ def complex_get(req_dict):
         else:
             sparse = the_dict['sparse']
 
+    # For statements/read/mine oauth scope
+    if 'statements_mine_only' in the_dict:
+        args['authority'] = the_dict['auth']
+
     # Set stored param based on ascending
     if ascending:
         stored_param = 'stored'

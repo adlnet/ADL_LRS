@@ -2,7 +2,7 @@ from oauth.oauth import OAuthError
 
 from django.conf import settings
 from django.http import (
-    HttpResponse, HttpResponseBadRequest, HttpResponseRedirect)
+    HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
 from django.utils.translation import ugettext as _
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import get_callable
@@ -13,10 +13,12 @@ from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import TCAPIversionHeaderMiddleware
 import uuid
 import pdb
 from django.shortcuts import render_to_response
+from lrs.forms import AuthClientForm
+from lrs.models import Token
+from lrs.util import TCAPIversionHeaderMiddleware
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
@@ -28,7 +30,6 @@ def oauth_home(request):
     <html><head></head><body><h1>Oauth Authorize</h1></body></html>"""
     return HttpResponse(rsp)
 
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def request_token(request):
     """
     The Consumer obtains an unauthorized Request Token by asking the Service 
@@ -51,8 +52,8 @@ def request_token(request):
     else:
         return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
-@login_required
+# tom c added login_url
+@login_required(login_url="/XAPI/accounts/login")
 def user_authorization(request):
     """
     The Consumer cannot use the Request Token until it has been authorized by 
@@ -64,6 +65,9 @@ def user_authorization(request):
     try:
         # get the request token
         token = oauth_server.fetch_request_token(oauth_request)
+        # tom c .. we know user.. save it
+        token.user = request.user
+        token.save()
     except OAuthError, err:
         return send_oauth_error(err)
 
@@ -100,18 +104,33 @@ def user_authorization(request):
         return authorize_view(request, token, callback, params)
     
     # user grant access to the service
-    elif request.method == 'POST':
+    if request.method == 'POST':
         # verify the oauth flag set in previous GET
         if request.session.get('oauth', '') == token.key:
             request.session['oauth'] = ''
             try:
-                if int(request.POST.get('authorize_access', 0)):
-                    # authorize the token
-                    token = oauth_server.authorize_token(token, request.user)
-                    # return the token key
-                    args = { 'token': token }
+                form = AuthClientForm(request.POST)
+                if form.is_valid():
+                    if int(form.cleaned_data.get('authorize_access', 0)):
+                        # authorize the token
+                        token = oauth_server.authorize_token(token, request.user)
+                        # return the token key
+                        token.scope = form.cleaned_data.get('scopes', '')
+                        args = { 'token': token }
+                    else:
+                        args = { 'error': _('Access not granted by user.') }
                 else:
-                    args = { 'error': _('Access not granted by user.') }
+                    # try to get custom authorize view
+                    authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW, 
+                                                'oauth_provider.views.fake_authorize_view')
+                    try:
+                        authorize_view = get_callable(authorize_view_str)
+                    except AttributeError:
+                        raise Exception, "%s view doesn't exist." % authorize_view_str
+                    params = oauth_request.get_normalized_parameters()
+                    # set the oauth flag
+                    request.session['oauth'] = token.key
+                    return authorize_view(request, token, callback, params, form)
             except OAuthError, err:
                 response = send_oauth_error(err)
             
@@ -138,7 +157,6 @@ def user_authorization(request):
             response = send_oauth_error(OAuthError(_('Action not allowed.')))
         return response
 
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)    
 def access_token(request):    
     """
     The Consumer exchanges the Request Token for an Access Token capable of 
@@ -165,19 +183,21 @@ def access_token(request):
 #     """
 #     return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
 
-def authorize_client(request, token, callback, params):
-        # existing_lrs_auth_id = token.lrs_auth_id
-        # if not existing_lrs_auth_id:
-        #     lrs_auth_id = str(uuid.uuid4())
-        #     token.lrs_auth_id = lrs_auth_id
-        #     token.save()
-        # else:
-        #     lrs_auth_id = existing_lrs_auth_id
-        # return render_to_response('oauth_allow_client.html',context_instance=RequestContext(request))
-        return HttpResponse('Authorized view for %s.' % token.consumer.name)
+def authorize_client(request, token=None, callback=None, params=None, form=None):
+    if not form:
+        form = AuthClientForm(initial={'scopes': token.consumer.default_scopes.split(','),
+                                      'obj_id': token.pk})
+    d = {}
+    d['form'] = form
+    d['name'] = token.consumer.name
+    d['description'] = token.consumer.description
+    d['params'] = params
+    return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
 def callback_view(request, **args):
+    d = {}
     if 'error' in args:
-        return HttpResponse("Error - %s" % args['error'])
+        d['error'] = args['error']
 
-    return HttpResponse("Callback view. - You've been authenticated!")
+    d['verifier'] = args['token'].verifier
+    return render_to_response('oauth_verifier_pin.html', args, context_instance=RequestContext(request))
