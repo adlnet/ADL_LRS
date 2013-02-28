@@ -268,33 +268,30 @@ class OAuthRequest(object):
         """Combines multiple parameter sources."""
         if parameters is None:
             parameters = {}
-
-        # Headers - wasn't sending in oauth 'headers' in the header - had to change process for obtaining them
+        # Headers
         if headers and 'Authorization' in headers:
-            try:
-                auth_header = ast.literal_eval(headers['Authorization'])
-            except Exception, e:
-                auth_header = headers['Authorization']
-            try:
-                # Get the parameters from the header.
-                header_params = OAuthRequest._split_header(auth_header)
-                parameters.update(header_params)
-            except:
-                raise OAuthError('Unable to parse OAuth parameters from '
-                    'Authorization header.')
+            auth_header = headers['Authorization']
+            # Check that the authorization header is OAuth.
+            if auth_header[:6] == 'OAuth ':
+                auth_header = auth_header[6:]
+                try:
+                    # Get the parameters from the header.
+                    header_params = OAuthRequest._split_header(auth_header)
+                    parameters.update(header_params)
+                except:
+                    raise OAuthError('Unable to parse OAuth parameters from '
+                        'Authorization header.')
 
-        # Maybe should be setting these in utils initialize_server_request instead
         # GET or POST query string.
         if query_string:
             query_params = OAuthRequest._split_url_string(query_string)
             parameters.update(query_params)
 
-        # Maybe should be setting these in utils initialize_server_request instead
         # URL parameters.
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
         parameters.update(url_params)
-
+        
         if parameters:
             return OAuthRequest(http_method, http_url, parameters)
 
@@ -327,7 +324,6 @@ class OAuthRequest(object):
         elif callback:
             # 1.0a support for callback in the request token request.
             parameters['oauth_callback'] = callback
-
         return OAuthRequest(http_method, http_url, parameters)
     from_consumer_and_token = staticmethod(from_consumer_and_token)
 
@@ -336,10 +332,6 @@ class OAuthRequest(object):
         if not parameters:
             parameters = {}
 
-        # Maybe should be handling this in utils - initialize server request
-        param_str = urlparse.urlparse(http_url)[4] # query
-        url_params = OAuthRequest._split_url_string(param_str)
-        parameters.update(url_params)
 
         parameters['oauth_token'] = token.key
 
@@ -353,13 +345,17 @@ class OAuthRequest(object):
         """Turn Authorization: header into parameters. Changed way to retrieve headers b/c 
         wasn't sending in oauth 'headers' in the header in from_request"""
         params = {}
-        for k, v in header.items():
+        parts = header.split(',')
+        for param in parts:
             # Ignore realm parameter.
-            if not 'realm' in k:
-                # Remove whitespace.
-                v = v.strip()
-                # Remove quotes and unescape the value.
-                params[k] = urllib.unquote(v.strip('\"'))        
+            if param.find('realm') > -1:
+                continue
+            # Remove whitespace.
+            param = param.strip()
+            # Split key-value.
+            param_parts = param.split('=', 1)
+            # Remove quotes and unescape the value.
+            params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
         return params
     _split_header = staticmethod(_split_header)
 
@@ -618,7 +614,6 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
             escape(oauth_request.get_normalized_http_url()),
             escape(oauth_request.get_normalized_parameters()),
         )
-
         key = '%s&' % escape(consumer.secret)
         if token:
             key += escape(token.secret)

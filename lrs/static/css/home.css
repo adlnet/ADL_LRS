@@ -166,6 +166,12 @@ div
   font-size: 85%;
 }
 
+#myaccesstokens
+{
+  font-size: .75em;
+  margin-bottom: 1em;
+}
+
 #clientapps
 {
   font-size: .75em;
@@ -173,9 +179,16 @@ div
   margin-bottom: 1em;
 }
 
+#myaccesstokens .small-link,
 #clientapps .small-link
 {
   display: block;
+}
+
+#myaccesstokens ul
+{
+  padding-left: 2%;
+  margin-bottom: 2em;
 }
 
 #clientapps ul
@@ -188,18 +201,31 @@ div
 #clientapps ul li
 {
   margin-bottom: 3%;
-  text-decoration: none;
 }
 
+#myaccesstokens ul li.left,
 #clientapps ul li.left 
 {
-  float: left;
+  display: inline-block;;
   margin-right: 10%;
 }
 
+#myaccesstokens ul li.right,
 #clientapps ul li.right
 {
   float: right;
+}
+
+#myaccesstokens ul ul
+{
+  list-style-type: none;
+  padding-top: .7em;
+}
+
+#myaccesstokens ul ul ul
+{
+  list-style-type: none;
+  padding-top: 0px;
 }
 
 #clientapps ul ul

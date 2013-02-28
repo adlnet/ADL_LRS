@@ -7,7 +7,7 @@ from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Stateme
 import json
 import retrieve_statement
 import pprint
-
+import base64
 import pdb
 
 def statements_post(req_dict):
@@ -34,16 +34,16 @@ def statements_post(req_dict):
     else:
         # Handle single POST
         stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
-        stmt_responses.append(str(stmt.statement_id))
+        stmt_responses.append(stmt.statement_id)
 
     update_parent_log_status(log_dict, 200)
 
-    return HttpResponse(stmt_responses, status=200)
+    return HttpResponse('%s' % ', '.join(map(str,stmt_responses)), status=200)
 
 def statements_put(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'PUT', __name__)
-    
+
     # Set statement ID in body so all data is together
     req_dict['body']['statement_id'] = req_dict['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
@@ -54,6 +54,11 @@ def statements_put(req_dict):
 def statements_get(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'GET', __name__)
+    
+    if 'statements_mine_only' in req_dict:
+        mine_only = True
+    else:
+        mine_only = False
 
     stmt_result = {}
     # If statementId is in req_dict then it is a single get
@@ -67,12 +72,18 @@ def statements_get(req_dict):
             log_exception(log_dict, err_msg, statements_get.__name__)
             update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
+        
+        # check IDs b/c of agent/group inheritance
+        if mine_only and not (st.authority.id == req_dict['auth'].id):
+            raise exceptions.Forbidden("Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']))
+
         stmt_result = st.object_return()
     else:
         stmt_list = retrieve_statement.complex_get(req_dict)
         stmt_result = retrieve_statement.build_statement_result(req_dict.copy(), stmt_list)
     
     update_parent_log_status(log_dict, 200)
+
     return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
 
 def activity_state_put(req_dict):
@@ -164,8 +175,8 @@ def activity_profile_delete(req_dict):
     # Delete profile and return success
     ap.delete_profile(req_dict)
 
-    update_parent_log_status(log_dict, 200)
-    return HttpResponse('Success -- activity profile - method = DELETE - profileId = %s' % req_dict['profileId'], status=200)
+    update_parent_log_status(log_dict, 204)
+    return HttpResponse('', status=204)
 
 def activities_get(req_dict):
     log_dict = req_dict['initial_user_action']    

@@ -1,6 +1,6 @@
 import json
 from lrs import models
-from lrs.exceptions import Unauthorized, ParamConflict, ParamError
+from lrs.exceptions import Unauthorized, ParamConflict, ParamError, Forbidden
 from Authorization import auth
 from django.utils.decorators import decorator_from_middleware
 import pdb
@@ -9,6 +9,8 @@ import logging
 from datetime import datetime
 from django.utils.timezone import utc
 from functools import wraps
+import ast
+import re
 
 logger = logging.getLogger('user_system_actions')
 
@@ -51,20 +53,72 @@ def log_parent_action(method, endpoint):
         return wrapper
     return inner
 
+def check_oauth(func):
+    @wraps(func)
+    def inner(r_dict, *args, **kwargs):
+        if r_dict['lrs_auth'] == 'oauth':
+            validate_oauth_scope(r_dict)    
+        return func(r_dict, *args, **kwargs)
+    return inner    
+
+def validate_oauth_scope(r_dict):
+    method = r_dict['method']
+    endpoint = r_dict['endpoint']
+    token = r_dict['oauth_token']
+    scopes = token.scope_to_list()
+    err_msg = "Incorrect permissions to %s at %s" % (str(method), str(endpoint))
+
+    validator = {'GET':{"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                    "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
+                    "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
+                    "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
+                    "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
+                    "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
+                },
+             'PUT':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
+                    "/activities": True if 'all' in scopes or 'define' in scopes else False,
+                    "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
+                    "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
+                    "/agents": True if 'all' in scopes or 'define' in scopes else False,
+                    "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
+                },
+             'POST':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
+                    "/activities": True if 'all' in scopes or 'define' in scopes else False,
+                    "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
+                    "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
+                    "/agents": True if 'all' in scopes or 'define' in scopes else False,
+                    "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
+                },
+             'DELETE':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
+                    "/activities": True if 'all' in scopes or 'define' in scopes else False,
+                    "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
+                    "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
+                    "/agents": True if 'all' in scopes or 'define' in scopes else False,
+                    "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
+                }
+             }
+
+    if not validator[method][endpoint]:
+        raise Forbidden(err_msg)
+
+    # Set flag to read only statements owned by user
+    if 'statements/read/mine' in scopes:
+        r_dict['statements_mine_only'] = True
+
 @auth
+@check_oauth
 @log_parent_action(method='POST', endpoint='statements')
 def statements_post(r_dict):
-    # Could be a 'GET'
-    if "application/json" not in r_dict['CONTENT_TYPE']:
-        r_dict['method'] = 'GET'
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='GET', endpoint='statements')
 def statements_get(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='PUT', endpoint='statements')
 def statements_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -94,6 +148,7 @@ def statements_put(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='PUT', endpoint='activities/state')
 def activity_state_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -104,13 +159,14 @@ def activity_state_put(r_dict):
         log_exception(log_dict, err_msg, activity_state_put.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
-    try:
-        r_dict['agent']
-    except KeyError:
-        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
-        log_exception(log_dict, err_msg, activity_state_put.__name__)
-        update_log_status(log_dict, 400)
-        raise ParamError(err_msg)
+    if not 'activity_state_agent_validated' in r_dict:
+        try:
+            r_dict['agent']
+        except KeyError:
+            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
+            log_exception(log_dict, err_msg, activity_state_put.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
     try:
         r_dict['stateId']
     except KeyError:
@@ -131,6 +187,7 @@ def activity_state_put(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='GET', endpoint='activities/state')
 def activity_state_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -141,16 +198,18 @@ def activity_state_get(r_dict):
         log_exception(log_dict, err_msg, activity_state_get.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
-    try:
-        r_dict['agent']
-    except KeyError:
-        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
-        log_exception(log_dict, err_msg, activity_state_get.__name__)
-        update_log_status(log_dict, 400)
-        raise ParamError(err_msg)
+    if not 'activity_state_agent_validated' in r_dict:
+        try:
+            r_dict['agent']
+        except KeyError:
+            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
+            log_exception(log_dict, err_msg, activity_state_get.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='DELETE', endpoint='activities/state')
 def activity_state_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -161,16 +220,18 @@ def activity_state_delete(r_dict):
         log_exception(log_dict, err_msg, activity_state_delete.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
-    try:
-        r_dict['agent']
-    except KeyError:
-        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
-        log_exception(log_dict, err_msg, activity_state_delete.__name__)
-        update_log_status(log_dict, 400)
-        raise ParamError(err_msg)
+    if not 'activity_state_agent_validated' in r_dict:
+        try:
+            r_dict['agent']
+        except KeyError:
+            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
+            log_exception(log_dict, err_msg, activity_state_delete.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='PUT', endpoint='activities/profile')
 def activity_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -180,8 +241,7 @@ def activity_profile_put(r_dict):
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method']
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
         update_log_status(log_dict, 400)
-        raise ParamError(err_msg)
-    
+        raise ParamError(err_msg)    
     try:
         r_dict['profileId']
     except KeyError:
@@ -203,6 +263,7 @@ def activity_profile_put(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='GET', endpoint='activities/profile')
 def activity_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -216,6 +277,7 @@ def activity_profile_get(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='DELETE', endpoint='activities/profile')
 def activity_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -235,6 +297,7 @@ def activity_profile_delete(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
+@check_oauth
 @log_parent_action(method='GET', endpoint='activities')
 def activities_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -248,6 +311,7 @@ def activities_get(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='PUT', endpoint='agents/profile')
 def agent_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -276,6 +340,7 @@ def agent_profile_put(r_dict):
     r_dict['profile'] = r_dict.pop('body')
     return r_dict
 
+@check_oauth
 @log_parent_action(method='GET', endpoint='agents/profile')
 def agent_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -289,6 +354,7 @@ def agent_profile_get(r_dict):
     return r_dict
 
 @auth
+@check_oauth
 @log_parent_action(method='DELETE', endpoint='agents/profile')
 def agent_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -308,6 +374,7 @@ def agent_profile_delete(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
+@check_oauth
 @log_parent_action(method='GET', endpoint='agents')
 def agents_get(r_dict):
     log_dict = r_dict['initial_user_action']
