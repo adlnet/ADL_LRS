@@ -115,7 +115,12 @@ def user_authorization(request):
                         # authorize the token
                         token = oauth_server.authorize_token(token, request.user)
                         # return the token key
-                        token.scope = form.cleaned_data.get('scopes', '')
+                        s = form.cleaned_data.get('scopes', '')
+                        if isinstance(s, (list, tuple)):
+                            s = ",".join([v.strip() for v in s])
+                        # changed scope, gotta save
+                        token.scope = s
+                        token.save()
                         args = { 'token': token }
                     else:
                         args = { 'error': _('Access not granted by user.') }
