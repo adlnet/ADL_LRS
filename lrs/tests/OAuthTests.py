@@ -28,7 +28,7 @@ class OAuthTests(TestCase):
         #Register a client
         self.name = "test client"
         self.desc = "test desc"
-        form = {"name":self.name, "description":self.desc}
+        form = {"name":self.name, "description":self.desc, "scopes":"all"}
         response = self.client.post(reverse(views.reg_client),form, X_Experience_API_Version="0.95")
         self.consumer = models.Consumer.objects.get(name=self.name)
         self.client.logout()

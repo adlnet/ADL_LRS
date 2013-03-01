@@ -119,8 +119,9 @@ def user_authorization(request):
                         if isinstance(s, (list, tuple)):
                             s = ",".join([v.strip() for v in s])
                         # changed scope, gotta save
-                        token.scope = s
-                        token.save()
+                        if s:
+                            token.scope = s
+                            token.save()
                         args = { 'token': token }
                     else:
                         args = { 'error': _('Access not granted by user.') }
@@ -190,7 +191,7 @@ def access_token(request):
 
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
-        form = AuthClientForm(initial={'scopes': token.consumer.default_scopes.split(','),
+        form = AuthClientForm(initial={'scopes': token.scope.split(','),
                                       'obj_id': token.pk})
     d = {}
     d['form'] = form
