@@ -119,8 +119,9 @@ def user_authorization(request):
                         if isinstance(s, (list, tuple)):
                             s = ",".join([v.strip() for v in s])
                         # changed scope, gotta save
-                        token.scope = s
-                        token.save()
+                        if s:
+                            token.scope = s
+                            token.save()
                         args = { 'token': token }
                     else:
                         args = { 'error': _('Access not granted by user.') }
@@ -179,18 +180,9 @@ def access_token(request):
         response = send_oauth_error(err)
     return response
 
-# @login_required
-# def fake_authorize_view(request, token, callback, params):
-#     """
-#     Fake view for tests. It must return an ``HttpResponse``.
-    
-#     You need to define your own in ``settings.OAUTH_AUTHORIZE_VIEW``.
-#     """
-#     return HttpResponse('Fake authorize view for %s.' % token.consumer.name)
-
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
-        form = AuthClientForm(initial={'scopes': token.consumer.default_scopes.split(','),
+        form = AuthClientForm(initial={'scopes': token.scope_to_list(),
                                       'obj_id': token.pk})
     d = {}
     d['form'] = form

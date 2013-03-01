@@ -55,10 +55,10 @@ class StatementModelsTests(TestCase):
 
     def test_existing_stmtID_stmt(self):
         stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":{"id":"verb:verb/url",
-            "display":{"en-US":"myverb"}}, "object": {"id":"activity"}, "actor":{"objectType":"Agent",
+            "display":{"en-US":"myverb"}}, "object": {"id":"act:activity"}, "actor":{"objectType":"Agent",
             "mbox":"mailto:t@t.com"}}))
         self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"statement_id":"blahID",
-            "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'activity2'},
+            "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
             "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
         
 
@@ -121,7 +121,7 @@ class StatementModelsTests(TestCase):
 
     def test_no_verb_stmt(self):
         self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"},
-            "object": {'id':'activity2'}}))
+            "object": {'id':'act:activity2'}}))
 
 
     def test_no_object_stmt(self):
@@ -130,7 +130,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_no_actor_stmt(self):
-        self.assertRaises(ParamError, Statement.Statement, json.dumps({"object":{"id":"activity_test"},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"object":{"id":"act:activity_test"},
             "verb": {"id":"verb:verb/url"}}))
 
 
@@ -141,37 +141,37 @@ class StatementModelsTests(TestCase):
     def test_voided_true_stmt(self):
         self.assertRaises(Forbidden, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'},
             'verb': {"id":'verb:verb/url/kicked'},'voided': True,
-            'object': {'id':'activity3'}}))
+            'object': {'id':'act:activity3'}}))
 
 
     def test_contradictory_completion_result_stmt(self):
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'activity4'},"result":{"completion": False}}))
+            "object": {'id':'act:activity4'},"result":{"completion": False}}))
 
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'activity5'},"result":{"completion": False}}))
+            "object": {'id':'act:activity5'},"result":{"completion": False}}))
 
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'activity6'},"result":{"completion": False}}))
+            "object": {'id':'act:activity6'},"result":{"completion": False}}))
     	
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb:verb/url"}
-            ,"object": {'id':'activity7'},"result":{"completion": False}})) 
+            ,"object": {'id':'act:act:activity7'},"result":{"completion": False}})) 
 
 		
     def test_contradictory_success_result_stmt(self):
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'activity8'},"result":{"success": False}}))
+            "object": {'id':'act:activity8'},"result":{"success": False}}))
     	
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'activity9'},"result":{"success": False}}))
+            "object": {'id':'act:activity9'},"result":{"success": False}}))
     	
     	self.assertRaises(ParamError, Statement.Statement, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'activity10'},"result":{"success": True}})) 
+            "object": {'id':'act:activity10'},"result":{"success": True}})) 
 
     def test_result_stmt(self):
         time = "P0Y0M0DT1H311M01S"
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
-            'verb': {"id":"verb:verb/url"},"object": {'id':'activity12'},
+            'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         self.assertEqual(len(stmt.model_object.result.all()), 1)
@@ -193,13 +193,13 @@ class StatementModelsTests(TestCase):
 
     def test_result__wrong_duration_stmt(self):
         self.assertRaises(ParamError, Statement.Statement, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
-            'verb': {"id":"verb:verb/url"},"object": {'id':'activity12'},
+            'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': 'notright'}}))
 
     def test_result_ext_stmt(self):
         time = "P0Y0M0DT1H311M01S"
         stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':'jon',
-            'mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'activity13'}, 
+            'mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
@@ -238,7 +238,7 @@ class StatementModelsTests(TestCase):
     def test_result_score_stmt(self):
         time = "P0Y0M0DT1H311M01S"
         stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
-            'verb': {"id":"verb:verb/url"},"object": {'id':'activity14'}, "result": {'score':{'scaled':.95},
+            'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity14'}, "result": {'score':{'scaled':.95},
             'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
 
@@ -270,7 +270,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(score.scaled, .95)
 
-        self.assertEqual(activity.activity_id, 'activity14')
+        self.assertEqual(activity.activity_id, 'act:activity14')
 
         self.assertEqual(actor.name, 'jon')
         self.assertEqual(actor.mbox, 'mailto:jon@example.com')
@@ -283,7 +283,7 @@ class StatementModelsTests(TestCase):
 
     def test_no_registration_context_stmt(self):
         # expect the LRS to assign a context registration uuid
-        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'activity14'},
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'act:activity14'},
                          'context': {'contextActivities': {'other': {'id': 'NewActivityID'}}}})).model_object
         ctxid = get_ctx_id(stmt)
         context = models.context.objects.get(id=ctxid)
@@ -293,8 +293,8 @@ class StatementModelsTests(TestCase):
     def test_context_stmt(self):
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-                'verb': {"id":"verb:verb/url"},"object": {'id':'activity15'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}, 'grouping':{'id':'GroupID'}},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
                 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}}))
 
@@ -313,9 +313,9 @@ class StatementModelsTests(TestCase):
         
         for ca in context_activities:
             if ca.key == 'grouping':
-                self.assertEqual(ca.context_activity, 'GroupID')
+                self.assertEqual(ca.context_activity, 'act:GroupID')
             elif ca.key == 'other':
-                self.assertEqual(ca.context_activity, 'NewActivityID')
+                self.assertEqual(ca.context_activity, 'act:NewActivityID')
 
         self.assertEqual(context.registration, guid)        
         self.assertEqual(context.revision, 'foo')
@@ -326,8 +326,8 @@ class StatementModelsTests(TestCase):
     def test_context_ext_stmt(self):
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-                'verb': {"id":"verb:verb/url"},"object": {'id':'activity16'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
@@ -348,7 +348,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'NewActivityID')
+        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -363,12 +363,12 @@ class StatementModelsTests(TestCase):
         stmt_guid = str(uuid.uuid4())
 
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'activityy16'}}))
+            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-                'verb': {"id":"verb:verb/url"},"object": {'id':'activity16'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'NewActivityID'}},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
@@ -393,13 +393,13 @@ class StatementModelsTests(TestCase):
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid4())
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'activityy16'}}))
+            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 'name':'jon'},
-                'verb': {"id":"verb:verb/url"},"object": {'id':'activity17'},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
                 'context':{'registration': guid, 'instructor': {'objectType':'Agent',
-                'name':'jon','mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'NewActivityID'}},
+                'name':'jon','mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
@@ -418,7 +418,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'NewActivityID')
+        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -434,13 +434,13 @@ class StatementModelsTests(TestCase):
     def test_actor_with_context_stmt(self):
         stmt_guid = str(uuid.uuid4())
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'activityy16'}}))
+            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve', 'mbox':'mailto:mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url"},"object": {'id':'activity18'},'context':{'registration': guid, 
+            'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},'context':{'registration': guid, 
             'instructor': {'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
-            'contextActivities': {'other': {'id': 'NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
+            'contextActivities': {'other': {'id': 'act:NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
             'language': 'en-US', 'statement': {'id':stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
@@ -459,7 +459,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'NewActivityID1')
+        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID1')
         self.assertEqual(context.revision, 'foob')
         self.assertEqual(context.platform, 'bard')
         self.assertEqual(context.language, 'en-US')
@@ -475,7 +475,7 @@ class StatementModelsTests(TestCase):
     def test_agent_as_object_with_context_stmt(self):
         stmt_guid = str(uuid.uuid4())
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'activityy16'}}))
+            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid4())
         stmt = Statement.Statement(
@@ -499,7 +499,7 @@ class StatementModelsTests(TestCase):
                         'mbox':'mailto:jon@example.com'
                     },
                     'contextActivities': {
-                        'other': {'id': 'NewActivityID1'}
+                        'other': {'id': 'act:NewActivityID1'}
                     }, 
                     'revision': 'foob', 
                     'platform':'bard',
@@ -527,7 +527,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'NewActivityID1')
+        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID1')
         self.assertEqual(context.language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
@@ -555,7 +555,7 @@ class StatementModelsTests(TestCase):
         stmt = {'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
-            'object': {'objectType':'activity', 'id':'testex.com'},
+            'object': {'objectType':'activity', 'id':'act:testex.com'},
             'authority':{'objectType':'Agent','mbox':'mailto:s@s.com'}}}
         self.assertRaises(ParamError, Statement.Statement, json.dumps(stmt))
 
@@ -565,7 +565,7 @@ class StatementModelsTests(TestCase):
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
             'object': {'objectType':'SubStatement', 'actor':{'objectType':'Agent','mbox':'mailto:sss@sss.com'},
-            'verb':{'id':'verb:verb/url/nest/nest'}, 'object':{'id':'activity/url'}}}}
+            'verb':{'id':'verb:verb/url/nest/nest'}, 'object':{'id':'act://activity/url'}}}}
         self.assertRaises(ParamError, Statement.Statement, json.dumps(stmt))
 
 
@@ -574,9 +574,9 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
-            'object': {'objectType':'activity', 'id':'testex.com'}, 'result':{'completion': True, 'success': True,
+            'object': {'objectType':'activity', 'id':'act:testex.com'}, 'result':{'completion': True, 'success': True,
             'response': 'kicked'}, 'context':{'registration': guid,
-            'contextActivities': {'other': {'id': 'NewActivityID'}},'revision': 'foo', 'platform':'bar',
+            'contextActivities': {'other': {'id': 'act:NewActivityID'}},'revision': 'foo', 'platform':'bar',
             'language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}}))
 
         outer_stmt = models.statement.objects.get(id=stmt.model_object.id)
@@ -591,7 +591,7 @@ class StatementModelsTests(TestCase):
         self.assertEqual(outer_stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(outer_stmt.actor.mbox, 'mailto:s@s.com')        
         self.assertEqual(sub_stmt.verb.verb_id, "verb:verb/url/nest")
-        self.assertEqual(sub_obj.activity_id, 'testex.com')
+        self.assertEqual(sub_obj.activity_id, 'act:testex.com')
         self.assertEqual(sub_act.mbox, 'mailto:ss@ss.com')
         self.assertEqual(sub_con.registration, guid)
         self.assertEqual(sub_res.response, 'kicked')
@@ -599,16 +599,16 @@ class StatementModelsTests(TestCase):
 
     def test_model_authoritative_set(self):
         stmt = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"activity"}}))
+            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
         self.assertTrue(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
         
         stmt2 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"activity"}}))
+            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
         self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
         self.assertFalse(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
         
         stmt3 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"activity2"}}))
+            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity2"}}))
 
         self.assertTrue(models.statement.objects.get(pk=stmt3.model_object.pk).authoritative)
         self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
@@ -623,7 +623,7 @@ class StatementModelsTests(TestCase):
                     {"name":"agentB","mbox":"mailto:agentB@example.com"}]
         testagent = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
         
-        stmt = Statement.Statement(json.dumps({"actor":testagent, 'verb': {"id":"verb:verb/url"},"object": {"id":"activity5",
+        stmt = Statement.Statement(json.dumps({"actor":testagent, 'verb': {"id":"verb:verb/url"},"object": {"id":"act:activity5",
             "objectType": "Activity"}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         actor = models.agent.objects.get(id=stmt.model_object.actor.id)
