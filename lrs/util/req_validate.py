@@ -1,6 +1,6 @@
 import json
 from lrs import models
-from lrs.exceptions import Unauthorized, ParamConflict, ParamError, Forbidden
+from lrs.exceptions import Unauthorized, ParamConflict, ParamError, Forbidden, NotFound
 from Authorization import auth
 from django.utils.decorators import decorator_from_middleware
 import pdb
@@ -98,12 +98,32 @@ def validate_oauth_scope(r_dict):
                 }
              }
 
+    # Raise forbidden if requesting wrong endpoint or with wrong method than what's in scope
     if not validator[method][endpoint]:
         raise Forbidden(err_msg)
 
     # Set flag to read only statements owned by user
     if 'statements/read/mine' in scopes:
         r_dict['statements_mine_only'] = True
+
+# Extra agent validation for state and profile
+def validate_oauth_state_or_profile_agent(r_dict, endpoint):
+    ag = r_dict['agent']
+    token = r_dict['oauth_token']
+    scopes = token.scope_to_list()
+    if not 'all' in scopes:
+        if not isinstance(ag, dict):
+            try:
+                ag = ast.literal_eval(ag)
+            except:
+                ag = json.loads(ag)
+        try:
+            agent = models.agent.objects.get(**ag)
+        except models.agent.DoesNotExist:
+            raise NotFound("Agent in %s cannot be found to match user in authorization" % endpoint)
+
+        if not agent in r_dict['auth'].member.all():
+            raise Forbidden("Authorization doesn't match agent in %s" % endpoint)
 
 @auth
 @check_oauth
@@ -182,6 +202,10 @@ def activity_state_put(r_dict):
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "state")
+
     # Set state
     r_dict['state'] = r_dict.pop('body')
     return r_dict
@@ -206,6 +230,10 @@ def activity_state_get(r_dict):
             log_exception(log_dict, err_msg, activity_state_get.__name__)
             update_log_status(log_dict, 400)
             raise ParamError(err_msg)
+
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "state")    
     return r_dict
 
 @auth
@@ -228,6 +256,10 @@ def activity_state_delete(r_dict):
             log_exception(log_dict, err_msg, activity_state_delete.__name__)
             update_log_status(log_dict, 400)
             raise ParamError(err_msg)
+    
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "state")
     return r_dict
 
 @auth
@@ -297,6 +329,7 @@ def activity_profile_delete(r_dict):
         raise ParamError(err_msg)
     return r_dict
 
+@auth
 @check_oauth
 @log_parent_action(method='GET', endpoint='activities')
 def activities_get(r_dict):
@@ -335,11 +368,16 @@ def agent_profile_put(r_dict):
         log_exception(log_dict, err_msg, agent_profile_put.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
+
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "profile")
     
     # Set profile
     r_dict['profile'] = r_dict.pop('body')
     return r_dict
 
+@auth
 @check_oauth
 @log_parent_action(method='GET', endpoint='agents/profile')
 def agent_profile_get(r_dict):
@@ -351,6 +389,10 @@ def agent_profile_get(r_dict):
         log_exception(log_dict, err_msg, agent_profile_get.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
+
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "profile")
     return r_dict
 
 @auth
@@ -372,8 +414,13 @@ def agent_profile_delete(r_dict):
         log_exception(log_dict, err_msg, agent_profile_delete.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
+    
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "profile")
     return r_dict
 
+@auth
 @check_oauth
 @log_parent_action(method='GET', endpoint='agents')
 def agents_get(r_dict):
