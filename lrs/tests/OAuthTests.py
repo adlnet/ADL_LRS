@@ -25,9 +25,6 @@ class OAuthTests(TestCase):
         self.user = User.objects.create_user('jane', 'jane@example.com', 'toto')
         user = self.client.login(username='jane', password='toto')
 
-        self.user2 = User.objects.create_user('dick', 'dick@example.com', 'lassie')
-        user2 = self.client.login(username='dick', password='lassie')
-
         #Register a client
         self.name = "test client"
         self.desc = "test desc"
@@ -36,6 +33,11 @@ class OAuthTests(TestCase):
         self.consumer = models.Consumer.objects.get(name=self.name)
         self.client.logout()
 
+        # Create a user
+        self.user2 = User.objects.create_user('dick', 'dick@example.com', 'lassie')
+        user2 = self.client.login(username='dick', password='lassie')
+
+        #Register a client
         self.name2 = "test client2"
         self.desc2 = "test desc2"
         form2 = {"name":self.name2, "description":self.desc2, "scopes":"all"}
@@ -43,28 +45,17 @@ class OAuthTests(TestCase):
         self.consumer2 = models.Consumer.objects.get(name=self.name2)
         self.client.logout()
 
-
     def perform_oauth_handshake(self, scope=True, scope_type=None, request_nonce=None,
-        access_nonce=None, resource_nonce=None, user2=False):
+        access_nonce=None, resource_nonce=None):
         # TEST REQUEST TOKEN
-        if not user2:
-            oauth_header_request_params = "OAuth realm=\"test\","\
-                   "oauth_consumer_key=\"%s\","\
-                   "oauth_signature_method=\"PLAINTEXT\","\
-                   "oauth_signature=\"%s&\","\
-                   "oauth_timestamp=\"%s\","\
-                   "oauth_nonce=\"requestnonce\","\
-                   "oauth_version=\"1.0\","\
-                   "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key,self.consumer.secret,str(int(time.time())))
-        else:
-            oauth_header_request_params = "OAuth realm=\"test\","\
-                   "oauth_consumer_key=\"%s\","\
-                   "oauth_signature_method=\"PLAINTEXT\","\
-                   "oauth_signature=\"%s&\","\
-                   "oauth_timestamp=\"%s\","\
-                   "oauth_nonce=\"requestnonce\","\
-                   "oauth_version=\"1.0\","\
-                   "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer2.key,self.consumer2.secret,str(int(time.time())))
+        oauth_header_request_params = "OAuth realm=\"test\","\
+               "oauth_consumer_key=\"%s\","\
+               "oauth_signature_method=\"PLAINTEXT\","\
+               "oauth_signature=\"%s&\","\
+               "oauth_timestamp=\"%s\","\
+               "oauth_nonce=\"requestnonce\","\
+               "oauth_version=\"1.0\","\
+               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key,self.consumer.secret,str(int(time.time())))
         
         if scope:
             if scope_type:
@@ -98,11 +89,8 @@ class OAuthTests(TestCase):
         auth_resp = self.client.get("/XAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
-        self.assertIn(token.key, auth_resp['Location'])     
-        if not user2:
-            self.client.login(username='jane', password='toto')
-        else:
-            self.client.login(username='dick', password='lassie')
+        self.assertIn(token.key, auth_resp['Location'])    
+        self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
@@ -124,27 +112,15 @@ class OAuthTests(TestCase):
 
 
         # Test ACCESS TOKEN
-        if not user2:
-            oauth_header_access_params = "OAuth realm=\"test\","\
-                "oauth_consumer_key=\"%s\","\
-                "oauth_token=\"%s\","\
-                "oauth_signature_method=\"PLAINTEXT\","\
-                "oauth_signature=\"%s&%s\","\
-                "oauth_timestamp=\"%s\","\
-                "oauth_nonce=\"accessnonce\","\
-                "oauth_version=\"1.0\","\
-                "oauth_verifier=\"%s\"" % (self.consumer.key,token.key,self.consumer.secret,token.secret,str(int(time.time())),token.verifier)
-        else:
-            oauth_header_access_params = "OAuth realm=\"test\","\
-                "oauth_consumer_key=\"%s\","\
-                "oauth_token=\"%s\","\
-                "oauth_signature_method=\"PLAINTEXT\","\
-                "oauth_signature=\"%s&%s\","\
-                "oauth_timestamp=\"%s\","\
-                "oauth_nonce=\"accessnonce\","\
-                "oauth_version=\"1.0\","\
-                "oauth_verifier=\"%s\"" % (self.consumer2.key,token.key,self.consumer2.secret,token.secret,str(int(time.time())),token.verifier)
-
+        oauth_header_access_params = "OAuth realm=\"test\","\
+            "oauth_consumer_key=\"%s\","\
+            "oauth_token=\"%s\","\
+            "oauth_signature_method=\"PLAINTEXT\","\
+            "oauth_signature=\"%s&%s\","\
+            "oauth_timestamp=\"%s\","\
+            "oauth_nonce=\"accessnonce\","\
+            "oauth_version=\"1.0\","\
+            "oauth_verifier=\"%s\"" % (self.consumer.key,token.key,self.consumer.secret,token.secret,str(int(time.time())),token.verifier)
 
         access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params,
             X_Experience_API_Version="0.95")
@@ -152,32 +128,112 @@ class OAuthTests(TestCase):
         self.assertEqual(access_resp.status_code, 200)
         access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
         self.assertIn(access_token.key, access_resp.content)
-        if not user2:
-            self.assertEqual(access_token.user.username, u'jane')
-        else:
-            self.assertEqual(access_token.user.username, u'dick')
+        self.assertEqual(access_token.user.username, u'jane')
 
         # Test ACCESS RESOURCE
-        if not self2:
-            oauth_header_resource_params = "OAuth realm=\"test\", "\
-                "oauth_consumer_key=\"%s\","\
-                "oauth_token=\"%s\","\
-                "oauth_signature_method=\"HMAC-SHA1\","\
-                "oauth_timestamp=\"%s\","\
-                "oauth_nonce=\"accessresourcenonce\","\
-                "oauth_version=\"1.0\"" % (self.consumer.key, access_token.key, str(int(time.time())))
-        else:
-            oauth_header_resource_params = "OAuth realm=\"test\", "\
-                "oauth_consumer_key=\"%s\","\
-                "oauth_token=\"%s\","\
-                "oauth_signature_method=\"HMAC-SHA1\","\
-                "oauth_timestamp=\"%s\","\
-                "oauth_nonce=\"accessresourcenonce\","\
-                "oauth_version=\"1.0\"" % (self.consumer2.key, access_token.key, str(int(time.time())))
-
+        oauth_header_resource_params = "OAuth realm=\"test\", "\
+            "oauth_consumer_key=\"%s\","\
+            "oauth_token=\"%s\","\
+            "oauth_signature_method=\"HMAC-SHA1\","\
+            "oauth_timestamp=\"%s\","\
+            "oauth_nonce=\"accessresourcenonce\","\
+            "oauth_version=\"1.0\"" % (self.consumer.key, access_token.key, str(int(time.time())))
 
         return oauth_header_resource_params, access_token
 
+    def perform_oauth_handshake2(self, scope=True, scope_type=None, request_nonce=None,
+        access_nonce=None, resource_nonce=None):
+        # TEST REQUEST TOKEN
+        oauth_header_request_params = "OAuth realm=\"test\","\
+               "oauth_consumer_key=\"%s\","\
+               "oauth_signature_method=\"PLAINTEXT\","\
+               "oauth_signature=\"%s&\","\
+               "oauth_timestamp=\"%s\","\
+               "oauth_nonce=\"requestnonce\","\
+               "oauth_version=\"1.0\","\
+               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer2.key,self.consumer2.secret,str(int(time.time())))
+        
+        if scope:
+            if scope_type:
+                # Test sending in scope as query param with REQUEST_TOKEN
+                param = {
+                            "scope":scope_type
+                        }
+            else:
+                # Test sending in scope as query param with REQUEST_TOKEN
+                param = {
+                            "scope":"all"
+                        }
+            path = "%s?%s" % ("/XAPI/OAuth/initiate", urllib.urlencode(param))                  
+        else:
+            path = "/XAPI/OAuth/initiate"
+
+        request_resp = self.client.get(path, Authorization=oauth_header_request_params, X_Experience_API_Version="0.95")        
+
+        self.assertEqual(request_resp.status_code, 200)
+        self.assertIn('oauth_token_secret=', request_resp.content)
+        self.assertIn('oauth_token=', request_resp.content)
+        self.assertIn('&oauth_callback_confirmed=true', request_resp.content)
+        token = list(models.Token.objects.all())[-1]
+        self.assertIn(token.key, request_resp.content)
+        self.assertIn(token.secret, request_resp.content)
+        self.assertEqual(token.callback, 'http://example.com/request_token_ready')
+        self.assertEqual(token.callback_confirmed, True)
+
+        # Test AUTHORIZE
+        oauth_auth_params = {'oauth_token': token.key}
+        auth_resp = self.client.get("/XAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
+        self.assertEqual(auth_resp.status_code, 200)
+        self.assertEqual(token.is_approved, False)
+        auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+        self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
+        
+        html = auth_resp.content
+        cap = re.search('name="obj_id"\Wvalue="(.*?)"', html)
+        oauth_auth_params['obj_id'] = cap.group(1)
+
+        caps = re.findall('checked="checked".*?value="(.*?)"', html)
+        oauth_auth_params['scopes'] = [c for c in caps]
+
+        oauth_auth_params['authorize_access'] = 1
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
+        self.assertEqual(auth_post.status_code, 302)
+        self.assertIn('http://example.com/request_token_ready?oauth_verifier=', auth_post['Location'])
+        token = list(models.Token.objects.all())[-1]
+        self.assertIn(token.key, auth_post['Location'])
+        self.assertEqual(token.is_approved, True)
+
+
+        # Test ACCESS TOKEN
+        oauth_header_access_params = "OAuth realm=\"test\","\
+            "oauth_consumer_key=\"%s\","\
+            "oauth_token=\"%s\","\
+            "oauth_signature_method=\"PLAINTEXT\","\
+            "oauth_signature=\"%s&%s\","\
+            "oauth_timestamp=\"%s\","\
+            "oauth_nonce=\"accessnonce\","\
+            "oauth_version=\"1.0\","\
+            "oauth_verifier=\"%s\"" % (self.consumer2.key,token.key,self.consumer2.secret,token.secret,str(int(time.time())),token.verifier)
+
+        access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params,
+            X_Experience_API_Version="0.95")
+
+        self.assertEqual(access_resp.status_code, 200)
+        pdb.set_trace()
+        access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
+        self.assertIn(access_token.key, access_resp.content)
+        self.assertEqual(access_token.user.username, u'dick')
+
+        # Test ACCESS RESOURCE
+        oauth_header_resource_params = "OAuth realm=\"test\", "\
+            "oauth_consumer_key=\"%s\","\
+            "oauth_token=\"%s\","\
+            "oauth_signature_method=\"HMAC-SHA1\","\
+            "oauth_timestamp=\"%s\","\
+            "oauth_nonce=\"accessresourcenonce\","\
+            "oauth_version=\"1.0\"" % (self.consumer2.key, access_token.key, str(int(time.time())))
+
+        return oauth_header_resource_params, access_token
     def tearDown(self):
         if settings.OAUTH_ENABLED:
             settings.OAUTH_ENABLED = False
@@ -1045,9 +1101,9 @@ class OAuthTests(TestCase):
             'interactionType': 'intType'}}}
         stmt_json = json.dumps(post_stmt)
 
-        oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='define',
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake2(scope_type='define',
             request_nonce='stmtpostrequestnonce', access_nonce='stmtpostaccessnonce',
-            resource_nonce='stmtpostresourcenonce', user2=True)
+            resource_nonce='stmtpostresourcenonce')
 
         # from_token_and_callback takes a dictionary        
         param_list = oauth_header_resource_params.split(",")
@@ -1068,6 +1124,5 @@ class OAuthTests(TestCase):
 
         post = self.client.post(url, data=stmt_json, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
-        pdb.set_trace()
         self.assertEqual(post.status_code, 200)
         
