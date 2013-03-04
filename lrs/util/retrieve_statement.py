@@ -16,8 +16,6 @@ import pdb
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
-
-
 def convert_to_dict(incoming_data):
     data = {}
     try:
@@ -36,17 +34,17 @@ def parse_incoming_object(objectData, args):
         object_data = convert_to_dict(objectData)
     else:
         object_data = objectData
-
+    # If it's activity, since there could be multiple activities with the same ID, we want to return all
+    # stmts that have any of those actIDs-do filter instead of get and check if ID is in the list
+    activity = False
     # Check the objectType
     if 'objectType' in object_data:
         # If type is activity try go retrieve object
         if object_data['objectType'].lower() == 'activity':
-            try:
-                activity = models.activity.objects.get(activity_id=object_data['id'])
-                if activity:
-                    obj = activity
-            except models.activity.DoesNotExist:
-                pass # no object found
+            activity = models.activity.objects.filter(activity_id=object_data['id'])
+            if activity:
+                obj = activity
+                activity = True
         # If type is not an activity then it must be an agent
         elif object_data['objectType'].lower() == 'agent':
             try:
@@ -64,13 +62,11 @@ def parse_incoming_object(objectData, args):
                 pass
     # Default to activity
     else:
-        try:
-            activity = models.activity.objects.get(activity_id=object_data['id'])
-            if activity:
-                obj = activity
-        except models.activity.DoesNotExist:
-            pass
-    return obj
+        activity = models.activity.objects.filter(activity_id=object_data['id'])
+        if activity:
+            obj = activity
+            activity = True
+    return obj, activity
 
 def parse_incoming_actor(actorData):
     actor = None
@@ -146,8 +142,10 @@ def complex_get(req_dict):
     # If searching by activity or actor
     if 'object' in the_dict:
         objectData = the_dict['object']
-        obj = parse_incoming_object(objectData, args)
-        if obj:
+        obj, activity = parse_incoming_object(objectData, args)
+        if obj and activity:
+            args['stmt_object__in'] = obj
+        elif obj and not activity:
             args['stmt_object'] = obj
         else:
             return []

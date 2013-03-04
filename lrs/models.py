@@ -566,6 +566,7 @@ class activity(statement_object):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, null=True, default="Activity") 
     authoritative = models.CharField(max_length=100, blank=True, null=True)
+    global_representation = models.BooleanField(default=True)
 
     def object_return(self, sparse=False, lang=None):
         ret = {}

@@ -38,7 +38,7 @@ class Activity():
 
     # Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, data, auth=None, log_dict=None):
+    def __init__(self, data, auth=None, log_dict=None, define=True):
         if auth:
             if auth.__class__.__name__ == 'group':
                 self.auth = auth.name
@@ -48,6 +48,7 @@ class Activity():
             self.auth = None
         self.log_dict = log_dict
         self.params = data
+        self.define = define
         if not isinstance(data, dict):
             self.params = self.parse(data)
         self.populate(self.params)
@@ -281,7 +282,15 @@ class Activity():
             update_parent_log_status(self.log_dict, 400)          
             raise exceptions.ParamError(err_msg)
 
-        self.activity, act_created = models.activity.objects.get_or_create(activity_id=activity_id)
+        # If allowed to define activities-create or get the global version
+        if self.define:
+            self.activity, act_created = models.activity.objects.get_or_create(activity_id=activity_id,
+                global_representation=True)
+        else:
+            # Not allowed to create global version b/c don't have define permissions
+            self.activity = models.activity(activity_id=activity_id, global_representation=False)
+            self.activity.save()
+            act_created = False
         if act_created: 
             log_message(self.log_dict, "Populating Activity - created Activity in database", __name__, self.populate.__name__)            
             if self.auth:
@@ -440,7 +449,6 @@ class Activity():
     #Populate definition either from JSON or validated XML
     def populate_definition(self, act_def, act_created):
         log_message(self.log_dict, "Populating activity definition", __name__, self.populate_definition.__name__)
-
         # only update existing def stuff if request has authority to do so
         if not act_created and (self.activity.authoritative is not None and self.activity.authoritative != self.auth):
             err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
@@ -477,30 +485,32 @@ class Activity():
                 update_parent_log_status(self.log_dict, 403)
                 raise exceptions.Forbidden(err_msg)
         else:
-            # Save activity definition name and description
-            for name_lang_map in act_def['name'].items():
-                if isinstance(name_lang_map, tuple):
-                    n = models.name_lang(key=name_lang_map[0],
-                                  value=name_lang_map[1],
-                                  content_object=self.activity.activity_definition)
-                    n.save()
-                else:
-                    err_msg = "Activity with id %s has a name that is not a language map" % self.activity.activity_id
-                    log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
-                    update_parent_log_status(self.log_dict, 400)
-                    raise exceptions.ParamError(err_msg)
+            # If created and have permisson to (re)define activities
+            if self.define:
+                # Save activity definition name and description
+                for name_lang_map in act_def['name'].items():
+                    if isinstance(name_lang_map, tuple):
+                        n = models.name_lang(key=name_lang_map[0],
+                                      value=name_lang_map[1],
+                                      content_object=self.activity.activity_definition)
+                        n.save()
+                    else:
+                        err_msg = "Activity with id %s has a name that is not a language map" % self.activity.activity_id
+                        log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+                        update_parent_log_status(self.log_dict, 400)
+                        raise exceptions.ParamError(err_msg)
 
-            for desc_lang_map in act_def['description'].items():
-                if isinstance(desc_lang_map, tuple):
-                    d = models.desc_lang(key=desc_lang_map[0],
-                                  value=desc_lang_map[1],
-                                  content_object=self.activity.activity_definition)
-                    d.save()
-                else:
-                    err_msg = "Activity with id %s has a description that is not a language map" % self.activity.activity_id
-                    log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True) 
-                    update_parent_log_status(self.log_dict, 400)                   
-                    raise exceptions.ParamError(err_msg)
+                for desc_lang_map in act_def['description'].items():
+                    if isinstance(desc_lang_map, tuple):
+                        d = models.desc_lang(key=desc_lang_map[0],
+                                      value=desc_lang_map[1],
+                                      content_object=self.activity.activity_definition)
+                        d.save()
+                    else:
+                        err_msg = "Activity with id %s has a description that is not a language map" % self.activity.activity_id
+                        log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True) 
+                        update_parent_log_status(self.log_dict, 400)                   
+                        raise exceptions.ParamError(err_msg)
         
         #If there is a correctResponsesPattern then save the pattern
         if act_def_created and 'correctResponsesPattern' in act_def.keys():
