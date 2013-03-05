@@ -371,6 +371,7 @@ def handle_request(request):
         path = request.path
         if path.endswith('/'):
             path = path.rstrip('/')
+        path = path.lower()
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
     except exceptions.BadRequest as err:
@@ -395,22 +396,22 @@ def handle_request(request):
         return HttpResponse(err.message, status=500)
 
 validators = {
-    reverse(statements) : {
+    reverse(statements).lower() : {
         "POST" : req_validate.statements_post,
         "GET" : req_validate.statements_get,
         "PUT" : req_validate.statements_put
     },
-    reverse(activity_state) : {
+    reverse(activity_state).lower() : {
         "PUT" : req_validate.activity_state_put,
         "GET" : req_validate.activity_state_get,
         "DELETE" : req_validate.activity_state_delete
     },
-    reverse(activity_profile) : {
+    reverse(activity_profile).lower() : {
         "PUT" : req_validate.activity_profile_put,
         "GET" : req_validate.activity_profile_get,
         "DELETE" : req_validate.activity_profile_delete
     },
-    reverse(activities) : {
+    reverse(activities).lower() : {
         "GET" : req_validate.activities_get
     },
     reverse(agent_profile) : {
@@ -418,36 +419,36 @@ validators = {
         "GET" : req_validate.agent_profile_get,
         "DELETE" : req_validate.agent_profile_delete
     },
-   reverse(agents) : {
+   reverse(agents).lower() : {
        "GET" : req_validate.agents_get
    }
 }
 
 processors = {
-    reverse(statements) : {
+    reverse(statements).lower() : {
         "POST" : req_process.statements_post,
         "GET" : req_process.statements_get,
         "PUT" : req_process.statements_put
     },
-    reverse(activity_state) : {
+    reverse(activity_state).lower() : {
         "PUT" : req_process.activity_state_put,
         "GET" : req_process.activity_state_get,
         "DELETE" : req_process.activity_state_delete
     },
-    reverse(activity_profile) : {
+    reverse(activity_profile).lower() : {
         "PUT" : req_process.activity_profile_put,
         "GET" : req_process.activity_profile_get,
         "DELETE" : req_process.activity_profile_delete
     },
-    reverse(activities) : {
+    reverse(activities).lower() : {
         "GET" : req_process.activities_get
     },
-    reverse(agent_profile) : {
+    reverse(agent_profile).lower() : {
         "PUT" : req_process.agent_profile_put,
         "GET" : req_process.agent_profile_get,
         "DELETE" : req_process.agent_profile_delete
     },
-   reverse(agents) : {
+   reverse(agents).lower() : {
        "GET" : req_process.agents_get
    }
 }
