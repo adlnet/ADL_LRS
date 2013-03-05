@@ -1480,7 +1480,6 @@ class StatementsTests(TestCase):
 
         param = {"object":{"id":"test://adlnet.gov/activities/test/2"}}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        pdb.set_trace()
         actresp = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)
         actstmts = json.loads(actresp.content)
         self.assertEqual(len(actstmts['statements']), 1)

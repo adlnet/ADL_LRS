@@ -149,9 +149,9 @@ class OAuthTests(TestCase):
                "oauth_signature_method=\"PLAINTEXT\","\
                "oauth_signature=\"%s&\","\
                "oauth_timestamp=\"%s\","\
-               "oauth_nonce=\"requestnonce\","\
+               "oauth_nonce=\"requestnonc2e\","\
                "oauth_version=\"1.0\","\
-               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer2.key,self.consumer2.secret,str(int(time.time())))
+               "oauth_callback=\"http://example2.com/request_token_ready\"" % (self.consumer2.key,self.consumer2.secret,str(int(time.time())))
         
         if scope:
             if scope_type:
@@ -177,13 +177,16 @@ class OAuthTests(TestCase):
         token = list(models.Token.objects.all())[-1]
         self.assertIn(token.key, request_resp.content)
         self.assertIn(token.secret, request_resp.content)
-        self.assertEqual(token.callback, 'http://example.com/request_token_ready')
+        self.assertEqual(token.callback, 'http://example2.com/request_token_ready')
         self.assertEqual(token.callback_confirmed, True)
 
         # Test AUTHORIZE
         oauth_auth_params = {'oauth_token': token.key}
         auth_resp = self.client.get("/XAPI/OAuth/authorize", oauth_auth_params, X_Experience_API_Version="0.95")
-        self.assertEqual(auth_resp.status_code, 200)
+        self.assertEqual(auth_resp.status_code, 302)
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn(token.key, auth_resp['Location'])    
+        self.client.login(username='dick', password='lassie')
         self.assertEqual(token.is_approved, False)
         auth_resp = self.client.get("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
@@ -198,7 +201,7 @@ class OAuthTests(TestCase):
         oauth_auth_params['authorize_access'] = 1
         auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_post.status_code, 302)
-        self.assertIn('http://example.com/request_token_ready?oauth_verifier=', auth_post['Location'])
+        self.assertIn('http://example2.com/request_token_ready?oauth_verifier=', auth_post['Location'])
         token = list(models.Token.objects.all())[-1]
         self.assertIn(token.key, auth_post['Location'])
         self.assertEqual(token.is_approved, True)
@@ -211,7 +214,7 @@ class OAuthTests(TestCase):
             "oauth_signature_method=\"PLAINTEXT\","\
             "oauth_signature=\"%s&%s\","\
             "oauth_timestamp=\"%s\","\
-            "oauth_nonce=\"accessnonce\","\
+            "oauth_nonce=\"accessnonce2\","\
             "oauth_version=\"1.0\","\
             "oauth_verifier=\"%s\"" % (self.consumer2.key,token.key,self.consumer2.secret,token.secret,str(int(time.time())),token.verifier)
 
@@ -219,7 +222,6 @@ class OAuthTests(TestCase):
             X_Experience_API_Version="0.95")
 
         self.assertEqual(access_resp.status_code, 200)
-        pdb.set_trace()
         access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'dick')
@@ -230,10 +232,13 @@ class OAuthTests(TestCase):
             "oauth_token=\"%s\","\
             "oauth_signature_method=\"HMAC-SHA1\","\
             "oauth_timestamp=\"%s\","\
-            "oauth_nonce=\"accessresourcenonce\","\
+            "oauth_nonce=\"accessresourcenonce2\","\
             "oauth_version=\"1.0\"" % (self.consumer2.key, access_token.key, str(int(time.time())))
 
         return oauth_header_resource_params, access_token
+
+
+
     def tearDown(self):
         if settings.OAUTH_ENABLED:
             settings.OAUTH_ENABLED = False
@@ -498,7 +503,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        oauth_header_resource_params_dict.update(stmt)
 
         oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='POST',
             http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params_dict)
@@ -506,7 +510,7 @@ class OAuthTests(TestCase):
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature  
-
+        # print '\n' + oauth_header_resource_params
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(post.status_code, 200)
@@ -519,7 +523,6 @@ class OAuthTests(TestCase):
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
-        # pdb.set_trace()
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(request_nonce='stmtgetrequestnonce',
             access_nonce='stmtgetaccessnonce', resource_nonce='stmtgetresourcenonce')
 
@@ -540,7 +543,7 @@ class OAuthTests(TestCase):
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
-        # pdb.set_trace()
+
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(resp.status_code, 200)
         rsp = resp.content
@@ -622,8 +625,7 @@ class OAuthTests(TestCase):
         oauth_header_resource_params_dict['oauth_nonce'] = 'wrongpostnonce'
         # delete statementId from get
         del oauth_header_resource_params_dict['statementId']
-        # update dict with stmt data
-        oauth_header_resource_params_dict.update(post_stmt)
+
         # create another oauth request
         oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='POST',
             http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params_dict)
@@ -1091,6 +1093,7 @@ class OAuthTests(TestCase):
         self.assertEqual(get_resp.status_code, 200)
         content = json.loads(get_resp.content)
         self.assertEqual(len(content['statements']), 2)
+        self.client.logout()
 
         # START OF POST WITH ANOTHER HANDSHAKE
         post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:dom@dom.com", "name":"dom"},
@@ -1101,28 +1104,39 @@ class OAuthTests(TestCase):
             'interactionType': 'intType'}}}
         stmt_json = json.dumps(post_stmt)
 
-        oauth_header_resource_params, access_token = self.perform_oauth_handshake2(scope_type='define',
+        post_oauth_header_resource_params, post_access_token = self.perform_oauth_handshake2(scope_type='define,statements/write',
             request_nonce='stmtpostrequestnonce', access_nonce='stmtpostaccessnonce',
             resource_nonce='stmtpostresourcenonce')
 
         # from_token_and_callback takes a dictionary        
-        param_list = oauth_header_resource_params.split(",")
-        oauth_header_resource_params_dict = {}
-        for p in param_list:
+        post_param_list = post_oauth_header_resource_params.split(",")
+        post_oauth_header_resource_params_dict = {}
+        for p in post_param_list:
             item = p.split("=")
-            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
-        # from_request ignores realm, must remove so not input to from_token_and_callback
-        del oauth_header_resource_params_dict['OAuth realm']
-        oauth_header_resource_params_dict.update(post_stmt)
-
-        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='POST',
-            http_url=path, parameters=oauth_header_resource_params_dict)
-
-        signature_method = OAuthSignatureMethod_HMAC_SHA1()
-        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
-        oauth_header_resource_params += ',oauth_signature="%s"' % signature  
-
-        post = self.client.post(url, data=stmt_json, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
-        self.assertEqual(post.status_code, 200)
+            post_oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del post_oauth_header_resource_params_dict['OAuth realm']
+        # post_oauth_header_resource_params_dict.update(post_stmt)
+        
+        post_oauth_request = OAuthRequest.from_token_and_callback(post_access_token, http_method='POST',
+            http_url='http://testserver/XAPI/statements/',
+            parameters=post_oauth_header_resource_params_dict)
+
+        post_signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        post_signature = signature_method.build_signature(post_oauth_request, self.consumer2,
+            post_access_token)
+
+        post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
+        
+        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+            Authorization=post_oauth_header_resource_params, X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 200)
+        acts = models.activity.objects.all()
+        self.assertEqual(len(acts), 2)
+        act_defs = models.activity_definition.objects.all()
+        name_list = []
+        name_list.append(str(act_defs[0].name.all()[0].value))
+        name_list.append(str(act_defs[1].name.all()[0].value))
+        self.assertIn('altname', name_list)
+        self.assertIn('definealtname', name_list)
