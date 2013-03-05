@@ -106,6 +106,12 @@ def validate_oauth_scope(r_dict):
     if 'statements/read/mine' in scopes:
         r_dict['statements_mine_only'] = True
 
+    # Set flag for define - allowed to update global representation of activities/agents
+    if 'define' in scopes or 'all' in scopes:
+        r_dict['oauth_define'] = True
+    else:
+        r_dict['oauth_define'] = False
+
 # Extra agent validation for state and profile
 def validate_oauth_state_or_profile_agent(r_dict, endpoint):
     ag = r_dict['agent']

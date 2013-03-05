@@ -55,12 +55,6 @@ class Consumer(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user")
 
     objects = ConsumerManager()
-
-    # TODO: why doesn't default on default_scopes work
-    def __init__(self, *args, **kwargs):
-        super(Consumer, self).__init__(*args, **kwargs)
-        if self.default_scopes is None or self.default_scopes == "":
-            self.default_scopes = "statements/write,statements/read/mine"
         
     def __unicode__(self):
         return u"Consumer %s with key %s" % (self.name, self.key)
@@ -572,6 +566,7 @@ class activity(statement_object):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, null=True, default="Activity") 
     authoritative = models.CharField(max_length=100, blank=True, null=True)
+    global_representation = models.BooleanField(default=True)
 
     def object_return(self, sparse=False, lang=None):
         ret = {}

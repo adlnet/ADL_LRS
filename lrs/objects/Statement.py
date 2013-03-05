@@ -35,10 +35,11 @@ class default_on_exception(object):
 class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, data, auth=None, log_dict=None):
+    def __init__(self, data, auth=None, log_dict=None, define=True):
         self.auth = auth
         self.params = data
         self.log_dict = log_dict
+        self.define = define
         if not isinstance(data, dict):
             self.params = self.parse(data)
         self.populate(self.params)
@@ -384,7 +385,7 @@ class Statement():
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
                 args['stmt_object'] = Activity(statementObjectData,auth=self.auth,
-                    log_dict=self.log_dict).activity
+                    log_dict=self.log_dict, define=self.define).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True,
                     log_dict=self.log_dict).agent

@@ -29,22 +29,25 @@ def initialize_server_request(request):
     # But there is an issue with Django's test Client and custom content types
     # so an ugly test is made here, if you find a better solution...
     parameters = {}        
-    if request.method == "POST" and \
-        (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
+    if request.method == "POST" and request.META.get('CONTENT_TYPE') != "application/json" \
+        and (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
             or request.META.get('SERVER_NAME') == 'testserver'):
         # lou -w -When POST statement data, the actual data is a dict key and has a value of ''
         # have to parse it out correctly...
-        p = dict(request.POST.items()) 
+        # pdb.set_trace()
+        p = dict(request.REQUEST.items()) 
         if p.values()[0] == '':
+            # literal eval is putting them in differnt order
             parameters = ast.literal_eval(p.keys()[0])
         else:
             parameters = p
-    
+            
     oauth_request = OAuthRequest.from_request(request.method, 
                                               request.build_absolute_uri(), 
                                               headers=auth_header,
                                               parameters=parameters,
                                               query_string=request.META.get('QUERY_STRING', ''))
+
     if oauth_request:
         oauth_server = OAuthServer(DataStore(oauth_request))
         if 'plaintext' in OAUTH_SIGNATURE_METHODS:
