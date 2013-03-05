@@ -19,7 +19,9 @@ class ActivityState():
         self.auth = request_dict.get('auth', None)
         self.user = get_user_from_auth(self.auth)
         try:
-            self.activity = models.activity.objects.get(activity_id=request_dict['activityId'])
+            # Always want global version
+            self.activity = models.activity.objects.get(activity_id=request_dict['activityId'],
+                global_representation=True)
         except models.activity.DoesNotExist:
             err_msg = "Error with Activity State. The activity id (%s) did not match any activities on record" % (request_dict['activityId'])
             log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)

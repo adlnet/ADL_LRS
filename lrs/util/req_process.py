@@ -16,11 +16,16 @@ def statements_post(req_dict):
     log_dict = req_dict['initial_user_action'] 
     log_info_processing(log_dict, 'POST', __name__)
 
+    define = True
+    if 'oauth_define' in req_dict:
+        define = req_dict['oauth_define']    
+
     # Handle batch POST
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
-                stmt = Statement.Statement(st, auth=req_dict['auth'], log_dict=log_dict).model_object
+                stmt = Statement.Statement(st, auth=req_dict['auth'], log_dict=log_dict,
+                    define=define).model_object
                 stmt_responses.append(str(stmt.statement_id))
         except Exception, e:
             for stmt_id in stmt_responses:
@@ -33,7 +38,8 @@ def statements_post(req_dict):
             raise e
     else:
         # Handle single POST
-        stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
+        stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict,
+            define=define).model_object
         stmt_responses.append(stmt.statement_id)
 
     update_parent_log_status(log_dict, 200)
@@ -44,9 +50,14 @@ def statements_put(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'PUT', __name__)
 
+    define = True
+    if 'oauth_define' in req_dict:
+        define = req_dict['oauth_define']    
+
     # Set statement ID in body so all data is together
     req_dict['body']['statement_id'] = req_dict['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict).model_object
+    stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], log_dict=log_dict,
+        define=define).model_object
     
     update_parent_log_status(log_dict, 204)
     return HttpResponse("No Content", status=204)

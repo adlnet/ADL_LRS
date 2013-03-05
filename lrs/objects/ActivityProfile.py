@@ -27,7 +27,9 @@ class ActivityProfile():
 
         #Check if activity exists
         try:
-            activity = models.activity.objects.get(activity_id=request_dict['activityId'])
+            # Always want global version
+            activity = models.activity.objects.get(activity_id=request_dict['activityId'],
+                global_representation=True)
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % request_dict['activityId']
             log_message(self.log_dict, err_msg, __name__, self.put_profile.__name__, True)
@@ -73,7 +75,8 @@ class ActivityProfile():
         log_message(self.log_dict, "Getting profile with profile id: %s -- activity id: %s" % (profileId, activityId),
             __name__, self.get_profile.__name__)
         try:
-            activity = models.activity.objects.get(activity_id=activityId)
+            # Always want global version
+            activity = models.activity.objects.get(activity_id=activityId, global_representation=True)
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % activityId
             log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)
@@ -95,7 +98,8 @@ class ActivityProfile():
 
         #make sure activityId exists
         try:
-            activity = models.activity.objects.get(activity_id=activityId)
+            # Always want global version
+            activity = models.activity.objects.get(activity_id=activityId, global_representation=True)
         except models.activity.DoesNotExist:
             err_msg = 'There is no activity associated with the id: %s' % activityId
             log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True)
