@@ -96,6 +96,10 @@ While still in the ADL_LRS directory, update the database
     python manage.py syncdb
 
 When prompted to create a superuser, say yes
+  
+If you want to use South for DB migration (more on that [here](https://github.com/adlnet/ADL_LRS/wiki/DB-Migration-with-South))
+    
+    python manage.py convert_to_south lrs
 
 ## Starting
 While still in the ADL_LRS directory, run

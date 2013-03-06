@@ -17,3 +17,4 @@ oauth2==1.5.170
 psycopg2
 isodate==0.4.9
 python-dateutil==1.5
+South
