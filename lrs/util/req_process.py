@@ -61,7 +61,11 @@ def statements_put(req_dict):
     
     update_parent_log_status(log_dict, 204)
     return HttpResponse("No Content", status=204)
-     
+
+def statements_more_get(req_dict):
+    statement_result = retrieve_statement.get_statement_request(req_dict['more_id']) 
+    return HttpResponse(json.dumps(statement_result),mimetype="application/json",status=200)
+
 def statements_get(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'GET', __name__)
