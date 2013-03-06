@@ -926,14 +926,13 @@ class SubStatement(statement_object):
         ret['actor'] = self.actor.get_agent_json(sparse)
         ret['verb'] = self.verb.object_return()
 
-        try:
-            stmt_object = activity.objects.get(id=self.stmt_object.id)
-        except activity.DoesNotExist:
-            try:
-                stmt_object = agent.objects.get(id=self.stmt_object.id)
-                activity_object = False
-            except agent.DoesNotExist:
-                raise IDNotFoundError('No activity or agent object found with given ID')
+        if hasattr(self.stmt_object, 'activity'):
+           stmt_object = activity.objects.get(id=self.stmt_object.id)
+        elif hasattr(self.stmt_object, 'agent'):
+            stmt_object = agent.objects.get(id=self.stmt_object.id)
+            activity_object = False
+        else: 
+            raise IDNotFoundError('No activity or agent object found with given ID')
         if activity_object:
             ret['object'] = stmt_object.object_return(sparse, lang)  
         else:
@@ -951,15 +950,15 @@ class SubStatement(statement_object):
     def get_object(self):
         stmt_object = None
         object_type = None
-        try:
+        if hasattr(self.stmt_object, 'activity'):
             stmt_object = activity.objects.get(id=self.stmt_object.id)
             object_type = 'activity'
-        except activity.DoesNotExist:
-            try:
-                stmt_object = agent.objects.get(id=self.stmt_object.id)
-                object_type = 'agent'
-            except agent.DoesNotExist:
-                raise IDNotFoundError("No activity, or agent found with given ID")
+        elif hasattr(self.stmt_object, 'agent'):
+            stmt_object = agent.objects.get(id=self.stmt_object.id)
+            object_type = 'agent'
+        else:
+            raise IDNotFoundError("No activity, or agent found with given ID")
+
         return stmt_object, object_type
 
     def delete(self, *args, **kwargs):
@@ -1103,25 +1102,24 @@ class statement(models.Model):
     def get_a_name(self):
         return self.statement_id
 
-    def get_stmt_object(self):
-        object_type = 'activity'
-        try:
+    def get_object(self):
+        stmt_object = None
+        object_type = None
+        if hasattr(self.stmt_object, 'activity'):
             stmt_object = activity.objects.get(id=self.stmt_object.id)
-        except activity.DoesNotExist:
-            try:
-                stmt_object = agent.objects.get(id=self.stmt_object.id)
-                object_type = 'agent'
-            except agent.DoesNotExist:
-                try:
-                    stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
-                    object_type = 'substatement'            
-                except SubStatement.DoesNotExist:
-                    try:
-                        stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
-                        object_type = 'statementref'
-                    except Exception, e:
-                        raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
-        return (stmt_object, object_type)
+            object_type = 'activity'
+        elif hasattr(self.stmt_object, 'agent'):    
+            stmt_object = agent.objects.get(id=self.stmt_object.id)
+            object_type = 'agent'
+        elif hasattr(self.stmt_object, 'substatement'):
+            stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
+            object_type = 'substatement'
+        elif hasattr(self.stmt_object, 'statementref'):
+            stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
+            object_type = 'statementref'
+        else:
+            raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
+        return stmt_object, object_type
 
     def object_return(self, sparse=False, lang=None):
         object_type = 'activity'
@@ -1130,7 +1128,7 @@ class statement(models.Model):
         ret['actor'] = self.actor.get_agent_json(sparse)
         ret['verb'] = self.verb.object_return(lang)
 
-        stmt_object, object_type = self.get_stmt_object()
+        stmt_object, object_type = self.get_object()
         if object_type == 'activity' or object_type == 'substatement':
             ret['object'] = stmt_object.object_return(sparse, lang)  
         elif object_type == 'statementref':
@@ -1165,28 +1163,6 @@ class statement(models.Model):
         for s in sl:
             statement.objects.filter(id=s.id).update(authoritative=False)
         super(statement, self).save(*args, **kwargs)
-
-    def get_object(self):
-        stmt_object = None
-        object_type = None
-        try:
-            stmt_object = activity.objects.get(id=self.stmt_object.id)
-            object_type = 'activity'
-        except activity.DoesNotExist:
-            try:
-                stmt_object = agent.objects.get(id=self.stmt_object.id)
-                object_type = 'agent'
-            except agent.DoesNotExist:
-                try:
-                    stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
-                    object_type = 'substatement'
-                except SubStatement.DoesNotExist:
-                    try:
-                        stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
-                        object_type = 'statementref'
-                    except Exception, e:
-                        raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
-        return stmt_object, object_type
 
     def unvoid_statement(self):
         statement_ref = StatementRef.objects.get(id=self.stmt_object.id)
