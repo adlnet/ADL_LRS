@@ -14,7 +14,7 @@ from oauth_provider.decorators import CheckOAuth
 from lrs.exceptions import OauthUnauthorized
 from django.utils.translation import ugettext as _
 
-def parse(request):
+def parse(request, more_id=None):
     r_dict = {}
     
     # Build headers from request in request dict
@@ -69,6 +69,10 @@ def parse(request):
             r_dict['method'] = 'GET'
         else:
             r_dict['method'] = request.method
+
+    # Set if someone is hitting the statements/more endpoint
+    if more_id:
+        r_dict['more_id'] = more_id
 
     return r_dict
 
