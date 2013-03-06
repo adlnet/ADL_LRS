@@ -69,6 +69,7 @@ def validate_oauth_scope(r_dict):
     err_msg = "Incorrect permissions to %s at %s" % (str(method), str(endpoint))
 
     validator = {'GET':{"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                    "/statements/more": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
                     "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
                     "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
                     "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
@@ -135,6 +136,18 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 @check_oauth
 @log_parent_action(method='POST', endpoint='statements')
 def statements_post(r_dict):
+    return r_dict
+
+@auth
+@check_oauth
+@log_parent_action(method='GET', endpoint='statements/more')
+def statements_more_get(r_dict):
+    log_dict = r_dict['initial_user_action']
+    if not 'more_id' in r_dict:
+        err_msg = "Missing more_id"
+        log_exception(log_dict, err_msg, statements_more_get.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
     return r_dict
 
 @auth

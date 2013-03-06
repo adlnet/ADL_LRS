@@ -124,8 +124,6 @@ def home(request):
             }
         }
     }
-    # pprint.pprint(request.accept)
-    # pprint.pprint(request.accepted_types)
     if "application/json" in request.accepted_types:
         return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
     return render_to_response('home.html', {"lrs_data": lrs_data}, context_instance=RequestContext(request))
@@ -170,7 +168,6 @@ def register(request):
 
 @login_required(login_url="/XAPI/accounts/login")
 def reg_client(request):
-    # pdb.set_trace()
     if request.method == 'GET':
         form = forms.RegClientForm()
         return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
@@ -320,11 +317,10 @@ def logout_view(request):
 @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 @require_http_methods(["GET"])
 def statements_more(request, more_id):
-    statementResult = retrieve_statement.get_statement_request(more_id) 
-    return HttpResponse(json.dumps(statementResult),mimetype="application/json",status=200)
+    return handle_request(request, more_id)
 
 @require_http_methods(["PUT","GET","POST"])
-# @decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
 def statements(request):
     return handle_request(request)   
 
@@ -365,13 +361,18 @@ def oauth_authorize(request, request_token, callback_url, params):
 def user_profile(request):
     return render_to_response('registration/profile.html')
 
-def handle_request(request):
+def handle_request(request, more_id=None):
     try:
-        r_dict = req_parse.parse(request)
-        path = request.path
+        r_dict = req_parse.parse(request, more_id)
+        path = request.path.lower()
+        
         if path.endswith('/'):
             path = path.rstrip('/')
-        path = path.lower()
+
+        # Cutoff more_id
+        if '/xapi/statements/more' in path:
+            path = '/xapi/statements/more'
+
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
     except exceptions.BadRequest as err:
@@ -421,6 +422,9 @@ validators = {
     },
    reverse(agents).lower() : {
        "GET" : req_validate.agents_get
+   },
+   "/xapi/statements/more" : {
+        "GET" : req_validate.statements_more_get
    }
 }
 
@@ -450,7 +454,10 @@ processors = {
     },
    reverse(agents).lower() : {
        "GET" : req_process.agents_get
-   }
+   },
+   "/xapi/statements/more" : {
+        "GET" : req_process.statements_more_get
+   }      
 }
 
 def print_req_details(request):

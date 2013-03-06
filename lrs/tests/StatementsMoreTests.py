@@ -332,7 +332,7 @@ class StatementsMoreTests(TestCase):
 
 
     def test_unknown_more_id_url(self):
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="0.95")
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth )
         self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
 
     def test_not_full_page_stmts(self):
@@ -505,7 +505,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
@@ -573,7 +573,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -607,7 +607,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -675,7 +675,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -709,7 +709,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -778,7 +778,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -812,7 +812,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -879,7 +879,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95")
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -914,7 +914,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95")
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -1083,7 +1083,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, another_more_rsp)
 
         # Simulate user clicking returned 'more' URL
-        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}), X_Experience_API_Version="0.95")
+        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherMore2URLGet.status_code, 200)
         another_more2_rsp = anotherMore2URLGet.content
         self.assertIn(self.guid4, another_more2_rsp)
