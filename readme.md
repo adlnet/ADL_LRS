@@ -113,7 +113,7 @@ You should see a task named web running. This will host the application using gu
     fab test_lrs
 
 ## License
-   Copyright [2012] [Advanced Distributed Learning]
+   Copyright 2012 Advanced Distributed Learning
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
