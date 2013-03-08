@@ -61,6 +61,7 @@ def check_oauth(func):
     return inner    
 
 def validate_oauth_scope(r_dict):
+    log_dict = r_dict['initial_user_action']
     method = r_dict['method']
     endpoint = r_dict['endpoint']
     token = r_dict['oauth_token']
@@ -100,6 +101,8 @@ def validate_oauth_scope(r_dict):
 
     # Raise forbidden if requesting wrong endpoint or with wrong method than what's in scope
     if not validator[method][endpoint]:
+        log_exception(log_dict, err_msg, validate_oauth_scope.__name__)
+        update_log_status(log_dict, 403)
         raise Forbidden(err_msg)
 
     # Set flag to read only statements owned by user
@@ -114,6 +117,7 @@ def validate_oauth_scope(r_dict):
 
 # Extra agent validation for state and profile
 def validate_oauth_state_or_profile_agent(r_dict, endpoint):
+    log_dict = r_dict['initial_user_action']    
     ag = r_dict['agent']
     token = r_dict['oauth_token']
     scopes = token.scope_to_list()
@@ -123,20 +127,26 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
         try:
             agent = models.agent.objects.get(**ag)
         except models.agent.DoesNotExist:
-            raise NotFound("Agent in %s cannot be found to match user in authorization" % endpoint)
+            err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
+            log_exception(log_dict, err_msg, validate_oauth_state_or_profile_agent.__name__)
+            update_log_status(log_dict, 404)
+            raise NotFound(err_msg)
 
         if not agent in r_dict['auth'].member.all():
-            raise Forbidden("Authorization doesn't match agent in %s" % endpoint)
+            err_msg = "Authorization doesn't match agent in %s" % endpoint
+            log_exception(log_dict, err_msg, validate_oauth_state_or_profile_agent.__name__)
+            update_log_status(log_dict, 403)
+            raise Forbidden(err_msg)
 
 @auth
-@check_oauth
 @log_parent_action(method='POST', endpoint='statements')
+@check_oauth
 def statements_post(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='GET', endpoint='statements/more')
+@check_oauth
 def statements_more_get(r_dict):
     log_dict = r_dict['initial_user_action']
     if not 'more_id' in r_dict:
@@ -147,14 +157,14 @@ def statements_more_get(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='GET', endpoint='statements')
+@check_oauth
 def statements_get(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='PUT', endpoint='statements')
+@check_oauth
 def statements_put(r_dict):
     log_dict = r_dict['initial_user_action']
     # Must have statementId param-if not raise paramerror
@@ -183,8 +193,8 @@ def statements_put(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='PUT', endpoint='activities/state')
+@check_oauth
 def activity_state_put(r_dict):
     log_dict = r_dict['initial_user_action']
     try:
@@ -226,8 +236,8 @@ def activity_state_put(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='GET', endpoint='activities/state')
+@check_oauth
 def activity_state_get(r_dict):
     log_dict = r_dict['initial_user_action']
     try:
@@ -252,8 +262,8 @@ def activity_state_get(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='DELETE', endpoint='activities/state')
+@check_oauth
 def activity_state_delete(r_dict):
     log_dict = r_dict['initial_user_action']
     try:
@@ -278,8 +288,8 @@ def activity_state_delete(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='PUT', endpoint='activities/profile')
+@check_oauth
 def activity_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
     try:
@@ -310,8 +320,8 @@ def activity_profile_put(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='GET', endpoint='activities/profile')
+@check_oauth
 def activity_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
     try:
@@ -324,8 +334,8 @@ def activity_profile_get(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='DELETE', endpoint='activities/profile')
+@check_oauth
 def activity_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
     try:
@@ -345,8 +355,8 @@ def activity_profile_delete(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='GET', endpoint='activities')
+@check_oauth
 def activities_get(r_dict):
     log_dict = r_dict['initial_user_action']
     try:
@@ -359,8 +369,8 @@ def activities_get(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='PUT', endpoint='agents/profile')
+@check_oauth
 def agent_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
     try: 
@@ -393,8 +403,8 @@ def agent_profile_put(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='GET', endpoint='agents/profile')
+@check_oauth
 def agent_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
     try: 
@@ -411,8 +421,8 @@ def agent_profile_get(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='DELETE', endpoint='agents/profile')
+@check_oauth
 def agent_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
     try: 
@@ -436,8 +446,8 @@ def agent_profile_delete(r_dict):
     return r_dict
 
 @auth
-@check_oauth
 @log_parent_action(method='GET', endpoint='agents')
+@check_oauth
 def agents_get(r_dict):
     log_dict = r_dict['initial_user_action']
     try: 
