@@ -60,9 +60,6 @@ class ActivityState():
             p.state.delete() # remove old state file
             log_message(self.log_dict, "Retrieved Activity State", __name__, self.put.__name__)
 
-        # if not created:
-        #     etag.check_preconditions(self.req_dict,p)
-        #     p.state.delete() # remove old state file
         p.content_type = self.content_type
         p.etag = etag.create_tag(state.read())
         if self.updated:
@@ -79,10 +76,6 @@ class ActivityState():
 
     def get(self, auth):
         agent = self.__get_agent()
-        # if not agent.mbox is None:            
-        #     if agent.mbox != auth.email:
-        #         raise Forbidden("Unauthorized to retrieve activity state with ID %s" % self.stateId)
-
         try:
             if self.registrationId:
                 return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity=self.activity, registration_id=self.registrationId)
@@ -95,11 +88,6 @@ class ActivityState():
 
     def get_set(self,auth,**kwargs):
         agent = self.__get_agent()
-
-        # if not agent.mbox is None:            
-        #     if agent.mbox != auth.email:
-        #         raise Forbidden("Unauthorized to retrieve activity state with ID %s" % self.stateId)
-
         if self.registrationId:
             state_set = models.activity_state.objects.filter(agent=agent, activity=self.activity, registration_id=self.registrationId)
         else:
