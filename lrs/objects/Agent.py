@@ -1,8 +1,8 @@
 import json
 import datetime
 from lrs.models import agent, group, agent_profile
-from lrs.exceptions import IDNotFoundError
-from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
+from lrs.exceptions import IDNotFoundError, ParamError
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status, convert_to_dict
 from django.core.files.base import ContentFile
 from django.db import transaction
 import pdb
@@ -16,14 +16,17 @@ class Agent():
         self.initial = initial
         self.log_dict = log_dict
         params = self.initial
-        if isinstance(params, dict):
-            self.initial = json.dumps(self.initial)
-        else:
+
+        if not isinstance(params, dict):
             try:
-                params = ast.literal_eval(params)
-            except:
-                params = json.loads(params)
-        
+                params = json.loads(self.initial)
+            except Exception, e:
+                err_msg = "Error parsing the Agent object. Expecting json. Received: %s which is %s" % (self.initial,
+                    type(self.initial))
+                log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg) 
+                
         if 'objectType' in params and params['objectType'] == 'Group':
             obj = group
         else:

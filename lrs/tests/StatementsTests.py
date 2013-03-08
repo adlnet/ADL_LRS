@@ -1489,7 +1489,7 @@ class StatementsTests(TestCase):
         actnoobjresp = self.client.get(path, X_Experience_API_Version="0.95", Authorization=self.auth)            
         
         self.assertEqual(actnoobjresp.status_code, 400)
-        self.assertEqual(actnoobjresp.content, "JSON not found, expecting JSON for endpoint and received string instead")
+        self.assertEqual(actnoobjresp.content, "Cannot evaluate data into dictionary to parse")
 
     def test_no_activity_filter(self):
         self.bunchostmts()

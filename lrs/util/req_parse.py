@@ -1,12 +1,12 @@
 import json
 from lrs.util import etag
 from django.http import MultiPartParser
-import ast
 import StringIO
 import pdb
 import pprint
 from django.core.urlresolvers import reverse
 import lrs.views
+from lrs.util import convert_to_dict
 from oauth_provider.consts import OAUTH_PARAMETERS_NAMES, CONSUMER_STATES, ACCEPTED
 from oauth_provider.oauth.oauth import OAuthError
 from oauth_provider.utils import send_oauth_error
@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 
 def parse(request, more_id=None):
     r_dict = {}
-    
+
     # Build headers from request in request dict
     r_dict = get_headers(request.META, r_dict)
     
@@ -54,7 +54,7 @@ def parse(request, more_id=None):
         r_dict['lrs_auth'] = 'none'
 
     if request.method == 'POST' and 'method' in request.GET:
-        bdy = ast.literal_eval(request.body)
+        bdy = convert_to_dict(request.body)
         r_dict.update(bdy)
         if 'content' in r_dict: # body is in 'content' for the IE cors POST
             r_dict['body'] = r_dict.pop('content')
@@ -87,10 +87,8 @@ def parse_body(r, request):
             if request.body:
                 # profile uses the request body
                 r['raw_body'] = request.body
-                try:
-                    r['body'] = json.loads(request.body)
-                except Exception, e:
-                    r['body'] = ast.literal_eval(request.body)
+                # Body will be some type of string, not necessarily JSON
+                r['body'] = convert_to_dict(request.body)
             else:
                 raise Exception("No body in request")
     return r

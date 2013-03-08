@@ -95,7 +95,7 @@ def statements_get(req_dict):
         stmt_result = st.object_return()
     else:
         stmt_list = retrieve_statement.complex_get(req_dict)
-        stmt_result = retrieve_statement.build_statement_result(req_dict.copy(), stmt_list)
+        stmt_result = retrieve_statement.build_statement_result(req_dict, stmt_list)
     
     update_parent_log_status(log_dict, 200)
 
