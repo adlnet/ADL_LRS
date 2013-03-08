@@ -11,7 +11,6 @@ from django.core.validators import URLValidator
 from django.db import transaction
 import pdb
 import pprint
-import ast
 import logging
 
 logger = logging.getLogger('user_system_actions')
@@ -53,18 +52,16 @@ class Activity():
             self.params = self.parse(data)
         self.populate(self.params)
 
-    # Make sure initial data being received is can be transformed into a dict
+    # Make sure initial data being received is can be transformed into a dict-should ALWAYS be
+    # incoming JSON because class is only called from Statement class
     def parse(self,data):        
         try:
             params = json.loads(data)
         except Exception, e:
-            try:
-                params = ast.literal_eval(data)
-            except Exception, e:
-                err_msg = "Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))
-                log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True) 
-                update_parent_log_status(self.log_dict, 400)               
-                raise exceptions.ParamError(err_msg) 
+            err_msg = "Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))
+            log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)               
+            raise exceptions.ParamError(err_msg)
         return params
 
 

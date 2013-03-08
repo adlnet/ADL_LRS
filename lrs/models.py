@@ -12,7 +12,6 @@ from datetime import datetime
 import datetime as dt
 from django.utils.timezone import utc
 from lrs.exceptions import IDNotFoundError, ParamError
-import ast
 import pytz
 import json
 import logging
@@ -376,10 +375,7 @@ class agentmgr(models.Manager):
         val = kwargs.pop('account', None)
         if val:
             if not isinstance(val, dict):
-                try:
-                    account = ast.literal_eval(val)
-                except:
-                    account = json.loads(val)
+                account = json.loads(val)
             else:
                 account = val
             try:
@@ -406,12 +402,9 @@ class agentmgr(models.Manager):
             if is_group and 'member' in kwargs:
                 mem = kwargs.pop('member')
                 try:
-                    members = ast.literal_eval(mem)
+                    members = json.loads(mem)
                 except:
-                    try:
-                        members = json.loads(mem)
-                    except:
-                        members = mem
+                    members = mem
         try:
             # Added in if stmts to check if should get/create group or agent object
             # Before it was creating agents as groups

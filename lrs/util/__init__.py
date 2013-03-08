@@ -1,8 +1,10 @@
 from django.contrib.auth.models import User
 from lrs.models import Consumer, SystemAction
 import logging
-from lrs.exceptions import ParamError
+from lrs.exceptions import ParamError, BadRequest
 from dateutil import parser
+import json
+import ast
 
 logger = logging.getLogger('user_system_actions')
 
@@ -12,6 +14,18 @@ def convert_to_utc(timestr):
     except ValueError as e:
         raise ParamError(e)
     return date_object
+
+def convert_to_dict(incoming_data):
+    data = {}
+    # GET data will be non JSON string-have to try literal_eval
+    try:
+        data = json.loads(incoming_data)
+    except Exception, e:
+        try:
+            data = ast.literal_eval(incoming_data)
+        except Exception, e:
+            raise BadRequest("Cannot evaluate data into dictionary to parse")
+    return data
 
 def get_user_from_auth(auth):
     if not auth:
