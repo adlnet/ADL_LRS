@@ -610,7 +610,11 @@ class Activity():
     def populate_extensions(self, act_def):
         for k, v in act_def['extensions'].items():
             if not uri.validate_uri(k):
-                raise exceptions.ParamError('Extension ID %s is not a valid URI' % k)
+                err_msg = "Extension ID %s is not a valid URI" % k
+                log_message(self.log_dict, err_msg, __name__, self.populate_extensions.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)                   
+                raise exceptions.ParamError(err_msg)
+
             act_def_ext = models.extensions(key=k, value=v,
                 content_object=self.activity.activity_definition)
             act_def_ext.save()    

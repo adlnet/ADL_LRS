@@ -113,7 +113,10 @@ class Statement():
         if resultExts:
             for k, v in resultExts.items():
                 if not uri.validate_uri(k):
-                    raise exceptions.ParamError('Extension ID %s is not a valid URI' % k)
+                    err_msg = "Extension ID %s is not a valid URI" % k
+                    log_message(self.log_dict, err_msg, __name__, self.saveResultToDB.__name__, True)
+                    update_parent_log_status(self.log_dict, 400)
+                    raise exceptions.ParamError(err_msg)
                 resExt = models.extensions(key=k, value=v, content_object=rslt)
                 resExt.save()
         log_message(self.log_dict, "Result saved to database", __name__, self.saveResultToDB.__name__)
@@ -152,7 +155,10 @@ class Statement():
         if contextExts:
             for k, v in contextExts.items():
                 if not uri.validate_uri(k):
-                    raise exceptions.ParamError('Extension ID %s is not a valid URI' % k)
+                    err_msg = "Extension ID %s is not a valid URI" % k
+                    log_message(self.log_dict, err_msg, __name__, self.saveContextToDB.__name__, True)
+                    update_parent_log_status(self.log_dict, 400)
+                    raise exceptions.ParamError(err_msg)                    
                 conExt = models.extensions(key=k, value=v, content_object=cntx)
                 conExt.save()
 
@@ -222,7 +228,6 @@ class Statement():
 
         # Assign UUID if there is no registration for context
         if 'registration' not in stmt_data['context']:
-            # raise Exception('Registration UUID required for context')
             stmt_data['context']['registration'] = uuid.uuid4()
 
         if 'instructor' in stmt_data['context']:
@@ -264,7 +269,10 @@ class Statement():
                 verb.full_clean()
                 verb.save()
             except ValidationError as e:
-                raise exceptions.ParamError(e.messages[0])
+                err_msg = e.messages[0]
+                log_message(self.log_dict, err_msg, __name__, self.save_lang_map.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
         
         k = lang_map[0]
         v = lang_map[1]
@@ -287,7 +295,10 @@ class Statement():
             raise exceptions.ParamError(err_msg)
 
         if not uri.validate_uri(incoming_verb['id']):
-            raise exceptions.ParamError('Verb ID %s is not a valid URI' % incoming_verb['id']) 
+            err_msg = 'Verb ID %s is not a valid URI' % incoming_verb['id']
+            log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
+            raise exceptions.ParamError(err_msg)
 
         # Get or create the verb
         verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
@@ -461,12 +472,16 @@ class SubStatement(Statement):
         # Raise error if an unallowed field is present
         for field in unallowed_fields:
             if field in data:
-                update_parent_log_status(self.log_dict, 400)
-                raise exceptions.ParamError("%s is not allowed in a SubStatement.")
+                err_msg = "%s is not allowed in a SubStatement." % field
+                log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
+                update_parent_log_status(self.log_dict, 400)    
+                raise exceptions.ParamError(err_msg)
         # Make sure object isn't another substatement
         if 'objectType' in data['object']:
             if data['object']['objectType'].lower() == 'substatement':
+                err_msg = "SubStatements cannot be nested inside of other SubStatements"
+                log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
                 update_parent_log_status(self.log_dict, 400)
-                raise exceptions.ParamError("SubStatements cannot be nested inside of other SubStatements")
+                raise exceptions.ParamError(err_msg)
 
         Statement.__init__(self, data, auth)
