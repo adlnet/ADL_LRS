@@ -5,97 +5,83 @@ from datetime import datetime
 from django.conf import settings
 from django.core.paginator import Paginator
 from lrs.exceptions import BadRequest
-from lrs.util import convert_to_utc
+from lrs.util import convert_to_utc, convert_to_dict
 from dateutil import parser
 import bencode
 import hashlib
 import json
 import pickle
-import ast
 import pdb
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
-def convert_to_dict(incoming_data):
-    data = {}
-    try:
-        data = json.loads(incoming_data)
-    except Exception, e:
-        try:
-            data = ast.literal_eval(incoming_data)
-        except Exception, e:
-            raise BadRequest("JSON not found, expecting JSON for endpoint and received string instead")
-    return data
-
-def parse_incoming_object(objectData, args):
-    # If object is not dict, try to load as one. Even when parsing body in req_parse-data in object key is not converted
+def parse_incoming_object(obj_data, args):
+    # If object is not dict, try to load as one. Even when parsing body in req_parse-data in object key
+    # is not converted
     obj = None
-    if not type(objectData) is dict:
-        object_data = convert_to_dict(objectData)
+    if not type(obj_data) is dict:
+        object_data = convert_to_dict(obj_data)
     else:
-        object_data = objectData
+        object_data = obj_data
     # If it's activity, since there could be multiple activities with the same ID, we want to return all
     # stmts that have any of those actIDs-do filter instead of get and check if ID is in the list
     activity = False
     # Check the objectType
     if 'objectType' in object_data:
+        object_type = object_data['objectType'].lower()
         # If type is activity try go retrieve object
-        if object_data['objectType'].lower() == 'activity':
+        if object_type == 'activity':
             activity = models.activity.objects.filter(activity_id=object_data['id'])
+            # Have to filter activity since there can be 'local' activities with the same ID
             if activity:
                 obj = activity
                 activity = True
         # If type is not an activity then it must be an agent
-        elif object_data['objectType'].lower() == 'agent':
+        elif object_type == 'agent':
             try:
                 agent = Agent.Agent(json.dumps(object_data)).agent
                 if agent:
                     obj = agent
             except models.IDNotFoundError:
                 pass # no stmt_object filter added
-        elif object_data['objectType'].lower() == 'statementref':
+        elif object_type == 'statementref':
             try:
                 stmt_ref = models.StatementRef.objects.get(ref_id=object_data['id'])
                 if stmt_ref:
                     obj = stmt_ref
             except models.StatementRef.DoesNotExist:
-                pass
+                pass # no stmt_object filter added
     # Default to activity
     else:
         activity = models.activity.objects.filter(activity_id=object_data['id'])
+        # Have to filter activity since there can be 'local' activities with the same ID
         if activity:
             obj = activity
             activity = True
     return obj, activity
 
-def parse_incoming_actor(actorData):
+def parse_incoming_actor(actor_data):
     actor = None
-    # agent = convert_to_dict(actorData)
-    if not type(actorData) is dict:
-        try:
-            actorData = json.loads(actorData)
-        except Exception, e:
-            actorData = json.loads(actorData.replace("'",'"'))
+    if not type(actor_data) is dict:
+        actor_data = convert_to_dict(actor_data)
     try:
-        actor = Agent.Agent(json.dumps(actorData)).agent
+        actor = Agent.Agent(actor_data).agent
     except models.IDNotFoundError:
         pass # no actor filter added
     return actor
 
-def parse_incoming_instructor(instData):
+def parse_incoming_instructor(inst_data):
     inst = None
-    if not type(instData) is dict:
-        try:
-            instData = json.loads(instData)
-        except Exception, e:
-            instData = json.loads(instData.replace("'",'"'))        
+    if not type(inst_data) is dict:
+        inst_data = convert_to_dict(inst_data)
     try:
-        instructor = Agent.Agent(json.dumps(instData)).agent                 
+        instructor = Agent.Agent(inst_data).agent                 
+        # If there is an instructor, filter contexts against it
         if instructor:
-            cntxList = models.context.objects.filter(instructor=instructor)
-            inst = cntxList
+            cntx_list = models.context.objects.filter(instructor=instructor)
+            inst = cntx_list
     except models.IDNotFoundError:
-        pass # no actor filter added
+        pass # no instructor filter added
     return inst
 
 def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
@@ -103,6 +89,7 @@ def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
 
 def complex_get(req_dict):
     args = {}
+    
     language = None
     # Set language if one
     if 'language' in req_dict:
@@ -112,14 +99,11 @@ def complex_get(req_dict):
     if 'user' in req_dict:
         user = req_dict['user']
 
-    # Parse out params into single dict
+    # Parse out params into single dict-GET data not in body
     try:
         the_dict = req_dict['body']
-        if isinstance(the_dict, str):
-            try:
-                the_dict = ast.literal_eval(the_dict)
-            except:
-                the_dict = json.loads(the_dict)
+        if not isinstance(the_dict, dict):
+            the_dict = convert_to_dict(the_dict)
     except KeyError:
         the_dict = req_dict
 
@@ -141,8 +125,8 @@ def complex_get(req_dict):
     
     # If searching by activity or actor
     if 'object' in the_dict:
-        objectData = the_dict['object']
-        obj, activity = parse_incoming_object(objectData, args)
+        object_data = the_dict['object']
+        obj, activity = parse_incoming_object(object_data, args)
         if obj and activity:
             args['stmt_object__in'] = obj
         elif obj and not activity:
@@ -170,8 +154,8 @@ def complex_get(req_dict):
 
     # If searching by actor
     if 'actor' in the_dict:
-        actorData = the_dict['actor']
-        actor = parse_incoming_actor(actorData)
+        actor_data = the_dict['actor']
+        actor = parse_incoming_actor(actor_data)
         if actor:
             args['actor'] = actor
         else:
@@ -179,8 +163,8 @@ def complex_get(req_dict):
 
     # If searching by instructor
     if 'instructor' in the_dict:
-        instData = the_dict['instructor']
-        inst = parse_incoming_instructor(instData)
+        inst_data = the_dict['instructor']
+        inst = parse_incoming_instructor(inst_data)
         if inst:
             args['context__in'] = inst
         else:
@@ -188,7 +172,7 @@ def complex_get(req_dict):
 
     # there's a default of true - ALWAYS GETS SET
     if not 'authoritative' in the_dict or str(the_dict['authoritative']).upper() == 'TRUE':
-        args['authoritative'] = True   
+        args['authoritative'] = True
 
     limit = 0    
     # If want results limited
@@ -286,6 +270,18 @@ def get_statement_request(req_id):
     stmt_result = build_statement_result(query_dict, stmt_list, req_id)
     return stmt_result
 
+def set_limit(req_dict):
+    limit = None
+    if 'limit' in req_dict:
+        limit = int(req_dict['limit'])
+    elif 'body' in req_dict and 'limit' in req_dict['body']:
+        limit = int(req_dict['body']['limit'])
+
+    if not limit or limit > settings.SERVER_STMT_LIMIT:
+        limit = settings.SERVER_STMT_LIMIT
+
+    return limit
+
 def build_statement_result(req_dict, stmt_list, more_id=None):
     result = {}
     limit = None
@@ -333,23 +329,10 @@ def build_statement_result(req_dict, stmt_list, more_id=None):
             cache.set(cache_key, encoded_list)
             return result
     # If get to here, this is on the initial request
-    # List will only be larger first time of more URLs.
+    # List will only be larger first time of more URLs. Limit can be set directly in request dict if 
+    # a GET or in request dict body if a POST
     if not limit:
-        try:
-            limit = int(req_dict['limit'])
-        except KeyError:
-            try:
-                bdy = req_dict['body']
-                if isinstance(bdy, basestring):
-                    try:
-                        bdy = ast.literal_eval(bdy)
-                    except:
-                        bdy = json.loads(bdy)
-                limit = int(bdy['limit'])
-            except:
-                limit = None
-        if not limit or limit > settings.SERVER_STMT_LIMIT:
-            limit = settings.SERVER_STMT_LIMIT
+        limit = set_limit(req_dict)
 
     # If there are more than the limit, build the initial return
     if statement_amount > limit:

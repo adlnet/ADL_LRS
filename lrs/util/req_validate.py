@@ -9,7 +9,6 @@ import logging
 from datetime import datetime
 from django.utils.timezone import utc
 from functools import wraps
-import ast
 import re
 
 logger = logging.getLogger('user_system_actions')
@@ -120,10 +119,7 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
     scopes = token.scope_to_list()
     if not 'all' in scopes:
         if not isinstance(ag, dict):
-            try:
-                ag = ast.literal_eval(ag)
-            except:
-                ag = json.loads(ag)
+            ag = json.loads(ag)
         try:
             agent = models.agent.objects.get(**ag)
         except models.agent.DoesNotExist:

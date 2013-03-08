@@ -16,7 +16,6 @@ from isodate.isoerror import ISO8601Error
 import pdb
 import pprint
 import logging
-import ast
 
 logger = logging.getLogger('user_system_actions')
 
@@ -49,13 +48,10 @@ class Statement():
         try:
             params = json.loads(data)
         except Exception, e:
-            try:
-                params = ast.literal_eval(data)
-            except Exception, e:
-                err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
-                log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
-                raise exceptions.ParamError(err_msg) 
+            err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
+            log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
+            raise exceptions.ParamError(err_msg) 
         return params
 
     def voidStatement(self,stmt_id):
