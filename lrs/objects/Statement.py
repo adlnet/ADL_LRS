@@ -2,10 +2,10 @@ import json
 import types
 import uuid
 import datetime
-from lrs import models, exceptions
+from lrs import models,exceptions
 from lrs.util import get_user_from_auth, log_message, update_parent_log_status, uri
 from Agent import Agent
-from django.core.exceptions import FieldError, ValidationError
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from functools import wraps
 from Activity import Activity
@@ -13,6 +13,7 @@ from functools import wraps
 from django.utils.timezone import utc
 from isodate.isoduration import parse_duration, duration_isoformat, Duration
 from isodate.isoerror import ISO8601Error
+import re
 import pdb
 import pprint
 import logging
@@ -230,6 +231,9 @@ class Statement():
 
         log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
 
+        if 'registration' in stmt_data['context']:
+            self.validate_incoming_uuid(stmt_data['context']['registration'])
+
         if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
                 create=True, log_dict=self.log_dict).agent
@@ -329,6 +333,15 @@ class Statement():
             verb_object.save()
 
         return verb_object
+
+    def validate_incoming_uuid(self, incoming_uuid):
+        regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
+        match = regex.match(incoming_uuid)
+        if not match:
+            err_msg = "%s is not a valid UUID" % incoming_uuid
+            log_message(self.log_dict, err_msg, __name__, self.validate_incoming_uuid.__name__, True)
+            update_parent_log_status(self.log_dict, 400)                   
+            raise exceptions.ParamError(err_msg)
 
     #Once JSON is verified, populate the statement object
     def populate(self, stmt_data):
@@ -445,6 +458,7 @@ class Statement():
             try:
                 existingSTMT = models.statement.objects.get(statement_id=stmt_data['statement_id'])
             except models.statement.DoesNotExist:
+                self.validate_incoming_uuid(stmt_data['statement_id'])
                 args['statement_id'] = stmt_data['statement_id']
             else:
                 err_msg = "The Statement ID %s already exists in the system" % stmt_data['statement_id']
@@ -460,6 +474,7 @@ class Statement():
 
         if 'context' in stmt_data:
             self.populateContext(stmt_data)
+
 
 class SubStatement(Statement):
     @transaction.commit_on_success

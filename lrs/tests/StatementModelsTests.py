@@ -29,7 +29,8 @@ class StatementModelsTests(TestCase):
 
 
     def test_given_stmtID_stmt(self):
-        stmt = Statement.Statement(json.dumps({"statement_id":"blahID",
+        st_id = str(uuid.uuid1())
+        stmt = Statement.Statement(json.dumps({"statement_id":st_id,
             "actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
@@ -48,19 +49,25 @@ class StatementModelsTests(TestCase):
         self.assertEqual(actor.mbox, "mailto:tincan@adlnet.gov")
         self.assertEqual(verb.verb_id, "http://adlnet.gov/expapi/verbs/created")
         
-        st = models.statement.objects.get(statement_id="blahID")
+        st = models.statement.objects.get(statement_id=st_id)
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.verb.id, verb.id)
 
 
     def test_existing_stmtID_stmt(self):
-        stmt = Statement.Statement(json.dumps({"statement_id":"blahID","verb":{"id":"verb:verb/url",
+        st_id = str(uuid.uuid1())
+        stmt = Statement.Statement(json.dumps({"statement_id":st_id,"verb":{"id":"verb:verb/url",
             "display":{"en-US":"myverb"}}, "object": {"id":"act:activity"}, "actor":{"objectType":"Agent",
             "mbox":"mailto:t@t.com"}}))
-        self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"statement_id":"blahID",
+        self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"statement_id":st_id,
             "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
             "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
         
+    def test_invalid_stmtID(self):
+        st_id = "aaa"
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"statement_id":st_id,
+            "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
+            "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 
     def test_voided_stmt(self):
         stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
@@ -83,21 +90,21 @@ class StatementModelsTests(TestCase):
 
 
     def test_stmt_ref_as_object(self):
-        
+        st_id = str(uuid.uuid1())
 
         stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"},
-            "statement_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}))
+            "statement_id":st_id}))
 
         stmt2 = Statement.Statement(json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
-            'id': "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}))
+            'id': st_id}}))
 
         stmts = models.statement.objects.all()
-        stmt_refs = models.StatementRef.objects.filter(ref_id="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        stmt_refs = models.StatementRef.objects.filter(ref_id=st_id)
         self.assertEqual(len(stmt_refs), 1)
-        self.assertEqual(stmt_refs[0].ref_id, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        self.assertEqual(stmt_refs[0].ref_id, st_id)
         self.assertEqual(len(stmts), 2)
 
     def test_stmt_ref_no_existing_stmt(self):
@@ -289,6 +296,13 @@ class StatementModelsTests(TestCase):
         context = models.context.objects.get(id=ctxid)
         self.assertIsNotNone(context.registration)   
 
+    def test_invalid_context_registration(self):
+        guid = "bbb"
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
+                'revision': 'foo', 'platform':'bar',
+                'language': 'en-US'}}))
 
     def test_context_stmt(self):
         guid = str(uuid.uuid1())
