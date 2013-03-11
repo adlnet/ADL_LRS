@@ -291,7 +291,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_context_stmt(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
@@ -324,7 +324,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_context_ext_stmt(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
@@ -360,12 +360,12 @@ class StatementModelsTests(TestCase):
 
 
     def test_stmt_in_context_stmt(self):
-        stmt_guid = str(uuid.uuid4())
+        stmt_guid = str(uuid.uuid1())
 
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
@@ -391,11 +391,11 @@ class StatementModelsTests(TestCase):
 
 
     def test_instructor_in_context_stmt(self):
-        stmt_guid = str(uuid.uuid4())
+        stmt_guid = str(uuid.uuid1())
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 'name':'jon'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
                 'context':{'registration': guid, 'instructor': {'objectType':'Agent',
@@ -432,11 +432,11 @@ class StatementModelsTests(TestCase):
 
 
     def test_actor_with_context_stmt(self):
-        stmt_guid = str(uuid.uuid4())
+        stmt_guid = str(uuid.uuid1())
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve', 'mbox':'mailto:mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},'context':{'registration': guid, 
             'instructor': {'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
@@ -473,11 +473,11 @@ class StatementModelsTests(TestCase):
 
 
     def test_agent_as_object_with_context_stmt(self):
-        stmt_guid = str(uuid.uuid4())
+        stmt_guid = str(uuid.uuid1())
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:mailto:s@s.com'},
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(
             json.dumps(
                 {'actor':{
@@ -540,7 +540,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_agent_as_object(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}}))
 
@@ -570,7 +570,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_substatement_as_object(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},

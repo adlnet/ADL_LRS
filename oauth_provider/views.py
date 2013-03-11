@@ -13,7 +13,6 @@ from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
 from django.utils.decorators import decorator_from_middleware
-import uuid
 import pdb
 from django.shortcuts import render_to_response
 from lrs.forms import AuthClientForm

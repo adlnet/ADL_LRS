@@ -172,7 +172,11 @@ class Statement():
         args['user'] = get_user_from_auth(self.auth)
         if self.__class__.__name__ == 'SubStatement':
             del args['voided']
-            del args['statement_id']
+            
+            # If ID not given, created by models
+            if 'statement_id' in args:
+                del args['statement_id']
+            
             if 'authority' in args:
                 del args['authority']
             stmt = models.SubStatement(**args)
@@ -225,10 +229,6 @@ class Statement():
         contextExts = {}
 
         log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
-
-        # Assign UUID if there is no registration for context
-        if 'registration' not in stmt_data['context']:
-            stmt_data['context']['registration'] = uuid.uuid4()
 
         if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
@@ -451,9 +451,6 @@ class Statement():
                 log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
                 update_parent_log_status(self.log_dict, 409)                   
                 raise exceptions.ParamConflict(err_msg)
-        else:
-            #Create uuid for ID
-            args['statement_id'] = uuid.uuid4()
 
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)
