@@ -26,22 +26,25 @@ class AuthTests(TestCase):
         if settings.OAUTH_ENABLED:
             settings.OAUTH_ENABLED = False
         
-        self.guid1 = str(uuid.uuid4())
-        self.guid2 = str(uuid.uuid4())
-        self.guid3 = str(uuid.uuid4())    
-        self.guid4 = str(uuid.uuid4())
-        self.guid5 = str(uuid.uuid4())
-        self.guid6 = str(uuid.uuid4())
-        self.guid7 = str(uuid.uuid4())
-        self.guid8 = str(uuid.uuid4())
-        self.guid9 = str(uuid.uuid4())        
-        self.guid10 = str(uuid.uuid4())
-        self.cguid1 = str(uuid.uuid4())
-        self.cguid2 = str(uuid.uuid4())    
-        self.cguid3 = str(uuid.uuid4())
-        self.cguid4 = str(uuid.uuid4())
-        self.cguid5 = str(uuid.uuid4())
-        self.cguid6 = str(uuid.uuid4())
+        self.guid1 = str(uuid.uuid1())
+        self.guid2 = str(uuid.uuid1())
+        self.guid3 = str(uuid.uuid1())    
+        self.guid4 = str(uuid.uuid1())
+        self.guid5 = str(uuid.uuid1())
+        self.guid6 = str(uuid.uuid1())
+        self.guid7 = str(uuid.uuid1())
+        self.guid8 = str(uuid.uuid1())
+        self.guid9 = str(uuid.uuid1())        
+        self.guid10 = str(uuid.uuid1())
+        self.cguid1 = str(uuid.uuid1())
+        self.cguid2 = str(uuid.uuid1())    
+        self.cguid3 = str(uuid.uuid1())
+        self.cguid4 = str(uuid.uuid1())
+        self.cguid5 = str(uuid.uuid1())
+        self.cguid6 = str(uuid.uuid1())
+        self.cguid7 = str(uuid.uuid1())
+        self.cguid8 = str(uuid.uuid1())
+
 
         self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"activity"},
@@ -315,7 +318,7 @@ class AuthTests(TestCase):
 
 
     def test_put(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -334,8 +337,8 @@ class AuthTests(TestCase):
         self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
 
     def test_put_with_substatement(self):
-        con_guid = str(uuid.uuid4())
-        st_guid = str(uuid.uuid4())
+        con_guid = str(uuid.uuid1())
+        st_guid = str(uuid.uuid1())
 
         param = {"statementId": st_guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -385,7 +388,7 @@ class AuthTests(TestCase):
         self.assertIn("v2", rsp)                                                                                                                                                                                                                
 
     def test_no_content_put(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -395,7 +398,7 @@ class AuthTests(TestCase):
         self.assertEqual(putResponse.status_code, 400)
 
     def test_existing_stmtID_put(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
 
         existStmt = Statement.Statement(json.dumps({"statement_id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -651,7 +654,7 @@ class AuthTests(TestCase):
             "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
-            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "context":{"registration": self.cguid7, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
             "ext:ckey2": "cval2"}}})
 
@@ -731,7 +734,7 @@ class AuthTests(TestCase):
             "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
-            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "NewActivityID2"}},
+            "context":{"registration": self.cguid8, "contextActivities": {"other": {"id": "NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
             "ext:ckey2": "cval2"}}})
 
@@ -1127,7 +1130,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['context']['statement']['objectType'], 'StatementRef')
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
-        cguid1 = str(uuid.uuid4())
+        cguid1 = str(uuid.uuid1())
         # print cguid1
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"test_wrong_list_post2"},
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
@@ -1245,7 +1248,7 @@ class AuthTests(TestCase):
         self.assertEqual(len(only_actor), 0)
 
     def test_post_list_rollback_with_subs(self):
-        sub_context_id = str(uuid.uuid4())
+        sub_context_id = str(uuid.uuid1())
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"mailto:wrong-s@s.com"},
             "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
             "object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"}},

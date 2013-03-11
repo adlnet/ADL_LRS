@@ -450,7 +450,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_put(self):
         # build stmt data and path
-        put_guid = str(uuid.uuid4())
+        put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test_put"}})
@@ -516,7 +516,7 @@ class OAuthTests(TestCase):
         self.assertEqual(post.status_code, 200)
 
     def test_stmt_simple_get(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
@@ -581,7 +581,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_stmt_get_then_wrong_scope(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
@@ -677,7 +677,7 @@ class OAuthTests(TestCase):
         self.assertEqual(put.status_code, 204)
         
         # Set up for Get
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
@@ -708,7 +708,7 @@ class OAuthTests(TestCase):
         self.assertEqual(get.content, 'Incorrect permissions to GET at /statements')
 
     def stmt_get_then_wrong_profile_scope(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"test_simple_get"}}))
@@ -798,7 +798,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.content, 'test client has not been authorized')
 
     def test_simple_stmt_get_mine_only(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
 
         username = "tester1"
         email = "test1@tester.com"
@@ -846,7 +846,7 @@ class OAuthTests(TestCase):
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
         oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.group.objects.get(member__in=[oauth_agent1, oauth_agent2])
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
@@ -873,7 +873,7 @@ class OAuthTests(TestCase):
         self.assertEqual(get.status_code, 200)
 
     def test_complex_stmt_get_mine_only(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         username = "tester1"
         email = "test1@tester.com"
         password = "test"
@@ -920,7 +920,7 @@ class OAuthTests(TestCase):
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
         oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.group.objects.get(member__in=[oauth_agent1, oauth_agent2])
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
@@ -1022,13 +1022,13 @@ class OAuthTests(TestCase):
 
     def test_define_scope(self):
         url = 'http://testserver/XAPI/statements'
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         existing_stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent",
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}))
 
         # build stmt data and path
-        put_guid = str(uuid.uuid4())
+        put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",
