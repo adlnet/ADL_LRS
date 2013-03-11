@@ -230,10 +230,6 @@ class Statement():
 
         log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
 
-        # Assign UUID if there is no registration for context
-        # if 'registration' not in stmt_data['context']:
-        #     stmt_data['context']['registration'] = uuid.uuid1()
-
         if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
                 create=True, log_dict=self.log_dict).agent
