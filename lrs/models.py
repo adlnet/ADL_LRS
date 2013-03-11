@@ -30,7 +30,7 @@ gen_pwd = User.objects.make_random_password
 generate_random = User.objects.make_random_password
 
 def gen_uuid():
-    return uuid.uuid4().hex
+    return uuid.uuid1().hex
 
 class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
@@ -827,7 +827,7 @@ class ContextActivity(models.Model):
 
 
 class context(models.Model):    
-    registration = models.CharField(max_length=40)
+    registration = models.CharField(max_length=40, unique=True, default=gen_uuid)
     instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL)
     team = models.ForeignKey(group,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
     revision = models.TextField(blank=True, null=True)
@@ -1079,7 +1079,7 @@ class SubStatement(statement_object):
 
 
 class statement(models.Model):
-    statement_id = models.CharField(max_length=40)
+    statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
     actor = models.ForeignKey(agent,related_name="actor_statement")
     verb = models.ForeignKey(Verb)

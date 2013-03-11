@@ -34,24 +34,26 @@ class StatementsTests(TestCase):
             response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
         
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-        self.guid1 = str(uuid.uuid4())
+        self.guid1 = str(uuid.uuid1())
 
     def bunchostmts(self):
-        self.guid2 = str(uuid.uuid4())
-        self.guid3 = str(uuid.uuid4())    
-        self.guid4 = str(uuid.uuid4())
-        self.guid5 = str(uuid.uuid4())
-        self.guid6 = str(uuid.uuid4())
-        self.guid7 = str(uuid.uuid4())
-        self.guid8 = str(uuid.uuid4())
-        self.guid9 = str(uuid.uuid4())        
-        self.guid10 = str(uuid.uuid4())
-        self.cguid1 = str(uuid.uuid4())
-        self.cguid2 = str(uuid.uuid4())    
-        self.cguid3 = str(uuid.uuid4())
-        self.cguid4 = str(uuid.uuid4())
-        self.cguid5 = str(uuid.uuid4())
-        self.cguid6 = str(uuid.uuid4())
+        self.guid2 = str(uuid.uuid1())
+        self.guid3 = str(uuid.uuid1())    
+        self.guid4 = str(uuid.uuid1())
+        self.guid5 = str(uuid.uuid1())
+        self.guid6 = str(uuid.uuid1())
+        self.guid7 = str(uuid.uuid1())
+        self.guid8 = str(uuid.uuid1())
+        self.guid9 = str(uuid.uuid1())        
+        self.guid10 = str(uuid.uuid1())
+        self.cguid1 = str(uuid.uuid1())
+        self.cguid2 = str(uuid.uuid1())    
+        self.cguid3 = str(uuid.uuid1())
+        self.cguid4 = str(uuid.uuid1())
+        self.cguid5 = str(uuid.uuid1())
+        self.cguid6 = str(uuid.uuid1())
+        self.cguid7 = str(uuid.uuid1())
+        self.cguid8 = str(uuid.uuid1())
 
         if settings.HTTP_AUTH_ENABLED:
             self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
@@ -314,7 +316,7 @@ class StatementsTests(TestCase):
 
 
     def test_put(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -338,8 +340,8 @@ class StatementsTests(TestCase):
         self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
 
     def test_put_with_substatement(self):
-        con_guid = str(uuid.uuid4())
-        st_guid = str(uuid.uuid4())
+        con_guid = str(uuid.uuid1())
+        st_guid = str(uuid.uuid1())
 
         param = {"statementId": st_guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -389,7 +391,7 @@ class StatementsTests(TestCase):
         self.assertIn("v2", rsp)                                                                                                                                                                                                                
 
     def test_no_content_put(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
         
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -399,7 +401,7 @@ class StatementsTests(TestCase):
         self.assertEqual(putResponse.status_code, 400)
 
     def test_existing_stmtID_put(self):
-        guid = str(uuid.uuid4())
+        guid = str(uuid.uuid1())
 
         existStmt = Statement.Statement(json.dumps({"statement_id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -662,7 +664,7 @@ class StatementsTests(TestCase):
             "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
-            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "act:NewActivityID2"}},
+            "context":{"registration": self.cguid7, "contextActivities": {"other": {"id": "act:NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
             "ext:ckey2": "cval2"}}})
 
@@ -752,7 +754,7 @@ class StatementsTests(TestCase):
                 "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
                 "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
                 "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
-                "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "act:NewActivityID2"}},
+                "context":{"registration": str(uuid.uuid1()), "contextActivities": {"other": {"id": "act:NewActivityID2"}},
                 "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
                 "ext:ckey2": "cval2"}}})
             param = {"statementId":self.guid1}
@@ -775,7 +777,7 @@ class StatementsTests(TestCase):
                 "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
                 "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
                 "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
-                "context":{"registration": str(uuid.uuid4()), "contextActivities": {"other": {"id": "act:NewActivityID2"}},
+                "context":{"registration": str(uuid.uuid1()), "contextActivities": {"other": {"id": "act:NewActivityID2"}},
                 "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
                 "ext:ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"mailto:auth@example.com"}})
             
@@ -794,7 +796,7 @@ class StatementsTests(TestCase):
             "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
-            "context":{"registration": self.cguid1, "contextActivities": {"other": {"id": "act:NewActivityID2"}},
+            "context":{"registration": self.cguid8, "contextActivities": {"other": {"id": "act:NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
             "ext:ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"mailto:auth@example.com"}})
 
@@ -1251,7 +1253,7 @@ class StatementsTests(TestCase):
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
         self.bunchostmts()
-        cguid1 = str(uuid.uuid4())
+        cguid1 = str(uuid.uuid1())
         # print cguid1
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"act:test_wrong_list_post2"},
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
@@ -1374,7 +1376,7 @@ class StatementsTests(TestCase):
 
     def test_post_list_rollback_with_subs(self):
         self.bunchostmts()
-        sub_context_id = str(uuid.uuid4())
+        sub_context_id = str(uuid.uuid1())
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"mailto:wrong-s@s.com"},
             "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
             "object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"}},
@@ -1445,7 +1447,7 @@ class StatementsTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
             "object": {"objectType":"activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
-            "response": "kicked"}, "context":{"registration": str(uuid.uuid4()),
+            "response": "kicked"}, "context":{"registration": str(uuid.uuid1()),
             "contextActivities": {"other": {"id": "act:NewActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
 
@@ -1503,7 +1505,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(stmts), 0)
 
     def test_since_filter_tz(self):
-        stmt1_guid = str(uuid.uuid4())
+        stmt1_guid = str(uuid.uuid1())
         stmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T12:00:00-05:00"})
@@ -1516,7 +1518,7 @@ class StatementsTests(TestCase):
         time = "2013-02-02T12:00:32-05:00"
         stmt = models.statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
 
-        stmt2_guid = str(uuid.uuid4())
+        stmt2_guid = str(uuid.uuid1())
         stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity2"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T20:00:00+05:00"})
