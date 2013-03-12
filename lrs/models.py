@@ -1372,7 +1372,7 @@ class statement(models.Model):
 
 
 # - from http://djangosnippets.org/snippets/2283/
-# @transaction.commit_on_success
+@transaction.commit_on_success
 def merge_model_objects(primary_object, alias_objects=[], save=True, keep_old=False):
     """
     Use this function to merge model objects (i.e. Users, Organizations, Polls,

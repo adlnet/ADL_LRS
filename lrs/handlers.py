@@ -1,6 +1,6 @@
-import logging
 from datetime import datetime
 from django.utils.timezone import utc
+import logging
 import pdb
 
 class DBLogHandler(logging.Handler):

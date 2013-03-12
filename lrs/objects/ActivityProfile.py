@@ -1,12 +1,11 @@
+import datetime
+from django.core.files.base import ContentFile
+from django.core.exceptions import ValidationError
 from lrs import models
 from lrs.exceptions import IDNotFoundError
 from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
-from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
-import json
-import pdb
 import logging
-import datetime
+import pdb
 
 logger = logging.getLogger('user_system_actions')
 

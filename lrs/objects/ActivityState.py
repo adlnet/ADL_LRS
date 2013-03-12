@@ -1,13 +1,12 @@
+import datetime
+from django.core.files.base import ContentFile
+from django.db import transaction
 from lrs import models
 from lrs.objects.Agent import Agent
-from lrs.exceptions import IDNotFoundError #, Forbidden
+from lrs.exceptions import IDNotFoundError
 from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
-from django.core.files.base import ContentFile
-from django.core.validators import URLValidator
-from django.db import transaction
-import pdb
 import logging
-import datetime
+import pdb
 
 logger = logging.getLogger('user_system_actions')
 

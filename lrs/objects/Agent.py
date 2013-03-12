@@ -1,12 +1,12 @@
 import json
 import datetime
-from lrs.models import agent, group, agent_profile
-from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status, convert_to_dict
 from django.core.files.base import ContentFile
 from django.db import transaction
-import pdb
+from lrs.models import agent, group, agent_profile
+from lrs.exceptions import IDNotFoundError, ParamError
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 import logging
+import pdb
 
 logger = logging.getLogger('user_system_actions')
 
