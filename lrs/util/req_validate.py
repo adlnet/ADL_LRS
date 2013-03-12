@@ -1,15 +1,14 @@
 import json
-from lrs import models
-from lrs.exceptions import Unauthorized, ParamConflict, ParamError, Forbidden, NotFound
-from Authorization import auth
+from datetime import datetime
+from functools import wraps
 from django.utils.decorators import decorator_from_middleware
+from django.utils.timezone import utc
+from lrs import models
+from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound
+from Authorization import auth
+import logging
 import pdb
 import pprint
-import logging
-from datetime import datetime
-from django.utils.timezone import utc
-from functools import wraps
-import re
 
 logger = logging.getLogger('user_system_actions')
 

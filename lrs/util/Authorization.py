@@ -1,13 +1,12 @@
-from django.conf import settings
-from django.http import HttpResponse
-from django.contrib.auth import authenticate
-from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest, Forbidden
-from lrs import models
 import base64
 from functools import wraps
-import pdb
+from django.conf import settings
+from django.contrib.auth import authenticate
+from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest
+from lrs.models import Token, group
 from oauth_provider.utils import send_oauth_error
 from oauth_provider.consts import  ACCEPTED
+import pdb
 
 # A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
@@ -64,7 +63,7 @@ def oauth_helper(request):
         raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
 
     # make sure the token is an approved access token
-    if token.token_type != models.Token.ACCESS or not token.is_approved:
+    if token.token_type != Token.ACCESS or not token.is_approved:
         raise OauthUnauthorized(send_oauth_error("The token is not valid"))
     
     user = token.user
@@ -91,5 +90,5 @@ def oauth_helper(request):
     ]
     kwargs = {"objectType":"Group", "member":members, "oauth_identifier": "Anonymous group for %s and %s" % (consumer.key, user_name)}
     # create/get oauth group and set in dictionary
-    oauth_group, created = models.group.objects.gen(**kwargs)
+    oauth_group, created = group.objects.gen(**kwargs)
     request['auth'] = oauth_group

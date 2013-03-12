@@ -1,22 +1,17 @@
 import json
-import types
-import uuid
-import datetime
-from lrs import models,exceptions
-from lrs.util import get_user_from_auth, log_message, update_parent_log_status, uri
-from Agent import Agent
+import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from functools import wraps
-from Activity import Activity
-from functools import wraps
-from django.utils.timezone import utc
-from isodate.isoduration import parse_duration, duration_isoformat, Duration
+from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
-import re
-import pdb
-import pprint
+from lrs import models, exceptions
+from lrs.util import get_user_from_auth, log_message, update_parent_log_status, uri
+from Agent import Agent
+from Activity import Activity
 import logging
+import pprint
+import pdb
 
 logger = logging.getLogger('user_system_actions')
 
@@ -474,7 +469,6 @@ class Statement():
 
         if 'context' in stmt_data:
             self.populateContext(stmt_data)
-
 
 class SubStatement(Statement):
     @transaction.commit_on_success
