@@ -1,10 +1,10 @@
-from django.contrib.auth.models import User
-from lrs.models import Consumer, SystemAction
-import logging
-from lrs.exceptions import ParamError, BadRequest
-from dateutil import parser
 import json
 import ast
+from django.contrib.auth.models import User
+from dateutil import parser
+from lrs.models import Consumer, SystemAction
+from lrs.exceptions import ParamError, BadRequest
+import logging
 
 logger = logging.getLogger('user_system_actions')
 
