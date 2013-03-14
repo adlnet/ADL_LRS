@@ -1,21 +1,16 @@
 import json
-import types
-import uuid
-import datetime
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from functools import wraps
+from isodate.isoduration import parse_duration
+from isodate.isoerror import ISO8601Error
 from lrs import models, exceptions
 from lrs.util import get_user_from_auth, log_message, update_parent_log_status, uri
 from Agent import Agent
-from django.core.exceptions import FieldError, ValidationError
-from django.db import transaction
-from functools import wraps
 from Activity import Activity
-from functools import wraps
-from django.utils.timezone import utc
-from isodate.isoduration import parse_duration, duration_isoformat, Duration
-from isodate.isoerror import ISO8601Error
-import pdb
-import pprint
 import logging
+import pprint
+import pdb
 
 logger = logging.getLogger('user_system_actions')
 

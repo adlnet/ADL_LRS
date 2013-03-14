@@ -1,9 +1,10 @@
+import json
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.conf import settings
 from django.views.decorators.http import require_http_methods, require_GET
 from django.template import RequestContext
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -12,13 +13,10 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
-from oauth_provider.consts import CANCELED, ACCEPTED, CONSUMER_STATES
-from lrs.util import req_validate, req_parse, req_process, etag, retrieve_statement, TCAPIversionHeaderMiddleware, accept_middleware
+from lrs.util import req_validate, req_parse, req_process, TCAPIversionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
-import operator
+from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
-import json
-import urllib
 import pdb
 import pprint
 

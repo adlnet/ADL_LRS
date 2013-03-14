@@ -1,18 +1,13 @@
-import json
-from lrs.util import etag
-from django.http import MultiPartParser
 import StringIO
-import pdb
-import pprint
-from django.core.urlresolvers import reverse
-import lrs.views
-from lrs.util import convert_to_dict
-from oauth_provider.consts import OAUTH_PARAMETERS_NAMES, CONSUMER_STATES, ACCEPTED
+from django.http import MultiPartParser
+from django.utils.translation import ugettext as _
+from lrs.util import etag, convert_to_dict
+from lrs.exceptions import OauthUnauthorized
 from oauth_provider.oauth.oauth import OAuthError
 from oauth_provider.utils import send_oauth_error
 from oauth_provider.decorators import CheckOAuth
-from lrs.exceptions import OauthUnauthorized
-from django.utils.translation import ugettext as _
+import pdb
+import pprint
 
 def parse(request, more_id=None):
     r_dict = {}

@@ -1,13 +1,10 @@
+import json
 from django.http import HttpResponse
-from lrs import objects, models, exceptions
-from lrs.util import etag
+from lrs import models, exceptions
 from lrs.util import log_info_processing, log_exception, update_parent_log_status
-import json
 from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
-import json
 import retrieve_statement
 import pprint
-import base64
 import pdb
 
 def statements_post(req_dict):
