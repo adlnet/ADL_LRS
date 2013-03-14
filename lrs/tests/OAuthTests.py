@@ -222,7 +222,7 @@ class OAuthTests(TestCase):
             X_Experience_API_Version="0.95")
 
         self.assertEqual(access_resp.status_code, 200)
-        access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
+        access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[0]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'dick')
 
