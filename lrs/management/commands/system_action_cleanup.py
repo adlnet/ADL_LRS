@@ -1,9 +1,9 @@
+from datetime import timedelta, datetime
 from django.core.management.base import NoArgsCommand, CommandError
-from lrs.models import SystemAction
-from lrs.util import convert_to_utc
 from django.conf import settings
 from django.utils.timezone import utc
-from datetime import date, timedelta, datetime
+from lrs.models import SystemAction
+from lrs.util import convert_to_utc
 
 
 class Command(NoArgsCommand):

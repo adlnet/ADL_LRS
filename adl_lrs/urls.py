@@ -5,9 +5,6 @@ from django.contrib import admin
 admin.autodiscover()
 
 urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'adl_lrs.views.home', name='home'),
-    # url(r'^adl_lrs/', include('adl_lrs.foo.urls')),
     url(r'^XAPI/', include('lrs.urls')),
     url(r'^xapi/', include('lrs.urls')),
 

@@ -1,28 +1,25 @@
+import pytz
+import json
+import uuid
+import urllib
+import urlparse
+from datetime import datetime
+from time import time
 from django.db import models
 from django.db import transaction
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
-from django.contrib.contenttypes.generic import GenericForeignKey
-from django.core import serializers
 from django.core.exceptions import ValidationError
-from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
-from datetime import datetime
-import datetime as dt
 from django.utils.timezone import utc
-from lrs.exceptions import IDNotFoundError, ParamError
-import pytz
-import json
-import logging
-import uuid
-import pdb
-import urllib
-import urlparse
-from time import time
+from .exceptions import IDNotFoundError, ParamError
 from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
+import logging
+from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
+import pdb
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
@@ -186,7 +183,7 @@ class SystemAction(models.Model):
         return "[%s(%s)] %s -- by: %s" % (self.get_level_display(),self.level, self.message, self.content_object)
 
     def days_til_del(self):
-        deleteday = self.timestamp + dt.timedelta(days=settings.DAYS_TO_LOG_DELETE)
+        deleteday = self.timestamp + datetime.timedelta(days=settings.DAYS_TO_LOG_DELETE)
         days = (deleteday - datetime.utcnow().replace(tzinfo = pytz.utc)).days
         if days <= 0:
             days = 0
@@ -1372,7 +1369,7 @@ class statement(models.Model):
 
 
 # - from http://djangosnippets.org/snippets/2283/
-# @transaction.commit_on_success
+@transaction.commit_on_success
 def merge_model_objects(primary_object, alias_objects=[], save=True, keep_old=False):
     """
     Use this function to merge model objects (i.e. Users, Organizations, Polls,

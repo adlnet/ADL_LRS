@@ -1,17 +1,16 @@
 import json
 import urllib2
-import datetime
 from StringIO import StringIO
-from lrs import models, exceptions
-from lrs.util import log_message, update_parent_log_status, uri
 from lxml import etree
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
+from lrs import models, exceptions
+from lrs.util import log_message, update_parent_log_status, uri
+import logging
 import pdb
 import pprint
-import logging
 
 logger = logging.getLogger('user_system_actions')
 

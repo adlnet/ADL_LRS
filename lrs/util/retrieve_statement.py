@@ -1,16 +1,14 @@
-from lrs import models
-from django.core.cache import cache
-from lrs.objects import Agent, Statement
-from datetime import datetime
-from django.conf import settings
-from django.core.paginator import Paginator
-from lrs.exceptions import BadRequest
-from lrs.util import convert_to_utc, convert_to_dict
-from dateutil import parser
 import bencode
 import hashlib
 import json
 import pickle
+from datetime import datetime
+from django.core.cache import cache
+from django.conf import settings
+from django.core.paginator import Paginator
+from lrs import models
+from lrs.objects import Agent, Statement
+from lrs.util import convert_to_utc, convert_to_dict
 import pdb
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
