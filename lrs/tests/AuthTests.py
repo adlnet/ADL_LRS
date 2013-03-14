@@ -760,7 +760,8 @@ class AuthTests(TestCase):
                 self.assertEqual(ds.value, 'testdesc3')
 
     def test_cors_post_put(self):
-        bdy = {"statementId": "postputID"}
+        st_id = str(uuid.uuid1())
+        bdy = {"statementId": st_id}
         bdy["content"] = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "mailto:r@r.com"},
             "object": {"id":"test_cors_post_put"}}
         bdy["Content-Type"] = "application/json"
@@ -835,7 +836,7 @@ class AuthTests(TestCase):
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp and stored fields
     def test_all_fields_activity_as_object(self):
-        nested_st_id = "12345678-1233-1234-1234-12345678901n"
+        nested_st_id = str(uuid.uuid1())
         nest_param = {"statementId":nested_st_id}
         nest_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_param))
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
@@ -844,8 +845,8 @@ class AuthTests(TestCase):
         put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", X_Experience_API_Version="0.95")
         self.assertEqual(put_sub_stmt.status_code, 204)        
 
-        stmt_id = "12345678-1233-1234-1234-12345678901o"
-        context_id= "12345678-1233-1234-1234-12345678901c"
+        stmt_id = str(uuid.uuid1())
+        context_id= str(uuid.uuid1())
         param = {"statementId":stmt_id} 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"uniqueName"}},
@@ -910,7 +911,7 @@ class AuthTests(TestCase):
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp, stored fields
     def test_all_fields_agent_as_object(self):
-        nested_st_id = "12345678-1233-1234-1234-12345678901n"
+        nested_st_id = str(uuid.uuid1())
         nest_param = {"statementId":nested_st_id}
         nest_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_param))
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
@@ -920,8 +921,8 @@ class AuthTests(TestCase):
         self.assertEqual(put_sub_stmt.status_code, 204)        
 
 
-        stmt_id = "12345678-1233-1234-1234-12345678901o"
-        context_id= "12345678-1233-1234-1234-12345678901c"
+        stmt_id = str(uuid.uuid1())
+        context_id= str(uuid.uuid1())
         param = {"statementId":stmt_id} 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         msha = hashlib.sha1("tom@example.com").hexdigest()                
@@ -977,7 +978,7 @@ class AuthTests(TestCase):
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamps or stored fields
     def test_all_fields_substatement_as_object(self):
-        nested_st_id = "12345678-1233-1234-1234-12345678901n"
+        nested_st_id = str(uuid.uuid1())
         nest_param = {"statementId":nested_st_id}
         nest_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_param))
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincannest@adlnet.gov"},
@@ -987,7 +988,7 @@ class AuthTests(TestCase):
         self.assertEqual(put_sub_stmt.status_code, 204)        
 
 
-        nested_sub_st_id = "12345678-1233-1234-1234-1234567890ns"
+        nested_sub_st_id = str(uuid.uuid1())
         nest_sub_param = {"statementId":nested_sub_st_id}
         nest_sub_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(nest_sub_param))        
         nested_sub_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincannestsub@adlnet.gov"},
@@ -997,9 +998,9 @@ class AuthTests(TestCase):
         self.assertEqual(put_nest_sub_stmt.status_code, 204)
 
 
-        stmt_id = "12345678-1233-1234-1234-12345678901o"
-        context_id= "12345678-1233-1234-1234-12345678901c"
-        sub_context_id= "12345678-1233-1234-1234-1234567890sc"        
+        stmt_id = str(uuid.uuid1())
+        context_id= str(uuid.uuid1())
+        sub_context_id= str(uuid.uuid1())        
         param = {"statementId":stmt_id} 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         msha = hashlib.sha1("tom@example.com").hexdigest()        
@@ -1057,7 +1058,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['object']['context']['language'], 'en-US')
         self.assertEqual(the_returned['object']['context']['platform'], 'Ipad.')
         self.assertEqual(the_returned['object']['context']['revision'], 'Spelling error in target.')
-        self.assertEqual(the_returned['object']['context']['statement']['id'], '12345678-1233-1234-1234-1234567890ns')
+        self.assertEqual(the_returned['object']['context']['statement']['id'], str(nested_sub_st_id))
         self.assertEqual(the_returned['object']['context']['statement']['objectType'], 'StatementRef')
         self.assertEqual(the_returned['object']['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey11'], 'contextVal11')
@@ -1126,7 +1127,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['context']['platform'], 'Platform is web browser.')
         self.assertEqual(the_returned['context']['registration'], context_id)
         self.assertEqual(the_returned['context']['revision'], 'Spelling error in choices.')
-        self.assertEqual(the_returned['context']['statement']['id'], '12345678-1233-1234-1234-12345678901n')
+        self.assertEqual(the_returned['context']['statement']['id'], nested_st_id)
         self.assertEqual(the_returned['context']['statement']['objectType'], 'StatementRef')
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
