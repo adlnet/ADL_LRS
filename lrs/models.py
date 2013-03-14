@@ -48,7 +48,7 @@ class Consumer(models.Model):
     secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
 
     status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
-    user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user")
+    user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user", db_index=True)
 
     objects = ConsumerManager()
         
@@ -77,12 +77,12 @@ class Token(models.Model):
     
     key = models.CharField(max_length=KEY_SIZE, null=True, blank=True)
     secret = models.CharField(max_length=SECRET_SIZE, null=True, blank=True)
-    token_type = models.SmallIntegerField(choices=TOKEN_TYPES)
+    token_type = models.SmallIntegerField(choices=TOKEN_TYPES, db_index=True)
     timestamp = models.IntegerField(default=long(time()))
     is_approved = models.BooleanField(default=False)
     lrs_auth_id = models.CharField(max_length=50, null=True)
 
-    user = models.ForeignKey(User, null=True, blank=True, related_name='tokens')
+    user = models.ForeignKey(User, null=True, blank=True, related_name='tokens', db_index=True)
     consumer = models.ForeignKey(Consumer)
     scope = models.CharField(max_length=100, default="statements/write,statements/read/mine")
     
@@ -170,9 +170,9 @@ class SystemAction(models.Model):
         (NOTSET, logging.getLevelName(NOTSET)), #0
     )
     level = models.SmallIntegerField(choices=LEVEL_TYPES)
-    parent_action = models.ForeignKey('self', blank=True, null=True)
+    parent_action = models.ForeignKey('self', blank=True, null=True, db_index=True)
     message = models.TextField()
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(db_index=True)
     status_code = models.CharField(max_length=3, blank=True, null=True)
     #Content_type is the user since it can be a User or group object
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
@@ -708,7 +708,7 @@ class correctresponsespattern_answer(models.Model):
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
-    activity_definition = models.ForeignKey(activity_definition)
+    activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -728,7 +728,7 @@ class activity_definition_choice(models.Model):
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
-    activity_definition = models.ForeignKey(activity_definition)
+    activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -747,7 +747,7 @@ class activity_definition_scale(models.Model):
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
-    activity_definition = models.ForeignKey(activity_definition)
+    activity_definition = models.ForeignKey(activity_definition, db_index=True)
     
     def object_return(self, lang=None):
         ret = {}
@@ -765,7 +765,7 @@ class activity_definition_source(models.Model):
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
-    activity_definition = models.ForeignKey(activity_definition)
+    activity_definition = models.ForeignKey(activity_definition, db_index=True)
     
     def object_return(self, lang=None):
         ret = {}
@@ -783,7 +783,7 @@ class activity_definition_target(models.Model):
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=50)
     description = generic.GenericRelation(LanguageMap)
-    activity_definition = models.ForeignKey(activity_definition)
+    activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -824,8 +824,8 @@ class ContextActivity(models.Model):
 
 
 class context(models.Model):    
-    registration = models.CharField(max_length=40, unique=True, default=gen_uuid)
-    instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL)
+    registration = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
+    instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, db_index=True)
     team = models.ForeignKey(group,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
     revision = models.TextField(blank=True, null=True)
     platform = models.CharField(max_length=50,blank=True, null=True)
@@ -871,9 +871,9 @@ class context(models.Model):
 
 class activity_state(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
-    updated = models.DateTimeField(auto_now_add=True, blank=True)
+    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     state = models.FileField(upload_to="activity_state")
-    agent = models.ForeignKey(agent)
+    agent = models.ForeignKey(agent, db_index=True)
     activity = models.ForeignKey(activity)
     registration_id = models.CharField(max_length=40)
     content_type = models.CharField(max_length=255,blank=True,null=True)
@@ -886,8 +886,8 @@ class activity_state(models.Model):
 
 class activity_profile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH)
-    updated = models.DateTimeField(auto_now_add=True, blank=True)
-    activity = models.ForeignKey(activity)
+    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
+    activity = models.ForeignKey(activity, db_index=True)
     profile = models.FileField(upload_to="activity_profile")
     content_type = models.CharField(max_length=255,blank=True,null=True)
     etag = models.CharField(max_length=50,blank=True,null=True)
@@ -1076,18 +1076,18 @@ class SubStatement(statement_object):
 
 
 class statement(models.Model):
-    statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid)
-    stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement")
-    actor = models.ForeignKey(agent,related_name="actor_statement")
+    statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
+    stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement", db_index=True)
+    actor = models.ForeignKey(agent,related_name="actor_statement", db_index=True)
     verb = models.ForeignKey(Verb)
     result = generic.GenericRelation(result)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
-    authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement")
+    authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement", db_index=True)
     voided = models.NullBooleanField(blank=True, null=True)
     context = generic.GenericRelation(context)
     authoritative = models.BooleanField(default=True)
-    user = models.ForeignKey(User, null=True, blank=True)
+    user = models.ForeignKey(User, null=True, blank=True, db_index=True)
 
     def get_a_name(self):
         return self.statement_id
