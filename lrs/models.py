@@ -3,6 +3,7 @@ import json
 import uuid
 import urllib
 import urlparse
+import datetime as dt
 from datetime import datetime
 from time import time
 from django.db import models
@@ -183,7 +184,7 @@ class SystemAction(models.Model):
         return "[%s(%s)] %s -- by: %s" % (self.get_level_display(),self.level, self.message, self.content_object)
 
     def days_til_del(self):
-        deleteday = self.timestamp + datetime.timedelta(days=settings.DAYS_TO_LOG_DELETE)
+        deleteday = self.timestamp + dt.timedelta(days=settings.DAYS_TO_LOG_DELETE)
         days = (deleteday - datetime.utcnow().replace(tzinfo = pytz.utc)).days
         if days <= 0:
             days = 0
