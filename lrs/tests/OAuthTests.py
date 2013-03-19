@@ -78,7 +78,7 @@ class OAuthTests(TestCase):
         self.assertIn('oauth_token_secret=', request_resp.content)
         self.assertIn('oauth_token=', request_resp.content)
         self.assertIn('&oauth_callback_confirmed=true', request_resp.content)
-        token = list(models.Token.objects.all())[-1]
+        token = models.Token.objects.get(consumer=self.consumer)
         self.assertIn(token.key, request_resp.content)
         self.assertIn(token.secret, request_resp.content)
         self.assertEqual(token.callback, 'http://example.com/request_token_ready')
@@ -106,7 +106,7 @@ class OAuthTests(TestCase):
         auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_post.status_code, 302)
         self.assertIn('http://example.com/request_token_ready?oauth_verifier=', auth_post['Location'])
-        token = list(models.Token.objects.all())[-1]
+        token = models.Token.objects.get(consumer=self.consumer)
         self.assertIn(token.key, auth_post['Location'])
         self.assertEqual(token.is_approved, True)
 
@@ -126,7 +126,7 @@ class OAuthTests(TestCase):
             X_Experience_API_Version="0.95")
 
         self.assertEqual(access_resp.status_code, 200)
-        access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
+        access_token = models.Token.objects.filter(token_type=models.Token.ACCESS, consumer=self.consumer)[0]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'jane')
 
@@ -174,7 +174,7 @@ class OAuthTests(TestCase):
         self.assertIn('oauth_token_secret=', request_resp.content)
         self.assertIn('oauth_token=', request_resp.content)
         self.assertIn('&oauth_callback_confirmed=true', request_resp.content)
-        token = list(models.Token.objects.all())[-1]
+        token = models.Token.objects.get(consumer=self.consumer2)
         self.assertIn(token.key, request_resp.content)
         self.assertIn(token.secret, request_resp.content)
         self.assertEqual(token.callback, 'http://example2.com/request_token_ready')
@@ -202,7 +202,7 @@ class OAuthTests(TestCase):
         auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_post.status_code, 302)
         self.assertIn('http://example2.com/request_token_ready?oauth_verifier=', auth_post['Location'])
-        token = list(models.Token.objects.all())[-1]
+        token = models.Token.objects.get(consumer=self.consumer2)
         self.assertIn(token.key, auth_post['Location'])
         self.assertEqual(token.is_approved, True)
 
@@ -222,7 +222,7 @@ class OAuthTests(TestCase):
             X_Experience_API_Version="0.95")
 
         self.assertEqual(access_resp.status_code, 200)
-        access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[0]
+        access_token = models.Token.objects.filter(token_type=models.Token.ACCESS, consumer=self.consumer2)[0]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'dick')
 
@@ -275,7 +275,7 @@ class OAuthTests(TestCase):
         self.assertIn('oauth_token_secret=', request_resp.content)
         self.assertIn('oauth_token=', request_resp.content)
         self.assertIn('&oauth_callback_confirmed=true', request_resp.content)
-        token = list(models.Token.objects.all())[-1]
+        token = models.Token.objects.get(consumer=self.consumer)
         self.assertIn(token.key, request_resp.content)
         self.assertIn(token.secret, request_resp.content)
         self.assertEqual(token.callback, 'http://example.com/request_token_ready')
@@ -321,7 +321,7 @@ class OAuthTests(TestCase):
         auth_post = self.client.post("/XAPI/OAuth/authorize/", oauth_auth_params, X_Experience_API_Version="0.95")
         self.assertEqual(auth_post.status_code, 302)
         self.assertIn('http://example.com/request_token_ready?oauth_verifier=', auth_post['Location'])
-        token = list(models.Token.objects.all())[-1]
+        token = models.Token.objects.get(consumer=self.consumer)
         self.assertIn(token.key, auth_post['Location'])
         self.assertEqual(token.is_approved, True)
 
@@ -351,7 +351,7 @@ class OAuthTests(TestCase):
 
         access_resp = self.client.get("/XAPI/OAuth/token/", Authorization=oauth_header_access_params, X_Experience_API_Version="0.95")
         self.assertEqual(access_resp.status_code, 200)
-        access_token = list(models.Token.objects.filter(token_type=models.Token.ACCESS))[-1]
+        access_token = models.Token.objects.filter(token_type=models.Token.ACCESS, consumer=self.consumer)[0]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'jane')
 
@@ -839,13 +839,14 @@ class OAuthTests(TestCase):
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
+        pdb.set_trace()
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(resp.status_code, 403)
 
         # build stmt data and path
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
         oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
-        oauth_group = models.group.objects.get(member__in=[oauth_agent1, oauth_agent2])
+        oauth_group = models.agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
@@ -919,7 +920,7 @@ class OAuthTests(TestCase):
         # build stmt data and path
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
         oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
-        oauth_group = models.group.objects.get(member__in=[oauth_agent1, oauth_agent2])
+        oauth_group = models.agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},

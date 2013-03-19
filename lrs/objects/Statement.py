@@ -437,7 +437,7 @@ class Statement():
             # Look at request from auth if not supplied in stmt_data
             if self.auth:
                 authArgs = {}
-                if self.auth.__class__.__name__ == 'group':
+                if self.auth.__class__.__name__ == 'agent':
                     args['authority'] = self.auth
                 else:    
                     authArgs['name'] = self.auth.username

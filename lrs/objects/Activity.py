@@ -38,7 +38,7 @@ class Activity():
     @transaction.commit_on_success
     def __init__(self, data, auth=None, log_dict=None, define=True):
         if auth:
-            if auth.__class__.__name__ == 'group':
+            if auth.__class__.__name__ == 'agent':
                 self.auth = auth.name
             else:
                 self.auth = auth.username

@@ -2,7 +2,8 @@ import json
 import datetime
 from django.core.files.base import ContentFile
 from django.db import transaction
-from lrs.models import agent, group, agent_profile
+from lrs.models import agent_profile
+from lrs.models import agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 import logging
@@ -27,12 +28,8 @@ class Agent():
                 update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg) 
                 
-        if 'objectType' in params and params['objectType'] == 'Group':
-            obj = group
-        else:
-            obj = agent
         if create:
-            self.agent, created = obj.objects.gen(**params)
+            self.agent, created = ag.objects.gen(**params)
             if created:
                 log_message(self.log_dict, "Created %s in database" % self.agent.objectType, __name__, self.__init__.__name__)
             elif not created:
@@ -41,7 +38,7 @@ class Agent():
             try:
                 if 'member' in params:
                     params.pop('member', None)
-                self.agent = obj.objects.get(**params)
+                self.agent = ag.objects.get(**params)
                 log_message(self.log_dict, "Retrieved %s from database" % self.agent.objectType, __name__, self.__init__.__name__)
 
             except:
