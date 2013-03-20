@@ -839,7 +839,6 @@ class OAuthTests(TestCase):
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        pdb.set_trace()
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(resp.status_code, 403)
 

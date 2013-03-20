@@ -375,8 +375,11 @@ class agentmgr(models.Manager):
         # If there is an IFP (could be blank if group) make a dict with the IFP key and value
         if attrs:
             attr = attrs[0]
-            attrs_dict = {attr:kwargs[attr]}
+            # Don't create the attrs_dict if the IFP is an account
+            if not 'account' == attr:
+                attrs_dict = {attr:kwargs[attr]}
 
+        # pdb.set_trace()
         # Pop account
         val = kwargs.pop('account', None)
         # If it is incoming account object
@@ -387,25 +390,36 @@ class agentmgr(models.Manager):
             else:
                 account = val
             # Try to get the account with the account kwargs. If it exists set ret_agent to the account's
-            # agent and created to false
+            # agent and created to false. Update agent if necessary
             try:
                 acc = agent_account.objects.get(**account)
                 ret_agent = acc.agent
+                if 'name' in kwargs:
+                    agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
+                    ret_agent = agent.objects.get(id=ret_agent.id)                
+                    # TODO:CAN UPDATE MEMBERS HERE
                 created = False
             except agent_account.DoesNotExist:
-                # If account doesn't exist try to get agent with the remaining kwargs or attr
+                # If account doesn't exist try to get agent with the remaining kwargs (don't need
+                # attr_dict) since IFP is account which doesn't exist yet
                 try:
-                    # If there are no attrs, this is an account linked to a group
-                    # Else grab the agent from the attr dict and update the name since that is the
-                    # only field that can be updated with an agent
-                    if not attrs:
-                        ret_agent = agent.objects.get(**kwargs)
-                        # TODO: CAN UPDATE NAME OR MEMBERS HERE
-                    else:
-                        ret_agent = agent.objects.get(**attrs_dict)
-                        if 'name' in kwargs:
-                            agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
-                            ret_agent = agent.objects.get(id=ret_agent.id)
+                    # Groups don't need an IFP. Try to get group based off of members and kwargs
+                    # if is_group and 'member' in kwargs:
+                    #     mem = kwargs.pop('member')
+                    #     try:
+                    #         members = json.loads(mem)
+                    #     except:
+                    #         members = mem
+                    #     ags = [self.gen(**a) for a in members]
+                    #     pdb.set_trace()
+                    #     name = ""
+                    #     if 'name' in kwargs:
+                    #         name = kwargs['name']
+                    #     ret_agent = agent.objects.filter(name=name, member__in=[ags]).annotate(num_members=models.Count('member')).filter(num_tags=len(ags))
+                    #     # ret_agent = agent.objects.get(**kwargs, member__in=ags)
+                    # else:        
+                    ret_agent = agent.objects.get(**kwargs)
+                
                 except agent.DoesNotExist:
                     # If agent/group does not exist, create, clean, save it and create an account
                     # to attach to it. Created account is ture
@@ -415,6 +429,7 @@ class agentmgr(models.Manager):
                 acc = agent_account(agent=ret_agent, **account)
                 acc.save()
                 created = True
+
         # If there is no account, check to see if it a group and has members
         else:
             if is_group and 'member' in kwargs:
@@ -423,20 +438,26 @@ class agentmgr(models.Manager):
                     members = json.loads(mem)
                 except:
                     members = mem
-        # Try to get the account/group
+        # Try to get the agent/group
         try:
             # If there are not attrs, this is a group
             # Else grab the agent from the attr dict and update the name since that is the only field
             # that can be updated with an agent
             if not attrs:
                 ret_agent = agent.objects.get(**kwargs)
-                # TODO: CAN UPDATE NAME OR MEMBERS HERE
-            else:
-                ret_agent = agent.objects.get(**attrs_dict)
+                created = False
+                # TODO: CAN UPDATE MEMBERS HERE
                 if 'name' in kwargs:
                     agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
                     ret_agent = agent.objects.get(id=ret_agent.id)
-            created = False
+            else:
+                # We already have the return agent and account so no need to get again
+                if not 'account' in attrs:
+                    ret_agent = agent.objects.get(**attrs_dict)
+                    if 'name' in kwargs:
+                        agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
+                        ret_agent = agent.objects.get(id=ret_agent.id)
+                    created = False
         # If agent/group does not exist, create, clean, save it
         except agent.DoesNotExist:
             ret_agent = agent(**kwargs)
