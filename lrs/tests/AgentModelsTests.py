@@ -151,26 +151,27 @@ class AgentModelsTests(TestCase):
         self.assertEquals(len(agent.objects.all()), 1)
         self.assertEquals(len(agent_account.objects.all()), 1)
 
-    # def test_group_update_kwargs_with_account(self):
-    #     ot = "Group"
-    #     name = "the group"
-    #     account = json.dumps({"homePage":"http://www.adlnet.gov","name":"freakshow-group"})
-    #     members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
-    #                 {"name":"agent2","mbox":"mailto:agent2@example.com"}]
+    def test_group_update_kwargs_with_account(self):
+        ot = "Group"
+        name = "the group"
+        account = json.dumps({"homePage":"http://www.adlnet.gov","name":"freakshow-group"})
+        members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
+                    {"name":"agent2","mbox":"mailto:agent2@example.com"}]
 
-    #     kwargs = {"objectType":ot,"member":members, "account":account}
+        kwargs = {"objectType":ot,"member":members, "account":account}
         
-    #     g, created = agent.objects.gen(**kwargs)
-    #     self.assertTrue(created)
+        g, created = agent.objects.gen(**kwargs)
+        self.assertTrue(created)
 
-    #     kwargs1 = {"objectType":ot,"member":members, "name": name, "account":account}
-    #     g1, created = agent.objects.gen(**kwargs1)
+        kwargs1 = {"objectType":ot,"member":members, "name": name, "account":account}
+        g1, created = agent.objects.gen(**kwargs1)
         
-    #     self.assertFalse(created)
-    #     self.assertEquals(g1.name, name)
-    #     self.assertEquals(g.id, g1.id)
-    #     self.assertEquals(len(agent.objects.all()), 1)
-    #     self.assertEquals(len(agent_account.objects.all()), 1)
+        self.assertFalse(created)
+        self.assertEquals(g1.name, name)
+        self.assertEquals(g.id, g1.id)
+        self.assertEquals(len(agent.objects.all()), 3)
+        self.assertEquals(len(agent_account.objects.all()), 1)
+        self.assertEquals(agent_account.objects.all()[0].agent.id, g.id)
 
 
     def test_group_update_kwargs(self):
@@ -191,6 +192,33 @@ class AgentModelsTests(TestCase):
         self.assertEquals(g.id, g1.id)
         # 2 agents 1 group
         self.assertEquals(len(agent.objects.all()), 3)
+
+    def test_group_update_members(self):
+        ot = "Group"
+        name = "the group"
+        mbox = "mailto:the.group@example.com"
+        members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
+                    {"name":"agent2","mbox":"mailto:agent2@example.com"}]
+        kwargs = {"objectType":ot, "mbox":mbox,"member":members}
+        g, created = agent.objects.gen(**kwargs)
+        self.assertTrue(created)
+
+        members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
+                    {"name":"agent2","mbox":"mailto:agent2@example.com"},
+                    {"name":"agent3","mbox":"mailto:agent3@example.com"}]
+
+        kwargs1 = {"objectType":ot, "mbox":mbox,"member":members}
+        g1, created = agent.objects.gen(**kwargs1)
+        self.assertFalse(created)
+
+        ags = agent.objects.filter(objectType='Agent')
+        mems = g1.member.all()
+        self.assertEquals(len(ags), len(mems))
+        self.assertTrue(set(ags) == set(mems))
+        self.assertEquals(g.id, g1.id)
+        # 3 agents 1 group
+        self.assertEquals(len(agent.objects.all()), 4)
+
 
     def test_agent_json_no_ids(self):
         self.assertRaises(ParamError, agent.objects.gen, 

@@ -378,8 +378,16 @@ class agentmgr(models.Manager):
             # Don't create the attrs_dict if the IFP is an account
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
-
-        # pdb.set_trace()
+        
+        # Agents won't have members 
+        members = None
+        # If there is no account, check to see if it a group and has members
+        if is_group and 'member' in kwargs:
+            mem = kwargs.pop('member')
+            try:
+                members = json.loads(mem)
+            except:
+                members = mem
         # Pop account
         val = kwargs.pop('account', None)
         # If it is incoming account object
@@ -393,33 +401,23 @@ class agentmgr(models.Manager):
             # agent and created to false. Update agent if necessary
             try:
                 acc = agent_account.objects.get(**account)
+                created = False
                 ret_agent = acc.agent
-                if 'name' in kwargs:
+                if 'name' in kwargs and kwargs['name'] != ret_agent.name:
                     agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
                     ret_agent = agent.objects.get(id=ret_agent.id)                
-                    # TODO:CAN UPDATE MEMBERS HERE
-                created = False
+                    # Get or create members in list
+                    if members:
+                        ags = [self.gen(**a) for a in members]
+                        # If any of the members are not in the current member list of ret_agent, add them
+                        for ag in ags:
+                            if not ag[0] in ret_agent.member.all():
+                                ret_agent.member.add(ag[0])
             except agent_account.DoesNotExist:
                 # If account doesn't exist try to get agent with the remaining kwargs (don't need
                 # attr_dict) since IFP is account which doesn't exist yet
                 try:
-                    # Groups don't need an IFP. Try to get group based off of members and kwargs
-                    # if is_group and 'member' in kwargs:
-                    #     mem = kwargs.pop('member')
-                    #     try:
-                    #         members = json.loads(mem)
-                    #     except:
-                    #         members = mem
-                    #     ags = [self.gen(**a) for a in members]
-                    #     pdb.set_trace()
-                    #     name = ""
-                    #     if 'name' in kwargs:
-                    #         name = kwargs['name']
-                    #     ret_agent = agent.objects.filter(name=name, member__in=[ags]).annotate(num_members=models.Count('member')).filter(num_tags=len(ags))
-                    #     # ret_agent = agent.objects.get(**kwargs, member__in=ags)
-                    # else:        
-                    ret_agent = agent.objects.get(**kwargs)
-                
+                    ret_agent = agent.objects.get(**kwargs)                
                 except agent.DoesNotExist:
                     # If agent/group does not exist, create, clean, save it and create an account
                     # to attach to it. Created account is ture
@@ -430,40 +428,55 @@ class agentmgr(models.Manager):
                 acc.save()
                 created = True
 
-        # If there is no account, check to see if it a group and has members
-        else:
-            if is_group and 'member' in kwargs:
-                mem = kwargs.pop('member')
-                try:
-                    members = json.loads(mem)
-                except:
-                    members = mem
         # Try to get the agent/group
         try:
-            # If there are not attrs, this is a group
-            # Else grab the agent from the attr dict and update the name since that is the only field
-            # that can be updated with an agent
-            if not attrs:
+            # If there are no IFPs but there are members (group with no IFPs)
+            if not attrs and members:
                 ret_agent = agent.objects.get(**kwargs)
                 created = False
-                # TODO: CAN UPDATE MEMBERS HERE
-                if 'name' in kwargs:
+                # Update name if not the same
+                if 'name' in kwargs and kwargs['name'] != ret_agent.name:
                     agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
                     ret_agent = agent.objects.get(id=ret_agent.id)
-            else:
-                # We already have the return agent and account so no need to get again
+                # Get or create members in list
+                ags = [self.gen(**a) for a in members]
+                # If any of the members are not in the current member list of ret_agent, add them
+                for ag in ags:
+                    if not ag[0] in ret_agent.member.all():
+                        ret_agent.member.add(ag[0])
+            # If there is and IFP and members (group with IFP that's not account since it should be)
+            # updated already from above
+            elif attrs and members:
                 if not 'account' in attrs:
                     ret_agent = agent.objects.get(**attrs_dict)
+                    created = False
+                    # Update name if not the same
+                    if 'name' in kwargs and kwargs['name'] != ret_agent.name:
+                        agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
+                        ret_agent = agent.objects.get(id=ret_agent.id)                
+                    # Get or create members list
+                    ags = [self.gen(**a) for a in members]
+                    # If any of the members are not in the current member list of ret_agent, add them
+                    for ag in ags:
+                        if not ag[0] in ret_agent.member.all():
+                            ret_agent.member.add(ag[0])
+            # Cannot have no IFP and no members so this catches if there is an IFP that isn't account
+            # and no members (agent object)
+            else:
+                if not 'account' in attrs:
+                    ret_agent = agent.objects.get(**attrs_dict)
+                    created = False
                     if 'name' in kwargs:
                         agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
                         ret_agent = agent.objects.get(id=ret_agent.id)
-                    created = False
+
         # If agent/group does not exist, create, clean, save it
         except agent.DoesNotExist:
             ret_agent = agent(**kwargs)
             ret_agent.full_clean()
             ret_agent.save()
             created = True
+
         # If it is a group and has just been created, grab all of the members and send them through
         # this process then clean and save
         if is_group and created:
@@ -498,23 +511,21 @@ class agent(statement_object):
 
     def get_agent_json(self, sparse=False):
         ret = {}
-        if self.objectType == 'Agent':
-            ret['objectType'] = self.objectType
-            if self.name:
-                ret['name'] = self.name
-            if self.mbox:
-                ret['mbox'] = self.mbox
-            if self.mbox_sha1sum:
-                ret['mbox_sha1sum'] = self.mbox_sha1sum
-            if self.openid and not sparse:
-                ret['openid'] = self.openid
-            try:
-                if not sparse:
-                    ret['account'] = self.agent_account.get_json()
-            except:
-                pass
-        else:
-            ret['objectType'] = self.objectType
+        ret['objectType'] = self.objectType
+        if self.name:
+            ret['name'] = self.name
+        if self.mbox:
+            ret['mbox'] = self.mbox
+        if self.mbox_sha1sum:
+            ret['mbox_sha1sum'] = self.mbox_sha1sum
+        if self.openid and not sparse:
+            ret['openid'] = self.openid
+        try:
+            if not sparse:
+                ret['account'] = self.agent_account.get_json()
+        except:
+            pass
+        if self.objectType == 'Group':
             ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
         return ret
 
