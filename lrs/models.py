@@ -365,21 +365,24 @@ class statement_object(models.Model):
 
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
-    def update_agent_name_and_members(self, kwargs, ret_agent, members):
+    # Have to return ret_agent since we may re-bind it after update
+    def update_agent_name_and_members(self, kwargs, ret_agent, members, define):
         # Update the name if not the same
-        if 'name' in kwargs and kwargs['name'] != ret_agent.name:
+        if 'name' in kwargs and kwargs['name'] != ret_agent.name and define:
             agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
             ret_agent = agent.objects.get(id=ret_agent.id)                
         # Get or create members in list
         if members:
             ags = [self.gen(**a) for a in members]
+            # ags = [agent.objects.get_or_create(**a) for a in members]
             # If any of the members are not in the current member list of ret_agent, add them
             for ag in ags:
                 if not ag[0] in ret_agent.member.all():
                     ret_agent.member.add(ag[0])
         return ret_agent
 
-    def handle_account(self, val, kwargs, members):
+    # Have to return ret_agent since it can be potentially updated
+    def handle_account(self, val, kwargs, members, define):
         # Load into dict if necessary
         if not isinstance(val, dict):
             account = json.loads(val)
@@ -391,7 +394,7 @@ class agentmgr(models.Manager):
             acc = agent_account.objects.get(**account)
             created = False
             ret_agent = acc.agent
-            ret_agent = self.update_agent_name_and_members(kwargs, ret_agent, members)
+            ret_agent = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
         except agent_account.DoesNotExist:
             # If account doesn't exist try to get agent with the remaining kwargs (don't need
             # attr_dict) since IFP is account which doesn't exist yet
@@ -409,6 +412,7 @@ class agentmgr(models.Manager):
         return ret_agent, created
 
     def gen(self, **kwargs):
+        define = kwargs.pop('define', True)
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
         # Find any IFPs
@@ -437,7 +441,7 @@ class agentmgr(models.Manager):
         val = kwargs.pop('account', None)
         # If it is incoming account object
         if val:
-            ret_agent, created = self.handle_account(val, kwargs, members)
+            ret_agent, created = self.handle_account(val, kwargs, members, define)
 
         # Try to get the agent/group
         try:
@@ -445,24 +449,25 @@ class agentmgr(models.Manager):
             if not attrs and members:
                 ret_agent = agent.objects.get(**kwargs)
                 created = False
-                ret_agent = self.update_agent_name_and_members(kwargs, ret_agent, members)
+                ret_agent = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
             # If there is and IFP and members (group with IFP that's not account since it should be
             # updated already from above)
             elif attrs and members:
                 if not 'account' in attrs:
                     ret_agent = agent.objects.get(**attrs_dict)
                     created = False
-                ret_agent = self.update_agent_name_and_members(kwargs, ret_agent, members)
+                ret_agent = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
             # Cannot have no IFP and no members so this catches if there is an IFP that isn't account
             # and no members (agent object)
             else:
                 if not 'account' in attrs:
                     ret_agent = agent.objects.get(**attrs_dict)
                     created = False
-                    if 'name' in kwargs:
+                    if 'name' in kwargs and define:
                         agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
                         ret_agent = agent.objects.get(id=ret_agent.id)
-        # If agent/group does not exist, create, clean, save it
+        # If agent/group does not exist, create it then clean and save it so if it's a group below
+        # we can add members
         except agent.DoesNotExist:
             ret_agent = agent(**kwargs)
             ret_agent.full_clean()
@@ -485,7 +490,7 @@ class agent(statement_object):
     mbox_sha1sum = models.CharField(max_length=40, blank=True, null=True, db_index=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True, db_index=True)
     oauth_identifier = models.CharField(max_length=64, null=True, blank=True)
-    member = models.ManyToManyField('self', related_name="agents")
+    member = models.ManyToManyField('self', related_name="agents", null=True)
     objects = agentmgr()
 
     def __init__(self, *args, **kwargs):

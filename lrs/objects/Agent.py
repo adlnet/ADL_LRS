@@ -13,9 +13,10 @@ logger = logging.getLogger('user_system_actions')
 
 class Agent():
     @transaction.commit_on_success
-    def __init__(self, initial=None, create=False, log_dict=None):
+    def __init__(self, initial=None, create=False, log_dict=None, define=True):
         self.initial = initial
         self.log_dict = log_dict
+        self.define = define
         params = self.initial
 
         if not isinstance(params, dict):
@@ -29,6 +30,7 @@ class Agent():
                 raise exceptions.ParamError(err_msg) 
                 
         if create:
+            params['define'] = self.define
             self.agent, created = ag.objects.gen(**params)
             if created:
                 log_message(self.log_dict, "Created %s in database" % self.agent.objectType, __name__, self.__init__.__name__)
