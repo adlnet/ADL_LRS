@@ -453,7 +453,7 @@ class OAuthTests(TestCase):
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"test_put"}})
+            "object": {"id":"act:test_put"}})
         param = {"statementId":put_guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
         
@@ -488,7 +488,7 @@ class OAuthTests(TestCase):
 
         stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_post"}}
+            "object": {"id":"act:test_post"}}
         stmt_json = json.dumps(stmt)
 
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope=False,
@@ -519,7 +519,7 @@ class OAuthTests(TestCase):
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_simple_get"}}))
+            "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
@@ -552,8 +552,8 @@ class OAuthTests(TestCase):
     def test_stmt_complex_get(self):
         stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_complex_get"}}))
-        param = {"object":{"objectType": "Activity", "id":"test_complex_get"}}
+            "object": {"id":"act:test_complex_get"}}))
+        param = {"object":{"objectType": "Activity", "id":"act:test_complex_get"}}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(request_nonce='stmtcomplexrequestnonce',
@@ -584,7 +584,7 @@ class OAuthTests(TestCase):
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_simple_get"}}))
+            "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
@@ -618,7 +618,7 @@ class OAuthTests(TestCase):
         # Test POST (not allowed)
         post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_post"}}
+            "object": {"id":"act:test_post"}}
         post_stmt_json = json.dumps(post_stmt)
 
         # change nonce
@@ -680,7 +680,7 @@ class OAuthTests(TestCase):
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_simple_get"}}))
+            "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
@@ -711,7 +711,7 @@ class OAuthTests(TestCase):
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_simple_get"}}))
+            "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
@@ -766,8 +766,8 @@ class OAuthTests(TestCase):
     def test_consumer_state(self):
         stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_complex_get"}}))
-        param = {"object":{"objectType": "Activity", "id":"test_complex_get"}}
+            "object": {"id":"act:test_complex_get"}}))
+        param = {"object":{"objectType": "Activity", "id":"act:test_complex_get"}}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(request_nonce='consumerstaterequestnonce',
@@ -810,7 +810,7 @@ class OAuthTests(TestCase):
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+            "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="0.95")
         self.assertEqual(putResponse.status_code, 204)
@@ -850,7 +850,7 @@ class OAuthTests(TestCase):
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
+            "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}))
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
         
@@ -884,7 +884,7 @@ class OAuthTests(TestCase):
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+            "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="0.95")
         self.assertEqual(putResponse.status_code, 204)
@@ -924,7 +924,7 @@ class OAuthTests(TestCase):
 
         stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"test_put"}, "authority":oauth_group.get_agent_json()}))
+            "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}))
         
         # add put data
         oauth_header_resource_params_dict['oauth_nonce'] = 'getdiffernonce'

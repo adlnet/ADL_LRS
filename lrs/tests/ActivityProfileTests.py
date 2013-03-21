@@ -13,10 +13,10 @@ import pdb
 
 #TODO: delete profiles that are being stored in /var/www/adllrs/media/activity profiles
 class ActivityProfileTests(TestCase):
-    test_activityId1 = 'act-1'
-    test_activityId2 = 'act-2'
-    test_activityId3 = 'act-3'
-    other_activityId = 'act-other'
+    test_activityId1 = 'act:act-1'
+    test_activityId2 = 'act:act-2'
+    test_activityId3 = 'act:act-3'
+    other_activityId = 'act:act-other'
     content_type = "application/json"
     testprofileId1 = "http://profile.test.id/test/1"
     testprofileId2 = "http://profile.test.id/test/2"
@@ -96,9 +96,9 @@ class ActivityProfileTests(TestCase):
 
         # Loop through profiles since not always returned in same order
         for p in other_profiles:
-            if p.activity.id == 'act-other':
+            if p.activity.id == 'act:act-other':
                 self.assertEqual(p.activity, actmodel4)
-            elif p.activity.id == 'act-1':
+            elif p.activity.id == 'act:act-1':
                 self.assertEqual(p.activity, actmodel1)
 
     def test_user_in_model(self):
@@ -114,7 +114,7 @@ class ActivityProfileTests(TestCase):
         self.assertEquals(put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
 
     def test_put_no_profileId(self):
-        testparams = {'activityId':'act'}
+        testparams = {'activityId':'act:act:act'}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(testparams))
         put = self.client.put(path, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEquals(put.content, 'Error -- activity_profile - method = PUT, but profileId parameter missing..')
@@ -132,7 +132,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_right_on_change(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
-        profile = {"test":"good - trying to put new profile w/ etag header","obj":{"activity":"test"}}
+        profile = {"test":"good - trying to put new profile w/ etag header","obj":{"activity":"act:test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
         response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 204)
@@ -142,7 +142,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_wrong_on_change(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
-        profile = {"test":"error - trying to put new profile w/ wrong etag value","obj":{"activity":"test"}}
+        profile = {"test":"error - trying to put new profile w/ wrong etag value","obj":{"activity":"act:test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % 'wrong hash').hexdigest()
         response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 412)
@@ -155,7 +155,7 @@ class ActivityProfileTests(TestCase):
     def test_put_etag_if_none_match_good(self):
         params = {"profileId": 'http://etag.nomatch.good', "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
-        profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"activity":"test"}}
+        profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"activity":"act:test"}}
         response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), params, X_Experience_API_Version="0.95", Authorization=self.auth)
@@ -166,7 +166,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
-        profile = {"test":"error - trying to put new profile w/ if none match etag but one exists","obj":{"activity":"test"}}
+        profile = {"test":"error - trying to put new profile w/ if none match etag but one exists","obj":{"activity":"act:test"}}
         response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*', Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
@@ -241,9 +241,9 @@ class ActivityProfileTests(TestCase):
 
     def test_cors_put(self):
         profileid = 'http://test.cors.put'
-        activityid = 'test_cors_put-activity'
+        activityid = 'act:test_cors_put-activity'
         testparams1 = {"profileId": profileid, "activityId": activityid, "Authorization": self.auth}
-        testparams1['content'] = {"test":"put profile 1","obj":{"activity":"test"}}
+        testparams1['content'] = {"test":"put profile 1","obj":{"activity":"act:test"}}
         path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
         the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': activityid}))
         put1 = self.client.post(path, testparams1, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
@@ -252,7 +252,7 @@ class ActivityProfileTests(TestCase):
 
     def test_cors_put_etag(self):
         pid = 'http://ie.cors.etag/test'
-        aid = 'ie.cors.etag/test'
+        aid = 'act:ie.cors.etag/test'
 
         actaid = Activity.Activity(json.dumps({'objectType':'Activity', 'id': aid}))
         
@@ -280,13 +280,13 @@ class ActivityProfileTests(TestCase):
 
     def test_tetris_snafu(self):
 
-        params = {"profileId": "http://test.tetris/", "activityId": "tetris.snafu"}
+        params = {"profileId": "http://test.tetris/", "activityId": "act:tetris.snafu"}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"put profile 1","obj":{"activity":"test"}}
-        the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': "tetris.snafu"}))
+        the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': "act:tetris.snafu"}))
         p_r = self.client.put(path, json.dumps(profile), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(p_r.status_code, 204)
-        r = self.client.get(reverse(views.activity_profile), {'activityId': "tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="0.95", Authorization=self.auth)
+        r = self.client.get(reverse(views.activity_profile), {'activityId': "act:tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="0.95", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], self.content_type)
         self.assertIn("\"", r.content)

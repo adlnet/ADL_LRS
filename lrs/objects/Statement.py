@@ -143,7 +143,10 @@ class Statement():
         # Save context activities
         if con_act_data:
             for con_act in con_act_data.items():
-                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'], context=cntx)
+                ca_id = con_act[1]['id']
+                if not uri.validate_uri(ca_id):
+                    raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
+                ca = models.ContextActivity(key=con_act[0], context_activity=ca_id, context=cntx)
                 ca.save()
             cntx.save()
 
