@@ -143,7 +143,10 @@ class Statement():
         # Save context activities
         if con_act_data:
             for con_act in con_act_data.items():
-                ca = models.ContextActivity(key=con_act[0], context_activity=con_act[1]['id'], context=cntx)
+                ca_id = con_act[1]['id']
+                if not uri.validate_uri(ca_id):
+                    raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
+                ca = models.ContextActivity(key=con_act[0], context_activity=ca_id, context=cntx)
                 ca.save()
             cntx.save()
 
@@ -231,7 +234,7 @@ class Statement():
 
         if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
-                create=True, log_dict=self.log_dict).agent
+                create=True, log_dict=self.log_dict, define=self.define).agent
 
         # If there is an actor or object is a group in the stmt then remove the team
         if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
@@ -403,7 +406,7 @@ class Statement():
                     log_dict=self.log_dict, define=self.define).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
                 args['stmt_object'] = Agent(initial=statementObjectData, create=True,
-                    log_dict=self.log_dict).agent
+                    log_dict=self.log_dict, define=self.define).agent
             elif statementObjectData['objectType'].lower() == 'substatement':
                 sub_statement = SubStatement(statementObjectData, self.auth, self.log_dict)
                 args['stmt_object'] = sub_statement.model_object
@@ -421,7 +424,8 @@ class Statement():
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor
-        args['actor'] = Agent(initial=stmt_data['actor'], create=True, log_dict=self.log_dict).agent
+        args['actor'] = Agent(initial=stmt_data['actor'], create=True, log_dict=self.log_dict,
+            define=self.define).agent
 
         #Set voided to default false
         args['voided'] = False
@@ -432,12 +436,12 @@ class Statement():
 
         if 'authority' in stmt_data:
             args['authority'] = Agent(initial=stmt_data['authority'], create=True,
-                log_dict=self.log_dict).agent
+                log_dict=self.log_dict, define=self.define).agent
         else:
             # Look at request from auth if not supplied in stmt_data
             if self.auth:
                 authArgs = {}
-                if self.auth.__class__.__name__ == 'group':
+                if self.auth.__class__.__name__ == 'agent':
                     args['authority'] = self.auth
                 else:    
                     authArgs['name'] = self.auth.username
@@ -446,7 +450,7 @@ class Statement():
                     else:
                         authArgs['mbox'] = "mailto:%s" % self.auth.email
                     args['authority'] = Agent(initial=authArgs, create=True,
-                        log_dict=self.log_dict).agent
+                        log_dict=self.log_dict, define=self.define).agent
 
         # Check if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:

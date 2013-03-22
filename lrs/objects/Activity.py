@@ -38,7 +38,7 @@ class Activity():
     @transaction.commit_on_success
     def __init__(self, data, auth=None, log_dict=None, define=True):
         if auth:
-            if auth.__class__.__name__ == 'group':
+            if auth.__class__.__name__ == 'agent':
                 self.auth = auth.name
             else:
                 self.auth = auth.username
@@ -272,6 +272,8 @@ class Activity():
         #Must include activity_id - set object's activity_id
         try:
             activity_id = the_object['id']
+            if not uri.validate_uri(activity_id):
+                raise exceptions.ParamError('Activity ID %s is not a valid URI' % activity_id)
         except KeyError:
             err_msg = "No id provided, must provide 'id' field"
             log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 

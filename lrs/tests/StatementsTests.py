@@ -864,7 +864,7 @@ class StatementsTests(TestCase):
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertEqual(response.status_code, 200)
-        g = models.group.objects.get(mbox="mailto:the.groupST@example.com")
+        g = models.agent.objects.get(mbox="mailto:the.groupST@example.com")
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list("name", flat=True)
@@ -1507,7 +1507,7 @@ class StatementsTests(TestCase):
     def test_since_filter_tz(self):
         stmt1_guid = str(uuid.uuid1())
         stmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
-                "display": {"en-US":"created"}}, "object": {"id":"activity"},
+                "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T12:00:00-05:00"})
 
         param = {"statementId":stmt1_guid}
