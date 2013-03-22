@@ -1540,22 +1540,3 @@ def merge_model_objects(primary_object, alias_objects=[], save=True, keep_old=Fa
     if save:
         primary_object.save()
     return primary_object
-
-# class parent(models.Model):
-#     pass
-
-# class similiar(parent):
-#     f1 = models.CharField(max_length=10)
-#     class Meta:
-#         abstract = True
-
-# class a1(similiar):
-#     pass
-
-# class g1(similiar):
-#     f2 = models.CharField(max_length=5)
-
-# class testmodel(models.Model):
-#     ff = models.CharField(max_length=5)
-#     obj = models.ForeignKey(parent)
-#     obj1 = models.OneToOneField()
