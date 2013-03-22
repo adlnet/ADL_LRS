@@ -286,7 +286,7 @@ class extensions(models.Model):
 class result(models.Model): 
     success = models.NullBooleanField(blank=True,null=True)
     completion = models.NullBooleanField(blank=True,null=True)
-    response = models.TextField(blank=True, null=True)
+    response = models.TextField(blank=True)
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=40, blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
@@ -365,60 +365,144 @@ class statement_object(models.Model):
 
 agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
 class agentmgr(models.Manager):
-    def gen(self, **kwargs):
-        is_group = kwargs.get('objectType', None) == "Group"
-        attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
-        if not is_group and len(attrs) != 1:
-            raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
-        val = kwargs.pop('account', None)
-        if val:
-            if not isinstance(val, dict):
-                account = json.loads(val)
+    # Have to return ret_agent since we may re-bind it after update
+    def update_agent_name_and_members(self, kwargs, ret_agent, members, define):
+        need_to_create = False
+        # Update the name if not the same
+        if 'name' in kwargs and kwargs['name'] != ret_agent.name:
+            # If name is different and has define then update-if not then need to create new agent
+            if define:
+                agent.objects.filter(id=ret_agent.id).update(name=kwargs['name'])
+                ret_agent = agent.objects.get(id=ret_agent.id)
             else:
-                account = val
-            try:
-                acc = agent_account.objects.get(**account)
-                ret_agent = acc.agent
-                created = False
-            except agent_account.DoesNotExist:
-                if is_group:
-                    try: 
-                        ret_agent = group.objects.get(**kwargs)
-                    except self.model.DoesNotExist:
-                        ret_agent = group(**kwargs)
-                else:
-                    try:
-                        ret_agent = agent.objects.get(**kwargs)
-                    except agent.DoesNotExist:
-                        ret_agent = agent(**kwargs)
-                ret_agent.full_clean()
-                ret_agent.save()
-                acc = agent_account(agent=ret_agent, **account)
-                acc.save()
-                created = True
+                need_to_create = True
+        # Get or create members in list
+        if members:
+            # If have define, update - if not need to create new agent
+            ags = [self.gen(**a) for a in members]
+            # If any of the members are not in the current member list of ret_agent, add them
+            for ag in ags:
+                if not ag[0] in ret_agent.member.all():
+                    if define:
+                        ret_agent.member.add(ag[0])
+                    else:
+                        need_to_create = True
+                        break
+        return ret_agent, need_to_create
+
+    def create_agent(self, kwargs, define):
+        if not define:
+            kwargs['global_representation'] = False
+        ret_agent = agent(**kwargs)
+        ret_agent.full_clean()
+        ret_agent.save()
+        return ret_agent, True
+
+    # Have to return ret_agent since it can be potentially updated
+    def handle_account(self, val, kwargs, members, define):
+        # Load into dict if necessary
+        if not isinstance(val, dict):
+            account = json.loads(val)
         else:
-            if is_group and 'member' in kwargs:
-                mem = kwargs.pop('member')
-                try:
-                    members = json.loads(mem)
-                except:
-                    members = mem
+            account = val
+        # Try to get the account with the account kwargs. If it exists set ret_agent to the account's
+        # agent and created to false. Update agent if necessary
         try:
-            # Added in if stmts to check if should get/create group or agent object
-            # Before it was creating agents as groups
-            if is_group:
-                ret_agent = group.objects.get(**kwargs)
-            else:
-                ret_agent = agent.objects.get(**kwargs)
+            acc = agent_account.objects.get(**account)
             created = False
-        except agent.DoesNotExist:
-            if is_group:
-                ret_agent = group(**kwargs)
-            else:
+            ret_agent = acc.agent
+            ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
+            if need_to_create:
+                ret_agent, created = self.create_agent(kwargs, define)        
+        except agent_account.DoesNotExist:
+            # If account doesn't exist try to get agent with the remaining kwargs (don't need
+            # attr_dict) since IFP is account which doesn't exist yet
+            try:
+                ret_agent = agent.objects.get(**kwargs)     
+            except agent.DoesNotExist:
+                # If agent/group does not exist, create, clean, save it and create an account
+                # to attach to it. Created account is true. If don't have define permissions
+                # then the agent/group is non-global
+                if not define:
+                    kwargs['global_representation'] = False
                 ret_agent = agent(**kwargs)
             ret_agent.full_clean()
             ret_agent.save()
+            acc = agent_account(agent=ret_agent, **account)
+            acc.save()
             created = True
+        return ret_agent, created
+
+    def gen(self, **kwargs):
+        # Gen will only get called from Agent or Authorization. Since global is true by default and
+        # Agent always sets the define key based off of the oauth scope, default this to True if the
+        # define key is not true
+        define = kwargs.pop('define', True)
+
+        # Check if group or not 
+        is_group = kwargs.get('objectType', None) == "Group"
+        # Find any IFPs
+        attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
+        # If it is an agent, it must have one IFP
+        if not is_group and len(attrs) != 1:
+            raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
+        # If there is an IFP (could be blank if group) make a dict with the IFP key and value
+        if attrs:
+            attr = attrs[0]
+            # Don't create the attrs_dict if the IFP is an account
+            if not 'account' == attr:
+                attrs_dict = {attr:kwargs[attr]}
+        
+        # Agents won't have members 
+        members = None
+        # If there is no account, check to see if it a group and has members
+        if is_group and 'member' in kwargs:
+            mem = kwargs.pop('member')
+            try:
+                members = json.loads(mem)
+            except:
+                members = mem
+            # If it does not have define permissions, each member in the non-global group must also be
+            # non-global
+            if not define:
+                for a in members:
+                    a['global_representation'] = False    
+        
+        # Pop account
+        val = kwargs.pop('account', None)
+        # If it is incoming account object
+        if val:
+            ret_agent, created = self.handle_account(val, kwargs, members, define)
+
+        # Try to get the agent/group
+        try:
+            # If there are no IFPs but there are members (group with no IFPs)
+            if not attrs and members:
+                ret_agent = agent.objects.get(**kwargs)
+                created = False
+                ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
+                if need_to_create:
+                    ret_agent, created = self.create_agent(kwargs, define)
+            # Cannot have no IFP and no members
+            elif not attrs and not members:
+                raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must have a members list")
+            # If there is and IFP and members (group with IFP that's not account since it should be
+            # updated already from above)if there is an IFP that isn't account and no members (agent object)
+            else:
+                if not 'account' in attrs:
+                    ret_agent = agent.objects.get(**attrs_dict)
+                    created = False
+                ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
+                if need_to_create:
+                    ret_agent, created = self.create_agent(kwargs, define)
+        # If agent/group does not exist, create it then clean and save it so if it's a group below
+        # we can add members
+        except agent.DoesNotExist:
+            # If no define permission then the created agent/group is non-global
+            ret_agent, created = self.create_agent(kwargs, define)
+
+        # If it is a group and has just been created, grab all of the members and send them through
+        # this process then clean and save
         if is_group and created:
             ags = [self.gen(**a) for a in members]
             ret_agent.member.add(*(a for a, c in ags))
@@ -433,7 +517,17 @@ class agent(statement_object):
     mbox_sha1sum = models.CharField(max_length=40, blank=True, null=True, db_index=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True, db_index=True)
     oauth_identifier = models.CharField(max_length=64, null=True, blank=True)
+    member = models.ManyToManyField('self', related_name="agents", null=True)
+    global_representation = models.BooleanField(default=True)
     objects = agentmgr()
+
+    def __init__(self, *args, **kwargs):
+        if "member" in kwargs:
+            if "objectType" in kwargs and kwargs["objectType"] == "Agent":
+                raise ParamError('An Agent cannot have members')
+
+            kwargs["objectType"] = "Group"
+        super(agent, self).__init__(*args, **kwargs)
 
     def clean(self):
         from lrs.util import uri
@@ -442,7 +536,6 @@ class agent(statement_object):
 
     def get_agent_json(self, sparse=False):
         ret = {}
-        # Default to agent, if group subclass calls it displays Group instead of Agent
         ret['objectType'] = self.objectType
         if self.name:
             ret['name'] = self.name
@@ -457,8 +550,11 @@ class agent(statement_object):
                 ret['account'] = self.agent_account.get_json()
         except:
             pass
+        if self.objectType == 'Group':
+            ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
         return ret
 
+    # Used only for /agent GET endpoint (check spec)
     def get_person_json(self):
         ret = {}
         ret['objectType'] = self.objectType
@@ -488,8 +584,10 @@ class agent(statement_object):
         try:
             return self.agent_account.get_a_name()
         except:
-            pass
-        return "unknown"
+            if self.objectType == 'Agent':
+                return "unknown"
+            else:
+                return "anonymous group"
 
     def __unicode__(self):
         return json.dumps(self.get_agent_json())
@@ -498,7 +596,7 @@ class agent(statement_object):
 class agent_account(models.Model):  
     homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True)
     name = models.CharField(max_length=50)
-    agent = models.OneToOneField(agent)
+    agent = models.OneToOneField(agent, null=True)
 
     def get_json(self):
         ret = {}
@@ -516,27 +614,6 @@ class agent_account(models.Model):
 
     def __unicode__(self):
         return json.dumps(self.get_json())
-
-
-class group(agent):
-    member = models.ManyToManyField(agent, related_name="agents")
-    objects = agentmgr()
-
-    def __init__(self, *args, **kwargs):
-        kwargs["objectType"] = "Group"
-        super(group, self).__init__(*args, **kwargs)
-
-    def get_agent_json(self, sparse=False):
-        ret = {}
-        ret['objectType'] = self.objectType
-        ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
-        return ret
-
-    def get_a_name(self):
-        name = super(group, self).get_a_name()
-        if not name:
-            name = "anonymous group"
-        return name
 
 
 class agent_profile(models.Model):
@@ -827,8 +904,8 @@ class ContextActivity(models.Model):
 class context(models.Model):    
     registration = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
     instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, db_index=True)
-    team = models.ForeignKey(group,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
-    revision = models.TextField(blank=True, null=True)
+    team = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
+    revision = models.TextField(blank=True)
     platform = models.CharField(max_length=50,blank=True, null=True)
     language = models.CharField(max_length=50,blank=True, null=True)
     extensions = generic.GenericRelation(extensions)
@@ -969,35 +1046,35 @@ class SubStatement(statement_object):
         actor_in_use = False
         # Loop through each relationship
         for link in agent_links:
-            if link != 'group':
-                # Get all objects for that relationship that the agent is related to
-                try:
-                    objects = getattr(actor_agent, link).all()
-                except:
-                    continue
-                # If looking at statement actors, if there's another stmt with same actor-in use
-                if link == "actor_statement" or link == "actor_of_substatement":
-                    # Will already have one (self)
+            # if link != 'group':
+            # Get all objects for that relationship that the agent is related to
+            try:
+                objects = getattr(actor_agent, link).all()
+            except:
+                continue
+            # If looking at statement actors, if there's another stmt with same actor-in use
+            if link == "actor_statement" or link == "actor_of_substatement":
+                # Will already have one (self)
+                if len(objects) > 1:
+                    actor_in_use = True
+                    break
+            elif link == "object_of_statement":
+                # If for some reason actor is same as stmt_object, there will be at least one
+                if actor_agent == stmt_object :
                     if len(objects) > 1:
                         actor_in_use = True
                         break
-                elif link == "object_of_statement":
-                    # If for some reason actor is same as stmt_object, there will be at least one
-                    if actor_agent == stmt_object :
-                        if len(objects) > 1:
-                            actor_in_use = True
-                            break
-                    # If they are not the same and theres at least one object, it's in use
-                    else:
-                        if len(objects) > 0:
-                            actor_in_use = True
-                            break
-                # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
-                # it's in use
+                # If they are not the same and theres at least one object, it's in use
                 else:
                     if len(objects) > 0:
                         actor_in_use = True
                         break
+            # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
+            # it's in use
+            else:
+                if len(objects) > 0:
+                    actor_in_use = True
+                    break
         if not actor_in_use:
             self.actor.delete()
         
@@ -1054,27 +1131,26 @@ class SubStatement(statement_object):
         elif object_type == 'agent':
             # Know it's not same as auth or actor
             for link in agent_links:
-                if link != 'group':
-                    try:
-                        objects = getattr(stmt_object, link).all()
-                    except:
-                        continue
-                    # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
-                    if link == 'object_of_statement':
-                        if len(objects) > 0:
-                            object_in_use = True 
-                            break
-                    # If it's in anything else outside of stmt then it's in use
-                    else:
-                        if len(objects) > 0:
-                            object_in_use = True
-                            break
+                # if link != 'group':
+                try:
+                    objects = getattr(stmt_object, link).all()
+                except:
+                    continue
+                # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
+                if link == 'object_of_statement':
+                    if len(objects) > 0:
+                        object_in_use = True 
+                        break
+                # If it's in anything else outside of stmt then it's in use
+                else:
+                    if len(objects) > 0:
+                        object_in_use = True
+                        break
 
 
         # If nothing else is using it, delete it
         if not object_in_use:
             stmt_object.delete()
-
 
 class statement(models.Model):
     statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
@@ -1163,13 +1239,13 @@ class statement(models.Model):
         in_use = False
         # Loop through each relationship
         for link in links:
-            if link != 'group':
-                # Get all objects for that relationship that the agent is related to
-                objects = getattr(obj, link).all()
-                # If objects are more than one, other objects are using it
-                if len(objects) > num:
-                    in_use = True
-                    break
+            # if link != 'group':
+            # Get all objects for that relationship that the agent is related to
+            objects = getattr(obj, link).all()
+            # If objects are more than one, other objects are using it
+            if len(objects) > num:
+                in_use = True
+                break
         return in_use
 
     def delete(self, *args, **kwargs):
@@ -1189,49 +1265,49 @@ class statement(models.Model):
         actor_in_use = False
         # Loop through each relationship
         for link in agent_links:
-            if link != 'group':
-                # Get all objects for that relationship that the agent is related to
-                try:
-                    objects = getattr(actor_agent, link).all()
-                except:
-                    continue
-                # If looking at statement actors, if there's another stmt with same actor-in use
-                if link == "actor_statement":
-                    # Will already have one (self)
-                    if len(objects) > 1:
-                        actor_in_use = True
-                        break
-                # break check to see if this agent is the same as the auth
-                elif link == "authority_statement":
-                    # If auth
-                    if not self.authority is None:
-                        # If actor and auth are the same, there will be at least 1 object
-                        if actor_agent == self.authority:
-                            if len(objects) > 1:
-                                actor_in_use = True
-                                break
-                        # If they are not the same and theres at least one object, it's a different obj using it
-                        else:
-                            if len(objects) > 0:
-                                actor_in_use = True
-                                break
-                elif link == "object_of_statement":
-                    # If for some reason actor is same as stmt_object, there will be at least one
-                    if actor_agent == stmt_object :
+            # if link != 'group':
+            # Get all objects for that relationship that the agent is related to
+            try:
+                objects = getattr(actor_agent, link).all()
+            except:
+                continue
+            # If looking at statement actors, if there's another stmt with same actor-in use
+            if link == "actor_statement":
+                # Will already have one (self)
+                if len(objects) > 1:
+                    actor_in_use = True
+                    break
+            # break check to see if this agent is the same as the auth
+            elif link == "authority_statement":
+                # If auth
+                if not self.authority is None:
+                    # If actor and auth are the same, there will be at least 1 object
+                    if actor_agent == self.authority:
                         if len(objects) > 1:
                             actor_in_use = True
                             break
-                    # If they are not the same and theres at least one object, it's in use
+                    # If they are not the same and theres at least one object, it's a different obj using it
                     else:
                         if len(objects) > 0:
                             actor_in_use = True
                             break
-                # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
-                # it's in use
+            elif link == "object_of_statement":
+                # If for some reason actor is same as stmt_object, there will be at least one
+                if actor_agent == stmt_object :
+                    if len(objects) > 1:
+                        actor_in_use = True
+                        break
+                # If they are not the same and theres at least one object, it's in use
                 else:
                     if len(objects) > 0:
                         actor_in_use = True
                         break
+            # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
+            # it's in use
+            else:
+                if len(objects) > 0:
+                    actor_in_use = True
+                    break
 
         if not actor_in_use:
             self.actor.delete()
@@ -1275,34 +1351,34 @@ class statement(models.Model):
             # If agents are the same and you already deleted the actor since it was in use, no use checking this
             if authority_agent != actor_agent:
                 for link in agent_links:
-                    if link != 'group':
-                        try:
-                            objects = getattr(authority_agent, link).all()
-                        except:
-                            continue
+                    # if link != 'group':
+                    try:
+                        objects = getattr(authority_agent, link).all()
+                    except:
+                        continue
 
-                        if link == "authority_statement":
-                            # Will already have one (self)
+                    if link == "authority_statement":
+                        # Will already have one (self)
+                        if len(objects) > 1:
+                            auth_in_use = True
+                            break
+                    elif link == "object_of_statement":
+                        # If for some reason auth is same as stmt_object, there will be at least one
+                        if authority_agent == stmt_object :
                             if len(objects) > 1:
                                 auth_in_use = True
                                 break
-                        elif link == "object_of_statement":
-                            # If for some reason auth is same as stmt_object, there will be at least one
-                            if authority_agent == stmt_object :
-                                if len(objects) > 1:
-                                    auth_in_use = True
-                                    break
-                            # If they are not the same and theres at least one object, it's in use
-                            else:
-                                if len(objects) > 0:
-                                    auth_in_use = True
-                                    break
-                        # Don't have to check actor b/c you know it's different, and if it's in anything else outside
-                        # of stmt then it's in use
+                        # If they are not the same and theres at least one object, it's in use
                         else:
                             if len(objects) > 0:
                                 auth_in_use = True
-                                break                        
+                                break
+                    # Don't have to check actor b/c you know it's different, and if it's in anything else outside
+                    # of stmt then it's in use
+                    else:
+                        if len(objects) > 0:
+                            auth_in_use = True
+                            break                        
                 if not auth_in_use:
                     self.authority.delete()
         
@@ -1346,21 +1422,21 @@ class statement(models.Model):
             elif object_type == 'agent':
                 # Know it's not same as auth or actor
                 for link in agent_links:
-                    if link != 'group':
-                        try:
-                            objects = getattr(stmt_object, link).all()
-                        except:
-                            continue
-                        # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
-                        if link == 'object_of_statement':
-                            if len(objects) > 0:
-                                object_in_use = True 
-                                break
-                        # If it's in anything else outside of stmt then it's in use
-                        else:
-                            if len(objects) > 0:
-                                object_in_use = True
-                                break
+                    # if link != 'group':
+                    try:
+                        objects = getattr(stmt_object, link).all()
+                    except:
+                        continue
+                    # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
+                    if link == 'object_of_statement':
+                        if len(objects) > 0:
+                            object_in_use = True 
+                            break
+                    # If it's in anything else outside of stmt then it's in use
+                    else:
+                        if len(objects) > 0:
+                            object_in_use = True
+                            break
 
             # If nothing else is using it, delete it
             if not object_in_use:

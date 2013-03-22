@@ -2,7 +2,8 @@ import json
 import datetime
 from django.core.files.base import ContentFile
 from django.db import transaction
-from lrs.models import agent, group, agent_profile
+from lrs.models import agent_profile
+from lrs.models import agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 import logging
@@ -12,9 +13,10 @@ logger = logging.getLogger('user_system_actions')
 
 class Agent():
     @transaction.commit_on_success
-    def __init__(self, initial=None, create=False, log_dict=None):
+    def __init__(self, initial=None, create=False, log_dict=None, define=True):
         self.initial = initial
         self.log_dict = log_dict
+        self.define = define
         params = self.initial
 
         if not isinstance(params, dict):
@@ -27,12 +29,9 @@ class Agent():
                 update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg) 
                 
-        if 'objectType' in params and params['objectType'] == 'Group':
-            obj = group
-        else:
-            obj = agent
         if create:
-            self.agent, created = obj.objects.gen(**params)
+            params['define'] = self.define
+            self.agent, created = ag.objects.gen(**params)
             if created:
                 log_message(self.log_dict, "Created %s in database" % self.agent.objectType, __name__, self.__init__.__name__)
             elif not created:
@@ -41,7 +40,9 @@ class Agent():
             try:
                 if 'member' in params:
                     params.pop('member', None)
-                self.agent = obj.objects.get(**params)
+                # If retreiving agents always get global version                
+                params['global_representation'] = True
+                self.agent = ag.objects.get(**params)
                 log_message(self.log_dict, "Retrieved %s from database" % self.agent.objectType, __name__, self.__init__.__name__)
 
             except:
