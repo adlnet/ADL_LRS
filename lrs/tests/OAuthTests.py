@@ -1140,7 +1140,7 @@ class OAuthTests(TestCase):
         name_list.append(str(act_defs[1].name.all()[0].value))
         self.assertIn('altname', name_list)
         self.assertIn('definealtname', name_list)
-'''
+
     def test_define_scope_agent(self):
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
@@ -1186,12 +1186,18 @@ class OAuthTests(TestCase):
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(resp.status_code, 204)
-        agents = models.agent.objects.all()
-        self.assertEqual(len(agents), 2)
-        self.assertEqual(acts[0].activity_id, acts[1].activity_id)
+        agents = models.agent.objects.all().values_list('name', flat=True)
+        # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim, tim timson
+        self.assertEqual(len(agents), 7)
+        self.assertIn('tim', agents)
+        self.assertIn('tim timson', agents)
+        tim = models.agent.objects.get(name='tim timson')
+        self.assertFalse(tim.global_representation)
+        tim = models.agent.objects.get(name='tim')
+        self.assertTrue(tim.global_representation)
 
         # START GET STMT
-        get_params = {"object":{"objectType": "Activity", "id":"test://test/define/scope"}}
+        get_params = {"object":{"objectType": "Agent", "mbox":"mailto:tim@tim.com"}}
         path = "%s?%s" % (url, urllib.urlencode(get_params)) 
 
         del oauth_header_resource_params_dict['statementId']
@@ -1211,19 +1217,28 @@ class OAuthTests(TestCase):
             Authorization=new_oauth_headers)
         self.assertEqual(get_resp.status_code, 200)
         content = json.loads(get_resp.content)
-        self.assertEqual(len(content['statements']), 2)
+        # Should only be one since querying by tim email. Will only pick up global tim object
+        self.assertEqual(len(content['statements']), 1)
         self.client.logout()
-
+        
         # START OF POST WITH ANOTHER HANDSHAKE
+        ot = "Group"
+        members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
+                    {"name":"jan doe","mbox":"mailto:jandoe@example.com"}]
+        kwargs = {"objectType":ot, "member": members, "name": "doe group"}
+        global_group, created = models.agent.objects.gen(**kwargs)
+
+        members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
+                    {"name":"jan doe","mbox":"mailto:jandoe@example.com"},
+                    {"name":"dave doe", "mbox":"mailto:dd@example.com"}]
+        kwargs1 = {"objectType":ot, "member": members, "name": "doe group"}
+
         post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:dom@dom.com", "name":"dom"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/tested","display": {"en-US":"tested"}},
-            "object": {"id":"test://test/define/scope",
-            'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
-            'description': {'en-US':'definedesc', 'en-GB': 'definedesc'},'type': 'course',
-            'interactionType': 'intType'}}}
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assisted","display": {"en-US":"assisted"}},
+            "object": kwargs1}
         stmt_json = json.dumps(post_stmt)
 
-        post_oauth_header_resource_params, post_access_token = self.perform_oauth_handshake2(scope_type='define,statements/write',
+        post_oauth_header_resource_params, post_access_token = self.perform_oauth_handshake2(scope_type='statements/write,statements/read',
             request_nonce='stmtpostrequestnonce', access_nonce='stmtpostaccessnonce',
             resource_nonce='stmtpostresourcenonce')
 
@@ -1236,7 +1251,6 @@ class OAuthTests(TestCase):
         
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del post_oauth_header_resource_params_dict['OAuth realm']
-        # post_oauth_header_resource_params_dict.update(post_stmt)
         
         post_oauth_request = OAuthRequest.from_token_and_callback(post_access_token, http_method='POST',
             http_url='http://testserver/XAPI/statements/',
@@ -1251,12 +1265,24 @@ class OAuthTests(TestCase):
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version="0.95")
         self.assertEqual(post.status_code, 200)
-        acts = models.activity.objects.all()
-        self.assertEqual(len(acts), 2)
-        act_defs = models.activity_definition.objects.all()
-        name_list = []
-        name_list.append(str(act_defs[0].name.all()[0].value))
-        name_list.append(str(act_defs[1].name.all()[0].value))
-        self.assertIn('altname', name_list)
-        self.assertIn('definealtname', name_list)
-        '''
+        agents = models.agent.objects.all()
+        
+        # These 5 agents are all non-global since created w/o define scope
+        non_globals = models.agent.objects.filter(global_representation=False).values_list('name', flat=True)
+        self.assertEqual(len(non_globals), 5)
+        self.assertIn('bill', non_globals)
+        self.assertIn('tim timson', non_globals)
+        self.assertIn('dave doe', non_globals)
+        self.assertIn('dom', non_globals)
+        self.assertIn('doe group', non_globals)
+        # 2 oauth group objects, all of these agents since created with member or manually and 2 anon
+        # account agents for the accounts in the oauth groups
+        global_agents = models.agent.objects.filter(global_representation=True).values_list('name', flat=True)
+        self.assertEqual(len(global_agents), 11)
+        self.assertIn('bob', global_agents)
+        self.assertIn('tim', global_agents)
+        self.assertIn('jan doe', global_agents)
+        self.assertIn('john doe', global_agents)
+        self.assertIn('jane', global_agents)
+        self.assertIn('dick', global_agents)
+        self.assertIn('doe group', global_agents)
