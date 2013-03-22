@@ -413,6 +413,11 @@ class agentmgr(models.Manager):
 
     def gen(self, **kwargs):
         define = kwargs.pop('define', True)
+        kwargs['global_representation'] = True
+
+        if not define:
+            kwargs['global_representation'] = False
+
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
         # Find any IFPs
@@ -491,6 +496,7 @@ class agent(statement_object):
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True, db_index=True)
     oauth_identifier = models.CharField(max_length=64, null=True, blank=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
+    global_representation = models.BooleanField(default=True)
     objects = agentmgr()
 
     def __init__(self, *args, **kwargs):

@@ -1020,7 +1020,7 @@ class OAuthTests(TestCase):
         self.assertEqual(get.status_code, 403)
         self.assertEqual(get.content, "Authorization doesn't match agent in profile")
 
-    def test_define_scope(self):
+    def test_define_scope_activity(self):
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
         existing_stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent",
@@ -1140,3 +1140,123 @@ class OAuthTests(TestCase):
         name_list.append(str(act_defs[1].name.all()[0].value))
         self.assertIn('altname', name_list)
         self.assertIn('definealtname', name_list)
+'''
+    def test_define_scope_agent(self):
+        url = 'http://testserver/XAPI/statements'
+        guid = str(uuid.uuid1())
+        existing_stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/helped",
+            "display": {"en-US":"helped"}},"object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com",
+            "name":"tim"}}))
+
+        # build stmt data and path
+        put_guid = str(uuid.uuid1())
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/talked","display": {"en-US":"talked"}},
+            "object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com","name":"tim timson"}})
+
+        param = {"statementId":put_guid}
+        path = "%s?%s" % (url, urllib.urlencode(param))
+        
+        # START PUT STMT
+        oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='statements/write,statements/read',
+            request_nonce='anotherstmtputrequestnonce',access_nonce='anotherstmtputaccessnonce',
+            resource_nonce='anotherstmtputresourcenonce')
+        
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+        # add put data
+        oauth_header_resource_params_dict.update(param)
+
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        # Put statements
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="0.95")
+        self.assertEqual(resp.status_code, 204)
+        agents = models.agent.objects.all()
+        self.assertEqual(len(agents), 2)
+        self.assertEqual(acts[0].activity_id, acts[1].activity_id)
+
+        # START GET STMT
+        get_params = {"object":{"objectType": "Activity", "id":"test://test/define/scope"}}
+        path = "%s?%s" % (url, urllib.urlencode(get_params)) 
+
+        del oauth_header_resource_params_dict['statementId']
+        oauth_header_resource_params_dict.update(get_params)
+        oauth_header_resource_params_dict['oauth_nonce'] = 'getdiffernonce'
+
+        oauth_request = OAuthRequest.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        get_signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
+        replace_sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % get_signature)
+        new_oauth_headers = replace_sig.replace('oauth_nonce="accessresourcenonce"','oauth_nonce="getdiffernonce"')        
+
+        get_resp = self.client.get(path, X_Experience_API_Version="0.95",
+            Authorization=new_oauth_headers)
+        self.assertEqual(get_resp.status_code, 200)
+        content = json.loads(get_resp.content)
+        self.assertEqual(len(content['statements']), 2)
+        self.client.logout()
+
+        # START OF POST WITH ANOTHER HANDSHAKE
+        post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:dom@dom.com", "name":"dom"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/tested","display": {"en-US":"tested"}},
+            "object": {"id":"test://test/define/scope",
+            'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
+            'description': {'en-US':'definedesc', 'en-GB': 'definedesc'},'type': 'course',
+            'interactionType': 'intType'}}}
+        stmt_json = json.dumps(post_stmt)
+
+        post_oauth_header_resource_params, post_access_token = self.perform_oauth_handshake2(scope_type='define,statements/write',
+            request_nonce='stmtpostrequestnonce', access_nonce='stmtpostaccessnonce',
+            resource_nonce='stmtpostresourcenonce')
+
+        # from_token_and_callback takes a dictionary        
+        post_param_list = post_oauth_header_resource_params.split(",")
+        post_oauth_header_resource_params_dict = {}
+        for p in post_param_list:
+            item = p.split("=")
+            post_oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del post_oauth_header_resource_params_dict['OAuth realm']
+        # post_oauth_header_resource_params_dict.update(post_stmt)
+        
+        post_oauth_request = OAuthRequest.from_token_and_callback(post_access_token, http_method='POST',
+            http_url='http://testserver/XAPI/statements/',
+            parameters=post_oauth_header_resource_params_dict)
+
+        post_signature_method = OAuthSignatureMethod_HMAC_SHA1()
+        post_signature = signature_method.build_signature(post_oauth_request, self.consumer2,
+            post_access_token)
+
+        post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
+        
+        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+            Authorization=post_oauth_header_resource_params, X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 200)
+        acts = models.activity.objects.all()
+        self.assertEqual(len(acts), 2)
+        act_defs = models.activity_definition.objects.all()
+        name_list = []
+        name_list.append(str(act_defs[0].name.all()[0].value))
+        name_list.append(str(act_defs[1].name.all()[0].value))
+        self.assertIn('altname', name_list)
+        self.assertIn('definealtname', name_list)
+        '''
