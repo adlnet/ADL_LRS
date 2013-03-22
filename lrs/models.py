@@ -483,22 +483,16 @@ class agentmgr(models.Manager):
                 ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
                 if need_to_create:
                     ret_agent, created = self.create_agent(kwargs, define)
+            # Cannot have no IFP and no members
+            elif not attrs and not members:
+                raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must have a members list")
             # If there is and IFP and members (group with IFP that's not account since it should be
-            # updated already from above)
-            elif attrs and members:
-                if not 'account' in attrs:
-                    ret_agent = agent.objects.get(**attrs_dict)
-                    created = False
-                ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
-                if need_to_create:
-                    ret_agent, created = self.create_agent(kwargs, define)
-            # Cannot have no IFP and no members so this catches if there is an IFP that isn't account
-            # and no members (agent object)
+            # updated already from above)if there is an IFP that isn't account and no members (agent object)
             else:
                 if not 'account' in attrs:
                     ret_agent = agent.objects.get(**attrs_dict)
                     created = False
-                ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members,define)    
+                ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
                 if need_to_create:
                     ret_agent, created = self.create_agent(kwargs, define)
         # If agent/group does not exist, create it then clean and save it so if it's a group below
