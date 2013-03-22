@@ -1507,7 +1507,7 @@ class StatementsTests(TestCase):
     def test_since_filter_tz(self):
         stmt1_guid = str(uuid.uuid1())
         stmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
-                "display": {"en-US":"created"}}, "object": {"id":"activity"},
+                "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T12:00:00-05:00"})
 
         param = {"statementId":stmt1_guid}

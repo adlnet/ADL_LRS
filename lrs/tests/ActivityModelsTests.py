@@ -162,9 +162,9 @@ class ActivityModelsTests(TestCase):
     # Test activity that doesn't have a def, isn't a link and doesn't resolve (creates useless 
     # Activity object)
     def test_activity_no_def_not_link_no_resolve(self):
-        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'foo'}))
+        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foo'}))
         
-        self.do_activity_model(act.activity.id, 'foo', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:foo', 'Activity')
 
     # Test activity that doesn't have a def, isn't a link and conforms to schema
     # (populates everything from XML)
@@ -267,7 +267,7 @@ class ActivityModelsTests(TestCase):
     # (should still use values from JSON)
     def test_activity_not_link_no_resolve(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity',
-                'id':'/var/www/adllrs/activity/example.xml','definition': {'name': {'en-CH':'testname'},
+                'id':'act://var/www/adllrs/activity/example.xml','definition': {'name': {'en-CH':'testname'},
                 'description': {'en-US':'testdesc'}, 'type': 'course','interactionType': 'intType'}}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
@@ -284,7 +284,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc')
 
-        self.do_activity_model(act.activity.id, '/var/www/adllrs/activity/example.xml', 'Activity')        
+        self.do_activity_model(act.activity.id, 'act://var/www/adllrs/activity/example.xml', 'Activity')        
         self.do_activity_definition_model(fk, 'course', 'intType')
 
     # Test an activity that has a def, not a link and the provided ID conforms to the schema
@@ -349,15 +349,15 @@ class ActivityModelsTests(TestCase):
 
     #Test an activity where there is no given objectType, defaults to Activity
     def test_activity_no_objectType(self):
-        act = Activity.Activity(json.dumps({'id':'fooa'}))
+        act = Activity.Activity(json.dumps({'id':'act:fooa'}))
         
-        self.do_activity_model(act.activity.id,'fooa', 'Activity')
+        self.do_activity_model(act.activity.id,'act:fooa', 'Activity')
 
     # Test an activity with a provided objectType - defaults to Activity
     def test_activity_wrong_objectType(self):
-        act = Activity.Activity(json.dumps({'id': 'foob', 'objectType':'Wrong'}))    
+        act = Activity.Activity(json.dumps({'id': 'act:foob', 'objectType':'Wrong'}))    
 
-        self.do_activity_model(act.activity.id, 'foob', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:foob', 'Activity')
 
     #Test activity where given URL doesn't resolve
     def test_activity_invalid_activity_id(self):
@@ -367,7 +367,7 @@ class ActivityModelsTests(TestCase):
 
     #Test activity with definition - must retrieve activity object in order to test definition from DB
     def test_activity_definition(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'fooc',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:fooc',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'course','interactionType': 'intType'}}))
 
@@ -384,7 +384,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc')
 
-        self.do_activity_model(act.activity.id,'fooc', 'Activity')        
+        self.do_activity_model(act.activity.id,'act:fooc', 'Activity')        
         self.do_activity_definition_model(fk, 'course', 'intType')
 
     #Test activity with definition given wrong type (won't create it)
@@ -408,7 +408,7 @@ class ActivityModelsTests(TestCase):
     # Test activity with definition that contains extensions - need to retrieve activity and activity definition objects
     # in order to test extenstions
     def test_activity_definition_extensions(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'food',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:food',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'course','interactionType': 'intType2', 'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}))
@@ -426,14 +426,14 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-CH')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        self.do_activity_model(act.activity.id,'food', 'Activity')        
+        self.do_activity_model(act.activity.id,'act:food', 'Activity')        
         self.do_activity_definition_model(fk, 'course','intType2')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
                 'value3')
 
     def test_multiple_names_and_descs(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'food',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:food',
                 'definition': {'name': {'en-FR':'testname2','en-US': 'testnameEN'},'description': {'en-CH':'testdesc2',
                 'en-GB': 'testdescGB'},'type': 'course','interactionType': 'intType2', 'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}))
@@ -456,7 +456,7 @@ class ActivityModelsTests(TestCase):
             elif ds.key == 'en-CH':
                 self.assertEqual(ds.value, 'testdesc2')
 
-        self.do_activity_model(act.activity.id,'food', 'Activity')        
+        self.do_activity_model(act.activity.id,'act:food', 'Activity')        
         self.do_activity_definition_model(fk, 'course', 'intType2')
 
         self.do_activity_definition_extensions_model(def_fk, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
@@ -489,7 +489,7 @@ class ActivityModelsTests(TestCase):
 
     #Test activity with definition that is cmi.interaction and true-false interactionType
     def test_activity_definition_cmiInteraction_true_false(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'fooe',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:fooe',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-US':'testdesc2'}, 
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'true-false',
                 'correctResponsesPattern': ['true'] ,'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2',
@@ -510,7 +510,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id,'fooe', 'Activity')                
+        self.do_activity_model(act.activity.id,'act:fooe', 'Activity')                
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','true-false')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1',
@@ -520,7 +520,7 @@ class ActivityModelsTests(TestCase):
     
     #Test activity with definition that is cmi.interaction and multiple choice interactionType
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foof',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foof',
                 'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'choice',
                 'correctResponsesPattern': ['golf', 'tetris'],'choices':[{'id': 'golf', 
@@ -545,7 +545,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id,'foof', 'Activity')
+        self.do_activity_model(act.activity.id,'act:foof', 'Activity')
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'choice')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
@@ -574,7 +574,7 @@ class ActivityModelsTests(TestCase):
     
     #Test activity with definition that is cmi.interaction and fill in interactionType
     def test_activity_definition_cmiInteraction_fill_in(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foog',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foog',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Fill in answer'],'extensions': {'ext:key1': 'value1',
@@ -595,7 +595,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id,'foog', 'Activity')
+        self.do_activity_model(act.activity.id,'act:foog', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','fill-in')
 
@@ -607,7 +607,7 @@ class ActivityModelsTests(TestCase):
     #Test activity with definition that is cmi.interaction and long fill in interactionType
     def test_activity_definition_cmiInteraction_long_fill_in(self):
 
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'fooh',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:fooh',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Long fill in answer'],'extensions': {'ext:key1': 'value1',
@@ -628,7 +628,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'fooh', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:fooh', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','fill-in')
 
@@ -639,7 +639,7 @@ class ActivityModelsTests(TestCase):
 
     #Test activity with definition that is cmi.interaction and likert interactionType
     def test_activity_definition_cmiInteraction_likert(self):    
-        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooi',
+        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'act:fooi',
                 'definition': {'name': {'en-CH':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'likert',
                 'correctResponsesPattern': ['likert_3'],'scale':[{'id': 'likert_0',
@@ -663,7 +663,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'fooi', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:fooi', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'likert')
 
@@ -679,7 +679,7 @@ class ActivityModelsTests(TestCase):
 
     #Test activity with definition that is cmi.interaction and matching interactionType
     def test_activity_definition_cmiInteraction_matching(self):    
-        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'fooj',
+        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'act:fooj',
                 'definition': {'name': {'en-CH':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'matching',
                 'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
@@ -703,7 +703,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'fooj', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:fooj', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'matching')
 
@@ -721,7 +721,7 @@ class ActivityModelsTests(TestCase):
 
     #Test activity with definition that is cmi.interaction and performance interactionType
     def test_activity_definition_cmiInteraction_performance(self):    
-        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'fook',
+        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'act:fook',
                 'definition': {'name': {'en-us':'testname2'},'description': {'en-us':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'performance',
                 'correctResponsesPattern': ['pong.1,dg.10,lunch.4'],'steps':[{'id': 'pong',
@@ -743,7 +743,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].value, 'testdesc2')        
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'fook', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:fook', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'performance')
 
@@ -758,7 +758,7 @@ class ActivityModelsTests(TestCase):
 
     # Test activity with definition that is cmi.interaction and sequencing interactionType
     def test_activity_definition_cmiInteraction_sequencing(self):    
-        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'fool',
+        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'act:fool',
                 'definition': {'name': {'en-GB':'testname2'},'description': {'en-GB':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'sequencing',
                 'correctResponsesPattern': ['lou,tom,andy,aaron'],'choices':[{'id': 'lou',
@@ -781,7 +781,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'fool', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:fool', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'sequencing')
 
@@ -794,7 +794,7 @@ class ActivityModelsTests(TestCase):
     #Test activity with definition that is cmi.interaction and numeric interactionType
     def test_activity_definition_cmiInteraction_numeric(self):
 
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'foom',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foom',
                 'definition': {'name': {'en-CH':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}))
@@ -814,7 +814,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'foom', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:foom', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'numeric')
 
@@ -826,7 +826,7 @@ class ActivityModelsTests(TestCase):
     #Test activity with definition that is cmi.interaction and other interactionType
     def test_activity_definition_cmiInteraction_other(self):
 
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'foon',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'act:foon',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other',
                 'correctResponsesPattern': ['(35.937432,-86.868896)'],'extensions': {'ext:key1': 'value1',
@@ -847,7 +847,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'foon', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:foon', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 
@@ -858,10 +858,10 @@ class ActivityModelsTests(TestCase):
 
     # Should be the same, no auth required
     def test_multiple_activities(self):
-        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob'}))
-        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob'}))
-        act3 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob'}))
-        act4 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foon'}))
+        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob'}))
+        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob'}))
+        act3 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob'}))
+        act4 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foon'}))
 
         self.assertEqual(act1.activity.id, act2.activity.id)
         self.assertEqual(act1.activity.id, act3.activity.id)
@@ -869,7 +869,7 @@ class ActivityModelsTests(TestCase):
         self.assertNotEqual(act1.activity.id, act4.activity.id)
 
     def test_language_map_description_name(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'foz',
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'act:foz',
                 'definition': {'name': {'en-US':'actname'},'description': {'en-us':'actdesc'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other',
                     'correctResponsesPattern': ['(35,-86)']}}))
@@ -886,21 +886,21 @@ class ActivityModelsTests(TestCase):
 
         self.assertEqual(desc_set[0].key, 'en-us')
         self.assertEqual(desc_set[0].value, 'actdesc')
-        self.do_activity_model(act.activity.id, 'foz', 'Activity')
+        self.do_activity_model(act.activity.id, 'act:foz', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 
     def test_multiple_activities_update_name(self):
-        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-US':'actname'},'description': {'en-us':'actdesc'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
         
-        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-US':'actname2'},'description': {'en-us':'actdesc'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
         fk1 = models.activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'foob', 'Activity')
+        self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
         act_def1 = models.activity_definition.objects.filter(activity=fk1)
 
         name_set1 = act_def1[0].name.all()
@@ -917,7 +917,7 @@ class ActivityModelsTests(TestCase):
         self.do_activity_definition_model(fk1, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 
         fk2 = models.activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'foob', 'Activity')
+        self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
         act_def2 = models.activity_definition.objects.filter(activity=fk2)
 
         name_set2 = act_def2[0].name.all()
@@ -941,16 +941,16 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(len(models.desc_lang.objects.all()), 1)
         
     def test_multiple_activities_update_desc(self):
-        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foobe',
+        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foobe',
             'definition':{'name': {'en-US':'actname'},'description': {'en-us':'actdesc'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
         
-        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foobe',
+        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foobe',
             'definition':{'name': {'en-US':'actname'},'description': {'en-us':'actdesc2'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
         fk1 = models.activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'foobe', 'Activity')
+        self.do_activity_model(act1.activity.id, 'act:foobe', 'Activity')
         act_def1 = models.activity_definition.objects.get(activity=fk1)
 
         name_set1 = act_def1.name.all()
@@ -965,7 +965,7 @@ class ActivityModelsTests(TestCase):
         self.do_activity_definition_model(fk1, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 
         fk2 = models.activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'foobe', 'Activity')
+        self.do_activity_model(act2.activity.id, 'act:foobe', 'Activity')
         act_def2 = models.activity_definition.objects.get(activity=fk2)
 
         name_set2 = act_def2.name.all()
@@ -990,16 +990,16 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(len(models.desc_lang.objects.all()), 1)
 
     def test_multiple_activities_update_both(self):
-        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
         
-        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname2'},'description': {'en-FR':'actdesc2'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
         fk1 = models.activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'foob', 'Activity')
+        self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
         act_def1 = models.activity_definition.objects.filter(activity=fk1)
 
         name_set1 = act_def1[0].name.all()
@@ -1015,7 +1015,7 @@ class ActivityModelsTests(TestCase):
         self.do_activity_definition_model(fk1, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 
         fk2 = models.activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'foob', 'Activity')
+        self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
         act_def2 = models.activity_definition.objects.filter(activity=fk2)
 
         name_set2 = act_def2[0].name.all()
@@ -1039,16 +1039,16 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(len(models.desc_lang.objects.all()), 1)
 
     def test_multiple_activities_update_both_and_add(self):
-        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
         
-        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+        act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname2', 'en-US': 'altname'},'description': {'en-FR':'actdesc2', 'en-GB': 'altdesc'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
         fk1 = models.activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'foob', 'Activity')
+        self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
         act_def1 = models.activity_definition.objects.filter(activity=fk1)
 
         name_set1 = act_def1[0].name.all()
@@ -1069,7 +1069,7 @@ class ActivityModelsTests(TestCase):
         self.do_activity_definition_model(fk1, 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', 'other')
 
         fk2 = models.activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'foob', 'Activity')
+        self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
         act_def2 = models.activity_definition.objects.filter(activity=fk2)
 
         name_set2 = act_def2[0].name.all()
@@ -1099,7 +1099,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(len(models.desc_lang.objects.all()), 2)
         
     def test_del_act(self):
-        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'foob',
+        act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
             'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other',
             'correctResponsesPattern': ['(35,-86)']}}))

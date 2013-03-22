@@ -291,7 +291,7 @@ class StatementModelsTests(TestCase):
     def test_no_registration_context_stmt(self):
         # expect the LRS to assign a context registration uuid
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'act:activity14'},
-                         'context': {'contextActivities': {'other': {'id': 'NewActivityID'}}}})).model_object
+                         'context': {'contextActivities': {'other': {'id': 'act:NewActivityID'}}}})).model_object
         ctxid = get_ctx_id(stmt)
         context = models.context.objects.get(id=ctxid)
         self.assertIsNotNone(context.registration)   
