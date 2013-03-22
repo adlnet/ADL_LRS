@@ -174,7 +174,7 @@ class SystemAction(models.Model):
     parent_action = models.ForeignKey('self', blank=True, null=True, db_index=True)
     message = models.TextField()
     timestamp = models.DateTimeField(db_index=True)
-    status_code = models.CharField(max_length=3, blank=True, null=True)
+    status_code = models.CharField(max_length=3, blank=True)
     #Content_type is the user since it can be a User or group object
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
@@ -284,11 +284,11 @@ class extensions(models.Model):
 
 
 class result(models.Model): 
-    success = models.NullBooleanField(blank=True,null=True)
-    completion = models.NullBooleanField(blank=True,null=True)
+    success = models.NullBooleanField()
+    completion = models.NullBooleanField()
     response = models.TextField(blank=True)
     #Made charfield since it would be stored in ISO8601 duration format
-    duration = models.CharField(max_length=40, blank=True, null=True)
+    duration = models.CharField(max_length=40, blank=True)
     extensions = generic.GenericRelation(extensions)
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
@@ -512,11 +512,12 @@ class agentmgr(models.Manager):
 
 class agent(statement_object):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
-    name = models.CharField(max_length=100, blank=True, null=True)
+    name = models.CharField(max_length=100, blank=True)
+    # kept null=true for mbox b/c don't want empty strings in DB b/c of 'mailto' if just not provided
     mbox = models.CharField(max_length=128, blank=True, null=True, db_index=True)
-    mbox_sha1sum = models.CharField(max_length=40, blank=True, null=True, db_index=True)
-    openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True, db_index=True)
-    oauth_identifier = models.CharField(max_length=64, null=True, blank=True)
+    mbox_sha1sum = models.CharField(max_length=40, blank=True, db_index=True)
+    openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
+    oauth_identifier = models.CharField(max_length=64, blank=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     global_representation = models.BooleanField(default=True)
     objects = agentmgr()
@@ -594,7 +595,7 @@ class agent(statement_object):
 
 
 class agent_account(models.Model):  
-    homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True)
+    homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     name = models.CharField(max_length=50)
     agent = models.OneToOneField(agent, null=True)
 
@@ -621,8 +622,8 @@ class agent_profile(models.Model):
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(agent)
     profile = models.FileField(upload_to="agent_profile")
-    content_type = models.CharField(max_length=255,blank=True,null=True)
-    etag = models.CharField(max_length=50,blank=True,null=True)
+    content_type = models.CharField(max_length=255,blank=True)
+    etag = models.CharField(max_length=50,blank=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
@@ -632,7 +633,8 @@ class agent_profile(models.Model):
 
 class activity(statement_object):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    objectType = models.CharField(max_length=8,blank=True, null=True, default="Activity") 
+    objectType = models.CharField(max_length=8,blank=True, default="Activity") 
+    # Allow this to be null 
     authoritative = models.CharField(max_length=100, blank=True, null=True)
     global_representation = models.BooleanField(default=True)
 
@@ -693,7 +695,8 @@ class desc_lang(models.Model):
 class activity_definition(models.Model):
     name = generic.GenericRelation(name_lang, related_name="name_lang")
     description = generic.GenericRelation(desc_lang, related_name="desc_lang")
-    activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True, null=True)
+    activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    # TODO: LOOK INTO SAVING JUST BLANK
     interactionType = models.CharField(max_length=25, blank=True, null=True)
     activity = models.OneToOneField(activity)
     extensions = generic.GenericRelation(extensions)
@@ -890,8 +893,8 @@ class StatementRef(statement_object):
 
 
 class ContextActivity(models.Model):
-    key = models.CharField(max_length=8, null=True)
-    context_activity = models.CharField(max_length=MAX_URL_LENGTH, null=True)
+    key = models.CharField(max_length=8)
+    context_activity = models.CharField(max_length=MAX_URL_LENGTH)
     context = models.ForeignKey('context')
     
     def object_return(self):
@@ -906,8 +909,8 @@ class context(models.Model):
     instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, db_index=True)
     team = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
     revision = models.TextField(blank=True)
-    platform = models.CharField(max_length=50,blank=True, null=True)
-    language = models.CharField(max_length=50,blank=True, null=True)
+    platform = models.CharField(max_length=50,blank=True)
+    language = models.CharField(max_length=50,blank=True)
     extensions = generic.GenericRelation(extensions)
     # for statement and sub statement
     content_type = models.ForeignKey(ContentType)
@@ -954,8 +957,8 @@ class activity_state(models.Model):
     agent = models.ForeignKey(agent, db_index=True)
     activity = models.ForeignKey(activity)
     registration_id = models.CharField(max_length=40)
-    content_type = models.CharField(max_length=255,blank=True,null=True)
-    etag = models.CharField(max_length=50,blank=True,null=True)
+    content_type = models.CharField(max_length=255,blank=True)
+    etag = models.CharField(max_length=50,blank=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
@@ -967,8 +970,8 @@ class activity_profile(models.Model):
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     activity = models.ForeignKey(activity, db_index=True)
     profile = models.FileField(upload_to="activity_profile")
-    content_type = models.CharField(max_length=255,blank=True,null=True)
-    etag = models.CharField(max_length=50,blank=True,null=True)
+    content_type = models.CharField(max_length=255,blank=True)
+    etag = models.CharField(max_length=50,blank=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
@@ -1161,7 +1164,7 @@ class statement(models.Model):
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement", db_index=True)
-    voided = models.NullBooleanField(blank=True, null=True)
+    voided = models.NullBooleanField(default=False)
     context = generic.GenericRelation(context)
     authoritative = models.BooleanField(default=True)
     user = models.ForeignKey(User, null=True, blank=True, db_index=True)
