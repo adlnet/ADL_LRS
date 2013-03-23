@@ -1549,3 +1549,32 @@ class StatementsTests(TestCase):
         self.assertIn(stmt1_guid, rsp2)
         self.assertNotIn(stmt2_guid, rsp2)
         
+    def test_stmts_w_same_regid(self):
+        stmt1_guid = str(uuid.uuid1())
+        stmt2_guid = str(uuid.uuid1())
+        reg_guid = str(uuid.uuid1())
+        stmt1 = json.dumps({"actor":{"mbox":"mailto:tom@example.com"},
+                            "verb":{"id":"http:adlnet.gov/expapi/verbs/tested",
+                                    "display":{"en-US":"tested"}},
+                            "object":{"id":"test:same.regid"},
+                            "context":{"registration":reg_guid}
+                            })
+        stmt2 = json.dumps({"actor":{"mbox":"mailto:tom@example.com"},
+                            "verb":{"id":"http:adlnet.gov/expapi/verbs/tested",
+                                    "display":{"en-US":"tested"}},
+                            "object":{"id":"test:same.regid.again"},
+                            "context":{"registration":reg_guid}
+                            })
+
+        param1 = {"statementId":stmt1_guid}
+        path1 = "%s?%s" % (reverse(views.statements), urllib.urlencode(param1))
+        stmt_payload1 = stmt1
+        resp1 = self.client.put(path1, stmt_payload1, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(resp1.status_code, 204)
+
+        param2 = {"statementId":stmt2_guid}
+        path2 = "%s?%s" % (reverse(views.statements), urllib.urlencode(param2))
+        stmt_payload2 = stmt2
+        resp2 = self.client.put(path2, stmt_payload2, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(resp2.status_code, 204)
+        
