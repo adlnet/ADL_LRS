@@ -448,7 +448,7 @@ class Activity():
     def populate_definition(self, act_def, act_created):
         log_message(self.log_dict, "Populating activity definition", __name__, self.populate_definition.__name__)
         # only update existing def stuff if request has authority to do so
-        if not act_created and (self.activity.authoritative is not None and self.activity.authoritative != self.auth):
+        if not act_created and (self.activity.authoritative != '' and self.activity.authoritative != self.auth):
             err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
             log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
             update_parent_log_status(self.log_dict, 403)
@@ -471,10 +471,10 @@ class Activity():
         if act_def['type'] == 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction':
             interaction_flag = self.validate_cmi_interaction(act_def, act_created)
 
-        act_def_created = self.save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', None))
+        act_def_created = self.save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', ''))
 
         if not act_created: 
-            if self.activity.authoritative is None or self.activity.authoritative == self.auth:
+            if self.activity.authoritative == '' or self.activity.authoritative == self.auth:
                 # Update name and desc if needed
                 self.update_activity_name_and_description(act_def, self.activity)
             else:
