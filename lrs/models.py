@@ -901,7 +901,7 @@ class ContextActivity(models.Model):
 
 
 class context(models.Model):    
-    registration = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
+    registration = models.CharField(max_length=40, default=gen_uuid, db_index=True)
     instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, db_index=True)
     team = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, related_name="context_team")
     revision = models.TextField(blank=True)

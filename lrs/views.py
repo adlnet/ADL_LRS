@@ -232,7 +232,7 @@ def my_statements(request):
                 d['statement_id'] = stmt.statement_id
                 d['actor_name'] = stmt.actor.get_a_name()
                 d['verb'] = stmt.verb.get_display()
-                stmtobj, otype = stmt.get_stmt_object()
+                stmtobj, otype = stmt.get_object()
                 d['object'] = stmtobj.get_a_name()
                 slist.append(d)
             
