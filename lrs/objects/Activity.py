@@ -511,10 +511,10 @@ class Activity():
                         raise exceptions.ParamError(err_msg)
         
         #If there is a correctResponsesPattern then save the pattern
-        if act_def_created and act_def_created != '' and 'correctResponsesPattern' in act_def.keys():
+        if act_def_created and 'correctResponsesPattern' in act_def.keys():
             self.populate_correctResponsesPattern(act_def, interaction_flag)
         #See if activity definition has extensions
-        if act_def_created and act_def_created != '' and 'extensions' in act_def.keys():
+        if act_def_created and 'extensions' in act_def.keys():
             self.populate_extensions(act_def) 
 
     def populate_correctResponsesPattern(self, act_def, interactionFlag):
