@@ -321,7 +321,7 @@ class AgentModelsTests(TestCase):
         kwargs = {"objectType":ot, "name":name, "member":members}
         g = Agent(initial=kwargs, create=True).agent
         self.assertEquals(g.name, name)
-        self.assertEquals(g.mbox, None)
+        self.assertEquals(g.mbox, '')
         mems = g.member.values_list('name', flat=True)
         self.assertEquals(len(mems), 2)
         self.assertIn('the agent', mems)

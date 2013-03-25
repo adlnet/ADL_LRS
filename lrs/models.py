@@ -247,7 +247,6 @@ class Verb(models.Model):
                 ret['display'].update(lang_map.object_return())        
         return ret
 
-    # TODO: if this isn't good enough.. fix
     def get_display(self, lang=None):
         if not len(self.display.all()) > 0:
             return self.verb_id
@@ -513,8 +512,7 @@ class agentmgr(models.Manager):
 class agent(statement_object):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
-    # kept null=true for mbox b/c don't want empty strings in DB b/c of 'mailto' if just not provided
-    mbox = models.CharField(max_length=128, blank=True, null=True, db_index=True)
+    mbox = models.CharField(max_length=128, blank=True, db_index=True)
     mbox_sha1sum = models.CharField(max_length=40, blank=True, db_index=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
     oauth_identifier = models.CharField(max_length=64, blank=True)
@@ -532,7 +530,7 @@ class agent(statement_object):
 
     def clean(self):
         from lrs.util import uri
-        if self.mbox is not None and not uri.validate_email(self.mbox):
+        if self.mbox != '' and not uri.validate_email(self.mbox):
             raise ValidationError('mbox value did not start with mailto:')
 
     def get_agent_json(self, sparse=False):
@@ -634,8 +632,7 @@ class agent_profile(models.Model):
 class activity(statement_object):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity") 
-    # Allow this to be null 
-    authoritative = models.CharField(max_length=100, blank=True, null=True)
+    authoritative = models.CharField(max_length=100, blank=True)
     global_representation = models.BooleanField(default=True)
 
     def object_return(self, sparse=False, lang=None):
@@ -696,8 +693,7 @@ class activity_definition(models.Model):
     name = generic.GenericRelation(name_lang, related_name="name_lang")
     description = generic.GenericRelation(desc_lang, related_name="desc_lang")
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    # TODO: LOOK INTO SAVING JUST BLANK
-    interactionType = models.CharField(max_length=25, blank=True, null=True)
+    interactionType = models.CharField(max_length=25, blank=True)
     activity = models.OneToOneField(activity)
     extensions = generic.GenericRelation(extensions)
 
