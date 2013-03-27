@@ -137,6 +137,18 @@ def activity_state_delete(req_dict):
     update_parent_log_status(log_dict, 204)
     return HttpResponse('', status=204)
 
+def activity_profile_post(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_info_processing(log_dict, 'POST', __name__)
+
+    #Instantiate ActivityProfile
+    ap = ActivityProfile.ActivityProfile(log_dict=log_dict)
+    #Put profile and return 204 response
+    ap.post_profile(req_dict)
+
+    update_parent_log_status(log_dict, 204)
+    return HttpResponse('', status=204)
+
 def activity_profile_put(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'PUT', __name__)

@@ -406,6 +406,7 @@ validators = {
         "DELETE" : req_validate.activity_state_delete
     },
     reverse(activity_profile).lower() : {
+        "POST": req_validate.activity_profile_post,
         "PUT" : req_validate.activity_profile_put,
         "GET" : req_validate.activity_profile_get,
         "DELETE" : req_validate.activity_profile_delete
@@ -438,6 +439,7 @@ processors = {
         "DELETE" : req_process.activity_state_delete
     },
     reverse(activity_profile).lower() : {
+        "POST": req_process.activity_profile_post,
         "PUT" : req_process.activity_profile_put,
         "GET" : req_process.activity_profile_get,
         "DELETE" : req_process.activity_profile_delete

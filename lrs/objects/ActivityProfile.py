@@ -13,6 +13,16 @@ class ActivityProfile():
     def __init__(self, log_dict=None):
         self.log_dict = log_dict
 
+    def post_profile(self, request_dict):
+        post_profile = request_dict['profile']
+        # get / create  profile
+        p = models.activity_profile.objects.get_or_create
+        original_profile = p.profile.read()
+        # if create
+        #    just save profile, set hash... PUT stuff
+        # else
+        #   merge, update hash, save
+
 	#Save profile to desired activity
     def put_profile(self, request_dict):
         #Parse out profile from request_dict
