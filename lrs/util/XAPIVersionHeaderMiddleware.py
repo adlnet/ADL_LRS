@@ -1,6 +1,6 @@
 from django.http import HttpResponseBadRequest
 
-class TCAPIversionHeaderMiddleware(object):
+class XAPIVersionHeader(object):
     def process_request(self, request):
         try:
             version = request.META['X-Experience-APIVersion']
