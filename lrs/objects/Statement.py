@@ -80,14 +80,41 @@ class Statement():
             update_parent_log_status(self.log_dict, 403)
             raise exceptions.Forbidden(err_msg)
 
+    # Statement fields are score_min and score_max
     def validateScoreResult(self, score_data):
-        if 'min' in score_data:
+        # If min and max are both in score, make sure min is less than max and if raw is included
+        # make sure it's between those two values
+        # Elif it's either just min or max, set them
+        if 'min' in score_data and 'max' in score_data:
+            sc_min = score_data['min']
+            sc_max = score_data['max']
+            if sc_min >= sc_max:
+                err_msg = "Score minimum must be less than the maximum"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+            
+            if 'raw' in score_data and (score_data['raw'] < sc_min or score_data['raw'] > sc_max):
+                err_msg = "Raw must be between minimum and maximum"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+            score_data['score_min'] = sc_min
+            score_data['score_max'] = sc_max
+        elif 'min' in score_data:
             score_data['score_min'] = score_data['min']
             del score_data['min']
-
-        if 'max' in score_data:
+        elif 'max' in score_data:
             score_data['score_max'] = score_data['max']
             del score_data['max']
+
+        # If scale is included make sure it's between -1 and 1
+        if not ('scaled' in score_data and (score_data['scaled'] > -1 and score_data['scaled'] < 1)):
+            err_msg = "Scaled must be between -1 and 1"
+            log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
+            raise exceptions.ParamError(err_msg)
+
         return score_data
 
     def saveScoreToDB(self, score):

@@ -336,7 +336,7 @@ class StatementsTests(TestCase):
             self.assertEqual(stmt.authority.name, "tester1")
             self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
         
-        
+        self.assertEqual(stmt.version, "1.0")
         self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
 
     def test_put_with_substatement(self):
