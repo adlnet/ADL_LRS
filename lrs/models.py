@@ -962,9 +962,9 @@ class activity_state(models.Model):
         super(activity_state, self).delete(*args, **kwargs)
 
 class activity_profile(models.Model):
-    profileId = models.CharField(max_length=MAX_URL_LENGTH)
+    profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
-    activity = models.ForeignKey(activity, db_index=True)
+    activityId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     profile = models.FileField(upload_to="activity_profile")
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)

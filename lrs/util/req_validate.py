@@ -325,7 +325,7 @@ def activity_profile_post(r_dict):
         err_msg = "Could not parse the content into JSON"
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
         update_log_status(log_dict, 400)
-        raise ParamError("\n".join((err_msg, e))
+        raise ParamError("\n".join((err_msg, e)))
     return r_dict
 
 @auth

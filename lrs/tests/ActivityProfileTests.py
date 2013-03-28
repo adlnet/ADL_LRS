@@ -31,11 +31,6 @@ class ActivityProfileTests(TestCase):
         form = {'username':self.username, 'email': self.email,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
-        self.act1 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': self.test_activityId1}))
-        self.act2 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': self.test_activityId2}))
-        self.act3 = Activity.Activity(json.dumps({'objectType':'Activity', 'id': self.test_activityId3}))
-        self.actother = Activity.Activity(json.dumps({'objectType':'Activity', 'id': self.other_activityId}))
-
         self.testparams1 = {"profileId": self.testprofileId1, "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         self.testprofile1 = {"test":"put profile 1","obj":{"activity":"test"}}
@@ -81,25 +76,10 @@ class ActivityProfileTests(TestCase):
         
         self.assertEqual(self.put5.status_code, 204)
 
-        #Grab the activity models
-        actmodel1 = models.activity.objects.filter(activity_id=self.test_activityId1)[0]
-        actmodel2 = models.activity.objects.filter(activity_id=self.test_activityId2)[0]
-        actmodel3 = models.activity.objects.filter(activity_id=self.test_activityId3)[0]
-        actmodel4 = models.activity.objects.filter(activity_id=self.other_activityId)[0]
-
         #Make sure profiles have correct activities
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId1)[0].activity, actmodel1)
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId2)[0].activity, actmodel2)
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId3)[0].activity, actmodel3)
-    
-        other_profiles = models.activity_profile.objects.filter(profileId=self.otherprofileId1)
-
-        # Loop through profiles since not always returned in same order
-        for p in other_profiles:
-            if p.activity.id == 'act:act-other':
-                self.assertEqual(p.activity, actmodel4)
-            elif p.activity.id == 'act:act-1':
-                self.assertEqual(p.activity, actmodel1)
+        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId1)[0].activityId, self.test_activityId1)
+        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId2)[0].activityId, self.test_activityId2)
+        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId3)[0].activityId, self.test_activityId3)
 
     def test_user_in_model(self):
         prof = models.activity_profile.objects.all()[0]
