@@ -871,7 +871,39 @@ class StatementsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
-        # pdb.set_trace()
+
+    def test_post_with_non_oauth_not_existing_group(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        agent_a = {"name":"agentA","mbox":"mailto:agentA@example.com"}
+        agent_b = {"name":"agentB","mbox":"mailto:agentB@example.com"}
+        members = [agent_a,agent_b]
+        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+
+        stmt = json.dumps({"actor":agent_a,"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+            "object": {"id":"act:i.pity.the.fool"}, "authority": group})
+        
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.content, 'Error with Agent. The agent partial ({"member": [{"mbox": "mailto:agentA@example.com", "name": "agentA"}, {"mbox": "mailto:agentB@example.com", "name": "agentB"}], "mbox": "mailto:the.groupST@example.com", "name": "the group ST", "objectType": "Group"}) did not match any agents on record')
+
+    def test_post_with_non_oauth_existing_group(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        agent_a = {"name":"agentA","mbox":"mailto:agentA@example.com"}
+        agent_b = {"name":"agentB","mbox":"mailto:agentB@example.com"}
+        members = [agent_a,agent_b]
+        group = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
+        gr_object = models.agent.objects.gen(**group)
+
+        stmt = json.dumps({"actor":agent_a,"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+            "object": {"id":"act:i.pity.the.fool"}, "authority": group})
+        
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Statements cannot have a non-Oauth group as the authority")
 
     def test_issue_put_no_version_header(self):
         stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244431'
