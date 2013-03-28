@@ -461,15 +461,41 @@ class Statement():
         if 'timestamp' in stmt_data:
             args['timestamp'] = stmt_data['timestamp']
 
+        # If non oauth group won't be sent with the authority key, so if it's a group it's a non
+        # oauth group which isn't allowed to be the authority
         if 'authority' in stmt_data:
-            args['authority'] = Agent(initial=stmt_data['authority'], create=True,
-                log_dict=self.log_dict, define=self.define).agent
+            auth_data = stmt_data['authority']
+            if not isinstance(auth_data, dict):
+                auth_data = json.loads(auth_data)
+
+            # If they're trying to put their oauth group in authority for some reason, just retrieve
+            # it. If it doesn't exist, the Agent class responds with a 404
+            if auth_data['objectType'].lower() == 'group':
+                args['authority'] = Agent(initial=stmt_data['authority'], create=False,
+                    log_dict=self.log_dict, define=self.define).agent
+            else:
+                args['authority'] = Agent(initial=stmt_data['authority'], create=True,
+                    log_dict=self.log_dict, define=self.define).agent
+
+            # If they try using a non-oauth group that already exists-throw error
+            if args['authority'].objectType == 'Group' and not args['authority'].oauth_identifier:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                update_parent_log_status(self.log_dict, 400)                   
+                raise exceptions.ParamError(err_msg)
+
         else:
-            # Look at request from auth if not supplied in stmt_data
+            # Look at request from auth if not supplied in stmt_data.
             if self.auth:
                 authArgs = {}
                 if self.auth.__class__.__name__ == 'agent':
-                    args['authority'] = self.auth
+                    if self.auth.oauth_identifier:
+                        args['authority'] = self.auth
+                    else:
+                        err_msg = "Statements cannot have a non-Oauth group as the authority"
+                        log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                        update_parent_log_status(self.log_dict, 400)                   
+                        raise exceptions.ParamError(err_msg)
                 else:    
                     authArgs['name'] = self.auth.username
                     if self.auth.email.startswith("mailto:"):
