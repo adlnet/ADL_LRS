@@ -1162,7 +1162,7 @@ class statement(models.Model):
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement", db_index=True)
     voided = models.NullBooleanField(default=False)
     context = generic.GenericRelation(context)
-    version = models.CharField(max_length=5, default="1.0")
+    version = models.CharField(max_length=7, default="1.0")
     authoritative = models.BooleanField(default=True)
     user = models.ForeignKey(User, null=True, blank=True, db_index=True)
 
