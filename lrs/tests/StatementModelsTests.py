@@ -241,6 +241,17 @@ class StatementModelsTests(TestCase):
         self.assertIn('value1', extVals)
         self.assertIn('value2', extVals)
 
+    def test_result_score_duration(self):
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.01},'completion': True,
+            'success': True, 'response': 'yes'}}))
+
+    def test_result_score_raw(self):
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.01,'min':-2.0, 'max':1.01},
+            'completion': True,'success': True, 'response': 'yes'}}))
 
     def test_result_score_stmt(self):
         time = "P0Y0M0DT1H311M01S"
