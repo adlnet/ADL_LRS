@@ -259,7 +259,6 @@ class ActivityProfileTests(TestCase):
 
 
     def test_tetris_snafu(self):
-
         params = {"profileId": "http://test.tetris/", "activityId": "act:tetris.snafu"}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"put profile 1","obj":{"activity":"test"}}
@@ -271,3 +270,16 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(r['Content-Type'], self.content_type)
         self.assertIn("\"", r.content)
 
+    def test_post_new_profile(self):
+        params = {"profileId": "prof:test_post_new_profile", "activityId": "act:test.post.new.prof"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        prof = {"test":"post new profile","obj":{"activity":"act:test.post.new.prof"}}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")

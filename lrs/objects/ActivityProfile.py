@@ -19,13 +19,14 @@ class ActivityProfile():
         user = get_user_from_auth(request_dict.get('auth', None))
         p, created = models.activity_profile.objects.get_or_create(activityId=request_dict['activityId'],  profileId=request_dict['profileId'], user=user)
         if created:
-            prof = ContentFile(str(post_profile))
+            profile = ContentFile(post_profile)
         else:
             #   merge, update hash, save
             original_profile = json.load(p.profile)
+            post_profile = json.loads(post_profile)
             merged = dict(original_profile.items() + post_profile.items())
             # update
-            prof = ContentFile(str(merged))
+            profile = ContentFile(str(merged))
 
         self.save_profile(p, created, profile, request_dict)
 

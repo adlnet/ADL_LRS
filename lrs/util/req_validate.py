@@ -320,7 +320,8 @@ def activity_profile_post(r_dict):
 
     body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
     try:
-        r_dict['profile'] = json.loads(body_dict)
+        json.loads(body_dict)
+        r_dict['profile'] = body_dict
     except Exception as e:
         err_msg = "Could not parse the content into JSON"
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
