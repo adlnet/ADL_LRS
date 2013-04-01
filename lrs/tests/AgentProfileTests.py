@@ -204,7 +204,7 @@ class AgentProfileTests(TestCase):
 
         params = {"profileId": prof_id, "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
-        profile = {"test":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
+        profile = {"test1":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="0.95")
 
         r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
@@ -224,7 +224,7 @@ class AgentProfileTests(TestCase):
 
         params = {"profileId": prof_id, "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
-        profile = {"test":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
+        profile = {"test2":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="0.95")
 
         r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
@@ -236,7 +236,7 @@ class AgentProfileTests(TestCase):
 
         params2 = {"profileId": prof_id2, "agent": self.testagent}
         path2 = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params2))
-        profile2 = {"test":"agent profile since time: %s" % updated2,"obj":{"agent":"test"}}
+        profile2 = {"test3":"agent profile since time: %s" % updated2,"obj":{"agent":"test"}}
         response = self.client.put(path2, profile2, content_type=self.content_type, updated=updated2, Authorization=self.auth, X_Experience_API_Version="0.95")
 
         r2 = self.client.get(reverse(views.agent_profile), params2, Authorization=self.auth, X_Experience_API_Version="0.95")
@@ -244,8 +244,8 @@ class AgentProfileTests(TestCase):
         self.assertEqual(r2.content, '%s' % profile2)
 
         since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
-        params = {"agent": self.testagent, "since":since.isoformat()}
-        r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="0.95")
+        par = {"agent": self.testagent, "since":since.isoformat()}
+        r = self.client.get(reverse(views.agent_profile), par, Authorization=self.auth, X_Experience_API_Version="0.95")
         self.assertNotIn(prof_id, r.content)
         self.assertIn(prof_id2, r.content)
 
@@ -294,3 +294,93 @@ class AgentProfileTests(TestCase):
         self.assertEqual(getr.content, '%s' % testprofile)
 
         self.client.delete(reverse(views.agent_profile), testparams1, Authorization=self.auth, X_Experience_API_Version="0.95")
+
+    def test_post_new_profile(self):
+        params = {"profileId": "prof:test_post_new_profile", "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        prof = {"test":"post new profile","obj":{"agent":"mailto:test@example.com"}}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+
+    def test_post_update_profile(self):
+        params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com"}}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        prof = {"obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        ret_json = json.loads(get.content)
+        self.assertEqual(ret_json['added'], prof['added'])
+        self.assertEqual(ret_json['test'], "post updated profile")
+        self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
+        self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+
+    def test_post_and_put_profile(self):
+        params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        prof = {"test":"post and put profile","obj":{"agent":"mailto:test@example.com"}}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        prof = {"wipe":"new data"}
+        thehash = get.get('etag')
+        
+        put = self.client.put(path, json.dumps(prof), content_type="application/json", If_Match=thehash, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(put.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        ret_json = json.loads(get.content)
+        self.assertEqual(ret_json['wipe'], "new data")
+        self.assertEqual(ret_json['added'], prof['added'])
+        self.assertEqual(ret_json['test'], prof['test'])
+        self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
+        self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")

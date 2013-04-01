@@ -20,11 +20,13 @@ class ActivityProfile():
         user = get_user_from_auth(request_dict.get('auth', None))
         p, created = models.activity_profile.objects.get_or_create(activityId=request_dict['activityId'],  profileId=request_dict['profileId'], user=user)
         if created:
+            log_message(self.log_dict, "Created Activity Profile", __name__, self.post_profile.__name__)
             profile = ContentFile(post_profile)
         else:
             #   merge, update hash, save
             original_profile = json.load(p.profile)
             post_profile = json.loads(post_profile)
+            log_message(self.log_dict, "Found a profile. Merging the two profiles.", __name__, self.post_profile.__name__)
             merged = dict(original_profile.items() + post_profile.items())
             # delete original one
             p.profile.delete()

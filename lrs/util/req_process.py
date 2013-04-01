@@ -222,6 +222,18 @@ def activities_get(req_dict):
     update_parent_log_status(log_dict, 200)
     return HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
 
+def agent_profile_post(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_info_processing(log_dict, 'POST', __name__)
+
+    # test ETag for concurrency
+    agent = req_dict['agent']
+    a = Agent.Agent(agent, create=True, log_dict=log_dict)
+    a.post_profile(req_dict)
+
+    update_parent_log_status(log_dict, 204)
+    return HttpResponse("", status=204)
+
 def agent_profile_put(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'PUT', __name__)

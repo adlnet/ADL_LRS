@@ -295,26 +295,26 @@ def activity_profile_post(r_dict):
         r_dict['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method']
-        log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)    
     try:
         r_dict['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method']
-        log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
 
     if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
         err_msg = "The content type for activity profile POSTs must be application/json"
-        log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
     
     if 'body' not in r_dict:
-        err_msg = "Could not find the profile"
-        log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        err_msg = "Could not find the profile document"
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
 
@@ -324,7 +324,7 @@ def activity_profile_post(r_dict):
         r_dict['profile'] = body_dict
     except Exception as e:
         err_msg = "Could not parse the content into JSON"
-        log_exception(log_dict, err_msg, activity_profile_put.__name__)
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
         update_log_status(log_dict, 400)
         raise ParamError("\n".join((err_msg, e)))
     return r_dict
@@ -350,7 +350,7 @@ def activity_profile_put(r_dict):
         raise ParamError(err_msg)
     
     if 'body' not in r_dict:
-        err_msg = "Could not find the profile"
+        err_msg = "Could not find the profile document"
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
@@ -411,6 +411,48 @@ def activities_get(r_dict):
     return r_dict
 
 @auth
+@log_parent_action(method='POST', endpoint='agents/profile')
+@check_oauth
+def agent_profile_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    try: 
+        r_dict['agent']
+    except KeyError:
+        err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    try:
+        r_dict['profileId']
+    except KeyError:
+        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(msg)
+    
+    if 'body' not in r_dict:
+        err_msg = "Could not find the profile document"
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "profile")
+    
+    # Set profile
+    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
+    try:
+        json.loads(body_dict)
+        r_dict['profile'] = body_dict
+    except Exception as e:
+        err_msg = "Could not parse the content into JSON"
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError("\n".join((err_msg, e)))
+    return r_dict
+
+@auth
 @log_parent_action(method='PUT', endpoint='agents/profile')
 @check_oauth
 def agent_profile_put(r_dict):
@@ -431,7 +473,7 @@ def agent_profile_put(r_dict):
         raise ParamError(msg)
     
     if 'body' not in r_dict:
-        err_msg = "Could not find the profile"
+        err_msg = "Could not find the profile document"
         log_exception(log_dict, err_msg, agent_profile_put.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
@@ -440,8 +482,8 @@ def agent_profile_put(r_dict):
     if r_dict['lrs_auth'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     
-    # Set profile
-    r_dict['profile'] = r_dict.pop('body')
+    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
+    r_dict['profile'] = str(body_dict)
     return r_dict
 
 @auth
