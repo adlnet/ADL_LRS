@@ -6,6 +6,7 @@ from lrs.exceptions import IDNotFoundError
 from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 import logging
 import pdb
+import json
 
 logger = logging.getLogger('user_system_actions')
 
@@ -25,8 +26,10 @@ class ActivityProfile():
             original_profile = json.load(p.profile)
             post_profile = json.loads(post_profile)
             merged = dict(original_profile.items() + post_profile.items())
+            # delete original one
+            p.profile.delete()
             # update
-            profile = ContentFile(str(merged))
+            profile = ContentFile(json.dumps(merged))
 
         self.save_profile(p, created, profile, request_dict)
 

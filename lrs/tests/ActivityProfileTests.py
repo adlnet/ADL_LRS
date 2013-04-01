@@ -269,6 +269,8 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], self.content_type)
         self.assertIn("\"", r.content)
+        
+        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
 
     def test_post_new_profile(self):
         params = {"profileId": "prof:test_post_new_profile", "activityId": "act:test.post.new.prof"}
@@ -282,4 +284,80 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(get.status_code, 200)
         self.assertEqual(json.loads(get.content), prof)
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+
+    def test_post_update_profile(self):
+        params = {"profileId": "prof:test_post_update_profile", "activityId": "act:test.post.update.prof"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        prof = {"test":"post updated profile","obj":{"activity":"act:test.post.update.prof"}}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        params = {"profileId": "prof:test_post_update_profile", "activityId": "act:test.post.update.prof"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        prof = {"obj":{"activity":"act:test.post.update.prof_changed", "new":"thing"}, "added":"yes"}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        ret_json = json.loads(get.content)
+        self.assertEqual(ret_json['added'], prof['added'])
+        self.assertEqual(ret_json['test'], "post updated profile")
+        self.assertEqual(ret_json['obj']['activity'], prof['obj']['activity'])
+        self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+
+    def test_post_and_put_profile(self):
+        params = {"profileId": "prof:test_post_and_put_profile", "activityId": "act:test.post.put.prof"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        prof = {"test":"post and put profile","obj":{"activity":"act:test.post.put.prof"}}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        params = {"profileId": "prof:test_post_and_put_profile", "activityId": "act:test.post.put.prof"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        prof = {"wipe":"new data"}
+        thehash = get.get('etag')
+        
+        put = self.client.put(path, json.dumps(prof), content_type="application/json", If_Match=thehash, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(put.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
+        params = {"profileId": "prof:test_post_and_put_profile", "activityId": "act:test.post.put.prof"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        prof = {"test":"post updated profile","obj":{"activity":"act:test.post.update.prof_changed", "new":"thing"}, "added":"yes"}
+        
+        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(post.status_code, 204)
+
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
+        self.assertEqual(get.status_code, 200)
+        ret_json = json.loads(get.content)
+        self.assertEqual(ret_json['wipe'], "new data")
+        self.assertEqual(ret_json['added'], prof['added'])
+        self.assertEqual(ret_json['test'], prof['test'])
+        self.assertEqual(ret_json['obj']['activity'], prof['obj']['activity'])
+        self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
+        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+
         self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="0.95")
