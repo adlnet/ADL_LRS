@@ -13,7 +13,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import req_validate, req_parse, req_process, TCAPIversionHeaderMiddleware, accept_middleware
+from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
@@ -312,40 +312,40 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('lrs.views.home'))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 @require_http_methods(["GET"])
 def statements_more(request, more_id):
     return handle_request(request, more_id)
 
 @require_http_methods(["PUT","GET","POST"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
     return handle_request(request)   
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activity_state(request):
     return handle_request(request)  
 
 @require_http_methods(["PUT","POST","GET","DELETE"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activity_profile(request):
     return handle_request(request)
 
 @require_GET
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activities(request):
     return handle_request(request)
 
 @require_http_methods(["PUT","POST","GET","DELETE"])    
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agent_profile(request):
     return handle_request(request)
 
 # returns a 405 (Method Not Allowed) if not a GET
 #@require_http_methods(["GET"]) or shortcut
 @require_GET
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agents(request):
     return handle_request(request)
 

@@ -80,14 +80,41 @@ class Statement():
             update_parent_log_status(self.log_dict, 403)
             raise exceptions.Forbidden(err_msg)
 
+    # Statement fields are score_min and score_max
     def validateScoreResult(self, score_data):
-        if 'min' in score_data:
+        # If min and max are both in score, make sure min is less than max and if raw is included
+        # make sure it's between those two values
+        # Elif it's either just min or max, set them
+        if 'min' in score_data and 'max' in score_data:
+            sc_min = score_data['min']
+            sc_max = score_data['max']
+            if sc_min >= sc_max:
+                err_msg = "Score minimum must be less than the maximum"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+            
+            if 'raw' in score_data and (score_data['raw'] < sc_min or score_data['raw'] > sc_max):
+                err_msg = "Raw must be between minimum and maximum"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+            score_data['score_min'] = sc_min
+            score_data['score_max'] = sc_max
+        elif 'min' in score_data:
             score_data['score_min'] = score_data['min']
             del score_data['min']
-
-        if 'max' in score_data:
+        elif 'max' in score_data:
             score_data['score_max'] = score_data['max']
             del score_data['max']
+
+        # If scale is included make sure it's between -1 and 1
+        if not ('scaled' in score_data and (score_data['scaled'] > -1 and score_data['scaled'] < 1)):
+            err_msg = "Scaled must be between -1 and 1"
+            log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+            update_parent_log_status(self.log_dict, 400)
+            raise exceptions.ParamError(err_msg)
+
         return score_data
 
     def saveScoreToDB(self, score):
@@ -434,15 +461,41 @@ class Statement():
         if 'timestamp' in stmt_data:
             args['timestamp'] = stmt_data['timestamp']
 
+        # If non oauth group won't be sent with the authority key, so if it's a group it's a non
+        # oauth group which isn't allowed to be the authority
         if 'authority' in stmt_data:
-            args['authority'] = Agent(initial=stmt_data['authority'], create=True,
-                log_dict=self.log_dict, define=self.define).agent
+            auth_data = stmt_data['authority']
+            if not isinstance(auth_data, dict):
+                auth_data = json.loads(auth_data)
+
+            # If they're trying to put their oauth group in authority for some reason, just retrieve
+            # it. If it doesn't exist, the Agent class responds with a 404
+            if auth_data['objectType'].lower() == 'group':
+                args['authority'] = Agent(initial=stmt_data['authority'], create=False,
+                    log_dict=self.log_dict, define=self.define).agent
+            else:
+                args['authority'] = Agent(initial=stmt_data['authority'], create=True,
+                    log_dict=self.log_dict, define=self.define).agent
+
+            # If they try using a non-oauth group that already exists-throw error
+            if args['authority'].objectType == 'Group' and not args['authority'].oauth_identifier:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                update_parent_log_status(self.log_dict, 400)                   
+                raise exceptions.ParamError(err_msg)
+
         else:
-            # Look at request from auth if not supplied in stmt_data
+            # Look at request from auth if not supplied in stmt_data.
             if self.auth:
                 authArgs = {}
                 if self.auth.__class__.__name__ == 'agent':
-                    args['authority'] = self.auth
+                    if self.auth.oauth_identifier:
+                        args['authority'] = self.auth
+                    else:
+                        err_msg = "Statements cannot have a non-Oauth group as the authority"
+                        log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                        update_parent_log_status(self.log_dict, 400)                   
+                        raise exceptions.ParamError(err_msg)
                 else:    
                     authArgs['name'] = self.auth.username
                     if self.auth.email.startswith("mailto:"):
