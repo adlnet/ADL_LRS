@@ -79,7 +79,7 @@ class ActivityProfile():
         fn = "%s_%s" % (p.activityId,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
 
-        log_message(self.log_dict, "Saved Activity Profile", __name__, self.put_profile.__name__)
+        log_message(self.log_dict, "Saved Activity Profile", __name__, self.save_profile.__name__)
 
     def get_profile(self, profileId, activityId):
         log_message(self.log_dict, "Getting profile with profile id: %s -- activity id: %s" % (profileId, activityId),

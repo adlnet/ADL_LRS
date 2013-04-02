@@ -32,11 +32,6 @@ class ActivityStateTests(TestCase):
         form = {'username':self.username,'email': self.email,'password':self.password,'password2':self.password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="0.95")
 
-        self.activity = models.activity(activity_id=self.activityId)
-        self.activity.save()
-
-        self.activity2 = models.activity(activity_id=self.activityId2)
-        self.activity2.save()
 
         self.testparams1 = {"stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
@@ -83,7 +78,8 @@ class ActivityStateTests(TestCase):
         teststate = {"test":"put activity state","obj":{"agent":"test"}}
         put = self.client.put(path, teststate, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
 
-        self.assertEqual(put.status_code, 404)
+        self.assertEqual(put.status_code, 204)
+        self.client.delete(path, Authorization=self.auth, X_Experience_API_Version="0.95")
 
 
     def test_put_with_registrationId(self):
@@ -569,4 +565,43 @@ class ActivityStateTests(TestCase):
         self.assertEqual(get1.content, st)
 
         delr = self.client.delete(self.url, testparams1, Authorization=auth, X_Experience_API_Version="0.95")
-        self.assertEqual(delr.status_code, 204)        
+        self.assertEqual(delr.status_code, 204)     
+
+    def test_post_new_state(self):
+        param = {"stateId": "test:postnewstate", "activityId": "act:test/post.new.state", "agent": '{"mbox":"mailto:testagent@example.com"}'}
+        path = '%s?%s' % (self.url, urllib.urlencode(param))
+        state = {"post":"testing new state", "obj":{"f1":"v1","f2":"v2"}}
+
+        r = self.client.post(path, json.dumps(state), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 204)
+
+        r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(json.loads(r.content), state)
+
+        self.client.delete(path, Authorization=self.auth, X_Experience_API_Version="0.95")
+
+    def test_post_update_state(self):
+        param = {"stateId": "test:postupdatestate", "activityId": "act:test/post.update.state", "agent": '{"mbox":"mailto:test@example.com"}'}
+        path = '%s?%s' % (self.url, urllib.urlencode(param))
+        state = {"field1":"value1", "obj":{"ofield1":"oval1","ofield2":"oval2"}}
+
+        r = self.client.post(path, json.dumps(state), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 204)
+
+        r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(json.loads(r.content), state)
+
+        state2 = {"field_xtra":"xtra val", "obj":"ha, not a obj"}
+        r = self.client.post(path, json.dumps(state2), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 204)
+
+        r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="0.95")
+        self.assertEqual(r.status_code, 200)
+        retstate = json.loads(r.content)
+        self.assertEqual(retstate['field1'], state['field1'])
+        self.assertEqual(retstate['field_xtra'], state2['field_xtra'])
+        self.assertEqual(retstate['obj'], state2['obj'])
+
+        self.client.delete(path, Authorization=self.auth, X_Experience_API_Version="0.95")

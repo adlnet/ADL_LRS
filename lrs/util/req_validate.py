@@ -192,6 +192,63 @@ def statements_put(r_dict):
     return r_dict
 
 @auth
+@log_parent_action(method='POST', endpoint='activities/state')
+@check_oauth
+def activity_state_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    try:
+        r_dict['activityId']
+    except KeyError:
+        err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    if not 'activity_state_agent_validated' in r_dict:
+        try:
+            r_dict['agent']
+        except KeyError:
+            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
+            log_exception(log_dict, err_msg, activity_state_post.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+    try:
+        r_dict['stateId']
+    except KeyError:
+        err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+
+    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+        err_msg = "The content type for activity state POSTs must be application/json"
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    
+    # Must have body included for state
+    if 'body' not in r_dict:
+        err_msg = "Could not find the state"
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "state")
+
+    # Set state
+    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
+    try:
+        json.loads(body_dict)
+        r_dict['state'] = body_dict
+    except Exception as e:
+        err_msg = "Could not parse the content into JSON"
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError("\n".join((err_msg, e)))
+    return r_dict
+
+@auth
 @log_parent_action(method='PUT', endpoint='activities/state')
 @check_oauth
 def activity_state_put(r_dict):
@@ -429,6 +486,12 @@ def agent_profile_post(r_dict):
         log_exception(log_dict, err_msg, agent_profile_post.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(msg)
+
+    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+        err_msg = "The content type for agent profile POSTs must be application/json"
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
     
     if 'body' not in r_dict:
         err_msg = "Could not find the profile document"

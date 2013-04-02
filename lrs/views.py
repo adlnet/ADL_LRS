@@ -391,8 +391,8 @@ def handle_request(request, more_id=None):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements).lower() : {
@@ -401,7 +401,7 @@ validators = {
         "PUT" : req_validate.statements_put
     },
     reverse(activity_state).lower() : {
-        # "POST": req_validate.activity_state_post,
+        "POST": req_validate.activity_state_post,
         "PUT" : req_validate.activity_state_put,
         "GET" : req_validate.activity_state_get,
         "DELETE" : req_validate.activity_state_delete
@@ -436,7 +436,7 @@ processors = {
         "PUT" : req_process.statements_put
     },
     reverse(activity_state).lower() : {
-        # "POST": req_process.activity_state_post,
+        "POST": req_process.activity_state_post,
         "PUT" : req_process.activity_state_put,
         "GET" : req_process.activity_state_get,
         "DELETE" : req_process.activity_state_delete

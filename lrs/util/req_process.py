@@ -98,6 +98,17 @@ def statements_get(req_dict):
 
     return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
 
+def activity_state_post(req_dict):
+    log_dict = req_dict['initial_user_action']    
+    log_info_processing(log_dict, 'POST', __name__)
+
+    # test ETag for concurrency
+    actstate = ActivityState.ActivityState(req_dict, log_dict=log_dict)
+    actstate.post()
+
+    update_parent_log_status(log_dict, 204)
+    return HttpResponse("", status=204)
+
 def activity_state_put(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'PUT', __name__)

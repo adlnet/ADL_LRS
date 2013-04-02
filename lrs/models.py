@@ -951,7 +951,7 @@ class activity_state(models.Model):
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     state = models.FileField(upload_to="activity_state")
     agent = models.ForeignKey(agent, db_index=True)
-    activity = models.ForeignKey(activity)
+    activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     registration_id = models.CharField(max_length=40)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
