@@ -169,12 +169,25 @@ class Statement():
 
         # Save context activities
         if con_act_data:
-            for con_act in con_act_data.items():
-                ca_id = con_act[1]['id']
-                if not uri.validate_uri(ca_id):
-                    raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
-                ca = models.ContextActivity(key=con_act[0], context_activity=ca_id, context=cntx)
-                ca.save()
+            context_types = ['parent', 'grouping', 'category', 'other']
+            # Can have multiple groupings
+            for con_act_group in con_act_data.items():
+                if not con_act_group[0] in context_types:
+                    raise exceptions.ParamError('Context Activity type is not valid.')
+                # Incoming contextActivities can either be a list or dict
+                if isinstance(con_act_group[1], list):
+                    for con_act in con_act_group[1]:
+                        ca_id = con_act['id']
+                        if not uri.validate_uri(ca_id):
+                            raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
+                        ca = models.ContextActivity(key=con_act_group[0], context_activity=ca_id, context=cntx)
+                        ca.save()
+                else:
+                    ca_id = con_act_group[1]['id']
+                    if not uri.validate_uri(ca_id):
+                        raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
+                    ca = models.ContextActivity(key=con_act_group[0], context_activity=ca_id, context=cntx)
+                    ca.save()
             cntx.save()
 
         # Save context extensions
