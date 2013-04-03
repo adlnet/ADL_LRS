@@ -347,6 +347,46 @@ class StatementModelsTests(TestCase):
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
 
+    def test_context_activity_list(self):
+        guid = str(uuid.uuid1())
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
+                'context':{'registration': guid,
+                'contextActivities': {'other': [{'id': 'act:NewActivityID'},{'id':'act:anotherActID'}],
+                'grouping':{'id':'act:GroupID'}},
+                'revision': 'foo', 'platform':'bar',
+                'language': 'en-US'}}))
+
+        activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
+        ctxid = get_ctx_id(stmt.model_object)
+        context = models.context.objects.get(id=ctxid)
+        
+        context_activity_types = stmt.model_object.context.all()[0].contextactivity_set.all().values_list('key', flat=True)
+        self.assertEqual(len(context_activity_types), 3)
+
+        context_activity_ids = stmt.model_object.context.all()[0].contextactivity_set.all().values_list('context_activity', flat=True)
+        self.assertEqual(len(context_activity_ids), 3)
+
+
+        self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
+        self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
+        self.assertEqual(ctxid, context.id)
+
+        st = models.statement.objects.get(id=stmt.model_object.id)
+        self.assertEqual(st.stmt_object.id, activity.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
+        
+        self.assertIn('grouping', context_activity_types)
+        self.assertIn('other', context_activity_types)
+
+        self.assertIn('act:NewActivityID', context_activity_ids)
+        self.assertIn('act:anotherActID', context_activity_ids)
+        self.assertIn('act:GroupID', context_activity_ids)
+
+        self.assertEqual(context.registration, guid)        
+        self.assertEqual(context.revision, 'foo')
+        self.assertEqual(context.platform, 'bar')
+        self.assertEqual(context.language, 'en-US')
 
     def test_context_ext_stmt(self):
         guid = str(uuid.uuid1())
