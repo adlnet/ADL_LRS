@@ -401,11 +401,13 @@ validators = {
         "PUT" : req_validate.statements_put
     },
     reverse(activity_state).lower() : {
+        "POST": req_validate.activity_state_post,
         "PUT" : req_validate.activity_state_put,
         "GET" : req_validate.activity_state_get,
         "DELETE" : req_validate.activity_state_delete
     },
     reverse(activity_profile).lower() : {
+        "POST": req_validate.activity_profile_post,
         "PUT" : req_validate.activity_profile_put,
         "GET" : req_validate.activity_profile_get,
         "DELETE" : req_validate.activity_profile_delete
@@ -414,6 +416,7 @@ validators = {
         "GET" : req_validate.activities_get
     },
     reverse(agent_profile) : {
+        "POST": req_validate.agent_profile_post,
         "PUT" : req_validate.agent_profile_put,
         "GET" : req_validate.agent_profile_get,
         "DELETE" : req_validate.agent_profile_delete
@@ -433,11 +436,13 @@ processors = {
         "PUT" : req_process.statements_put
     },
     reverse(activity_state).lower() : {
+        "POST": req_process.activity_state_post,
         "PUT" : req_process.activity_state_put,
         "GET" : req_process.activity_state_get,
         "DELETE" : req_process.activity_state_delete
     },
     reverse(activity_profile).lower() : {
+        "POST": req_process.activity_profile_post,
         "PUT" : req_process.activity_profile_put,
         "GET" : req_process.activity_profile_get,
         "DELETE" : req_process.activity_profile_delete
@@ -446,6 +451,7 @@ processors = {
         "GET" : req_process.activities_get
     },
     reverse(agent_profile).lower() : {
+        "POST": req_process.agent_profile_post,
         "PUT" : req_process.agent_profile_put,
         "GET" : req_process.agent_profile_get,
         "DELETE" : req_process.agent_profile_delete

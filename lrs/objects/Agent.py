@@ -51,6 +51,24 @@ class Agent():
                 update_parent_log_status(self.log_dict, 404)
                 raise IDNotFoundError(err_msg) 
         
+    def post_profile(self, request_dict):
+        post_profile = request_dict['profile']
+
+        user = get_user_from_auth(request_dict.get('auth', None))
+        p, created = agent_profile.objects.get_or_create(profileId=request_dict['profileId'],agent=self.agent, user=user)
+        if created:
+            log_message(self.log_dict, "Created Agent Profile", __name__, self.post_profile.__name__)
+            profile = ContentFile(post_profile)
+        else:
+            original_profile = json.load(p.profile)
+            post_profile = json.loads(post_profile)
+            log_message(self.log_dict, "Found a profile. Merging the two profiles", __name__, self.post_profile.__name__)
+            merged = dict(original_profile.items() + post_profile.items())
+            p.profile.delete()
+            profile = ContentFile(json.dumps(merged))
+
+        self.save_profile(p, created, profile, request_dict)
+
     def put_profile(self, request_dict):
         try:
             profile = ContentFile(request_dict['profile'].read())
@@ -62,9 +80,15 @@ class Agent():
 
         user = get_user_from_auth(request_dict.get('auth', None))
         p,created = agent_profile.objects.get_or_create(profileId=request_dict['profileId'],agent=self.agent, user=user)
-        if not created:
+        if created:
+            log_message(self.log_dict, "Created Agent Profile", __name__, self.put_profile.__name__)
+        else:
             etag.check_preconditions(request_dict,p, required=True)
+            log_message(self.log_dict, "Found an existing profile. Etag test passed. Replacing existing profile.", __name__, self.put_profile.__name__)
             p.profile.delete()
+        self.save_profile(p, created, profile, request_dict)
+
+    def save_profile(self, p, created, profile, request_dict):
         p.content_type = request_dict['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
         if request_dict['updated']:
@@ -75,6 +99,8 @@ class Agent():
 
         fn = "%s_%s" % (p.agent_id,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
+
+        log_message(self.log_dict, "Saved Agent Profile", __name__, self.save_profile.__name__)
     
     def get_profile(self, profileId):
         try:
