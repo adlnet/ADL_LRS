@@ -1215,6 +1215,7 @@ class statement(models.Model):
             ret['authority'] = self.authority.get_agent_json(sparse)
         
         ret['voided'] = self.voided
+        ret['version'] = self.version
         return ret
 
     def save(self, *args, **kwargs):
