@@ -980,6 +980,7 @@ class StatementsTests(TestCase):
         
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
+        self.assertEqual(the_returned['version'], "1.0")
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor']['account']['name'], 'uniqueName')
@@ -1084,6 +1085,7 @@ class StatementsTests(TestCase):
         
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
+        self.assertEqual(the_returned['version'], "1.0")
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor']['account']['name'], 'louUniqueName')
@@ -1188,6 +1190,7 @@ class StatementsTests(TestCase):
         
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
+        self.assertEqual(the_returned['version'], "1.0")
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor']['account']['name'], 'louUniqueName')
