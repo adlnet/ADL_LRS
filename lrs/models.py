@@ -18,9 +18,12 @@ from .exceptions import IDNotFoundError, ParamError
 from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
+from djorm_pgarray.fields import ArrayField
+from djorm_expressions.models import ExpressionManager
 import logging
 from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 import pdb
+
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
@@ -890,7 +893,8 @@ class StatementRef(statement_object):
 
 class ContextActivity(models.Model):
     key = models.CharField(max_length=8)
-    context_activity = models.CharField(max_length=MAX_URL_LENGTH)
+    # context_activity = models.CharField(max_length=MAX_URL_LENGTH)
+    context_activity = ArrayField(dbtype="varchar(255)")
     context = models.ForeignKey('context')
     
     def object_return(self):

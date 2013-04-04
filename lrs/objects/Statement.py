@@ -175,13 +175,15 @@ class Statement():
                 if not con_act_group[0] in context_types:
                     raise exceptions.ParamError('Context Activity type is not valid.')
                 # Incoming contextActivities can either be a list or dict
+                # DON'T KNOW IF INCOMING IDS OR ACTIVITY OBJECTS
                 if isinstance(con_act_group[1], list):
                     for con_act in con_act_group[1]:
                         ca_id = con_act['id']
                         if not uri.validate_uri(ca_id):
                             raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
-                        ca = models.ContextActivity(key=con_act_group[0], context_activity=ca_id, context=cntx)
-                        ca.save()
+                    ids = con_act_group[1]['id']
+                    ca = models.ContextActivity(key=con_act_group[0], context_activity=ids, context=cntx)
+                    ca.save()
                 else:
                     ca_id = con_act_group[1]['id']
                     if not uri.validate_uri(ca_id):
