@@ -13,11 +13,11 @@ class ActivityModelsTests(TestCase):
 
     #Called on all activity django models with definitions to see if they were created with the correct 
     # fields
-    def do_activity_definition_model(self, fk,course, intType):
+    def do_activity_definition_model(self, fk,course, intType, url=""):
         act_def = models.activity_definition.objects.filter(activity=fk)[0]
         self.assertEqual(act_def.activity_definition_type, course)
         self.assertEqual(act_def.interactionType, intType)
-
+        self.assertEqual(act_def.url, url)
 
     # Called on all activity django models with extensions to see if they were created with the correct 
     # fields and values. All extensions are created with the same three values and keys
@@ -386,6 +386,28 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_model(act.activity.id,'act:fooc', 'Activity')        
         self.do_activity_definition_model(fk, 'course', 'intType')
+
+    def test_activity_definition_with_url_field(self):
+        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:fooc',
+                'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
+                'type': 'course', 'url':'http://some/json/doc','interactionType': 'intType'}}))
+
+        fk = models.activity.objects.filter(id=act.activity.id)
+        act_def = models.activity_definition.objects.filter(activity=fk)
+
+        name_set = act_def[0].name.all()
+        desc_set = act_def[0].description.all()
+        
+
+        self.assertEqual(name_set[0].key, 'en-GB')
+        self.assertEqual(name_set[0].value, 'testname')
+
+        self.assertEqual(desc_set[0].key, 'en-US')
+        self.assertEqual(desc_set[0].value, 'testdesc')
+
+        self.do_activity_model(act.activity.id,'act:fooc', 'Activity')        
+        self.do_activity_definition_model(fk, 'course', 'intType','http://some/json/doc')
+
 
     #Test activity with definition given wrong type (won't create it)
     def test_activity_definition_wrong_type(self):

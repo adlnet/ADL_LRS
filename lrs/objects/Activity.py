@@ -175,14 +175,14 @@ class Activity():
         return act_def
 
     #Save activity definition to DB
-    def save_activity_definition_to_db(self,act_def_type, intType):
+    def save_activity_definition_to_db(self,act_def_type, intType, url):
         created = True
         try:
             self.activity.activity_definition
             created = False
         except:
             actdef = models.activity_definition(activity_definition_type=act_def_type,
-                  interactionType=intType, activity=self.activity)
+                  interactionType=intType, activity=self.activity, url=url)
             actdef.save()
 
         if created:
@@ -345,6 +345,19 @@ class Activity():
             update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg)
         
+        # OPTIONAL TODO: Supposed to be a URL, SHOULD resolve but doesn't necessarily have to
+        # if 'url' in activity_definition:
+        #     try:
+        #         Activity.validator(activity_definition['url'])
+        #     except ValidationError, e:
+        #         if act_created:
+        #             self.activity.delete()
+        #             self.activity = None
+        #         err_msg = str(e)    
+        #         log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True) 
+        #         update_parent_log_status(self.log_dict, 400)                   
+        #         raise exceptions.ParamError(err_msg)
+
         #If the returned data is not empty, it overrides any JSON data sent in
         if xml_data:
             activity_definition = xml_data
@@ -471,7 +484,8 @@ class Activity():
         if act_def['type'] == 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction':
             interaction_flag = self.validate_cmi_interaction(act_def, act_created)
 
-        act_def_created = self.save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', ''))
+        act_def_created = self.save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', ''),
+            act_def.get('url', ''))
 
         if not act_created: 
             if self.activity.authoritative == '' or self.activity.authoritative == self.auth:
