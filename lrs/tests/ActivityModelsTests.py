@@ -151,26 +151,10 @@ class ActivityModelsTests(TestCase):
             self.assertIn(t_desc, target_lang_map_list)            
 
 
-    # Test activity that doesn't have a def, isn't a link and resolves (will not create Activity object)
-    def test_activity_no_def_not_link_resolve(self):
-        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
-            'id': 'http://yahoo.com'}))
-
-        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,
-            activity_id='http://yahoo.com')
-
-    # Test activity that doesn't have a def, isn't a link and doesn't resolve (creates useless 
-    # Activity object)
-    def test_activity_no_def_not_link_no_resolve(self):
-        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foo'}))
-        
-        self.do_activity_model(act.activity.id, 'act:foo', 'Activity')
-
-    # Test activity that doesn't have a def, isn't a link and conforms to schema
-    # (populates everything from XML)
-    def test_activity_no_def_not_link_schema_conform(self):
+    # Test activity that doesn't have a def (populates everything from JSON)
+    def test_activity_no_def_json_conform(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/XAPI/tcexample/'}))
+            'id': 'http://localhost:8000/XAPI/actexample/'}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
@@ -191,49 +175,23 @@ class ActivityModelsTests(TestCase):
             elif ns.key == 'en-CH':
                 self.assertEqual(ds.value, 'Alt Desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample/', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/actexample/', 'Activity')        
         self.do_activity_definition_model(fk, 'module','course')
 
     # Test that passing in the same info gets the same activity
     def test_activity_no_def_not_link_schema_conform1(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/XAPI/tcexample/'}))
+            'id': 'http://localhost:8000/XAPI/actexample/'}))
         
         act2 = Activity.Activity(json.dumps({'objectType': 'Activity',
-            'id': 'http://localhost:8000/XAPI/tcexample/'}))
+            'id': 'http://localhost:8000/XAPI/actexample/'}))
 
         self.assertEqual(act2.activity.id, act.activity.id)
 
-    '''
-    Choices is not part of the XML schema for now, so this will throw an exception
-    # Test activity that doesn't have a def, isn't a link and conforms to schema with CRP
-    # (populates everything from XML)
-    def test_activity_no_def_not_link_schema_conform_correctResponsesPattern(self):
+    # Test activity that doesn't have a def with extensions (populates everything from XML)
+    def test_activity_no_def_schema_conform_extensions(self):
         act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/XAPI/tcexample3/'}))
-
-        fk = models.activity.objects.filter(id=act.activity.id)
-        def_fk = models.activity_definition.objects.filter(activity=fk)
-        rsp_fk = models.activity_def_correctresponsespattern.objects.filter(activity_definition=def_fk)
-
-        self.do_activity_object(act,'http://localhost:8000/XAPI/tcexample3/', 'Activity')
-        self.do_activity_definition_object(act, 'Example Name', 'Example Desc', 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
-            'choice')
-
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample3/', 'Activity')        
-        self.do_activity_definition_model(fk, 'Example Name', 'Example Desc', 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
-            'choice')
-    
-        self.assertEqual(act.answers[0].answer, 'golf')
-        self.assertEqual(act.answers[1].answer, 'tetris')
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['golf', 'tetris'])
-    '''
-
-    # Test activity that doesn't have a def, isn't a link and conforms to schema with extensions
-    # (populates everything from XML)
-    def test_activity_no_def_not_link_schema_conform_extensions(self):
-        act = Activity.Activity(json.dumps({'objectType':'Activity',
-            'id': 'http://localhost:8000/XAPI/tcexample2/'}))
+            'id': 'http://localhost:8000/XAPI/actexample2/'}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
@@ -241,33 +199,23 @@ class ActivityModelsTests(TestCase):
         name_set = act_def[0].name.all()
         desc_set = act_def[0].description.all()
         
-
         self.assertEqual(name_set[0].key, 'en-US')
         self.assertEqual(name_set[0].value, 'Example Name')
 
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'Example Desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample2/', 'Activity')        
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/actexample2/', 'Activity')        
         self.do_activity_definition_model(fk, 'module','course')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
             'second value', 'third value')
 
-    # Test an activity that has a def,is not a link yet the ID resolves, but doesn't conform to XML schema
-    # (will not create one)
-    def test_activity_not_link_resolve(self):
-        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity',
-                'id': 'http://tincanapi.wikispaces.com','definition': {'name': {'en-US':'testname'},
-                'description': {'en-US':'testdesc'}, 'type': 'course','interactionType': 'intType'}}))
-        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,
-            activity_id='http://tincanapi.wikispaces.com')
-
-    # Test an activity that has a def, not a link and the provided ID doesn't resolve
+    # Test an activity that has a def, and the provided ID doesn't resolve
     # (should still use values from JSON)
-    def test_activity_not_link_no_resolve(self):
+    def test_activity_no_resolve(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity',
-                'id':'act://var/www/adllrs/activity/example.xml','definition': {'name': {'en-CH':'testname'},
+                'id':'act://var/www/adllrs/activity/example.json','definition': {'name': {'en-CH':'testname'},
                 'description': {'en-US':'testdesc'}, 'type': 'course','interactionType': 'intType'}}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
@@ -277,21 +225,19 @@ class ActivityModelsTests(TestCase):
         name_set = act_def[0].name.all()
         desc_set = act_def[0].description.all()
         
-
         self.assertEqual(name_set[0].key, 'en-CH')
         self.assertEqual(name_set[0].value, 'testname')
 
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc')
 
-        self.do_activity_model(act.activity.id, 'act://var/www/adllrs/activity/example.xml', 'Activity')        
+        self.do_activity_model(act.activity.id, 'act://var/www/adllrs/activity/example.json', 'Activity')        
         self.do_activity_definition_model(fk, 'course', 'intType')
 
-    # Test an activity that has a def, not a link and the provided ID conforms to the schema
-    # (should use values from XML and override JSON)
-    def test_activity_not_link_schema_conform(self):
+    # Test an activity that has a def (should use values from payload and override JSON from ID)
+    def test_activity_from_id(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity',
-                'id':'http://localhost:8000/XAPI/tcexample4/','definition': {'name': {'en-FR': 'name'},
+                'id':'http://localhost:8000/XAPI/actexample4/','definition': {'name': {'en-FR': 'name'},
                 'description': {'en-FR':'desc'}, 'type': 'course','interactionType': 'intType'}}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
@@ -299,23 +245,21 @@ class ActivityModelsTests(TestCase):
 
         name_set = act_def[0].name.all()
         desc_set = act_def[0].description.all()
-        
 
-        self.assertEqual(name_set[0].key, 'en-US')
-        self.assertEqual(name_set[0].value, 'Example Name')
+        self.assertEqual(name_set[0].key, 'en-FR')
+        self.assertEqual(name_set[0].value, 'name')
 
-        self.assertEqual(desc_set[0].key, 'en-US')
-        self.assertEqual(desc_set[0].value, 'Example Desc')
+        self.assertEqual(desc_set[0].key, 'en-FR')
+        self.assertEqual(desc_set[0].value, 'desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/tcexample4/', 'Activity')        
-        self.do_activity_definition_model(fk, 'module','course')
+        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/actexample4/', 'Activity')        
+        self.do_activity_definition_model(fk, 'course','intType')
 
-    #Test an activity that has a def, is a link and the ID resolves (should use values from JSON)
-    def test_activity_link_resolve(self):
+    # Test an activity that has a def and the ID resolves (should use values from payload)
+    def test_activity_id_resolve(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'http://localhost:8000/XAPI/',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-GB':'testdesc1'},
                 'type': 'link','interactionType': 'intType'}}))
-
 
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
@@ -323,7 +267,6 @@ class ActivityModelsTests(TestCase):
         name_set = act_def[0].name.all()
         desc_set = act_def[0].description.all()
         
-
         self.assertEqual(name_set[0].key, 'en-GB')
         self.assertEqual(name_set[0].value, 'testname')
 
@@ -333,41 +276,23 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/', 'Activity')        
         self.do_activity_definition_model(fk, 'link', 'intType')
 
-    #Test an activity that has a def, is a link and the ID does not resolve (will not create one)
-    def test_activity_link_no_resolve(self):
-        self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity', 
-                'id': 'http://foo','definition': {'name': {'en-GB':'testname'},
-                'description': {'en-GB':'testdesc'}, 'type': 'link','interactionType': 'intType'}}))
-
-        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,
-                activity_id='http://foo')
-
-    #Throws exception because incoming data is not JSON
+    # Throws exception because incoming data is not JSON
     def test_activity_not_json(self):
         self.assertRaises(ParamError, Activity.Activity,
             "This string should throw exception since it's not JSON")
 
-    #Test an activity where there is no given objectType, defaults to Activity
-    def test_activity_no_objectType(self):
-        act = Activity.Activity(json.dumps({'id':'act:fooa'}))
-        
-        self.do_activity_model(act.activity.id,'act:fooa', 'Activity')
-
-    # Test an activity with a provided objectType - defaults to Activity
-    def test_activity_wrong_objectType(self):
-        act = Activity.Activity(json.dumps({'id': 'act:foob', 'objectType':'Wrong'}))    
-
-        self.do_activity_model(act.activity.id, 'act:foob', 'Activity')
-
-    #Test activity where given URL doesn't resolve
+    #Test activity where given URL isn't URI
     def test_activity_invalid_activity_id(self):
-        self.assertRaises(ParamError, Activity.Activity, json.dumps({'id': 'http://foo',
+        self.assertRaises(ParamError, Activity.Activity, json.dumps({'id': 'foo',
                 'objectType':'Activity','definition': {'name': {'en-GB':'testname'},
                 'description': {'en-GB':'testdesc'}, 'type': 'link','interactionType': 'intType'}}))
 
+        self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,
+                activity_id='foo')
+
     #Test activity with definition - must retrieve activity object in order to test definition from DB
     def test_activity_definition(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:fooc',
+        act = Activity.Activity(json.dumps({'id':'act:fooc',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'course','interactionType': 'intType'}}))
 
@@ -377,7 +302,6 @@ class ActivityModelsTests(TestCase):
         name_set = act_def[0].name.all()
         desc_set = act_def[0].description.all()
         
-
         self.assertEqual(name_set[0].key, 'en-GB')
         self.assertEqual(name_set[0].value, 'testname')
 
@@ -388,7 +312,7 @@ class ActivityModelsTests(TestCase):
         self.do_activity_definition_model(fk, 'course', 'intType')
 
     def test_activity_definition_with_url_field(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:fooc',
+        act = Activity.Activity(json.dumps({'objectType': 'Wrong', 'id':'act:fooc',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'course', 'url':'http://some/json/doc','interactionType': 'intType'}}))
 
@@ -407,7 +331,6 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_model(act.activity.id,'act:fooc', 'Activity')        
         self.do_activity_definition_model(fk, 'course', 'intType','http://some/json/doc')
-
 
     #Test activity with definition given wrong type (won't create it)
     def test_activity_definition_wrong_type(self):

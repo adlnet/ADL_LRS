@@ -126,17 +126,17 @@ def home(request):
         return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
     return render_to_response('home.html', {"lrs_data": lrs_data}, context_instance=RequestContext(request))
 
-def tcexample(request):
-    return render_to_response('tcexample.xml')
+def actexample(request):
+    return render_to_response('actexample.json', mimetype="application/json")
 
-def tcexample2(request):
-    return render_to_response('tcexample2.xml')
+def actexample2(request):
+    return render_to_response('actexample2.json', mimetype="application/json")
 
-def tcexample3(request):
-    return render_to_response('tcexample3.xml')
+def actexample3(request):
+    return render_to_response('actexample3.json', mimetype="application/json")
 
-def tcexample4(request):
-    return render_to_response('tcexample4.xml')
+def actexample4(request):
+    return render_to_response('actexample4.json', mimetype="application/json")
 
 def register(request):
     if request.method == 'GET':

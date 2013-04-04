@@ -18,22 +18,6 @@ class Activity():
     # Activity definition required fields
     ADRFs = ['name', 'description', 'type']
 
-    # URL Validator
-    validator = URLValidator(verify_exists=True)
-
-    # XMLschema for Activity IDs
-    try:
-        # oh i don't like this... TODO: can we make this better?
-        resp = open('lrs/static/tincan.xsd', 'rb')
-        XML = resp.read()
-        XMLschema_doc = etree.parse(StringIO(XML))
-        XMLschema = etree.XMLSchema(XMLschema_doc)
-        can_validate_xml = True
-    except Exception as e:
-        print ">>>>>>>>>>>>> no xsd <<<<<<<<<<<<<<<<<<<<"
-        print e
-        can_validate_xml = False
-
     # Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, data, auth=None, log_dict=None, define=True):
@@ -63,116 +47,27 @@ class Activity():
             raise exceptions.ParamError(err_msg)
         return params
 
-
-    def validateID(self,act_id):
-        validXML = False
+    # Retrieve JSON data from ID
+    def get_data_from_act_id(self,act_id):
         resolves = True
+        act_json = {}
+        log_message(self.log_dict, "Retrieving data from Activity ID", __name__, self.get_data_from_act_id.__name__)
 
-        log_message(self.log_dict, "Validating Activity ID", __name__, self.validateID.__name__)
-
-        #Retrieve XML doc since function is only called when not a link. ID should either not resolve or 
-        #only conform to the TC schema - if it fails that means the URL didn't resolve at all
-        try:    
+        # See if id resolves
+        try:
             act_resp = urllib2.urlopen(act_id, timeout=10)
         except Exception, e:
+            # Doesn't resolve-hopefully data is in payload
             resolves = False
         else:
-            act_XML = act_resp.read()
-
-        #Validate that it is good XML with the schema - if it fails it means the URL resolved but didn't conform to the schema
-        if resolves and Activity.can_validate_xml:
+            # If it resolves then try parsing JSON from it
             try:
-                act_xmlschema_doc = etree.parse(StringIO(act_XML))    
-                validXML = Activity.XMLschema.validate(act_xmlschema_doc)
+                loaded_json = json.loads(act_resp.read())
+                act_json = loaded_json['definition']
             except Exception, e:
-                #TODO: should put any warning here? validXML will still be false if there is an exception
-                self.activity.delete()
-                self.activity = None
-                err_msg = "The activity id resolved to invalid activity description"
-                log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True) 
-                update_parent_log_status(self.log_dict, 400)                    
-                raise exceptions.ParamError(err_msg)
-
-        #Parse XML, create dictionary with the values from the XML doc
-        if validXML:
-            return self.parseXML(act_xmlschema_doc)
-        else:
-            return {}
-
-    # TODO: Thought xml was taken out? Need to update parsing of it then for name and desc?
-    def parseXML(self, xmldoc):
-        #Create namespace and get the root
-        ns = {'tc':'http://projecttincan.com/tincan.xsd'}
-        root = xmldoc.getroot()
-        act_def = {}
-
-        log_message(self.log_dict, "Parsing Activity XML", __name__, self.parseXML.__name__)                     
-
-        #Parse the name (required)
-        if len(root.xpath('//tc:activities/tc:activity/tc:name', namespaces=ns)) > 0:
-            act_def['name'] = {}
-
-            for element in root.xpath('//tc:activities/tc:activity/tc:name', namespaces=ns):
-                lang = element.get('lang')
-                act_def['name'][lang] = element.text
-        else:
-            err_msg = "XML is missing name"
-            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)                                
-            raise exceptions.ParamError(err_msg)
-            
-        #Parse the description (required)    
-        if len(root.xpath('//tc:activities/tc:activity/tc:description', namespaces=ns)) > 0:
-            act_def['description'] = {}
-            
-            for element in root.xpath('//tc:activities/tc:activity/tc:description', namespaces=ns):
-                lang = element.get('lang')
-                act_def['description'][lang] = element.text
-        else:
-            err_msg = "XML is missing description"
-            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
-            
-        #Parse the interactionType (required)
-        if root.xpath('//tc:activities/tc:activity/tc:interactionType/text()', namespaces=ns)[0]:
-            act_def['interactionType'] = root.xpath('//tc:activities/tc:activity/tc:interactionType/text()', namespaces=ns)[0]
-        else:
-            err_msg = "XML is missing interactionType"
-            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)  
-            update_parent_log_status(self.log_dict, 400)          
-            raise exceptions.ParamError(err_msg)
-
-        #Parse the type (required)
-        if root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]:
-            act_def['type'] = root.xpath('//tc:activities/tc:activity/@type', namespaces=ns)[0]
-        else:
-            err_msg = "XML is missing type"
-            log_message(self.log_dict, err_msg, __name__, self.parseXML.__name__, True)
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
-
-        #Parse extensions if any
-        if root.xpath('//tc:activities/tc:activity/tc:extensions', namespaces=ns) is not None:
-            extensions = {}
-            extensionTags = root.xpath('//tc:activities/tc:activity/tc:extensions/tc:extension', namespaces=ns)
-            
-            for tag in extensionTags:
-                extensions[tag.get('key')] = tag.text
-
-            act_def['extensions'] = extensions
-
-        #Parse correctResponsesPattern if any
-        if root.xpath('//tc:activities/tc:activity/tc:correctResponsesPattern', namespaces=ns) is not None:
-            crList = []
-            correctResponseTags = root.xpath('//tc:activities/tc:activity/tc:correctResponsesPattern/tc:correctResponsePattern', namespaces=ns)
-                
-            for cr in correctResponseTags:    
-                crList.append(cr.text)
-
-            act_def['correctResponsesPattern'] = crList
-
-        return act_def
+                # Resolves but no data to retrieve - this is OK
+                log_message(self.log_dict, "No JSON data retrieved from activity ID that resolves.", __name__, self.get_data_from_act_id.__name__)
+        return act_json
 
     #Save activity definition to DB
     def save_activity_definition_to_db(self,act_def_type, intType, url):
@@ -269,7 +164,8 @@ class Activity():
 
     #Once JSON is verified, populate the activity objects
     def populate(self, the_object):        
-        #Must include activity_id - set object's activity_id
+        # Must include activity_id - set object's activity_id
+        # Make sure it's a URI
         try:
             activity_id = the_object['id']
             if not uri.validate_uri(activity_id):
@@ -289,6 +185,8 @@ class Activity():
             self.activity = models.activity(activity_id=activity_id, global_representation=False)
             self.activity.save()
             act_created = False
+
+        # Log appropriate create/get messages
         if act_created: 
             log_message(self.log_dict, "Populating Activity - created Activity in database", __name__, self.populate.__name__)            
             if self.auth:
@@ -297,72 +195,18 @@ class Activity():
         else:
             log_message(self.log_dict, "Populating Activity - retrieved Activity from database", __name__, self.populate.__name__)            
 
-        valid_schema = False
-        xml_data = {}
-        
-        #Try to grab XML from ID if no other JSON is provided - since it won't have a definition it's not a link
-        #therefore it can be allowed to not resolve and will just return an empty dictionary
-        if not 'definition' in the_object.keys():
-            xml_data = self.validateID(activity_id)
+        # Try grabbing any activity data from the activity ID
+        activity_definition = self.get_data_from_act_id(activity_id)
 
-            #If the ID validated against the XML schema then proceed with populating the definition with the info
-            #from the XML - else just save the activity (someone sent in an ID that doesn't resolve and an objectType
-            #with no other data)                
-            if xml_data:
-                self.populate_definition(xml_data, act_created)
-        
-        #Definition is provided
-        else:
-            self.validate_definition(the_object, act_created)
+        # If there is a definition in the payload, grab it and merge with any data from activity ID
+        # (payload data overrides ID data)
+        if 'definition' in the_object:
+            data_from_payload = the_object['definition']
+            activity_definition = dict(activity_definition.items() + data_from_payload.items())
 
-    def validate_definition(self, the_object, act_created):
-        activity_definition = the_object['definition']
-        activity_id = self.activity.activity_id
-        #Verify the given activity_id resolves if it is a link (has to resolve if link) 
-        xml_data = {}
-        try:
-            if activity_definition['type'] == 'link':
-                try:
-                    Activity.validator(activity_id)
-                except ValidationError, e:
-                    if act_created:
-                        self.activity.delete()
-                        self.activity = None
-                    err_msg = str(e)    
-                    log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True) 
-                    update_parent_log_status(self.log_dict, 400)                   
-                    raise exceptions.ParamError(err_msg)
-            else:
-                #Type is not a link - it can be allowed to not resolve and will just return an empty dictionary    
-                #If activity is not a link, the ID either must not resolve or validate against metadata schema
-                xml_data = self.validateID(activity_id)
-        except KeyError:
-            if act_created:
-                self.activity.delete()
-                self.activity = None
-            err_msg = "Activity definition type is missing or malformed"
-            log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True)
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
-        
-        # OPTIONAL TODO: Supposed to be a URL, SHOULD resolve but doesn't necessarily have to
-        # if 'url' in activity_definition:
-        #     try:
-        #         Activity.validator(activity_definition['url'])
-        #     except ValidationError, e:
-        #         if act_created:
-        #             self.activity.delete()
-        #             self.activity = None
-        #         err_msg = str(e)    
-        #         log_message(self.log_dict, err_msg, __name__, self.validate_definition.__name__, True) 
-        #         update_parent_log_status(self.log_dict, 400)                   
-        #         raise exceptions.ParamError(err_msg)
-
-        #If the returned data is not empty, it overrides any JSON data sent in
-        if xml_data:
-            activity_definition = xml_data
-        #If the URL did not resolve and is not type link, it will use the JSON data provided
-        self.populate_definition(activity_definition, act_created)
+        # If there is a definition-populate the definition
+        if activity_definition:
+            self.populate_definition(activity_definition, act_created)
         
     # Save language map object for activity definition name or description
     def save_lang_map(self, lang_map, parent):
