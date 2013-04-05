@@ -91,7 +91,7 @@ def statements_get(req_dict):
             update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
 
-        if mine_only and st.authority__id != req_dict['auth'].id:
+        if mine_only and st.authority.id != req_dict['auth'].id:
             err_msg = "Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth'])
             log_exception(log_dict, err_msg, statements_get.__name__)
             update_parent_log_status(log_dict, 403)

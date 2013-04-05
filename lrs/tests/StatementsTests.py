@@ -1650,6 +1650,21 @@ class StatementsTests(TestCase):
         r = self.client.put(path, payload2, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(r.status_code, 204)
 
+        r = self.client.get(reverse(views.statements), Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        self.assertEqual(len(obj['statements']), 2)
+        objs = obj['statements']
+        for o in objs:
+            if o['id'] == stmt_guid:
+                self.assertEqual(o['actor']['mbox'],stmt['actor']['mbox'])
+                self.assertEqual(o['verb']['id'], stmt['verb']['id'])
+                self.assertEqual(o['object']['id'], stmt['object']['id'])
+            else:
+                self.assertEqual(o['actor']['mbox'],stmt2['actor']['mbox'])
+                self.assertEqual(o['verb']['id'], stmt2['verb']['id'])
+                self.assertEqual(o['object']['id'], stmt2['object']['id'])
+
         stmtv = {"actor":{"mbox":"mailto:hulk@example.com"},
                 "verb":{"id":"http://adlnet.gov/expapi/verbs/voided",
                         "display":{"en-US":"smash"}},
@@ -1666,8 +1681,6 @@ class StatementsTests(TestCase):
         r = self.client.get(reverse(views.statements), Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
-        import pprint
-        pprint.pprint(obj)
         self.assertEqual(len(obj['statements']), 2)
         objs = obj['statements']
         for o in objs:
@@ -1681,3 +1694,11 @@ class StatementsTests(TestCase):
                 self.assertEqual(o['object']['id'], stmt2['object']['id'])
 
         # get voided statement via voidedStatementId
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"voidedStatementId":stmt_guid}))
+        r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        self.assertEqual(obj['id'], stmt_guid)
+        self.assertEqual(obj['actor']['mbox'], stmt['actor']['mbox'])
+        self.assertEqual(obj['verb']['id'], stmt['verb']['id'])
+        self.assertEqual(obj['object']['id'], stmt['object']['id'])
