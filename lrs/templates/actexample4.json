@@ -1,8 +1,6 @@
 {
-    "definition": {
-            "name":{"en-US": "Example Name"},
-            "description": {"en-US": "Example Desc"},
-            "type": "module",
-            "interactionType": "course"
-            }
+    "name":{"en-US": "Example Name"},
+    "description": {"en-US": "Example Desc"},
+    "type": "module",
+    "interactionType": "course"
 }

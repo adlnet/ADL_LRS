@@ -62,8 +62,7 @@ class Activity():
         else:
             # If it resolves then try parsing JSON from it
             try:
-                loaded_json = json.loads(act_resp.read())
-                act_json = loaded_json['definition']
+                act_json = json.loads(act_resp.read())
             except Exception, e:
                 # Resolves but no data to retrieve - this is OK
                 log_message(self.log_dict, "No JSON data retrieved from activity ID that resolves.", __name__, self.get_data_from_act_id.__name__)
