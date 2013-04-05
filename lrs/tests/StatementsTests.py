@@ -956,6 +956,7 @@ class StatementsTests(TestCase):
             "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
             "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
+            "url": "http://some/activity/url",
             "interactionType": "choice",
             "correctResponsesPattern": ["golf", "tetris"],
             "choices":[{"id": "golf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
@@ -1024,6 +1025,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['object']['definition']['name']['en-US'], 'actName')
         self.assertEqual(the_returned['object']['definition']['name']['en-GB'], 'anotherActName')
         self.assertEqual(the_returned['object']['definition']['type'], 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction')
+        self.assertEqual(the_returned['object']['definition']['url'], 'http://some/activity/url')
         self.assertEqual(the_returned['object']['definition']['extensions']['ext:key1'], 'value1')
         self.assertEqual(the_returned['object']['definition']['extensions']['ext:key2'], 'value2')
         self.assertEqual(the_returned['object']['definition']['extensions']['ext:key3'], 'value3')
