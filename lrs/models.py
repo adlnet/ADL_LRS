@@ -1218,7 +1218,6 @@ class statement(models.Model):
         if not self.authority is None:
             ret['authority'] = self.authority.get_agent_json(sparse)
         
-        ret['voided'] = self.voided
         ret['version'] = self.version
         return ret
 

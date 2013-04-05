@@ -159,6 +159,22 @@ def statements_more_get(r_dict):
 @log_parent_action(method='GET', endpoint='statements')
 @check_oauth
 def statements_get(r_dict):
+    if 'statementId' in r_dict or 'voidedStatementId' in r_dict:
+        if 'statementId' in r_dict and 'voidedStatementId' in r_dict:
+            err_msg = "Cannot have both statementId and voidedStatementId in a GET request"
+            log_exception(log_dict, err_msg, statements_put.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+        
+        not_allowed = ["agent", "verb", "activity", "registration", 
+                       "related_activities", "related_agents", "since",
+                       "until", "limit", "ascending"]
+        bad_keys = set(not_allowed) & set(r_dict.keys())
+        if bad_keys:
+            err_msg = "Cannot have %s in a GET request only 'format' and/or 'attachements' are allowed with 'statementId' and 'voidedStatementId'" % ', '.join(bad_keys)
+            log_exception(log_dict, err_msg, statements_put.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
     return r_dict
 
 @auth
