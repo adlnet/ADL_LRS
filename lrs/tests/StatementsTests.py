@@ -1702,3 +1702,9 @@ class StatementsTests(TestCase):
         self.assertEqual(obj['actor']['mbox'], stmt['actor']['mbox'])
         self.assertEqual(obj['verb']['id'], stmt['verb']['id'])
         self.assertEqual(obj['object']['id'], stmt['object']['id'])
+
+        # make sure voided statement returns a 404 on get w/ statementId req
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_guid}))
+        r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(r.status_code, 404)
+        
