@@ -195,7 +195,10 @@ def complex_get(req_dict):
     if ascending:
         stored_param = 'stored'
     else:
-        stored_param = '-stored'        
+        stored_param = '-stored'
+
+    # don't return voided statements
+    args['voided'] = False        
 
     stmt_list = retrieve_stmts_from_db(the_dict, limit, stored_param, args)
 

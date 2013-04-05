@@ -74,8 +74,14 @@ def statements_get(req_dict):
 
     stmt_result = {}
     # If statementId is in req_dict then it is a single get
-    if 'statementId' in req_dict:
-        statementId = req_dict['statementId']
+    if 'statementId' in req_dict or 'voidedStatementId' in req_dict:
+        if 'statementId' in req_dict:
+            statementId = req_dict['statementId']
+            voided = False
+        else:
+            statementId = req_dict['voidedStatementId']
+            voided = True
+
         # Try to retrieve stmt, if DNE then return empty else return stmt info                
         try:
             st = models.statement.objects.get(statement_id=statementId)
@@ -84,11 +90,23 @@ def statements_get(req_dict):
             log_exception(log_dict, err_msg, statements_get.__name__)
             update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
-        
-        # check if stmt authority is in oauth group
-        if mine_only and not (st.authority.id == req_dict['auth'].id):
-            raise exceptions.Forbidden("Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']))
 
+        if mine_only and st.authority__id != req_dict['auth'].id:
+            err_msg = "Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth'])
+            log_exception(log_dict, err_msg, statements_get.__name__)
+            update_parent_log_status(log_dict, 403)
+            raise exceptions.Forbidden(err_msg)
+        
+        if st.voided != voided:
+            if st.voided:
+                err_msg = 'The requested statement (%s) is voided. Use the "voidedStatementId" parameter to retrieve your statement.' % statementId
+            else:
+                err_msg = 'The requested statement (%s) is not voided. Use the "statementId" parameter to retrieve your statement.' % statementId
+            log_exception(log_dict, err_msg, statements_get.__name__)
+            update_parent_log_status(log_dict, 404)
+            raise exceptions.IDNotFoundError(err_msg)
+            
+        
         stmt_result = st.object_return()
     else:
         stmt_list = retrieve_statement.complex_get(req_dict)
@@ -97,6 +115,7 @@ def statements_get(req_dict):
     update_parent_log_status(log_dict, 200)
 
     return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
+
 
 def activity_state_post(req_dict):
     log_dict = req_dict['initial_user_action']    
