@@ -109,11 +109,12 @@ class Statement():
             del score_data['max']
 
         # If scale is included make sure it's between -1 and 1
-        if not ('scaled' in score_data and (score_data['scaled'] > -1 and score_data['scaled'] < 1)):
-            err_msg = "Scaled must be between -1 and 1"
-            log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
+        if 'scaled' in score_data:
+            if score_data['scaled'] < -1 or score_data['scaled'] > 1:
+                err_msg = "Scaled must be between -1 and 1"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
 
         return score_data
 
