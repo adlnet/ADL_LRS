@@ -241,16 +241,58 @@ class StatementModelsTests(TestCase):
         self.assertIn('value1', extVals)
         self.assertIn('value2', extVals)
 
-    def test_result_score_duration(self):
+    def test_result_score_scaled_up_good(self):
+        Statement.Statement(json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.0},'completion': True,
+            'success': True, 'response': 'yes'}}))
+
+    def test_result_score_scaled_down_good(self):
+        Statement.Statement(json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'scaled':00.000},'completion': True,
+            'success': True, 'response': 'yes'}}))
+
+    def test_result_score_scaled_up_bad(self):
         self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.01},'completion': True,
             'success': True, 'response': 'yes'}}))
 
-    def test_result_score_raw(self):
+    def test_result_score_scaled(self):
         self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'scaled':-1.00001},'completion': True,
+            'success': True, 'response': 'yes'}}))
+
+    def test_result_score_raw_up_good(self):
+        Statement.Statement(json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.01,'min':-2.0, 'max':1.01},
+            'completion': True,'success': True, 'response': 'yes'}}))
+
+    def test_result_score_raw_down_good(self):
+        Statement.Statement(json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'raw':-20.0,'min':-20.0, 'max':1.01},
+            'completion': True,'success': True, 'response': 'yes'}}))
+
+    def test_result_score_raw_up_bad(self):
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.02,'min':-2.0, 'max':1.01},
+            'completion': True,'success': True, 'response': 'yes'}}))
+
+    def test_result_score_raw_down_bad(self):
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'raw':-2.00001,'min':-2.0, 'max':1.01},
+            'completion': True,'success': True, 'response': 'yes'}}))
+
+    def test_result_score_min_max_bad(self):
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"actor":{'objectType':'Agent',
+            'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.5,'min':2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}}))
 
     def test_result_score_stmt(self):
