@@ -696,6 +696,7 @@ class activity_definition(models.Model):
     name = generic.GenericRelation(name_lang, related_name="name_lang")
     description = generic.GenericRelation(desc_lang, related_name="desc_lang")
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    url = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     interactionType = models.CharField(max_length=25, blank=True)
     activity = models.OneToOneField(activity)
     extensions = generic.GenericRelation(extensions)
@@ -718,6 +719,9 @@ class activity_definition(models.Model):
 
         ret['type'] = self.activity_definition_type
         
+        if self.url != '':
+            ret['url'] = self.url
+
         if not self.interactionType is None:
             ret['interactionType'] = self.interactionType
 
@@ -1218,7 +1222,7 @@ class statement(models.Model):
         if not self.authority is None:
             ret['authority'] = self.authority.get_agent_json(sparse)
         
-        ret['voided'] = self.voided
+        ret['version'] = self.version
         return ret
 
     def save(self, *args, **kwargs):
