@@ -307,6 +307,13 @@ class StatementModelsTests(TestCase):
         context = models.context.objects.get(id=ctxid)
         self.assertIsNotNone(context.registration)   
 
+    def test_wrong_statement_type_in_context(self):
+        self.assertRaises(ParamError, Statement.Statement,json.dumps({'actor':{'objectType':'Agent',
+            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
+            'context':{'contextActivities': {'other': {'id': 'act:NewActivityID'}},
+            'revision': 'foo', 'platform':'bar','language': 'en-US',
+            'statement': {'objectType': 'Activity','id': "act:some/act"}}}))
+
     def test_invalid_context_registration(self):
         guid = "bbb"
         self.assertRaises(ParamError, Statement.Statement, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
@@ -384,7 +391,7 @@ class StatementModelsTests(TestCase):
         self.assertIn('v2', extVals)
 
 
-    def test_stmt_in_context_stmt(self):
+    def test_stmtref_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
 
         existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
@@ -394,7 +401,8 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
+                'revision': 'foo', 'platform':'bar','language': 'en-US',
+                'statement': {'objectType': 'StatementRef','id': stmt_guid}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
@@ -412,8 +420,36 @@ class StatementModelsTests(TestCase):
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
+        self.assertEqual(stmt_ref.ref_id, stmt_guid)
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
 
+    def test_substmt_in_context_stmt(self):
+        stmt_guid = str(uuid.uuid1())
+
+        guid = str(uuid.uuid1())
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
+                'revision': 'foo', 'platform':'bar','language': 'en-US',
+                'statement': {'objectType':'SubStatement', 'actor':{'objectType':'Agent',
+                'mbox':'mailto:sss@sss.com'},'verb':{'id':'verb:verb/url/nest/nest'},
+                'object':{'id':'act://activity/url'}}}}))
+
+        activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
+        ctxid = get_ctx_id(stmt.model_object)
+        context = models.context.objects.get(id=ctxid)
+        sub_stmt = models.SubStatement.objects.get(id=context.statement.id)
+
+        st = models.statement.objects.get(id=stmt.model_object.id)
+
+        self.assertEqual(st.stmt_object.id, activity.id)
+        self.assertEqual(st.context.all()[0].id, context.id)
+
+        self.assertEqual(context.registration, guid)
+        self.assertEqual(context.revision, 'foo')
+        self.assertEqual(context.platform, 'bar')
+        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(sub_stmt.verb.verb_id, "verb:verb/url/nest/nest")
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
@@ -425,7 +461,7 @@ class StatementModelsTests(TestCase):
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
                 'context':{'registration': guid, 'instructor': {'objectType':'Agent',
                 'name':'jon','mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid}}}))
+                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,'objectType':'StatementRef'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
@@ -466,7 +502,7 @@ class StatementModelsTests(TestCase):
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},'context':{'registration': guid, 
             'instructor': {'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
             'contextActivities': {'other': {'id': 'act:NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
-            'language': 'en-US', 'statement': {'id':stmt_guid}}}))
+            'language': 'en-US', 'statement': {'id':stmt_guid, "objectType":"StatementRef"}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
@@ -530,7 +566,8 @@ class StatementModelsTests(TestCase):
                     'platform':'bard',
                     'language': 'en-US', 
                     'statement': {
-                        'id': stmt_guid
+                        'id': stmt_guid,
+                        'objectType': 'StatementRef'
                     }
                  }
                 }
