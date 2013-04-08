@@ -1167,7 +1167,6 @@ class statement(models.Model):
     voided = models.NullBooleanField(default=False)
     context = generic.GenericRelation(context)
     version = models.CharField(max_length=7, default="1.0")
-    authoritative = models.BooleanField(default=True)
     user = models.ForeignKey(User, null=True, blank=True, db_index=True)
 
     def get_a_name(self):
@@ -1220,20 +1219,6 @@ class statement(models.Model):
         
         ret['version'] = self.version
         return ret
-
-    def save(self, *args, **kwargs):
-        stmts = statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, authority=self.authority)
-        cs = self.context.all()
-        # narrow down list of statements to just those that have the same number of
-        # context relations.. should be 0 or 1
-        sl = [x for x in stmts if len(x.context.all()) == len(cs)]
-        if len(cs) > 0:
-            # if self has context, check to see if the statement has the same context
-            sl = [s for s in sl if s.context.all()[0].id == cs.context.all().id]
-        
-        for s in sl:
-            statement.objects.filter(id=s.id).update(authoritative=False)
-        super(statement, self).save(*args, **kwargs)
 
     def unvoid_statement(self):
         statement_ref = StatementRef.objects.get(id=self.stmt_object.id)

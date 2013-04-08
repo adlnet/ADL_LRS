@@ -645,46 +645,6 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid7, instructorGetResponse)
         self.assertNotIn(self.guid8, instructorGetResponse)
 
-    def test_authoritative_filter(self):
-        self.bunchostmts()
-        # Test authoritative
-        self.username = "tester1"
-        self.email = "test1@tester.com"
-        self.password = "test"
-        self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-        form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0")
-        
-        auth_stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
-            "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "object": {"objectType": "Activity", "id":"act:foogie",
-            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
-            "interactionType": "fill-in","correctResponsesPattern": ["answer"],
-            "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
-            "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
-            "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
-            "context":{"registration": self.cguid7, "contextActivities": {"other": {"id": "act:NewActivityID2"}},
-            "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
-            "ext:ckey2": "cval2"}}})
-
-        post_response = self.client.post(reverse(views.statements), auth_stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0")
-        self.assertEqual(post_response.status_code, 200)
-
-        params = {"authoritative": False, "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "object":{"objectType": "Activity", "id":"act:foogie",
-            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
-            "interactionType": "fill-in","correctResponsesPattern": ["answer"],
-            "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}}
-
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(params))        
-        auth_get_response = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)        
-        self.assertEqual(auth_get_response.status_code, 200)
-        
-        stmts = json.loads(auth_get_response.content)
-        self.assertEqual(len(stmts["statements"]), 2)
 
     def test_limit_filter(self):
         self.bunchostmts()
@@ -708,7 +668,6 @@ class StatementsTests(TestCase):
         self.assertIn("en-GB", rsp)
         self.assertIn("altdesc", rsp)
         self.assertIn("altname", rsp)
-
 
         # Should display full lang map (won"t find testdesc2 since activity class will merge activities with same id together)
         self.assertIn("testdesc3", rsp)

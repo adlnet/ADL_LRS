@@ -622,24 +622,6 @@ class StatementModelsTests(TestCase):
         self.assertEqual(sub_res.response, 'kicked')
         
 
-    def test_model_authoritative_set(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-        
-        stmt2 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
-        self.assertFalse(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-        
-        stmt3 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity2"}}))
-
-        self.assertTrue(models.statement.objects.get(pk=stmt3.model_object.pk).authoritative)
-        self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
-        self.assertFalse(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-
-
     def test_group_stmt(self):
         ot = "Group"
         name = "the group SMT"
