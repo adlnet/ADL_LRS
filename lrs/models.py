@@ -357,8 +357,20 @@ class score(models.Model):
     def __unicode__(self):
         return json.dumps(self.object_return())
 
+class KnowsChild(models.Model):
+    subclass = models.CharField(max_length=20)
 
-class statement_object(models.Model):
+    class Meta:
+        abstract = True
+
+    def as_child(self):
+        return getattr(self, self.subclass)
+
+    def save(self, *args, **kwargs):
+        self.subclass = self.__class__.__name__.lower()
+        super(KnowsChild, self).save(*args, **kwargs)
+
+class statement_object(KnowsChild):
     def get_a_name(self):
         return "please override"
 
@@ -393,7 +405,7 @@ class agentmgr(models.Manager):
         if not define:
             kwargs['global_representation'] = False
         ret_agent = agent(**kwargs)
-        ret_agent.full_clean()
+        ret_agent.full_clean(exclude='subclass')
         ret_agent.save()
         return ret_agent, True
 
@@ -425,7 +437,7 @@ class agentmgr(models.Manager):
                 if not define:
                     kwargs['global_representation'] = False
                 ret_agent = agent(**kwargs)
-            ret_agent.full_clean()
+            ret_agent.full_clean(exclude='subclass')
             ret_agent.save()
             acc = agent_account(agent=ret_agent, **account)
             acc.save()
@@ -505,7 +517,7 @@ class agentmgr(models.Manager):
         if is_group and created:
             ags = [self.gen(**a) for a in members]
             ret_agent.member.add(*(a for a, c in ags))
-        ret_agent.full_clean()
+        ret_agent.full_clean(exclude='subclass')
         ret_agent.save()
         return ret_agent, created
 
@@ -883,7 +895,6 @@ class activity_definition_step(models.Model):
 class StatementRef(statement_object):
     object_type = models.CharField(max_length=12, default="StatementRef")
     ref_id = models.CharField(max_length=40)
-    context = models.OneToOneField('context', blank=True, null=True)
 
     def object_return(self):
         ret = {}
@@ -912,14 +923,16 @@ class context(models.Model):
     platform = models.CharField(max_length=50,blank=True)
     language = models.CharField(max_length=50,blank=True)
     extensions = generic.GenericRelation(extensions)
-    # for statement and sub statement
+    # for linking statement and sub-statement with this context
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
+    # context also has a stmt field which can reference a sub-statement or statementref
+    statement = models.ForeignKey(statement_object, related_name="cntx_statement", null=True)
 
     def object_return(self, sparse=False):
         ret = {}
-        linked_fields = ['instructor', 'team', 'cntx_statement', 'contextActivities']
+        linked_fields = ['instructor', 'team', 'statement', 'contextActivities']
         ignore = ['id', 'content_type', 'object_id', 'content_object']
         for field in self._meta.fields:
             if not field.name in ignore:
@@ -931,16 +944,18 @@ class context(models.Model):
                         ret[field.name] = self.instructor.get_agent_json(sparse)
                     elif field.name == 'team':
                         ret[field.name] = self.team.get_agent_json()
-                    elif field.name == 'cntx_statement':
-                        ret['statement'] = self.cntx_statement.object_return()                    
+                    elif field.name == 'statement':
+                        subclass = self.statement.subclass
+                        if subclass == 'statementref':
+                            cntx_stmt = StatementRef.objects.get(id=self.statement.id)
+                        elif subclass == 'substatement':
+                            cntx_stmt = SubStatement.objects.get(id=self.statement.id)                        
+                        ret['statement'] = cntx_stmt.object_return()          
+
         if self.contextactivity_set:
             ret['contextActivities'] = {}
             for con_act in self.contextactivity_set.all():
                 ret['contextActivities'].update(con_act.object_return())
-        try:
-            ret['statement'] = self.statementref.object_return()
-        except:
-            pass  
 
         context_ext = self.extensions.all()
         if len(context_ext) > 0:
@@ -985,7 +1000,7 @@ class SubStatement(statement_object):
     verb = models.ForeignKey(Verb)
     result = generic.GenericRelation(result)
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
-    context = generic.GenericRelation(context)
+    context = generic.GenericRelation(context, related_name="substatement_context")
     user = models.ForeignKey(User, null=True, blank=True)
 
     def get_a_name(self):
@@ -996,10 +1011,11 @@ class SubStatement(statement_object):
         ret = {}
         ret['actor'] = self.actor.get_agent_json(sparse)
         ret['verb'] = self.verb.object_return()
+        subclass = self.stmt_object.subclass
 
-        if hasattr(self.stmt_object, 'activity'):
+        if subclass == 'activity':
            stmt_object = activity.objects.get(id=self.stmt_object.id)
-        elif hasattr(self.stmt_object, 'agent'):
+        elif subclass == 'agent':
             stmt_object = agent.objects.get(id=self.stmt_object.id)
             activity_object = False
         else: 
@@ -1019,18 +1035,14 @@ class SubStatement(statement_object):
         return ret
 
     def get_object(self):
-        stmt_object = None
-        object_type = None
-        if hasattr(self.stmt_object, 'activity'):
+        subclass = self.stmt_object.subclass
+        if subclass == 'activity':
             stmt_object = activity.objects.get(id=self.stmt_object.id)
-            object_type = 'activity'
-        elif hasattr(self.stmt_object, 'agent'):
+        elif subclass == 'agent':
             stmt_object = agent.objects.get(id=self.stmt_object.id)
-            object_type = 'agent'
         else:
             raise IDNotFoundError("No activity, or agent found with given ID")
-
-        return stmt_object, object_type
+        return stmt_object, subclass
 
     def delete(self, *args, **kwargs):
         # actor, verb, auth all detect this statement-stmt_object does not
@@ -1165,7 +1177,7 @@ class statement(models.Model):
     timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())    
     authority = models.ForeignKey(agent, blank=True,null=True,related_name="authority_statement", db_index=True)
     voided = models.NullBooleanField(default=False)
-    context = generic.GenericRelation(context)
+    context = generic.GenericRelation(context, related_name="statement_context")
     version = models.CharField(max_length=7, default="1.0")
     authoritative = models.BooleanField(default=True)
     user = models.ForeignKey(User, null=True, blank=True, db_index=True)
@@ -1174,23 +1186,18 @@ class statement(models.Model):
         return self.statement_id
 
     def get_object(self):
-        stmt_object = None
-        object_type = None
-        if hasattr(self.stmt_object, 'activity'):
+        subclass = self.stmt_object.subclass
+        if subclass == 'activity':
             stmt_object = activity.objects.get(id=self.stmt_object.id)
-            object_type = 'activity'
-        elif hasattr(self.stmt_object, 'agent'):    
+        elif subclass == 'agent':    
             stmt_object = agent.objects.get(id=self.stmt_object.id)
-            object_type = 'agent'
-        elif hasattr(self.stmt_object, 'substatement'):
+        elif subclass == 'substatement':
             stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
-            object_type = 'substatement'
-        elif hasattr(self.stmt_object, 'statementref'):
+        elif subclass == 'statementref':
             stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
-            object_type = 'statementref'
         else:
             raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
-        return stmt_object, object_type
+        return stmt_object, subclass
 
     def object_return(self, sparse=False, lang=None):
         object_type = 'activity'
