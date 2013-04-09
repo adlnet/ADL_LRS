@@ -484,7 +484,7 @@ class agentmgr(models.Manager):
                     ret_agent, created = self.create_agent(kwargs, define)
             # Cannot have no IFP and no members
             elif not attrs and not members:
-                raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must have a members list")
+                raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must have a member list")
             # If there is and IFP and members (group with IFP that's not account since it should be
             # updated already from above)if there is an IFP that isn't account and no members (agent object)
             else:
