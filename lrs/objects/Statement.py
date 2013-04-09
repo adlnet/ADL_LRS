@@ -109,11 +109,12 @@ class Statement():
             del score_data['max']
 
         # If scale is included make sure it's between -1 and 1
-        if not ('scaled' in score_data and (score_data['scaled'] > -1 and score_data['scaled'] < 1)):
-            err_msg = "Scaled must be between -1 and 1"
-            log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
-            update_parent_log_status(self.log_dict, 400)
-            raise exceptions.ParamError(err_msg)
+        if 'scaled' in score_data:
+            if score_data['scaled'] < -1 or score_data['scaled'] > 1:
+                err_msg = "Scaled must be between -1 and 1"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
 
         return score_data
 
@@ -151,21 +152,10 @@ class Statement():
         if 'contextActivities' in context:
             con_act_data = context['contextActivities']
             del context['contextActivities']
-
-        # Set context statement
-        cs = None
-        if 'cntx_statement' in context:
-            cs = context['cntx_statement'] 
-            del context['cntx_statement']
         
         # Save context
         cntx = models.context(content_object=self.model_object, **context)    
         cntx.save()
-
-        # Set context in context statement and save
-        if cs:
-            cs.context = cntx
-            cs.save()
 
         # Save context activities
         if con_act_data:
@@ -268,7 +258,6 @@ class Statement():
         revision = True
         platform = True
         contextExts = {}
-
         log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
 
         if 'registration' in stmt_data['context']:
@@ -298,13 +287,28 @@ class Statement():
 
         # Save context stmt if one
         if 'statement' in context:
-            stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
-            stmt_ref.save()
-            context['cntx_statement'] = stmt_ref
-            del context['statement']
+            stmt_obj = context['statement']
 
+            # Check objectType since can be both ref or sub
+            if 'objectType' in stmt_obj:
+                if stmt_obj['objectType'] == 'StatementRef':
+                    stmt_ref = models.StatementRef(ref_id=stmt_obj['id'])
+                    stmt_ref.save()
+                    context['statement'] = stmt_ref                    
+                elif stmt_obj['objectType'] == 'SubStatement':
+                    sub_stmt = SubStatement(stmt_obj, self.auth, self.log_dict).model_object
+                    context['statement'] = sub_stmt
+                else:
+                    err_msg = "Statement in context must be SubStatement or StatementRef"
+                    log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
+                    update_parent_log_status(self.log_dict, 400)
+                    raise exceptions.ParamError(err_msg)                    
+            else:
+                err_msg = "Statement in context must contain an objectType"
+                log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
         return self.saveContextToDB(context, contextExts)
-
 
     def save_lang_map(self, lang_map, verb):
         # If verb is model object but not saved yet
