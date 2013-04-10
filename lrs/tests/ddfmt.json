@@ -306,6 +306,15 @@
         }
     }, 
     {
+        "pk": 10, 
+        "model": "contenttypes.contenttype", 
+        "fields": {
+            "model": "systemaction", 
+            "name": "system action", 
+            "app_label": "lrs"
+        }
+    }, 
+    {
         "pk": 9, 
         "model": "contenttypes.contenttype", 
         "fields": {
@@ -389,23 +398,23 @@
         }
     }, 
     {
-        "pk": 6, 
+        "pk": 8, 
         "model": "lrs.languagemap", 
         "fields": {
             "key": "en-US", 
-            "value": "high fived", 
+            "value": "high-fived", 
             "content_type": 12, 
-            "object_id": 6
+            "object_id": 8
         }
     }, 
     {
-        "pk": 7, 
+        "pk": 9, 
         "model": "lrs.languagemap", 
         "fields": {
             "key": "en-US", 
             "value": "frowned upon", 
             "content_type": 12, 
-            "object_id": 7
+            "object_id": 9
         }
     }, 
     {
@@ -437,14 +446,14 @@
         }
     }, 
     {
-        "pk": 6, 
+        "pk": 8, 
         "model": "lrs.verb", 
         "fields": {
-            "verb_id": "http://special.adlnet.org/xapi/verbs/high5"
+            "verb_id": "http://special.adlnet.org/xapi/verbs/high-fived"
         }
     }, 
     {
-        "pk": 7, 
+        "pk": 9, 
         "model": "lrs.verb", 
         "fields": {
             "verb_id": "http://special.adlnet.org/xapi/verbs/frowned"
@@ -1583,27 +1592,42 @@
         "fields": {}
     }, 
     {
-        "pk": 26, 
+        "pk": 31, 
         "model": "lrs.statement_object", 
         "fields": {}
     }, 
     {
-        "pk": 27, 
+        "pk": 32, 
         "model": "lrs.statement_object", 
         "fields": {}
     }, 
     {
-        "pk": 28, 
+        "pk": 33, 
         "model": "lrs.statement_object", 
         "fields": {}
     }, 
     {
-        "pk": 29, 
+        "pk": 34, 
         "model": "lrs.statement_object", 
         "fields": {}
     }, 
     {
-        "pk": 30, 
+        "pk": 35, 
+        "model": "lrs.statement_object", 
+        "fields": {}
+    }, 
+    {
+        "pk": 36, 
+        "model": "lrs.statement_object", 
+        "fields": {}
+    }, 
+    {
+        "pk": 37, 
+        "model": "lrs.statement_object", 
+        "fields": {}
+    }, 
+    {
+        "pk": 38, 
         "model": "lrs.statement_object", 
         "fields": {}
     }, 
@@ -1636,14 +1660,30 @@
         }
     }, 
     {
-        "pk": 27, 
+        "pk": 32, 
+        "model": "lrs.agent", 
+        "fields": {
+            "openid": "", 
+            "name": "timmy", 
+            "oauth_identifier": "", 
+            "member": [
+                31
+            ], 
+            "mbox_sha1sum": "", 
+            "global_representation": true, 
+            "mbox": "mailto:timmy@example.com", 
+            "objectType": "Agent"
+        }
+    }, 
+    {
+        "pk": 33, 
         "model": "lrs.agent", 
         "fields": {
             "openid": "", 
             "name": "blobby", 
             "oauth_identifier": "", 
             "member": [
-                26
+                31
             ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
@@ -1652,14 +1692,16 @@
         }
     }, 
     {
-        "pk": 26, 
+        "pk": 31, 
         "model": "lrs.agent", 
         "fields": {
             "openid": "", 
-            "name": "Tourists", 
+            "name": "the tourists", 
             "oauth_identifier": "", 
             "member": [
-                27
+                32, 
+                33, 
+                2
             ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
@@ -1668,14 +1710,46 @@
         }
     }, 
     {
-        "pk": 30, 
+        "pk": 36, 
+        "model": "lrs.agent", 
+        "fields": {
+            "openid": "", 
+            "name": "mr x", 
+            "oauth_identifier": "", 
+            "member": [
+                35
+            ], 
+            "mbox_sha1sum": "", 
+            "global_representation": true, 
+            "mbox": "mailto:mrx@example.com", 
+            "objectType": "Agent"
+        }
+    }, 
+    {
+        "pk": 37, 
+        "model": "lrs.agent", 
+        "fields": {
+            "openid": "", 
+            "name": "ms y", 
+            "oauth_identifier": "", 
+            "member": [
+                35
+            ], 
+            "mbox_sha1sum": "", 
+            "global_representation": true, 
+            "mbox": "mailto:msy@example.com", 
+            "objectType": "Agent"
+        }
+    }, 
+    {
+        "pk": 38, 
         "model": "lrs.agent", 
         "fields": {
             "openid": "", 
             "name": "dr dre", 
             "oauth_identifier": "", 
             "member": [
-                29
+                35
             ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
@@ -1684,14 +1758,16 @@
         }
     }, 
     {
-        "pk": 29, 
+        "pk": 35, 
         "model": "lrs.agent", 
         "fields": {
             "openid": "", 
             "name": "Managers", 
             "oauth_identifier": "", 
             "member": [
-                30
+                36, 
+                37, 
+                38
             ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
@@ -1706,7 +1782,9 @@
             "openid": "", 
             "name": "tom", 
             "oauth_identifier": "", 
-            "member": [], 
+            "member": [
+                31
+            ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
             "mbox": "mailto:tom@example.com", 
@@ -2514,12 +2592,12 @@
         }
     }, 
     {
-        "pk": 28, 
+        "pk": 34, 
         "model": "lrs.statementref", 
         "fields": {
             "object_type": "StatementRef", 
             "context": null, 
-            "ref_id": "182e3896a11011e2923e08002787eb49"
+            "ref_id": "6a574b1aa22511e29f0408002787eb49"
         }
     }, 
     {
@@ -2739,21 +2817,21 @@
         }
     }, 
     {
-        "pk": 26, 
+        "pk": 29, 
         "model": "lrs.contextactivity", 
         "fields": {
             "context_activity": "http://imaginarium.adlnet.org/xapi/imaginarium", 
             "key": "parent", 
-            "context": 26
+            "context": 29
         }
     }, 
     {
-        "pk": 27, 
+        "pk": 30, 
         "model": "lrs.contextactivity", 
         "fields": {
             "context_activity": "http://imaginarium.adlnet.org/xapi/imaginarium", 
             "key": "parent", 
-            "context": 27
+            "context": 30
         }
     }, 
     {
@@ -3093,12 +3171,12 @@
         }
     }, 
     {
-        "pk": 26, 
+        "pk": 29, 
         "model": "lrs.context", 
         "fields": {
             "language": "", 
-            "registration": "d7e01cd8a10e11e2885708002787eb49", 
-            "object_id": 30, 
+            "registration": "3d074ad4a22511e2982a08002787eb49", 
+            "object_id": 34, 
             "platform": "", 
             "content_type": 37, 
             "team": null, 
@@ -3107,12 +3185,12 @@
         }
     }, 
     {
-        "pk": 27, 
+        "pk": 30, 
         "model": "lrs.context", 
         "fields": {
             "language": "", 
-            "registration": "182f83c2a11011e2923e08002787eb49", 
-            "object_id": 31, 
+            "registration": "6a58a38ea22511e29f0408002787eb49", 
+            "object_id": 35, 
             "platform": "", 
             "content_type": 37, 
             "team": null, 
@@ -3536,15 +3614,15 @@
         }
     }, 
     {
-        "pk": 30, 
+        "pk": 34, 
         "model": "lrs.statement", 
         "fields": {
             "verb": 5, 
-            "statement_id": "d7dea628a10e11e2885708002787eb49", 
-            "timestamp": "2013-04-09T12:13:09.784Z", 
-            "actor": 26, 
+            "statement_id": "3d0613b2a22511e2982a08002787eb49", 
+            "timestamp": "2013-04-10T21:25:59.583Z", 
+            "actor": 31, 
             "voided": false, 
-            "stored": "2013-04-09T12:13:09.785Z", 
+            "stored": "2013-04-10T21:25:59.584Z", 
             "stmt_object": 25, 
             "authority": 2, 
             "version": "1.0", 
@@ -3552,15 +3630,15 @@
         }
     }, 
     {
-        "pk": 31, 
+        "pk": 35, 
         "model": "lrs.statement", 
         "fields": {
-            "verb": 6, 
-            "statement_id": "182e3896a11011e2923e08002787eb49", 
-            "timestamp": "2013-04-09T12:22:07.177Z", 
-            "actor": 26, 
+            "verb": 8, 
+            "statement_id": "6a574b1aa22511e29f0408002787eb49", 
+            "timestamp": "2013-04-10T21:27:15.613Z", 
+            "actor": 31, 
             "voided": false, 
-            "stored": "2013-04-09T12:22:07.177Z", 
+            "stored": "2013-04-10T21:27:15.614Z", 
             "stmt_object": 25, 
             "authority": 2, 
             "version": "1.0", 
@@ -3568,16 +3646,16 @@
         }
     }, 
     {
-        "pk": 32, 
+        "pk": 36, 
         "model": "lrs.statement", 
         "fields": {
-            "verb": 7, 
-            "statement_id": "73f5bc44a11011e28de208002787eb49", 
-            "timestamp": "2013-04-09T12:24:41.157Z", 
-            "actor": 29, 
+            "verb": 9, 
+            "statement_id": "98fc6518a22511e28a7f08002787eb49", 
+            "timestamp": "2013-04-10T21:28:33.870Z", 
+            "actor": 35, 
             "voided": false, 
-            "stored": "2013-04-09T12:24:41.157Z", 
-            "stmt_object": 28, 
+            "stored": "2013-04-10T21:28:33.871Z", 
+            "stmt_object": 34, 
             "authority": 2, 
             "version": "1.0", 
             "user": 1

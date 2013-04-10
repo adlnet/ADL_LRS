@@ -572,6 +572,42 @@ class StatementsTests(TestCase):
         self.assertNotIn(self.guid8, sub_object_get_response)        
         self.assertNotIn(self.guid9, sub_object_get_response)
 
+
+    def test_registration_filter(self):
+        self.bunchostmts()
+        # Test Registration
+        param = {"registration": self.cguid4}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        registrationPostResponse = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+
+        self.assertEqual(registrationPostResponse.status_code, 200)
+        self.assertContains(registrationPostResponse,self.guid4)
+        self.assertNotIn(self.guid2, registrationPostResponse)
+        self.assertNotIn(self.guid3, registrationPostResponse)
+        self.assertNotIn(self.guid1, registrationPostResponse)
+        self.assertNotIn(self.guid5, registrationPostResponse)
+        self.assertNotIn(self.guid6, registrationPostResponse)
+        self.assertNotIn(self.guid7, registrationPostResponse)
+        self.assertNotIn(self.guid8, registrationPostResponse)
+
+    def test_ascending_filter(self):
+        self.bunchostmts()
+        # Test actor
+        ascending_get_response = self.client.get(reverse(views.statements), 
+            {"ascending": True},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
+
+        self.assertEqual(ascending_get_response.status_code, 200)
+        rsp = ascending_get_response.content
+        self.assertIn(self.guid1, rsp)
+        self.assertIn(self.guid2, rsp)
+        self.assertIn(self.guid3, rsp)
+        self.assertIn(self.guid4, rsp)
+        self.assertIn(self.guid5, rsp)
+        self.assertIn(self.guid6, rsp)
+        self.assertIn(self.guid7, rsp)
+        self.assertIn(self.guid8, rsp)
+        self.assertIn(str(self.exist_stmt_id), rsp)
+
     def test_actor_filter(self):
         self.bunchostmts()
         # Test actor

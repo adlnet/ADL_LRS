@@ -891,6 +891,11 @@ class StatementRef(statement_object):
         ret['id'] = self.ref_id
         return ret
 
+    def get_a_name(self):
+        s = statement.objects.get(statement_id=self.ref_id)
+        o, f = s.get_object()
+        return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
+
 
 class ContextActivity(models.Model):
     key = models.CharField(max_length=8)
@@ -924,7 +929,7 @@ class context(models.Model):
         for field in self._meta.fields:
             if not field.name in ignore:
                 value = getattr(self, field.name)
-                if not value is None:
+                if not value is None and value != "":
                     if not field.name in linked_fields:
                         ret[field.name] = value
                     elif field.name == 'instructor':
