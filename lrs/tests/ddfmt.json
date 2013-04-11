@@ -418,6 +418,36 @@
         }
     }, 
     {
+        "pk": 10, 
+        "model": "lrs.languagemap", 
+        "fields": {
+            "key": "en-US", 
+            "value": "started", 
+            "content_type": 12, 
+            "object_id": 10
+        }
+    }, 
+    {
+        "pk": 13, 
+        "model": "lrs.languagemap", 
+        "fields": {
+            "key": "en-US", 
+            "value": "nixed", 
+            "content_type": 12, 
+            "object_id": 13
+        }
+    }, 
+    {
+        "pk": 14, 
+        "model": "lrs.languagemap", 
+        "fields": {
+            "key": "en-US", 
+            "value": "hax0r5", 
+            "content_type": 12, 
+            "object_id": 14
+        }
+    }, 
+    {
         "pk": 1, 
         "model": "lrs.verb", 
         "fields": {
@@ -457,6 +487,27 @@
         "model": "lrs.verb", 
         "fields": {
             "verb_id": "http://special.adlnet.org/xapi/verbs/frowned"
+        }
+    }, 
+    {
+        "pk": 10, 
+        "model": "lrs.verb", 
+        "fields": {
+            "verb_id": "http://special.adlnet.org/xapi/verbs/started"
+        }
+    }, 
+    {
+        "pk": 13, 
+        "model": "lrs.verb", 
+        "fields": {
+            "verb_id": "http://special.adlnet.gov/xapi/verbs/stopped"
+        }
+    }, 
+    {
+        "pk": 14, 
+        "model": "lrs.verb", 
+        "fields": {
+            "verb_id": "http://special.adlnet.gov/xapi/verbs/hacked"
         }
     }, 
     {
@@ -1632,6 +1683,43 @@
         "fields": {}
     }, 
     {
+        "pk": 39, 
+        "model": "lrs.statement_object", 
+        "fields": {}
+    }, 
+    {
+        "pk": 40, 
+        "model": "lrs.statement_object", 
+        "fields": {}
+    }, 
+    {
+        "pk": 42, 
+        "model": "lrs.statement_object", 
+        "fields": {}
+    }, 
+    {
+        "pk": 43, 
+        "model": "lrs.statement_object", 
+        "fields": {}
+    }, 
+    {
+        "pk": 2, 
+        "model": "lrs.agent", 
+        "fields": {
+            "openid": "", 
+            "name": "tom", 
+            "oauth_identifier": "", 
+            "member": [
+                31, 
+                40
+            ], 
+            "mbox_sha1sum": "", 
+            "global_representation": true, 
+            "mbox": "mailto:tom@example.com", 
+            "objectType": "Agent"
+        }
+    }, 
+    {
         "pk": 24, 
         "model": "lrs.agent", 
         "fields": {
@@ -1652,11 +1740,31 @@
             "openid": "", 
             "name": "louo", 
             "oauth_identifier": "", 
-            "member": [], 
+            "member": [
+                40
+            ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
             "mbox": "mailto:louo@example.com", 
             "objectType": "Agent"
+        }
+    }, 
+    {
+        "pk": 31, 
+        "model": "lrs.agent", 
+        "fields": {
+            "openid": "", 
+            "name": "the tourists", 
+            "oauth_identifier": "", 
+            "member": [
+                33, 
+                32, 
+                2
+            ], 
+            "mbox_sha1sum": "", 
+            "global_representation": true, 
+            "mbox": "", 
+            "objectType": "Group"
         }
     }, 
     {
@@ -1692,16 +1800,16 @@
         }
     }, 
     {
-        "pk": 31, 
+        "pk": 35, 
         "model": "lrs.agent", 
         "fields": {
             "openid": "", 
-            "name": "the tourists", 
+            "name": "Managers", 
             "oauth_identifier": "", 
             "member": [
-                32, 
-                33, 
-                2
+                36, 
+                37, 
+                38
             ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
@@ -1758,37 +1866,20 @@
         }
     }, 
     {
-        "pk": 35, 
+        "pk": 40, 
         "model": "lrs.agent", 
         "fields": {
             "openid": "", 
-            "name": "Managers", 
+            "name": "adl lrs developers", 
             "oauth_identifier": "", 
             "member": [
-                36, 
-                37, 
-                38
+                25, 
+                2
             ], 
             "mbox_sha1sum": "", 
             "global_representation": true, 
-            "mbox": "", 
+            "mbox": "mailto:adllrsdevs@example.com", 
             "objectType": "Group"
-        }
-    }, 
-    {
-        "pk": 2, 
-        "model": "lrs.agent", 
-        "fields": {
-            "openid": "", 
-            "name": "tom", 
-            "oauth_identifier": "", 
-            "member": [
-                31
-            ], 
-            "mbox_sha1sum": "", 
-            "global_representation": true, 
-            "mbox": "mailto:tom@example.com", 
-            "objectType": "Agent"
         }
     }, 
     {
@@ -1987,6 +2078,26 @@
         "fields": {
             "authoritative": "tom", 
             "activity_id": "http://imaginarium.adlnet.org/xapi/animals/kermodebear", 
+            "global_representation": true, 
+            "objectType": "Activity"
+        }
+    }, 
+    {
+        "pk": 39, 
+        "model": "lrs.activity", 
+        "fields": {
+            "authoritative": "tom", 
+            "activity_id": "https://github.com/adlnet/ADL_LRS/tree/1.0dev", 
+            "global_representation": true, 
+            "objectType": "Activity"
+        }
+    }, 
+    {
+        "pk": 42, 
+        "model": "lrs.activity", 
+        "fields": {
+            "authoritative": "tom", 
+            "activity_id": "http://adlnet.gov/website", 
             "global_representation": true, 
             "objectType": "Activity"
         }
@@ -3199,6 +3310,20 @@
         }
     }, 
     {
+        "pk": 31, 
+        "model": "lrs.context", 
+        "fields": {
+            "language": "", 
+            "registration": "", 
+            "object_id": 43, 
+            "platform": "", 
+            "content_type": 36, 
+            "team": null, 
+            "instructor": null, 
+            "revision": ""
+        }
+    }, 
+    {
         "pk": 1, 
         "model": "auth.user", 
         "fields": {
@@ -3227,6 +3352,17 @@
             "user": 1, 
             "content_type": "application/json", 
             "profileId": "highscores"
+        }
+    }, 
+    {
+        "pk": 43, 
+        "model": "lrs.substatement", 
+        "fields": {
+            "timestamp": "2013-04-11T23:24:03.578Z", 
+            "stmt_object": 42, 
+            "verb": 14, 
+            "user": 1, 
+            "actor": 25
         }
     }, 
     {
@@ -3656,6 +3792,38 @@
             "voided": false, 
             "stored": "2013-04-10T21:28:33.871Z", 
             "stmt_object": 34, 
+            "authority": 2, 
+            "version": "1.0", 
+            "user": 1
+        }
+    }, 
+    {
+        "pk": 37, 
+        "model": "lrs.statement", 
+        "fields": {
+            "verb": 10, 
+            "statement_id": "00fbf7d2a2b711e2a12a08002787eb49", 
+            "timestamp": "2013-04-11T14:49:25.376Z", 
+            "actor": 40, 
+            "voided": false, 
+            "stored": "2013-04-11T14:49:25.377Z", 
+            "stmt_object": 39, 
+            "authority": 2, 
+            "version": "1.0", 
+            "user": 1
+        }
+    }, 
+    {
+        "pk": 38, 
+        "model": "lrs.statement", 
+        "fields": {
+            "verb": 13, 
+            "statement_id": "e5d76732a2fe11e2869f08002787eb49", 
+            "timestamp": "2013-04-11T23:24:03.603Z", 
+            "actor": 32, 
+            "voided": false, 
+            "stored": "2013-04-11T23:24:03.603Z", 
+            "stmt_object": 43, 
             "authority": 2, 
             "version": "1.0", 
             "user": 1

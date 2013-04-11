@@ -6,6 +6,8 @@ from datetime import datetime
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.db.models import Q
+from itertools import chain
 from lrs import models
 from lrs.objects import Agent, Statement
 from lrs.util import convert_to_utc, convert_to_dict
@@ -86,6 +88,84 @@ def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
     return models.statement.objects.filter(**args).order_by(stored_param)
 
 def complex_get(req_dict):
+    # tests if value is True or "true"
+    bt = lambda x: x if type(x)==bool else x.lower()=="true"
+    stmtset = models.statement.objects
+
+
+    # Parse out params into single dict-GET data not in body
+    try:
+        the_dict = req_dict['body']
+        if not isinstance(the_dict, dict):
+            the_dict = convert_to_dict(the_dict)
+    except KeyError:
+        the_dict = req_dict
+
+    if 'since' in the_dict:
+        stmtset = stmtset.filter(stored__gt=convert_to_utc(the_dict['since']))
+    if 'until' in the_dict:
+        stmtset = stmtset.filter(stored_lte=convert_to_utc(the_dict['until']))
+
+    # For statements/read/mine oauth scope
+    if 'statements_mine_only' in the_dict:
+        stmtset = stmtset.filter(authority=the_dict['auth'])
+
+    if 'agent' in the_dict:
+        agent = None
+        data = the_dict['agent']
+        related = 'related_agents' in the_dict and bt(the_dict['related_agents'])
+        
+        if not type(data) is dict:
+            data = convert_to_dict(data)
+        
+        try:
+            agent = Agent.Agent(data).agent
+            groups = agent.member.all()
+            q = Q(actor=agent)
+            for g in groups:
+                q = q | Q(actor=g)
+            if related:
+                me = chain([agent], groups)
+                for a in me:
+                    q = q | Q(stmt_object=a) | Q(authority=a) \
+                          | Q(context__instructor=a) | Q(context__team=a) \
+                          | Q(stmt_object__substatement__actor=a) \
+                          | Q(stmt_object__substatement__stmt_object=a) \
+                          | Q(stmt_object__substatement__context__instructor=a) \
+                          | Q(stmt_object__substatement__context__team=a)       
+        except models.IDNotFoundError:
+            return[]     
+        stmtset = stmtset.filter(q)
+
+    # verb
+    # activity
+    # registration
+    # format
+    # attachments
+    
+    # Set language if one
+    # pull from req_dict since language is from a header, not an arg 
+    language = None
+    if 'language' in req_dict:
+        language = req_dict['language']
+
+    sparse = True    
+    # If want sparse results
+    if 'sparse' in the_dict:
+        sparse = bt(the_dict['sparse'])
+
+    # If want ordered by ascending
+    stored_param = '-stored'
+    if 'ascending' in the_dict and bt(the_dict['ascending']):
+            stored_param = 'stored'
+
+    stmt_list = stmtset.order_by(stored_param)
+    # For each stmt convert to our Statement class and retrieve all json
+    full_stmt_list = []
+    full_stmt_list = [stmt.object_return(sparse, language) for stmt in stmt_list]
+    return full_stmt_list
+
+def old_complex_get(req_dict):
     args = {}
     
     language = None
@@ -150,12 +230,12 @@ def complex_get(req_dict):
         else:
             return []
 
-    # If searching by actor
-    if 'actor' in the_dict:
-        actor_data = the_dict['actor']
-        actor = parse_incoming_actor(actor_data)
-        if actor:
-            args['actor'] = actor
+    # If searching by agent
+    if 'agent' in the_dict:
+        actor_data = the_dict['agent']
+        agent = parse_incoming_actor(actor_data)
+        if agent:
+            args['actor'] = agent
         else:
             return []
 

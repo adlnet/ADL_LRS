@@ -61,5 +61,46 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         self.assertEqual(obj['result']['score']['raw'], 1918560)
 
-    # def test_group_as_agent_filter(self):
-    #     group = {}
+    def test_agent_filter(self):
+        param = {"agent":{"mbox":"mailto:tom@example.com"}}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        count = len(statement.objects.filter(actor__mbox=param['agent']['mbox']))
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), count)
+        for s in stmts:
+            self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
+
+    def test_group_as_agent_filter(self):
+        param = {"agent":{"mbox":"mailto:adllrsdevs@example.com"}}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        count = len(statement.objects.filter(actor__mbox=param['agent']['mbox']))
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), count)
+        for s in stmts:
+            self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
+
+    def test_related_agents_filter(self):
+        param = {"agent":{"mbox":"mailto:louo@example.com"}}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 1)
+
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        import pprint
+        for s in stmts:
+            pprint.pprint(s)
+        self.assertEqual(len(stmts), 5)
