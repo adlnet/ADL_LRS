@@ -164,23 +164,18 @@ class Statement():
             for con_act_group in con_act_data.items():
                 if not con_act_group[0] in context_types:
                     raise exceptions.ParamError('Context Activity type is not valid.')
+                ca = models.ContextActivity.objects.create(key=con_act_group[0], context=cntx)
                 # Incoming contextActivities can either be a list or dict
-                # DON'T KNOW IF INCOMING IDS OR ACTIVITY OBJECTS
                 if isinstance(con_act_group[1], list):
                     for con_act in con_act_group[1]:
-                        ca_id = con_act['id']
-                        if not uri.validate_uri(ca_id):
-                            raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
-                    ids = con_act_group[1]['id']
-                    ca = models.ContextActivity(key=con_act_group[0], context_activity=ids, context=cntx)
-                    ca.save()
+                        act = Activity(con_act,auth=self.auth, log_dict=self.log_dict,
+                            define=self.define).activity
+                        ca.context_activity.add(act)
                 else:
-                    ca_id = con_act_group[1]['id']
-                    if not uri.validate_uri(ca_id):
-                        raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
-                    ca = models.ContextActivity(key=con_act_group[0], context_activity=ca_id, context=cntx)
-                    ca.save()
-            cntx.save()
+                    act = Activity(con_act_group[1],auth=self.auth, log_dict=self.log_dict,
+                        define=self.define).activity
+                    ca.context_activity.add(act)
+                ca.save()
 
         # Save context extensions
         if contextExts:

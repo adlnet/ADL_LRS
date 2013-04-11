@@ -368,9 +368,8 @@ class StatementModelsTests(TestCase):
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
-                'revision': 'foo', 'platform':'bar',
-                'language': 'en-US'}}))
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'},
+                'grouping':{'id':'act:GroupID'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
@@ -387,9 +386,9 @@ class StatementModelsTests(TestCase):
         
         for ca in context_activities:
             if ca.key == 'grouping':
-                self.assertEqual(ca.context_activity, 'act:GroupID')
+                self.assertEqual(ca.context_activity.all()[0].activity_id, 'act:GroupID')
             elif ca.key == 'other':
-                self.assertEqual(ca.context_activity, 'act:NewActivityID')
+                self.assertEqual(ca.context_activity.all()[0].activity_id, 'act:NewActivityID')
 
         self.assertEqual(context.registration, guid)        
         self.assertEqual(context.revision, 'foo')
@@ -405,17 +404,29 @@ class StatementModelsTests(TestCase):
                 'grouping':{'id':'act:GroupID'}},
                 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}}))
-
+        
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
         context = models.context.objects.get(id=ctxid)
+
+        context_activities = models.ContextActivity.objects.filter(context=context)
+        self.assertEqual(len(context_activities), 2)
         
-        context_activity_types = stmt.model_object.context.all()[0].contextactivity_set.all().values_list('key', flat=True)
-        self.assertEqual(len(context_activity_types), 3)
+        context_activity_keys = [ca.key for ca in context_activities]
+        self.assertEqual(len(context_activity_keys), 2)
+        self.assertIn('grouping', context_activity_keys)
+        self.assertIn('other', context_activity_keys)
 
-        context_activity_ids = stmt.model_object.context.all()[0].contextactivity_set.all().values_list('context_activity', flat=True)
-        self.assertEqual(len(context_activity_ids), 3)
+        context_activity_activities = []        
+        for ca in context_activities:
+            for c in ca.context_activity.all():
+                context_activity_activities.append(c.activity_id)
 
+        self.assertEqual(len(context_activity_activities), 3)
+
+        self.assertIn('act:NewActivityID', context_activity_activities)
+        self.assertIn('act:anotherActID', context_activity_activities)
+        self.assertIn('act:GroupID', context_activity_activities)
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
@@ -424,13 +435,6 @@ class StatementModelsTests(TestCase):
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.all()[0].id, context.id)
-        
-        self.assertIn('grouping', context_activity_types)
-        self.assertIn('other', context_activity_types)
-
-        self.assertIn('act:NewActivityID', context_activity_ids)
-        self.assertIn('act:anotherActID', context_activity_ids)
-        self.assertIn('act:GroupID', context_activity_ids)
 
         self.assertEqual(context.registration, guid)        
         self.assertEqual(context.revision, 'foo')
@@ -462,7 +466,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -535,15 +539,16 @@ class StatementModelsTests(TestCase):
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 'name':'jon'},
-                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
-                'context':{'registration': guid, 'instructor': {'objectType':'Agent',
-                'name':'jon','mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,'objectType':'StatementRef'}}}))
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 
+            'name':'jon'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
+            'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon',
+            'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
+            'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,
+            'objectType':'StatementRef'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
@@ -561,7 +566,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -576,15 +581,16 @@ class StatementModelsTests(TestCase):
 
     def test_actor_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve', 'mbox':'mailto:mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},'context':{'registration': guid, 
-            'instructor': {'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
-            'contextActivities': {'other': {'id': 'act:NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
-            'language': 'en-US', 'statement': {'id':stmt_guid, "objectType":"StatementRef"}}}))
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve',
+            'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},
+            'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon',
+            'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID1'}},
+            'revision': 'foob', 'platform':'bard','language': 'en-US', 'statement': {'id':stmt_guid,
+            "objectType":"StatementRef"}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
@@ -593,7 +599,7 @@ class StatementModelsTests(TestCase):
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
         st = models.statement.objects.get(id=stmt.model_object.id)
-        context_activities = stmt.model_object.context.all()[0].contextactivity_set.all()
+        context_activities = context.contextactivity_set.all()
 
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.context.all()[0].id, context.id)
@@ -602,7 +608,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(context.revision, 'foob')
         self.assertEqual(context.platform, 'bard')
         self.assertEqual(context.language, 'en-US')
@@ -617,8 +623,8 @@ class StatementModelsTests(TestCase):
 
     def test_agent_as_object_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(
@@ -671,7 +677,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(context.language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
@@ -782,3 +788,4 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(actor.name, name)
         self.assertEqual(actor.mbox, mbox)
+        self.assertEqual(len(actor.member.all()), 2)

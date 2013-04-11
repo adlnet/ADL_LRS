@@ -18,8 +18,6 @@ from .exceptions import IDNotFoundError, ParamError
 from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
-from djorm_pgarray.fields import ArrayField
-from djorm_expressions.models import ExpressionManager
 import logging
 from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 import pdb
@@ -905,19 +903,33 @@ class StatementRef(statement_object):
         ret['id'] = self.ref_id
         return ret
 
-
 class ContextActivity(models.Model):
     key = models.CharField(max_length=8)
-    # context_activity = models.CharField(max_length=MAX_URL_LENGTH)
-    context_activity = ArrayField(dbtype="varchar(255)")
+    context_activity =  models.ManyToManyField(activity)
     context = models.ForeignKey('context')
-    
-    def object_return(self):
+
+    def object_return(self, sparse=False, lang=None):
         ret = {}
         ret[self.key] = {}
-        ret[self.key]['id'] = self.context_activity
+        ret[self.key] = [a.object_return(sparse, lang) for a in self.context_activity.all()]
         return ret
 
+    def delete(self, *args, **kwargs):
+        if len(self.context_activity.all()) > 0:  
+            for ca in self.context_activity.all():
+                activity_in_use = False
+                activity_links = [rel.get_accessor_name() for rel in ca._meta.get_all_related_objects()]
+                for link in activity_links:
+                    try:
+                        objects = getattr(ca, link).all()
+                    except:
+                        continue
+                    if len(objects) > 0:
+                        activity_in_use = True  
+                        break
+                if not activity_in_use:
+                    ca.delete()
+        super(ContextActivity, self).delete(*args, **kwargs)
 
 class context(models.Model):    
     registration = models.CharField(max_length=40, default=gen_uuid, db_index=True)
@@ -934,7 +946,7 @@ class context(models.Model):
     # context also has a stmt field which can reference a sub-statement or statementref
     statement = models.ForeignKey(statement_object, related_name="cntx_statement", null=True)
 
-    def object_return(self, sparse=False):
+    def object_return(self, sparse=False, lang=None):
         ret = {}
         linked_fields = ['instructor', 'team', 'statement', 'contextActivities']
         ignore = ['id', 'content_type', 'object_id', 'content_object']
@@ -968,6 +980,11 @@ class context(models.Model):
                 ret['extensions'].update(ext.object_return())        
         return ret
 
+    def delete(self, *args, **kwargs):
+        context_activities = ContextActivity.objects.filter(context=self)
+        for ca in context_activities:
+            ca.delete()
+        super(context, self).delete(*args, **kwargs)
 
 class activity_state(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
@@ -1033,7 +1050,7 @@ class SubStatement(statement_object):
             # if any, should only be 1
             ret['result'] = self.result.all()[0].object_return()
         if len(self.context.all()) > 0:
-            ret['context'] = self.context.all()[0].object_return(sparse)
+            ret['context'] = self.context.all()[0].object_return(sparse, lang)
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
@@ -1057,7 +1074,8 @@ class SubStatement(statement_object):
         stmt_object, object_type = self.get_object()
 
         if len(self.context.all()) > 0:
-            self.context.all().delete()
+            for context in self.context.all():
+                context.delete()
 
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
@@ -1096,7 +1114,7 @@ class SubStatement(statement_object):
                     break
         if not actor_in_use:
             self.actor.delete()
-        
+
         verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
         verb_in_use = False
         # Loop through each relationship
@@ -1221,7 +1239,7 @@ class statement(models.Model):
             # should only ever be one.. used generic fk to handle sub stmt and stmt
             ret['result'] = self.result.all()[0].object_return()        
         if len(self.context.all()) > 0:
-            ret['context'] = self.context.all()[0].object_return(sparse)
+            ret['context'] = self.context.all()[0].object_return(sparse, lang)
         
         ret['timestamp'] = str(self.timestamp)
         ret['stored'] = str(self.stored)
@@ -1273,6 +1291,10 @@ class statement(models.Model):
         # Else retrieve its object
         else:
             stmt_object, object_type = self.get_object()
+
+        if len(self.context.all()) > 0:
+            for context in self.context.all():
+                context.delete()
         
         agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
         # Get all possible relationships for actor
@@ -1327,6 +1349,7 @@ class statement(models.Model):
         if not actor_in_use:
             self.actor.delete()
         
+
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
             verb_in_use = False
