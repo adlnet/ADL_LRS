@@ -1044,128 +1044,128 @@ class SubStatement(statement_object):
             raise IDNotFoundError("No activity, or agent found with given ID")
         return stmt_object, subclass
 
-    def delete(self, *args, **kwargs):
-        # actor, verb, auth all detect this statement-stmt_object does not
-        # Unvoid stmt if verb is voided
-        stmt_object = None
-        object_type = None
+    # def delete(self, *args, **kwargs):
+    #     # actor, verb, auth all detect this statement-stmt_object does not
+    #     # Unvoid stmt if verb is voided
+    #     stmt_object = None
+    #     object_type = None
 
-        stmt_object, object_type = self.get_object()
+    #     stmt_object, object_type = self.get_object()
 
-        if len(self.context.all()) > 0:
-            self.context.all().delete()
+    #     if len(self.context.all()) > 0:
+    #         self.context.all().delete()
 
-        agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
-        # Get all possible relationships for actor
-        actor_agent = agent.objects.get(id=self.actor.id)
-        actor_in_use = False
-        # Loop through each relationship
-        for link in agent_links:
-            # if link != 'group':
-            # Get all objects for that relationship that the agent is related to
-            try:
-                objects = getattr(actor_agent, link).all()
-            except:
-                continue
-            # If looking at statement actors, if there's another stmt with same actor-in use
-            if link == "actor_statement" or link == "actor_of_substatement":
-                # Will already have one (self)
-                if len(objects) > 1:
-                    actor_in_use = True
-                    break
-            elif link == "object_of_statement":
-                # If for some reason actor is same as stmt_object, there will be at least one
-                if actor_agent == stmt_object :
-                    if len(objects) > 1:
-                        actor_in_use = True
-                        break
-                # If they are not the same and theres at least one object, it's in use
-                else:
-                    if len(objects) > 0:
-                        actor_in_use = True
-                        break
-            # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
-            # it's in use
-            else:
-                if len(objects) > 0:
-                    actor_in_use = True
-                    break
-        if not actor_in_use:
-            self.actor.delete()
+    #     agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+    #     # Get all possible relationships for actor
+    #     actor_agent = agent.objects.get(id=self.actor.id)
+    #     actor_in_use = False
+    #     # Loop through each relationship
+    #     for link in agent_links:
+    #         # if link != 'group':
+    #         # Get all objects for that relationship that the agent is related to
+    #         try:
+    #             objects = getattr(actor_agent, link).all()
+    #         except:
+    #             continue
+    #         # If looking at statement actors, if there's another stmt with same actor-in use
+    #         if link == "actor_statement" or link == "actor_of_substatement":
+    #             # Will already have one (self)
+    #             if len(objects) > 1:
+    #                 actor_in_use = True
+    #                 break
+    #         elif link == "object_of_statement":
+    #             # If for some reason actor is same as stmt_object, there will be at least one
+    #             if actor_agent == stmt_object :
+    #                 if len(objects) > 1:
+    #                     actor_in_use = True
+    #                     break
+    #             # If they are not the same and theres at least one object, it's in use
+    #             else:
+    #                 if len(objects) > 0:
+    #                     actor_in_use = True
+    #                     break
+    #         # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
+    #         # it's in use
+    #         else:
+    #             if len(objects) > 0:
+    #                 actor_in_use = True
+    #                 break
+    #     if not actor_in_use:
+    #         self.actor.delete()
         
-        verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
-        verb_in_use = False
-        # Loop through each relationship
-        for link in verb_links:
-            # Get all objects for that relationship that the agent is related to
-            try:
-                objects = getattr(self.verb, link).all()
-            except:
-                continue
+    #     verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
+    #     verb_in_use = False
+    #     # Loop through each relationship
+    #     for link in verb_links:
+    #         # Get all objects for that relationship that the agent is related to
+    #         try:
+    #             objects = getattr(self.verb, link).all()
+    #         except:
+    #             continue
 
-            if link == "statement_set":
-                if object_type == "substatement":
-                    # There's at least one object (self)
-                    if stmt_object.verb.verb_id == self.verb.verb_id:
-                        if len(objects) > 1:
-                            verb_in_use = True
-                            break
-                # Else there's a stmt using it 
-                else:
-                    if len(objects) > 0:
-                        verb_in_use = True
-                        break
-            # Only other link is verb of stmt, there will be at least one for (self)
-            else:
-                if len(objects) > 1:
-                    verb_in_use = True
-                    break           
+    #         if link == "statement_set":
+    #             if object_type == "substatement":
+    #                 # There's at least one object (self)
+    #                 if stmt_object.verb.verb_id == self.verb.verb_id:
+    #                     if len(objects) > 1:
+    #                         verb_in_use = True
+    #                         break
+    #             # Else there's a stmt using it 
+    #             else:
+    #                 if len(objects) > 0:
+    #                     verb_in_use = True
+    #                     break
+    #         # Only other link is verb of stmt, there will be at least one for (self)
+    #         else:
+    #             if len(objects) > 1:
+    #                 verb_in_use = True
+    #                 break           
 
-        # If nothing else is using it, delete it
-        if not verb_in_use:
-            self.verb.delete()
+    #     # If nothing else is using it, delete it
+    #     if not verb_in_use:
+    #         self.verb.delete()
 
-        object_in_use = False
-        if object_type == 'activity':
-            activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
-            for link in activity_links:
-                try:
-                    objects = getattr(stmt_object, link).all()
-                except:
-                    continue
-                # There will be at least one (self)
-                if link == 'object_of_statement':
-                    if len(objects) > 1:
-                        object_in_use = True
-                        break
-                # If it's anywhere else it's in use
-                else:
-                    if len(objects) > 0:
-                        object_in_use = True
-                        break
-        elif object_type == 'agent':
-            # Know it's not same as auth or actor
-            for link in agent_links:
-                # if link != 'group':
-                try:
-                    objects = getattr(stmt_object, link).all()
-                except:
-                    continue
-                # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
-                if link == 'object_of_statement':
-                    if len(objects) > 0:
-                        object_in_use = True 
-                        break
-                # If it's in anything else outside of stmt then it's in use
-                else:
-                    if len(objects) > 0:
-                        object_in_use = True
-                        break
+    #     object_in_use = False
+    #     if object_type == 'activity':
+    #         activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
+    #         for link in activity_links:
+    #             try:
+    #                 objects = getattr(stmt_object, link).all()
+    #             except:
+    #                 continue
+    #             # There will be at least one (self)
+    #             if link == 'object_of_statement':
+    #                 if len(objects) > 1:
+    #                     object_in_use = True
+    #                     break
+    #             # If it's anywhere else it's in use
+    #             else:
+    #                 if len(objects) > 0:
+    #                     object_in_use = True
+    #                     break
+    #     elif object_type == 'agent':
+    #         # Know it's not same as auth or actor
+    #         for link in agent_links:
+    #             # if link != 'group':
+    #             try:
+    #                 objects = getattr(stmt_object, link).all()
+    #             except:
+    #                 continue
+    #             # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
+    #             if link == 'object_of_statement':
+    #                 if len(objects) > 0:
+    #                     object_in_use = True 
+    #                     break
+    #             # If it's in anything else outside of stmt then it's in use
+    #             else:
+    #                 if len(objects) > 0:
+    #                     object_in_use = True
+    #                     break
 
 
-        # If nothing else is using it, delete it
-        if not object_in_use:
-            stmt_object.delete()
+    #     # If nothing else is using it, delete it
+    #     if not object_in_use:
+    #         stmt_object.delete()
 
 class statement(models.Model):
     statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
@@ -1259,199 +1259,199 @@ class statement(models.Model):
                 break
         return in_use
 
-    def delete(self, *args, **kwargs):
-        # actor, verb, auth all detect this statement-stmt_object does not
-        stmt_object = None
-        object_type = None
-        # Unvoid stmt if verb is voided
-        if self.verb.verb_id == 'http://adlnet.gov/expapi/verbs/voided':
-            self.unvoid_statement()
-        # Else retrieve its object
-        else:
-            stmt_object, object_type = self.get_object()
+    # def delete(self, *args, **kwargs):
+    #     # actor, verb, auth all detect this statement-stmt_object does not
+    #     stmt_object = None
+    #     object_type = None
+    #     # Unvoid stmt if verb is voided
+    #     if self.verb.verb_id == 'http://adlnet.gov/expapi/verbs/voided':
+    #         self.unvoid_statement()
+    #     # Else retrieve its object
+    #     else:
+    #         stmt_object, object_type = self.get_object()
         
-        agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
-        # Get all possible relationships for actor
-        actor_agent = agent.objects.get(id=self.actor.id)
-        actor_in_use = False
-        # Loop through each relationship
-        for link in agent_links:
-            # if link != 'group':
-            # Get all objects for that relationship that the agent is related to
-            try:
-                objects = getattr(actor_agent, link).all()
-            except:
-                continue
-            # If looking at statement actors, if there's another stmt with same actor-in use
-            if link == "actor_statement":
-                # Will already have one (self)
-                if len(objects) > 1:
-                    actor_in_use = True
-                    break
-            # break check to see if this agent is the same as the auth
-            elif link == "authority_statement":
-                # If auth
-                if not self.authority is None:
-                    # If actor and auth are the same, there will be at least 1 object
-                    if actor_agent == self.authority:
-                        if len(objects) > 1:
-                            actor_in_use = True
-                            break
-                    # If they are not the same and theres at least one object, it's a different obj using it
-                    else:
-                        if len(objects) > 0:
-                            actor_in_use = True
-                            break
-            elif link == "object_of_statement":
-                # If for some reason actor is same as stmt_object, there will be at least one
-                if actor_agent == stmt_object :
-                    if len(objects) > 1:
-                        actor_in_use = True
-                        break
-                # If they are not the same and theres at least one object, it's in use
-                else:
-                    if len(objects) > 0:
-                        actor_in_use = True
-                        break
-            # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
-            # it's in use
-            else:
-                if len(objects) > 0:
-                    actor_in_use = True
-                    break
+    #     agent_links = [rel.get_accessor_name() for rel in agent._meta.get_all_related_objects()]
+    #     # Get all possible relationships for actor
+    #     actor_agent = agent.objects.get(id=self.actor.id)
+    #     actor_in_use = False
+    #     # Loop through each relationship
+    #     for link in agent_links:
+    #         # if link != 'group':
+    #         # Get all objects for that relationship that the agent is related to
+    #         try:
+    #             objects = getattr(actor_agent, link).all()
+    #         except:
+    #             continue
+    #         # If looking at statement actors, if there's another stmt with same actor-in use
+    #         if link == "actor_statement":
+    #             # Will already have one (self)
+    #             if len(objects) > 1:
+    #                 actor_in_use = True
+    #                 break
+    #         # break check to see if this agent is the same as the auth
+    #         elif link == "authority_statement":
+    #             # If auth
+    #             if not self.authority is None:
+    #                 # If actor and auth are the same, there will be at least 1 object
+    #                 if actor_agent == self.authority:
+    #                     if len(objects) > 1:
+    #                         actor_in_use = True
+    #                         break
+    #                 # If they are not the same and theres at least one object, it's a different obj using it
+    #                 else:
+    #                     if len(objects) > 0:
+    #                         actor_in_use = True
+    #                         break
+    #         elif link == "object_of_statement":
+    #             # If for some reason actor is same as stmt_object, there will be at least one
+    #             if actor_agent == stmt_object :
+    #                 if len(objects) > 1:
+    #                     actor_in_use = True
+    #                     break
+    #             # If they are not the same and theres at least one object, it's in use
+    #             else:
+    #                 if len(objects) > 0:
+    #                     actor_in_use = True
+    #                     break
+    #         # Agent doesn't appear in stmt anymore, if there are any other objects in any other relationships,
+    #         # it's in use
+    #         else:
+    #             if len(objects) > 0:
+    #                 actor_in_use = True
+    #                 break
 
-        if not actor_in_use:
-            self.actor.delete()
+    #     if not actor_in_use:
+    #         self.actor.delete()
         
-        if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
-            verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
-            verb_in_use = False
-            # Loop through each relationship
-            for link in verb_links:
-                # Get all objects for that relationship that the agent is related to
-                try:
-                    objects = getattr(self.verb, link).all()
-                except:
-                    continue
+    #     if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
+    #         verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
+    #         verb_in_use = False
+    #         # Loop through each relationship
+    #         for link in verb_links:
+    #             # Get all objects for that relationship that the agent is related to
+    #             try:
+    #                 objects = getattr(self.verb, link).all()
+    #             except:
+    #                 continue
 
-                if link == "substatement_set":
-                    if object_type == "substatement":
-                        # If for some reason sub verb is same as verb, there will be at least one obj
-                        if stmt_object.verb.verb_id == self.verb.verb_id:
-                            if len(objects) > 1:
-                                verb_in_use = True
-                                break
-                    # Else there's another sub using it 
-                    else:
-                        if len(objects) > 0:
-                            verb_in_use = True
-                            break
-                # Only other link is verb of stmt, there will be at least one for (self)
-                else:
-                    if len(objects) > 1:
-                        verb_in_use = True
-                        break           
+    #             if link == "substatement_set":
+    #                 if object_type == "substatement":
+    #                     # If for some reason sub verb is same as verb, there will be at least one obj
+    #                     if stmt_object.verb.verb_id == self.verb.verb_id:
+    #                         if len(objects) > 1:
+    #                             verb_in_use = True
+    #                             break
+    #                 # Else there's another sub using it 
+    #                 else:
+    #                     if len(objects) > 0:
+    #                         verb_in_use = True
+    #                         break
+    #             # Only other link is verb of stmt, there will be at least one for (self)
+    #             else:
+    #                 if len(objects) > 1:
+    #                     verb_in_use = True
+    #                     break           
 
-            # If nothing else is using it, delete it
-            if not verb_in_use:
-                self.verb.delete()
+    #         # If nothing else is using it, delete it
+    #         if not verb_in_use:
+    #             self.verb.delete()
 
-        if self.authority:
-            authority_agent = agent.objects.get(id=self.authority.id)
-            auth_in_use = False
-            # If agents are the same and you already deleted the actor since it was in use, no use checking this
-            if authority_agent != actor_agent:
-                for link in agent_links:
-                    # if link != 'group':
-                    try:
-                        objects = getattr(authority_agent, link).all()
-                    except:
-                        continue
+    #     if self.authority:
+    #         authority_agent = agent.objects.get(id=self.authority.id)
+    #         auth_in_use = False
+    #         # If agents are the same and you already deleted the actor since it was in use, no use checking this
+    #         if authority_agent != actor_agent:
+    #             for link in agent_links:
+    #                 # if link != 'group':
+    #                 try:
+    #                     objects = getattr(authority_agent, link).all()
+    #                 except:
+    #                     continue
 
-                    if link == "authority_statement":
-                        # Will already have one (self)
-                        if len(objects) > 1:
-                            auth_in_use = True
-                            break
-                    elif link == "object_of_statement":
-                        # If for some reason auth is same as stmt_object, there will be at least one
-                        if authority_agent == stmt_object :
-                            if len(objects) > 1:
-                                auth_in_use = True
-                                break
-                        # If they are not the same and theres at least one object, it's in use
-                        else:
-                            if len(objects) > 0:
-                                auth_in_use = True
-                                break
-                    # Don't have to check actor b/c you know it's different, and if it's in anything else outside
-                    # of stmt then it's in use
-                    else:
-                        if len(objects) > 0:
-                            auth_in_use = True
-                            break                        
-                if not auth_in_use:
-                    self.authority.delete()
+    #                 if link == "authority_statement":
+    #                     # Will already have one (self)
+    #                     if len(objects) > 1:
+    #                         auth_in_use = True
+    #                         break
+    #                 elif link == "object_of_statement":
+    #                     # If for some reason auth is same as stmt_object, there will be at least one
+    #                     if authority_agent == stmt_object :
+    #                         if len(objects) > 1:
+    #                             auth_in_use = True
+    #                             break
+    #                     # If they are not the same and theres at least one object, it's in use
+    #                     else:
+    #                         if len(objects) > 0:
+    #                             auth_in_use = True
+    #                             break
+    #                 # Don't have to check actor b/c you know it's different, and if it's in anything else outside
+    #                 # of stmt then it's in use
+    #                 else:
+    #                     if len(objects) > 0:
+    #                         auth_in_use = True
+    #                         break                        
+    #             if not auth_in_use:
+    #                 self.authority.delete()
         
-        if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
-            object_in_use = False
-            if object_type == 'activity':
-                activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
-                for link in activity_links:
-                    try:
-                        objects = getattr(stmt_object, link).all()
-                    except:
-                        continue
-                    # There will be at least one (self)
-                    if link == 'object_of_statement':
-                        if len(objects) > 1:
-                            object_in_use = True
-                            break
-                    # If it's anywhere else it's in use
-                    else:
-                        if len(objects) > 0:
-                            object_in_use = True
-                            break
-            elif object_type == 'substatement':
-                sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
-                # object_in_use = self.check_usage(sub_links, stmt_object, 1)
-                for link in sub_links:
-                    try:
-                        objects = getattr(stmt_object, link).all()
-                    except:
-                        continue
-                    # There will be at least one (self)
-                    if link == 'object_of_statement':
-                        if len(objects) > 1:
-                            object_in_use = True
-                            break
-                    # If it's anything else then it's in use
-                    else:
-                        if len(objects) > 0:
-                            object_in_use = True
-                            break
-            elif object_type == 'agent':
-                # Know it's not same as auth or actor
-                for link in agent_links:
-                    # if link != 'group':
-                    try:
-                        objects = getattr(stmt_object, link).all()
-                    except:
-                        continue
-                    # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
-                    if link == 'object_of_statement':
-                        if len(objects) > 0:
-                            object_in_use = True 
-                            break
-                    # If it's in anything else outside of stmt then it's in use
-                    else:
-                        if len(objects) > 0:
-                            object_in_use = True
-                            break
+    #     if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
+    #         object_in_use = False
+    #         if object_type == 'activity':
+    #             activity_links = [rel.get_accessor_name() for rel in activity._meta.get_all_related_objects()]
+    #             for link in activity_links:
+    #                 try:
+    #                     objects = getattr(stmt_object, link).all()
+    #                 except:
+    #                     continue
+    #                 # There will be at least one (self)
+    #                 if link == 'object_of_statement':
+    #                     if len(objects) > 1:
+    #                         object_in_use = True
+    #                         break
+    #                 # If it's anywhere else it's in use
+    #                 else:
+    #                     if len(objects) > 0:
+    #                         object_in_use = True
+    #                         break
+    #         elif object_type == 'substatement':
+    #             sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
+    #             # object_in_use = self.check_usage(sub_links, stmt_object, 1)
+    #             for link in sub_links:
+    #                 try:
+    #                     objects = getattr(stmt_object, link).all()
+    #                 except:
+    #                     continue
+    #                 # There will be at least one (self)
+    #                 if link == 'object_of_statement':
+    #                     if len(objects) > 1:
+    #                         object_in_use = True
+    #                         break
+    #                 # If it's anything else then it's in use
+    #                 else:
+    #                     if len(objects) > 0:
+    #                         object_in_use = True
+    #                         break
+    #         elif object_type == 'agent':
+    #             # Know it's not same as auth or actor
+    #             for link in agent_links:
+    #                 # if link != 'group':
+    #                 try:
+    #                     objects = getattr(stmt_object, link).all()
+    #                 except:
+    #                     continue
+    #                 # There will be at least one (self)- DOES NOT PICK ITSELF UP BUT WILL PICK OTHERS UP
+    #                 if link == 'object_of_statement':
+    #                     if len(objects) > 0:
+    #                         object_in_use = True 
+    #                         break
+    #                 # If it's in anything else outside of stmt then it's in use
+    #                 else:
+    #                     if len(objects) > 0:
+    #                         object_in_use = True
+    #                         break
 
-            # If nothing else is using it, delete it
-            if not object_in_use:
-                stmt_object.delete()
+    #         # If nothing else is using it, delete it
+    #         if not object_in_use:
+    #             stmt_object.delete()
 
 
 

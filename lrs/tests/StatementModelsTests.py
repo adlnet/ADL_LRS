@@ -742,3 +742,104 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(actor.name, name)
         self.assertEqual(actor.mbox, mbox)
+
+    # Verbs cannot share languagemaps. Will have many lang_maps attached to one verb
+    def test_verb_delete(self):
+        verb1 = models.Verb.objects.create(verb_id="verb:created")
+        lang_map1 = models.LanguageMap.objects.create(key='en-US', value='created', content_object=verb1)
+        lang_map2 = models.LanguageMap.objects.create(key='en-GB', value='created', content_object=verb1)
+
+        # Should remove any lang maps attached to it
+        models.Verb.objects.get(id=verb1.id).delete()
+        verbs = len(models.Verb.objects.all())
+        lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(verbs, 0)
+        self.assertEqual(lang_maps, 0)
+
+        verb2 = models.Verb.objects.create(verb_id="verb:deleted")
+        lang_map3 = models.LanguageMap.objects.create(key='en-US', value='deleted', content_object=verb2)
+        lang_map4 = models.LanguageMap.objects.create(key='en-GB', value='deleted', content_object=verb2)
+
+        # Deleting lang map should not affect anything else
+        models.LanguageMap.objects.get(id=lang_map3.id).delete()
+        verbs = len(models.Verb.objects.all())
+        lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(verbs, 1)
+        self.assertEqual(lang_maps, 1)
+
+    def test_result_delete(self):
+        stmt1 = Statement.Statement(json.dumps(
+            {'actor':{'mbox':'mailto:s@s.com'},
+            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
+            'object':{'id':'act:test_act'}}))
+
+        result1 = models.result.objects.create(success=True, content_object=stmt1.model_object)
+        score1 = models.score.objects.create(scaled=0.50, result=result1)
+        res_ext1 = models.extensions.objects.create(key='key1', value='value1', content_object=result1)
+        res_ext2 = models.extensions.objects.create(key='key2', value='value2', content_object=result1)
+
+        # There should never be a time that a result object gets deleted by itself. In this case, the statement
+        # will remain
+        models.result.objects.get(id=result1.id).delete()
+        stmts = len(models.statement.objects.all())
+        results = len(models.result.objects.all())
+        scores = len(models.score.objects.all())
+        res_exts = len(models.extensions.objects.all())
+        self.assertEqual(stmts, 1)
+        self.assertEqual(results, 0)
+        self.assertEqual(scores, 0)
+        self.assertEqual(res_exts, 0)
+
+        stmt2 = Statement.Statement(json.dumps(
+            {'actor':{'mbox':'mailto:s@s.com'},
+            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
+            'object':{'id':'act:test_act'}}))
+
+        result2 = models.result.objects.create(success=True, content_object=stmt2.model_object)
+        score2 = models.score.objects.create(scaled=0.50, result=result2)
+        res_ext3 = models.extensions.objects.create(key='key3', value='value4', content_object=result2)
+        res_ext4 = models.extensions.objects.create(key='key3', value='value4', content_object=result2)
+
+        # There should never be a time that a score object gets deleted by itself. It is OneToOne with result,
+        # the result object does not get removed. Once again stmt will remain
+        models.score.objects.get(id=score2.id).delete()
+        stmts = len(models.statement.objects.all())
+        results = len(models.result.objects.all())
+        scores = len(models.score.objects.all())
+        res_exts = len(models.extensions.objects.all())
+        # Previous stmt and this one
+        self.assertEqual(stmts, 2)
+        self.assertEqual(results, 1)
+        self.assertEqual(scores, 0)
+        self.assertEqual(res_exts, 2)
+
+        stmt3 = Statement.Statement(json.dumps(
+            {'actor':{'mbox':'mailto:s@s.com'},
+            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
+            'object':{'id':'act:test_act'}}))
+
+        result3 = models.result.objects.create(success=True, content_object=stmt3.model_object)
+        score3 = models.score.objects.create(scaled=0.50, result=result3)
+        res_ext5 = models.extensions.objects.create(key='key3', value='value4', content_object=result3)
+        res_ext6 = models.extensions.objects.create(key='key3', value='value4', content_object=result3)
+
+        # Deleting an ext should not affect anything else
+        models.extensions.objects.get(id=res_ext6.id).delete()
+        stmts = len(models.statement.objects.all())
+        results = len(models.result.objects.all())
+        scores = len(models.score.objects.all())
+        res_exts = len(models.extensions.objects.all())
+        # Will be two results, one from before and this one
+        self.assertEqual(results, 2)
+        self.assertEqual(scores, 1)
+        # Will be three exts, two from before and this one
+        self.assertEqual(res_exts, 3)
+        # 2 stmts from before and this one
+        self.assertEqual(stmts, 3)
+
+
+
+
+
+
+

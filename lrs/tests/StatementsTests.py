@@ -1709,3 +1709,6 @@ class StatementsTests(TestCase):
         r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(r.status_code, 404)
         
+    # def test_delete(self):
+    #     self.bunchostmts()
+        
