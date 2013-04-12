@@ -15,7 +15,7 @@ import os.path
 # from lrs.objects import Activity, Statement
 # import time
 import urllib
-# from lrs.util import retrieve_statement
+from lrs.util import convert_to_utc
 # import pdb
 # import hashlib
 # import pprint
@@ -66,12 +66,14 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        count = len(statement.objects.filter(actor__mbox=param['agent']['mbox']))
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertEqual(len(stmts), count)
         for s in stmts:
-            self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
+            if param['agent']['mbox'] not in str(s['actor']):
+                self.assertEqual(s['object']['objectType'], "StatementRef")
+                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
     def test_group_as_agent_filter(self):
         param = {"agent":{"mbox":"mailto:adllrsdevs@example.com"}}
@@ -100,7 +102,111 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        import pprint
+        self.assertEqual(len(stmts), 6)
+
+    def test_agent_filter_since_and_until(self):
+        param = {"agent":{"mbox":"mailto:tom@example.com"}}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
         for s in stmts:
-            pprint.pprint(s)
-        self.assertEqual(len(stmts), 5)
+            if param['agent']['mbox'] not in str(s['actor']):
+                self.assertEqual(s['object']['objectType'], "StatementRef")
+                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+
+        cnt_all = len(stmts)
+
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": "2013-04-09T00:00Z"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertTrue(len(stmts) < cnt_all)
+        since_ids=[]
+        for s in stmts:
+            since_ids.append(s['id'])
+            if param['agent']['mbox'] not in str(s['actor']):
+                self.assertEqual(s['object']['objectType'], "StatementRef")
+                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "until": "2013-04-09T00:00Z"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertTrue(len(stmts) < cnt_all)
+        until_ids=[]
+        for s in stmts:
+            until_ids.append(s['id'])
+            if param['agent']['mbox'] not in str(s['actor']):
+                self.assertEqual(s['object']['objectType'], "StatementRef")
+                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+        self.assertFalse(any((True for x in since_ids if x in until_ids)))
+
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": "2013-04-09T00:00Z", "until": "2013-04-11T00:00Z"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertTrue(len(stmts) < cnt_all)
+        self.assertTrue(len(stmts) < len(since_ids))
+        slice_ids=[]
+        for s in stmts:
+            slice_ids.append(s['id'])
+            if param['agent']['mbox'] not in str(s['actor']):
+                self.assertEqual(s['object']['objectType'], "StatementRef")
+                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+        self.assertTrue(any((True for x in slice_ids if x in since_ids)))
+        self.assertFalse(any((True for x in slice_ids if x in until_ids)))
+
+    def test_related_agents_filter_until(self):
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        for s in stmts:
+            if param['agent']['mbox'] not in str(s['actor']):
+                if s['object']['objectType'] != "StatementRef":
+                    self.assertTrue(param['agent']['mbox'] in str(s))
+                else:
+                    self.assertEqual(s['object']['objectType'], "StatementRef")
+                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    self.assertTrue(param['agent']['mbox'] in str(refd))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+
+        cnt_all = len(stmts)
+
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents": True, "until": "2013-04-10T00:00Z"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertTrue(len(stmts) < cnt_all)
+        for s in stmts:
+            if param['agent']['mbox'] not in str(s['actor']):
+                if s['object']['objectType'] != "StatementRef":
+                    self.assertTrue(param['agent']['mbox'] in str(s))
+                else:
+                    self.assertEqual(s['object']['objectType'], "StatementRef")
+                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    self.assertTrue(param['agent']['mbox'] in str(refd))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+            self.assertTrue(convert_to_utc(s['stored']) < convert_to_utc(param['until']))

@@ -90,8 +90,9 @@ def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
 def complex_get(req_dict):
     # tests if value is True or "true"
     bt = lambda x: x if type(x)==bool else x.lower()=="true"
-    stmtset = models.statement.objects
-
+    stmtset = models.statement.objects.filter(voided=False)
+    # keep track if a filter other than time or sequence is used
+    reffilter = False
 
     # Parse out params into single dict-GET data not in body
     try:
@@ -101,16 +102,21 @@ def complex_get(req_dict):
     except KeyError:
         the_dict = req_dict
 
+    sinceq = None
     if 'since' in the_dict:
-        stmtset = stmtset.filter(stored__gt=convert_to_utc(the_dict['since']))
+        sinceq = Q(stored__gt=convert_to_utc(the_dict['since']))
+        stmtset = stmtset.filter(sinceq)
+    untilq = None
     if 'until' in the_dict:
-        stmtset = stmtset.filter(stored_lte=convert_to_utc(the_dict['until']))
+        untilq = Q(stored__lte=convert_to_utc(the_dict['until']))
+        stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
     if 'statements_mine_only' in the_dict:
         stmtset = stmtset.filter(authority=the_dict['auth'])
 
     if 'agent' in the_dict:
+        reffilter = True
         agent = None
         data = the_dict['agent']
         related = 'related_agents' in the_dict and bt(the_dict['related_agents'])
@@ -120,7 +126,10 @@ def complex_get(req_dict):
         
         try:
             agent = Agent.Agent(data).agent
-            groups = agent.member.all()
+            if agent.objectType == "Group":
+                groups = []
+            else:
+                groups = agent.member.all()
             q = Q(actor=agent)
             for g in groups:
                 q = q | Q(actor=g)
@@ -136,7 +145,6 @@ def complex_get(req_dict):
         except models.IDNotFoundError:
             return[]     
         stmtset = stmtset.filter(q)
-
     # verb
     # activity
     # registration
@@ -159,11 +167,32 @@ def complex_get(req_dict):
     if 'ascending' in the_dict and bt(the_dict['ascending']):
             stored_param = 'stored'
 
+    # only find references when a filter other than
+    # since, until, or limit was used 
+    if reffilter:
+        stmtset = findstmtrefs(stmtset.distinct(), sinceq, untilq)
     stmt_list = stmtset.order_by(stored_param)
-    # For each stmt convert to our Statement class and retrieve all json
+    # For each stmt retrieve all json
     full_stmt_list = []
     full_stmt_list = [stmt.object_return(sparse, language) for stmt in stmt_list]
     return full_stmt_list
+
+def findstmtrefs(stmtset, sinceq, untilq):
+    if stmtset.count() == 0:
+        return stmtset
+    q = Q()
+    for s in stmtset:
+        q = q | Q(stmt_object__statementref__ref_id=s.statement_id)
+
+    if sinceq and untilq:
+        q = q & Q(sinceq, untilq)
+    elif sinceq:
+        q = q & sinceq
+    elif untilq:
+        q = q & untilq
+    # finally weed out voided statements in this lookup
+    q = q & Q(voided=False)
+    return findstmtrefs(models.statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
 
 def old_complex_get(req_dict):
     args = {}
