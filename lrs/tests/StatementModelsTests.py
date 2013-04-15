@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 import uuid
 import pdb
-from lrs.objects import Statement
+from lrs.objects import Statement, Activity
 
 def get_ctx_id(stmt):
     if len(stmt.context.all()) > 0:
@@ -837,9 +837,419 @@ class StatementModelsTests(TestCase):
         # 2 stmts from before and this one
         self.assertEqual(stmts, 3)
 
+    def test_activity_definition_delete(self):
+        act1 = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foo',
+                'definition': {'name': {'en-UK':'name', 'en-US':'nombre'},'description': {'en-UK':'desc',
+                'en-US': 'tdesc'},'type': 'course','interactionType': 'intType2',
+                'extensions': {'ext:key1': 'value1','ext:key2': 'value2','ext:key3': 'value3'}}}))
 
+        act2 = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:baz',
+                'definition': {'name': {'en-UK':'name2', 'en-US':'nombre2'},'description': {'en-UK':'desc2',
+                'en-US': 'tdesc2'},'type': 'course','interactionType': 'intType2',
+                'extensions': {'ext2:key1': 'value1','ext2:key2': 'value2','ext2:key3': 'value3'}}}))
 
+        # Set each one individually, if try to get in list, not always in same order
+        act_def1 = models.activity_definition.objects.get(activity=act1.activity)
+        act_def2 = models.activity_definition.objects.get(activity=act2.activity)
+        
+        name_lang1_1 = models.name_lang.objects.get(value='name')
+        name_lang1_2 = models.name_lang.objects.get(value='nombre')
+        name_lang2_1= models.name_lang.objects.get(value='name2')
+        name_lang2_2= models.name_lang.objects.get(value='nombre2')
+        
+        desc_lang1_1 = models.desc_lang.objects.get(value='desc')
+        desc_lang1_2 = models.desc_lang.objects.get(value='tdesc')
+        desc_lang2_1 = models.desc_lang.objects.get(value='desc2')
+        desc_lang2_2 = models.desc_lang.objects.get(value='tdesc2')
+        
+        ext1_1 = models.extensions.objects.get(key='ext:key1')
+        ext1_2 = models.extensions.objects.get(key='ext:key2')
+        ext1_3 = models.extensions.objects.get(key='ext:key3')
+        ext2_1 = models.extensions.objects.get(key='ext2:key1')
+        ext2_2 = models.extensions.objects.get(key='ext2:key2')
+        ext2_3 = models.extensions.objects.get(key='ext2:key3')
+        
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 4)
+        self.assertEqual(desc_langs, 4)
+        self.assertEqual(exts, 6)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
 
+        # Should only be three name_langs now
+        models.name_lang.objects.get(id=name_lang1_1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 3)
+        self.assertEqual(desc_langs, 4)
+        self.assertEqual(exts, 6)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
 
+        # Should only be three desc_langs now
+        models.desc_lang.objects.get(id=desc_lang2_1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 3)
+        self.assertEqual(desc_langs, 3)
+        self.assertEqual(exts, 6)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
 
+        # Should only be five extensions now
+        models.extensions.objects.get(id=ext1_1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 3)
+        self.assertEqual(desc_langs, 3)
+        self.assertEqual(exts, 5)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
 
+        # Delete second activity def(will never get deleted w/o activity being deleted)
+        # Deletes both of it's name_langs, remaining desc_lang, all 3 of it's extensions
+        models.activity_definition.objects.get(id=act_def2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 1)
+        self.assertEqual(acts, 2)
+
+        # Activity 2 will still remain
+        models.activity.objects.get(id=act1.activity.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 0)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 0)
+        self.assertEqual(acts, 1)
+
+    def test_activity_correctresponsepattern(self):
+        act1 = Activity.Activity(json.dumps({
+            'objectType': 'Activity', 'id':'act:foo',
+            'definition': {'name': {'en-US':'testname'},'description': {'en-US':'testdesc'}, 
+                'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                'interactionType': 'true-false','correctResponsesPattern': ['true'],
+                'extensions': {'ext:key1': 'value1'}}}))
+
+        act2 = Activity.Activity(json.dumps({
+            'objectType': 'Activity', 'id':'act:baz',
+            'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 
+                'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                'interactionType': 'true-false','correctResponsesPattern': ['true'],
+                'extensions': {'ext2:key1': 'value1'}}}))
+
+        # Set each one individually, if try to get in list, not always in same order
+        act_def1 = models.activity_definition.objects.get(activity=act1.activity)
+        act_def2 = models.activity_definition.objects.get(activity=act2.activity)
+        
+        name_lang1 = models.name_lang.objects.get(value='testname')
+        name_lang2 = models.name_lang.objects.get(value='testname2')
+        
+        desc_lang1 = models.desc_lang.objects.get(value='testdesc')
+        desc_lang2 = models.desc_lang.objects.get(value='testdesc2')
+        
+        ext1 = models.extensions.objects.get(key='ext:key1')
+        ext2 = models.extensions.objects.get(key='ext2:key1')
+
+        crp1 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def1)
+        crp2 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def2)
+
+        crp_answer1 = models.correctresponsespattern_answer.objects.get(correctresponsespattern=crp1)
+        crp_answer2 = models.correctresponsespattern_answer.objects.get(correctresponsespattern=crp2)        
+
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 2)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Should only be 1 name_langs now
+        models.name_lang.objects.get(id=name_lang1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Should only be 1 desc_langs now
+        models.desc_lang.objects.get(id=desc_lang2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Should only be 1 extensions now
+        models.extensions.objects.get(id=ext1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 1)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Delete second activity def(will never get deleted w/o activity being deleted)
+        # Deletes its name_langs, its extensions, crp, and crp answers
+        models.activity_definition.objects.get(id=act_def2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 1)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 1)
+        self.assertEqual(crp_answers, 1)
+
+        # Deletes its desc lang, def, crp, and crp answer
+        models.activity.objects.get(id=act1.activity.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 0)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 0)
+        self.assertEqual(acts, 1)
+        self.assertEqual(crps, 0)
+        self.assertEqual(crp_answers, 0)
+
+    # Would be same for steps, target/source, and scale
+    def test_activity_definition_choices(self):
+        act1 = Activity.Activity(json.dumps(
+            {'objectType': 'Activity', 'id':'act:foo',
+                'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
+                    'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                    'interactionType': 'choice',
+                    'correctResponsesPattern': ['golf', 'tetris'],'choices':[
+                    {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
+                    {'id': 'tetris','description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}},
+                    {'id':'facebook', 'description':{'en-US':'Facebook App', 'en-GB': 'FACEBOOK'}},
+                    {'id':'scrabble', 'description': {'en-US': 'Scrabble Example', 'en-GB': 'SCRABBLE'}}],
+                    'extensions': {'ext1:key1': 'value1'}}}))
+
+        act2 = Activity.Activity(json.dumps(
+            {'objectType': 'Activity', 'id':'act:biz',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                    'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                    'interactionType': 'choice',
+                    'correctResponsesPattern': ['golf', 'tetris'],'choices':[
+                    {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
+                    {'id': 'tetris','description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}},
+                    {'id':'facebook', 'description':{'en-US':'Facebook App', 'en-GB': 'FACEBOOK'}},
+                    {'id':'scrabble', 'description': {'en-US': 'Scrabble Example', 'en-GB': 'SCRABBLE'}}],
+                    'extensions': {'ext2:key1': 'value1'}}}))
+
+        # Set each one individually, if try to get in list, not always in same order
+        act_def1 = models.activity_definition.objects.get(activity=act1.activity)
+        act_def2 = models.activity_definition.objects.get(activity=act2.activity)
+        
+        name_lang1 = models.name_lang.objects.get(value='testname1')
+        name_lang2 = models.name_lang.objects.get(value='testname2')
+        
+        desc_lang1 = models.desc_lang.objects.get(value='testdesc1')
+        desc_lang2 = models.desc_lang.objects.get(value='testdesc2')
+        
+        ext1 = models.extensions.objects.get(key='ext1:key1')
+        ext2 = models.extensions.objects.get(key='ext2:key1')
+
+        crp1 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def1)
+        crp2 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def2)
+
+        crp_answers1 = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=crp1)
+        crp_answers2 = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=crp2)        
+
+        choices1 = models.activity_definition_choice.objects.filter(activity_definition=act_def1)
+        choices2 = models.activity_definition_choice.objects.filter(activity_definition=act_def2)
+
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 2)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Should only be 1 name_langs now
+        models.name_lang.objects.get(id=name_lang1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Should only be 1 desc_langs now
+        models.desc_lang.objects.get(id=desc_lang2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Should only be 1 extensions now
+        models.extensions.objects.get(id=ext1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 1)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Delete second activity def(will never get deleted w/o activity being deleted)
+        # Deletes its name_langs, its extensions, crp, crp answers, and choices
+        models.activity_definition.objects.get(id=act_def2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 1)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 1)
+        self.assertEqual(crp_answers, 2)
+        self.assertEqual(choices, 4)
+        self.assertEqual(choice_lang_maps, 8)
+
+        # Delete activity - removes its desc lang, def, crp, crp answers and choices
+        models.activity.objects.get(id=act1.activity.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 0)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 0)
+        self.assertEqual(acts, 1)
+        self.assertEqual(crps, 0)
+        self.assertEqual(crp_answers, 0)
+        self.assertEqual(choices, 0)
+        self.assertEqual(choice_lang_maps, 0)
