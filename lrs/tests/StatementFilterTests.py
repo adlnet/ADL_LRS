@@ -9,7 +9,7 @@ from django.conf import settings
 import json
 import base64
 import os.path
-# import uuid
+import uuid
 # from datetime import datetime, timedelta
 # from django.utils.timezone import utc
 # from lrs.objects import Activity, Statement
@@ -199,6 +199,7 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         stmts = obj['statements']
         self.assertTrue(len(stmts) < cnt_all)
+        until = convert_to_utc(param['until'])
         for s in stmts:
             if param['agent']['mbox'] not in str(s['actor']):
                 if s['object']['objectType'] != "StatementRef":
@@ -209,4 +210,185 @@ class StatementFilterTests(TestCase):
                     self.assertTrue(param['agent']['mbox'] in str(refd))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
-            self.assertTrue(convert_to_utc(s['stored']) < convert_to_utc(param['until']))
+            self.assertTrue(convert_to_utc(s['stored']) < until)
+
+    def test_related_agents_filter_since(self):
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        for s in stmts:
+            if param['agent']['mbox'] not in str(s['actor']):
+                if s['object']['objectType'] != "StatementRef":
+                    self.assertTrue(param['agent']['mbox'] in str(s))
+                else:
+                    self.assertEqual(s['object']['objectType'], "StatementRef")
+                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    self.assertTrue(param['agent']['mbox'] in str(refd))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+
+        cnt_all = len(stmts)
+
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents": True, "since": "2013-04-10T00:00Z"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertTrue(len(stmts) < cnt_all)
+        since = convert_to_utc(param['since'])
+        for s in stmts:
+            if param['agent']['mbox'] not in str(s['actor']):
+                if s['object']['objectType'] != "StatementRef":
+                    self.assertTrue(param['agent']['mbox'] in str(s))
+                else:
+                    self.assertEqual(s['object']['objectType'], "StatementRef")
+                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    self.assertTrue(param['agent']['mbox'] in str(refd))
+            else:
+                self.assertTrue(param['agent']['mbox'] in str(s['actor']))
+            self.assertTrue(convert_to_utc(s['stored']) > since)
+
+
+    def test_since_filter_tz(self):
+        stmt1_guid = str(uuid.uuid1())
+        stmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+                "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
+                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T12:00:00-05:00"})
+
+        param = {"statementId":stmt1_guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = stmt1
+        resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+        time = "2013-02-02T12:00:32-05:00"
+        stmt = statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
+
+        stmt2_guid = str(uuid.uuid1())
+        stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+                "display": {"en-US":"created"}}, "object": {"id":"act:activity2"},
+                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T20:00:00+05:00"})
+
+        param = {"statementId":stmt2_guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt_payload = stmt2
+        resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+        time = "2013-02-02T10:00:32-05:00"
+        stmt = statement.objects.filter(statement_id=stmt2_guid).update(stored=time)
+
+        param = {"since": "2013-02-02T14:00Z"}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))      
+        sinceGetResponse = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+
+        self.assertEqual(sinceGetResponse.status_code, 200)
+        rsp = sinceGetResponse.content
+        self.assertIn(stmt1_guid, rsp)
+        self.assertIn(stmt2_guid, rsp)
+
+        param2 = {"since": "2013-02-02T16:00Z"}
+        path2 = "%s?%s" % (reverse(views.statements), urllib.urlencode(param2))      
+        sinceGetResponse2 = self.client.get(path2, X_Experience_API_Version="1.0", Authorization=self.auth)
+
+        self.assertEqual(sinceGetResponse2.status_code, 200)
+        rsp2 = sinceGetResponse2.content
+        self.assertIn(stmt1_guid, rsp2)
+        self.assertNotIn(stmt2_guid, rsp2)
+
+    def test_verb_filter(self):
+        param = {"verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 2)
+
+        stmt_ref_stmt_ids = [k['object']['id'] for k in stmts if k['object']['objectType']=='StatementRef']
+        stmt_ids = [k['id'] for k in stmts if k['object']['objectType']!='StatementRef']
+        diffs = set(stmt_ref_stmt_ids) ^ set(stmt_ids)
+        self.assertFalse(diffs)
+
+        param = {"agent":{"mbox":"mailto:drdre@example.com"},"verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 0)
+
+    def test_registration_filter(self):
+        param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 20)
+
+        param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 0)
+
+        param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://adlnet.gov/xapi/verbs/completed"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 1)
+
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://adlnet.gov/xapi/verbs/completed"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 1)
+
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://adlnet.gov/xapi/verbs/completed"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        self.assertEqual(len(stmts), 0)
+
+    def test_activity_filter(self):
+        param = {"activity":"act:adlnet.gov/JsTetris_TCAPI"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        for s in stmts:
+            if param['activity'] not in str(s['object']['id']):
+                self.assertEqual(s['object']['objectType'], "StatementRef")
+                self.assertTrue(param['activity'] in str(statement.objects.get(statement_id=s['object']['id']).object_return()))
+            else:
+                self.assertEqual(s['object']['id'], param['activity'])
+
+        actcnt = len(stmts)
+        self.assertEqual(actcnt, 4)
+
+        param = {"activity":"act:adlnet.gov/JsTetris_TCAPI", "related_activities":True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        for s in stmts:
+            if param['activity'] not in str(s):
+                self.assertEqual(s['object']['objectType'], "StatementRef")
+                self.assertTrue(param['activity'] in str(statement.objects.get(statement_id=s['object']['id']).object_return()))
+            else:
+                self.assertIn(param['activity'], str(s))
+
+        self.assertTrue(len(stmts) > actcnt)

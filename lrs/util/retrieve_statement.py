@@ -115,6 +115,7 @@ def complex_get(req_dict):
     if 'statements_mine_only' in the_dict:
         stmtset = stmtset.filter(authority=the_dict['auth'])
 
+    agentQ = Q()
     if 'agent' in the_dict:
         reffilter = True
         agent = None
@@ -130,13 +131,13 @@ def complex_get(req_dict):
                 groups = []
             else:
                 groups = agent.member.all()
-            q = Q(actor=agent)
+            agentQ = Q(actor=agent)
             for g in groups:
-                q = q | Q(actor=g)
+                agentQ = agentQ | Q(actor=g)
             if related:
                 me = chain([agent], groups)
                 for a in me:
-                    q = q | Q(stmt_object=a) | Q(authority=a) \
+                    agentQ = agentQ | Q(stmt_object=a) | Q(authority=a) \
                           | Q(context__instructor=a) | Q(context__team=a) \
                           | Q(stmt_object__substatement__actor=a) \
                           | Q(stmt_object__substatement__stmt_object=a) \
@@ -144,10 +145,29 @@ def complex_get(req_dict):
                           | Q(stmt_object__substatement__context__team=a)       
         except models.IDNotFoundError:
             return[]     
-        stmtset = stmtset.filter(q)
-    # verb
+    
+    verbQ = Q()
+    if 'verb' in req_dict:
+        reffilter = True
+        verbQ = Q(verb__verb_id=the_dict['verb'])
+        
     # activity
-    # registration
+    activityQ = Q()
+    if 'activity' in the_dict:
+        reffilter = True
+        activityQ = Q(stmt_object__activity__activity_id=the_dict['activity'])
+        if 'related_activities' in the_dict and bt(the_dict['related_activities']):
+            activityQ = activityQ | Q(context__contextactivity__context_activity=the_dict['activity']) \
+                    | Q(stmt_object__substatement__stmt_object__activity__activity_id=the_dict['activity']) \
+                    | Q(stmt_object__substatement__context__contextactivity__context_activity=the_dict['activity'])
+
+
+    registrationQ = Q()
+    if 'registration' in the_dict:
+        reffilter = True
+        registrationQ = Q(context__registration=the_dict['registration'])
+
+
     # format
     # attachments
     
@@ -167,6 +187,7 @@ def complex_get(req_dict):
     if 'ascending' in the_dict and bt(the_dict['ascending']):
             stored_param = 'stored'
 
+    stmtset = stmtset.filter(agentQ & verbQ & activityQ & registrationQ)
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:

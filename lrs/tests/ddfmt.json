@@ -472,28 +472,28 @@
         "pk": 5, 
         "model": "lrs.verb", 
         "fields": {
-            "verb_id": "http://imaginarium.adlnet.org/xapi/verbs/sighted"
+            "verb_id": "http://imaginarium.adlnet.gov/xapi/verbs/sighted"
         }
     }, 
     {
         "pk": 8, 
         "model": "lrs.verb", 
         "fields": {
-            "verb_id": "http://special.adlnet.org/xapi/verbs/high-fived"
+            "verb_id": "http://special.adlnet.gov/xapi/verbs/high-fived"
         }
     }, 
     {
         "pk": 9, 
         "model": "lrs.verb", 
         "fields": {
-            "verb_id": "http://special.adlnet.org/xapi/verbs/frowned"
+            "verb_id": "http://special.adlnet.gov/xapi/verbs/frowned"
         }
     }, 
     {
         "pk": 10, 
         "model": "lrs.verb", 
         "fields": {
-            "verb_id": "http://special.adlnet.org/xapi/verbs/started"
+            "verb_id": "http://special.adlnet.gov/xapi/verbs/started"
         }
     }, 
     {
@@ -2077,7 +2077,7 @@
         "model": "lrs.activity", 
         "fields": {
             "authoritative": "tom", 
-            "activity_id": "http://imaginarium.adlnet.org/xapi/animals/kermodebear", 
+            "activity_id": "http://imaginarium.adlnet.gov/xapi/animals/kermodebear", 
             "global_representation": true, 
             "objectType": "Activity"
         }
@@ -2913,7 +2913,7 @@
         "pk": 24, 
         "model": "lrs.contextactivity", 
         "fields": {
-            "context_activity": "http://imaginarium.adlnet.org/xapi/imaginarium", 
+            "context_activity": "http://imaginarium.adlnet.gov/xapi/imaginarium", 
             "key": "parent", 
             "context": 24
         }
@@ -2922,7 +2922,7 @@
         "pk": 25, 
         "model": "lrs.contextactivity", 
         "fields": {
-            "context_activity": "http://imaginarium.adlnet.org/xapi/imaginarium", 
+            "context_activity": "http://imaginarium.adlnet.gov/xapi/imaginarium", 
             "key": "parent", 
             "context": 25
         }
@@ -2931,7 +2931,7 @@
         "pk": 29, 
         "model": "lrs.contextactivity", 
         "fields": {
-            "context_activity": "http://imaginarium.adlnet.org/xapi/imaginarium", 
+            "context_activity": "http://imaginarium.adlnet.gov/xapi/imaginarium", 
             "key": "parent", 
             "context": 29
         }
@@ -2940,7 +2940,7 @@
         "pk": 30, 
         "model": "lrs.contextactivity", 
         "fields": {
-            "context_activity": "http://imaginarium.adlnet.org/xapi/imaginarium", 
+            "context_activity": "http://imaginarium.adlnet.gov/xapi/imaginarium", 
             "key": "parent", 
             "context": 30
         }
