@@ -152,20 +152,68 @@ class Statement():
         if 'contextActivities' in context:
             con_act_data = context['contextActivities']
             del context['contextActivities']
-        
+
+        # Save context stmt if one
+        stmt_data = None
+        if 'statement' in context:
+            stmt_data = context['statement']
+            del context['statement']
+
+        inst_data = None
+        if 'instructor' in context:
+            inst_data = context['instructor']
+            del context['instructor']
+
         # Save context
         cntx = models.context(content_object=self.model_object, **context)    
         cntx.save()
 
+        # Save instructor if one
+        if inst_data:
+            instructor = Agent(initial=inst_data, create=True, log_dict=self.log_dict, define=self.define).agent
+            instructor.content_object = cntx
+            instructor.save()
+
+        # Save context stmt if one
+        if stmt_data:
+            # Check objectType since can be both ref or sub
+            if 'objectType' in stmt_data:
+                if stmt_data['objectType'] == 'StatementRef':
+                    stmt_ref = models.StatementRef.objects.create(ref_id=stmt_data['id'], content_object=cntx)
+                elif stmt_data['objectType'] == 'SubStatement':
+                    sub_stmt = SubStatement(stmt_data, self.auth, self.log_dict).model_object
+                    sub_stmt.content_object = cntx
+                    sub_stmt.save()
+                else:
+                    err_msg = "Statement in context must be SubStatement or StatementRef"
+                    log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
+                    update_parent_log_status(self.log_dict, 400)
+                    raise exceptions.ParamError(err_msg)                    
+            else:
+                err_msg = "Statement in context must contain an objectType"
+                log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+
         # Save context activities
         if con_act_data:
-            for con_act in con_act_data.items():
-                ca_id = con_act[1]['id']
-                if not uri.validate_uri(ca_id):
-                    raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
-                ca = models.ContextActivity(key=con_act[0], context_activity=ca_id, context=cntx)
+            context_types = ['parent', 'grouping', 'category', 'other']
+            # Can have multiple groupings
+            for con_act_group in con_act_data.items():
+                if not con_act_group[0] in context_types:
+                    raise exceptions.ParamError('Context Activity type is not valid.')
+                ca = models.ContextActivity.objects.create(key=con_act_group[0], context=cntx)
+                # Incoming contextActivities can either be a list or dict
+                if isinstance(con_act_group[1], list):
+                    for con_act in con_act_group[1]:
+                        act = Activity(con_act,auth=self.auth, log_dict=self.log_dict,
+                            define=self.define).activity
+                        ca.context_activity.append(act.id)
+                else:
+                    act = Activity(con_act_group[1],auth=self.auth, log_dict=self.log_dict,
+                        define=self.define).activity
+                    ca.context_activity.append(act.id)
                 ca.save()
-            cntx.save()
 
         # Save context extensions
         if contextExts:
@@ -179,7 +227,6 @@ class Statement():
                 conExt.save()
 
         log_message(self.log_dict, "Context saved to database", __name__, self.saveContextToDB.__name__)
-
         return cntx        
 
     #Save statement to DB
@@ -248,10 +295,6 @@ class Statement():
         if 'registration' in stmt_data['context']:
             self.validate_incoming_uuid(stmt_data['context']['registration'])
 
-        if 'instructor' in stmt_data['context']:
-            stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
-                create=True, log_dict=self.log_dict, define=self.define).agent
-
         # If there is an actor or object is a group in the stmt then remove the team
         if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
             if 'team' in stmt_data['context']:                
@@ -270,29 +313,6 @@ class Statement():
         else:
             context = stmt_data['context']
 
-        # Save context stmt if one
-        if 'statement' in context:
-            stmt_obj = context['statement']
-
-            # Check objectType since can be both ref or sub
-            if 'objectType' in stmt_obj:
-                if stmt_obj['objectType'] == 'StatementRef':
-                    stmt_ref = models.StatementRef(ref_id=stmt_obj['id'])
-                    stmt_ref.save()
-                    context['statement'] = stmt_ref                    
-                elif stmt_obj['objectType'] == 'SubStatement':
-                    sub_stmt = SubStatement(stmt_obj, self.auth, self.log_dict).model_object
-                    context['statement'] = sub_stmt
-                else:
-                    err_msg = "Statement in context must be SubStatement or StatementRef"
-                    log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
-                    update_parent_log_status(self.log_dict, 400)
-                    raise exceptions.ParamError(err_msg)                    
-            else:
-                err_msg = "Statement in context must contain an objectType"
-                log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
-                raise exceptions.ParamError(err_msg)
         return self.saveContextToDB(context, contextExts)
 
     def save_lang_map(self, lang_map, verb):
