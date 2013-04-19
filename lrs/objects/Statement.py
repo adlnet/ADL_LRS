@@ -165,7 +165,7 @@ class Statement():
             del context['instructor']
 
         # Save context
-        cntx = models.context(content_object=self.model_object, **context)    
+        cntx = models.context(**context)    
         cntx.save()
 
         # Save instructor if one
@@ -541,15 +541,17 @@ class Statement():
                 log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
                 update_parent_log_status(self.log_dict, 409)                   
                 raise exceptions.ParamConflict(err_msg)
-
+        
+        if 'context' in stmt_data:
+            args['context'] = self.populateContext(stmt_data)
+        
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)
 
         if 'result' in stmt_data:
             self.populateResult(stmt_data)
 
-        if 'context' in stmt_data:
-            self.populateContext(stmt_data)
+
 
 class SubStatement(Statement):
     @transaction.commit_on_success

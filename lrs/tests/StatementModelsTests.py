@@ -1374,10 +1374,10 @@ class StatementModelsTests(TestCase):
         self.assertEqual(len(models.activity.objects.all()), 1)
         self.assertIn('act:activity', models.activity.objects.values_list('activity_id', flat=True))
 
-    def test_context_in_another_context_statment_delete(self):
+    def test_context_in_another_context_statement_delete(self):
         stmt1 = Statement.Statement(json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
-            'verb': {"id":"verb:verb/url"},
+            'verb': {"id":"verb:verb/url1"},
             "object": {'id':'act:activity1'},
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
                 'team':{'objectType': 'Group', 'name':'mygroup',
@@ -1388,7 +1388,7 @@ class StatementModelsTests(TestCase):
         
         stmt2 = Statement.Statement(json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
-            'verb': {"id":"verb:verb/url"},
+            'verb': {"id":"verb:verb/url2"},
             "object": {'id':'act:activity4'},
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
                 'team':{'objectType': 'Group', 'name':'mygroup',
@@ -1398,7 +1398,7 @@ class StatementModelsTests(TestCase):
 
         stmt3 = Statement.Statement(json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
-            'verb': {"id":"verb:verb/url"},
+            'verb': {"id":"verb:verb/url3"},
             "object": {'id':'act:activity1'},
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:three@inst.com'},
                 'team':{'objectType': 'Group', 'name':'mygroup',
@@ -1406,7 +1406,49 @@ class StatementModelsTests(TestCase):
                 'contextActivities': {'other': [{'id': 'act:activity6'},{'id':'act:activity5'}],
                 'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}}))
 
-
         self.assertEqual(len(models.activity.objects.all()), 6)
+        # pdb.set_trace()
         models.statement.objects.get(id=stmt3.model_object.id).delete()
-        self.assertEqual(len(models.activity.objects.all()), 5)        
+        self.assertEqual(len(models.activity.objects.all()), 5)
+        activity_id_list = models.activity.objects.all().values_list('activity_id', flat=True)
+        self.assertIn('act:activity1', activity_id_list)
+        self.assertIn('act:activity2', activity_id_list)
+        self.assertIn('act:activity3', activity_id_list)
+        self.assertIn('act:activity4', activity_id_list)
+        self.assertIn('act:activity5', activity_id_list)
+
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+        self.assertEqual(len(models.activity.objects.all()), 3)
+        activity_id_list = models.activity.objects.all().values_list('activity_id', flat=True)
+        self.assertIn('act:activity1', activity_id_list)
+        self.assertIn('act:activity2', activity_id_list)
+        self.assertIn('act:activity3', activity_id_list)
+
+        models.statement.objects.get(id=stmt1.model_object.id).delete()
+        self.assertEqual(len(models.activity.objects.all()), 0)
+
+    def test_simple_statement_delete(self):
+        stmt1 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity1'}}))
+        
+        stmt2 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:b@b.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity1'}}))
+
+        self.assertEqual(len(models.agent.objects.all()), 2)
+        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 2)
+
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+
+        self.assertEqual(len(models.agent.objects.all()), 1)
+        self.assertEqual(models.agent.objects.all()[0].mbox, 'mailto:a@a.com')
+        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 1)
+        self.assertEqual(models.statement.objects.all()[0].id, stmt1.model_object.id)
+
