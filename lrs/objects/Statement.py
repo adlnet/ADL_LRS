@@ -159,20 +159,20 @@ class Statement():
             stmt_data = context['statement']
             del context['statement']
 
-        inst_data = None
-        if 'instructor' in context:
-            inst_data = context['instructor']
-            del context['instructor']
+        # inst_data = None
+        # if 'instructor' in context:
+        #     inst_data = context['instructor']
+        #     del context['instructor']
 
         # Save context
         cntx = models.context(**context)    
         cntx.save()
 
-        # Save instructor if one
-        if inst_data:
-            instructor = Agent(initial=inst_data, create=True, log_dict=self.log_dict, define=self.define).agent
-            instructor.content_object = cntx
-            instructor.save()
+        # # Save instructor if one
+        # if inst_data:
+        #     instructor = Agent(initial=inst_data, create=True, log_dict=self.log_dict, define=self.define).agent
+        #     instructor.content_object = cntx
+        #     instructor.save()
 
         # Save context stmt if one
         if stmt_data:
@@ -295,6 +295,10 @@ class Statement():
         if 'registration' in stmt_data['context']:
             self.validate_incoming_uuid(stmt_data['context']['registration'])
 
+        if 'instructor' in stmt_data['context']:
+            stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
+                create=True, log_dict=self.log_dict, define=self.define).agent
+            
         # If there is an actor or object is a group in the stmt then remove the team
         if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
             if 'team' in stmt_data['context']:                

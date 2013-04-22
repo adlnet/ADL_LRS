@@ -1019,10 +1019,6 @@ class context(models.Model):
     extensions = generic.GenericRelation(extensions)
     # context also has a stmt field which can reference a sub-statement or statementref
     statement = generic.GenericRelation(statement_object)
-    # for linking statement and sub-statement with this context
-    # content_type = models.ForeignKey(ContentType)
-    # object_id = models.PositiveIntegerField()
-    # content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def delete(self, act_in_stmt_object_and_context=None,*args, **kwargs):
         # All conact ids from this context
@@ -1044,14 +1040,23 @@ class context(models.Model):
 
         for ca in self.contextactivity_set.all():
             ca.delete(act_in_stmt_object_and_context, list(same_ids))     
+        
+        # Set FKs null with inst and team, then delete the object
+        if self.instructor:
+            inst_agent = agent.objects.get(id=self.instructor.id)
+            inst_agent.delete()
+
+        if self.team:
+            team_agent = agent.objects.get(id=self.team.id)
+            team_agent.delete()
+
         super(context, self).delete(*args, **kwargs)
 
     def object_return(self, sparse=False, lang=None):
         ret = {}
-        linked_fields = ['instructor', 'team', 'statement', 'contextActivities']
-        ignore = ['id', 'content_type', 'object_id', 'content_object']
+        linked_fields = ['instructor', 'team']
         for field in self._meta.fields:
-            if not field.name in ignore:
+            if field.name != 'id':
                 value = getattr(self, field.name)
                 if not value is None:
                     if not field.name in linked_fields:
@@ -1060,13 +1065,14 @@ class context(models.Model):
                         ret[field.name] = self.instructor.get_agent_json(sparse)
                     elif field.name == 'team':
                         ret[field.name] = self.team.get_agent_json()
-                    elif field.name == 'statement':
-                        subclass = self.statement.subclass
-                        if subclass == 'statementref':
-                            cntx_stmt = StatementRef.objects.get(id=self.statement.id)
-                        elif subclass == 'substatement':
-                            cntx_stmt = SubStatement.objects.get(id=self.statement.id)                        
-                        ret['statement'] = cntx_stmt.object_return()          
+
+        if len(self.statement.all()) > 0:
+            subclass = self.statement.all()[0].subclass
+            if subclass == 'statementref':
+                cntx_stmt = StatementRef.objects.get(id=self.statement.all()[0].id)
+            elif subclass == 'substatement':
+                cntx_stmt = SubStatement.objects.get(id=self.statement.all()[0].id)
+            ret['statement'] = cntx_stmt.object_return()          
 
         if len(self.contextactivity_set.all()) > 0:
             ret['contextActivities'] = {}
@@ -1115,7 +1121,8 @@ class SubStatement(statement_object):
     actor = models.ForeignKey(agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result = generic.GenericRelation(result)
-    timestamp = models.DateTimeField(blank=True,null=True, default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
+    timestamp = models.DateTimeField(blank=True,null=True,
+        default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = models.OneToOneField(context, related_name="substatement_context", null=True,
         on_delete=models.SET_NULL)
     user = models.ForeignKey(User, null=True, blank=True)
@@ -1171,6 +1178,8 @@ class SubStatement(statement_object):
 
         # If there is a context
         if self.context:
+            act_in_stmt_object_and_context = False
+            same_id = None
             for conact in self.context.contextactivity_set.all():
                 # Check each context activity against the activity in the statement
                 if object_type == 'activity':
@@ -1276,10 +1285,11 @@ class SubStatement(statement_object):
                         object_in_use = True
                         break
 
-
         # If nothing else is using it, delete it
         if not object_in_use and object_type != 'activity':
             stmt_object.delete()
+
+        super(SubStatement, self).delete(*args, **kwargs)
 
 class statement(models.Model):
     statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
@@ -1345,6 +1355,11 @@ class statement(models.Model):
         
         ret['version'] = self.version
         return ret
+
+    def save(self, *args, **kwargs):
+        # actor object context authority
+        statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
+        super(statement, self).save(*args, **kwargs)    
 
     def unvoid_statement(self):
         statement_ref = StatementRef.objects.get(id=self.stmt_object.id)
@@ -1519,7 +1534,7 @@ class statement(models.Model):
                             auth_in_use = True
                             break                        
                 if not auth_in_use:
-                    self.authority.delete()
+                    authority_agent.delete()
         
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             object_in_use = False
@@ -1565,6 +1580,6 @@ class statement(models.Model):
 
             # If nothing else is using it, delete it
             if not object_in_use and object_type!= 'activity':
-                authority_agent.delete()
+                stmt_object.delete()
 
         super(statement, self).delete(*args, **kwargs)
