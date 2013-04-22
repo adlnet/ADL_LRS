@@ -385,13 +385,16 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         stmts = obj['statements']
         for s in stmts:
+            import pprint
+            pprint.pprint(s)
+            print "-------------------------------"
             if param['activity'] not in str(s):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
                 self.assertTrue(param['activity'] in str(statement.objects.get(statement_id=s['object']['id']).object_return()))
             else:
                 self.assertIn(param['activity'], str(s))
 
-        self.assertTrue(len(stmts) > actcnt)
+        self.assertTrue(len(stmts) > actcnt, "stmts(%s) was not greater than actcnt(%s)" % (len(stmts), actcnt))
 
     def test_format_filter(self):
         param = {}
