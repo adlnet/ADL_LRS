@@ -14,6 +14,7 @@ activity_state = 'activity_state'
 INSTALL_STEPS = ['sudo easy_install pip',
                  'sudo pip install virtualenv',
                  'virtualenv env;. env/bin/activate;pip install -r requirements.txt;deactivate']
+                 
 def deps_local():
     for step in INSTALL_STEPS:
     	local(step)

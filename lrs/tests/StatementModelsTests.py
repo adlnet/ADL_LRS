@@ -5,11 +5,11 @@ import json
 from datetime import datetime
 import uuid
 import pdb
-from lrs.objects import Statement
+from lrs.objects import Statement, Activity
 
 def get_ctx_id(stmt):
-    if len(stmt.context.all()) > 0:
-        return stmt.context.all()[0].id
+    if stmt.context:
+        return stmt.context.id
     return None
 
 class StatementModelsTests(TestCase):
@@ -368,14 +368,13 @@ class StatementModelsTests(TestCase):
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
-                'revision': 'foo', 'platform':'bar',
-                'language': 'en-US'}}))
+                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'},
+                'grouping':{'id':'act:GroupID'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
         context = models.context.objects.get(id=ctxid)
-        context_activities = stmt.model_object.context.all()[0].contextactivity_set.all()
+        context_activities = stmt.model_object.context.contextactivity_set.all()
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
@@ -383,19 +382,64 @@ class StatementModelsTests(TestCase):
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.all()[0].id, context.id)
+        self.assertEqual(st.context.id, context.id)
         
         for ca in context_activities:
             if ca.key == 'grouping':
-                self.assertEqual(ca.context_activity, 'act:GroupID')
+                self.assertEqual(ca.get_context_activities()[0].activity_id, 'act:GroupID')
             elif ca.key == 'other':
-                self.assertEqual(ca.context_activity, 'act:NewActivityID')
+                self.assertEqual(ca.get_context_activities()[0].activity_id, 'act:NewActivityID')
 
         self.assertEqual(context.registration, guid)        
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
 
+    def test_context_activity_list(self):
+        guid = str(uuid.uuid1())
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
+                'context':{'registration': guid,
+                'contextActivities': {'other': [{'id': 'act:NewActivityID'},{'id':'act:anotherActID'}],
+                'grouping':{'id':'act:GroupID'}},
+                'revision': 'foo', 'platform':'bar',
+                'language': 'en-US'}}))
+        
+        activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
+        ctxid = get_ctx_id(stmt.model_object)
+        context = models.context.objects.get(id=ctxid)
+
+        context_activities = models.ContextActivity.objects.filter(context=context)
+        self.assertEqual(len(context_activities), 2)
+        
+        context_activity_keys = [ca.key for ca in context_activities]
+        self.assertEqual(len(context_activity_keys), 2)
+        self.assertIn('grouping', context_activity_keys)
+        self.assertIn('other', context_activity_keys)
+
+        context_activity_activities = []        
+        for ca in context_activities:
+            for c in ca.get_context_activities():
+                context_activity_activities.append(c.activity_id)
+
+        self.assertEqual(len(context_activity_activities), 3)
+
+        self.assertIn('act:NewActivityID', context_activity_activities)
+        self.assertIn('act:anotherActID', context_activity_activities)
+        self.assertIn('act:GroupID', context_activity_activities)
+
+        self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
+        self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
+        self.assertEqual(ctxid, context.id)
+
+        st = models.statement.objects.get(id=stmt.model_object.id)
+        self.assertEqual(st.stmt_object.id, activity.id)
+        self.assertEqual(st.context.id, context.id)
+
+        self.assertEqual(context.registration, guid)        
+        self.assertEqual(context.revision, 'foo')
+        self.assertEqual(context.platform, 'bar')
+        self.assertEqual(context.language, 'en-US')
 
     def test_context_ext_stmt(self):
         guid = str(uuid.uuid1())
@@ -410,7 +454,7 @@ class StatementModelsTests(TestCase):
         extList = context.extensions.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
-        context_activities = stmt.model_object.context.all()[0].contextactivity_set.all()
+        context_activities = stmt.model_object.context.contextactivity_set.all()
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
@@ -418,11 +462,11 @@ class StatementModelsTests(TestCase):
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.all()[0].id, context.id)
+        self.assertEqual(st.context.id, context.id)
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID')
+        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -455,7 +499,7 @@ class StatementModelsTests(TestCase):
         st = models.statement.objects.get(id=stmt.model_object.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.all()[0].id, context.id)
+        self.assertEqual(st.context.id, context.id)
 
         self.assertEqual(context.registration, guid)
 
@@ -480,12 +524,12 @@ class StatementModelsTests(TestCase):
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
         context = models.context.objects.get(id=ctxid)
-        sub_stmt = models.SubStatement.objects.get(id=context.statement.id)
+        sub_stmt = models.SubStatement.objects.get(id=context.statement.all()[0].id)
 
         st = models.statement.objects.get(id=stmt.model_object.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.all()[0].id, context.id)
+        self.assertEqual(st.context.id, context.id)
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context.revision, 'foo')
@@ -495,33 +539,34 @@ class StatementModelsTests(TestCase):
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 'name':'jon'},
-                'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
-                'context':{'registration': guid, 'instructor': {'objectType':'Agent',
-                'name':'jon','mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,'objectType':'StatementRef'}}}))
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 
+            'name':'jon'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
+            'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon',
+            'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
+            'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,
+            'objectType':'StatementRef'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
         context = models.context.objects.get(id=ctxid)
-        conactor = models.agent.objects.get(id=stmt.model_object.context.all()[0].instructor.id)
+        conactor = models.agent.objects.get(id=stmt.model_object.context.instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.model_object.context.all()[0].contextactivity_set.all()
+        context_activities = stmt.model_object.context.contextactivity_set.all()
 
         st = models.statement.objects.get(id=stmt.model_object.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.all()[0].id, context.id)
-        self.assertEqual(st.context.all()[0].instructor.id, conactor.id)
+        self.assertEqual(st.context.id, context.id)
+        self.assertEqual(st.context.instructor.id, conactor.id)
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID')
+        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -536,33 +581,34 @@ class StatementModelsTests(TestCase):
 
     def test_actor_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve', 'mbox':'mailto:mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},'context':{'registration': guid, 
-            'instructor': {'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
-            'contextActivities': {'other': {'id': 'act:NewActivityID1'}}, 'revision': 'foob', 'platform':'bard',
-            'language': 'en-US', 'statement': {'id':stmt_guid, "objectType":"StatementRef"}}}))
+        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve',
+            'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},
+            'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon',
+            'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID1'}},
+            'revision': 'foob', 'platform':'bard','language': 'en-US', 'statement': {'id':stmt_guid,
+            "objectType":"StatementRef"}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
         context = models.context.objects.get(id=ctxid)
-        instructor = models.agent.objects.get(id=stmt.model_object.context.all()[0].instructor.id)
+        instructor = models.agent.objects.get(id=stmt.model_object.context.instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
         st = models.statement.objects.get(id=stmt.model_object.id)
-        context_activities = stmt.model_object.context.all()[0].contextactivity_set.all()
+        context_activities = stmt.model_object.context.contextactivity_set.all()
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.all()[0].id, context.id)
-        self.assertEqual(st.context.all()[0].instructor.id, instructor.id)
+        self.assertEqual(st.context.id, context.id)
+        self.assertEqual(st.context.instructor.id, instructor.id)
         self.assertEqual(st.verb.verb_id, "verb:verb/url" )
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(context.revision, 'foob')
         self.assertEqual(context.platform, 'bard')
         self.assertEqual(context.language, 'en-US')
@@ -577,8 +623,8 @@ class StatementModelsTests(TestCase):
 
     def test_agent_as_object_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
         stmt = Statement.Statement(
@@ -618,20 +664,20 @@ class StatementModelsTests(TestCase):
 
         ctxid = get_ctx_id(stmt.model_object)
         context = models.context.objects.get(id=ctxid)
-        instructor = models.agent.objects.get(id=stmt.model_object.context.all()[0].instructor.id)
+        instructor = models.agent.objects.get(id=stmt.model_object.context.instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.model_object.context.all()[0].contextactivity_set.all()
+        context_activities = stmt.model_object.context.contextactivity_set.all()
 
         st = models.statement.objects.get(id=stmt.model_object.id)
 
-        self.assertEqual(st.context.all()[0].id, context.id)
-        self.assertEqual(st.context.all()[0].instructor.id, instructor.id)
+        self.assertEqual(st.context.id, context.id)
+        self.assertEqual(st.context.instructor.id, instructor.id)
         self.assertEqual(st.verb.verb_id, "verb:verb/url")
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(context.language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
@@ -687,7 +733,7 @@ class StatementModelsTests(TestCase):
         sub_stmt = models.SubStatement.objects.get(id=outer_stmt.stmt_object.id)
         sub_obj = models.activity.objects.get(id=sub_stmt.stmt_object.id)
         sub_act = models.agent.objects.get(id=sub_stmt.actor.id)
-        sub_con = models.context.objects.get(id=sub_stmt.context.all()[0].id)
+        sub_con = models.context.objects.get(id=sub_stmt.context.id)
         self.assertEqual(len(sub_stmt.result.all()), 1)
         resid = sub_stmt.result.all()[0].id
         sub_res = models.result.objects.get(id=resid)
@@ -742,3 +788,631 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(actor.name, name)
         self.assertEqual(actor.mbox, mbox)
+
+    # Verbs cannot share languagemaps. Will have many lang_maps attached to one verb
+    def test_verb_delete(self):
+        verb1 = models.Verb.objects.create(verb_id="verb:created")
+        lang_map1 = models.LanguageMap.objects.create(key='en-US', value='created', content_object=verb1)
+        lang_map2 = models.LanguageMap.objects.create(key='en-GB', value='created', content_object=verb1)
+
+        # Should remove any lang maps attached to it
+        models.Verb.objects.get(id=verb1.id).delete()
+        verbs = len(models.Verb.objects.all())
+        lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(verbs, 0)
+        self.assertEqual(lang_maps, 0)
+
+        verb2 = models.Verb.objects.create(verb_id="verb:deleted")
+        lang_map3 = models.LanguageMap.objects.create(key='en-US', value='deleted', content_object=verb2)
+        lang_map4 = models.LanguageMap.objects.create(key='en-GB', value='deleted', content_object=verb2)
+
+        # Deleting lang map should not affect anything else
+        models.LanguageMap.objects.get(id=lang_map3.id).delete()
+        verbs = len(models.Verb.objects.all())
+        lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(verbs, 1)
+        self.assertEqual(lang_maps, 1)
+
+    def test_result_delete(self):
+        stmt1 = Statement.Statement(json.dumps(
+            {'actor':{'mbox':'mailto:s@s.com'},
+            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
+            'object':{'id':'act:test_act'}}))
+
+        result1 = models.result.objects.create(success=True, content_object=stmt1.model_object)
+        score1 = models.score.objects.create(scaled=0.50, result=result1)
+        res_ext1 = models.extensions.objects.create(key='key1', value='value1', content_object=result1)
+        res_ext2 = models.extensions.objects.create(key='key2', value='value2', content_object=result1)
+
+        # There should never be a time that a result object gets deleted by itself. In this case, the statement
+        # will remain
+        models.result.objects.get(id=result1.id).delete()
+        stmts = len(models.statement.objects.all())
+        results = len(models.result.objects.all())
+        scores = len(models.score.objects.all())
+        res_exts = len(models.extensions.objects.all())
+        self.assertEqual(stmts, 1)
+        self.assertEqual(results, 0)
+        self.assertEqual(scores, 0)
+        self.assertEqual(res_exts, 0)
+
+        stmt2 = Statement.Statement(json.dumps(
+            {'actor':{'mbox':'mailto:s@s.com'},
+            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
+            'object':{'id':'act:test_act'}}))
+
+        result2 = models.result.objects.create(success=True, content_object=stmt2.model_object)
+        score2 = models.score.objects.create(scaled=0.50, result=result2)
+        res_ext3 = models.extensions.objects.create(key='key3', value='value4', content_object=result2)
+        res_ext4 = models.extensions.objects.create(key='key3', value='value4', content_object=result2)
+
+        # There should never be a time that a score object gets deleted by itself. It is OneToOne with result,
+        # the result object does not get removed. Once again stmt will remain
+        models.score.objects.get(id=score2.id).delete()
+        stmts = len(models.statement.objects.all())
+        results = len(models.result.objects.all())
+        scores = len(models.score.objects.all())
+        res_exts = len(models.extensions.objects.all())
+        # Previous stmt and this one
+        self.assertEqual(stmts, 2)
+        self.assertEqual(results, 1)
+        self.assertEqual(scores, 0)
+        self.assertEqual(res_exts, 2)
+
+        stmt3 = Statement.Statement(json.dumps(
+            {'actor':{'mbox':'mailto:s@s.com'},
+            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
+            'object':{'id':'act:test_act'}}))
+
+        result3 = models.result.objects.create(success=True, content_object=stmt3.model_object)
+        score3 = models.score.objects.create(scaled=0.50, result=result3)
+        res_ext5 = models.extensions.objects.create(key='key3', value='value4', content_object=result3)
+        res_ext6 = models.extensions.objects.create(key='key3', value='value4', content_object=result3)
+
+        # Deleting an ext should not affect anything else
+        models.extensions.objects.get(id=res_ext6.id).delete()
+        stmts = len(models.statement.objects.all())
+        results = len(models.result.objects.all())
+        scores = len(models.score.objects.all())
+        res_exts = len(models.extensions.objects.all())
+        # Will be two results, one from before and this one
+        self.assertEqual(results, 2)
+        self.assertEqual(scores, 1)
+        # Will be three exts, two from before and this one
+        self.assertEqual(res_exts, 3)
+        # 2 stmts from before and this one
+        self.assertEqual(stmts, 3)
+
+    def test_activity_definition_delete(self):
+        act1 = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foo',
+                'definition': {'name': {'en-UK':'name', 'en-US':'nombre'},'description': {'en-UK':'desc',
+                'en-US': 'tdesc'},'type': 'course','interactionType': 'intType2',
+                'extensions': {'ext:key1': 'value1','ext:key2': 'value2','ext:key3': 'value3'}}}))
+
+        act2 = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:baz',
+                'definition': {'name': {'en-UK':'name2', 'en-US':'nombre2'},'description': {'en-UK':'desc2',
+                'en-US': 'tdesc2'},'type': 'course','interactionType': 'intType2',
+                'extensions': {'ext2:key1': 'value1','ext2:key2': 'value2','ext2:key3': 'value3'}}}))
+
+        # Set each one individually, if try to get in list, not always in same order
+        act_def1 = models.activity_definition.objects.get(activity=act1.activity)
+        act_def2 = models.activity_definition.objects.get(activity=act2.activity)
+        
+        name_lang1_1 = models.name_lang.objects.get(value='name')
+        name_lang1_2 = models.name_lang.objects.get(value='nombre')
+        name_lang2_1= models.name_lang.objects.get(value='name2')
+        name_lang2_2= models.name_lang.objects.get(value='nombre2')
+        
+        desc_lang1_1 = models.desc_lang.objects.get(value='desc')
+        desc_lang1_2 = models.desc_lang.objects.get(value='tdesc')
+        desc_lang2_1 = models.desc_lang.objects.get(value='desc2')
+        desc_lang2_2 = models.desc_lang.objects.get(value='tdesc2')
+        
+        ext1_1 = models.extensions.objects.get(key='ext:key1')
+        ext1_2 = models.extensions.objects.get(key='ext:key2')
+        ext1_3 = models.extensions.objects.get(key='ext:key3')
+        ext2_1 = models.extensions.objects.get(key='ext2:key1')
+        ext2_2 = models.extensions.objects.get(key='ext2:key2')
+        ext2_3 = models.extensions.objects.get(key='ext2:key3')
+        
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 4)
+        self.assertEqual(desc_langs, 4)
+        self.assertEqual(exts, 6)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+
+        # Should only be three name_langs now
+        models.name_lang.objects.get(id=name_lang1_1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 3)
+        self.assertEqual(desc_langs, 4)
+        self.assertEqual(exts, 6)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+
+        # Should only be three desc_langs now
+        models.desc_lang.objects.get(id=desc_lang2_1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 3)
+        self.assertEqual(desc_langs, 3)
+        self.assertEqual(exts, 6)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+
+        # Should only be five extensions now
+        models.extensions.objects.get(id=ext1_1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 3)
+        self.assertEqual(desc_langs, 3)
+        self.assertEqual(exts, 5)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+
+        # Delete second activity def(will never get deleted w/o activity being deleted)
+        # Deletes both of it's name_langs, remaining desc_lang, all 3 of it's extensions
+        models.activity_definition.objects.get(id=act_def2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 1)
+        self.assertEqual(acts, 2)
+
+        # Activity 2 will still remain
+        models.activity.objects.get(id=act1.activity.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 0)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 0)
+        self.assertEqual(acts, 1)
+
+    def test_activity_correctresponsepattern(self):
+        act1 = Activity.Activity(json.dumps({
+            'objectType': 'Activity', 'id':'act:foo',
+            'definition': {'name': {'en-US':'testname'},'description': {'en-US':'testdesc'}, 
+                'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                'interactionType': 'true-false','correctResponsesPattern': ['true'],
+                'extensions': {'ext:key1': 'value1'}}}))
+
+        act2 = Activity.Activity(json.dumps({
+            'objectType': 'Activity', 'id':'act:baz',
+            'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 
+                'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                'interactionType': 'true-false','correctResponsesPattern': ['true'],
+                'extensions': {'ext2:key1': 'value1'}}}))
+
+        # Set each one individually, if try to get in list, not always in same order
+        act_def1 = models.activity_definition.objects.get(activity=act1.activity)
+        act_def2 = models.activity_definition.objects.get(activity=act2.activity)
+        
+        name_lang1 = models.name_lang.objects.get(value='testname')
+        name_lang2 = models.name_lang.objects.get(value='testname2')
+        
+        desc_lang1 = models.desc_lang.objects.get(value='testdesc')
+        desc_lang2 = models.desc_lang.objects.get(value='testdesc2')
+        
+        ext1 = models.extensions.objects.get(key='ext:key1')
+        ext2 = models.extensions.objects.get(key='ext2:key1')
+
+        crp1 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def1)
+        crp2 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def2)
+
+        crp_answer1 = models.correctresponsespattern_answer.objects.get(correctresponsespattern=crp1)
+        crp_answer2 = models.correctresponsespattern_answer.objects.get(correctresponsespattern=crp2)        
+
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 2)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Should only be 1 name_langs now
+        models.name_lang.objects.get(id=name_lang1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Should only be 1 desc_langs now
+        models.desc_lang.objects.get(id=desc_lang2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Should only be 1 extensions now
+        models.extensions.objects.get(id=ext1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 1)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 2)
+
+        # Delete second activity def(will never get deleted w/o activity being deleted)
+        # Deletes its name_langs, its extensions, crp, and crp answers
+        models.activity_definition.objects.get(id=act_def2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 1)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 1)
+        self.assertEqual(crp_answers, 1)
+
+        # Deletes its desc lang, def, crp, and crp answer
+        models.activity.objects.get(id=act1.activity.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 0)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 0)
+        self.assertEqual(acts, 1)
+        self.assertEqual(crps, 0)
+        self.assertEqual(crp_answers, 0)
+
+    # Would be same for steps, target/source, and scale
+    def test_activity_definition_choices(self):
+        act1 = Activity.Activity(json.dumps(
+            {'objectType': 'Activity', 'id':'act:foo',
+                'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
+                    'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                    'interactionType': 'choice',
+                    'correctResponsesPattern': ['golf', 'tetris'],'choices':[
+                    {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
+                    {'id': 'tetris','description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}},
+                    {'id':'facebook', 'description':{'en-US':'Facebook App', 'en-GB': 'FACEBOOK'}},
+                    {'id':'scrabble', 'description': {'en-US': 'Scrabble Example', 'en-GB': 'SCRABBLE'}}],
+                    'extensions': {'ext1:key1': 'value1'}}}))
+
+        act2 = Activity.Activity(json.dumps(
+            {'objectType': 'Activity', 'id':'act:biz',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                    'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                    'interactionType': 'choice',
+                    'correctResponsesPattern': ['golf', 'tetris'],'choices':[
+                    {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
+                    {'id': 'tetris','description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}},
+                    {'id':'facebook', 'description':{'en-US':'Facebook App', 'en-GB': 'FACEBOOK'}},
+                    {'id':'scrabble', 'description': {'en-US': 'Scrabble Example', 'en-GB': 'SCRABBLE'}}],
+                    'extensions': {'ext2:key1': 'value1'}}}))
+
+        # Set each one individually, if try to get in list, not always in same order
+        act_def1 = models.activity_definition.objects.get(activity=act1.activity)
+        act_def2 = models.activity_definition.objects.get(activity=act2.activity)
+        
+        name_lang1 = models.name_lang.objects.get(value='testname1')
+        name_lang2 = models.name_lang.objects.get(value='testname2')
+        
+        desc_lang1 = models.desc_lang.objects.get(value='testdesc1')
+        desc_lang2 = models.desc_lang.objects.get(value='testdesc2')
+        
+        ext1 = models.extensions.objects.get(key='ext1:key1')
+        ext2 = models.extensions.objects.get(key='ext2:key1')
+
+        crp1 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def1)
+        crp2 = models.activity_def_correctresponsespattern.objects.get(activity_definition=act_def2)
+
+        crp_answers1 = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=crp1)
+        crp_answers2 = models.correctresponsespattern_answer.objects.filter(correctresponsespattern=crp2)        
+
+        choices1 = models.activity_definition_choice.objects.filter(activity_definition=act_def1)
+        choices2 = models.activity_definition_choice.objects.filter(activity_definition=act_def2)
+
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 2)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Should only be 1 name_langs now
+        models.name_lang.objects.get(id=name_lang1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 2)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Should only be 1 desc_langs now
+        models.desc_lang.objects.get(id=desc_lang2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 2)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Should only be 1 extensions now
+        models.extensions.objects.get(id=ext1.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 1)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 1)
+        self.assertEqual(act_defs, 2)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 2)
+        self.assertEqual(crp_answers, 4)
+        self.assertEqual(choices, 8)
+        self.assertEqual(choice_lang_maps, 16)
+
+        # Delete second activity def(will never get deleted w/o activity being deleted)
+        # Deletes its name_langs, its extensions, crp, crp answers, and choices
+        models.activity_definition.objects.get(id=act_def2.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 1)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 1)
+        self.assertEqual(acts, 2)
+        self.assertEqual(crps, 1)
+        self.assertEqual(crp_answers, 2)
+        self.assertEqual(choices, 4)
+        self.assertEqual(choice_lang_maps, 8)
+
+        # Delete activity - removes its desc lang, def, crp, crp answers and choices
+        models.activity.objects.get(id=act1.activity.id).delete()
+        name_langs = len(models.name_lang.objects.all())
+        desc_langs = len(models.desc_lang.objects.all())
+        exts = len(models.extensions.objects.all())
+        act_defs = len(models.activity_definition.objects.all())
+        acts = len(models.activity.objects.all())
+        crps = len(models.activity_def_correctresponsespattern.objects.all())
+        crp_answers = len(models.correctresponsespattern_answer.objects.all())
+        choices = len(models.activity_definition_choice.objects.all())
+        choice_lang_maps = len(models.LanguageMap.objects.all())
+        self.assertEqual(name_langs, 0)
+        self.assertEqual(desc_langs, 0)
+        self.assertEqual(exts, 0)
+        self.assertEqual(act_defs, 0)
+        self.assertEqual(acts, 1)
+        self.assertEqual(crps, 0)
+        self.assertEqual(crp_answers, 0)
+        self.assertEqual(choices, 0)
+        self.assertEqual(choice_lang_maps, 0)
+
+    # Tests if an act from context already exists in a different stmt, if an act from context is the object in the
+    # same stmt, and if an act from context doesn't exist anywhere
+    def test_context_statement_delete(self):
+        guid = str(uuid.uuid1())
+        stmt1 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity'}}))
+        
+        st1_id = str(stmt1.model_object.statement_id)
+        stmt2 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity1'},
+            'context':{'registration': guid, 'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
+                'team':{'objectType': 'Group', 'name':'mygroup',
+                    'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
+                'contextActivities': {'other': [{'id': 'act:activity'},{'id':'act:activity1'}],
+                'grouping':{'id':'act:activity2'}},'revision': 'foo', 'platform':'bar','language': 'en-US',
+                'extensions':{'ext:key1': 'value1'},
+                'statement':{'objectType': 'StatementRef','id':st1_id}}}))
+
+        self.assertEqual(len(models.StatementRef.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 2)
+        self.assertEqual(len(models.context.objects.all()), 1)
+        self.assertEqual(len(models.agent.objects.all()), 2)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.activity.objects.all()), 3)
+
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+        self.assertEqual(len(models.StatementRef.objects.all()), 0)
+        self.assertEqual(len(models.statement.objects.all()), 1)
+        self.assertEqual(len(models.context.objects.all()), 0)
+        self.assertEqual(len(models.agent.objects.all()), 1)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertIn('act:activity', models.activity.objects.values_list('activity_id', flat=True))
+
+    def test_context_in_another_context_statement_delete(self):
+        stmt1 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url1"},
+            "object": {'id':'act:activity1'},
+            'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
+                'team':{'objectType': 'Group', 'name':'mygroup',
+                    'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
+                'contextActivities': {'other': [{'id': 'act:activity1'},{'id':'act:activity2'}],
+                'grouping':{'id':'act:activity3'}},'revision': 'foo', 'platform':'bar','language': 'en-US',
+                'extensions':{'ext:key1': 'value1'}}}))
+        
+        stmt2 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url2"},
+            "object": {'id':'act:activity4'},
+            'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
+                'team':{'objectType': 'Group', 'name':'mygroup',
+                    'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
+                'contextActivities': {'other': [{'id': 'act:activity2'},{'id':'act:activity3'}],
+                'grouping':{'id':'act:activity5'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}}))
+
+        stmt3 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url3"},
+            "object": {'id':'act:activity1'},
+            'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:three@inst.com'},
+                'team':{'objectType': 'Group', 'name':'mygroup',
+                    'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
+                'contextActivities': {'other': [{'id': 'act:activity6'},{'id':'act:activity5'}],
+                'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}}))
+
+        self.assertEqual(len(models.activity.objects.all()), 6)
+        # pdb.set_trace()
+        models.statement.objects.get(id=stmt3.model_object.id).delete()
+        self.assertEqual(len(models.activity.objects.all()), 5)
+        activity_id_list = models.activity.objects.all().values_list('activity_id', flat=True)
+        self.assertIn('act:activity1', activity_id_list)
+        self.assertIn('act:activity2', activity_id_list)
+        self.assertIn('act:activity3', activity_id_list)
+        self.assertIn('act:activity4', activity_id_list)
+        self.assertIn('act:activity5', activity_id_list)
+
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+        self.assertEqual(len(models.activity.objects.all()), 3)
+        activity_id_list = models.activity.objects.all().values_list('activity_id', flat=True)
+        self.assertIn('act:activity1', activity_id_list)
+        self.assertIn('act:activity2', activity_id_list)
+        self.assertIn('act:activity3', activity_id_list)
+
+        models.statement.objects.get(id=stmt1.model_object.id).delete()
+        self.assertEqual(len(models.activity.objects.all()), 0)
+
+    def test_simple_statement_delete(self):
+        stmt1 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity1'}}))
+        
+        stmt2 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:b@b.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity1'}}))
+
+        self.assertEqual(len(models.agent.objects.all()), 2)
+        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 2)
+
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+
+        self.assertEqual(len(models.agent.objects.all()), 1)
+        self.assertEqual(models.agent.objects.all()[0].mbox, 'mailto:a@a.com')
+        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 1)
+        self.assertEqual(models.statement.objects.all()[0].id, stmt1.model_object.id)
+
