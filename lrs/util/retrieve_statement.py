@@ -167,8 +167,8 @@ def complex_get(req_dict):
         reffilter = True
         registrationQ = Q(context__registration=the_dict['registration'])
 
-
-    # format
+    format = the_dict['format']
+    
     # attachments
     
     # Set language if one
@@ -195,7 +195,7 @@ def complex_get(req_dict):
     stmt_list = stmtset.order_by(stored_param)
     # For each stmt retrieve all json
     full_stmt_list = []
-    full_stmt_list = [stmt.object_return(sparse, language) for stmt in stmt_list]
+    full_stmt_list = [stmt.object_return(sparse, language, format) for stmt in stmt_list]
     return full_stmt_list
 
 def findstmtrefs(stmtset, sinceq, untilq):

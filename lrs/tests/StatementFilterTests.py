@@ -392,3 +392,6 @@ class StatementFilterTests(TestCase):
                 self.assertIn(param['activity'], str(s))
 
         self.assertTrue(len(stmts) > actcnt)
+
+    def test_format_filter(self):
+        param = {}

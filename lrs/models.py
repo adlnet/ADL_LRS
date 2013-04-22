@@ -438,6 +438,8 @@ class agentmgr(models.Manager):
         # define key is not true
         define = kwargs.pop('define', True)
 
+        #pdb.set_trace()
+
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
         # Find any IFPs
@@ -477,11 +479,7 @@ class agentmgr(models.Manager):
         try:
             # If there are no IFPs but there are members (group with no IFPs)
             if not attrs and members:
-                ret_agent = agent.objects.get(**kwargs)
-                created = False
-                ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
-                if need_to_create:
-                    ret_agent, created = self.create_agent(kwargs, define)
+                ret_agent, created = self.create_agent(kwargs, define)
             # Cannot have no IFP and no members
             elif not attrs and not members:
                 raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must have a member list")
@@ -531,26 +529,28 @@ class agent(statement_object):
     def clean(self):
         from lrs.util import uri
         if self.mbox != '' and not uri.validate_email(self.mbox):
-            raise ValidationError('mbox value did not start with mailto:')
+            raise ValidationError('mbox value [%s] did not start with mailto:' % self.mbox)
 
-    def get_agent_json(self, sparse=False):
+    def get_agent_json(self, format='exact'):
+        just_id = format == 'ids'
         ret = {}
-        ret['objectType'] = self.objectType
-        if self.name:
+        if not just_id:
+            ret['objectType'] = self.objectType
+        if self.name and not just_id:
             ret['name'] = self.name
         if self.mbox:
             ret['mbox'] = self.mbox
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = self.mbox_sha1sum
-        if self.openid and not sparse:
+        if self.openid:
             ret['openid'] = self.openid
         try:
-            if not sparse:
-                ret['account'] = self.agent_account.get_json()
+            ret['account'] = self.agent_account.get_json()
         except:
             pass
         if self.objectType == 'Group':
-            ret['member'] = [a.get_agent_json(sparse) for a in self.member.all()]
+            if not just_id or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
+                ret['member'] = [a.get_agent_json(format) for a in self.member.all()]
         return ret
 
     # Used only for /agent GET endpoint (check spec)
@@ -635,7 +635,7 @@ class activity(statement_object):
     authoritative = models.CharField(max_length=100, blank=True)
     global_representation = models.BooleanField(default=True)
 
-    def object_return(self, sparse=False, lang=None):
+    def object_return(self, sparse=False, lang=None, format='exact'):
         ret = {}
         ret['id'] = self.activity_id
         ret['objectType'] = self.objectType
@@ -902,7 +902,7 @@ class ContextActivity(models.Model):
     context_activity = models.CharField(max_length=MAX_URL_LENGTH)
     context = models.ForeignKey('context')
     
-    def object_return(self):
+    def object_return(self, format='exact'):
         ret = {}
         ret[self.key] = {}
         ret[self.key]['id'] = self.context_activity
@@ -922,7 +922,7 @@ class context(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
-    def object_return(self, sparse=False):
+    def object_return(self, sparse=False, format='exact'):
         ret = {}
         linked_fields = ['instructor', 'team', 'cntx_statement', 'contextActivities']
         ignore = ['id', 'content_type', 'object_id', 'content_object']
@@ -933,15 +933,15 @@ class context(models.Model):
                     if not field.name in linked_fields:
                         ret[field.name] = value
                     elif field.name == 'instructor':
-                        ret[field.name] = self.instructor.get_agent_json(sparse)
+                        ret[field.name] = self.instructor.get_agent_json(format)
                     elif field.name == 'team':
-                        ret[field.name] = self.team.get_agent_json()
+                        ret[field.name] = self.team.get_agent_json(format)
                     elif field.name == 'cntx_statement':
-                        ret['statement'] = self.cntx_statement.object_return()                    
+                        ret['statement'] = self.cntx_statement.object_return(format)                    
         if self.contextactivity_set:
             ret['contextActivities'] = {}
             for con_act in self.contextactivity_set.all():
-                ret['contextActivities'].update(con_act.object_return())
+                ret['contextActivities'].update(con_act.object_return(format))
         try:
             ret['statement'] = self.statementref.object_return()
         except:
@@ -996,10 +996,10 @@ class SubStatement(statement_object):
     def get_a_name(self):
         return self.stmt_object.statement_id
     
-    def object_return(self, sparse=False, lang=None):
+    def object_return(self, sparse=False, lang=None, format='exact'):
         activity_object = True
         ret = {}
-        ret['actor'] = self.actor.get_agent_json(sparse)
+        ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return()
 
         if hasattr(self.stmt_object, 'activity'):
@@ -1010,15 +1010,15 @@ class SubStatement(statement_object):
         else: 
             raise IDNotFoundError('No activity or agent object found with given ID')
         if activity_object:
-            ret['object'] = stmt_object.object_return(sparse, lang)  
+            ret['object'] = stmt_object.object_return(sparse, lang, format)  
         else:
-            ret['object'] = stmt_object.get_agent_json(sparse)
+            ret['object'] = stmt_object.get_agent_json(format)
 
         if len(self.result.all()) > 0:
             # if any, should only be 1
             ret['result'] = self.result.all()[0].object_return()
         if len(self.context.all()) > 0:
-            ret['context'] = self.context.all()[0].object_return(sparse)
+            ret['context'] = self.context.all()[0].object_return(sparse, format)
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
@@ -1196,31 +1196,33 @@ class statement(models.Model):
             raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
         return stmt_object, object_type
 
-    def object_return(self, sparse=False, lang=None):
+    def object_return(self, sparse=False, lang=None, format='exact'):
         object_type = 'activity'
         ret = {}
         ret['id'] = self.statement_id
-        ret['actor'] = self.actor.get_agent_json(sparse)
+        ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return(lang)
 
         stmt_object, object_type = self.get_object()
-        if object_type == 'activity' or object_type == 'substatement':
+        if object_type == 'activity':
+            ret['object'] = stmt_object.object_return(sparse, lang, format)
+        elif object_type == 'substatement':
             ret['object'] = stmt_object.object_return(sparse, lang)  
         elif object_type == 'statementref':
             ret['object'] = stmt_object.object_return()
         else:
-            ret['object'] = stmt_object.get_agent_json(sparse)
+            ret['object'] = stmt_object.get_agent_json(format)
         if len(self.result.all()) > 0:
             # should only ever be one.. used generic fk to handle sub stmt and stmt
             ret['result'] = self.result.all()[0].object_return()        
         if len(self.context.all()) > 0:
-            ret['context'] = self.context.all()[0].object_return(sparse)
+            ret['context'] = self.context.all()[0].object_return(sparse, format)
         
         ret['timestamp'] = str(self.timestamp)
         ret['stored'] = str(self.stored)
         
         if not self.authority is None:
-            ret['authority'] = self.authority.get_agent_json(sparse)
+            ret['authority'] = self.authority.get_agent_json(format)
         
         ret['version'] = self.version
         return ret
