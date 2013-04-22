@@ -551,10 +551,6 @@ class agent(statement_object):
         if self.mbox != '' and not uri.validate_email(self.mbox):
             raise ValidationError('mbox value did not start with mailto:')
 
-    # def delete(self, *args, **kwargs):
-    #     pdb.set_trace()
-    #     super(agent, self).delete(*args, **kwargs)        
-
     def get_agent_json(self, sparse=False):
         ret = {}
         ret['objectType'] = self.objectType
