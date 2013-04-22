@@ -679,9 +679,21 @@ class activity(statement_object):
     def __unicode__(self):
         return json.dumps(self.object_return())
 
-    def delete(self, act_in_stmt_object_and_context=None,*args, **kwargs):
-        # pdb.set_trace()
+    def delete(self, act_in_stmt_object_and_context=None, skipped=False, *args, **kwargs):
         activity_in_use = False
+
+        # All conacts in the system
+        all_used_acts_in_context = ContextActivity.objects.all().values_list('context_activity', flat=True)
+        # List of activity lists from all conacts
+        act_list = [ast.literal_eval(x) for x in all_used_acts_in_context]
+        # List of activity ids from all contexts
+        full_list = [x for sublist in act_list for x in sublist]
+
+        # If there is one instance of the ID in conacts, and the context delete was already called, must 
+        # if full_list.count(self.id) == 1 and context_already_processed and self.id == act_in_stmt_object_and_context[1]:
+        #     super(activity, self).delete(*args, **kwargs)
+        # If that's not the case, then have to check it's other relations
+        # else:
         # Get all links activity has with the other models
         activity_links = [rel.get_accessor_name() for rel in self._meta.get_all_related_objects()]
         # For each link, grab any objects the activity is related to
@@ -712,11 +724,14 @@ class activity(statement_object):
                             activity_in_use = True  
                             break
                 # act_in_stmt_object_and_context only gets set when deleting from context
-                # If it is greater than one(self) then it's in use
                 else:
+                    # If it is greater than one(self) then it's in use
                     if len(objects) > 1:
                         activity_in_use = True  
                         break
+                    # Else if it is in the conacts and isn't in the statement anywhere else then it's in use
+                    elif full_list.count(self.id) > 0 and not skipped:
+                        activity_in_use = True
 
         # If the activity isn't in any other object, delete it
         if not activity_in_use:
@@ -1261,7 +1276,7 @@ class SubStatement(statement_object):
 
         object_in_use = False
         if object_type == 'activity':
-            stmt_object.delete()
+            stmt_object.delete(skipped=act_in_stmt_object_and_context)
         elif object_type == 'agent':
             # Know it's not same as auth or actor
             for link in agent_links:
@@ -1411,7 +1426,6 @@ class statement(models.Model):
         actor_in_use = False
         # Loop through each relationship
         for link in agent_links:
-            # if link != 'group':
             # Get all objects for that relationship that the agent is related to
             try:
                 objects = getattr(actor_agent, link).all()
@@ -1460,7 +1474,6 @@ class statement(models.Model):
         if not actor_in_use:
             actor_agent.delete()
         
-        # pdb.set_trace()
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             verb_object = Verb.objects.get(id=self.verb.id)
             verb_links = [rel.get_accessor_name() for rel in Verb._meta.get_all_related_objects()]
@@ -1501,7 +1514,6 @@ class statement(models.Model):
             # If agents are the same and you already deleted the actor since it was in use, no use checking this
             if authority_agent != actor_agent:
                 for link in agent_links:
-                    # if link != 'group':
                     try:
                         objects = getattr(authority_agent, link).all()
                     except:
@@ -1535,8 +1547,7 @@ class statement(models.Model):
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             object_in_use = False
             if object_type == 'activity':
-                # pdb.set_trace()
-                stmt_object.delete()
+                stmt_object.delete(skipped=act_in_stmt_object_and_context)
             elif object_type == 'substatement':
                 sub_links = [rel.get_accessor_name() for rel in SubStatement._meta.get_all_related_objects()]
                 # object_in_use = self.check_usage(sub_links, stmt_object, 1)
