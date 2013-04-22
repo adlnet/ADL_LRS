@@ -549,6 +549,8 @@ class agent(statement_object):
         except:
             pass
         if self.objectType == 'Group':
+            # show members for groups if format isn't 'ids'
+            # show members' ids for anon groups if format is 'ids'
             if not just_id or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
                 ret['member'] = [a.get_agent_json(format) for a in self.member.all()]
         return ret
