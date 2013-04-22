@@ -721,10 +721,10 @@ class AuthTests(TestCase):
         self.assertIn("en-US", rsp)
         self.assertNotIn("en-GB", rsp)
 
-    # Sever activities are PUT, but should be 5 since two have same ID and auth
+    # Sever activities are PUT-contextActivites create 3 more
     def test_number_of_activities(self):
         acts = len(models.activity.objects.all())
-        self.assertEqual(6, acts)
+        self.assertEqual(9, acts)
 
     def test_update_activity_correct_auth(self):
         stmt = json.dumps({"verb": {"id":"verb:verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"mailto:l@l.com"},
@@ -899,7 +899,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
         self.assertEqual(the_returned['result']['success'], True)
 
-        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey2'], 'contextVal2')
         self.assertEqual(the_returned['context']['language'], 'en-US')
@@ -965,7 +965,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
         self.assertEqual(the_returned['result']['success'], True)
 
-        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey2'], 'contextVal2')
         self.assertEqual(the_returned['context']['language'], 'en-US')
@@ -1060,7 +1060,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['object']['context']['revision'], 'Spelling error in target.')
         self.assertEqual(the_returned['object']['context']['statement']['id'], str(nested_sub_st_id))
         self.assertEqual(the_returned['object']['context']['statement']['objectType'], 'StatementRef')
-        self.assertEqual(the_returned['object']['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
+        self.assertEqual(the_returned['object']['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey11'], 'contextVal11')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey22'], 'contextVal22')
         self.assertEqual(the_returned['object']['object']['id'], 'http://example.adlnet.gov/tincan/example/simplestatement')
@@ -1120,7 +1120,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
         self.assertEqual(the_returned['result']['success'], True)
 
-        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey2'], 'contextVal2')
         self.assertEqual(the_returned['context']['language'], 'en-US')
@@ -1276,7 +1276,7 @@ class AuthTests(TestCase):
         results = models.result.objects.filter(response__contains="wrong")
         contexts = models.context.objects.filter(registration=sub_context_id)
         con_exts = models.extensions.objects.filter(key__contains="wrong")
-        con_acts = models.ContextActivity.objects.filter(context_activity__contains="wrong")
+        con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.statement.objects.all()
 
         self.assertEqual(len(statements), 11)

@@ -736,11 +736,11 @@ class StatementsTests(TestCase):
         self.assertIn("en-US", rsp)
         self.assertNotIn("en-GB", rsp)
 
-    # Sever activities are PUT, but should be 5 since two have same ID and auth
+    # Sever activities are PUT - contextActivities create 3 more
     def test_number_of_activities(self):
         self.bunchostmts()
         acts = len(models.activity.objects.all())
-        self.assertEqual(6, acts)
+        self.assertEqual(9, acts)
 
     def test_update_activity_wrong_auth(self):
         # Will respond with 200 if HTTP_AUTH_ENABLED is enabled
@@ -1002,7 +1002,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
         self.assertEqual(the_returned['result']['success'], True)
 
-        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey2'], 'contextVal2')
         self.assertEqual(the_returned['context']['language'], 'en-US')
@@ -1108,7 +1108,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
         self.assertEqual(the_returned['result']['success'], True)
 
-        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey2'], 'contextVal2')
         self.assertEqual(the_returned['context']['language'], 'en-US')
@@ -1213,7 +1213,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['object']['context']['revision'], 'Spelling error in target.')
         self.assertEqual(the_returned['object']['context']['statement']['id'], str(nested_sub_st_id))
         self.assertEqual(the_returned['object']['context']['statement']['objectType'], 'StatementRef')
-        self.assertEqual(the_returned['object']['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
+        self.assertEqual(the_returned['object']['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey11'], 'contextVal11')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey22'], 'contextVal22')
         self.assertEqual(the_returned['object']['object']['id'], 'http://example.adlnet.gov/tincan/example/simplestatement')
@@ -1273,7 +1273,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
         self.assertEqual(the_returned['result']['success'], True)
 
-        self.assertEqual(the_returned['context']['contextActivities']['other']['id'], 'http://example.adlnet.gov/tincan/example/test')
+        self.assertEqual(the_returned['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey2'], 'contextVal2')
         self.assertEqual(the_returned['context']['language'], 'en-US')
@@ -1440,7 +1440,7 @@ class StatementsTests(TestCase):
         results = models.result.objects.filter(response__contains="wrong")
         contexts = models.context.objects.filter(registration=sub_context_id)
         con_exts = models.extensions.objects.filter(key__contains="wrong")
-        con_acts = models.ContextActivity.objects.filter(context_activity__contains="wrong")
+        con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.statement.objects.all()
 
         self.assertEqual(len(statements), 11)
@@ -1455,6 +1455,69 @@ class StatementsTests(TestCase):
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(con_exts), 0)
         self.assertEqual(len(con_acts), 0)
+
+
+    def test_post_list_rollback_context_activities(self):
+        self.bunchostmts()
+        sub_context_id = str(uuid.uuid1())
+        # Will throw error and need to rollback b/c last stmt is missing actor
+        stmts = json.dumps([{
+            "actor":{"objectType":"Agent","mbox":"mailto:wrong-s@s.com"},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
+            "object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"}},
+            {
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"wrong-en-US":"wrong-next"}},
+            "object":{
+                "objectType":"SubStatement",
+                    "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},
+                    "verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
+                    "object": {"objectType":"activity", "id":"act:wrong-testex.com"},
+                    "result":{"completion": True, "success": True,"response": "sub-wrong-kicked"},
+                    "context":{
+                        "registration": sub_context_id,
+                        "contextActivities": {
+                            "other": [{"id": "act:subWrongActivityID"},{"id":"act:foogie"}]},
+                        "revision": "foo", "platform":"bar","language": "en-US",
+                        "extensions":{"ext:wrong-k1": "v1", "ext:wrong-k2": "v2"}}
+                    }
+            },
+            {
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},
+            "object": {"id":"act:test_wrong_list_post2"}}])
+ 
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+
+        s_agent = models.agent.objects.filter(mbox="mailto:wrong-s@s.com")
+        ss_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
+        john_agent  = models.agent.objects.filter(mbox="mailto:john@john.com")
+        subs = models.SubStatement.objects.all()
+        wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
+        wrong_activities = models.activity.objects.filter(activity_id__contains="wrong")
+        foogie_activities = models.activity.objects.filter(activity_id__exact="act:foogie")
+        results = models.result.objects.filter(response__contains="wrong")
+        contexts = models.context.objects.filter(registration=sub_context_id)
+        con_exts = models.extensions.objects.filter(key__contains="wrong")
+        con_acts = models.ContextActivity.objects.filter(context=contexts)
+        statements = models.statement.objects.all()
+
+        self.assertEqual(len(statements), 11)
+        self.assertEqual(len(s_agent), 0)
+        self.assertEqual(len(ss_agent), 0)
+        self.assertEqual(len(john_agent), 1)
+        # Only 1 sub from setup
+        self.assertEqual(len(subs), 1)
+        self.assertEqual(len(wrong_verb), 0)
+        self.assertEqual(len(wrong_activities), 0)
+        self.assertEqual(len(foogie_activities), 1)
+        self.assertEqual(len(results), 0)
+        self.assertEqual(len(contexts), 0)
+        self.assertEqual(len(con_exts), 0)
+        self.assertEqual(len(con_acts), 0)
+
 
     def test_object_filter(self):
         if settings.HTTP_AUTH_ENABLED:
