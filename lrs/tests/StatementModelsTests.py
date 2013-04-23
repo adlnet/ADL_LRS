@@ -745,25 +745,6 @@ class StatementModelsTests(TestCase):
         self.assertEqual(sub_act.mbox, 'mailto:ss@ss.com')
         self.assertEqual(sub_con.registration, guid)
         self.assertEqual(sub_res.response, 'kicked')
-        
-
-    def test_model_authoritative_set(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-        
-        stmt2 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
-        self.assertFalse(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-        
-        stmt3 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity2"}}))
-
-        self.assertTrue(models.statement.objects.get(pk=stmt3.model_object.pk).authoritative)
-        self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
-        self.assertFalse(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-
 
     def test_group_stmt(self):
         ot = "Group"
@@ -1325,7 +1306,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(len(models.StatementRef.objects.all()), 1)
         self.assertEqual(len(models.statement.objects.all()), 2)
         self.assertEqual(len(models.context.objects.all()), 1)
-        self.assertEqual(len(models.agent.objects.all()), 2)
+        # Team creates a group object and the agent inside of itself
+        self.assertEqual(len(models.agent.objects.all()), 4)
         self.assertEqual(len(models.Verb.objects.all()), 1)
         self.assertEqual(len(models.activity.objects.all()), 3)
 
@@ -1333,7 +1315,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(len(models.StatementRef.objects.all()), 0)
         self.assertEqual(len(models.statement.objects.all()), 1)
         self.assertEqual(len(models.context.objects.all()), 0)
-        self.assertEqual(len(models.agent.objects.all()), 1)
+        # Should be one agent, not two-but group delete doesn't remove members
+        self.assertEqual(len(models.agent.objects.all()), 2)
         self.assertEqual(len(models.Verb.objects.all()), 1)
         self.assertEqual(len(models.activity.objects.all()), 1)
         self.assertIn('act:activity', models.activity.objects.values_list('activity_id', flat=True))

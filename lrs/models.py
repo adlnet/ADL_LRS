@@ -689,11 +689,6 @@ class activity(statement_object):
         # List of activity ids from all contexts
         full_list = [x for sublist in act_list for x in sublist]
 
-        # If there is one instance of the ID in conacts, and the context delete was already called, must 
-        # if full_list.count(self.id) == 1 and context_already_processed and self.id == act_in_stmt_object_and_context[1]:
-        #     super(activity, self).delete(*args, **kwargs)
-        # If that's not the case, then have to check it's other relations
-        # else:
         # Get all links activity has with the other models
         activity_links = [rel.get_accessor_name() for rel in self._meta.get_all_related_objects()]
         # For each link, grab any objects the activity is related to
@@ -1057,6 +1052,7 @@ class context(models.Model):
             inst_agent = agent.objects.get(id=self.instructor.id)
             inst_agent.delete()
 
+        # TODO-Should delete members here since group, but leave for now since they'll probably get used
         if self.team:
             team_agent = agent.objects.get(id=self.team.id)
             team_agent.delete()
@@ -1124,7 +1120,6 @@ class activity_profile(models.Model):
     def delete(self, *args, **kwargs):
         self.profile.delete()
         super(activity_profile, self).delete(*args, **kwargs)
-
 
 class SubStatement(statement_object):
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_substatement", null=True,
@@ -1318,7 +1313,6 @@ class statement(models.Model):
     voided = models.NullBooleanField(default=False)
     context = models.OneToOneField(context, related_name="statement_context", null=True, on_delete=models.SET_NULL)
     version = models.CharField(max_length=7, default="1.0")
-    authoritative = models.BooleanField(default=True)
     user = models.ForeignKey(User, null=True, blank=True, db_index=True)
 
     def get_a_name(self):
@@ -1366,11 +1360,6 @@ class statement(models.Model):
         
         ret['version'] = self.version
         return ret
-
-    def save(self, *args, **kwargs):
-        # actor object context authority
-        statement.objects.filter(actor=self.actor, stmt_object=self.stmt_object, context=self.context, authority=self.authority).update(authoritative=False)
-        super(statement, self).save(*args, **kwargs)    
 
     def unvoid_statement(self):
         statement_ref = StatementRef.objects.get(id=self.stmt_object.id)
