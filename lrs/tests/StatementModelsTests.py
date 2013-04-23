@@ -386,9 +386,9 @@ class StatementModelsTests(TestCase):
         
         for ca in context_activities:
             if ca.key == 'grouping':
-                self.assertEqual(ca.get_context_activities()[0].activity_id, 'act:GroupID')
+                self.assertEqual(ca.context_activity.all()[0].activity_id, 'act:GroupID')
             elif ca.key == 'other':
-                self.assertEqual(ca.get_context_activities()[0].activity_id, 'act:NewActivityID')
+                self.assertEqual(ca.context_activity.all()[0].activity_id, 'act:NewActivityID')
 
         self.assertEqual(context.registration, guid)        
         self.assertEqual(context.revision, 'foo')
@@ -419,7 +419,7 @@ class StatementModelsTests(TestCase):
 
         context_activity_activities = []        
         for ca in context_activities:
-            for c in ca.get_context_activities():
+            for c in ca.context_activity.all():
                 context_activity_activities.append(c.activity_id)
 
         self.assertEqual(len(context_activity_activities), 3)
@@ -466,7 +466,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -566,7 +566,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
         self.assertEqual(context.revision, 'foo')
         self.assertEqual(context.platform, 'bar')
         self.assertEqual(context.language, 'en-US')
@@ -608,7 +608,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(context.revision, 'foob')
         self.assertEqual(context.platform, 'bard')
         self.assertEqual(context.language, 'en-US')
@@ -677,7 +677,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(context.registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].get_context_activities()[0].activity_id, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(context.language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
@@ -1315,10 +1315,10 @@ class StatementModelsTests(TestCase):
         self.assertEqual(len(models.StatementRef.objects.all()), 0)
         self.assertEqual(len(models.statement.objects.all()), 1)
         self.assertEqual(len(models.context.objects.all()), 0)
-        # Should be one agent, not two-but group delete doesn't remove members
-        self.assertEqual(len(models.agent.objects.all()), 2)
+        # Agents/activities/verbs are not deleted
+        self.assertEqual(len(models.agent.objects.all()), 4)
         self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertEqual(len(models.activity.objects.all()), 3)
         self.assertIn('act:activity', models.activity.objects.values_list('activity_id', flat=True))
 
     def test_context_in_another_context_statement_delete(self):
@@ -1354,24 +1354,36 @@ class StatementModelsTests(TestCase):
                 'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}}))
 
         self.assertEqual(len(models.activity.objects.all()), 6)
+        self.assertEqual(len(models.agent.objects.all()), 5)
+        self.assertEqual(len(models.Verb.objects.all()), 3)
+        self.assertEqual(len(models.context.objects.all()), 3)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 6)
+        self.assertEqual(len(models.statement.objects.all()), 3)
+
         models.statement.objects.get(id=stmt3.model_object.id).delete()
-        self.assertEqual(len(models.activity.objects.all()), 5)
-        activity_id_list = models.activity.objects.all().values_list('activity_id', flat=True)
-        self.assertIn('act:activity1', activity_id_list)
-        self.assertIn('act:activity2', activity_id_list)
-        self.assertIn('act:activity3', activity_id_list)
-        self.assertIn('act:activity4', activity_id_list)
-        self.assertIn('act:activity5', activity_id_list)
+        # Agents/activities/verbs are not deleted
+        self.assertEqual(len(models.activity.objects.all()), 6)
+        self.assertEqual(len(models.agent.objects.all()), 5)        
+        self.assertEqual(len(models.Verb.objects.all()), 3)
+        self.assertEqual(len(models.context.objects.all()), 2)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 4)
+        self.assertEqual(len(models.statement.objects.all()), 2)
 
         models.statement.objects.get(id=stmt2.model_object.id).delete()
-        self.assertEqual(len(models.activity.objects.all()), 3)
-        activity_id_list = models.activity.objects.all().values_list('activity_id', flat=True)
-        self.assertIn('act:activity1', activity_id_list)
-        self.assertIn('act:activity2', activity_id_list)
-        self.assertIn('act:activity3', activity_id_list)
+        self.assertEqual(len(models.activity.objects.all()), 6)
+        self.assertEqual(len(models.agent.objects.all()), 5)        
+        self.assertEqual(len(models.Verb.objects.all()), 3)
+        self.assertEqual(len(models.context.objects.all()), 1)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 2)
+        self.assertEqual(len(models.statement.objects.all()), 1)
 
         models.statement.objects.get(id=stmt1.model_object.id).delete()
-        self.assertEqual(len(models.activity.objects.all()), 0)
+        self.assertEqual(len(models.activity.objects.all()), 6)
+        self.assertEqual(len(models.agent.objects.all()), 5)        
+        self.assertEqual(len(models.Verb.objects.all()), 3)
+        self.assertEqual(len(models.context.objects.all()), 0)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.statement.objects.all()), 0)
 
     def test_simple_statement_delete(self):
         stmt1 = Statement.Statement(json.dumps({
@@ -1391,8 +1403,7 @@ class StatementModelsTests(TestCase):
 
         models.statement.objects.get(id=stmt2.model_object.id).delete()
 
-        self.assertEqual(len(models.agent.objects.all()), 1)
-        self.assertEqual(models.agent.objects.all()[0].mbox, 'mailto:a@a.com')
+        self.assertEqual(len(models.agent.objects.all()), 2)
         self.assertEqual(len(models.activity.objects.all()), 1)
         self.assertEqual(len(models.Verb.objects.all()), 1)
         self.assertEqual(len(models.statement.objects.all()), 1)
@@ -1419,15 +1430,10 @@ class StatementModelsTests(TestCase):
 
         models.statement.objects.get(id=stmt2.model_object.id).delete()
 
-        self.assertEqual(len(models.agent.objects.all()), 1)
-        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertEqual(len(models.agent.objects.all()), 2)
+        self.assertEqual(len(models.activity.objects.all()), 2)
         self.assertEqual(len(models.Verb.objects.all()), 1)
         self.assertEqual(len(models.statement.objects.all()), 1)
-
-        self.assertEqual(models.agent.objects.all()[0].mbox, 'mailto:a@a.com')
-        self.assertEqual(models.activity.objects.all()[0].activity_id, 'act:activity1')
-        self.assertEqual(models.Verb.objects.all()[0].verb_id, 'verb:verb/url')
-        self.assertEqual(models.statement.objects.all()[0].id, stmt1.model_object.id)
 
     def test_activity_also_in_conact(self):
         stmt1 = Statement.Statement(json.dumps({
