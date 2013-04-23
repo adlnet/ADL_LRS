@@ -299,10 +299,9 @@ class Statement():
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
                 create=True, log_dict=self.log_dict, define=self.define).agent
             
-        # If there is an actor or object is a group in the stmt then remove the team
-        if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
-            if 'team' in stmt_data['context']:                
-                del stmt_data['context']['team']                
+        if 'team' in stmt_data['context']:
+            stmt_data['context']['team'] = Agent(initial=stmt_data['context']['team'],
+                create=True, log_dict=self.log_dict, define=self.define).agent
 
         # Revision and platform not applicable if object is agent
         if 'objectType' in stmt_data['object'] and ('agent' == stmt_data['object']['objectType'].lower()

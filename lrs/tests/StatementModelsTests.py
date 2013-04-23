@@ -745,25 +745,6 @@ class StatementModelsTests(TestCase):
         self.assertEqual(sub_act.mbox, 'mailto:ss@ss.com')
         self.assertEqual(sub_con.registration, guid)
         self.assertEqual(sub_res.response, 'kicked')
-        
-
-    def test_model_authoritative_set(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-        
-        stmt2 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity"}}))
-        self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
-        self.assertFalse(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-        
-        stmt3 = Statement.Statement(json.dumps({"actor":{"name":"tom","mbox":"mailto:tom@example.com"},
-            'verb': {"id":"verb:verb/url"}, "object": {"id":"act:activity2"}}))
-
-        self.assertTrue(models.statement.objects.get(pk=stmt3.model_object.pk).authoritative)
-        self.assertTrue(models.statement.objects.get(pk=stmt2.model_object.pk).authoritative)
-        self.assertFalse(models.statement.objects.get(pk=stmt.model_object.pk).authoritative)
-
 
     def test_group_stmt(self):
         ot = "Group"
@@ -1325,7 +1306,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(len(models.StatementRef.objects.all()), 1)
         self.assertEqual(len(models.statement.objects.all()), 2)
         self.assertEqual(len(models.context.objects.all()), 1)
-        self.assertEqual(len(models.agent.objects.all()), 2)
+        # Team creates a group object and the agent inside of itself
+        self.assertEqual(len(models.agent.objects.all()), 4)
         self.assertEqual(len(models.Verb.objects.all()), 1)
         self.assertEqual(len(models.activity.objects.all()), 3)
 
@@ -1333,7 +1315,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(len(models.StatementRef.objects.all()), 0)
         self.assertEqual(len(models.statement.objects.all()), 1)
         self.assertEqual(len(models.context.objects.all()), 0)
-        self.assertEqual(len(models.agent.objects.all()), 1)
+        # Should be one agent, not two-but group delete doesn't remove members
+        self.assertEqual(len(models.agent.objects.all()), 2)
         self.assertEqual(len(models.Verb.objects.all()), 1)
         self.assertEqual(len(models.activity.objects.all()), 1)
         self.assertIn('act:activity', models.activity.objects.values_list('activity_id', flat=True))
@@ -1371,7 +1354,6 @@ class StatementModelsTests(TestCase):
                 'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}}))
 
         self.assertEqual(len(models.activity.objects.all()), 6)
-        # pdb.set_trace()
         models.statement.objects.get(id=stmt3.model_object.id).delete()
         self.assertEqual(len(models.activity.objects.all()), 5)
         activity_id_list = models.activity.objects.all().values_list('activity_id', flat=True)
@@ -1416,3 +1398,70 @@ class StatementModelsTests(TestCase):
         self.assertEqual(len(models.statement.objects.all()), 1)
         self.assertEqual(models.statement.objects.all()[0].id, stmt1.model_object.id)
 
+    def test_more_conacts_delete(self):
+        stmt1 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity1'}}))
+
+        stmt2 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity2'},
+            'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
+                'contextActivities': {'other': {'id': 'act:activity1'}},'revision': 'foo', 'platform':'bar',
+                'language': 'en-US'}}))
+
+        self.assertEqual(len(models.agent.objects.all()), 2)
+        self.assertEqual(len(models.activity.objects.all()), 2)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 2)
+
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+
+        self.assertEqual(len(models.agent.objects.all()), 1)
+        self.assertEqual(len(models.activity.objects.all()), 1)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 1)
+
+        self.assertEqual(models.agent.objects.all()[0].mbox, 'mailto:a@a.com')
+        self.assertEqual(models.activity.objects.all()[0].activity_id, 'act:activity1')
+        self.assertEqual(models.Verb.objects.all()[0].verb_id, 'verb:verb/url')
+        self.assertEqual(models.statement.objects.all()[0].id, stmt1.model_object.id)
+
+    def test_activity_also_in_conact(self):
+        stmt1 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity1'},
+            'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
+                'contextActivities': {'other': {'id': 'act:activity2'}},'revision': 'foo', 'platform':'bar',
+                'language': 'en-US'}}))
+
+        stmt2 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"verb:verb/url"},
+            "object": {'id':'act:activity2'}}))
+
+        self.assertEqual(len(models.agent.objects.all()), 2)
+        self.assertEqual(len(models.activity.objects.all()), 2)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 2)
+
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+
+        self.assertEqual(len(models.agent.objects.all()), 2)
+        self.assertEqual(len(models.activity.objects.all()), 2)
+        self.assertEqual(len(models.Verb.objects.all()), 1)
+        self.assertEqual(len(models.statement.objects.all()), 1)
+
+
+        agents = models.agent.objects.values_list('mbox', flat=True)
+        self.assertIn('mailto:a@a.com', agents)
+        self.assertIn('mailto:inst@inst.com', agents)
+        
+        acts = models.activity.objects.values_list('activity_id', flat=True)
+        self.assertIn('act:activity1', acts)
+        self.assertIn('act:activity2', acts)
+        self.assertEqual(models.Verb.objects.all()[0].verb_id, 'verb:verb/url')
+        self.assertEqual(models.statement.objects.all()[0].id, stmt1.model_object.id)
