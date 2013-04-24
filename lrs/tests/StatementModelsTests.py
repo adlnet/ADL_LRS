@@ -1471,3 +1471,91 @@ class StatementModelsTests(TestCase):
         self.assertIn('act:activity2', acts)
         self.assertEqual(models.Verb.objects.all()[0].verb_id, 'verb:verb/url')
         self.assertEqual(models.statement.objects.all()[0].id, stmt1.model_object.id)
+
+    def test_sub_delete(self):
+        stmt1 = Statement.Statement(json.dumps(
+            {"actor":{"objectType":"Agent","mbox":"mailto:out@out.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/1"},
+            "object":{"objectType":"SubStatement",
+                "actor":{"objectType":"Agent","mbox":"mailto:sub@sub.com"},
+                "verb": {"id":"verb:verb/url/nest1"},
+                "object": {"objectType":"activity", "id":"act:subactivity1"},
+                "result":{"completion": True, "success": True,"response": "kicked"},
+                "context":{"contextActivities": {"other": {"id": "act:subconactivity1"}},
+                    'team':{'objectType': 'Group', 'name':'conteamgroup',
+                    'member':[{"name":"agent_in_conteamgroup","mbox":"mailto:actg@actg.com"}]},"revision": "foo",
+                    "platform":"bar","language": "en-US","extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}}))
+
+        stmt2 = Statement.Statement(json.dumps(
+            {"actor": {"objectType": "Agent", "mbox": "mailto:ref@ref.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/2"},
+            "object":{"objectType": "StatementRef", "id":str(stmt1.model_object.statement_id)}}))
+
+        stmt3 = Statement.Statement(json.dumps(
+            {"actor": {"objectType": "Agent", "mbox": "mailto:norm@norm.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/3"},
+            "object":{"objectType": "Activity", "id":"act:activity1"}}))
+
+        stmt4 = Statement.Statement(json.dumps({
+            'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
+            'verb': {"id":"http://adlnet.gov/expapi/verbs/4"},
+            "object": {'id':'act:activity2'},
+            'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
+                'contextActivities': {'other': {'id': 'act:conactivity1'}},'revision': 'foo', 'platform':'bar',
+                'language': 'en-US', 'statement':{'objectType': 'StatementRef',
+                'id':str(stmt3.model_object.statement_id)}}}))
+
+
+        self.assertEqual(len(models.statement.objects.all()), 4)
+        self.assertEqual(len(models.agent.objects.all()), 8)
+        self.assertEqual(len(models.activity.objects.all()), 5)
+        self.assertEqual(len(models.Verb.objects.all()), 5)
+        self.assertEqual(len(models.SubStatement.objects.all()), 1)
+        self.assertEqual(len(models.StatementRef.objects.all()), 2)
+        self.assertEqual(len(models.context.objects.all()), 2)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 2)
+        self.assertEqual(len(models.extensions.objects.all()), 2)
+        models.statement.objects.get(id=stmt4.model_object.id).delete()
+
+        self.assertEqual(len(models.statement.objects.all()), 3)
+        self.assertEqual(len(models.agent.objects.all()), 8)
+        self.assertEqual(len(models.activity.objects.all()), 5)
+        self.assertEqual(len(models.Verb.objects.all()), 5)
+        self.assertEqual(len(models.SubStatement.objects.all()), 1)
+        self.assertEqual(len(models.StatementRef.objects.all()), 1)
+        self.assertEqual(len(models.context.objects.all()), 1)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.extensions.objects.all()), 2)
+        models.statement.objects.get(id=stmt3.model_object.id).delete()
+
+        self.assertEqual(len(models.statement.objects.all()), 2)
+        self.assertEqual(len(models.agent.objects.all()), 8)
+        self.assertEqual(len(models.activity.objects.all()), 5)
+        self.assertEqual(len(models.Verb.objects.all()), 5)
+        self.assertEqual(len(models.SubStatement.objects.all()), 1)
+        self.assertEqual(len(models.StatementRef.objects.all()), 1)
+        self.assertEqual(len(models.context.objects.all()), 1)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.extensions.objects.all()), 2)
+        models.statement.objects.get(id=stmt2.model_object.id).delete()
+
+        self.assertEqual(len(models.statement.objects.all()), 1)
+        self.assertEqual(len(models.agent.objects.all()), 8)
+        self.assertEqual(len(models.activity.objects.all()), 5)
+        self.assertEqual(len(models.Verb.objects.all()), 5)
+        self.assertEqual(len(models.SubStatement.objects.all()), 1)
+        self.assertEqual(len(models.StatementRef.objects.all()), 0)
+        self.assertEqual(len(models.context.objects.all()), 1)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.extensions.objects.all()), 2)
+        models.statement.objects.get(id=stmt1.model_object.id).delete()
+
+        self.assertEqual(len(models.statement.objects.all()), 0)
+        self.assertEqual(len(models.agent.objects.all()), 8)
+        self.assertEqual(len(models.activity.objects.all()), 5)
+        self.assertEqual(len(models.Verb.objects.all()), 5)
+        self.assertEqual(len(models.SubStatement.objects.all()), 0)
+        self.assertEqual(len(models.StatementRef.objects.all()), 0)
+        self.assertEqual(len(models.context.objects.all()), 0)
+        self.assertEqual(len(models.ContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.extensions.objects.all()), 0)

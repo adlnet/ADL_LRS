@@ -1179,13 +1179,13 @@ class AuthTests(TestCase):
 
         self.assertEqual(len(results), 0)
         self.assertEqual(len(scores), 0)
-        self.assertEqual(len(exts), 0)
+        self.assertEqual(len(exts), 3)
         self.assertEqual(len(contexts), 0)
-        self.assertEqual(len(verbs), 0)
-        self.assertEqual(len(activities), 0)
+        self.assertEqual(len(verbs), 3)
+        self.assertEqual(len(activities), 3)
         # Should only be 3 from setup (4 there but 2 get merged together to make 1, equaling 3)
-        self.assertEqual(len(activity_definitions), 3)
-        self.assertEqual(len(crp_answers), 0)
+        self.assertEqual(len(activity_definitions), 4)
+        self.assertEqual(len(crp_answers), 2)
 
     def test_post_list_rollback_part_2(self):
         stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"},
@@ -1217,14 +1217,14 @@ class AuthTests(TestCase):
         verb_display = models.LanguageMap.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
-        self.assertEqual(len(wrong_verbs), 0)
-        self.assertEqual(len(verb_display), 0)
+        self.assertEqual(len(wrong_verbs), 1)
+        self.assertEqual(len(verb_display), 1)
 
         self.assertEqual(len(activities), 1)
         
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(wrong_agent), 0)
+        self.assertEqual(len(wrong_agent), 1)
         self.assertEqual(len(john_agent), 1)
         self.assertEqual(len(s_agent), 1)
 
@@ -1246,7 +1246,7 @@ class AuthTests(TestCase):
         self.assertEqual(len(statements), 11)
         self.assertEqual(voided_st.voided, False)
         self.assertEqual(len(voided_verb), 1)
-        self.assertEqual(len(only_actor), 0)
+        self.assertEqual(len(only_actor), 1)
 
     def test_post_list_rollback_with_subs(self):
         sub_context_id = str(uuid.uuid1())
@@ -1267,7 +1267,7 @@ class AuthTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
 
-        s_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@s.com")
+        s_agent = models.agent.objects.filter(mbox="mailto:wrong-s@s.com")
         ss_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
         john_agent  = models.agent.objects.filter(mbox="mailto:john@john.com")
         subs = models.SubStatement.objects.all()
@@ -1280,13 +1280,13 @@ class AuthTests(TestCase):
         statements = models.statement.objects.all()
 
         self.assertEqual(len(statements), 11)
-        self.assertEqual(len(s_agent), 0)
-        self.assertEqual(len(ss_agent), 0)
+        self.assertEqual(len(s_agent), 1)
+        self.assertEqual(len(ss_agent), 1)
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 0)
-        self.assertEqual(len(activities), 0)
+        self.assertEqual(len(wrong_verb), 3)
+        self.assertEqual(len(activities), 2)
         self.assertEqual(len(results), 0)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(con_exts), 0)
