@@ -1293,9 +1293,11 @@ class StatementsTests(TestCase):
         self.bunchostmts()
         cguid1 = str(uuid.uuid1())
         # print cguid1
-        stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"act:test_wrong_list_post2"},
-            "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
-            "extensions":{"ext:resultwrongkey1": "value1", "ext:resultwrongkey2":"value2"}}},
+        stmts = json.dumps([
+            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},
+            "object": {"id":"act:test_wrong_list_post2"},"actor":{"objectType":"Agent",
+            "mbox":"mailto:wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True,
+            "response": "wrong","extensions":{"ext:resultwrongkey1": "value1", "ext:resultwrongkey2":"value2"}}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},
             "object": {"objectType": "Activity", "id":"act:test_wrong_list_post",
             "definition": {"name": {"en-US":"wrongactName", "en-GB": "anotherActName"},
@@ -1337,15 +1339,17 @@ class StatementsTests(TestCase):
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(results), 0)
+
+        self.assertEqual(len(results), 0) 
         self.assertEqual(len(scores), 0)
-        self.assertEqual(len(exts), 0)
+        # Will have 3 exts from activity
+        self.assertEqual(len(exts), 3)
         self.assertEqual(len(contexts), 0)
-        self.assertEqual(len(verbs), 0)
-        self.assertEqual(len(activities), 0)
+        self.assertEqual(len(verbs), 3)
+        self.assertEqual(len(activities), 3)
         # Should only be 3 from setup (4 there but 2 get merged together to make 1, equaling 3)
-        self.assertEqual(len(activity_definitions), 3)
-        self.assertEqual(len(crp_answers), 0)
+        self.assertEqual(len(activity_definitions), 4)
+        self.assertEqual(len(crp_answers), 2)
 
     def test_post_list_rollback_part_2(self):
         self.bunchostmts()
@@ -1378,14 +1382,14 @@ class StatementsTests(TestCase):
         verb_display = models.LanguageMap.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
-        self.assertEqual(len(wrong_verbs), 0)
-        self.assertEqual(len(verb_display), 0)
+        self.assertEqual(len(wrong_verbs), 1)
+        self.assertEqual(len(verb_display), 1)
 
         self.assertEqual(len(activities), 1)
         
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(wrong_agent), 0)
+        self.assertEqual(len(wrong_agent), 1)
         self.assertEqual(len(john_agent), 1)
         self.assertEqual(len(s_agent), 1)
 
@@ -1410,7 +1414,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(statements), 11)
         self.assertEqual(voided_st.voided, False)
         self.assertEqual(len(voided_verb), 1)
-        self.assertEqual(len(only_actor), 0)
+        self.assertEqual(len(only_actor), 1)
 
     def test_post_list_rollback_with_subs(self):
         self.bunchostmts()
@@ -1444,13 +1448,13 @@ class StatementsTests(TestCase):
         statements = models.statement.objects.all()
 
         self.assertEqual(len(statements), 11)
-        self.assertEqual(len(s_agent), 0)
-        self.assertEqual(len(ss_agent), 0)
+        self.assertEqual(len(s_agent), 1)
+        self.assertEqual(len(ss_agent), 1)
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 0)
-        self.assertEqual(len(activities), 0)
+        self.assertEqual(len(wrong_verb), 3)
+        self.assertEqual(len(activities), 2)
         self.assertEqual(len(results), 0)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(con_exts), 0)
@@ -1477,7 +1481,7 @@ class StatementsTests(TestCase):
                     "context":{
                         "registration": sub_context_id,
                         "contextActivities": {
-                            "other": [{"id": "act:subWrongActivityID"},{"id":"act:foogie"}]},
+                            "other": [{"id": "act:subwrongActivityID"},{"id":"act:foogie"}]},
                         "revision": "foo", "platform":"bar","language": "en-US",
                         "extensions":{"ext:wrong-k1": "v1", "ext:wrong-k2": "v2"}}
                     }
@@ -1505,13 +1509,13 @@ class StatementsTests(TestCase):
         statements = models.statement.objects.all()
 
         self.assertEqual(len(statements), 11)
-        self.assertEqual(len(s_agent), 0)
-        self.assertEqual(len(ss_agent), 0)
+        self.assertEqual(len(s_agent), 1)
+        self.assertEqual(len(ss_agent), 1)
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 0)
-        self.assertEqual(len(wrong_activities), 0)
+        self.assertEqual(len(wrong_verb), 3)
+        self.assertEqual(len(wrong_activities), 2)
         self.assertEqual(len(foogie_activities), 1)
         self.assertEqual(len(results), 0)
         self.assertEqual(len(contexts), 0)

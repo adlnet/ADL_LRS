@@ -159,20 +159,9 @@ class Statement():
             stmt_data = context['statement']
             del context['statement']
 
-        # inst_data = None
-        # if 'instructor' in context:
-        #     inst_data = context['instructor']
-        #     del context['instructor']
-
         # Save context
         cntx = models.context(**context)    
         cntx.save()
-
-        # # Save instructor if one
-        # if inst_data:
-        #     instructor = Agent(initial=inst_data, create=True, log_dict=self.log_dict, define=self.define).agent
-        #     instructor.content_object = cntx
-        #     instructor.save()
 
         # Save context stmt if one
         if stmt_data:
@@ -208,11 +197,11 @@ class Statement():
                     for con_act in con_act_group[1]:
                         act = Activity(con_act,auth=self.auth, log_dict=self.log_dict,
                             define=self.define).activity
-                        ca.context_activity.append(act.id)
+                        ca.context_activity.add(act)
                 else:
                     act = Activity(con_act_group[1],auth=self.auth, log_dict=self.log_dict,
                         define=self.define).activity
-                    ca.context_activity.append(act.id)
+                    ca.context_activity.add(act)
                 ca.save()
 
         # Save context extensions
@@ -299,10 +288,9 @@ class Statement():
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
                 create=True, log_dict=self.log_dict, define=self.define).agent
             
-        # If there is an actor or object is a group in the stmt then remove the team
-        if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
-            if 'team' in stmt_data['context']:                
-                del stmt_data['context']['team']                
+        if 'team' in stmt_data['context']:
+            stmt_data['context']['team'] = Agent(initial=stmt_data['context']['team'],
+                create=True, log_dict=self.log_dict, define=self.define).agent
 
         # Revision and platform not applicable if object is agent
         if 'objectType' in stmt_data['object'] and ('agent' == stmt_data['object']['objectType'].lower()

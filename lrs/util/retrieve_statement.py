@@ -168,10 +168,6 @@ def complex_get(req_dict):
         else:
             return []
 
-    # there's a default of true - ALWAYS GETS SET
-    if not 'authoritative' in the_dict or str(the_dict['authoritative']).upper() == 'TRUE':
-        args['authoritative'] = True
-
     limit = 0    
     # If want results limited
     if 'limit' in the_dict:
