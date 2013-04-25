@@ -157,9 +157,9 @@ def complex_get(req_dict):
         reffilter = True
         activityQ = Q(stmt_object__activity__activity_id=the_dict['activity'])
         if 'related_activities' in the_dict and bt(the_dict['related_activities']):
-            activityQ = activityQ | Q(context__contextactivity__context_activity=the_dict['activity']) \
+            activityQ = activityQ | Q(context__contextactivity__context_activity__activity_id=the_dict['activity']) \
                     | Q(stmt_object__substatement__stmt_object__activity__activity_id=the_dict['activity']) \
-                    | Q(stmt_object__substatement__context__contextactivity__context_activity=the_dict['activity'])
+                    | Q(stmt_object__substatement__context__contextactivity__context_activity__activity_id=the_dict['activity'])
 
 
     registrationQ = Q()
@@ -182,10 +182,6 @@ def complex_get(req_dict):
     if 'ascending' in the_dict and bt(the_dict['ascending']):
             stored_param = 'stored'
 
-    print agentQ
-    print verbQ
-    print activityQ
-    print registrationQ
     stmtset = stmtset.filter(agentQ & verbQ & activityQ & registrationQ)
     # only find references when a filter other than
     # since, until, or limit was used 

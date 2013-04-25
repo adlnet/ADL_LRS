@@ -10,6 +10,7 @@ import json
 import base64
 import os.path
 import uuid
+import math
 # from datetime import datetime, timedelta
 # from django.utils.timezone import utc
 # from lrs.objects import Activity, Statement
@@ -54,7 +55,8 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 9)    
 
     def test_get_id(self):
-        param = {"statementId":"da54afcd-08f2-4494-88e0-7ca9e5521d51"}
+        sid = statement.objects.get(verb__verb_id="http://adlnet.gov/xapi/verbs/completed").statement_id
+        param = {"statementId":sid}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -111,6 +113,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
+        # get some time points for since and until
         for s in stmts:
             if param['agent']['mbox'] not in str(s['actor']):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
@@ -119,14 +122,19 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
         cnt_all = len(stmts)
-
-        param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": "2013-04-09T00:00Z"}
+        since = stmts[int(math.floor(len(stmts)/1.5))]['stored']
+        until = stmts[int(math.ceil(len(stmts)/3))]['stored']
+        since_cnt = int(math.floor(len(stmts)/1.5))
+        until_cnt = cnt_all - int(math.ceil(len(stmts)/3))
+        since_until_cnt = int(math.floor(len(stmts)/1.5)) - int(math.ceil(len(stmts)/3))
+        
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": since}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertTrue(len(stmts) < cnt_all)
+        self.assertEqual(len(stmts), since_cnt)
         since_ids=[]
         for s in stmts:
             since_ids.append(s['id'])
@@ -136,13 +144,13 @@ class StatementFilterTests(TestCase):
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
-        param = {"agent":{"mbox":"mailto:tom@example.com"}, "until": "2013-04-09T00:00Z"}
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "until": until}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertTrue(len(stmts) < cnt_all)
+        self.assertEqual(len(stmts), until_cnt)
         until_ids=[]
         for s in stmts:
             until_ids.append(s['id'])
@@ -151,16 +159,17 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
-        self.assertFalse(any((True for x in since_ids if x in until_ids)))
+        same = [x for x in since_ids if x in until_ids]
+        self.assertEqual(len(same), since_until_cnt)
 
-        param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": "2013-04-09T00:00Z", "until": "2013-04-11T00:00Z"}
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": since, "until": until}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
         self.assertTrue(len(stmts) < cnt_all)
-        self.assertTrue(len(stmts) < len(since_ids))
+        self.assertEqual(len(stmts), since_until_cnt)
         slice_ids=[]
         for s in stmts:
             slice_ids.append(s['id'])
@@ -169,8 +178,7 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
-        self.assertTrue(any((True for x in slice_ids if x in since_ids)))
-        self.assertFalse(any((True for x in slice_ids if x in until_ids)))
+        self.assertItemsEqual(slice_ids, same)
 
     def test_related_agents_filter_until(self):
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
@@ -231,14 +239,16 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
         cnt_all = len(stmts)
+        since = stmts[int(math.floor(cnt_all/2))]['stored']
+        since_cnt = int(math.floor(cnt_all/2))
 
-        param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents": True, "since": "2013-04-10T00:00Z"}
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents": True, "since": since}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertTrue(len(stmts) < cnt_all)
+        self.assertEqual(len(stmts), since_cnt)
         since = convert_to_utc(param['since'])
         for s in stmts:
             if param['agent']['mbox'] not in str(s['actor']):
@@ -385,9 +395,6 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         stmts = obj['statements']
         for s in stmts:
-            import pprint
-            pprint.pprint(s)
-            print "-------------------------------"
             if param['activity'] not in str(s):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
                 self.assertTrue(param['activity'] in str(statement.objects.get(statement_id=s['object']['id']).object_return()))
