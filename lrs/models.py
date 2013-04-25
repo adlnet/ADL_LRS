@@ -531,10 +531,13 @@ class agent(statement_object):
         if self.mbox != '' and not uri.validate_email(self.mbox):
             raise ValidationError('mbox value [%s] did not start with mailto:' % self.mbox)
 
-    def get_agent_json(self, format='exact'):
+    def get_agent_json(self, format='exact', as_object=False):
         just_id = format == 'ids'
         ret = {}
-        if not just_id:
+        # add object type if format isn't id,
+        # or if it is a group,
+        # or if it's an object
+        if not just_id or self.objectType == 'Group' or as_object:
             ret['objectType'] = self.objectType
         if self.name and not just_id:
             ret['name'] = self.name
@@ -1014,7 +1017,7 @@ class SubStatement(statement_object):
         if activity_object:
             ret['object'] = stmt_object.object_return(sparse, lang, format)  
         else:
-            ret['object'] = stmt_object.get_agent_json(format)
+            ret['object'] = stmt_object.get_agent_json(format, as_object=True)
 
         if len(self.result.all()) > 0:
             # if any, should only be 1
@@ -1213,7 +1216,7 @@ class statement(models.Model):
         elif object_type == 'statementref':
             ret['object'] = stmt_object.object_return()
         else:
-            ret['object'] = stmt_object.get_agent_json(format)
+            ret['object'] = stmt_object.get_agent_json(format, as_object=True)
         if len(self.result.all()) > 0:
             # should only ever be one.. used generic fk to handle sub stmt and stmt
             ret['result'] = self.result.all()[0].object_return()        

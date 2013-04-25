@@ -456,7 +456,7 @@ class AgentModelsTests(TestCase):
         self.assertEquals(justiceleague_exact['mbox'], mbox_j)
 
         justiceleague_ids = justiceleague.get_agent_json(format='ids')
-        self.assertFalse('objectType' in str(justiceleague_ids), "object type was found in agent json")
+        self.assertTrue('objectType' in str(justiceleague_ids), "object type was not found in group json")
         self.assertFalse('name' in str(justiceleague_ids), "name was found in agent json")
         self.assertEquals(justiceleague_ids['mbox'], mbox_j)
 
@@ -488,7 +488,7 @@ class AgentModelsTests(TestCase):
                 self.fail("got an unexpected name: " % m['name'])
 
         badguys_ids = badguys.get_agent_json(format='ids')
-        self.assertFalse('objectType' in str(badguys_ids), "object type was found in agent json")
+        self.assertTrue('objectType' in str(badguys_ids), "object type was not found in group json")
         for m in badguys_ids['member']:
             self.assertFalse('objectType' in str(m), "object type was found in member agent")
             self.assertFalse('name' in str(m), "name was found in member agent")

@@ -396,5 +396,46 @@ class StatementFilterTests(TestCase):
 
         self.assertTrue(len(stmts) > actcnt, "stmts(%s) was not greater than actcnt(%s)" % (len(stmts), actcnt))
 
-    def test_format_filter(self):
-        param = {}
+    def test_format_agent_filter(self):
+        stmt = {"actor":{"name":"lou wolford", "mbox":"mailto:louwolford@example.com"},
+                "verb":{"id":"http://special.adlnet.gov/xapi/verb/created",
+                        "display":{"en-US":"made"}},
+                "object":{"objectType":"Group","name":"androids","mbox":"mailto:androids@example.com",
+                          "member":[{"name":"Adam Link", "mbox":"mailto:alink@example.com"},
+                                    {"name":"Andrew Martin", "mbox":"mailto:amartin@example.com"},
+                                    {"name":"Astro Boy", "mbox":"mailto:astroboy@example.com"},
+                                    {"name":"C-3PO", "mbox":"mailto:c3po@example.com"},
+                                    {"name":"R2 D2", "mbox":"mailto:r2d2@example.com"},
+                                    {"name":"Marvin", "mbox":"mailto:marvin@example.com"},
+                                    {"name":"Data", "mbox":"mailto:data@example.com"},
+                                    {"name":"Mr. Roboto", "mbox":"mrroboto@example.com"}
+                                   ]
+                         },
+                "context"
+                }
+
+        print "\n compare these (no format filter) \n\n---------------------"
+        param = {"agent":{"mbox":"mailto:blobby@example.com"}}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        s_d = {}
+        for s in stmts:
+            import pprint
+            pprint.pprint(s)
+            print "-------------------------------"
+
+
+        print "\n\n to these (ids format) \n\n-----------------------"
+        param = {"agent":{"mbox":"mailto:blobby@example.com"}, "format":"ids"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        stmts = obj['statements']
+        for s in stmts:
+            import pprint
+            pprint.pprint(s)
+            print "-------------------------------"
