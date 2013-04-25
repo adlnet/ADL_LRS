@@ -6,6 +6,8 @@ from datetime import datetime
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.db.models import Q
+from itertools import chain
 from lrs import models
 from lrs.objects import Agent, Statement
 from lrs.util import convert_to_utc, convert_to_dict
@@ -86,6 +88,133 @@ def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
     return models.statement.objects.filter(**args).order_by(stored_param)
 
 def complex_get(req_dict):
+    # tests if value is True or "true"
+    bt = lambda x: x if type(x)==bool else x.lower()=="true"
+    stmtset = models.statement.objects.filter(voided=False)
+    # keep track if a filter other than time or sequence is used
+    reffilter = False
+
+    # Parse out params into single dict-GET data not in body
+    try:
+        the_dict = req_dict['body']
+        if not isinstance(the_dict, dict):
+            the_dict = convert_to_dict(the_dict)
+    except KeyError:
+        the_dict = req_dict
+
+    sinceq = None
+    if 'since' in the_dict:
+        sinceq = Q(stored__gt=convert_to_utc(the_dict['since']))
+        stmtset = stmtset.filter(sinceq)
+    untilq = None
+    if 'until' in the_dict:
+        untilq = Q(stored__lte=convert_to_utc(the_dict['until']))
+        stmtset = stmtset.filter(untilq)
+
+    # For statements/read/mine oauth scope
+    if 'statements_mine_only' in the_dict:
+        stmtset = stmtset.filter(authority=the_dict['auth'])
+
+    agentQ = Q()
+    if 'agent' in the_dict:
+        reffilter = True
+        agent = None
+        data = the_dict['agent']
+        related = 'related_agents' in the_dict and bt(the_dict['related_agents'])
+        
+        if not type(data) is dict:
+            data = convert_to_dict(data)
+        
+        try:
+            agent = Agent.Agent(data).agent
+            if agent.objectType == "Group":
+                groups = []
+            else:
+                groups = agent.member.all()
+            agentQ = Q(actor=agent)
+            for g in groups:
+                agentQ = agentQ | Q(actor=g)
+            if related:
+                me = chain([agent], groups)
+                for a in me:
+                    agentQ = agentQ | Q(stmt_object=a) | Q(authority=a) \
+                          | Q(context__instructor=a) | Q(context__team=a) \
+                          | Q(stmt_object__substatement__actor=a) \
+                          | Q(stmt_object__substatement__stmt_object=a) \
+                          | Q(stmt_object__substatement__context__instructor=a) \
+                          | Q(stmt_object__substatement__context__team=a)       
+        except models.IDNotFoundError:
+            return[]     
+    
+    verbQ = Q()
+    if 'verb' in req_dict:
+        reffilter = True
+        verbQ = Q(verb__verb_id=the_dict['verb'])
+        
+    # activity
+    activityQ = Q()
+    if 'activity' in the_dict:
+        reffilter = True
+        activityQ = Q(stmt_object__activity__activity_id=the_dict['activity'])
+        if 'related_activities' in the_dict and bt(the_dict['related_activities']):
+            activityQ = activityQ | Q(context__contextactivity__context_activity=the_dict['activity']) \
+                    | Q(stmt_object__substatement__stmt_object__activity__activity_id=the_dict['activity']) \
+                    | Q(stmt_object__substatement__context__contextactivity__context_activity=the_dict['activity'])
+
+
+    registrationQ = Q()
+    if 'registration' in the_dict:
+        reffilter = True
+        registrationQ = Q(context__registration=the_dict['registration'])
+
+    format = the_dict['format']
+    
+    # attachments
+    
+    # Set language if one
+    # pull from req_dict since language is from a header, not an arg 
+    language = None
+    if 'language' in req_dict:
+        language = req_dict['language']
+
+    # If want ordered by ascending
+    stored_param = '-stored'
+    if 'ascending' in the_dict and bt(the_dict['ascending']):
+            stored_param = 'stored'
+
+    print agentQ
+    print verbQ
+    print activityQ
+    print registrationQ
+    stmtset = stmtset.filter(agentQ & verbQ & activityQ & registrationQ)
+    # only find references when a filter other than
+    # since, until, or limit was used 
+    if reffilter:
+        stmtset = findstmtrefs(stmtset.distinct(), sinceq, untilq)
+    stmt_list = stmtset.order_by(stored_param)
+    # For each stmt retrieve all json
+    full_stmt_list = []
+    full_stmt_list = [stmt.object_return(language, format) for stmt in stmt_list]
+    return full_stmt_list
+
+def findstmtrefs(stmtset, sinceq, untilq):
+    if stmtset.count() == 0:
+        return stmtset
+    q = Q()
+    for s in stmtset:
+        q = q | Q(stmt_object__statementref__ref_id=s.statement_id)
+
+    if sinceq and untilq:
+        q = q & Q(sinceq, untilq)
+    elif sinceq:
+        q = q & sinceq
+    elif untilq:
+        q = q & untilq
+    # finally weed out voided statements in this lookup
+    q = q & Q(voided=False)
+    return findstmtrefs(models.statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
+
+def old_complex_get(req_dict):
     args = {}
     
     language = None
@@ -150,12 +279,12 @@ def complex_get(req_dict):
         else:
             return []
 
-    # If searching by actor
-    if 'actor' in the_dict:
-        actor_data = the_dict['actor']
-        actor = parse_incoming_actor(actor_data)
-        if actor:
-            args['actor'] = actor
+    # If searching by agent
+    if 'agent' in the_dict:
+        actor_data = the_dict['agent']
+        agent = parse_incoming_actor(actor_data)
+        if agent:
+            args['actor'] = agent
         else:
             return []
 

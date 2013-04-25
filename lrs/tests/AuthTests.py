@@ -686,24 +686,9 @@ class AuthTests(TestCase):
         self.assertEqual(len(stmts), 1)
         self.assertIn(self.guid10, rsp)
 
-    def test_sparse_filter(self):
-        # Test sparse
-        sparseGetResponse = self.client.post(reverse(views.statements),{"sparse": False}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", )
-        self.assertEqual(sparseGetResponse.status_code, 200)
-        rsp = sparseGetResponse.content
-
-        self.assertIn("definition", rsp)        
-        self.assertIn("en-GB", rsp)
-        self.assertIn("altdesc", rsp)
-        self.assertIn("altname", rsp)
-
-
-        # Should display full lang map (won"t find testdesc2 since activity class will merge activities with same id together)
-        self.assertIn("testdesc3", rsp)
-
     def test_linked_filters(self):
         # Test reasonable linked query
-        param = {"verb":"http://adlnet.gov/expapi/verbs/created", "object":{"objectType": "Activity", "id":"act:foogie"}, "since":self.secondTime, "authoritative":"False", "sparse": False}
+        param = {"verb":"http://adlnet.gov/expapi/verbs/created", "object":{"objectType": "Activity", "id":"act:foogie"}, "since":self.secondTime, "authoritative":"False"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         linkedGetResponse = self.client.get(path, X_Experience_API_Version="1.0", )
         self.assertEqual(linkedGetResponse.status_code, 200)

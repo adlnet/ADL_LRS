@@ -746,6 +746,7 @@ class StatementModelsTests(TestCase):
         self.assertEqual(sub_con.registration, guid)
         self.assertEqual(sub_res.response, 'kicked')
 
+
     def test_group_stmt(self):
         ot = "Group"
         name = "the group SMT"
