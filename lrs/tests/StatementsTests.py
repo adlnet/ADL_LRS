@@ -454,87 +454,10 @@ class StatementsTests(TestCase):
         # Will only return 10 since that is server limit
         self.assertEqual(len(jsn["statements"]), 10)
 
-    def test_activity_object_filter(self):
-        self.bunchostmts()
-        # Test activity object
-        param = {"object":{"objectType": "Activity", "id":"act:foogie"}}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        activityObjectGetResponse = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth,
-            Accept_Language='en-GB')
-        self.assertEqual(activityObjectGetResponse.status_code, 200)
-        rsp = activityObjectGetResponse.content
-        self.assertIn(self.guid1, rsp)
-        self.assertIn(self.guid2, rsp)
-        self.assertNotIn(self.guid3, rsp)
-        self.assertNotIn(self.guid4, rsp)
-        self.assertNotIn(self.guid5, rsp)
-        self.assertNotIn(self.guid6, rsp)
-        self.assertNotIn(self.guid7, rsp)
-        self.assertNotIn(self.guid8, rsp)
-        # Should not be in response b/c of language header
-        self.assertNotIn("testdesc3", rsp)
-        self.assertNotIn("testname3", rsp)
-
-    def test_no_actor(self):
-        # Test actor object
-        self.bunchostmts()
-        param = {"object":{"objectType": "Agent", "mbox":"mailto:nobody@example.com"}}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
-        actorObjectGetResponse = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
-        
-        self.assertEqual(actorObjectGetResponse.status_code, 200)
-        stmts = json.loads(actorObjectGetResponse.content)
-        # Will return 10 since that is server limit
-        self.assertEqual(len(stmts["statements"]), 0)
-
-
-    def test_statement_ref_object_filter(self):
-        self.bunchostmts()
-        param = {"object":{"objectType": "StatementRef", "id":str(self.exist_stmt_id)}}
-            
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        sub_object_get_response = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
-        self.assertEqual(sub_object_get_response.status_code, 200)
-        self.assertContains(sub_object_get_response,self.guid10)
-        self.assertNotIn(self.guid2, sub_object_get_response)
-        self.assertNotIn(self.guid3, sub_object_get_response)
-        self.assertNotIn(self.guid1, sub_object_get_response)
-        self.assertNotIn(self.guid5, sub_object_get_response)
-        self.assertNotIn(self.guid4, sub_object_get_response)
-        self.assertNotIn(self.guid7, sub_object_get_response)
-        self.assertNotIn(self.guid8, sub_object_get_response)        
-        self.assertNotIn(self.guid9, sub_object_get_response)
-
-    def test_ascending_filter(self):
-        self.bunchostmts()
-        # Test actor
-        ascending_get_response = self.client.get(reverse(views.statements), 
-            {"ascending": True},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
-
-        self.assertEqual(ascending_get_response.status_code, 200)
-        rsp = ascending_get_response.content
-        self.assertIn(self.guid1, rsp)
-        self.assertIn(self.guid2, rsp)
-        self.assertIn(self.guid3, rsp)
-        self.assertIn(self.guid4, rsp)
-        self.assertIn(self.guid5, rsp)
-        self.assertIn(self.guid6, rsp)
-        self.assertIn(self.guid7, rsp)
-        self.assertIn(self.guid8, rsp)
-        self.assertIn(str(self.exist_stmt_id), rsp)
-
-    def test_linked_filters(self):
-        self.bunchostmts()
-        # Test reasonable linked query
-        param = {"verb":"http://adlnet.gov/expapi/verbs/created", "object":{"objectType": "Activity", "id":"act:foogie"}, "since":self.secondTime, "authoritative":"False"}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        linkedGetResponse = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
-        self.assertEqual(linkedGetResponse.status_code, 200)
-        self.assertContains(linkedGetResponse, self.guid2)
 
     def test_language_header_filter(self):
         self.bunchostmts()
-        param = {"limit":1, "object":{"objectType": "Activity", "id":"act:foogie"}}
+        param = {"limit":1, "activity":"act:foogie"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         lang_get_response = self.client.get(path, Accept_Language="en-US", X_Experience_API_Version="1.0", Authorization=self.auth)
 
@@ -1332,93 +1255,6 @@ class StatementsTests(TestCase):
         self.assertEqual(len(con_exts), 0)
         self.assertEqual(len(con_acts), 0)
 
-
-    def test_object_filter(self):
-        if settings.HTTP_AUTH_ENABLED:
-            exist_stmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
-                "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-                "authority":{"objectType":"Agent","name":"tester1","mbox":"mailto:test1@tester.com"}}))
-        else:
-            exist_stmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
-                "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}))            
-        
-        exist_stmt_id = exist_stmt.model_object.statement_id
-
-        stmt_agent_jon = json.dumps({"object":{"objectType":"Agent","name":"jon","mbox":"mailto:jon@jon.com"},
-                                     "verb":{"id": "http://adlnet.gov/expapi/verbs/tutored","display": {"en-US":"tutored"}},
-                                     "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
-
-        stmt_act_1 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
-                                 "object":{"id": "test://adlnet.gov/activities/test/1"},
-                                 "verb":{"id": "http://adlnet.gov/expapi/verbs/completed"}})
-
-        stmt_act_2 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
-                                 "object":{"id": "test://adlnet.gov/activities/test/2"},
-                                 "verb":{"id": "http://adlnet.gov/expapi/verbs/completed"}})
-
-        stmt_sub_stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:sub@sub.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
-            "actor":{"objectType":"Agent","mbox":"mailto:ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
-            "object": {"objectType":"activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
-            "response": "kicked"}, "context":{"registration": str(uuid.uuid1()),
-            "contextActivities": {"other": {"id": "act:NewActivityID"}},"revision": "foo", "platform":"bar",
-            "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
-
-        stmt_stmt_ref = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:ref@ref.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
-            "id":str(exist_stmt_id)}})
-
-        path = reverse(views.statements)
-        stmt_payload = [stmt_agent_jon, stmt_act_1, stmt_act_2, stmt_sub_stmt, stmt_stmt_ref]
-        postresponse1 = self.client.post(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
-        self.assertEqual(postresponse1.status_code, 200)
-
-        getallresp = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0")
-        self.assertEqual(getallresp.status_code, 200)
-
-        allstmts = json.loads(getallresp.content)
-        self.assertEqual(len(allstmts['statements']), 6)
-
-        param = {"object":{"objectType": "Agent", "mbox":"mailto:jon@jon.com"}}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        agentresp = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
-        
-        agentstmts = json.loads(agentresp.content)
-        self.assertEqual(len(agentstmts['statements']), 1)
-
-        param = {"object":{"objectType": "Activity", "id":"test://adlnet.gov/activities/test/1"}}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        acttyperesp = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
-
-        acttypestmts = json.loads(acttyperesp.content)
-        self.assertEqual(len(acttypestmts['statements']), 1)
-
-        param = {"object":{"id":"test://adlnet.gov/activities/test/2"}}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        actresp = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
-        actstmts = json.loads(actresp.content)
-        self.assertEqual(len(actstmts['statements']), 1)
-
-        param = {"object": "test://adlnet.gov/activities/test/2"}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param)) 
-        actnoobjresp = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)            
-        
-        self.assertEqual(actnoobjresp.status_code, 400)
-        self.assertEqual(actnoobjresp.content, "Cannot evaluate data into dictionary to parse")
-
-    def test_no_activity_filter(self):
-        self.bunchostmts()
-        # Test actor
-        actorGetResponse = self.client.post(reverse(views.statements), 
-            {"object":{"objectType": "Activity", "id":"http://notarealactivity.com"}},
-             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
-        self.assertEqual(actorGetResponse.status_code, 200)
-        rsp = json.loads(actorGetResponse.content)
-        stmts = rsp['statements']
-        self.assertEqual(len(stmts), 0)
-
     def test_stmts_w_same_regid(self):
         stmt1_guid = str(uuid.uuid1())
         stmt2_guid = str(uuid.uuid1())
@@ -1540,4 +1376,12 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_guid}))
         r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(r.status_code, 404)
+
+    def test_consistent_through_header(self):
+        self.bunchostmts()
+        r = self.client.get(reverse(views.statements), Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(r.status_code, 200)
+        print(r['X-Experience-API-Consistent-Through'])
+        s = models.statement.objects.all().order_by('-stored')[0]
+        self.assertEqual(r['X-Experience-API-Consistent-Through'], str(s.stored))
         

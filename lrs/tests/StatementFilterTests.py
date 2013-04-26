@@ -403,46 +403,129 @@ class StatementFilterTests(TestCase):
 
         self.assertTrue(len(stmts) > actcnt, "stmts(%s) was not greater than actcnt(%s)" % (len(stmts), actcnt))
 
+    def test_no_activity_filter(self):
+        actorGetResponse = self.client.post(reverse(views.statements), 
+            {"activity":"http://notarealactivity.com"},
+             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(actorGetResponse.status_code, 200)
+        rsp = json.loads(actorGetResponse.content)
+        stmts = rsp['statements']
+        self.assertEqual(len(stmts), 0)
+
     def test_format_agent_filter(self):
-        # stmt = {"actor":{"name":"lou wolford", "mbox":"mailto:louwolford@example.com"},
-        #         "verb":{"id":"http://special.adlnet.gov/xapi/verb/created",
-        #                 "display":{"en-US":"made"}},
-        #         "object":{"objectType":"Group","name":"androids","mbox":"mailto:androids@example.com",
-        #                   "member":[{"name":"Adam Link", "mbox":"mailto:alink@example.com"},
-        #                             {"name":"Andrew Martin", "mbox":"mailto:amartin@example.com"},
-        #                             {"name":"Astro Boy", "mbox":"mailto:astroboy@example.com"},
-        #                             {"name":"C-3PO", "mbox":"mailto:c3po@example.com"},
-        #                             {"name":"R2 D2", "mbox":"mailto:r2d2@example.com"},
-        #                             {"name":"Marvin", "mbox":"mailto:marvin@example.com"},
-        #                             {"name":"Data", "mbox":"mailto:data@example.com"},
-        #                             {"name":"Mr. Roboto", "mbox":"mrroboto@example.com"}
-        #                            ]
-        #                  },
-        #         "context"
-        #         }
+        stmt = json.dumps({"actor":{"name":"lou wolford", "mbox":"mailto:louwolford@example.com"},
+                          "verb":{"id":"http://special.adlnet.gov/xapi/verb/created",
+                                  "display":{"en-US":"made"}},
+                          "object":{"objectType":"Group","name":"androids","mbox":"mailto:androids@example.com",
+                                    "member":[{"name":"Adam Link", "mbox":"mailto:alink@example.com"},
+                                              {"name":"Andrew Martin", "mbox":"mailto:amartin@example.com"},
+                                              {"name":"Astro Boy", "mbox":"mailto:astroboy@example.com"},
+                                              {"name":"C-3PO", "mbox":"mailto:c3po@example.com"},
+                                              {"name":"R2 D2", "mbox":"mailto:r2d2@example.com"},
+                                              {"name":"Marvin", "mbox":"mailto:marvin@example.com"},
+                                              {"name":"Data", "mbox":"mailto:data@example.com"},
+                                              {"name":"Mr. Roboto", "mbox":"mailto:mrroboto@example.com"}
+                                             ]
+                                   },
+                          "context":{"instructor":{"name":"Isaac Asimov", "mbox":"mailto:asimov@example.com"},
+                                     "team":{"objectType":"Group", "name":"team kick***", 
+                                             "member":[{"name":"lou wolford","mbox":"mailto:louwolford@example.com"},
+                                                       {"name":"tom creighton", "mbox":"mailto:tomcreighton@example.com"}
+                                                      ]
+                                             }
+                                     }
+                         })
+        guid = str(uuid.uuid1())
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        resp = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+        
+        agent_params = ['name', 'mbox', 'objectType']
 
-        print "\n compare these (no format filter) \n\n---------------------"
-        param = {"agent":{"mbox":"mailto:blobby@example.com"}}
+        param = {"agent":{"mbox":"mailto:louwolford@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        s_d = {}
-        for s in stmts:
-            import pprint
-            pprint.pprint(s)
-            print "-------------------------------"
+        # only expecting the one made at the beginning of this test
+        stmt_r = stmts[0]
+        # remove the stuff the LRS adds
+        stmt_r.pop('stored')
+        stmt_r.pop('timestamp')
+        stmt_r.pop('version')
+        stmt_r.pop('id')
+        stmt_r.pop('authority')
+        orig_stmt = json.loads(stmt)
 
+        self.assertItemsEqual(orig_stmt.keys(), stmt_r.keys())
+        self.assertItemsEqual(agent_params, stmt_r['actor'].keys())
+        self.assertItemsEqual(orig_stmt['object'].keys(), stmt_r['object'].keys())
+        for m in stmt_r['object']['member']:
+            self.assertItemsEqual(m.keys(), agent_params)
+        self.assertItemsEqual(orig_stmt['context'].keys(), stmt_r['context'].keys())
+        self.assertItemsEqual(agent_params, stmt_r['context']['instructor'].keys())
+        self.assertItemsEqual(orig_stmt['context']['team'].keys(), stmt_r['context']['team'].keys())
+        for m in stmt_r['context']['team']['member']:
+            self.assertItemsEqual(m.keys(), agent_params)
 
-        print "\n\n to these (ids format) \n\n-----------------------"
-        param = {"agent":{"mbox":"mailto:blobby@example.com"}, "format":"ids"}
+        param = {"agent":{"mbox":"mailto:louwolford@example.com"}, "format":"ids"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        for s in stmts:
-            import pprint
-            pprint.pprint(s)
-            print "-------------------------------"
+
+        agent_id_param = ['mbox']
+        group_id_params = ['objectType', "mbox"]
+        anon_id_params = ['objectType', "member"]
+
+        # only expecting the one made at the beginning of this test
+        stmt_r = stmts[0]
+        # remove the stuff the LRS adds
+        stmt_r.pop('stored')
+        stmt_r.pop('timestamp')
+        stmt_r.pop('version')
+        stmt_r.pop('id')
+        stmt_r.pop('authority')
+        orig_stmt = json.loads(stmt)
+
+        self.assertItemsEqual(orig_stmt.keys(), stmt_r.keys())
+        self.assertItemsEqual(agent_id_param, stmt_r['actor'].keys())
+        self.assertItemsEqual(group_id_params, stmt_r['object'].keys())
+        self.assertItemsEqual(orig_stmt['context'].keys(), stmt_r['context'].keys())
+        self.assertItemsEqual(agent_id_param, stmt_r['context']['instructor'].keys())
+        self.assertItemsEqual(anon_id_params, stmt_r['context']['team'].keys())
+        for m in stmt_r['context']['team']['member']:
+            self.assertItemsEqual(m.keys(), agent_id_param)
+
+    def test_agent_account(self):
+        account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
+        stmt = json.dumps({"actor": {"name": "freakshow", "account":account},
+                           "verb":{"id":"http://tom.com/tested"},
+                           "object":{"id":"http://tom.com/accountid"}})
+
+        guid = str(uuid.uuid1())
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        resp = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+
+        param = {"agent":{"account":account}}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        ss = obj['statements']
+        self.assertEqual(len(ss), 1)
+        s = ss[0]
+        self.assertEqual(s['id'], guid)
+        self.assertEqual(s['actor']['account']['name'], account['name'])
+        self.assertEqual(s['actor']['account']['homePage'], account['homePage'])
+
+        
+    
+    # def test_activity_format(self):
+
+

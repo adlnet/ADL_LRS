@@ -61,7 +61,9 @@ def statements_put(req_dict):
 
 def statements_more_get(req_dict):
     statement_result = retrieve_statement.get_statement_request(req_dict['more_id']) 
-    return HttpResponse(json.dumps(statement_result),mimetype="application/json",status=200)
+    resp = HttpResponse(json.dumps(statement_result),mimetype="application/json",status=200)
+    resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
+    return resp
 
 def statements_get(req_dict):
     log_dict = req_dict['initial_user_action']    
@@ -114,8 +116,9 @@ def statements_get(req_dict):
     
     update_parent_log_status(log_dict, 200)
 
-    return HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
-
+    resp = HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
+    resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
+    return resp
 
 def activity_state_post(req_dict):
     log_dict = req_dict['initial_user_action']    

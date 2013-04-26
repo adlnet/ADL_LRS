@@ -1013,9 +1013,10 @@ class context(models.Model):
             subclass = self.statement.all()[0].subclass
             if subclass == 'statementref':
                 cntx_stmt = StatementRef.objects.get(id=self.statement.all()[0].id)
+                ret['statement'] = cntx_stmt.object_return()          
             elif subclass == 'substatement':
                 cntx_stmt = SubStatement.objects.get(id=self.statement.all()[0].id)
-            ret['statement'] = cntx_stmt.object_return(format)          
+                ret['statement'] = cntx_stmt.object_return(format)          
 
         if len(self.contextactivity_set.all()) > 0:
             ret['contextActivities'] = {}
