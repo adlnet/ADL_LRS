@@ -174,8 +174,11 @@ def complex_get(req_dict):
     # Set language if one
     # pull from req_dict since language is from a header, not an arg 
     language = None
-    if 'language' in req_dict:
-        language = req_dict['language']
+    if 'format' in req_dict and req_dict['format'] == "canonical":
+        if 'language' in req_dict:
+            language = req_dict['language']
+        else:
+            language = settings.LANGUAGE_CODE
 
     # If want ordered by ascending
     stored_param = '-stored'

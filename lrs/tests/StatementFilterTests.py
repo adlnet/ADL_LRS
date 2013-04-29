@@ -1,3 +1,4 @@
+# coding=utf-8
 from django.test import TestCase
 # from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
@@ -526,6 +527,121 @@ class StatementFilterTests(TestCase):
 
         
     
-    # def test_activity_format(self):
+    def test_activity_format(self):
+        stmt = {"actor":{"name":"chair", "mbox":"mailto:chair@example.com"},
+                "verb": {"id": "http://tom.com/tested","display":{"en-US":"tested","es-US":"probado", "fr":"testé"}},
+                "object": {"objectType":"Activity", "id":"act:format", 
+                           "definition":{"name":{"en-US":"format", "es-US":"formato", "fr":"format"},
+                                         "description":{"en-US":"format used to return statement",
+                                                        "es-US":"formato utilizado en este statement",
+                                                        "fr":"format utilisé pour cette statement"
+                                                        },
+                                         "type":"thing"
+                                        }
+                          },
+                "context": {"contextActivities":{"parent":[{"id":"act:statementfiltertests",
+                                                            "definition":{"name":{"en-US":"statement filter", "fr":"statement filter"},
+                                                                         "description":{"en-US":"unit tests","fr":"unit tests"},
+                                                                         "type":"parent thing"}
+                                                          }]
+                                                }
 
+                            }
+        }
 
+        guid = str(uuid.uuid1())
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        resp = self.client.put(path, json.dumps(stmt), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+
+        param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"exact"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+
+        exact = obj['statements'][0]
+        self.assertEqual(exact['actor']['name'], stmt['actor']['name'])
+        self.assertEqual(exact['actor']['mbox'], stmt['actor']['mbox'])
+        self.assertEqual(exact['verb']['id'], stmt['verb']['id'])
+        self.assertItemsEqual(exact['verb']['display'].keys(), stmt['verb']['display'].keys())
+        self.assertEqual(exact['object']['objectType'], stmt['object']['objectType'])
+        self.assertEqual(exact['object']['id'], stmt['object']['id'])
+        self.assertItemsEqual(exact['object']['definition']['name'].keys(), stmt['object']['definition']['name'].keys())
+        self.assertItemsEqual(exact['object']['definition']['description'].keys(), stmt['object']['definition']['description'].keys())
+        self.assertEqual(exact['context']['contextActivities']['parent'][0]['id'], stmt['context']['contextActivities']['parent'][0]['id'])
+        self.assertItemsEqual(exact['context']['contextActivities']['parent'][0]['definition']['name'].keys(), stmt['context']['contextActivities']['parent'][0]['definition']['name'].keys())
+        self.assertItemsEqual(exact['context']['contextActivities']['parent'][0]['definition']['description'].keys(), stmt['context']['contextActivities']['parent'][0]['definition']['description'].keys())
+        self.assertEqual(exact['context']['contextActivities']['parent'][0]['definition']['type'], stmt['context']['contextActivities']['parent'][0]['definition']['type'])
+
+        param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"ids"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        
+        ids = obj['statements'][0]
+        self.assertNotIn('name', ids['actor'])
+        self.assertEqual(ids['actor']['mbox'], stmt['actor']['mbox'])
+        self.assertEqual(ids['verb']['id'], stmt['verb']['id'])
+        self.assertItemsEqual(ids['verb']['display'].keys(), stmt['verb']['display'].keys())
+        self.assertNotIn('objectType', ids['object'])
+        self.assertEqual(ids['object']['id'], stmt['object']['id'])
+        self.assertNotIn('definition', ids['object'])
+        self.assertEqual(ids['context']['contextActivities']['parent'][0]['id'], stmt['context']['contextActivities']['parent'][0]['id'])
+        self.assertNotIn('definition', ids['context']['contextActivities']['parent'][0])
+        
+        param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"canonical"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        
+        canon_enus = obj['statements'][0]
+        self.assertEqual(canon_enus['actor']['name'], stmt['actor']['name'])
+        self.assertEqual(canon_enus['actor']['mbox'], stmt['actor']['mbox'])
+        self.assertEqual(canon_enus['verb']['id'], stmt['verb']['id'])
+        self.assertItemsEqual(canon_enus['verb']['display'].keys(), stmt['verb']['display'].keys())
+        self.assertEqual(canon_enus['object']['objectType'], stmt['object']['objectType'])
+        self.assertEqual(canon_enus['object']['id'], stmt['object']['id'])
+        self.assertEqual(len(canon_enus['object']['definition']['name'].keys()), 1)
+        self.assertIn(canon_enus['object']['definition']['name'].keys()[0], stmt['object']['definition']['name'].keys())
+        self.assertEqual(len(canon_enus['object']['definition']['description'].keys()), 1)
+        self.assertIn(canon_enus['object']['definition']['description'].keys()[0], stmt['object']['definition']['description'].keys())
+        self.assertEqual(canon_enus['context']['contextActivities']['parent'][0]['id'], stmt['context']['contextActivities']['parent'][0]['id'])
+        self.assertEqual(len(canon_enus['context']['contextActivities']['parent'][0]['definition']['name'].keys()), 1)
+        self.assertIn(canon_enus['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0], stmt['context']['contextActivities']['parent'][0]['definition']['name'].keys())
+        self.assertEqual(len(canon_enus['context']['contextActivities']['parent'][0]['definition']['description'].keys()), 1)
+        self.assertIn(canon_enus['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0], stmt['context']['contextActivities']['parent'][0]['definition']['description'].keys())
+        self.assertEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['type'], stmt['context']['contextActivities']['parent'][0]['definition']['type'])
+
+        param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"canonical"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, Accept_Language="fr", X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        
+        canon_fr = obj['statements'][0]
+        self.assertEqual(canon_fr['actor']['name'], stmt['actor']['name'])
+        self.assertEqual(canon_fr['actor']['mbox'], stmt['actor']['mbox'])
+        self.assertEqual(canon_fr['verb']['id'], stmt['verb']['id'])
+        self.assertItemsEqual(canon_fr['verb']['display'].keys(), stmt['verb']['display'].keys())
+        self.assertEqual(canon_fr['object']['objectType'], stmt['object']['objectType'])
+        self.assertEqual(canon_fr['object']['id'], stmt['object']['id'])
+        self.assertEqual(len(canon_fr['object']['definition']['name'].keys()), 1)
+        self.assertIn(canon_fr['object']['definition']['name'].keys()[0], stmt['object']['definition']['name'].keys())
+        self.assertEqual(len(canon_fr['object']['definition']['description'].keys()), 1)
+        self.assertIn(canon_fr['object']['definition']['description'].keys()[0], stmt['object']['definition']['description'].keys())
+        self.assertEqual(canon_fr['context']['contextActivities']['parent'][0]['id'], stmt['context']['contextActivities']['parent'][0]['id'])
+        self.assertEqual(len(canon_fr['context']['contextActivities']['parent'][0]['definition']['name'].keys()), 1)
+        self.assertIn(canon_fr['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0], stmt['context']['contextActivities']['parent'][0]['definition']['name'].keys())
+        self.assertEqual(len(canon_fr['context']['contextActivities']['parent'][0]['definition']['description'].keys()), 1)
+        self.assertIn(canon_fr['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0], stmt['context']['contextActivities']['parent'][0]['definition']['description'].keys())
+        self.assertEqual(canon_fr['context']['contextActivities']['parent'][0]['definition']['type'], stmt['context']['contextActivities']['parent'][0]['definition']['type'])
+
+        self.assertNotEqual(canon_enus['object']['definition']['name'].keys()[0],canon_fr['object']['definition']['name'].keys()[0])
+        self.assertNotEqual(canon_enus['object']['definition']['description'].keys()[0],canon_fr['object']['definition']['description'].keys()[0])
+        self.assertNotEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0], canon_fr['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0])
+        self.assertNotEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0], canon_fr['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0])
+        

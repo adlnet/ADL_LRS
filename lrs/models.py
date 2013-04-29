@@ -661,11 +661,12 @@ class activity(statement_object):
     def object_return(self, lang=None, format='exact'):
         ret = {}
         ret['id'] = self.activity_id
-        ret['objectType'] = self.objectType
-        try:
-            ret['definition'] = self.activity_definition.object_return(lang)
-        except activity_definition.DoesNotExist:
-            pass
+        if format != 'ids':
+            ret['objectType'] = self.objectType
+            try:
+                ret['definition'] = self.activity_definition.object_return(lang)
+            except activity_definition.DoesNotExist:
+                pass
 
         # if sparse:
         #     if 'definition' in ret:
@@ -775,7 +776,7 @@ class activity_definition(models.Model):
 
     def object_return(self, lang=None):
         ret = {}
-        if lang is not None:
+        if lang:
             name_lang_map_set = self.name.filter(key=lang)
             desc_lang_map_set = self.description.filter(key=lang)
         else:
@@ -794,7 +795,7 @@ class activity_definition(models.Model):
         if self.url != '':
             ret['url'] = self.url
 
-        if not self.interactionType is None:
+        if self.interactionType != '':
             ret['interactionType'] = self.interactionType
 
         try:
@@ -812,31 +813,31 @@ class activity_definition(models.Model):
             if scales:
                 ret['scale'] = []
                 for s in scales:
-                    ret['scale'].append(s.object_return(lang))
+                    ret['scale'].append(s.object_return())
             # Get choices
             choices = activity_definition_choice.objects.filter(activity_definition=self)
             if choices:
                 ret['choices'] = []
                 for c in choices:
-                    ret['choices'].append(c.object_return(lang))
+                    ret['choices'].append(c.object_return())
             # Get steps
             steps = activity_definition_step.objects.filter(activity_definition=self)
             if steps:
                 ret['steps'] = []
                 for st in steps:
-                    ret['steps'].append(st.object_return(lang))
+                    ret['steps'].append(st.object_return())
             # Get sources
             sources = activity_definition_source.objects.filter(activity_definition=self)
             if sources:
                 ret['source'] = []
                 for so in sources:
-                    ret['source'].append(so.object_return(lang))
+                    ret['source'].append(so.object_return())
             # Get targets
             targets = activity_definition_target.objects.filter(activity_definition=self)
             if targets:
                 ret['target'] = []
                 for t in targets:
-                    ret['target'].append(t.object_return(lang))            
+                    ret['target'].append(t.object_return())            
         result_ext = self.extensions.all()
         if len(result_ext) > 0:
             ret['extensions'] = {}
@@ -1016,12 +1017,12 @@ class context(models.Model):
                 ret['statement'] = cntx_stmt.object_return()          
             elif subclass == 'substatement':
                 cntx_stmt = SubStatement.objects.get(id=self.statement.all()[0].id)
-                ret['statement'] = cntx_stmt.object_return(format)          
+                ret['statement'] = cntx_stmt.object_return(lang, format)          
 
         if len(self.contextactivity_set.all()) > 0:
             ret['contextActivities'] = {}
             for con_act in self.contextactivity_set.all():
-                ret['contextActivities'].update(con_act.object_return(format))
+                ret['contextActivities'].update(con_act.object_return(lang, format))
 
         context_ext = self.extensions.all()
         if len(context_ext) > 0:
@@ -1168,7 +1169,7 @@ class statement(models.Model):
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.get_agent_json(format)
-        ret['verb'] = self.verb.object_return(lang)
+        ret['verb'] = self.verb.object_return()
 
         stmt_object, object_type = self.get_object()
         if object_type == 'activity':
