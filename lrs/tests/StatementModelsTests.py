@@ -1355,7 +1355,7 @@ class StatementModelsTests(TestCase):
                 'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}}))
 
         self.assertEqual(len(models.activity.objects.all()), 6)
-        self.assertEqual(len(models.agent.objects.all()), 5)
+        self.assertEqual(len(models.agent.objects.all()), 7)
         self.assertEqual(len(models.Verb.objects.all()), 3)
         self.assertEqual(len(models.context.objects.all()), 3)
         self.assertEqual(len(models.ContextActivity.objects.all()), 6)
@@ -1364,7 +1364,7 @@ class StatementModelsTests(TestCase):
         models.statement.objects.get(id=stmt3.model_object.id).delete()
         # Agents/activities/verbs are not deleted
         self.assertEqual(len(models.activity.objects.all()), 6)
-        self.assertEqual(len(models.agent.objects.all()), 5)        
+        self.assertEqual(len(models.agent.objects.all()), 7)        
         self.assertEqual(len(models.Verb.objects.all()), 3)
         self.assertEqual(len(models.context.objects.all()), 2)
         self.assertEqual(len(models.ContextActivity.objects.all()), 4)
@@ -1372,7 +1372,7 @@ class StatementModelsTests(TestCase):
 
         models.statement.objects.get(id=stmt2.model_object.id).delete()
         self.assertEqual(len(models.activity.objects.all()), 6)
-        self.assertEqual(len(models.agent.objects.all()), 5)        
+        self.assertEqual(len(models.agent.objects.all()), 7)        
         self.assertEqual(len(models.Verb.objects.all()), 3)
         self.assertEqual(len(models.context.objects.all()), 1)
         self.assertEqual(len(models.ContextActivity.objects.all()), 2)
@@ -1380,7 +1380,7 @@ class StatementModelsTests(TestCase):
 
         models.statement.objects.get(id=stmt1.model_object.id).delete()
         self.assertEqual(len(models.activity.objects.all()), 6)
-        self.assertEqual(len(models.agent.objects.all()), 5)        
+        self.assertEqual(len(models.agent.objects.all()), 7)        
         self.assertEqual(len(models.Verb.objects.all()), 3)
         self.assertEqual(len(models.context.objects.all()), 0)
         self.assertEqual(len(models.ContextActivity.objects.all()), 0)

@@ -455,20 +455,6 @@ class StatementsTests(TestCase):
         self.assertEqual(len(jsn["statements"]), 10)
 
 
-    def test_language_header_filter(self):
-        self.bunchostmts()
-        param = {"limit":1, "activity":"act:foogie"}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        lang_get_response = self.client.get(path, Accept_Language="en-US", X_Experience_API_Version="1.0", Authorization=self.auth)
-
-        self.assertEqual(lang_get_response.status_code, 200)
-        rsp = lang_get_response.content
-        resp_list = json.loads(rsp)
-        stmts = resp_list["statements"]
-        self.assertEqual(len(stmts), 1)
-        self.assertIn("en-US", rsp)
-        self.assertNotIn("en-GB", rsp)
-
     # Sever activities are PUT - contextActivities create 3 more
     def test_number_of_activities(self):
         self.bunchostmts()

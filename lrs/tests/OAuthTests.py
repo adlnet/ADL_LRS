@@ -942,9 +942,10 @@ class OAuthTests(TestCase):
         get = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="1.0")
         get_content = json.loads(get.content)
+        
+        self.assertEqual(get.status_code, 200)
         self.assertEqual(get_content['statements'][0]['actor']['name'], 'bill')
         self.assertEqual(len(get_content['statements']), 1)
-        self.assertEqual(get.status_code, 200)
 
     def test_state_wrong_auth(self):
         url = 'http://testserver/XAPI/activities/state'
