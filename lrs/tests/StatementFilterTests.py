@@ -1,26 +1,16 @@
 # coding=utf-8
 from django.test import TestCase
-# from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
-from lrs import views#, models
+from lrs import views
 from lrs.models import statement
-# from os import path
 from django.conf import settings
-# import sys
 import json
 import base64
 import os.path
 import uuid
 import math
-# from datetime import datetime, timedelta
-# from django.utils.timezone import utc
-# from lrs.objects import Activity, Statement
-# import time
 import urllib
 from lrs.util import convert_to_utc
-# import pdb
-# import hashlib
-# import pprint
 
 class StatementFilterTests(TestCase):
 
@@ -645,3 +635,59 @@ class StatementFilterTests(TestCase):
         self.assertNotEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0], canon_fr['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0])
         self.assertNotEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0], canon_fr['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0])
         
+    def test_voidedStatementId(self):
+        stmt = {"actor":{"mbox":"mailto:dog@example.com"},
+                "verb":{"id":"http://tom.com/verb/ate"},
+                "object":{"id":"act:my/homework"}
+        }
+        guid = str(uuid.uuid1())
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        resp = self.client.put(path, json.dumps(stmt), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        
+        obj = json.loads(r.content)
+        self.assertEqual(obj['actor']['mbox'], stmt['actor']['mbox'])
+        self.assertEqual(obj['verb']['id'], stmt['verb']['id'])
+        self.assertEqual(obj['object']['id'], stmt['object']['id'])
+        
+        stmtv = {"actor":{"mbox":"mailto:darnhonestparents@example.com"},
+                 "verb":{"id":"http://adlnet.gov/expapi/verbs/voided"},
+                 "object":{"objectType":"StatementRef","id":guid}
+        }
+        guidv = str(uuid.uuid1())
+        paramv = {"statementId":guidv}
+        pathv = "%s?%s" % (reverse(views.statements), urllib.urlencode(paramv))
+        respv = self.client.put(pathv, json.dumps(stmtv), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(respv.status_code, 204)
+
+        paramv = {"statementId":guidv}
+        pathv = "%s?%s" % (reverse(views.statements),urllib.urlencode(paramv))
+        r = self.client.get(pathv, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        objv = json.loads(r.content)
+        self.assertEqual(objv['actor']['mbox'], stmtv['actor']['mbox'])
+        self.assertEqual(objv['verb']['id'], stmtv['verb']['id'])
+        self.assertEqual(objv['object']['id'], stmtv['object']['id'])
+
+        # first statement is voided now... should get a 404 if we try to request it
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 404)
+
+        # but we can get it using the voidedStatementId param
+        param = {"voidedStatementId":guid}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        
+        obj = json.loads(r.content)
+        self.assertEqual(obj['actor']['mbox'], stmt['actor']['mbox'])
+        self.assertEqual(obj['verb']['id'], stmt['verb']['id'])
+        self.assertEqual(obj['object']['id'], stmt['object']['id'])
