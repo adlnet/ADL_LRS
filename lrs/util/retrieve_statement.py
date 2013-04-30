@@ -6,96 +6,20 @@ from datetime import datetime
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.db.models import Q
+from itertools import chain
 from lrs import models
-from lrs.objects import Agent, Statement
+from lrs.objects import Agent
 from lrs.util import convert_to_utc, convert_to_dict
-import pdb
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
-def parse_incoming_object(obj_data, args):
-    # If object is not dict, try to load as one. Even when parsing body in req_parse-data in object key
-    # is not converted
-    obj = None
-    if not type(obj_data) is dict:
-        object_data = convert_to_dict(obj_data)
-    else:
-        object_data = obj_data
-    # If it's activity, since there could be multiple activities with the same ID, we want to return all
-    # stmts that have any of those actIDs-do filter instead of get and check if ID is in the list
-    activity = False
-    # Check the objectType
-    if 'objectType' in object_data:
-        object_type = object_data['objectType'].lower()
-        # If type is activity try go retrieve object
-        if object_type == 'activity':
-            activity = models.activity.objects.filter(activity_id=object_data['id'])
-            # Have to filter activity since there can be 'local' activities with the same ID
-            if activity:
-                obj = activity
-                activity = True
-        # If type is not an activity then it must be an agent
-        elif object_type == 'agent':
-            try:
-                agent = Agent.Agent(json.dumps(object_data)).agent
-                if agent:
-                    obj = agent
-            except models.IDNotFoundError:
-                pass # no stmt_object filter added
-        elif object_type == 'statementref':
-            try:
-                stmt_ref = models.StatementRef.objects.get(ref_id=object_data['id'])
-                if stmt_ref:
-                    obj = stmt_ref
-            except models.StatementRef.DoesNotExist:
-                pass # no stmt_object filter added
-    # Default to activity
-    else:
-        activity = models.activity.objects.filter(activity_id=object_data['id'])
-        # Have to filter activity since there can be 'local' activities with the same ID
-        if activity:
-            obj = activity
-            activity = True
-    return obj, activity
-
-def parse_incoming_actor(actor_data):
-    actor = None
-    if not type(actor_data) is dict:
-        actor_data = convert_to_dict(actor_data)
-    try:
-        actor = Agent.Agent(actor_data).agent
-    except models.IDNotFoundError:
-        pass # no actor filter added
-    return actor
-
-def parse_incoming_instructor(inst_data):
-    inst = None
-    if not type(inst_data) is dict:
-        inst_data = convert_to_dict(inst_data)
-    try:
-        instructor = Agent.Agent(inst_data).agent                 
-        # If there is an instructor, filter contexts against it
-        if instructor:
-            cntx_list = models.context.objects.filter(instructor=instructor)
-            inst = cntx_list
-    except models.IDNotFoundError:
-        pass # no instructor filter added
-    return inst
-
-def retrieve_stmts_from_db(the_dict, limit, stored_param, args):
-    return models.statement.objects.filter(**args).order_by(stored_param)
-
 def complex_get(req_dict):
-    args = {}
-    
-    language = None
-    # Set language if one
-    if 'language' in req_dict:
-        language = req_dict['language']
-    
-    user = None
-    if 'user' in req_dict:
-        user = req_dict['user']
+    # tests if value is True or "true"
+    bt = lambda x: x if type(x)==bool else x.lower()=="true"
+    stmtset = models.statement.objects.filter(voided=False)
+    # keep track if a filter other than time or sequence is used
+    reffilter = False
 
     # Parse out params into single dict-GET data not in body
     try:
@@ -105,103 +29,116 @@ def complex_get(req_dict):
     except KeyError:
         the_dict = req_dict
 
-    # The ascending initilization statement here sometimes throws mysql warning, but needs to be here
-    ascending = False    
-    # If want ordered by ascending
-    if 'ascending' in the_dict:
-        if the_dict['ascending']:
-            ascending = True
-
-    # Cycle through the_dict and set since and until params
-    for k,v in the_dict.items():
-        if k.lower() == 'since':
-            date_object = convert_to_utc(v)
-            args['stored__gt'] = date_object
-        elif k.lower() == 'until':
-            date_object = convert_to_utc(v)
-            args['stored__lte'] = date_object   
-    
-    # If searching by activity or actor
-    if 'object' in the_dict:
-        object_data = the_dict['object']
-        obj, activity = parse_incoming_object(object_data, args)
-        if obj and activity:
-            args['stmt_object__in'] = obj
-        elif obj and not activity:
-            args['stmt_object'] = obj
-        else:
-            return []
-
-    # If searching by verb
-    if 'verb' in the_dict:
-        verb_id = the_dict['verb']
-        verb = models.Verb.objects.filter(verb_id=verb_id)
-        if verb:
-            args['verb'] = verb
-        else:
-            return []
-
-    # If searching by registration
-    if 'registration' in the_dict:
-        uuid = str(the_dict['registration'])
-        cntx = models.context.objects.filter(registration=uuid)
-        if cntx:
-            args['context'] = cntx
-        else:
-            return []
-
-    # If searching by actor
-    if 'actor' in the_dict:
-        actor_data = the_dict['actor']
-        actor = parse_incoming_actor(actor_data)
-        if actor:
-            args['actor'] = actor
-        else:
-            return []
-
-    # If searching by instructor
-    if 'instructor' in the_dict:
-        inst_data = the_dict['instructor']
-        inst = parse_incoming_instructor(inst_data)
-        if inst:
-            args['context__in'] = inst
-        else:
-            return []
-
-    limit = 0    
-    # If want results limited
-    if 'limit' in the_dict:
-        limit = int(the_dict['limit'])
-   
-    sparse = True    
-    # If want sparse results
-    if 'sparse' in the_dict:
-        # If sparse input as string
-        if not type(the_dict['sparse']) is bool:
-            if the_dict['sparse'].lower() == 'false':
-                sparse = False
-        else:
-            sparse = the_dict['sparse']
+    sinceq = None
+    if 'since' in the_dict:
+        sinceq = Q(stored__gt=convert_to_utc(the_dict['since']))
+        stmtset = stmtset.filter(sinceq)
+    untilq = None
+    if 'until' in the_dict:
+        untilq = Q(stored__lte=convert_to_utc(the_dict['until']))
+        stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
     if 'statements_mine_only' in the_dict:
-        args['authority'] = the_dict['auth']
+        stmtset = stmtset.filter(authority=the_dict['auth'])
 
-    # Set stored param based on ascending
-    if ascending:
-        stored_param = 'stored'
-    else:
-        stored_param = '-stored'
+    agentQ = Q()
+    if 'agent' in the_dict:
+        reffilter = True
+        agent = None
+        data = the_dict['agent']
+        related = 'related_agents' in the_dict and bt(the_dict['related_agents'])
+        
+        if not type(data) is dict:
+            data = convert_to_dict(data)
+        
+        try:
+            agent = Agent.Agent(data).agent
+            if agent.objectType == "Group":
+                groups = []
+            else:
+                groups = agent.member.all()
+            agentQ = Q(actor=agent)
+            for g in groups:
+                agentQ = agentQ | Q(actor=g)
+            if related:
+                me = chain([agent], groups)
+                for a in me:
+                    agentQ = agentQ | Q(stmt_object=a) | Q(authority=a) \
+                          | Q(context__instructor=a) | Q(context__team=a) \
+                          | Q(stmt_object__substatement__actor=a) \
+                          | Q(stmt_object__substatement__stmt_object=a) \
+                          | Q(stmt_object__substatement__context__instructor=a) \
+                          | Q(stmt_object__substatement__context__team=a)       
+        except models.IDNotFoundError:
+            return[]     
+    
+    verbQ = Q()
+    if 'verb' in req_dict:
+        reffilter = True
+        verbQ = Q(verb__verb_id=the_dict['verb'])
+        
+    # activity
+    activityQ = Q()
+    if 'activity' in the_dict:
+        reffilter = True
+        activityQ = Q(stmt_object__activity__activity_id=the_dict['activity'])
+        if 'related_activities' in the_dict and bt(the_dict['related_activities']):
+            activityQ = activityQ | Q(context__contextactivity__context_activity__activity_id=the_dict['activity']) \
+                    | Q(stmt_object__substatement__stmt_object__activity__activity_id=the_dict['activity']) \
+                    | Q(stmt_object__substatement__context__contextactivity__context_activity__activity_id=the_dict['activity'])
 
-    # don't return voided statements
-    args['voided'] = False        
 
-    stmt_list = retrieve_stmts_from_db(the_dict, limit, stored_param, args)
+    registrationQ = Q()
+    if 'registration' in the_dict:
+        reffilter = True
+        registrationQ = Q(context__registration=the_dict['registration'])
 
-    # For each stmt convert to our Statement class and retrieve all json
+    format = the_dict['format']
+    
+    # attachments
+    
+    # Set language if one
+    # pull from req_dict since language is from a header, not an arg 
+    language = None
+    if 'format' in req_dict and req_dict['format'] == "canonical":
+        if 'language' in req_dict:
+            language = req_dict['language']
+        else:
+            language = settings.LANGUAGE_CODE
+
+    # If want ordered by ascending
+    stored_param = '-stored'
+    if 'ascending' in the_dict and bt(the_dict['ascending']):
+            stored_param = 'stored'
+
+    stmtset = stmtset.filter(agentQ & verbQ & activityQ & registrationQ)
+    # only find references when a filter other than
+    # since, until, or limit was used 
+    if reffilter:
+        stmtset = findstmtrefs(stmtset.distinct(), sinceq, untilq)
+    stmt_list = stmtset.order_by(stored_param)
+    # For each stmt retrieve all json
     full_stmt_list = []
-    full_stmt_list = [stmt.object_return(sparse, language) for stmt in stmt_list]
+    full_stmt_list = [stmt.object_return(language, format) for stmt in stmt_list]
     return full_stmt_list
+
+def findstmtrefs(stmtset, sinceq, untilq):
+    if stmtset.count() == 0:
+        return stmtset
+    q = Q()
+    for s in stmtset:
+        q = q | Q(stmt_object__statementref__ref_id=s.statement_id)
+
+    if sinceq and untilq:
+        q = q & Q(sinceq, untilq)
+    elif sinceq:
+        q = q & sinceq
+    elif untilq:
+        q = q & untilq
+    # finally weed out voided statements in this lookup
+    q = q & Q(voided=False)
+    return findstmtrefs(models.statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
 
 def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key

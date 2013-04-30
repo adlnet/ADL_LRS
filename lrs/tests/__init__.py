@@ -10,3 +10,4 @@ from StatementModelsTests import *
 from StatementsMoreTests import *
 from OAuthTests import *
 from AuthTests import *
+from StatementFilterTests import *

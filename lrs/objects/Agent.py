@@ -42,6 +42,13 @@ class Agent():
                     params.pop('member', None)
                 # If retreiving agents always get global version                
                 params['global_representation'] = True
+                # gotta get account info right for this..
+                if 'account' in params:
+                    acc = params.pop('account')
+                    if 'homePage' in acc:
+                        params['agent_account__homePage'] = acc['homePage']
+                    if 'name' in acc:
+                        params['agent_account__name'] = acc['name']
                 self.agent = ag.objects.get(**params)
                 log_message(self.log_dict, "Retrieved %s from database" % self.agent.objectType, __name__, self.__init__.__name__)
 

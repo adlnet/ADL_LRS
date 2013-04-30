@@ -159,6 +159,18 @@ def statements_more_get(r_dict):
 @log_parent_action(method='GET', endpoint='statements')
 @check_oauth
 def statements_get(r_dict):
+    formats = ['exact', 'canonical', 'ids']
+    if 'format' in r_dict:
+        if r_dict['format'] not in formats:
+            raise ParamError("The format filter value (%s) was not one of the known values: %s" % (r_dict['format'], ','.join(formats)))
+    else:
+        r_dict['format'] = 'exact'
+
+    # if this was the weird POST/GET then put the format in the body
+    # so that retrieve_statement finds it
+    if 'body' in r_dict:
+        r_dict['body']['format'] = r_dict['format']        
+    
     if 'statementId' in r_dict or 'voidedStatementId' in r_dict:
         if 'statementId' in r_dict and 'voidedStatementId' in r_dict:
             err_msg = "Cannot have both statementId and voidedStatementId in a GET request"
