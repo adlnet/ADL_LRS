@@ -944,7 +944,7 @@ class StatementsTests(TestCase):
             "actor":{"name":"tom creighton","mbox":"mailto:tom@example.com"}})
 
         path = '%s?%s' % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
-        put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.2.1")
+        put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.")
         self.assertEqual(put_stmt.status_code, 400)
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp and stored fields
@@ -969,7 +969,7 @@ class StatementsTests(TestCase):
             "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
             "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
-            "url": "http://some/activity/url",
+            "moreInfo": "http://some/activity/url",
             "interactionType": "choice",
             "correctResponsesPattern": ["golf", "tetris"],
             "choices":[{"id": "golf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
@@ -1038,7 +1038,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['object']['definition']['name']['en-US'], 'actName')
         self.assertEqual(the_returned['object']['definition']['name']['en-GB'], 'anotherActName')
         self.assertEqual(the_returned['object']['definition']['type'], 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction')
-        self.assertEqual(the_returned['object']['definition']['url'], 'http://some/activity/url')
+        self.assertEqual(the_returned['object']['definition']['moreInfo'], 'http://some/activity/url')
         self.assertEqual(the_returned['object']['definition']['extensions']['ext:key1'], 'value1')
         self.assertEqual(the_returned['object']['definition']['extensions']['ext:key2'], 'value2')
         self.assertEqual(the_returned['object']['definition']['extensions']['ext:key3'], 'value3')

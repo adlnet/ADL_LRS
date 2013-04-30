@@ -25,104 +25,107 @@ logger = logging.getLogger(__name__)
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def home(request):
     lrs_data = { 
-        "xapi": {
-            "version": "0.95",
-            "statements":
-            {
-                "name": "Statements",
-                "methods": ["GET", "POST", "PUT"],
-                "endpoint": reverse('lrs.views.statements'),
-                "description": "Endpoint to submit and retrieve XAPI statments.",
-                "content-types": []
+        "version": "1.0.0",
+        "Extensions":{
+            "xapi": {
+                "statements":
+                {
+                    "name": "Statements",
+                    "methods": ["GET", "POST", "PUT"],
+                    "endpoint": reverse('lrs.views.statements'),
+                    "description": "Endpoint to submit and retrieve XAPI statments.",
+                    "content-types": []
+                },
+                "activities":
+                {
+                    "name": "Activities",
+                    "methods": ["GET"],
+                    "endpoint": reverse('lrs.views.activities'),
+                    "description": "Endpoint to retrieve a complete activity object.",
+                    "content-types": []
+                },
+                "activities_state":
+                {
+                    "name": "Activities State",
+                    "methods": ["PUT","POST","GET","DELETE"],
+                    "endpoint": reverse('lrs.views.activity_state'),
+                    "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
+                    "content-types": []
+                },
+                "activities_profile":
+                {
+                    "name": "Activities Profile",
+                    "methods": ["PUT","POST","GET","DELETE"],
+                    "endpoint": reverse('lrs.views.activity_profile'),
+                    "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
+                    "content-types": []
+                },
+                "agents":
+                {
+                    "name": "Agents",
+                    "methods": ["GET"],
+                    "endpoint": reverse('lrs.views.agents'),
+                    "description": "Returns a special, Person object for a specified agent.",
+                    "content-types": []
+                },
+                "agents_profile":
+                {
+                    "name": "Agent Profile",
+                    "methods": ["PUT","POST","GET","DELETE"],
+                    "endpoint": reverse('lrs.views.agent_profile'),
+                    "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
+                    "content-types": []
+                }
             },
-            "activities":
-            {
-                "name": "Activities",
-                "methods": ["GET"],
-                "endpoint": reverse('lrs.views.activities'),
-                "description": "Endpoint to retrieve a complete activity object.",
-                "content-types": []
+            "lrs":{
+                "user_register":
+                {
+                    "name": "User Registration",
+                    "methods": ["POST"],
+                    "endpoint": reverse('lrs.views.register'),
+                    "description": "Registers a user within the LRS.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                },
+                "client_register":
+                {
+                    "name": "Client Registration",
+                    "methods": ["POST"],
+                    "endpoint": reverse('lrs.views.reg_client'),
+                    "description": "Registers a client applicaton with the LRS.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                }
             },
-            "activities_state":
+            "oauth":
             {
-                "name": "Activities State",
-                "methods": ["PUT","POST","GET","DELETE"],
-                "endpoint": reverse('lrs.views.activity_state'),
-                "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
-                "content-types": []
-            },
-            "activities_profile":
-            {
-                "name": "Activities Profile",
-                "methods": ["PUT","POST","GET","DELETE"],
-                "endpoint": reverse('lrs.views.activity_profile'),
-                "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
-                "content-types": []
-            },
-            "agents":
-            {
-                "name": "Agents",
-                "methods": ["GET"],
-                "endpoint": reverse('lrs.views.agents'),
-                "description": "Returns a special, Person object for a specified agent.",
-                "content-types": []
-            },
-            "agents_profile":
-            {
-                "name": "Agent Profile",
-                "methods": ["PUT","POST","GET","DELETE"],
-                "endpoint": reverse('lrs.views.agent_profile'),
-                "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
-                "content-types": []
-            }
-        },
-        "lrs":{
-            "user_register":
-            {
-                "name": "User Registration",
-                "methods": ["POST"],
-                "endpoint": reverse('lrs.views.register'),
-                "description": "Registers a user within the LRS.",
-                "content-types": ["application/x-www-form-urlencoded"]
-            },
-            "client_register":
-            {
-                "name": "Client Registration",
-                "methods": ["POST"],
-                "endpoint": reverse('lrs.views.reg_client'),
-                "description": "Registers a client applicaton with the LRS.",
-                "content-types": ["application/x-www-form-urlencoded"]
-            }
-        },
-        "oauth":
-        {
-            "initiate":
-            {
-                "name": "Oauth Initiate",
-                "methods": ["POST"],
-                "endpoint": reverse('oauth_provider.views.request_token'),
-                "description": "Authorize a client and return temporary credentials.",
-                "content-types": ["application/x-www-form-urlencoded"]
-            },
-            "authorize":
-            {
-                "name": "Oauth Authorize",
-                "methods": ["GET"],
-                "endpoint": reverse('oauth_provider.views.user_authorization'),
-                "description": "Authorize a user.",
-                "content-types": []
-            },
-            "token":
-            {
-                "name": "Oauth Token",
-                "methods": ["POST"],
-                "endpoint": reverse('oauth_provider.views.access_token'),
-                "description": "Provides Oauth token to the client.",
-                "content-types": ["application/x-www-form-urlencoded"]
+                "initiate":
+                {
+                    "name": "Oauth Initiate",
+                    "methods": ["POST"],
+                    "endpoint": reverse('oauth_provider.views.request_token'),
+                    "description": "Authorize a client and return temporary credentials.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                },
+                "authorize":
+                {
+                    "name": "Oauth Authorize",
+                    "methods": ["GET"],
+                    "endpoint": reverse('oauth_provider.views.user_authorization'),
+                    "description": "Authorize a user.",
+                    "content-types": []
+                },
+                "token":
+                {
+                    "name": "Oauth Token",
+                    "methods": ["POST"],
+                    "endpoint": reverse('oauth_provider.views.access_token'),
+                    "description": "Provides Oauth token to the client.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                }
             }
         }
     }
-    if "application/json" in request.accepted_types:
+
+    if "application/json" in request.accepted_types or 'about' in request.path:
         return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
     return render_to_response('home.html', {"lrs_data": lrs_data}, context_instance=RequestContext(request))
 
@@ -391,8 +394,8 @@ def handle_request(request, more_id=None):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    # except Exception as err:
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements).lower() : {

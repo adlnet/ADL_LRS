@@ -72,14 +72,14 @@ class Activity():
         return act_json
 
     #Save activity definition to DB
-    def save_activity_definition_to_db(self,act_def_type, intType, url):
+    def save_activity_definition_to_db(self,act_def_type, intType, moreInfo):
         created = True
         try:
             self.activity.activity_definition
             created = False
         except:
             actdef = models.activity_definition(activity_definition_type=act_def_type,
-                  interactionType=intType, activity=self.activity, url=url)
+                  interactionType=intType, activity=self.activity, moreInfo=moreInfo)
             actdef.save()
 
         if created:
@@ -331,7 +331,7 @@ class Activity():
             interaction_flag = self.validate_cmi_interaction(act_def, act_created)
 
         act_def_created = self.save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', ''),
-            act_def.get('url', ''))
+            act_def.get('moreInfo', ''))
 
         if not act_created: 
             if self.activity.authoritative == '' or self.activity.authoritative == self.auth:

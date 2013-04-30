@@ -270,10 +270,6 @@ class Statement():
         return self.saveResultToDB(result, resultExts)
 
     def populateContext(self, stmt_data):
-        instructor = False
-        team = False
-        revision = True
-        platform = True
         contextExts = {}
         log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
 
