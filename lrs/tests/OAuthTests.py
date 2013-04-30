@@ -814,7 +814,7 @@ class OAuthTests(TestCase):
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="1.0")
         self.assertEqual(putResponse.status_code, 204)
-
+        
         param = {"statementId":guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
@@ -942,7 +942,7 @@ class OAuthTests(TestCase):
         get = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="1.0")
         get_content = json.loads(get.content)
-        
+
         self.assertEqual(get.status_code, 200)
         self.assertEqual(get_content['statements'][0]['actor']['name'], 'bill')
         self.assertEqual(len(get_content['statements']), 1)
@@ -1198,7 +1198,7 @@ class OAuthTests(TestCase):
         self.assertTrue(tim.global_representation)
 
         # START GET STMT
-        get_params = {"object":{"objectType": "Agent", "mbox":"mailto:tim@tim.com"}}
+        get_params = {"agent":{"objectType": "Agent", "mbox":"mailto:tim@tim.com"}, "related_agents":True}
         path = "%s?%s" % (url, urllib.urlencode(get_params)) 
 
         del oauth_header_resource_params_dict['statementId']

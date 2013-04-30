@@ -411,7 +411,7 @@ class agentmgr(models.Manager):
         if not define:
             kwargs['global_representation'] = False
         ret_agent = agent(**kwargs)
-        ret_agent.full_clean(exclude='subclass, content_type, content_object, object_id')
+        ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
         ret_agent.save()
         return ret_agent, True
 
@@ -443,7 +443,7 @@ class agentmgr(models.Manager):
                 if not define:
                     kwargs['global_representation'] = False
                 ret_agent = agent(**kwargs)
-            ret_agent.full_clean(exclude='subclass, content_type, content_object, object_id')
+            ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
             ret_agent.save()
             acc = agent_account(agent=ret_agent, **account)
             acc.save()
@@ -525,13 +525,20 @@ class agentmgr(models.Manager):
         ret_agent.save()
         return ret_agent, created
 
+    def oauth_group(self, **kwargs):
+        try:
+            g = agent.objects.get(oauth_identifier=kwargs['oauth_identifier'])
+            return g, False
+        except:
+            return agent.objects.gen(**kwargs)
+
 class agent(statement_object):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
     mbox = models.CharField(max_length=128, blank=True, db_index=True)
     mbox_sha1sum = models.CharField(max_length=40, blank=True, db_index=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
-    oauth_identifier = models.CharField(max_length=64, blank=True)
+    oauth_identifier = models.CharField(max_length=192, blank=True, db_index=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     global_representation = models.BooleanField(default=True)
     objects = agentmgr()

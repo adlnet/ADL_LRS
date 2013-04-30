@@ -1367,7 +1367,6 @@ class StatementsTests(TestCase):
         self.bunchostmts()
         r = self.client.get(reverse(views.statements), Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(r.status_code, 200)
-        print(r['X-Experience-API-Consistent-Through'])
         s = models.statement.objects.all().order_by('-stored')[0]
         self.assertEqual(r['X-Experience-API-Consistent-Through'], str(s.stored))
         
