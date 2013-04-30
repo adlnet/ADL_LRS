@@ -1156,7 +1156,7 @@ class statement(models.Model):
         on_delete=models.SET_NULL)
     voided = models.NullBooleanField(default=False)
     context = models.OneToOneField(context, related_name="statement_context", null=True, on_delete=models.SET_NULL)
-    version = models.CharField(max_length=7, default="1.0")
+    version = models.CharField(max_length=7, default="1.0.0")
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
 
     def get_a_name(self):

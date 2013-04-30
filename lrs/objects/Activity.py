@@ -66,6 +66,9 @@ class Activity():
             except Exception, e:
                 # Resolves but no data to retrieve - this is OK
                 log_message(self.log_dict, "No JSON data retrieved from activity ID that resolves.", __name__, self.get_data_from_act_id.__name__)
+            else:
+                pass
+                # TODO - SET HTTP HEADER Accept: application/json, /
         return act_json
 
     #Save activity definition to DB
