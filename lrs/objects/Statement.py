@@ -169,17 +169,13 @@ class Statement():
             if 'objectType' in stmt_data:
                 if stmt_data['objectType'] == 'StatementRef':
                     stmt_ref = models.StatementRef.objects.create(ref_id=stmt_data['id'], content_object=cntx)
-                elif stmt_data['objectType'] == 'SubStatement':
-                    sub_stmt = SubStatement(stmt_data, self.auth, self.log_dict).model_object
-                    sub_stmt.content_object = cntx
-                    sub_stmt.save()
                 else:
-                    err_msg = "Statement in context must be SubStatement or StatementRef"
+                    err_msg = "Statement in context must be StatementRef"
                     log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
                     update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)                    
             else:
-                err_msg = "Statement in context must contain an objectType"
+                err_msg = "Statement in context must contain the objectType"
                 log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
                 update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)

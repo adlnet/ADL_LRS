@@ -510,32 +510,13 @@ class StatementModelsTests(TestCase):
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
 
     def test_substmt_in_context_stmt(self):
-        stmt_guid = str(uuid.uuid1())
-
-        guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
+                'context':{'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'statement': {'objectType':'SubStatement', 'actor':{'objectType':'Agent',
                 'mbox':'mailto:sss@sss.com'},'verb':{'id':'verb:verb/url/nest/nest'},
                 'object':{'id':'act://activity/url'}}}}))
-
-        activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.context.objects.get(id=ctxid)
-        sub_stmt = models.SubStatement.objects.get(id=context.statement.all()[0].id)
-
-        st = models.statement.objects.get(id=stmt.model_object.id)
-
-        self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
-
-        self.assertEqual(context.registration, guid)
-        self.assertEqual(context.revision, 'foo')
-        self.assertEqual(context.platform, 'bar')
-        self.assertEqual(context.language, 'en-US')
-        self.assertEqual(sub_stmt.verb.verb_id, "verb:verb/url/nest/nest")
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
