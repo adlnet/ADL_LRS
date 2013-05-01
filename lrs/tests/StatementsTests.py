@@ -431,6 +431,16 @@ class StatementsTests(TestCase):
         self.assertEqual(getResponse.status_code, 200)
         rsp = getResponse.content
         self.assertIn(self.guid1, rsp)
+        self.assertIn('content-length', getResponse._headers)
+
+    def test_head(self):
+        self.bunchostmts()
+        param = {"statementId":self.guid1}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        head_resp = self.client.head(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(head_resp.status_code, 200)
+        self.assertEqual(head_resp.content, '')
+        self.assertIn('content-length', head_resp._headers)
 
     def test_get_no_existing_ID(self):
         param = {"statementId":"aaaaaa"}
@@ -453,8 +463,14 @@ class StatementsTests(TestCase):
         jsn = json.loads(getResponse.content)
         # Will only return 10 since that is server limit
         self.assertEqual(len(jsn["statements"]), 10)
-        
+        self.assertIn('content-length', getResponse._headers)
 
+    def test_head_no_statementid(self):
+        self.bunchostmts()
+        head_resp = self.client.head(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(head_resp.status_code, 200)
+        self.assertEqual(head_resp.content, '')
+        self.assertIn('content-length', head_resp._headers)
 
     # Sever activities are PUT - contextActivities create 3 more
     def test_number_of_activities(self):

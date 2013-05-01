@@ -31,7 +31,7 @@ def home(request):
                 "statements":
                 {
                     "name": "Statements",
-                    "methods": ["GET", "POST", "PUT"],
+                    "methods": ["GET", "POST", "PUT", "HEAD"],
                     "endpoint": reverse('lrs.views.statements'),
                     "description": "Endpoint to submit and retrieve XAPI statments.",
                     "content-types": []
@@ -39,7 +39,7 @@ def home(request):
                 "activities":
                 {
                     "name": "Activities",
-                    "methods": ["GET"],
+                    "methods": ["GET", "HEAD"],
                     "endpoint": reverse('lrs.views.activities'),
                     "description": "Endpoint to retrieve a complete activity object.",
                     "content-types": []
@@ -47,7 +47,7 @@ def home(request):
                 "activities_state":
                 {
                     "name": "Activities State",
-                    "methods": ["PUT","POST","GET","DELETE"],
+                    "methods": ["PUT","POST","GET","DELETE", "HEAD"],
                     "endpoint": reverse('lrs.views.activity_state'),
                     "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
                     "content-types": []
@@ -55,7 +55,7 @@ def home(request):
                 "activities_profile":
                 {
                     "name": "Activities Profile",
-                    "methods": ["PUT","POST","GET","DELETE"],
+                    "methods": ["PUT","POST","GET","DELETE", "HEAD"],
                     "endpoint": reverse('lrs.views.activity_profile'),
                     "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
                     "content-types": []
@@ -63,7 +63,7 @@ def home(request):
                 "agents":
                 {
                     "name": "Agents",
-                    "methods": ["GET"],
+                    "methods": ["GET", "HEAD"],
                     "endpoint": reverse('lrs.views.agents'),
                     "description": "Returns a special, Person object for a specified agent.",
                     "content-types": []
@@ -71,7 +71,7 @@ def home(request):
                 "agents_profile":
                 {
                     "name": "Agent Profile",
-                    "methods": ["PUT","POST","GET","DELETE"],
+                    "methods": ["PUT","POST","GET","DELETE", "HEAD"],
                     "endpoint": reverse('lrs.views.agent_profile'),
                     "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
                     "content-types": []
@@ -316,38 +316,37 @@ def logout_view(request):
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "HEAD"])
 def statements_more(request, more_id):
     return handle_request(request, more_id)
 
-@require_http_methods(["PUT","GET","POST"])
+@require_http_methods(["PUT","GET","POST", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
     return handle_request(request)   
 
-@require_http_methods(["PUT","POST","GET","DELETE"])
+@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activity_state(request):
     return handle_request(request)  
 
-@require_http_methods(["PUT","POST","GET","DELETE"])
+@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activity_profile(request):
     return handle_request(request)
 
-@require_GET
+@require_http_methods(["GET", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activities(request):
     return handle_request(request)
 
-@require_http_methods(["PUT","POST","GET","DELETE"])    
+@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])    
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agent_profile(request):
     return handle_request(request)
 
 # returns a 405 (Method Not Allowed) if not a GET
-#@require_http_methods(["GET"]) or shortcut
-@require_GET
+@require_http_methods(["GET", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agents(request):
     return handle_request(request)
@@ -376,6 +375,7 @@ def handle_request(request, more_id=None):
 
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
+
     except exceptions.BadRequest as err:
         return HttpResponse(err.message, status=400)
     except ValidationError as ve:
@@ -401,34 +401,41 @@ validators = {
     reverse(statements).lower() : {
         "POST" : req_validate.statements_post,
         "GET" : req_validate.statements_get,
-        "PUT" : req_validate.statements_put
+        "PUT" : req_validate.statements_put,
+        "HEAD" : req_validate.statements_get
     },
     reverse(activity_state).lower() : {
         "POST": req_validate.activity_state_post,
         "PUT" : req_validate.activity_state_put,
         "GET" : req_validate.activity_state_get,
+        "HEAD" : req_validate.activity_state_get,
         "DELETE" : req_validate.activity_state_delete
     },
     reverse(activity_profile).lower() : {
         "POST": req_validate.activity_profile_post,
         "PUT" : req_validate.activity_profile_put,
         "GET" : req_validate.activity_profile_get,
+        "HEAD" : req_validate.activity_profile_get,
         "DELETE" : req_validate.activity_profile_delete
     },
     reverse(activities).lower() : {
-        "GET" : req_validate.activities_get
+        "GET" : req_validate.activities_get,
+        "HEAD" : req_validate.activities_get
     },
     reverse(agent_profile) : {
         "POST": req_validate.agent_profile_post,
         "PUT" : req_validate.agent_profile_put,
         "GET" : req_validate.agent_profile_get,
+        "HEAD" : req_validate.agent_profile_get,
         "DELETE" : req_validate.agent_profile_delete
     },
    reverse(agents).lower() : {
-       "GET" : req_validate.agents_get
+       "GET" : req_validate.agents_get,
+       "HEAD" : req_validate.agents_get
    },
    "/xapi/statements/more" : {
-        "GET" : req_validate.statements_more_get
+        "GET" : req_validate.statements_more_get,
+        "HEAD" : req_validate.statements_more_get
    }
 }
 
@@ -436,34 +443,41 @@ processors = {
     reverse(statements).lower() : {
         "POST" : req_process.statements_post,
         "GET" : req_process.statements_get,
+        "HEAD" : req_process.statements_get,
         "PUT" : req_process.statements_put
     },
     reverse(activity_state).lower() : {
         "POST": req_process.activity_state_post,
         "PUT" : req_process.activity_state_put,
         "GET" : req_process.activity_state_get,
+        "HEAD" : req_process.activity_state_get,
         "DELETE" : req_process.activity_state_delete
     },
     reverse(activity_profile).lower() : {
         "POST": req_process.activity_profile_post,
         "PUT" : req_process.activity_profile_put,
         "GET" : req_process.activity_profile_get,
+        "HEAD" : req_process.activity_profile_get,
         "DELETE" : req_process.activity_profile_delete
     },
     reverse(activities).lower() : {
-        "GET" : req_process.activities_get
+        "GET" : req_process.activities_get,
+        "HEAD" : req_process.activities_get
     },
     reverse(agent_profile).lower() : {
         "POST": req_process.agent_profile_post,
         "PUT" : req_process.agent_profile_put,
         "GET" : req_process.agent_profile_get,
+        "HEAD" : req_process.agent_profile_get,
         "DELETE" : req_process.agent_profile_delete
     },
    reverse(agents).lower() : {
-       "GET" : req_process.agents_get
+       "GET" : req_process.agents_get,
+       "HEAD" : req_process.agents_get
    },
    "/xapi/statements/more" : {
-        "GET" : req_process.statements_more_get
+        "GET" : req_process.statements_more_get,
+        "HEAD" : req_process.statements_more_get
    }      
 }
 

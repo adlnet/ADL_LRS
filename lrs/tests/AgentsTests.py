@@ -33,6 +33,14 @@ class AgentsTests(TestCase):
         self.assertEqual(r_data['mbox'], ['mailto:me@example.com'])
         self.assertEqual(r_data['name'], ['me'])
         self.assertEqual(r_data['objectType'], 'Agent')
+        self.assertIn('content-length', response._headers)
+
+    def test_head(self):
+        a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
+        me = agent.objects.gen(**json.loads(a))
+        response = self.client.head(reverse(views.agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.content, '')
+        self.assertIn('content-length', response._headers)
 
     def test_get_no_agent(self):
         response = self.client.get(reverse(views.agents), Authorization=self.auth, X_Experience_API_Version="1.0.0")

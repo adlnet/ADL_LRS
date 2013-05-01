@@ -67,6 +67,7 @@ def statements_more_get(req_dict):
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
+    resp['Content-Length'] = str(len(json.dumps(statement_result)))
     return resp
 
 def statements_get(req_dict):
@@ -124,6 +125,7 @@ def statements_get(req_dict):
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
+    resp['Content-Length'] = str(len(json.dumps(stmt_result)))
     return resp
 
 def activity_state_post(req_dict):
@@ -150,7 +152,7 @@ def activity_state_put(req_dict):
 
 def activity_state_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     # add ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict, log_dict=log_dict)
@@ -202,7 +204,7 @@ def activity_profile_put(req_dict):
 
 def activity_profile_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     #TODO:need eTag for returning list of IDs?
     # Instantiate ActivityProfile
@@ -243,7 +245,7 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     activityId = req_dict['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
@@ -258,8 +260,10 @@ def activities_get(req_dict):
     for act in act_list:
         full_act_list.append(act.object_return())
 
+    resp = HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
+    resp['Content-Length'] = str(len(json.dumps(full_act_list)))
     update_parent_log_status(log_dict, 200)
-    return HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
+    return resp
 
 def agent_profile_post(req_dict):
     log_dict = req_dict['initial_user_action']    
@@ -287,7 +291,7 @@ def agent_profile_put(req_dict):
 
 def agent_profile_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     # add ETag for concurrency
     agent = req_dict['agent']
@@ -321,11 +325,13 @@ def agent_profile_delete(req_dict):
 
 def agents_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     agent = req_dict['agent']
     a = Agent.Agent(agent,log_dict=log_dict)
-    resp = HttpResponse(a.get_person_json(), mimetype="application/json")
+    agent_data = a.get_person_json()
+    resp = HttpResponse(agent_data, mimetype="application/json")
+    resp['Content-Length'] = str(len(agent_data))
     update_parent_log_status(log_dict, 200)
     return resp
 

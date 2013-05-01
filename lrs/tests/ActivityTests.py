@@ -16,7 +16,6 @@ class ActivityTests(TestCase):
         response = self.client.post(reverse(views.register),form, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_get(self):
-        # pdb.set_trace()
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
@@ -24,7 +23,14 @@ class ActivityTests(TestCase):
         self.assertIn('act:foobar', rsp)
         self.assertIn('Activity', rsp)
         self.assertIn('objectType', rsp)        
-
+        self.assertIn('content-length', response._headers)
+        
+    def test_head(self):
+        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
+        response = self.client.head(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, '')
+        self.assertIn('content-length', response._headers)
 
     def test_get_def(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar1',
@@ -121,7 +127,7 @@ class ActivityTests(TestCase):
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Fill in answer']}}))
-        # pdb.set_trace()
+
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar5'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
         rsp = response.content
@@ -144,7 +150,7 @@ class ActivityTests(TestCase):
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar6'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
         rsp = response.content
-        # pdb.set_trace()
+
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar6', rsp)
         self.assertIn('http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', rsp)
@@ -263,7 +269,6 @@ class ActivityTests(TestCase):
 
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar11'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
-        # pdb.set_trace()
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar11', rsp)
@@ -308,6 +313,9 @@ class ActivityTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_head_wrong_activity(self):
+        response = self.client.head(reverse(views.activities), {'activityId': 'act:act:foo'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 404)
 
     def test_get_no_activity(self):
         response = self.client.get(reverse(views.activities), Authorization=self.auth, X_Experience_API_Version="1.0.0")
