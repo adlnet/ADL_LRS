@@ -287,8 +287,10 @@ class Statement():
         # Revision and platform not applicable if object is agent
         if 'objectType' in stmt_data['object'] and ('agent' == stmt_data['object']['objectType'].lower()
                                                 or 'group' == stmt_data['object']['objectType'].lower()):
-            del stmt_data['context']['revision']
-            del stmt_data['context']['platform']
+            if 'revision' in stmt_data['context']:
+                del stmt_data['context']['revision']
+            if 'platform' in stmt_data['context']:
+                del stmt_data['context']['platform']
 
         # Set extensions
         if 'extensions' in stmt_data['context']:

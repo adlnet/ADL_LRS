@@ -1,6 +1,6 @@
 import re
 from django.http import HttpResponseBadRequest
-
+                    
 class XAPIVersionHeader(object):
     def process_request(self, request):
         try:
@@ -11,9 +11,8 @@ class XAPIVersionHeader(object):
             except:
                 version = request.META.get('X_Experience_API_Version', None)
         if version:
-            regex = re.compile("1\.0\.?\d+")
-            match = regex.match(version)
-            if match:
+            regex = re.compile("^1\.0(\.\d+)?$")
+            if regex.match(version):
                 return None
             else:
                 return HttpResponseBadRequest("X-Experience-API-Version is not supported")
