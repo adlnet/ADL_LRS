@@ -260,8 +260,10 @@ def activities_get(req_dict):
     for act in act_list:
         full_act_list.append(act.object_return())
 
+    resp = HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
+    resp['Content-Length'] = str(len(json.dumps(full_act_list)))
     update_parent_log_status(log_dict, 200)
-    return HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
+    return resp
 
 def agent_profile_post(req_dict):
     log_dict = req_dict['initial_user_action']    
@@ -327,7 +329,9 @@ def agents_get(req_dict):
 
     agent = req_dict['agent']
     a = Agent.Agent(agent,log_dict=log_dict)
-    resp = HttpResponse(a.get_person_json(), mimetype="application/json")
+    agent_data = a.get_person_json()
+    resp = HttpResponse(agent_data, mimetype="application/json")
+    resp['Content-Length'] = str(len(agent_data))
     update_parent_log_status(log_dict, 200)
     return resp
 
