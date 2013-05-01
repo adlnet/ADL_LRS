@@ -67,6 +67,7 @@ def statements_more_get(req_dict):
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
+    resp['Content-Length'] = str(len(json.dumps(statement_result)))
     return resp
 
 def statements_get(req_dict):
@@ -124,6 +125,7 @@ def statements_get(req_dict):
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
+    resp['Content-Length'] = str(len(json.dumps(stmt_result)))
     return resp
 
 def activity_state_post(req_dict):
@@ -150,7 +152,7 @@ def activity_state_put(req_dict):
 
 def activity_state_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     # add ETag for concurrency
     actstate = ActivityState.ActivityState(req_dict, log_dict=log_dict)
@@ -202,7 +204,7 @@ def activity_profile_put(req_dict):
 
 def activity_profile_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     #TODO:need eTag for returning list of IDs?
     # Instantiate ActivityProfile
@@ -243,7 +245,7 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     activityId = req_dict['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
@@ -287,7 +289,7 @@ def agent_profile_put(req_dict):
 
 def agent_profile_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     # add ETag for concurrency
     agent = req_dict['agent']
@@ -321,7 +323,7 @@ def agent_profile_delete(req_dict):
 
 def agents_get(req_dict):
     log_dict = req_dict['initial_user_action']    
-    log_info_processing(log_dict, 'GET', __name__)
+    log_info_processing(log_dict, req_dict['method'], __name__)
 
     agent = req_dict['agent']
     a = Agent.Agent(agent,log_dict=log_dict)

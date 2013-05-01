@@ -34,10 +34,12 @@ def update_log_status(log_dict, status):
     parent_action.status_code = status
     parent_action.save()
 
-def log_parent_action(method, endpoint):
+def log_parent_action(endpoint):
     def inner(func):
         @wraps(func)
         def wrapper(r_dict, *args, **kwargs):
+            # HEAD uses same funcs as GET which passes GET as method
+            method = r_dict['method'] 
             request_time = datetime.utcnow().replace(tzinfo=utc).isoformat()
             if 'auth' in r_dict and r_dict['auth']:
                 user_action = models.SystemAction(level=models.SystemAction.REQUEST, timestamp=request_time,
@@ -75,6 +77,14 @@ def validate_oauth_scope(r_dict):
                     "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
                     "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
                 },
+             'HEAD':{"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                    "/statements/more": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                    "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
+                    "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
+                    "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
+                    "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
+                    "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
+                },   
              'PUT':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
                     "/activities": True if 'all' in scopes or 'define' in scopes else False,
                     "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
@@ -138,13 +148,13 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
             raise Forbidden(err_msg)
 
 @auth
-@log_parent_action(method='POST', endpoint='statements')
+@log_parent_action(endpoint='statements')
 @check_oauth
 def statements_post(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='statements/more')
+@log_parent_action(endpoint='statements/more')
 @check_oauth
 def statements_more_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -156,7 +166,7 @@ def statements_more_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='statements')
+@log_parent_action(endpoint='statements')
 @check_oauth
 def statements_get(r_dict):
     formats = ['exact', 'canonical', 'ids']
@@ -190,7 +200,7 @@ def statements_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='statements')
+@log_parent_action(endpoint='statements')
 @check_oauth
 def statements_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -220,7 +230,7 @@ def statements_put(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='POST', endpoint='activities/state')
+@log_parent_action(endpoint='activities/state')
 @check_oauth
 def activity_state_post(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -277,7 +287,7 @@ def activity_state_post(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='activities/state')
+@log_parent_action(endpoint='activities/state')
 @check_oauth
 def activity_state_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -320,7 +330,7 @@ def activity_state_put(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='activities/state')
+@log_parent_action(endpoint='activities/state')
 @check_oauth
 def activity_state_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -346,7 +356,7 @@ def activity_state_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='DELETE', endpoint='activities/state')
+@log_parent_action(endpoint='activities/state')
 @check_oauth
 def activity_state_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -372,7 +382,7 @@ def activity_state_delete(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='POST', endpoint='activities/profile')
+@log_parent_action(endpoint='activities/profile')
 @check_oauth
 def activity_profile_post(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -415,7 +425,7 @@ def activity_profile_post(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='activities/profile')
+@log_parent_action(endpoint='activities/profile')
 @check_oauth
 def activity_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -447,7 +457,7 @@ def activity_profile_put(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='activities/profile')
+@log_parent_action(endpoint='activities/profile')
 @check_oauth
 def activity_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -461,7 +471,7 @@ def activity_profile_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='DELETE', endpoint='activities/profile')
+@log_parent_action(endpoint='activities/profile')
 @check_oauth
 def activity_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -482,7 +492,7 @@ def activity_profile_delete(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='activities')
+@log_parent_action(endpoint='activities')
 @check_oauth
 def activities_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -496,7 +506,7 @@ def activities_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='POST', endpoint='agents/profile')
+@log_parent_action(endpoint='agents/profile')
 @check_oauth
 def agent_profile_post(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -544,7 +554,7 @@ def agent_profile_post(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='agents/profile')
+@log_parent_action(endpoint='agents/profile')
 @check_oauth
 def agent_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -578,7 +588,7 @@ def agent_profile_put(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='agents/profile')
+@log_parent_action(endpoint='agents/profile')
 @check_oauth
 def agent_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -596,7 +606,7 @@ def agent_profile_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='DELETE', endpoint='agents/profile')
+@log_parent_action(endpoint='agents/profile')
 @check_oauth
 def agent_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -621,7 +631,7 @@ def agent_profile_delete(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='agents')
+@log_parent_action(endpoint='agents')
 @check_oauth
 def agents_get(r_dict):
     log_dict = r_dict['initial_user_action']
