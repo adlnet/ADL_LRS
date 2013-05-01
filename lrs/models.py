@@ -456,8 +456,6 @@ class agentmgr(models.Manager):
         # define key is not true
         define = kwargs.pop('define', True)
 
-        #pdb.set_trace()
-
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
         # Find any IFPs
@@ -776,7 +774,7 @@ class activity_definition(models.Model):
     name = generic.GenericRelation(name_lang, related_name="name_lang")
     description = generic.GenericRelation(desc_lang, related_name="desc_lang")
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    url = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     interactionType = models.CharField(max_length=25, blank=True)
     activity = models.OneToOneField(activity)
     extensions = generic.GenericRelation(extensions)
@@ -799,8 +797,8 @@ class activity_definition(models.Model):
 
         ret['type'] = self.activity_definition_type
         
-        if self.url != '':
-            ret['url'] = self.url
+        if self.moreInfo != '':
+            ret['moreInfo'] = self.moreInfo
 
         if self.interactionType != '':
             ret['interactionType'] = self.interactionType
@@ -1151,7 +1149,7 @@ class statement(models.Model):
         on_delete=models.SET_NULL)
     voided = models.NullBooleanField(default=False)
     context = models.OneToOneField(context, related_name="statement_context", null=True, on_delete=models.SET_NULL)
-    version = models.CharField(max_length=7, default="1.0")
+    version = models.CharField(max_length=7, default="1.0.0")
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
 
     def get_a_name(self):

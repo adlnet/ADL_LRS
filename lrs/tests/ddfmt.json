@@ -2696,7 +2696,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 1
         }
@@ -2706,7 +2706,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 3
         }
@@ -2716,7 +2716,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 4
         }
@@ -2726,7 +2726,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 5
         }
@@ -2736,7 +2736,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 6
         }
@@ -2746,7 +2746,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 7
         }
@@ -2756,7 +2756,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 8
         }
@@ -2766,7 +2766,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 9
         }
@@ -2776,7 +2776,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 10
         }
@@ -2786,7 +2786,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 11
         }
@@ -2796,7 +2796,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 12
         }
@@ -2806,7 +2806,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 13
         }
@@ -2816,7 +2816,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 14
         }
@@ -2826,7 +2826,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 15
         }
@@ -2836,7 +2836,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 16
         }
@@ -2846,7 +2846,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 17
         }
@@ -2856,7 +2856,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 18
         }
@@ -2866,7 +2866,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 19
         }
@@ -2876,7 +2876,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "media", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 20
         }
@@ -2886,7 +2886,7 @@
         "model": "lrs.activity_definition", 
         "fields": {
             "activity_definition_type": "virtual object", 
-            "url": "", 
+            "moreInfo": "", 
             "interactionType": "", 
             "activity": 21
         }
