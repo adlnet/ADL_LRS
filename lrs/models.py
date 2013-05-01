@@ -451,6 +451,9 @@ class agentmgr(models.Manager):
         return ret_agent, created
 
     def gen(self, **kwargs):
+        types = ['Agent', 'Group']
+        if 'objectType' in kwargs and kwargs['objectType'] not in types:
+            raise ParamError('objectType must be: %s' % ' or '.join(types))
         # Gen will only get called from Agent or Authorization. Since global is true by default and
         # Agent always sets the define key based off of the oauth scope, default this to True if the
         # define key is not true
