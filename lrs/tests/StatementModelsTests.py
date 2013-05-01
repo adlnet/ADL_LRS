@@ -205,7 +205,7 @@ class StatementModelsTests(TestCase):
 
     def test_result_ext_stmt(self):
         time = "P0Y0M0DT1H311M01S"
-        stmt = Statement.Statement(json.dumps({"actor":{'objectType':'Person','name':'jon',
+        stmt = Statement.Statement(json.dumps({"actor":{'name':'jon',
             'mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
@@ -235,6 +235,7 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(actor.name, 'jon')
         self.assertEqual(actor.mbox, 'mailto:jon@example.com')
+        self.assertEqual(actor.objectType, 'Agent')
 
         self.assertIn('ext:key1', extKeys)
         self.assertIn('ext:key2', extKeys)

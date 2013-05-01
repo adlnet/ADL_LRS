@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.core.urlresolvers import reverse
 from lrs import views
 from lrs.models import statement
+from lrs.objects.Statement import Statement
 from django.conf import settings
 import json
 import base64
@@ -14,47 +15,139 @@ from lrs.util import convert_to_utc
 
 class StatementFilterTests(TestCase):
 
-    def _pre_setup(self):
-        root = os.path.dirname(os.path.realpath(__file__))
-        loc = os.path.join(root, 'ddfmt.json')
-        self.fixtures = [loc,]
+    def setUp(self):
         self.saved_stmt_limit=settings.SERVER_STMT_LIMIT
         settings.SERVER_STMT_LIMIT=100
         self.username = "tom"
         self.email = "tom@example.com"
         self.password = "1234"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-        super(StatementFilterTests, self)._pre_setup()
 
-    def _post_teardown(self):
+        form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0")
+
+    def tearDown(self):
         settings.SERVER_STMT_LIMIT=self.saved_stmt_limit
-        super(StatementFilterTests, self)._post_teardown()
-    
-    def test_fixture(self):
-        r = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0", Authorization=self.auth)
-        objs = json.loads(r.content)
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(objs['statements']), len(statement.objects.all()))
 
     def test_limit_filter(self):
         # Test limit
-        limitGetResponse = self.client.post(reverse(views.statements),{"limit":9}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
+        for i in range(1,4):
+            Statement(json.dumps({"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}))
+        limitGetResponse = self.client.post(reverse(views.statements),{"limit":2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(limitGetResponse.status_code, 200)
         rsp = limitGetResponse.content
         respList = json.loads(rsp)
         stmts = respList["statements"]
-        self.assertEqual(len(stmts), 9)    
+        self.assertEqual(len(stmts), 2)    
 
     def test_get_id(self):
-        sid = statement.objects.get(verb__verb_id="http://adlnet.gov/xapi/verbs/completed").statement_id
+        Statement(json.dumps({
+            "timestamp": "2013-04-08 21:07:11.459000+00:00", 
+            "object": { 
+                "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            },
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "display": {
+                    "en-US": "passed"
+                }
+            }, 
+            "result": {
+                "score": {
+                    "raw": 1918560.0, 
+                    "min": 0.0
+                }, 
+                "extensions": {
+                    "ext:apm": "241", 
+                    "ext:lines": "165", 
+                    "ext:time": "1119"
+                }
+            }, 
+            "context": {
+                "contextActivities": {
+                    "grouping": {
+                        "id": "act:adlnet.gov/JsTetris_TCAPI"
+                    }
+                }
+            }
+        }))
+        sid = statement.objects.get(verb__verb_id="http://adlnet.gov/xapi/verbs/passed(to_go_beyond)").statement_id
         param = {"statementId":sid}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
-        self.assertEqual(obj['result']['score']['raw'], 1918560)
+        self.assertEqual(obj['result']['score']['raw'], 1918560.0)
 
     def test_agent_filter(self):
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
+                "display": {
+                    "en-US": "nixed"
+                }
+            }, 
+            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "object": {
+                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "object": {
+                    "id": "act:adlnet.gov/website", 
+                    "objectType": "Activity"
+                }, 
+                "actor": {
+                    "mbox": "mailto:louo@example.com", 
+                    "name": "louo", 
+                    "objectType": "Agent"
+                }, 
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/hacked", 
+                    "display": {
+                        "en-US": "hax0r5"
+                    }
+                }, 
+                "objectType": "SubStatement"
+            }, 
+            "actor": {
+                "mbox": "mailto:timmy@example.com", 
+                "name": "timmy", 
+                "objectType": "Agent"
+            }
+        }))
+        Statement(json.dumps({
+            "timestamp": "2013-04-08 21:07:20.392000+00:00", 
+            "object": { 
+                "id": "act:adlnet.gov/JsTetris_TCAPI", 
+                "objectType": "Activity"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom", 
+                "objectType": "Agent"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/completed", 
+                "display": {
+                    "en-US": "finished"
+                }
+            }, 
+            "result": {
+                "score": {
+                    "raw": 1918560.0, 
+                    "min": 0.0
+                }, 
+                "extensions": {
+                    "ext:level": "19", 
+                    "ext:apm": "241", 
+                    "ext:lines": "165", 
+                    "ext:time": "1128"
+                }
+            }
+        }))
+
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -69,6 +162,78 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
     def test_group_as_agent_filter(self):
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/started", 
+                "display": {
+                    "en-US": "started"
+                }
+            },
+            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "object": {
+                "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev", 
+                "objectType": "Activity"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:louo@example.com", 
+                        "name": "louo", 
+                        "objectType": "Agent"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom", 
+                        "objectType": "Agent"
+                    }
+                ], 
+                "mbox": "mailto:adllrsdevs@example.com", 
+                "name": "adl lrs developers", 
+                "objectType": "Group"
+            }
+        }))
+        Statement(json.dumps({
+            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "object": {
+                "mbox": "mailto:louo@example.com", 
+                "name": "louo", 
+                "objectType": "Agent"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:blobby@example.com", 
+                        "name": "blobby", 
+                        "objectType": "Agent"
+                    }, 
+                    {
+                        "mbox": "mailto:timmy@example.com", 
+                        "name": "timmy", 
+                        "objectType": "Agent"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom", 
+                        "objectType": "Agent"
+                    }
+                ], 
+                "name": "the tourists", 
+                "objectType": "Group"
+            },
+            "verb": {
+                "id": "http://imaginarium.adlnet.org/xapi/verbs/sighted", 
+                "display": {
+                    "en-US": "sighted"
+                }
+            },
+            "context": {
+                "contextActivities": {
+                    "parent": {
+                        "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                    }
+                }
+            }
+        }))
         param = {"agent":{"mbox":"mailto:adllrsdevs@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -81,6 +246,102 @@ class StatementFilterTests(TestCase):
             self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
 
     def test_related_agents_filter(self):
+        Statement(json.dumps({
+            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "object": {
+                "mbox": "mailto:louo@example.com", 
+                "name": "louo", 
+                "objectType": "Agent"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:blobby@example.com", 
+                        "name": "blobby"
+                    }, 
+                    {
+                        "mbox": "mailto:timmy@example.com", 
+                        "name": "timmy"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom"
+                    }
+                ], 
+                "name": "the tourists", 
+                "objectType": "Group"
+            },
+            "verb": {
+                "id": "http://imaginarium.adlnet.org/xapi/verbs/sighted", 
+                "display": {
+                    "en-US": "sighted"
+                }
+            },
+            "context": {
+                "contextActivities": {
+                    "parent": {
+                        "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                    }
+                }
+            }
+        }))
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/started", 
+                "display": {
+                    "en-US": "started"
+                }
+            }, 
+            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "object": {
+                "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:louo@example.com", 
+                        "name": "louo"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom"
+                    }
+                ], 
+                "mbox": "mailto:adllrsdevs@example.com", 
+                "name": "adl lrs developers", 
+                "objectType": "Group"
+            }
+        }))
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
+                "display": {
+                    "en-US": "nixed"
+                }
+            },
+            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "object": {
+                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "object": {
+                    "id": "act:adlnet.gov/website"
+                }, 
+                "actor": {
+                    "mbox": "mailto:louo@example.com", 
+                    "name": "louo"
+                }, 
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/hacked", 
+                    "display": {
+                        "en-US": "hax0r5"
+                    }
+                }, 
+                "objectType": "SubStatement"
+            }, 
+            "actor": {
+                "mbox": "mailto:timmy@example.com", 
+                "name": "timmy"
+            }
+        }))
         param = {"agent":{"mbox":"mailto:louo@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -95,9 +356,98 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertEqual(len(stmts), 6)
+        self.assertEqual(len(stmts), 3)
 
     def test_agent_filter_since_and_until(self):
+        batch = [
+        {
+            "timestamp": "2013-04-08 17:51:38.118000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "display": {"en-US": "started"}
+            }
+        }, 
+        {
+            "timestamp": "2013-04-08 17:52:31.209000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "display": {"en-US": "started"}
+            }
+        }, 
+        {
+            "timestamp": "2013-04-08 20:47:08.626000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "display": {"en-US": "started"}
+            }
+        }, 
+        {
+            "timestamp": "2013-04-08 20:47:36.129000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI/level1"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "display": {"en-US": "passed"}
+            }
+        }, 
+        {
+            "timestamp": "2013-04-08 20:48:50.090000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI/level2"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            },
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "display": {"en-US": "passed"}
+            }
+        }, 
+        {
+            "timestamp": "2013-04-08 20:49:27.109000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI/level3"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            },
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "display": {"en-US": "passed"}
+            }
+        }]
+
+        for s in batch:
+            Statement(json.dumps(s))
+
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -172,6 +522,102 @@ class StatementFilterTests(TestCase):
         self.assertItemsEqual(slice_ids, same)
 
     def test_related_agents_filter_until(self):
+        Statement(json.dumps({
+            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "object": {
+                "mbox": "mailto:louo@example.com", 
+                "name": "louo", 
+                "objectType": "Agent"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:blobby@example.com", 
+                        "name": "blobby"
+                    }, 
+                    {
+                        "mbox": "mailto:timmy@example.com", 
+                        "name": "timmy"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom"
+                    }
+                ], 
+                "name": "the tourists", 
+                "objectType": "Group"
+            },
+            "verb": {
+                "id": "http://imaginarium.adlnet.org/xapi/verbs/sighted", 
+                "display": {
+                    "en-US": "sighted"
+                }
+            },
+            "context": {
+                "contextActivities": {
+                    "parent": {
+                        "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                    }
+                }
+            }
+        }))
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/started", 
+                "display": {
+                    "en-US": "started"
+                }
+            }, 
+            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "object": {
+                "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:louo@example.com", 
+                        "name": "louo"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom"
+                    }
+                ], 
+                "mbox": "mailto:adllrsdevs@example.com", 
+                "name": "adl lrs developers", 
+                "objectType": "Group"
+            }
+        }))
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
+                "display": {
+                    "en-US": "nixed"
+                }
+            },
+            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "object": {
+                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "object": {
+                    "id": "act:adlnet.gov/website"
+                }, 
+                "actor": {
+                    "mbox": "mailto:louo@example.com", 
+                    "name": "louo"
+                }, 
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/hacked", 
+                    "display": {
+                        "en-US": "hax0r5"
+                    }
+                }, 
+                "objectType": "SubStatement"
+            }, 
+            "actor": {
+                "mbox": "mailto:timmy@example.com", 
+                "name": "timmy"
+            }
+        }))
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -212,6 +658,102 @@ class StatementFilterTests(TestCase):
             self.assertTrue(convert_to_utc(s['stored']) < until)
 
     def test_related_agents_filter_since(self):
+        Statement(json.dumps({
+            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "object": {
+                "mbox": "mailto:louo@example.com", 
+                "name": "louo", 
+                "objectType": "Agent"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:blobby@example.com", 
+                        "name": "blobby"
+                    }, 
+                    {
+                        "mbox": "mailto:timmy@example.com", 
+                        "name": "timmy"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom"
+                    }
+                ], 
+                "name": "the tourists", 
+                "objectType": "Group"
+            },
+            "verb": {
+                "id": "http://imaginarium.adlnet.org/xapi/verbs/sighted", 
+                "display": {
+                    "en-US": "sighted"
+                }
+            },
+            "context": {
+                "contextActivities": {
+                    "parent": {
+                        "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                    }
+                }
+            }
+        }))
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/started", 
+                "display": {
+                    "en-US": "started"
+                }
+            }, 
+            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "object": {
+                "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
+            }, 
+            "actor": {
+                "member": [
+                    {
+                        "mbox": "mailto:louo@example.com", 
+                        "name": "louo"
+                    }, 
+                    {
+                        "mbox": "mailto:tom@example.com", 
+                        "name": "tom"
+                    }
+                ], 
+                "mbox": "mailto:adllrsdevs@example.com", 
+                "name": "adl lrs developers", 
+                "objectType": "Group"
+            }
+        }))
+        Statement(json.dumps({
+            "verb": {
+                "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
+                "display": {
+                    "en-US": "nixed"
+                }
+            },
+            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "object": {
+                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "object": {
+                    "id": "act:adlnet.gov/website"
+                }, 
+                "actor": {
+                    "mbox": "mailto:louo@example.com", 
+                    "name": "louo"
+                }, 
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/hacked", 
+                    "display": {
+                        "en-US": "hax0r5"
+                    }
+                }, 
+                "objectType": "SubStatement"
+            }, 
+            "actor": {
+                "mbox": "mailto:timmy@example.com", 
+                "name": "timmy"
+            }
+        }))
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -300,6 +842,82 @@ class StatementFilterTests(TestCase):
         self.assertNotIn(stmt2_guid, rsp2)
 
     def test_verb_filter(self):
+        theid = str(uuid.uuid1())
+        Statement(json.dumps(
+        {
+        "statement_id":theid,
+        "timestamp": "2013-04-10 21:27:15.613000+00:00", 
+        "object": {
+            "mbox": "mailto:louo@example.com", 
+            "name": "louo",
+            "objectType":"Agent"
+        }, 
+        "actor": {
+            "member": [
+                {
+                    "mbox": "mailto:blobby@example.com", 
+                    "name": "blobby"
+                }, 
+                {
+                    "mbox": "mailto:timmy@example.com", 
+                    "name": "timmy"
+                }, 
+                {
+                    "mbox": "mailto:tom@example.com", 
+                    "name": "tom"
+                }
+            ], 
+            "name": "the tourists", 
+            "objectType": "Group"
+        }, 
+        "verb": {
+            "id": "http://special.adlnet.gov/xapi/verbs/high-fived", 
+            "display": {"en-US": "high-fived"}
+        },
+        "context": {
+            "contextActivities": {
+                "parent": {
+                    "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                }
+            }
+        }
+        }))
+        Statement(json.dumps( 
+        {
+        "verb": {
+            "id": "http://special.adlnet.gov/xapi/verbs/frowned", 
+            "display": {
+                "en-US": "frowned upon"
+            }
+        }, 
+        
+        "timestamp": "2013-04-10 21:28:33.870000+00:00", 
+        "object": {
+            "id": theid, 
+            "objectType": "StatementRef"
+        }, 
+        "actor": {
+            "member": [
+                {
+                    "mbox": "mailto:mrx@example.com", 
+                    "name": "mr x", 
+                    "objectType": "Agent"
+                }, 
+                {
+                    "mbox": "mailto:msy@example.com", 
+                    "name": "ms y", 
+                    "objectType": "Agent"
+                }, 
+                {
+                    "mbox": "mailto:drdre@example.com", 
+                    "name": "dr dre", 
+                    "objectType": "Agent"
+                }
+            ], 
+            "name": "Managers", 
+            "objectType": "Group"
+        }
+        }))
         param = {"verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -322,13 +940,102 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 0)
 
     def test_registration_filter(self):
+        theid = str(uuid.uuid1())
+        Statement(json.dumps(
+        {
+        "statement_id":theid,
+        "timestamp": "2013-04-10 21:27:15.613000+00:00", 
+        "object": {
+            "mbox": "mailto:louo@example.com", 
+            "name": "louo",
+            "objectType":"Agent"
+        }, 
+        "actor": {
+            "member": [
+                {
+                    "mbox": "mailto:blobby@example.com", 
+                    "name": "blobby"
+                }, 
+                {
+                    "mbox": "mailto:timmy@example.com", 
+                    "name": "timmy"
+                }, 
+                {
+                    "mbox": "mailto:tom@example.com", 
+                    "name": "tom"
+                }
+            ], 
+            "name": "the tourists", 
+            "objectType": "Group"
+        }, 
+        "verb": {
+            "id": "http://special.adlnet.gov/xapi/verbs/high-fived", 
+            "display": {"en-US": "high-fived"}
+        },
+        "context": {
+            "contextActivities": {
+                "parent": {
+                    "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                }
+            },
+            "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a92"
+        }
+        }))
+        Statement(json.dumps({
+            "timestamp": "2013-04-08 17:51:38.118000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "display": {"en-US": "started"}
+            },
+            "context": {
+                "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
+            }
+        }))
+        Statement(json.dumps(
+        {
+        "timestamp": "2013-04-08 21:07:20.392000+00:00", 
+        "object": { 
+            "id": "act:adlnet.gov/JsTetris_TCAPI", 
+            "objectType": "Activity"
+        }, 
+        "actor": {
+            "mbox": "mailto:tom@example.com", 
+            "name": "tom"
+        }, 
+        "verb": {
+            "id": "http://adlnet.gov/xapi/verbs/completed", 
+            "display": {"en-US": "finished"}
+        }, 
+        "result": {
+            "score": {
+                "raw": 1918560.0, 
+                "min": 0.0
+            }, 
+            "extensions": {
+                "ext:level": "19", 
+                "ext:apm": "241", 
+                "ext:lines": "165", 
+                "ext:time": "1128"
+            }
+        },
+        "context": {
+            "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
+        }
+        }))
         param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertEqual(len(stmts), 20)
+        self.assertEqual(len(stmts), 2)
 
         param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -363,6 +1070,97 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 0)
 
     def test_activity_filter(self):
+        Statement(json.dumps({
+        "timestamp": "2013-04-08 21:05:48.869000+00:00", 
+        "object": {
+            "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
+            "objectType": "Activity"
+        }, 
+        "actor": {
+            "mbox": "mailto:tom@example.com", 
+            "name": "tom",
+        }, 
+        "verb": {
+            "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+            "display": {"en-US": "passed"}
+        }, 
+        "context": {
+            "contextActivities": {
+                "grouping": {
+                    "id": "act:adlnet.gov/JsTetris_TCAPI"
+                }
+            }
+        }
+        }))
+        Statement(json.dumps({
+            "timestamp": "2013-04-08 21:07:11.459000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "display": {"en-US": "passed"}
+            }, 
+            "result": {
+                "score": {
+                    "raw": 1918560.0, 
+                    "min": 0.0
+                }
+            }, 
+            "context": {
+                "contextActivities": {
+                    "grouping": {
+                        "id": "act:adlnet.gov/JsTetris_TCAPI"
+                    }
+                }
+            }
+        })) 
+        Statement(json.dumps({
+        "timestamp": "2013-04-08 21:07:20.392000+00:00", 
+        "object": {
+            "definition": {
+                "type": "media", 
+                "name": {
+                    "en-US": "Js Tetris - Tin Can Prototype"
+                }, 
+                "description": {
+                    "en-US": "A game of tetris."
+                }
+            }, 
+            "id": "act:adlnet.gov/JsTetris_TCAPI"
+        }, 
+        "actor": {
+            "mbox": "mailto:tom@example.com", 
+            "name": "tom"
+        }, 
+        "verb": {
+            "id": "http://adlnet.gov/xapi/verbs/completed", 
+            "display": {"en-US": "finished"}
+        }, 
+        "result": {
+            "score": {
+                "raw": 1918560.0, 
+                "min": 0.0
+            }, 
+            "extensions": {
+                "ext:level": "19", 
+                "ext:apm": "241", 
+                "ext:lines": "165", 
+                "ext:time": "1128"
+            }
+        }, 
+        "context": {
+            "contextActivities": {
+                "grouping": {
+                    "id": "act:adlnet.gov/JsTetris_TCAPI"
+                }
+            }
+        }
+        }))
         param = {"activity":"act:adlnet.gov/JsTetris_TCAPI"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -377,7 +1175,7 @@ class StatementFilterTests(TestCase):
                 self.assertEqual(s['object']['id'], param['activity'])
 
         actcnt = len(stmts)
-        self.assertEqual(actcnt, 4)
+        self.assertEqual(actcnt, 1)
 
         param = {"activity":"act:adlnet.gov/JsTetris_TCAPI", "related_activities":True}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -395,6 +1193,55 @@ class StatementFilterTests(TestCase):
         self.assertTrue(len(stmts) > actcnt, "stmts(%s) was not greater than actcnt(%s)" % (len(stmts), actcnt))
 
     def test_no_activity_filter(self):
+        Statement(json.dumps({
+        "timestamp": "2013-04-08 21:05:48.869000+00:00", 
+        "object": {
+            "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
+            "objectType": "Activity"
+        }, 
+        "actor": {
+            "mbox": "mailto:tom@example.com", 
+            "name": "tom",
+        }, 
+        "verb": {
+            "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+            "display": {"en-US": "passed"}
+        }, 
+        "context": {
+            "contextActivities": {
+                "grouping": {
+                    "id": "act:adlnet.gov/JsTetris_TCAPI"
+                }
+            }
+        }
+        }))
+        Statement(json.dumps({
+            "timestamp": "2013-04-08 21:07:11.459000+00:00", 
+            "object": {
+                "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
+            }, 
+            "actor": {
+                "mbox": "mailto:tom@example.com", 
+                "name": "tom"
+            }, 
+            "verb": {
+                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "display": {"en-US": "passed"}
+            }, 
+            "result": {
+                "score": {
+                    "raw": 1918560.0, 
+                    "min": 0.0
+                }
+            }, 
+            "context": {
+                "contextActivities": {
+                    "grouping": {
+                        "id": "act:adlnet.gov/JsTetris_TCAPI"
+                    }
+                }
+            }
+        }))
         actorGetResponse = self.client.post(reverse(views.statements), 
             {"activity":"http://notarealactivity.com"},
              content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -495,7 +1342,7 @@ class StatementFilterTests(TestCase):
         account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
         stmt = json.dumps({"actor": {"name": "freakshow", "account":account},
                            "verb":{"id":"http://tom.com/tested"},
-                           "object":{"id":"http://tom.com/accountid"}})
+                           "object":{"id":"act:tom.com/accountid"}})
 
         guid = str(uuid.uuid1())
         param = {"statementId":guid}

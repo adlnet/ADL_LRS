@@ -257,7 +257,7 @@ class StatementsTests(TestCase):
         self.assertEqual(agent.name, "bob")
 
     def test_post_wrong_duration(self):
-        stmt = json.dumps({"actor":{'objectType':'Person','name':'jon',
+        stmt = json.dumps({"actor":{'name':'jon',
             'mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': 'wrongduration',
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}})
