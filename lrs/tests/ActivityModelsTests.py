@@ -13,11 +13,11 @@ class ActivityModelsTests(TestCase):
 
     #Called on all activity django models with definitions to see if they were created with the correct 
     # fields
-    def do_activity_definition_model(self, fk,course, intType, url=""):
+    def do_activity_definition_model(self, fk,course, intType, moreInfo=""):
         act_def = models.activity_definition.objects.filter(activity=fk)[0]
         self.assertEqual(act_def.activity_definition_type, course)
         self.assertEqual(act_def.interactionType, intType)
-        self.assertEqual(act_def.url, url)
+        self.assertEqual(act_def.moreInfo, moreInfo)
 
     # Called on all activity django models with extensions to see if they were created with the correct 
     # fields and values. All extensions are created with the same three values and keys
@@ -314,7 +314,7 @@ class ActivityModelsTests(TestCase):
     def test_activity_definition_with_url_field(self):
         act = Activity.Activity(json.dumps({'objectType': 'Wrong', 'id':'act:fooc',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
-                'type': 'course', 'url':'http://some/json/doc','interactionType': 'intType'}}))
+                'type': 'course', 'moreInfo':'http://some/json/doc','interactionType': 'intType'}}))
 
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)

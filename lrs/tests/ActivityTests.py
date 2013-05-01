@@ -13,25 +13,31 @@ class ActivityTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email': self.email,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form, Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.register),form, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_get(self):
-        # pdb.set_trace()
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
-        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar', rsp)
         self.assertIn('Activity', rsp)
         self.assertIn('objectType', rsp)        
-
+        self.assertIn('content-length', response._headers)
+        
+    def test_head(self):
+        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
+        response = self.client.head(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, '')
+        self.assertIn('content-length', response._headers)
 
     def test_get_def(self):
         act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar1',
                 'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},
                 'type': 'course','interactionType': 'intType'}})) 
-        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar1'}, Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar1'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar1', rsp)
@@ -50,7 +56,7 @@ class ActivityTests(TestCase):
                 'type': 'course','interactionType': 'intType2', 
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2'}}}))
 
-        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar2'}, Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar2'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar2', rsp)
@@ -75,7 +81,7 @@ class ActivityTests(TestCase):
                 'description':{'en-US':'Facebook App'}},{'id':'scrabble', 
                 'description': {'en-US': 'Scrabble Example'}}]}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar3'}, Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar3'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -103,7 +109,7 @@ class ActivityTests(TestCase):
         'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
         'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'true-false','correctResponsesPattern': ['true']}}))
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar4'}, Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar4'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -121,8 +127,8 @@ class ActivityTests(TestCase):
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Fill in answer']}}))
-        # pdb.set_trace()
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar5'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar5'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -141,10 +147,10 @@ class ActivityTests(TestCase):
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Long fill in answer']}}))        
 
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar6'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar6'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
         rsp = response.content
-        # pdb.set_trace()
+
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar6', rsp)
         self.assertIn('http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction', rsp)
@@ -164,7 +170,7 @@ class ActivityTests(TestCase):
                 'description':{'en-US':'Its Cool Cool'}},{'id':'likert_3',
                 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
 
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar7'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar7'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -189,7 +195,7 @@ class ActivityTests(TestCase):
                 'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
                 {'id':'3', 'description':{'en-US': 'SCORM Cloud'}}]}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar8'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar8'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar8', rsp)
@@ -215,7 +221,7 @@ class ActivityTests(TestCase):
                 {'id':'lunch', 'description':{'en-US':'Lunch having been eaten', 
                 'en-FR': 'altlunch'}}]}}))
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar9'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar9'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar9', rsp)
@@ -241,7 +247,7 @@ class ActivityTests(TestCase):
                 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
                 {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron', 'description':{'en-US':'Aaron'}}]}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar10'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar10'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
 
         self.assertEqual(response.status_code, 200)
@@ -261,9 +267,8 @@ class ActivityTests(TestCase):
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}))        
 
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar11'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar11'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
-        # pdb.set_trace()
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar11', rsp)
@@ -288,7 +293,7 @@ class ActivityTests(TestCase):
                 'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'other',
                 'correctResponsesPattern': ['(35.937432,-86.868896)']}}))        
         
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar12'}, Authorization=self.auth, X_Experience_API_Version="1.0")       
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar12'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
 
         self.assertEqual(response.status_code, 200)
@@ -303,28 +308,31 @@ class ActivityTests(TestCase):
 
 
     def test_get_wrong_activity(self):
-        response = self.client.get(reverse(views.activities), {'activityId': 'act:act:foo'}, Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.get(reverse(views.activities), {'activityId': 'act:act:foo'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
 
         self.assertEqual(response.status_code, 404)
 
+    def test_head_wrong_activity(self):
+        response = self.client.head(reverse(views.activities), {'activityId': 'act:act:foo'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 404)
 
     def test_get_no_activity(self):
-        response = self.client.get(reverse(views.activities), Authorization=self.auth, X_Experience_API_Version="1.0")
+        response = self.client.get(reverse(views.activities), Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
         response = self.client.post(reverse(views.activities), {'activityId':'act:my_activity'},
-            content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version="1.0")
+            content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 405)
 
     def test_delete(self):
         response = self.client.delete(reverse(views.activities), {'activityId':'act:my_activity'},
-            content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version="1.0")
+            content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 405)
 
     def test_put(self):
         response = self.client.put(reverse(views.activities), {'activityId':'act:my_activity'},
-            content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version="1.0")
+            content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 405)
 
