@@ -137,7 +137,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid1}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt1
-        self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         # pdb.set_trace()        
         self.assertEqual(self.putresponse1.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
@@ -147,7 +147,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid3}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt3
-        self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse3.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
@@ -156,7 +156,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid4}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt4
-        self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse4.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
@@ -166,7 +166,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid2}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt2
-        self.putresponse2 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")       
+        self.putresponse2 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")       
         self.assertEqual(self.putresponse2.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
@@ -175,7 +175,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid5}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt5
-        self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse5.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
@@ -184,7 +184,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid6}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt6
-        self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse6.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
@@ -193,7 +193,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid7}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt7        
-        self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse7.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
@@ -202,7 +202,7 @@ class AuthTests(TestCase):
         param = {"statementId":self.guid8}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt8        
-        self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse8.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
@@ -210,7 +210,7 @@ class AuthTests(TestCase):
         param = {"statementId": self.guid9}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt9        
-        self.putresponse9 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse9 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse9.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
@@ -218,7 +218,7 @@ class AuthTests(TestCase):
         param = {"statementId": self.guid10}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt10        
-        self.putresponse10 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0")
+        self.putresponse10 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse10.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
@@ -235,13 +235,13 @@ class AuthTests(TestCase):
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {"username":username, "email":email,"password":password,"password2":password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0")        
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")        
 
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/authwithnoauth","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-             X_Experience_API_Version="1.0", Authorization=auth)
+             X_Experience_API_Version="1.0.0", Authorization=auth)
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "HTTP authorization is not enabled. To enable, set the HTTP_AUTH_ENABLED flag to true in settings")
@@ -249,7 +249,7 @@ class AuthTests(TestCase):
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
         resp = self.client.post(reverse(views.statements), {"feet":"yes","hands": {"id":"http://example.com/test_post"}},
-            content_type="application/json",  X_Experience_API_Version="1.0")
+            content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
@@ -259,7 +259,7 @@ class AuthTests(TestCase):
             "object": {"id":"act:test_post"}})
         # pdb.set_trace()
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-             X_Experience_API_Version="1.0")
+             X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
         act = models.activity.objects.get(activity_id="act:test_post")
@@ -276,7 +276,7 @@ class AuthTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
             "id":"aaaaaaaaa"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-             X_Experience_API_Version="1.0")        
+             X_Experience_API_Version="1.0.0")        
 
         self.assertEqual(response.status_code, 404)
 
@@ -286,7 +286,7 @@ class AuthTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:i.pity.the.fool"}})
         
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         agent = models.agent.objects.get(mbox="mailto:mr.t@example.com")
 
@@ -296,7 +296,7 @@ class AuthTests(TestCase):
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/failed","display": {"en-GB":"failed"}},
             "object": {"id":"act:test_list_post1"}, "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}])
         
-        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         activity1 = models.activity.objects.get(activity_id="act:test_list_post")
         activity2 = models.activity.objects.get(activity_id="act:test_list_post1")
@@ -325,7 +325,7 @@ class AuthTests(TestCase):
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
-        putResponse = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0")
+        putResponse = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(putResponse.status_code, 204)
         stmt = models.statement.objects.get(statement_id=guid)
 
@@ -351,11 +351,11 @@ class AuthTests(TestCase):
             "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
         
         response = self.client.put(path, stmt, content_type="application/json",
-             X_Experience_API_Version="1.0")
+             X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        get_response = self.client.get(path, X_Experience_API_Version="1.0", )
+        get_response = self.client.get(path, X_Experience_API_Version="1.0.0", )
         self.assertEqual(get_response.status_code, 200)
         rsp = get_response.content
         self.assertIn("objectType",rsp)
@@ -394,7 +394,7 @@ class AuthTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         stmt = json.dumps({})
 
-        putResponse = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0")
+        putResponse = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(putResponse.status_code, 400)
 
     def test_existing_stmtID_put(self):
@@ -409,21 +409,21 @@ class AuthTests(TestCase):
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object":{"id":"act:test_existing_put"}, "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
-        putResponse = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0")
+        putResponse = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         
         self.assertEqual(putResponse.status_code, 409)        
 
     def test_missing_stmtID_put(self):        
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
-        response = self.client.put(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.put(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn(response.content, "Error -- statements - method = PUT, but statementId paramater is missing")
 
     def test_get(self):
         param = {"statementId":self.guid1}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        getResponse = self.client.get(path, X_Experience_API_Version="1.0", )
+        getResponse = self.client.get(path, X_Experience_API_Version="1.0.0", )
         self.assertEqual(getResponse.status_code, 200)
         rsp = getResponse.content
         self.assertIn(self.guid1, rsp)
@@ -435,25 +435,26 @@ class AuthTests(TestCase):
     #     password = "test"
     #     auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
     #     form = {"username":username, "email":email,"password":password,"password2":password}
-    #     response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0")
+    #     response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
     #     param = {"statementId":self.guid1}
     #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     getResponse = self.client.get(path, X_Experience_API_Version="1.0", Authorization=auth)
+    #     getResponse = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=auth)
     #     self.assertEqual(getResponse.status_code, 403)
 
     def test_get_no_existing_ID(self):
         param = {"statementId":"aaaaaa"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        getResponse = self.client.get(path, X_Experience_API_Version="1.0", )
+        getResponse = self.client.get(path, X_Experience_API_Version="1.0.0", )
         self.assertEqual(getResponse.status_code, 404)
 
     def test_get_no_statementid(self):
-        getResponse = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0", )
+        getResponse = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", )
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
         # Will only return 10 since that is server limit
         self.assertEqual(len(jsn["statements"]), 10)
+       
 
     # Sever activities are PUT-contextActivites create 3 more
     def test_number_of_activities(self):
@@ -473,7 +474,7 @@ class AuthTests(TestCase):
             "ext:ckey2": "cval2"}}})
 
         post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-             X_Experience_API_Version="1.0")
+             X_Experience_API_Version="1.0.0")
         
         act = models.activity.objects.get(activity_id="act:foogie")
         act_def = models.activity_definition.objects.get(activity=act)
@@ -500,7 +501,7 @@ class AuthTests(TestCase):
             "object": {"id":"act:test_cors_post_put"}}
         bdy["Content-Type"] = "application/json"
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"method":"PUT"}))
-        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0")
+        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
 
         act = models.activity.objects.get(activity_id="act:test_cors_post_put")
@@ -515,7 +516,7 @@ class AuthTests(TestCase):
             "actor":{"mbox":"mailto:tom.creighton.ctr@adlnet.gov","name":"Tom Creighton"}})
 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_id}))
-        put_stmt = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0")
+        put_stmt = self.client.put(path, stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204) 
 
     def test_post_with_group(self):
@@ -528,7 +529,7 @@ class AuthTests(TestCase):
 
         stmt = json.dumps({"actor":group,"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         g = models.agent.objects.get(mbox="mailto:the.groupST@example.com")
         self.assertEquals(g.name, name)
@@ -576,7 +577,7 @@ class AuthTests(TestCase):
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
-        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", X_Experience_API_Version="1.0")
+        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(put_sub_stmt.status_code, 204)        
 
         stmt_id = str(uuid.uuid1())
@@ -605,11 +606,11 @@ class AuthTests(TestCase):
             "extensions":{"ext:contextKey1": "contextVal1","ext:contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
 
-        put_stmt = self.client.put(path, stmt, content_type="application/json", X_Experience_API_Version="1.0")
+        put_stmt = self.client.put(path, stmt, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        get_response = self.client.get(path, X_Experience_API_Version="1.0")
+        get_response = self.client.get(path, X_Experience_API_Version="1.0.0")
         
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
@@ -651,7 +652,7 @@ class AuthTests(TestCase):
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
-        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", X_Experience_API_Version="1.0")
+        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(put_sub_stmt.status_code, 204)        
 
 
@@ -671,11 +672,11 @@ class AuthTests(TestCase):
             "extensions":{"ext:contextKey1": "contextVal1","ext:contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
         
-        put_stmt = self.client.put(path, stmt, content_type="application/json", X_Experience_API_Version="1.0")
+        put_stmt = self.client.put(path, stmt, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        get_response = self.client.get(path, X_Experience_API_Version="1.0")
+        get_response = self.client.get(path, X_Experience_API_Version="1.0.0")
         
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
@@ -718,7 +719,7 @@ class AuthTests(TestCase):
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincannest@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB":"graded"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
-        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", X_Experience_API_Version="1.0")
+        put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(put_sub_stmt.status_code, 204)        
 
 
@@ -728,7 +729,7 @@ class AuthTests(TestCase):
         nested_sub_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincannestsub@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/verb","display": {"en-US":"verb", "en-GB":"altVerb"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplenestedsubstatement"}})
-        put_nest_sub_stmt = self.client.put(nest_sub_path, nested_sub_stmt, content_type="application/json", X_Experience_API_Version="1.0")
+        put_nest_sub_stmt = self.client.put(nest_sub_path, nested_sub_stmt, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(put_nest_sub_stmt.status_code, 204)
 
 
@@ -767,11 +768,11 @@ class AuthTests(TestCase):
             "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
             "extensions":{"ext:contextKey1": "contextVal1","ext:contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
-        put_stmt = self.client.put(path, stmt, content_type="application/json", X_Experience_API_Version="1.0")
+        put_stmt = self.client.put(path, stmt, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
         get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-        get_response = self.client.get(path, X_Experience_API_Version="1.0")
+        get_response = self.client.get(path, X_Experience_API_Version="1.0.0")
         
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
@@ -890,7 +891,7 @@ class AuthTests(TestCase):
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"act:test_wrong_list_post2"}},            
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"act:test_wrong_list_post4"}, "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}}])
         
-        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
         
@@ -933,7 +934,7 @@ class AuthTests(TestCase):
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
 
-        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
 
@@ -968,7 +969,7 @@ class AuthTests(TestCase):
             "verb": {"id": "http://adlnet.gov/expapi/verbs/voided","display": {"en-US":"voided"}}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
 
-        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
 
@@ -997,7 +998,7 @@ class AuthTests(TestCase):
             "language": "en-US", "extensions":{"ext:wrong-k1": "v1", "ext:wrong-k2": "v2"}}}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
 
-        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0")
+        response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided, must provide 'actor' field", response.content)
 
