@@ -2,7 +2,7 @@ import datetime
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from lrs import models
-from lrs.exceptions import IDNotFoundError
+from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 import logging
 import pdb
@@ -104,10 +104,10 @@ class ActivityProfile():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 profs = models.activity_profile.objects.filter(updated__gte=since, activityId=activityId)
             except ValidationError:
-                from django.utils import timezone
-                since_i = int(float(since))# this handles timestamp like str(time.time())
-                since_dt = datetime.datetime.fromtimestamp(since_i).replace(tzinfo=timezone.get_default_timezone())
-                profs = models.activity_profile.objects.filter(updated__gte=since_dt, activityId=activityId)
+                err_msg = 'Since field is not in correct format'
+                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)          
+                raise ParamError(err_msg) 
             ids = [p.profileId for p in profs]
         else:
             #Return all IDs of profiles associated with this activity b/c there is no since param

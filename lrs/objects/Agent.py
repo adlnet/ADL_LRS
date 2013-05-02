@@ -125,10 +125,10 @@ class Agent():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 profs = self.agent.agent_profile_set.filter(updated__gte=since)
             except ValidationError:
-                from django.utils import timezone
-                since_i = int(float(since))# this handles timestamp like str(time.time())
-                since_dt = datetime.datetime.fromtimestamp(since_i).replace(tzinfo=timezone.get_default_timezone())
-                profs = self.agent.agent_profile_set.filter(updated__gte=since_dt)
+                err_msg = 'Since field is not in correct format'
+                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)          
+                raise ParamError(err_msg) 
             except:
                 err_msg = 'There are no profiles associated with the id: %s' % profileId
                 log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 

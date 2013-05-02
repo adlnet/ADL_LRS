@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
+from django.utils.encoding import iri_to_uri
 from lrs import models, exceptions
 from lrs.util import log_message, update_parent_log_status, uri
 import logging
@@ -327,11 +328,24 @@ class Activity():
 
         #If the type is cmi.interaction, have to check interactionType
         interaction_flag = None
-        if act_def['type'] == 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction':
+        act_def_type = act_def['type']
+         
+        act_def_type = act_def['type']
+        if not uri.validate_uri(act_def_type):
+            raise exceptions.ParamError('Activity definition type %s is not a valid URI' % act_def_type)
+
+        if act_def_type == 'http://adlnet.gov/expapi/activities/cmi.interaction':
             interaction_flag = self.validate_cmi_interaction(act_def, act_created)
 
-        act_def_created = self.save_activity_definition_to_db(act_def['type'], act_def.get('interactionType', ''),
-            act_def.get('moreInfo', ''))
+        if 'moreInfo' in act_def:
+            moreInfo = act_def['moreInfo']
+            if not uri.validate_uri(moreInfo):
+                raise exceptions.ParamError('moreInfo %s is not a valid URI' % moreInfo)
+        else:
+            moreInfo = ''
+
+        act_def_created = self.save_activity_definition_to_db(act_def_type, act_def.get('interactionType', ''),
+            moreInfo)
 
         if not act_created: 
             if self.activity.authoritative == '' or self.activity.authoritative == self.auth:

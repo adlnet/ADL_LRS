@@ -3,7 +3,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from lrs import models
 from lrs.objects.Agent import Agent
-from lrs.exceptions import IDNotFoundError
+from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
 import logging
 import pdb
@@ -124,10 +124,10 @@ class ActivityState():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 state_set = state_set.filter(updated__gte=self.since)
             except ValidationError:
-                from django.utils import timezone
-                since_i = int(float(since))# this handles timestamp like str(time.time())
-                since_dt = datetime.datetime.fromtimestamp(since_i).replace(tzinfo=timezone.get_default_timezone())
-                state_set = state_set.filter(updated__gte=since_dt)
+                err_msg = 'Since field is not in correct format'
+                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)          
+                raise ParamError(err_msg) 
         return state_set.values_list('state_id', flat=True)
 
     def delete(self, auth):

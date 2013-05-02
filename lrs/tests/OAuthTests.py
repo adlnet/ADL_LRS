@@ -1034,7 +1034,7 @@ class OAuthTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
-            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'course',
+            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
             'interactionType': 'intType'}}})
 
         param = {"statementId":put_guid}
@@ -1101,7 +1101,7 @@ class OAuthTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/tested","display": {"en-US":"tested"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
-            'description': {'en-US':'definedesc', 'en-GB': 'definedesc'},'type': 'course',
+            'description': {'en-US':'definedesc', 'en-GB': 'definedesc'},'type': 'type:course',
             'interactionType': 'intType'}}}
         stmt_json = json.dumps(post_stmt)
 

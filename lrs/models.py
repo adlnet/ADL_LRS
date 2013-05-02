@@ -675,13 +675,6 @@ class activity(statement_object):
                 ret['definition'] = self.activity_definition.object_return(lang)
             except activity_definition.DoesNotExist:
                 pass
-
-        # if sparse:
-        #     if 'definition' in ret:
-        #         if 'correctresponsespattern' in ret['definition']:
-        #             del ret['definition']['correctresponsespattern']
-        #             ret['definition']['definition'] = ret['definition']['description'].keys()
-        #             ret['definition']['name'] = ret['definition']['name'].keys()
         return ret
 
     def get_a_name(self):
@@ -692,59 +685,6 @@ class activity(statement_object):
 
     def __unicode__(self):
         return json.dumps(self.object_return())
-
-    def delete(self, act_in_stmt_object_and_context=None, skipped=False, *args, **kwargs):
-        activity_in_use = False
-
-        # All conacts in the system
-        all_used_acts_in_context = ContextActivity.objects.all().values_list('context_activity', flat=True)
-        # List of activity lists from all conacts
-        act_list = [ast.literal_eval(x) for x in all_used_acts_in_context]
-        # List of activity ids from all contexts
-        full_list = [x for sublist in act_list for x in sublist]
-
-        # Get all links activity has with the other models
-        activity_links = [rel.get_accessor_name() for rel in self._meta.get_all_related_objects()]
-        # For each link, grab any objects the activity is related to
-        for link in activity_links:
-            if link == 'object_of_substatement' or link == 'object_of_statement':
-                try:
-                    objects = getattr(self, link).all()
-                except:
-                    continue
-                if act_in_stmt_object_and_context:
-                    # If this activity is in the same statement or substatement as the context
-                    if act_in_stmt_object_and_context[0]:
-                        # If this is the ID that appears in the same statement or substatement
-                        if self.id == act_in_stmt_object_and_context[1]:
-                            # There will be at least one-let other delete being called from stmt handle it
-                            if len(objects) >= 1:
-                                activity_in_use = True  
-                                break
-                        # Else this is another activity in the statement's context that isn't the one in the 
-                        # same statement or substatement
-                        else:
-                            if len(objects) > 0:
-                                activity_in_use = True  
-                                break
-                    # If this activity only appears in the context of the statement
-                    else:
-                        if len(objects) > 0:
-                            activity_in_use = True  
-                            break
-                # act_in_stmt_object_and_context only gets set when deleting from context
-                else:
-                    # If it is greater than one(self) then it's in use
-                    if len(objects) > 1:
-                        activity_in_use = True  
-                        break
-                    # Else if it is in the conacts and isn't in the statement anywhere else then it's in use
-                    elif full_list.count(self.id) > 0 and not skipped:
-                        activity_in_use = True
-
-        # If the activity isn't in any other object, delete it
-        if not activity_in_use:
-            super(activity, self).delete(*args, **kwargs)
 
 class name_lang(models.Model):
     key = models.CharField(max_length=50, db_index=True)
