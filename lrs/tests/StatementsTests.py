@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
 from django.test import TestCase
 from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
-from lrs import views, models
-from os import path
+from django.utils.timezone import utc
 from django.conf import settings
+from lrs import views, models
+from lrs.util import retrieve_statement
+from lrs.objects import Activity, Statement
+from os import path
+from datetime import datetime, timedelta
 import sys
 import json
 import base64
 import uuid
-from datetime import datetime, timedelta
-from django.utils.timezone import utc
-from lrs.objects import Activity, Statement
 import time
 import urllib
-from lrs.util import retrieve_statement
 import pdb
 import hashlib
 import pprint
+import requests
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -1446,3 +1450,28 @@ class StatementsTests(TestCase):
         act = models.activity.objects.get(id=stmt_db.stmt_object.id)
         self.assertEqual(act.activity_id, act_id)
 
+    def test_multipart(self):
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "sha2":""}]}
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        txt = u"howdy.. this is a text attachment"
+        textdata = MIMEText(txt, 'plain', 'utf-8')
+        txtsha = hashlib.sha256(txt).hexdigest()
+        textdata.add_header('X-Experience-API-Hash', txtsha)
+        message.attach(stmtdata)
+        message.attach(textdata)
+        stmt['attachments'][0]["sha2"] = txtsha
+        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
+        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
+            "Content-Type":message.get('Content-Type')}
+        
+        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)

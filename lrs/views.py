@@ -371,8 +371,7 @@ def handle_request(request, more_id=None):
 
         # Cutoff more_id
         if '/xapi/statements/more' in path:
-            path = '/xapi/statements/more'
-
+            path = '/xapi/statements/more'  
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
 

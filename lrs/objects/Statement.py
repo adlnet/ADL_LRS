@@ -558,6 +558,7 @@ class Statement():
         if 'context' in stmt_data:
             args['context'] = self.populateContext(stmt_data)
         
+        pdb.set_trace()
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)
 

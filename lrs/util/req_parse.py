@@ -10,7 +10,6 @@ import pdb
 import pprint
 
 def parse(request, more_id=None):
-    pdb.set_trace()
     r_dict = {}
 
     # Build headers from request in request dict
@@ -61,10 +60,11 @@ def parse(request, more_id=None):
 
     # A 'POST' can actually be a GET
     if 'method' not in r_dict:
-        if request.method == "POST" and "application/json" not in r_dict['CONTENT_TYPE']:
-            r_dict['method'] = 'GET'
-        else:
-            r_dict['method'] = request.method
+        if request.method == "POST":
+            if "application/json" not in r_dict['CONTENT_TYPE'] and "multipart/mixed" not in r_dict['CONTENT_TYPE']:
+                r_dict['method'] = 'GET'
+            else:
+                r_dict['method'] = request.method
 
     # Set if someone is hitting the statements/more endpoint
     if more_id:
@@ -80,7 +80,7 @@ def parse_body(r, request):
             post, files = parser.parse()
             r['files'] = files
         elif 'multipart/mixed' in request.META['CONTENT_TYPE']:
-            pdb.set_trace()
+            # pdb.set_trace() 
             r['attachments'] = {}
             import email
             from collections import defaultdict
@@ -106,14 +106,13 @@ def parse_body(r, request):
                         # attachments
                         thehash = a.get("X-Experience-API-Hash")
                         if not thehash:
-                            raise ParamError("X-Experience-API-Hash header was missing from attachement")
+                            raise ParamError("X-Experience-API-Hash header was missing from attachment")
                         headers = defaultdict(str)
                         for h,v in a.items():
                             headers[h] = v
-                        r['attachments'] = {thehash : {"headers":headers,"payload":a.get_payload()}}
+                        r['body']['attachments'] = {thehash : {"headers":headers,"payload":a.get_payload()}}
             else:
                 raise ParamError("This content was not multipart.")
-            pdb.set_trace()
         else:
             if request.body:
                 # profile uses the request body
