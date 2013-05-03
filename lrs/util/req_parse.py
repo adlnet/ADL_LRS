@@ -2,7 +2,7 @@ import StringIO
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
 from lrs.util import etag, convert_to_dict
-from lrs.exceptions import OauthUnauthorized
+from lrs.exceptions import OauthUnauthorized, ParamError
 from oauth_provider.oauth.oauth import OAuthError
 from oauth_provider.utils import send_oauth_error
 from oauth_provider.decorators import CheckOAuth
@@ -10,6 +10,7 @@ import pdb
 import pprint
 
 def parse(request, more_id=None):
+    pdb.set_trace()
     r_dict = {}
 
     # Build headers from request in request dict
@@ -78,6 +79,41 @@ def parse_body(r, request):
             parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
             post, files = parser.parse()
             r['files'] = files
+        elif 'multipart/mixed' in request.META['CONTENT_TYPE']:
+            pdb.set_trace()
+            r['attachments'] = {}
+            import email
+            from collections import defaultdict
+            message = request.body
+            # i need boundary to be in the message for email to parse it right
+            if 'boundary' not in message[:message.index("--")]:
+                if 'boundary' in request.META['CONTENT_TYPE']:
+                    message = request.META['CONTENT_TYPE'] + message
+                else:
+                    raise ParamError("Could not find the boundary for this multipart content")
+            msg = email.message_from_string(message)
+            if msg.is_multipart():
+                parts = []
+                for part in msg.walk():
+                    parts.append(part)
+                if len(parts) < 1:
+                    raise ParamError("The content didn't contain a statement")
+                # ignore parts[0], it's the whole thing
+                # parts[1] better be the statement
+                r['body'] = convert_to_dict(parts[1].get_payload())
+                if len(parts) > 2:
+                    for a in parts[2:]:
+                        # attachments
+                        thehash = a.get("X-Experience-API-Hash")
+                        if not thehash:
+                            raise ParamError("X-Experience-API-Hash header was missing from attachement")
+                        headers = defaultdict(str)
+                        for h,v in a.items():
+                            headers[h] = v
+                        r['attachments'] = {thehash : {"headers":headers,"payload":a.get_payload()}}
+            else:
+                raise ParamError("This content was not multipart.")
+            pdb.set_trace()
         else:
             if request.body:
                 # profile uses the request body
