@@ -673,14 +673,14 @@ class StatementModelsTests(TestCase):
 
     def test_agent_as_object(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'luluid'}, 
+        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}}))
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         agent = models.agent.objects.get(id=stmt.model_object.stmt_object.id)
 
         self.assertEqual(agent.name, 'lulu')
-        self.assertEqual(agent.openid, 'luluid')
+        self.assertEqual(agent.openid, 'id:luluid')
 
 
     def test_unallowed_substmt_field(self):
@@ -850,12 +850,12 @@ class StatementModelsTests(TestCase):
     def test_activity_definition_delete(self):
         act1 = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foo',
                 'definition': {'name': {'en-UK':'name', 'en-US':'nombre'},'description': {'en-UK':'desc',
-                'en-US': 'tdesc'},'type': 'course','interactionType': 'intType2',
+                'en-US': 'tdesc'},'type': 'type:course','interactionType': 'intType2',
                 'extensions': {'ext:key1': 'value1','ext:key2': 'value2','ext:key3': 'value3'}}}))
 
         act2 = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:baz',
                 'definition': {'name': {'en-UK':'name2', 'en-US':'nombre2'},'description': {'en-UK':'desc2',
-                'en-US': 'tdesc2'},'type': 'course','interactionType': 'intType2',
+                'en-US': 'tdesc2'},'type': 'type:course','interactionType': 'intType2',
                 'extensions': {'ext2:key1': 'value1','ext2:key2': 'value2','ext2:key3': 'value3'}}}))
 
         # Set each one individually, if try to get in list, not always in same order
@@ -960,14 +960,14 @@ class StatementModelsTests(TestCase):
         act1 = Activity.Activity(json.dumps({
             'objectType': 'Activity', 'id':'act:foo',
             'definition': {'name': {'en-US':'testname'},'description': {'en-US':'testdesc'}, 
-                'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'],
                 'extensions': {'ext:key1': 'value1'}}}))
 
         act2 = Activity.Activity(json.dumps({
             'objectType': 'Activity', 'id':'act:baz',
             'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 
-                'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'],
                 'extensions': {'ext2:key1': 'value1'}}}))
 
@@ -1096,7 +1096,7 @@ class StatementModelsTests(TestCase):
         act1 = Activity.Activity(json.dumps(
             {'objectType': 'Activity', 'id':'act:foo',
                 'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
-                    'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                    'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                     'interactionType': 'choice',
                     'correctResponsesPattern': ['golf', 'tetris'],'choices':[
                     {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
@@ -1108,7 +1108,7 @@ class StatementModelsTests(TestCase):
         act2 = Activity.Activity(json.dumps(
             {'objectType': 'Activity', 'id':'act:biz',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
-                    'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction',
+                    'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                     'interactionType': 'choice',
                     'correctResponsesPattern': ['golf', 'tetris'],'choices':[
                     {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
