@@ -269,6 +269,32 @@ class Statement():
         #Save result
         return self.saveResultToDB(result, resultExts)
 
+    def populateAttachments(self, attachment_data):
+        log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
+        
+        for attach in attachment_data:
+            if 'display' in attach:
+                displays = attach.pop('display')
+            else:
+                err_msg = "Attachment must contain display property"
+                log_message(self.log_dict, err_msg, __name__, self.populateAttachments.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+
+            descriptions = attach.pop('description', None)
+            attachment = models.StatementAttachment.objects.create(**attach)
+
+            for display in displays.items():
+                language_map = models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
+                    content_object=attachment)
+            if descriptions:
+                for desc in descriptions.items():
+                    language_map = models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
+                        content_object=attachment)
+        
+            self.model_object.attachments.add(attachment)
+        self.model_object.save()
+
     def populateContext(self, stmt_data):
         contextExts = {}
         log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
@@ -537,7 +563,9 @@ class Statement():
 
         if 'result' in stmt_data:
             self.populateResult(stmt_data)
-
+        
+        if 'attachments' in stmt_data:
+            self.populateAttachments(stmt_data['attachments'])
 
 
 class SubStatement(Statement):

@@ -1084,6 +1084,73 @@ class SubStatement(statement_object):
 
         super(SubStatement, self).delete(*args, **kwargs)
 
+class StatementAttachmentDisplay(models.Model):
+    key = models.CharField(max_length=50, db_index=True)
+    value = models.TextField()
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.PositiveIntegerField()
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    
+    def object_return(self):
+        return {self.key: self.value}
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
+class StatementAttachmentDesc(models.Model):
+    key = models.CharField(max_length=50, db_index=True)
+    value = models.TextField()
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.PositiveIntegerField()
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    
+    def object_return(self):
+        return {self.key: self.value}
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
+class StatementAttachment(models.Model):
+    _payload_data = models.TextField(db_column='payload_data', blank=True)
+
+    def set_payload_data(self, data):
+        self._payload_data = base64.encodestring(data)
+
+    def get_payload_data(self):
+        return base64.decodestring(self._payload_data)
+
+    usageType = models.CharField(max_length=MAX_URL_LENGTH)
+    display = generic.GenericRelation(StatementAttachmentDisplay)
+    description = generic.GenericRelation(StatementAttachmentDesc, null=True)
+    # Chances are it won't be too long, but there are longer types out there and can have multiple
+    contentType = models.TextField()
+    length = models.PositiveIntegerField()
+    sha2 = models.CharField(max_length=40)
+    fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    payload = property(get_payload_data, set_payload_data)
+
+    def object_return(self):
+        ret = {}
+        ret['usageType'] = self.usageType
+
+        if len(self.display.all()) > 0:
+            ret['display'] = {}
+            for lang_map in self.display.all():
+                ret['display'].update(lang_map.object_return())
+
+        if len(self.description.all()) > 0:
+            ret['description'] = {}
+            for lang_map in self.description.all():
+                ret['description'].update(lang_map.object_return())        
+
+        ret['contentType'] = self.contentType
+        ret['length'] = self.length
+        ret['sha2'] = self.sha2
+
+        if self.fileUrl:
+            ret['fileUrl'] = self.fileUrl
+        return ret
+
 class statement(models.Model):
     statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement", db_index=True,
