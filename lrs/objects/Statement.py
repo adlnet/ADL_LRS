@@ -332,15 +332,16 @@ class Statement():
             log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
-
-        if not uri.validate_uri(incoming_verb['id']):
-            err_msg = 'Verb ID %s is not a valid URI' % incoming_verb['id']
+        
+        verb_id = incoming_verb['id']
+        if not uri.validate_uri(verb_id):
+            err_msg = 'Verb ID %s is not a valid URI' % verb_id
             log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         # Get or create the verb
-        verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
+        verb_object, created = models.Verb.objects.get_or_create(verb_id=verb_id)
 
         # If existing, get existing keys
         if not created:
@@ -361,7 +362,7 @@ class Statement():
                         existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
                         models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
                 else:
-                    err_msg = "Verb display for verb %s is not a correct language map" % incoming_verb['id']
+                    err_msg = "Verb display for verb %s is not a correct language map" % verb_id
                     log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
                     update_parent_log_status(self.log_dict, 400)       
                     raise exceptions.ParamError(err_msg)

@@ -64,7 +64,7 @@ class StatementsMoreTests(TestCase):
             "verb":{"id":"verb:attempted",
             "display":{"en-US":"attempted", 'en-GB':"altattempted"}},"object": {'objectType': 'Activity',
             'id':'act:foogie','definition': {'name': {'en-US':'testname2', 'en-GB':'altname'},
-            'description': {'en-US':'testdesc2','en-GB':'altdesc'}, 'type': 'cmi.interaction',
+            'description': {'en-US':'testdesc2','en-GB':'altdesc'}, 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answer'],'extensions': {'ext:key1': 'value1',
             'ext:key2': 'value2','ext:key3': 'value3'}}}, "result": {'score':{'scaled':.85}, 'completion': True, 'success': True,
             'response': 'kicked','duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}},
@@ -77,7 +77,7 @@ class StatementsMoreTests(TestCase):
             "verb":{"id":"verb:verb/created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'act:foogie','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
-            'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answers'],
+            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'ext:key11': 'value11', 'ext:key22': 'value22','ext:key33': 'value33'}}}, 
             "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:dkey1': 'dvalue1', 'ext:dkey2':'dvalue2'}},
@@ -90,7 +90,7 @@ class StatementsMoreTests(TestCase):
             "verb":{"id":"verb:created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'act:foogals','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
-            'type': 'cmi.interaction',
+            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'ext:key111': 'value111', 'ext:key222': 'value222','ext:key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -104,7 +104,7 @@ class StatementsMoreTests(TestCase):
         self.existStmt4 = json.dumps({"statement_id":self.guid4,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "verb":{"id":"verb:verb/created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity', 'id':'act:foogal',
-            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'ext:key111': 'value111', 'ext:key222': 'value222','ext:key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -637,7 +637,8 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid6, another_rsp)
         self.assertNotIn(self.guid5, another_rsp)
         self.assertNotIn(self.guid25, another_rsp)    
-    
+                
+
     def test_limit_less_than_server_limit(self):
         sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
