@@ -425,6 +425,10 @@ class agentmgr(models.Manager):
         # Try to get the account with the account kwargs. If it exists set ret_agent to the account's
         # agent and created to false. Update agent if necessary
         try:
+            if 'homePage' in account:
+                from lrs.util import uri
+                if not uri.validate_uri(account['homePage']):
+                    raise ValidationError('homePage value [%s] is not a valid URI' % account['homePage'])
             acc = agent_account.objects.get(**account)
             created = False
             ret_agent = acc.agent
@@ -556,6 +560,9 @@ class agent(statement_object):
         from lrs.util import uri
         if self.mbox != '' and not uri.validate_email(self.mbox):
             raise ValidationError('mbox value [%s] did not start with mailto:' % self.mbox)
+
+        if self.openid != '' and not uri.validate_uri(self.openid):
+            raise ValidationError('openid value [%s] is not a valid URI' % self.openid)            
 
     def get_agent_json(self, format='exact', as_object=False):
         just_id = format == 'ids'

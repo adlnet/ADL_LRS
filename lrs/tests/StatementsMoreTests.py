@@ -637,7 +637,8 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid6, another_rsp)
         self.assertNotIn(self.guid5, another_rsp)
         self.assertNotIn(self.guid25, another_rsp)    
-    
+            
+
     def test_limit_less_than_server_limit(self):
         sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)

@@ -205,10 +205,11 @@ def get_statement_request(req_id):
 
 def set_limit(req_dict):
     limit = None
+
     if 'limit' in req_dict:
-        limit = req_dict['limit']
+        limit = int(req_dict['limit'])
     elif 'body' in req_dict and 'limit' in req_dict['body']:
-        limit = req_dict['body']['limit']
+        limit = int(req_dict['body']['limit'])
 
     if not limit or limit > settings.SERVER_STMT_LIMIT:
         limit = settings.SERVER_STMT_LIMIT

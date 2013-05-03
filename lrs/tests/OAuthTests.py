@@ -644,7 +644,7 @@ class OAuthTests(TestCase):
         url = 'http://testserver/XAPI/activities/state'
         testagent = '{"name":"jane","mbox":"mailto:jane@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
-        stateId = "the_state_id"
+        stateId = "id:the_state_id"
         activity = models.activity(activity_id=activityId)
         activity.save()
         testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
@@ -951,7 +951,7 @@ class OAuthTests(TestCase):
         url = 'http://testserver/XAPI/activities/state'
         testagent = '{"name":"joe","mbox":"mailto:joe@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
-        stateId = "the_state_id"
+        stateId = "id:the_state_id"
         activity = models.activity(activity_id=activityId)
         activity.save()
         testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}

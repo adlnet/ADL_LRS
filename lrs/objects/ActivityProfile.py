@@ -3,7 +3,7 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from lrs import models
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status, uri
 import logging
 import pdb
 import json
@@ -16,6 +16,14 @@ class ActivityProfile():
 
     def post_profile(self, request_dict):
         post_profile = request_dict['profile']
+        
+        profile_id = request_dict['profileId']
+        if not uri.validate_uri(profile_id):
+            err_msg = 'Profile ID %s is not a valid URI' % profile_id
+            log_message(self.log_dict, err_msg, __name__, self.post_profile.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
+            raise exceptions.ParamError(err_msg)
+
         # get / create  profile
         user = get_user_from_auth(request_dict.get('auth', None))
         p, created = models.activity_profile.objects.get_or_create(activityId=request_dict['activityId'],  profileId=request_dict['profileId'], user=user)
@@ -45,6 +53,14 @@ class ActivityProfile():
                 profile = ContentFile(request_dict['profile'])
             except:
                 profile = ContentFile(str(request_dict['profile']))
+
+        profile_id = request_dict['profileId']
+        if not uri.validate_uri(profile_id):
+            err_msg = 'Profile ID %s is not a valid URI' % profile_id
+            log_message(self.log_dict, err_msg, __name__, self.put_profile.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
+            raise exceptions.ParamError(err_msg)
+
 
         user = get_user_from_auth(request_dict.get('auth', None))
         #Get the profile, or if not already created, create one

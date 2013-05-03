@@ -673,14 +673,14 @@ class StatementModelsTests(TestCase):
 
     def test_agent_as_object(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'luluid'}, 
+        stmt = Statement.Statement(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}}))
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         agent = models.agent.objects.get(id=stmt.model_object.stmt_object.id)
 
         self.assertEqual(agent.name, 'lulu')
-        self.assertEqual(agent.openid, 'luluid')
+        self.assertEqual(agent.openid, 'id:luluid')
 
 
     def test_unallowed_substmt_field(self):

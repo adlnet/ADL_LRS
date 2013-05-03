@@ -326,14 +326,12 @@ class Activity():
                 update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
 
-        #If the type is cmi.interaction, have to check interactionType
-        interaction_flag = None
-        act_def_type = act_def['type']
-         
         act_def_type = act_def['type']
         if not uri.validate_uri(act_def_type):
             raise exceptions.ParamError('Activity definition type %s is not a valid URI' % act_def_type)
-
+        
+        #If the type is cmi.interaction, have to check interactionType
+        interaction_flag = None
         if act_def_type == 'http://adlnet.gov/expapi/activities/cmi.interaction':
             interaction_flag = self.validate_cmi_interaction(act_def, act_created)
 

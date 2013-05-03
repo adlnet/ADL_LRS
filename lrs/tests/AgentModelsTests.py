@@ -391,7 +391,7 @@ class AgentModelsTests(TestCase):
 
         ot_b = "Agent"
         name_b = "batman"
-        openid_b = "batman"
+        openid_b = "id:batman"
         kwargs_b = {"objectType":ot_b,"name":name_b,"openid":openid_b}
         bruce, created = agent.objects.gen(**kwargs_b)
         self.assertTrue(created)

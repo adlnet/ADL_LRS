@@ -77,7 +77,7 @@ def oauth_helper(request):
                 {
                     "account":{
                                 "name":consumer.key,
-                                "homePage":"/XAPI/OAuth/token/"
+                                "homePage":"lrs://XAPI/OAuth/token/"
                     },
                     "objectType": "Agent",
                     "oauth_identifier": "anonoauth:%s" % (consumer.key)
