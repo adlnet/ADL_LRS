@@ -644,7 +644,7 @@ class OAuthTests(TestCase):
         url = 'http://testserver/XAPI/activities/state'
         testagent = '{"name":"jane","mbox":"mailto:jane@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
-        stateId = "the_state_id"
+        stateId = "id:the_state_id"
         activity = models.activity(activity_id=activityId)
         activity.save()
         testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
@@ -951,7 +951,7 @@ class OAuthTests(TestCase):
         url = 'http://testserver/XAPI/activities/state'
         testagent = '{"name":"joe","mbox":"mailto:joe@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
-        stateId = "the_state_id"
+        stateId = "id:the_state_id"
         activity = models.activity(activity_id=activityId)
         activity.save()
         testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
@@ -1034,7 +1034,7 @@ class OAuthTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
-            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'course',
+            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
             'interactionType': 'intType'}}})
 
         param = {"statementId":put_guid}
@@ -1101,7 +1101,7 @@ class OAuthTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/tested","display": {"en-US":"tested"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
-            'description': {'en-US':'definedesc', 'en-GB': 'definedesc'},'type': 'course',
+            'description': {'en-US':'definedesc', 'en-GB': 'definedesc'},'type': 'type:course',
             'interactionType': 'intType'}}}
         stmt_json = json.dumps(post_stmt)
 

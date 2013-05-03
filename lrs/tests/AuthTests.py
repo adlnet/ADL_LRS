@@ -58,7 +58,7 @@ class AuthTests(TestCase):
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
@@ -71,7 +71,7 @@ class AuthTests(TestCase):
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@t.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname3", "en-GB": "altname"},
-            "description": {"en-US":"testdesc3","en-GB":"altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc3","en-GB":"altdesc"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"ext:key11": "value11", "ext:key22": "value22","ext:key33": "value33"}}}, 
             "result": {"score":{"scaled":.75}, "completion": True, "success": True, "response": "shouted",
@@ -83,7 +83,7 @@ class AuthTests(TestCase):
         self.existStmt3 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:act:foogals",
-            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "cmi.interaction",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"ext:key111": "value111", "ext:key222": "value222","ext:key333": "value333"}}}, 
             "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
@@ -96,7 +96,7 @@ class AuthTests(TestCase):
         self.existStmt4 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogal",
-            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "cmi.interaction",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answers"],
             "extensions": {"ext:key111": "value111", "ext:key222": "value222","ext:key333": "value333"}}}, 
             "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
@@ -465,7 +465,7 @@ class AuthTests(TestCase):
         stmt = json.dumps({"verb": {"id":"verb:verb/url/changed-act"},"actor":{"objectType":"Agent", "mbox":"mailto:l@l.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
-            "type": "cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
+            "type": "http://adlnet.gov/expapi/activities/cmi.interaction","interactionType": "fill-in","correctResponsesPattern": ["answer"],
             "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
             "result": {"score":{"scaled":.85}, "completion": True, "success": True, "response": "kicked",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1", "ext:key2":"value2"}},
@@ -509,7 +509,7 @@ class AuthTests(TestCase):
 
     def test_issue_put(self):
         stmt_id = "33f60b35-e1b2-4ddc-9c6f-7b3f65244430" 
-        stmt = json.dumps({"verb":{"id":"verb:verb/uri"},"object":{"id":"act:scorm.com/JsTetris_TCAPI","definition":{"type":"media",
+        stmt = json.dumps({"verb":{"id":"verb:verb/uri"},"object":{"id":"act:scorm.com/JsTetris_TCAPI","definition":{"type":"type:media",
             "name":{"en-US":"Js Tetris - Tin Can Prototype"},"description":{"en-US":"A game of tetris."}}},
             "context":{"contextActivities":{"grouping":{"id":"act:scorm.com/JsTetris_TCAPI"}},
             "registration":"6b1091be-2833-4886-b4a6-59e5e0b3c3f4"},
@@ -589,7 +589,7 @@ class AuthTests(TestCase):
             "object": {"objectType": "Activity", "id":"http:adlnet.gov/my/Activity/URL",
             "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
-            "type": "http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction",
+            "type": "http://www.adlnet.gov/experienceapi/activity-types/http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "choice",
             "correctResponsesPattern": ["golf", "tetris"],
             "choices":[{"id": "golf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
@@ -747,7 +747,7 @@ class AuthTests(TestCase):
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement",
             'definition': {'name': {'en-US':'SubStatement name'},
             'description': {'en-US':'SubStatement description'},
-            'type': 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction','interactionType': 'matching',
+            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'matching',
             'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
             'description': {'en-US':'Lou', 'it': 'Luigi'}},{'id': 'tom','description':{'en-US': 'Tom', 'it':'Tim'}},
             {'id':'andy', 'description':{'en-US':'Andy'}}],'target':[{'id':'1',
@@ -799,7 +799,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey11'], 'contextVal11')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey22'], 'contextVal22')
         self.assertEqual(the_returned['object']['object']['id'], 'http://example.adlnet.gov/tincan/example/simplestatement')
-        self.assertEqual(the_returned['object']['object']['definition']['type'], 'http://www.adlnet.gov/experienceapi/activity-types/cmi.interaction')
+        self.assertEqual(the_returned['object']['object']['definition']['type'], 'http://adlnet.gov/expapi/activities/cmi.interaction')
         self.assertEqual(the_returned['object']['object']['definition']['description']['en-US'], 'SubStatement description')
         self.assertEqual(the_returned['object']['object']['definition']['interactionType'], 'matching')
         self.assertEqual(the_returned['object']['object']['definition']['name']['en-US'], 'SubStatement name')
@@ -875,7 +875,7 @@ class AuthTests(TestCase):
             "object": {"objectType": "Activity", "id":"act:test_wrong_list_post",
             "definition": {"name": {"en-US":"wrongactName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
-            "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+            "type": "http://adlnet.gov/expapi/activities/http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "choice",
             "correctResponsesPattern": ["wronggolf", "wrongtetris"],
             "choices":[{"id": "wronggolf", "description": {"en-US":"Golf Example", "en-GB": "GOLF"}},
@@ -929,7 +929,7 @@ class AuthTests(TestCase):
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
-            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "cmi.interaction",
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answer"]}},
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])

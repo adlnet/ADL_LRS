@@ -1123,7 +1123,7 @@ class StatementFilterTests(TestCase):
         "timestamp": "2013-04-08 21:07:20.392000+00:00", 
         "object": {
             "definition": {
-                "type": "media", 
+                "type": "type:media", 
                 "name": {
                     "en-US": "Js Tetris - Tin Can Prototype"
                 }, 
@@ -1373,13 +1373,13 @@ class StatementFilterTests(TestCase):
                                                         "es-US":"formato utilizado en este statement",
                                                         "fr":"format utilisé pour cette statement"
                                                         },
-                                         "type":"thing"
+                                         "type":"type:thing"
                                         }
                           },
                 "context": {"contextActivities":{"parent":[{"id":"act:statementfiltertests",
                                                             "definition":{"name":{"en-US":"statement filter", "fr":"statement filter"},
                                                                          "description":{"en-US":"unit tests","fr":"unit tests"},
-                                                                         "type":"parent thing"}
+                                                                         "type":"type:parent thing"}
                                                           }]
                                                 }
 
