@@ -80,8 +80,7 @@ def parse_body(r, request):
             post, files = parser.parse()
             r['files'] = files
         elif 'multipart/mixed' in request.META['CONTENT_TYPE']:
-            # pdb.set_trace() 
-            r['attachments'] = {}
+            pdb.set_trace() 
             import email
             from collections import defaultdict
             message = request.body
@@ -110,7 +109,8 @@ def parse_body(r, request):
                         headers = defaultdict(str)
                         for h,v in a.items():
                             headers[h] = v
-                        r['body']['attachments'] = {thehash : {"headers":headers,"payload":a.get_payload()}}
+                        r['body']['message_attachments'] = {thehash : {"headers":headers,"payload":a.get_payload()}}
+                pdb.set_trace()
             else:
                 raise ParamError("This content was not multipart.")
         else:
