@@ -10,7 +10,6 @@ import pdb
 
 def statements_post(req_dict):
     stmt_responses = []
-    pdb.set_trace()
     log_dict = req_dict['initial_user_action'] 
     log_info_processing(log_dict, 'POST', __name__)
 

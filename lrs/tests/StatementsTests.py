@@ -1461,17 +1461,23 @@ class StatementsTests(TestCase):
             "contentType": "text/plain; charset=utf-8",
             "length": 27,
             "sha2":""}]}
-        message = MIMEMultipart()
-        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+
+        message = MIMEMultipart(boundary="myboundary")
         txt = u"howdy.. this is a text attachment"
-        textdata = MIMEText(txt, 'plain', 'utf-8')
         txtsha = hashlib.sha256(txt).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(txtsha)
+        
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
         message.attach(stmtdata)
         message.attach(textdata)
-        stmt['attachments'][0]["sha2"] = txtsha
+        
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
         headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
             "Content-Type":message.get('Content-Type')}
-        
         r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        self.assertEqual(r.status_code, 200)
+
+        

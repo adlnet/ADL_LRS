@@ -60,11 +60,10 @@ def parse(request, more_id=None):
 
     # A 'POST' can actually be a GET
     if 'method' not in r_dict:
-        if request.method == "POST":
-            if "application/json" not in r_dict['CONTENT_TYPE'] and "multipart/mixed" not in r_dict['CONTENT_TYPE']:
-                r_dict['method'] = 'GET'
-            else:
-                r_dict['method'] = request.method
+        if request.method == "POST" and "application/json" not in r_dict['CONTENT_TYPE'] and "multipart/mixed" not in r_dict['CONTENT_TYPE']:
+            r_dict['method'] = 'GET'
+        else:
+            r_dict['method'] = request.method
 
     # Set if someone is hitting the statements/more endpoint
     if more_id:
@@ -79,8 +78,7 @@ def parse_body(r, request):
             parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
             post, files = parser.parse()
             r['files'] = files
-        elif 'multipart/mixed' in request.META['CONTENT_TYPE']:
-            pdb.set_trace() 
+        elif 'multipart/mixed' in request.META['CONTENT_TYPE']: 
             import email
             from collections import defaultdict
             message = request.body
@@ -110,7 +108,6 @@ def parse_body(r, request):
                         for h,v in a.items():
                             headers[h] = v
                         r['body']['message_attachments'] = {thehash : {"headers":headers,"payload":a.get_payload()}}
-                pdb.set_trace()
             else:
                 raise ParamError("This content was not multipart.")
         else:

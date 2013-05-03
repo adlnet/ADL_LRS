@@ -22,6 +22,7 @@ from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONS
 import logging
 from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 import pdb
+import base64
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
@@ -1125,7 +1126,7 @@ class StatementAttachment(models.Model):
     # Chances are it won't be too long, but there are longer types out there and can have multiple
     contentType = models.TextField()
     length = models.PositiveIntegerField()
-    sha2 = models.CharField(max_length=40)
+    sha2 = models.CharField(max_length=128)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     payload = property(get_payload_data, set_payload_data)
 
@@ -1168,6 +1169,7 @@ class statement(models.Model):
     context = models.OneToOneField(context, related_name="statement_context", null=True, on_delete=models.SET_NULL)
     version = models.CharField(max_length=7, default="1.0.0")
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
+    attachments = models.ManyToManyField(StatementAttachment)
 
     def get_a_name(self):
         return self.statement_id
@@ -1216,6 +1218,9 @@ class statement(models.Model):
             ret['authority'] = self.authority.get_agent_json(format)
         
         ret['version'] = self.version
+
+        if len(self.attachments.all()) > 0:
+            ret['attachments'] = [a.object_return() for a in self.attachments.all()]
         return ret
 
     def unvoid_statement(self):

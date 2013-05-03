@@ -269,7 +269,7 @@ class Statement():
         #Save result
         return self.saveResultToDB(result, resultExts)
 
-    def populateAttachments(self, attachment_data):
+    def populateAttachments(self, attachment_data, messages):
         log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
         
         for attach in attachment_data:
@@ -282,8 +282,17 @@ class Statement():
                 raise exceptions.ParamError(err_msg)
 
             descriptions = attach.pop('description', None)
-            attachment = models.StatementAttachment.objects.create(**attach)
+        
+            if attach['sha2'] != messages.keys()[0]:
+                err_msg = "Could not find attachment payload with sha: %s" % attach['sha2']
+                log_message(self.log_dict, err_msg, __name__, self.populateAttachments.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+            else:
+                attach['payload'] = messages[attach['sha2']]['payload']
 
+            attachment = models.StatementAttachment.objects.create(**attach)
+    
             for display in displays.items():
                 language_map = models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
                     content_object=attachment)
@@ -558,7 +567,6 @@ class Statement():
         if 'context' in stmt_data:
             args['context'] = self.populateContext(stmt_data)
         
-        pdb.set_trace()
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)
 
@@ -566,7 +574,7 @@ class Statement():
             self.populateResult(stmt_data)
         
         if 'attachments' in stmt_data:
-            self.populateAttachments(stmt_data['attachments'])
+            self.populateAttachments(stmt_data['attachments'], stmt_data['message_attachments'])
 
 
 class SubStatement(Statement):
