@@ -2,7 +2,6 @@ import json
 import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.utils.encoding import iri_to_uri
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
@@ -333,16 +332,8 @@ class Statement():
             log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
-        verb_id = incoming_verb['id']
         
-        try:
-            verb_id = iri_to_uri(verb_id)
-        except Exception, e:
-            err_msg = e.message
-            log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)          
-            raise exceptions.ParamError(err_msg)
-
+        verb_id = incoming_verb['id']
         if not uri.validate_uri(verb_id):
             err_msg = 'Verb ID %s is not a valid URI' % verb_id
             log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
