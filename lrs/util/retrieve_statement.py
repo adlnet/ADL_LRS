@@ -16,7 +16,6 @@ MORE_ENDPOINT = '/XAPI/statements/more/'
 
 def complex_get(req_dict):
     # tests if value is True or "true"
-    bt = lambda x: x if type(x)==bool else x.lower()=="true"
     stmtset = models.statement.objects.filter(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
@@ -47,7 +46,7 @@ def complex_get(req_dict):
         reffilter = True
         agent = None
         data = the_dict['agent']
-        related = 'related_agents' in the_dict and bt(the_dict['related_agents'])
+        related = 'related_agents' in the_dict and the_dict['related_agents']
         
         if not type(data) is dict:
             data = convert_to_dict(data)
@@ -83,7 +82,7 @@ def complex_get(req_dict):
     if 'activity' in the_dict:
         reffilter = True
         activityQ = Q(stmt_object__activity__activity_id=the_dict['activity'])
-        if 'related_activities' in the_dict and bt(the_dict['related_activities']):
+        if 'related_activities' in the_dict and the_dict['related_activities']:
             activityQ = activityQ | Q(context__contextactivity__context_activity__activity_id=the_dict['activity']) \
                     | Q(stmt_object__substatement__stmt_object__activity__activity_id=the_dict['activity']) \
                     | Q(stmt_object__substatement__context__contextactivity__context_activity__activity_id=the_dict['activity'])
@@ -109,7 +108,7 @@ def complex_get(req_dict):
 
     # If want ordered by ascending
     stored_param = '-stored'
-    if 'ascending' in the_dict and bt(the_dict['ascending']):
+    if 'ascending' in the_dict and the_dict['ascending']:
             stored_param = 'stored'
 
     stmtset = stmtset.filter(agentQ & verbQ & activityQ & registrationQ)
