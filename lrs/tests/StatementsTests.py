@@ -41,6 +41,15 @@ class StatementsTests(TestCase):
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         self.guid1 = str(uuid.uuid1())
 
+    def attach_setup(self):
+        username = "tester1"
+        email = "test1@tester.com"
+        password = "test"
+        auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
+        form = {"username":username, "email":email,"password":password,"password2":password}
+        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0.0"}        
+        response = requests.post("http://localhost:8000/XAPI/register",form, headers=headers)
+        
     def bunchostmts(self):
         self.guid2 = str(uuid.uuid1())
         self.guid3 = str(uuid.uuid1())    
@@ -1451,6 +1460,8 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, act_id)
 
     def test_multipart(self):
+        self.attach_setup()
+
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
             "verb":{"id":"http://tom.com/verb/butted"},
             "object":{"id":"act:tom.com/objs/heads"},
@@ -1480,4 +1491,134 @@ class StatementsTests(TestCase):
 
         self.assertEqual(r.status_code, 200)
 
+    def test_multipart_wrong_sha(self):
+        self.attach_setup()
+
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "sha2":""}]}
+
+        message = MIMEMultipart(boundary="myboundary")
+        txt = u"howdy.. this is a text attachment"
+        txtsha = hashlib.sha256(txt).hexdigest()
+        wrongtxt = u"blahblahblah this is wrong"
+        wrongsha = hashlib.sha256(wrongtxt).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(wrongsha)
         
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        textdata = MIMEText(txt, 'plain', 'utf-8')
+        textdata.add_header('X-Experience-API-Hash', txtsha)
+        message.attach(stmtdata)
+        message.attach(textdata)
+        
+        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
+        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
+            "Content-Type":message.get('Content-Type')}
+        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Could not find attachment payload with sha", r.content)
+
+
+    def test_multiple_multipart(self):
+        self.attach_setup()
+
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "sha2":""},
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment2"},
+            "description": {"en-US": "A test attachment (description)2"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 28,
+            "sha2":""}]}
+
+        message = MIMEMultipart(boundary="myboundary")
+        txt = u"howdy.. this is a text attachment"
+        txtsha = hashlib.sha256(txt).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(txtsha)
+        
+        txt2 = u"this is second attachment"
+        txtsha2 = hashlib.sha256(txt2).hexdigest()
+        stmt['attachments'][1]["sha2"] = str(txtsha2)
+
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        textdata = MIMEText(txt, 'plain', 'utf-8')
+        textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata2 = MIMEText(txt2, 'plain', 'utf-8')
+        textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        message.attach(stmtdata)
+        message.attach(textdata)
+        message.attach(textdata2)
+
+        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
+        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
+            "Content-Type":message.get('Content-Type')}
+        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        self.assertEqual(r.status_code, 200)
+
+        attachments = models.StatementAttachment.objects.all()
+        self.assertEqual(len(attachments), 2)
+
+    def test_multiple_multipart(self):
+        self.attach_setup()
+
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "sha2":""},
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment2"},
+            "description": {"en-US": "A test attachment (description)2"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 28,
+            "sha2":""}]}
+
+        message = MIMEMultipart(boundary="myboundary")
+        txt = u"howdy.. this is a text attachment"
+        txtsha = hashlib.sha256(txt).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(txtsha)
+        
+        txt2 = u"this is second attachment"
+        txtsha2 = hashlib.sha256(txt2).hexdigest()
+        wrongtxt = u"this is some wrong text"
+        wrongsha2 = hashlib.sha256(wrongtxt).hexdigest()
+        stmt['attachments'][1]["sha2"] = str(wrongsha2)
+
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        textdata = MIMEText(txt, 'plain', 'utf-8')
+        textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata2 = MIMEText(txt2, 'plain', 'utf-8')
+        textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        message.attach(stmtdata)
+        message.attach(textdata)
+        message.attach(textdata2)
+
+        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
+        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
+            "Content-Type":message.get('Content-Type')}
+        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Could not find attachment payload with sha", r.content)

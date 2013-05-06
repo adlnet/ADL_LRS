@@ -271,7 +271,7 @@ class Statement():
 
     def populateAttachments(self, attachment_data, messages):
         log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
-        
+        message_shas = [x.keys()[0] for x in messages]
         for attach in attachment_data:
             if 'display' in attach:
                 displays = attach.pop('display')
@@ -282,14 +282,14 @@ class Statement():
                 raise exceptions.ParamError(err_msg)
 
             descriptions = attach.pop('description', None)
-        
-            if attach['sha2'] != messages.keys()[0]:
+            
+            if not attach['sha2'] in message_shas:
                 err_msg = "Could not find attachment payload with sha: %s" % attach['sha2']
                 log_message(self.log_dict, err_msg, __name__, self.populateAttachments.__name__, True)
                 update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
             else:
-                attach['payload'] = messages[attach['sha2']]['payload']
+                attach['payload'] = (item[attach['sha2']]['payload'] for item in messages if item.keys()[0] == attach['sha2']).next()
 
             attachment = models.StatementAttachment.objects.create(**attach)
     

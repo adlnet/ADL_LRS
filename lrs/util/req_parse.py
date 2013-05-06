@@ -99,6 +99,7 @@ def parse_body(r, request):
                 # parts[1] better be the statement
                 r['body'] = convert_to_dict(parts[1].get_payload())
                 if len(parts) > 2:
+                    r['body']['message_attachments'] = []
                     for a in parts[2:]:
                         # attachments
                         thehash = a.get("X-Experience-API-Hash")
@@ -107,7 +108,7 @@ def parse_body(r, request):
                         headers = defaultdict(str)
                         for h,v in a.items():
                             headers[h] = v
-                        r['body']['message_attachments'] = {thehash : {"headers":headers,"payload":a.get_payload()}}
+                        r['body']['message_attachments'].append({thehash : {"headers":headers,"payload":a.get_payload()}})
             else:
                 raise ParamError("This content was not multipart.")
         else:
