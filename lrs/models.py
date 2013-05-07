@@ -1088,10 +1088,8 @@ class SubStatement(statement_object):
 class StatementAttachmentDisplay(models.Model):
     key = models.CharField(max_length=50, db_index=True)
     value = models.TextField()
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-    
+    attachment = models.ForeignKey('StatementAttachment')
+
     def object_return(self):
         return {self.key: self.value}
 
@@ -1101,9 +1099,7 @@ class StatementAttachmentDisplay(models.Model):
 class StatementAttachmentDesc(models.Model):
     key = models.CharField(max_length=50, db_index=True)
     value = models.TextField()
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    attachment = models.ForeignKey('StatementAttachment')
     
     def object_return(self):
         return {self.key: self.value}
@@ -1112,41 +1108,36 @@ class StatementAttachmentDesc(models.Model):
         return json.dumps(self.object_return())
 
 class StatementAttachment(models.Model):
-    _payload_data = models.TextField(db_column='payload_data', blank=True)
-
-    def set_payload_data(self, data):
-        self._payload_data = base64.encodestring(data)
-
-    def get_payload_data(self):
-        return base64.decodestring(self._payload_data)
-
     usageType = models.CharField(max_length=MAX_URL_LENGTH)
-    display = generic.GenericRelation(StatementAttachmentDisplay)
-    description = generic.GenericRelation(StatementAttachmentDesc, null=True)
     # Chances are it won't be too long, but there are longer types out there and can have multiple
     contentType = models.TextField()
     length = models.PositiveIntegerField()
-    sha2 = models.CharField(max_length=128)
+    sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    payload = property(get_payload_data, set_payload_data)
+    payload = models.FileField(upload_to="attachment_payloads", null=True)
 
     def object_return(self):
         ret = {}
         ret['usageType'] = self.usageType
 
-        if len(self.display.all()) > 0:
+        # TODO - better way to create these sets??
+        statement_attachment_display_set = StatementAttachmentDisplay.objects.filter(attachment=self)
+        if len(statement_attachment_display_set) > 0:
             ret['display'] = {}
-            for lang_map in self.display.all():
+            for lang_map in statement_attachment_display_set:
                 ret['display'].update(lang_map.object_return())
 
-        if len(self.description.all()) > 0:
+        statement_attachment_desc_set = StatementAttachmentDesc.objects.filter(attachment=self)
+        if len(statement_attachment_desc_set) > 0:
             ret['description'] = {}
-            for lang_map in self.description.all():
+            for lang_map in statement_attachment_desc_set:
                 ret['description'].update(lang_map.object_return())        
 
         ret['contentType'] = self.contentType
         ret['length'] = self.length
-        ret['sha2'] = self.sha2
+
+        if self.sha2:
+            ret['sha2'] = self.sha2
 
         if self.fileUrl:
             ret['fileUrl'] = self.fileUrl

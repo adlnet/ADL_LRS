@@ -151,6 +151,16 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 @log_parent_action(endpoint='statements')
 @check_oauth
 def statements_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    if type(r_dict['body']) is list:
+        pass
+    else:
+        if 'attachments' in r_dict['body']:
+            attachment_data = r_dict['body']['attachments']
+            message_attachments = r_dict['body'].get('message_attachments', None)
+            validate_attachments(log_dict, attachment_data, message_attachments)
+            if message_attachments:
+                del r_dict['body']['message_attachments']
     return r_dict
 
 @auth
@@ -227,7 +237,41 @@ def statements_put(r_dict):
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
 
+    if 'attachments' in r_dict['body']:
+        attachment_data = r_dict['body']['attachments']
+        message_attachments = r_dict['body'].get('message_attachments', None)
+        validate_attachments(log_dict, attachment_data, message_attachments)
+        if message_attachments:
+            del r_dict['body']['message_attachments']
     return r_dict
+
+def validate_attachments(log_dict, attachment_data, payload):
+    for attachment in attachment_data:
+        if not 'display' in attachment:
+            err_msg = "Attachment must contain display property"
+            log_exception(log_dict, err_msg, validate_attachments.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+
+        if 'sha2' in attachment:
+            sha2 = attachment['sha2']
+            if sha2 in [x.keys()[0] for x in payload]:
+                attachment['payload'] = (x[sha2]['payload'] for x in payload if x.keys()[0] == sha2).next()
+            else:
+                err_msg = "Could not find attachment payload with sha: %s" % sha2
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
+        elif not 'fileUrl' in attachment:
+                err_msg = "Attachment did not contain a sha2 and did not contain a fileUrl"
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
+        elif 'fileUrl' in attachment and not attachment['fileUrl']:
+                err_msg = "Attachment had no value for fileUrl"
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
 
 @auth
 @log_parent_action(endpoint='activities/state')

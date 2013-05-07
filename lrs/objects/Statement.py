@@ -269,38 +269,31 @@ class Statement():
         #Save result
         return self.saveResultToDB(result, resultExts)
 
-    def populateAttachments(self, attachment_data, messages):
+    def populateAttachments(self, attachment_data):
         log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
-        message_shas = [x.keys()[0] for x in messages]
+
         for attach in attachment_data:
-            if 'display' in attach:
-                displays = attach.pop('display')
-            else:
-                err_msg = "Attachment must contain display property"
-                log_message(self.log_dict, err_msg, __name__, self.populateAttachments.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
-                raise exceptions.ParamError(err_msg)
-
+            # Pop displays and descs off
+            displays = attach.pop('display')
             descriptions = attach.pop('description', None)
-            
-            if not attach['sha2'] in message_shas:
-                err_msg = "Could not find attachment payload with sha: %s" % attach['sha2']
-                log_message(self.log_dict, err_msg, __name__, self.populateAttachments.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
-                raise exceptions.ParamError(err_msg)
-            else:
-                attach['payload'] = (item[attach['sha2']]['payload'] for item in messages if item.keys()[0] == attach['sha2']).next()
+            # pdb.set_trace()
+            try:
+                attachment, created = models.StatementAttachment.objects.get_or_create(**attach)    
+            except Exception, e:
+                pdb.set_trace()
+                raise e
 
-            attachment = models.StatementAttachment.objects.create(**attach)
-    
-            for display in displays.items():
-                language_map = models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
-                    content_object=attachment)
-            if descriptions:
-                for desc in descriptions.items():
-                    language_map = models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
-                        content_object=attachment)
-        
+            # If it didn't exist already, create the displays and descs
+            if not created:
+                for display in displays.items():
+                    models.StatementAttachmentDisplay.objects.get_or_create(key=display[0], value=display[1],
+                        attachment=attachment)
+            
+                if descriptions:
+                    for desc in descriptions.items():
+                        models.StatementAttachmentDesc.objects.get_or_create(key=desc[0], value=desc[1],
+                            attachment=attachment)
+            # Add each attach to the stmt
             self.model_object.attachments.add(attachment)
         self.model_object.save()
 
@@ -572,9 +565,9 @@ class Statement():
 
         if 'result' in stmt_data:
             self.populateResult(stmt_data)
-        
+
         if 'attachments' in stmt_data:
-            self.populateAttachments(stmt_data['attachments'], stmt_data['message_attachments'])
+            self.populateAttachments(stmt_data['attachments'])
 
 
 class SubStatement(Statement):
