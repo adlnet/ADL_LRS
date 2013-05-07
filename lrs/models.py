@@ -28,7 +28,7 @@ gen_pwd = User.objects.make_random_password
 generate_random = User.objects.make_random_password
 
 def gen_uuid():
-    return uuid.uuid1().hex
+    return str(uuid.uuid1())
 
 class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
