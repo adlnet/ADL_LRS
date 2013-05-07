@@ -198,7 +198,7 @@ class Statement():
         resultExts = {}                    
         #Catch contradictory results
         if 'extensions' in stmt_data['result']:
-            result = {key: value for key, value in stmt_data['result'].items() if not key == 'extensions'}
+            result = dict((key, value) for (key, value) in stmt_data['result'].items() if not key == 'extensions')
             resultExts = stmt_data['result']['extensions']   
         else:
             result = stmt_data['result']
@@ -249,7 +249,7 @@ class Statement():
 
         # Set extensions
         if 'extensions' in stmt_data['context']:
-            context = {key: value for key, value in stmt_data['context'].items() if not key == 'extensions'}
+            context = dict((key, value) for (key, value) in stmt_data['context'].items() if not key == 'extensions')
             contextExts = stmt_data['context']['extensions']
         else:
             context = stmt_data['context']
