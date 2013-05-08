@@ -95,8 +95,11 @@ def complex_get(req_dict):
 
     format = the_dict['format']
     
-    # attachments
-    
+    attachments = False
+    # Check if attachments in query dict and if it's true
+    if 'attachments' in the_dict and the_dict['attachments']:
+        attachments = True
+
     # Set language if one
     # pull from req_dict since language is from a header, not an arg 
     language = None
@@ -119,7 +122,7 @@ def complex_get(req_dict):
     stmt_list = stmtset.order_by(stored_param)
     # For each stmt retrieve all json
     full_stmt_list = []
-    full_stmt_list = [stmt.object_return(language, format) for stmt in stmt_list]
+    full_stmt_list = [stmt.object_return(language, format, attachments) for stmt in stmt_list]
     return full_stmt_list
 
 def findstmtrefs(stmtset, sinceq, untilq):

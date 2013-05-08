@@ -1179,7 +1179,7 @@ class statement(models.Model):
             raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
         return stmt_object, subclass
 
-    def object_return(self, lang=None, format='exact'):
+    def object_return(self, lang=None, format='exact', attachments=False):
         object_type = 'activity'
         ret = {}
         ret['id'] = self.statement_id
@@ -1210,8 +1210,9 @@ class statement(models.Model):
         
         ret['version'] = self.version
 
-        if len(self.attachments.all()) > 0:
-            ret['attachments'] = [a.object_return() for a in self.attachments.all()]
+        if attachments:
+            if len(self.attachments.all()) > 0:
+                ret['attachments'] = [a.object_return() for a in self.attachments.all()]
         return ret
 
     def unvoid_statement(self):

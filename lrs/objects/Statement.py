@@ -271,27 +271,22 @@ class Statement():
 
     def populateAttachments(self, attachment_data):
         log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
-
         for attach in attachment_data:
             # Pop displays and descs off
             displays = attach.pop('display')
             descriptions = attach.pop('description', None)
-            # pdb.set_trace()
-            try:
-                attachment, created = models.StatementAttachment.objects.get_or_create(**attach)    
-            except Exception, e:
-                pdb.set_trace()
-                raise e
+            attachment, created = models.StatementAttachment.objects.get_or_create(**attach)    
 
             # If it didn't exist already, create the displays and descs
+            # If clients can change name and desc like activity definitions, can check define here
             if not created:
                 for display in displays.items():
-                    models.StatementAttachmentDisplay.objects.get_or_create(key=display[0], value=display[1],
+                    models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
                         attachment=attachment)
             
                 if descriptions:
                     for desc in descriptions.items():
-                        models.StatementAttachmentDesc.objects.get_or_create(key=desc[0], value=desc[1],
+                        models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
                             attachment=attachment)
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)

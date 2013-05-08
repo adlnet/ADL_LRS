@@ -41,7 +41,7 @@ def statements_post(req_dict):
 
     update_parent_log_status(log_dict, 200)
 
-    return HttpResponse('%s' % ', '.join(map(str,stmt_responses)), status=200)
+    return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
     log_dict = req_dict['initial_user_action']    
@@ -117,13 +117,20 @@ def statements_get(req_dict):
     else:
         stmt_list = retrieve_statement.complex_get(req_dict)
         stmt_result = retrieve_statement.build_statement_result(req_dict, stmt_list)
-    
+        # sha2s = []
+        # for stmt in stmt_result:
+        #     if len(stmt.attachments.all()) > 0:
+        #         for attachment in stmt.attachments.all():
+                    
+
     update_parent_log_status(log_dict, 200)
     resp = HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
+    
     try:
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
+    
     resp['Content-Length'] = str(len(json.dumps(stmt_result)))
     return resp
 

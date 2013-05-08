@@ -152,15 +152,22 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 @check_oauth
 def statements_post(r_dict):
     log_dict = r_dict['initial_user_action']
+
+    attachment_payloads = r_dict.get('attachment_payloads', None)
     if type(r_dict['body']) is list:
-        pass
+        for stmt in r_dict['body']:
+            if 'attachments' in stmt:
+                attachment_data = stmt['attachments']
+                validate_attachments(log_dict, attachment_data, attachment_payloads)
+        if attachment_payloads:
+            del r_dict['attachment_payloads']
     else:
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
-            message_attachments = r_dict['body'].get('message_attachments', None)
-            validate_attachments(log_dict, attachment_data, message_attachments)
-            if message_attachments:
-                del r_dict['body']['message_attachments']
+            validate_attachments(log_dict, attachment_data, attachment_payloads)
+            # Remove the message_attachments(payloads) don't need them anymore
+            if attachment_payloads:
+                del r_dict['attachment_payloads']
     return r_dict
 
 @auth
@@ -239,10 +246,10 @@ def statements_put(r_dict):
 
     if 'attachments' in r_dict['body']:
         attachment_data = r_dict['body']['attachments']
-        message_attachments = r_dict['body'].get('message_attachments', None)
-        validate_attachments(log_dict, attachment_data, message_attachments)
-        if message_attachments:
-            del r_dict['body']['message_attachments']
+        attachment_payloads = r_dict.get('attachment_payloads', None)
+        validate_attachments(log_dict, attachment_data, attachment_payloads)
+        if attachment_payloads:
+            del r_dict['attachment_payloads']
     return r_dict
 
 def validate_attachments(log_dict, attachment_data, payload):
