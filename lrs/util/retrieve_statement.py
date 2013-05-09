@@ -11,6 +11,7 @@ from itertools import chain
 from lrs import models
 from lrs.objects import Agent
 from lrs.util import convert_to_utc, convert_to_dict
+from lrs.exceptions import NotFound
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
@@ -95,11 +96,6 @@ def complex_get(req_dict):
 
     format = the_dict['format']
     
-    attachments = False
-    # Check if attachments in query dict and if it's true
-    if 'attachments' in the_dict and the_dict['attachments']:
-        attachments = True
-
     # Set language if one
     # pull from req_dict since language is from a header, not an arg 
     language = None
@@ -122,7 +118,7 @@ def complex_get(req_dict):
     stmt_list = stmtset.order_by(stored_param)
     # For each stmt retrieve all json
     full_stmt_list = []
-    full_stmt_list = [stmt.object_return(language, format, attachments) for stmt in stmt_list]
+    full_stmt_list = [stmt.object_return(language, format) for stmt in stmt_list]
     return full_stmt_list
 
 def findstmtrefs(stmtset, sinceq, untilq):
@@ -188,7 +184,7 @@ def get_statement_request(req_id):
 
     # Could have expired or never existed
     if not encoded_info:
-        return ['List does not exist - may have expired after 24 hours']
+        raise NotFound("List does not exist - may have expired after 24 hours")
 
     # Decode info
     decoded_info = pickle.loads(encoded_info)
@@ -201,9 +197,11 @@ def get_statement_request(req_id):
     #Build list from query_dict
     stmt_list = complex_get(query_dict)
 
+    attachments = query_dict.get('attachments', False)
+
     # Build statementResult
     stmt_result = build_statement_result(query_dict, stmt_list, req_id)
-    return stmt_result
+    return stmt_result, attachments
 
 def set_limit(req_dict):
     limit = None

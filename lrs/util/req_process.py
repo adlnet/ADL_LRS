@@ -1,5 +1,8 @@
 import json
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from email.mime.base import MIMEBase
 from django.http import HttpResponse
 from lrs import models, exceptions
 from lrs.util import log_info_processing, log_exception, update_parent_log_status
@@ -60,13 +63,20 @@ def statements_put(req_dict):
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
-    statement_result = retrieve_statement.get_statement_request(req_dict['more_id']) 
-    resp = HttpResponse(json.dumps(statement_result),mimetype="application/json",status=200)
+    stmt_result, attachments = retrieve_statement.get_statement_request(req_dict['more_id'])     
+    content_length = len(json.dumps(stmt_result))
+    mime_type = "application/json"
+    if attachments:
+        stmt_result, mime_type, content_length = build_response(req_dict, stmt_result, content_length)
+        resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+    else:
+        resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
+    
     try:
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
-    resp['Content-Length'] = str(len(json.dumps(statement_result)))
+    resp['Content-Length'] = str(content_length)
     return resp
 
 def statements_get(req_dict):
@@ -79,6 +89,7 @@ def statements_get(req_dict):
         mine_only = False
 
     stmt_result = {}
+    mime_type = "application/json"
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict or 'voidedStatementId' in req_dict:
         if 'statementId' in req_dict:
@@ -111,28 +122,65 @@ def statements_get(req_dict):
             log_exception(log_dict, err_msg, statements_get.__name__)
             update_parent_log_status(log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
-            
         
-        stmt_result = st.object_return()
+        # Once validated, return the object, dump to json, and set content length
+        stmt_result = json.dumps(st.object_return())
+        resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+        content_length = len(json.dumps(stmt_result))
+    # Complex GET
     else:
+        # Create returned stmt list from the req dict
         stmt_list = retrieve_statement.complex_get(req_dict)
+        # Build json result({statements:...,more:...}) and set content length
         stmt_result = retrieve_statement.build_statement_result(req_dict, stmt_list)
-        # sha2s = []
-        # for stmt in stmt_result:
-        #     if len(stmt.attachments.all()) > 0:
-        #         for attachment in stmt.attachments.all():
-                    
+        content_length = len(json.dumps(stmt_result))
 
-    update_parent_log_status(log_dict, 200)
-    resp = HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)
-    
+        # If attachments=True in req_dict then include the attachment payload and return different mime type
+        if 'attachments' in req_dict and req_dict['attachments']:
+            stmt_result, mime_type, content_length = build_response(req_dict, stmt_result, content_length)
+            resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+
+        else:
+            resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
+    # Set consistent through and content length headers for all responses
     try:
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
-    
-    resp['Content-Length'] = str(len(json.dumps(stmt_result)))
+    resp['Content-Length'] = str(content_length)
+    update_parent_log_status(log_dict, 200)    
     return resp
+
+def build_response(req_dict, stmt_result, content_length):
+    sha2s = []
+    mime_type = "application/json"
+    statements = stmt_result['statements']
+    for stmt in statements:
+        if 'attachments' in stmt:
+            for attachment in stmt['attachments']:
+                if 'sha2' in attachment:
+                    att_object = models.StatementAttachment.objects.get(sha2=attachment['sha2'])
+                    sha2s.append((attachment['sha2'], att_object.payload))    
+    # If attachments have payloads
+    if sha2s:
+        full_message = MIMEMultipart(boundary="ADL_LRS---------")
+        stmt_message = MIMEApplication(json.dumps(stmt_result), _subtype="json", _encoder=json.JSONEncoder)
+        full_message.attach(stmt_message)
+        for sha2 in sha2s:
+            binary_message = MIMEBase('application', 'octet-stream')
+            binary_message.set_payload(sha2[1].read())
+            binary_message.add_header('X-Experience-API-Hash', sha2[0])
+            binary_message.add_header('Content-Transfer-Encoding', 'binary')
+            full_message.attach(binary_message)
+            content_length += sha2[1].size
+            mime_type = "multipart/mixed"
+            return full_message.as_string(), mime_type, content_length 
+        # resp = HttpResponse(full_message.as_string(), mimetype="multipart/mixed", status=200)
+    # Has attachments but no payloads
+    else:
+        return json.dumps(stmt_result), mime_type, content_length
+        # resp = HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)                
+
 
 def activity_state_post(req_dict):
     log_dict = req_dict['initial_user_action']    

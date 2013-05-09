@@ -1533,8 +1533,9 @@ class StatementsTests(TestCase):
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload, "howdy.. this is a text attachment")
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload, "This is second attachment.")
+        
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), "This is second attachment.")
 
     def test_multiple_stmt_multipart_same_attachment(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -1583,10 +1584,11 @@ class StatementsTests(TestCase):
         statements = models.statement.objects.all()
         attachments = models.StatementAttachment.objects.all()
         self.assertEqual(len(statements), 2)
-        self.assertEqual(len(attachments), 1)
+        # TODO - figure out amt when come to consensus on get or create
+        self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload, "howdy.. this is a text attachment")
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload, "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
 
     def test_multiple_stmt_multipart_one_attachment_one_fileurl(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -1635,7 +1637,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload, "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
         self.assertEqual(saved_stmt2.attachments.all()[0].fileUrl, "http://my/file/url")
 
     def test_multiple_stmt_multipart_multiple_attachments_each(self):
@@ -1722,10 +1724,12 @@ class StatementsTests(TestCase):
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 4)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload, "This is a text attachment11")
-        self.assertEqual(saved_stmt1.attachments.all()[1].payload, "This is a text attachment12")
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload, "This is a text attachment21")
-        self.assertEqual(saved_stmt2.attachments.all()[1].payload, "This is a text attachment22")
+        stmt1_contents = ["This is a text attachment11","This is a text attachment12"]
+        stmt2_contents = ["This is a text attachment21","This is a text attachment22"]
+        self.assertIn(saved_stmt1.attachments.all()[0].payload.read(), stmt1_contents)
+        self.assertIn(saved_stmt1.attachments.all()[1].payload.read(), stmt1_contents)
+        self.assertIn(saved_stmt2.attachments.all()[0].payload.read(), stmt2_contents)
+        self.assertIn(saved_stmt2.attachments.all()[1].payload.read(), stmt2_contents)
 
     def test_multipart_wrong_sha(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -1759,7 +1763,6 @@ class StatementsTests(TestCase):
 
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
-
 
     def test_multiple_multipart(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -1905,7 +1908,6 @@ class StatementsTests(TestCase):
 
     def test_multipart_put(self):
         stmt_id = str(uuid.uuid1())
-
         stmt = {"id":stmt_id,
             "actor":{"mbox":"mailto:tom@example.com"},
             "verb":{"id":"http://tom.com/verb/butted"},
@@ -1939,7 +1941,6 @@ class StatementsTests(TestCase):
         self.assertEqual(r.status_code, 204)
 
     def test_multipart_wrong_sha_put(self):
-         
         stmt_id = str(uuid.uuid1())
         stmt = {"id":stmt_id,
             "actor":{"mbox":"mailto:tom@example.com"},
@@ -1977,7 +1978,6 @@ class StatementsTests(TestCase):
         self.assertIn("Could not find attachment payload with sha", r.content)
 
     def test_multiple_multipart_put(self):
-         
         stmt_id = str(uuid.uuid1())
         stmt = {"id":stmt_id,
             "actor":{"mbox":"mailto:tom@example.com"},
@@ -2024,7 +2024,6 @@ class StatementsTests(TestCase):
         self.assertEqual(r.status_code, 204)
 
     def test_multiple_multipart_put(self):
-         
         stmt_id = str(uuid.uuid1())
         stmt = {"id":stmt_id,
             "actor":{"mbox":"mailto:tom@example.com"},

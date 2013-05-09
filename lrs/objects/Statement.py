@@ -2,6 +2,7 @@ import json
 import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.core.files.base import ContentFile
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
@@ -275,19 +276,33 @@ class Statement():
             # Pop displays and descs off
             displays = attach.pop('display')
             descriptions = attach.pop('description', None)
-            attachment, created = models.StatementAttachment.objects.get_or_create(**attach)    
+            payload_pop = attach.pop('payload', None)
 
+            # Get or create based on payload?
+            # attachment, created = models.StatementAttachment.objects.get_or_create(**attach)
+            attachment = models.StatementAttachment.objects.create(**attach)
+
+            if payload_pop:
+                try:
+                    payload = ContentFile(payload_pop.read())
+                except:
+                    try:
+                        payload = ContentFile(payload_pop)
+                    except:
+                        payload = ContentFile(str(payload_pop))
+
+                attachment.payload.save(attachment.sha2, payload)
             # If it didn't exist already, create the displays and descs
             # If clients can change name and desc like activity definitions, can check define here
-            if not created:
-                for display in displays.items():
-                    models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
+            # if not created:
+            for display in displays.items():
+                models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
+                    attachment=attachment)
+        
+            if descriptions:
+                for desc in descriptions.items():
+                    models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
                         attachment=attachment)
-            
-                if descriptions:
-                    for desc in descriptions.items():
-                        models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
-                            attachment=attachment)
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)
         self.model_object.save()
