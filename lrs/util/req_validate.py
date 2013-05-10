@@ -280,10 +280,11 @@ def validate_attachments(log_dict, attachment_data, payload):
         if 'sha2' in attachment:
             sha2 = attachment['sha2']
             # Check if the sha2 field is a key in the payload dict
-            if sha2 in [p.keys()[0] for p in payload]:
+            if sha2 in [p[0] for p in payload]:
                 # Set the attachment payload in the statment data to the payload in the dict that has the correct
                 # sha2 as the key
-                attachment['payload'] = (x[sha2]['payload'] for x in payload if x.keys()[0] == sha2).next()
+                # attachment['payload'] = (x[sha2]['payload'] for x in payload if x.keys()[0] == sha2).next()
+                attachment['payload'] = (x[1] for x in payload if x[0] == sha2).next()
             # Else there is no payload with a sha2 listed in the stmt which is invalid
             else:
                 err_msg = "Could not find attachment payload with sha: %s" % sha2

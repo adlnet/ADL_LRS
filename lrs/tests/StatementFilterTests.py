@@ -1,4 +1,5 @@
 # coding=utf-8
+from email import message_from_string
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
@@ -1882,7 +1883,47 @@ class StatementFilterTests(TestCase):
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'multipart/mixed')
-        # TODO - need to test content when know how to format httpresponse
+        headers_list= [txtsha1, txtsha2, txtsha3,txtsha4]
+        payload_list = [u"This is a text attachment1",u"This is a text attachment2",u"This is a text attachment3",u"This is a text attachment4"]
+        msg = message_from_string(r.content)
+        parts = []
+
+        for part in msg.walk():
+            parts.append(part)
+
+        self.assertEqual(parts[0].get('Content-Type'), 'multipart/mixed; boundary="ADL_LRS---------"')
+        self.assertEqual(parts[1].get('Content-Type'), 'application/json')
+        returned_json = json.loads(parts[1].get_payload())
+        self.assertEqual(len(returned_json['statements']), 2)
+        resp_url = returned_json['more']
+        resp_id = resp_url[-32:]        
+
+        for part in parts[2:]:
+            self.assertIn(part._payload, payload_list)
+            self.assertIn(part.get("X-Experience-API-Hash"), headers_list)
+            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+
+        more_get = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
+        self.assertEqual(more_get.status_code, 200)
+        msg = message_from_string(more_get.content)
+        parts = []
+
+        for part in msg.walk():
+            parts.append(part)
+
+        self.assertEqual(parts[0].get('Content-Type'), 'multipart/mixed; boundary="ADL_LRS---------"')
+        self.assertEqual(parts[1].get('Content-Type'), 'application/json')
+        returned_json = json.loads(parts[1].get_payload())
+        self.assertEqual(len(returned_json['statements']), 2)
+
+        for part in parts[2:]:
+            self.assertIn(part._payload, payload_list)
+            self.assertIn(part.get("X-Experience-API-Hash"), headers_list)
+            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+
 
     def test_more_attachments_with_payloads_no_attach_param(self):
         settings.SERVER_STMT_LIMIT=2
@@ -1980,4 +2021,4 @@ class StatementFilterTests(TestCase):
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
         self.assertEqual(more_get['Content-Type'], 'application/json')
-        # TODO - need to test content when know how to format httpresponse 
+         

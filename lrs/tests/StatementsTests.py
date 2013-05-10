@@ -21,7 +21,6 @@ import urllib
 import pdb
 import hashlib
 import pprint
-import requests
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -1510,9 +1509,9 @@ class StatementsTests(TestCase):
         message.attach(textdata)
         
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
-        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        r = self.client.post(reverse(views.statements), message.as_string(),
+            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
 
     def test_multiple_stmt_multipart(self):
@@ -1792,9 +1791,9 @@ class StatementsTests(TestCase):
         message.attach(textdata)
         
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
-        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
@@ -1836,9 +1835,9 @@ class StatementsTests(TestCase):
         message.attach(textdata2)
 
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
-        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
 
     def test_multiple_multipart(self):
@@ -1880,9 +1879,9 @@ class StatementsTests(TestCase):
         message.attach(textdata2)
 
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
-        r = requests.post("http://localhost:8000/XAPI/statements", message.as_string(), headers=headers)
+
+        r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
 
@@ -2007,11 +2006,11 @@ class StatementsTests(TestCase):
         message.attach(textdata)
         
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
+
         param = {"statementId":stmt_id}
-        path = "%s?%s" % ("http://localhost:8000/XAPI/statements", urllib.urlencode(param))
-        r = requests.put(path, message.as_string(), headers=headers)
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        r = self.client.put(path, message.as_string(), content_type="multipart/mixed", Authorization=self.auth,
+            X_Experience_API_Version="1.0.0")
 
         self.assertEqual(r.status_code, 204)
 
@@ -2043,11 +2042,11 @@ class StatementsTests(TestCase):
         message.attach(textdata)
         
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
+
         param = {"statementId":stmt_id}
-        path = "%s?%s" % ("http://localhost:8000/XAPI/statements", urllib.urlencode(param))
-        r = requests.put(path, message.as_string(), headers=headers)
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        r = self.client.put(path, message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
@@ -2091,11 +2090,11 @@ class StatementsTests(TestCase):
         message.attach(textdata2)
 
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
+
         param = {"statementId":stmt_id}
-        path = "%s?%s" % ("http://localhost:8000/XAPI/statements", urllib.urlencode(param))
-        r = requests.put(path, message.as_string(), headers=headers)
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        r = self.client.put(path, message.as_string(), content_type="multipart/mixed" , Authorization=self.auth,
+            X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 204)
 
     def test_multiple_multipart_put(self):
@@ -2139,11 +2138,11 @@ class StatementsTests(TestCase):
         message.attach(textdata2)
 
         auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-        headers = {"Authorization":auth, "X-Experience-API-Version":"1.0",
-            "Content-Type":message.get('Content-Type')}
+
         param = {"statementId":stmt_id}
-        path = "%s?%s" % ("http://localhost:8000/XAPI/statements", urllib.urlencode(param))
-        r = requests.put(path, message.as_string(), headers=headers)
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        r = self.client.put(path, message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
 
@@ -2162,7 +2161,7 @@ class StatementsTests(TestCase):
             "fileUrl": "http://my/file/url"}]}
         
         param = {"statementId":stmt_id}
-        path = "%s?%s" % ("http://localhost:8000/XAPI/statements", urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
@@ -2181,7 +2180,7 @@ class StatementsTests(TestCase):
             "length": 27}]}
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % ("http://localhost:8000/XAPI/statements", urllib.urlencode(param))        
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
@@ -2209,7 +2208,7 @@ class StatementsTests(TestCase):
             "fileUrl":""}]}
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % ("http://localhost:8000/XAPI/statements", urllib.urlencode(param))
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)

@@ -114,7 +114,9 @@ def parse_body(r, request):
                         # for h,v in a.items():
                         #     headers[h] = v
                         # r['attachment_payloads'].append({thehash : {"headers":headers,"payload":a.get_payload()}})
-                        r['attachment_payloads'].append({thehash : {"payload":a.get_payload()}})
+                        # r['attachment_payloads'].append({thehash : {"payload":a.get_payload()}})
+                        r['attachment_payloads'].append((thehash, a.get_payload()))
+
             else:
                 raise ParamError("This content was not multipart.")
         # Normal POST/PUT data
