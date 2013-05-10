@@ -197,6 +197,8 @@ def get_statement_request(req_id):
     #Build list from query_dict
     stmt_list = complex_get(query_dict)
 
+    # All query dicts will have attachments set from GET/stmt endpoint
+    # Return this for the GET/more endpoint
     attachments = query_dict.get('attachments')
 
     # Build statementResult

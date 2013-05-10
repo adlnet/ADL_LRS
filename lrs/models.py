@@ -1109,8 +1109,7 @@ class StatementAttachmentDesc(models.Model):
 
 class StatementAttachment(models.Model):
     usageType = models.CharField(max_length=MAX_URL_LENGTH)
-    # Chances are it won't be too long, but there are longer types out there and can have multiple
-    contentType = models.TextField()
+    contentType = models.CharField(max_length=128)
     length = models.PositiveIntegerField()
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)

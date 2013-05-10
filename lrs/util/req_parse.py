@@ -1,4 +1,6 @@
 import StringIO
+import email
+from collections import defaultdict
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
 from lrs.util import etag, convert_to_dict
@@ -56,6 +58,7 @@ def parse(request, more_id=None):
     else:
         r_dict = parse_body(r_dict, request)
 
+    # Update dict with any GET data
     r_dict.update(request.GET.dict())
 
     # A 'POST' can actually be a GET
@@ -73,15 +76,15 @@ def parse(request, more_id=None):
 
 def parse_body(r, request):
     if request.method == 'POST' or request.method == 'PUT':
+        # Parse out profiles/states if the POST dict is not empty
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             if request.POST.dict().keys():
                 r.update(request.POST.dict())
                 parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
                 post, files = parser.parse()
                 r['files'] = files
+        # If it is multipart/mixed, parse out all data
         elif 'multipart/mixed' in request.META['CONTENT_TYPE']: 
-            import email
-            from collections import defaultdict
             message = request.body
             # i need boundary to be in the message for email to parse it right
             if 'boundary' not in message[:message.index("--")]:
@@ -107,11 +110,14 @@ def parse_body(r, request):
                         if not thehash:
                             raise ParamError("X-Experience-API-Hash header was missing from attachment")
                         headers = defaultdict(str)
-                        for h,v in a.items():
-                            headers[h] = v
-                        r['attachment_payloads'].append({thehash : {"headers":headers,"payload":a.get_payload()}})
+                        # Don't need headers right now
+                        # for h,v in a.items():
+                        #     headers[h] = v
+                        # r['attachment_payloads'].append({thehash : {"headers":headers,"payload":a.get_payload()}})
+                        r['attachment_payloads'].append({thehash : {"payload":a.get_payload()}})
             else:
                 raise ParamError("This content was not multipart.")
+        # Normal POST/PUT data
         else:
             if request.body:
                 # profile uses the request body

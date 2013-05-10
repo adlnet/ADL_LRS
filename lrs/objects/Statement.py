@@ -272,37 +272,79 @@ class Statement():
 
     def populateAttachments(self, attachment_data):
         log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
+        # Iterate through each attachment
         for attach in attachment_data:
             # Pop displays and descs off
             displays = attach.pop('display')
             descriptions = attach.pop('description', None)
             payload_pop = attach.pop('payload', None)
 
-            # Get or create based on payload?
-            # attachment, created = models.StatementAttachment.objects.get_or_create(**attach)
-            attachment = models.StatementAttachment.objects.create(**attach)
-
-            if payload_pop:
+            # Get or create based on sha2
+            if 'sha2' in attach:
                 try:
-                    payload = ContentFile(payload_pop.read())
-                except:
+                    attachment = models.StatementAttachment.objects.get(sha2=attach['sha2'])
+                    created = False
+                except models.StatementAttachment.DoesNotExist:
+                    attachment = models.StatementAttachment.objects.create(**attach)
+                    created = True                
+                    # Since there is a sha2, there must be a payload so create it 
                     try:
-                        payload = ContentFile(payload_pop)
+                        payload = ContentFile(payload_pop.read())
                     except:
-                        payload = ContentFile(str(payload_pop))
+                        try:
+                            payload = ContentFile(payload_pop)
+                        except:
+                            payload = ContentFile(str(payload_pop))
+                    attachment.payload.save(attachment.sha2, payload)
+            # If no sha2 there must be a fileUrl which is unique
+            else:
+                try:
+                    attachment = models.StatementAttachment.objects.get(fileUrl=attach['fileUrl'])
+                    created = False
+                except Exception, e:
+                    attachment = models.StatementAttachment.objects.create(**attach)
+                    created = True
 
-                attachment.payload.save(attachment.sha2, payload)
-            # If it didn't exist already, create the displays and descs
-            # If clients can change name and desc like activity definitions, can check define here
-            # if not created:
-            for display in displays.items():
-                models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
-                    attachment=attachment)
-        
-            if descriptions:
-                for desc in descriptions.items():
-                    models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
+            # If it was just created, create the displays and descs
+            if created:
+                for display in displays.items():
+                    models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
                         attachment=attachment)
+            
+                if descriptions:
+                    for desc in descriptions.items():
+                        models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
+                            attachment=attachment)
+
+            # If have define permission and attachment already has existed
+            if self.define and not created:
+                # Grab existing display and desc keys for the attachment
+                existing_display_keys = models.StatementAttachmentDisplay.objects.filter(attachment=attachment).values_list('key', flat=True)
+                existing_desc_keys = models.StatementAttachmentDesc.objects.filter(attachment=attachment).values_list('key', flat=True)
+
+                # Iterate through each incoming display
+                for d in displays.items():
+                    # If it's a tuple
+                    if isinstance(d, tuple):
+                        # If the new key already exists, update that display with the new value
+                        if d[0] in existing_display_keys:
+                            existing_attach_display = models.StatementAttachmentDisplay.objects.filter(attachment=attachment,key=d[0]).update(value=d[1])
+                        # Else it doesn't exist so just create it
+                        else:
+                            models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
+                                attachment=attachment)
+                # Iterate through each incoming desc
+                for de in descriptions.items():
+                    # If it's a tuple
+                    if isinstance(de, tuple):
+                        #  If the new key alerady exists, update that desc with the new value
+                        if de[0] in existing_desc_keys:
+                            existing_attach_desc = models.StatementAttachmentDesc.objects.filter(attachment=attachment,key=de[0]).update(value=de[1])
+                        #  Else it doesn't exist so just create it
+                        else:
+                            models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
+                                attachment=attachment)
+
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)
         self.model_object.save()

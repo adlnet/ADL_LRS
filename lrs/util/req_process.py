@@ -67,12 +67,15 @@ def statements_more_get(req_dict):
     content_length = len(json.dumps(stmt_result))
     mime_type = "application/json"
 
+    # If there are attachments, include them in the payload
     if attachments:
         stmt_result, mime_type, content_length = build_response(req_dict, stmt_result, content_length)
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+    # If not, just dump the stmt_result
     else:
         resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
     
+    # Add consistent header and set content-length
     try:
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
@@ -135,18 +138,21 @@ def statements_get(req_dict):
         # Build json result({statements:...,more:...}) and set content length
         stmt_result = retrieve_statement.build_statement_result(req_dict, stmt_list)
         content_length = len(json.dumps(stmt_result))
-        
+
         # If attachments=True in req_dict then include the attachment payload and return different mime type
         if 'attachments' in req_dict and req_dict['attachments']:
             stmt_result, mime_type, content_length = build_response(req_dict, stmt_result, content_length)
             resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+        # Else attachments are false for the complex get so just dump the stmt_result
         else:
             resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
+    
     # Set consistent through and content length headers for all responses
     try:
         resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
+    
     resp['Content-Length'] = str(content_length)
     update_parent_log_status(log_dict, 200)    
     return resp
@@ -155,32 +161,35 @@ def build_response(req_dict, stmt_result, content_length):
     sha2s = []
     mime_type = "application/json"
     statements = stmt_result['statements']
+    # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
             for attachment in stmt['attachments']:
                 if 'sha2' in attachment:
+                    # If there is a sha2-retrieve the StatementAttachment object and add the payload to sha2s
                     att_object = models.StatementAttachment.objects.get(sha2=attachment['sha2'])
                     sha2s.append((attachment['sha2'], att_object.payload))    
+    
     # If attachments have payloads
     if sha2s:
+        # Create multipart message and attach json message to it
         full_message = MIMEMultipart(boundary="ADL_LRS---------")
         stmt_message = MIMEApplication(json.dumps(stmt_result), _subtype="json", _encoder=json.JSONEncoder)
         full_message.attach(stmt_message)
+        # For each sha create a binary message, and attach to the multipart message
         for sha2 in sha2s:
             binary_message = MIMEBase('application', 'octet-stream')
             binary_message.set_payload(sha2[1].read())
             binary_message.add_header('X-Experience-API-Hash', sha2[0])
             binary_message.add_header('Content-Transfer-Encoding', 'binary')
             full_message.attach(binary_message)
+            # Increment size on content-length and set mime type
             content_length += sha2[1].size
             mime_type = "multipart/mixed"
             return full_message.as_string(), mime_type, content_length 
-        # resp = HttpResponse(full_message.as_string(), mimetype="multipart/mixed", status=200)
-    # Has attachments but no payloads
+    # Has attachments but no payloads so just dump the stmt_result
     else:
         return json.dumps(stmt_result), mime_type, content_length
-        # resp = HttpResponse(stream_response_generator(stmt_result), mimetype="application/json", status=200)                
-
 
 def activity_state_post(req_dict):
     log_dict = req_dict['initial_user_action']    

@@ -1620,8 +1620,7 @@ class StatementsTests(TestCase):
         statements = models.statement.objects.all()
         attachments = models.StatementAttachment.objects.all()
         self.assertEqual(len(statements), 2)
-        # TODO - figure out amt when come to consensus on get or create
-        self.assertEqual(len(attachments), 2)
+        self.assertEqual(len(attachments), 1)
 
         self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
         self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
@@ -1902,6 +1901,46 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
+
+    def test_app_json_multipart_one_fileURL(self):
+        stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test",
+                "display": {"en-US": "A test attachment"},
+                "description": {"en-US": "A test attachment (description)"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "fileUrl": "http://my/file/url"}]},
+            {"actor":{"mbox":"mailto:tom1@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads1"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test",
+                "display": {"en-US": "A test attachment"},
+                "description": {"en-US": "A test attachment (description)"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "fileUrl": "http://my/file/url"}]}
+            ]
+        
+        response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        returned_ids = json.loads(response.content)
+        stmt_id1 = returned_ids[0]
+        stmt_id2 = returned_ids[1]
+        saved_stmt1 = models.statement.objects.get(statement_id=stmt_id1)
+        saved_stmt2 = models.statement.objects.get(statement_id=stmt_id2)
+        statements = models.statement.objects.all()
+        attachments = models.StatementAttachment.objects.all()
+        self.assertEqual(len(statements), 2)
+        self.assertEqual(len(attachments), 1)
+
+        self.assertEqual(saved_stmt1.attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt2.attachments.all()[0].fileUrl, "http://my/file/url")
 
     def test_app_json_multipart_no_fileUrl(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
