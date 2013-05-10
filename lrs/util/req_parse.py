@@ -74,10 +74,11 @@ def parse(request, more_id=None):
 def parse_body(r, request):
     if request.method == 'POST' or request.method == 'PUT':
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
-            r.update(request.POST.dict())
-            parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
-            post, files = parser.parse()
-            r['files'] = files
+            if request.POST.dict().keys():
+                r.update(request.POST.dict())
+                parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
+                post, files = parser.parse()
+                r['files'] = files
         elif 'multipart/mixed' in request.META['CONTENT_TYPE']: 
             import email
             from collections import defaultdict

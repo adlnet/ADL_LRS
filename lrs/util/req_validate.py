@@ -214,6 +214,15 @@ def statements_get(r_dict):
             log_exception(log_dict, err_msg, statements_put.__name__)
             update_log_status(log_dict, 400)
             raise ParamError(err_msg)
+    
+    if 'attachments' in r_dict:
+        if r_dict['attachments'] == 'True':
+            r_dict['attachments'] = True
+        else:
+            r_dict['attachments'] = False
+    else:
+        r_dict['attachments'] = False
+
     return r_dict
 
 @auth

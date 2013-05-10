@@ -197,7 +197,7 @@ def get_statement_request(req_id):
     #Build list from query_dict
     stmt_list = complex_get(query_dict)
 
-    attachments = query_dict.get('attachments', False)
+    attachments = query_dict.get('attachments')
 
     # Build statementResult
     stmt_result = build_statement_result(query_dict, stmt_list, req_id)

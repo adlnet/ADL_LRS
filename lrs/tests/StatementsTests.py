@@ -438,6 +438,42 @@ class StatementsTests(TestCase):
         self.assertIn(self.guid1, rsp)
         self.assertIn('content-length', getResponse._headers)
 
+    def test_get_no_params(self):
+        self.bunchostmts()
+        getResponse = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0",
+            Authorization=self.auth)
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertIn('content-length', getResponse._headers)
+
+        rsp = json.loads(getResponse.content)
+        self.assertEqual(len(rsp['statements']), 10)
+
+        more_resp_url = rsp['more']
+        resp_id = more_resp_url[-32:]
+        more_rsp = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
+        self.assertIn('content-length', more_rsp._headers)
+        more_rsp_content = json.loads(more_rsp.content)
+        self.assertEqual(len(more_rsp_content['statements']), 1)
+
+    def test_post_no_params(self):
+        self.bunchostmts()
+        getResponse = self.client.post(reverse(views.statements), X_Experience_API_Version="1.0.0",
+            Authorization=self.auth)
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertIn('content-length', getResponse._headers)
+
+        rsp = json.loads(getResponse.content)
+        self.assertEqual(len(rsp['statements']), 10)
+
+        more_resp_url = rsp['more']
+        resp_id = more_resp_url[-32:]
+        more_rsp = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
+        self.assertIn('content-length', more_rsp._headers)
+        more_rsp_content = json.loads(more_rsp.content)
+        self.assertEqual(len(more_rsp_content['statements']), 1)
+
     def test_head(self):
         self.bunchostmts()
         param = {"statementId":self.guid1}

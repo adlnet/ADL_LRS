@@ -66,6 +66,7 @@ def statements_more_get(req_dict):
     stmt_result, attachments = retrieve_statement.get_statement_request(req_dict['more_id'])     
     content_length = len(json.dumps(stmt_result))
     mime_type = "application/json"
+
     if attachments:
         stmt_result, mime_type, content_length = build_response(req_dict, stmt_result, content_length)
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
@@ -134,12 +135,11 @@ def statements_get(req_dict):
         # Build json result({statements:...,more:...}) and set content length
         stmt_result = retrieve_statement.build_statement_result(req_dict, stmt_list)
         content_length = len(json.dumps(stmt_result))
-
+        
         # If attachments=True in req_dict then include the attachment payload and return different mime type
         if 'attachments' in req_dict and req_dict['attachments']:
             stmt_result, mime_type, content_length = build_response(req_dict, stmt_result, content_length)
             resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
-
         else:
             resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
     # Set consistent through and content length headers for all responses
