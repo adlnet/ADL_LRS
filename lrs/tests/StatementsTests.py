@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from email import message_from_string
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 from django.test import TestCase
 from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
@@ -10,7 +12,7 @@ from django.conf import settings
 from lrs import views, models
 from lrs.util import retrieve_statement
 from lrs.objects import Activity, Statement
-from os import path
+import os
 from datetime import datetime, timedelta
 import sys
 import json
@@ -40,6 +42,15 @@ class StatementsTests(TestCase):
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         self.guid1 = str(uuid.uuid1())
        
+    def tearDown(self):
+        attach_folder_path = "/var/www/adllrs/media/attachment_payloads"
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
+
     def bunchostmts(self):
         self.guid2 = str(uuid.uuid1())
         self.guid3 = str(uuid.uuid1())    
@@ -2213,3 +2224,114 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("Attachment had no value for fileUrl", response.content)
+
+    def test_multipart_non_text_file(self):
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test picture"},
+            "description": {"en-US": "A test picture (description)"},
+            "contentType": "image/png",
+            "length": 27,
+            "sha2":""}]}
+
+        message = MIMEMultipart(boundary="myboundary")
+        img_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static','img', 'minus_small_white.png'))
+        img = open(img_path, 'rb')
+        img_data = img.read()
+        img.close()
+        imgsha = hashlib.sha256(img_data).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(imgsha)
+        
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        imgdata = MIMEImage(img_data)
+
+        imgdata.add_header('X-Experience-API-Hash', imgsha)
+        message.attach(stmtdata)
+        message.attach(imgdata)
+        
+        r = self.client.post(reverse(views.statements), message.as_string(),
+            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 200)
+        
+        param= {"attachments":True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+
+        msg = message_from_string(r.content)
+        parts = []
+        for part in msg.walk():
+            parts.append(part)
+  
+        for part in parts[2:]:
+            self.assertEqual(part.get_payload(), img_data)
+            self.assertEqual(part.get("X-Experience-API-Hash"), imgsha)
+            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+
+    def test_app_json_multipart_post_define(self):
+        stmt = {
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "fileUrl": "http://my/file/url"}]}
+        
+        response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        stmt = {
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment.", "en-UK": "UK attachment"},
+            "description": {"en-US": "A test attachment (description)", "en-UK": "UK attachment"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "fileUrl": "http://my/file/url"}]}
+        
+        response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        attach_objs = models.StatementAttachment.objects.all()
+        self.assertEqual(len(attach_objs), 1)
+
+        displays = models.StatementAttachmentDisplay.objects.filter(attachment=attach_objs[0])
+        descs = models.StatementAttachmentDesc.objects.filter(attachment=attach_objs[0])
+
+        self.assertEqual(len(displays), 2)
+        self.assertEqual(len(descs), 2)
+
+        display_keys = [d.key for d in displays]
+        display_values = [d.value for d in displays]
+
+        desc_keys = [d.key for d in descs]
+        desc_values = [d.value for d in descs]
+
+        self.assertIn('en-US', display_keys)
+        self.assertIn('en-UK', display_keys)
+        self.assertIn('A test attachment.', display_values)
+        self.assertIn('UK attachment', display_values)
+
+
+        self.assertIn('en-US', desc_keys)
+        self.assertIn('en-UK', desc_keys)
+        self.assertIn('A test attachment (description)', desc_values)
+        self.assertIn('UK attachment', desc_values)
+
+
+
+

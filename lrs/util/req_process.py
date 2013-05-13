@@ -179,14 +179,22 @@ def build_response(req_dict, stmt_result, content_length):
         # For each sha create a binary message, and attach to the multipart message
         for sha2 in sha2s:
             binary_message = MIMEBase('application', 'octet-stream')
-            binary_message.set_payload(sha2[1].read())
             binary_message.add_header('X-Experience-API-Hash', sha2[0])
             binary_message.add_header('Content-Transfer-Encoding', 'binary')
+            # file_data = bytearray()
+            # for chunk in sha2[1].chunks():
+            #     file_data.extend(chunk)
+            chunks = []
+            for chunk in sha2[1].chunks():
+                chunks.append(chunk)
+            file_data = "".join(chunks)
+            
+            binary_message.set_payload(file_data)
             full_message.attach(binary_message)
             # Increment size on content-length and set mime type
             content_length += sha2[1].size
-            mime_type = "multipart/mixed"
-            return full_message.as_string(), mime_type, content_length 
+        mime_type = "multipart/mixed"
+        return full_message.as_string(), mime_type, content_length 
     # Has attachments but no payloads so just dump the stmt_result
     else:
         return json.dumps(stmt_result), mime_type, content_length

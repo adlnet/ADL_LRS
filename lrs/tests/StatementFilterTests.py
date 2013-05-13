@@ -11,7 +11,7 @@ from lrs.objects.Statement import Statement
 from django.conf import settings
 import json
 import base64
-import os.path
+import os
 import uuid
 import math
 import urllib
@@ -34,6 +34,13 @@ class StatementFilterTests(TestCase):
 
     def tearDown(self):
         settings.SERVER_STMT_LIMIT=self.saved_stmt_limit
+        attach_folder_path = "/var/www/adllrs/media/attachment_payloads"
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
 
     def test_limit_filter(self):
         # Test limit
