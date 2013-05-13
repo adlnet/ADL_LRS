@@ -1,4 +1,8 @@
 # coding=utf-8
+from email import message_from_string
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from lrs import views
@@ -7,11 +11,13 @@ from lrs.objects.Statement import Statement
 from django.conf import settings
 import json
 import base64
-import os.path
+import os
 import uuid
 import math
 import urllib
+import hashlib
 from lrs.util import convert_to_utc
+import pdb
 
 class StatementFilterTests(TestCase):
 
@@ -28,6 +34,13 @@ class StatementFilterTests(TestCase):
 
     def tearDown(self):
         settings.SERVER_STMT_LIMIT=self.saved_stmt_limit
+        attach_folder_path = "/var/www/adllrs/media/attachment_payloads"
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
 
     def test_limit_filter(self):
         # Test limit
@@ -1538,3 +1551,481 @@ class StatementFilterTests(TestCase):
         self.assertEqual(obj['actor']['mbox'], stmt['actor']['mbox'])
         self.assertEqual(obj['verb']['id'], stmt['verb']['id'])
         self.assertEqual(obj['object']['id'], stmt['object']['id'])
+
+    def test_attachments(self):
+        stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test11",
+                "display": {"en-US": "A test attachment11"},
+                "description": {"en-US": "A test attachment (description)11"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "sha2":""},
+                {"usageType": "http://example.com/attachment-usage/test12",
+                "display": {"en-US": "A test attachment12"},
+                "description": {"en-US": "A test attachment (description)12"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "sha2":""}]},
+            {"actor":{"mbox":"mailto:tom2@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads2"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test21",
+                "display": {"en-US": "A test attachment21"},
+                "description": {"en-US": "A test attachment (description)21"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "sha2":""},
+                {"usageType": "http://example.com/attachment-usage/test22",
+                "display": {"en-US": "A test attachment22"},
+                "description": {"en-US": "A test attachment (description)22"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "sha2":""}]}
+            ]
+
+        message = MIMEMultipart(boundary="myboundary")
+        txt11 = u"This is a text attachment11"
+        txtsha11 = hashlib.sha256(txt11).hexdigest()
+        stmt[0]['attachments'][0]["sha2"] = str(txtsha11)
+        
+        txt12 = u"This is a text attachment12"
+        txtsha12 = hashlib.sha256(txt12).hexdigest()
+        stmt[0]['attachments'][1]['sha2'] = str(txtsha12)
+
+        txt21 = u"This is a text attachment21"
+        txtsha21 = hashlib.sha256(txt21).hexdigest()
+        stmt[1]['attachments'][0]['sha2'] = str(txtsha21)
+
+        txt22 = u"This is a text attachment22"
+        txtsha22 = hashlib.sha256(txt22).hexdigest()
+        stmt[1]['attachments'][1]['sha2'] = str(txtsha22)
+
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        textdata11 = MIMEText(txt11, 'plain', 'utf-8')
+        textdata12 = MIMEText(txt12, 'plain', 'utf-8')
+        textdata21 = MIMEText(txt21, 'plain', 'utf-8')
+        textdata22 = MIMEText(txt22, 'plain', 'utf-8')
+ 
+        textdata11.add_header('X-Experience-API-Hash', txtsha11)
+        textdata12.add_header('X-Experience-API-Hash', txtsha12)
+        textdata21.add_header('X-Experience-API-Hash', txtsha21)
+        textdata22.add_header('X-Experience-API-Hash', txtsha22)
+
+        message.attach(stmtdata)
+        message.attach(textdata11)
+        message.attach(textdata12)
+        message.attach(textdata21)
+        message.attach(textdata22)
+        
+        r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 200)
+
+        param = {"attachments": True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+
+    def test_attachments_no_payload(self):
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "fileUrl": "http://my/file/url"}]}
+        
+        response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        param = {"attachments": True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/json')
+        obj_from_json = json.loads(r.content)
+        self.assertIn('statements', obj_from_json.keys())
+        self.assertIn('more', obj_from_json.keys())
+        self.assertIn('attachments', obj_from_json['statements'][0])
+
+    def test_attachments_no_payload_no_attach_param(self):
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "fileUrl": "http://my/file/url"}]}
+        
+        response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        r = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/json')
+        obj_from_json = json.loads(r.content)
+        self.assertIn('statements', obj_from_json.keys())
+        self.assertIn('more', obj_from_json.keys())
+        self.assertIn('attachments', obj_from_json['statements'][0])
+
+    def test_attachments_no_payload_single_stmt_get(self):
+        stmt_id = str(uuid.uuid1())
+        stmt = {"id": stmt_id,
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "fileUrl": "http://my/file/url"}]}
+        
+        param = {"statementId": stmt_id}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        response = self.client.put(path, json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 204)
+
+        param["attachments"] = True
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/json')
+        obj_from_json = json.loads(r.content)
+        self.assertIn('attachments', obj_from_json.keys())
+
+    def test_more_attachments(self):
+        settings.SERVER_STMT_LIMIT=2
+        stmts =[
+            {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads1"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test11",
+                "display": {"en-US": "A test attachment11"},
+                "description": {"en-US": "A test attachment (description)11"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "fileUrl":"http://my/test/url11"},
+                {"usageType": "http://example.com/attachment-usage/test12",
+                "display": {"en-US": "A test attachment12"},
+                "description": {"en-US": "A test attachment (description)12"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "fileUrl":"http://my/test/url12"}]},
+            {"actor":{"mbox":"mailto:tom2@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads2"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test21",
+                "display": {"en-US": "A test attachment21"},
+                "description": {"en-US": "A test attachment (description)21"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "fileUrl":"http://my/test/url21"},
+                {"usageType": "http://example.com/attachment-usage/test22",
+                "display": {"en-US": "A test attachment22"},
+                "description": {"en-US": "A test attachment (description)22"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "fileUrl":"http://my/test/url22"}]},
+            {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads3"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test31",
+                "display": {"en-US": "A test attachment31"},
+                "description": {"en-US": "A test attachment (description)31"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "fileUrl":"http://my/test/url31"},
+                {"usageType": "http://example.com/attachment-usage/test32",
+                "display": {"en-US": "A test attachment32"},
+                "description": {"en-US": "A test attachment (description)32"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "fileUrl":"http://my/test/url32"}]},
+            {"actor":{"mbox":"mailto:tom2@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads4"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test41",
+                "display": {"en-US": "A test attachment41"},
+                "description": {"en-US": "A test attachment (description)41"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "fileUrl":"http://my/test/url41"},
+                {"usageType": "http://example.com/attachment-usage/test42",
+                "display": {"en-US": "A test attachment42"},
+                "description": {"en-US": "A test attachment (description)42"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "fileUrl":"http://my/test/url42"}]}
+        ]
+        response = self.client.post(reverse(views.statements), json.dumps(stmts), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        param= {"attachments":True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/json')
+        obj_from_json = json.loads(r.content)
+        self.assertEqual(len(obj_from_json['statements']), 2)
+        self.assertIn('attachments', obj_from_json['statements'][0].keys())
+        self.assertIn('attachments', obj_from_json['statements'][1].keys())        
+
+        resp_url = obj_from_json['more']
+        resp_id = resp_url[-32:]
+
+        more_get = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
+        self.assertEqual(more_get.status_code, 200)
+        self.assertEqual(more_get['Content-Type'], 'application/json')
+        more_obj = json.loads(more_get.content)
+        self.assertEqual(len(more_obj['statements']), 2)
+        self.assertIn('attachments', more_obj['statements'][0].keys())
+        self.assertIn('attachments', more_obj['statements'][1].keys())        
+
+    def test_more_attachments_with_payloads(self):
+        settings.SERVER_STMT_LIMIT=2
+        stmts =[
+            {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads1"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test1",
+                "display": {"en-US": "A test attachment11"},
+                "description": {"en-US": "A test attachment (description)1"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "sha2":""}]},
+            {"actor":{"mbox":"mailto:tom2@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads2"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test2",
+                "display": {"en-US": "A test attachment21"},
+                "description": {"en-US": "A test attachment (description)2"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "sha2":""}]},
+            {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads3"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test3",
+                "display": {"en-US": "A test attachment3"},
+                "description": {"en-US": "A test attachment (description)3"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "sha2":""}]},
+            {"actor":{"mbox":"mailto:tom2@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads4"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test4",
+                "display": {"en-US": "A test attachment4"},
+                "description": {"en-US": "A test attachment (description)4"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "sha2":""}]}
+        ]
+        message = MIMEMultipart(boundary="myboundary")
+        txt1 = u"This is a text attachment1"
+        txtsha1 = hashlib.sha256(txt1).hexdigest()
+        stmts[0]['attachments'][0]["sha2"] = str(txtsha1)
+        
+        txt2 = u"This is a text attachment2"
+        txtsha2 = hashlib.sha256(txt2).hexdigest()
+        stmts[1]['attachments'][0]['sha2'] = str(txtsha2)
+
+        txt3 = u"This is a text attachment3"
+        txtsha3 = hashlib.sha256(txt3).hexdigest()
+        stmts[2]['attachments'][0]['sha2'] = str(txtsha3)
+
+        txt4 = u"This is a text attachment4"
+        txtsha4 = hashlib.sha256(txt4).hexdigest()
+        stmts[3]['attachments'][0]['sha2'] = str(txtsha4)
+
+        stmtdata = MIMEApplication(json.dumps(stmts), _subtype="json", _encoder=json.JSONEncoder)
+        textdata1 = MIMEText(txt1, 'plain', 'utf-8')
+        textdata2 = MIMEText(txt2, 'plain', 'utf-8')
+        textdata3 = MIMEText(txt3, 'plain', 'utf-8')
+        textdata4 = MIMEText(txt4, 'plain', 'utf-8')
+ 
+        textdata1.add_header('X-Experience-API-Hash', txtsha1)
+        textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        textdata3.add_header('X-Experience-API-Hash', txtsha3)
+        textdata4.add_header('X-Experience-API-Hash', txtsha4)
+
+        message.attach(stmtdata)
+        message.attach(textdata1)
+        message.attach(textdata2)
+        message.attach(textdata3)
+        message.attach(textdata4)
+
+        r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 200)
+
+        param= {"attachments":True}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        headers_list= [txtsha1, txtsha2, txtsha3,txtsha4]
+        payload_list = [u"This is a text attachment1",u"This is a text attachment2",u"This is a text attachment3",u"This is a text attachment4"]
+        msg = message_from_string(r.content)
+        parts = []
+
+        for part in msg.walk():
+            parts.append(part)
+
+        self.assertEqual(parts[0].get('Content-Type'), 'multipart/mixed; boundary="ADL_LRS---------"')
+        self.assertEqual(parts[1].get('Content-Type'), 'application/json')
+        returned_json = json.loads(parts[1].get_payload())
+        self.assertEqual(len(returned_json['statements']), 2)
+        resp_url = returned_json['more']
+        resp_id = resp_url[-32:]        
+
+        for part in parts[2:]:
+            self.assertIn(part._payload, payload_list)
+            self.assertIn(part.get("X-Experience-API-Hash"), headers_list)
+            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+
+        more_get = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
+        self.assertEqual(more_get.status_code, 200)
+        msg = message_from_string(more_get.content)
+        parts = []
+
+        for part in msg.walk():
+            parts.append(part)
+
+        self.assertEqual(parts[0].get('Content-Type'), 'multipart/mixed; boundary="ADL_LRS---------"')
+        self.assertEqual(parts[1].get('Content-Type'), 'application/json')
+        returned_json = json.loads(parts[1].get_payload())
+        self.assertEqual(len(returned_json['statements']), 2)
+
+        for part in parts[2:]:
+            self.assertIn(part._payload, payload_list)
+            self.assertIn(part.get("X-Experience-API-Hash"), headers_list)
+            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+
+
+    def test_more_attachments_with_payloads_no_attach_param(self):
+        settings.SERVER_STMT_LIMIT=2
+        stmts =[
+            {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads1"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test1",
+                "display": {"en-US": "A test attachment11"},
+                "description": {"en-US": "A test attachment (description)1"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "sha2":""}]},
+            {"actor":{"mbox":"mailto:tom2@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads2"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test2",
+                "display": {"en-US": "A test attachment21"},
+                "description": {"en-US": "A test attachment (description)2"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "sha2":""}]},
+            {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads3"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test3",
+                "display": {"en-US": "A test attachment3"},
+                "description": {"en-US": "A test attachment (description)3"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "sha2":""}]},
+            {"actor":{"mbox":"mailto:tom2@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads4"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test4",
+                "display": {"en-US": "A test attachment4"},
+                "description": {"en-US": "A test attachment (description)4"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 23,
+                "sha2":""}]}
+        ]
+        message = MIMEMultipart(boundary="myboundary")
+        txt1 = u"This is a text attachment1"
+        txtsha1 = hashlib.sha256(txt1).hexdigest()
+        stmts[0]['attachments'][0]["sha2"] = str(txtsha1)
+        
+        txt2 = u"This is a text attachment2"
+        txtsha2 = hashlib.sha256(txt2).hexdigest()
+        stmts[1]['attachments'][0]['sha2'] = str(txtsha2)
+
+        txt3 = u"This is a text attachment3"
+        txtsha3 = hashlib.sha256(txt3).hexdigest()
+        stmts[2]['attachments'][0]['sha2'] = str(txtsha3)
+
+        txt4 = u"This is a text attachment4"
+        txtsha4 = hashlib.sha256(txt4).hexdigest()
+        stmts[3]['attachments'][0]['sha2'] = str(txtsha4)
+
+        stmtdata = MIMEApplication(json.dumps(stmts), _subtype="json", _encoder=json.JSONEncoder)
+        textdata1 = MIMEText(txt1, 'plain', 'utf-8')
+        textdata2 = MIMEText(txt2, 'plain', 'utf-8')
+        textdata3 = MIMEText(txt3, 'plain', 'utf-8')
+        textdata4 = MIMEText(txt4, 'plain', 'utf-8')
+ 
+        textdata1.add_header('X-Experience-API-Hash', txtsha1)
+        textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        textdata3.add_header('X-Experience-API-Hash', txtsha3)
+        textdata4.add_header('X-Experience-API-Hash', txtsha4)
+
+        message.attach(stmtdata)
+        message.attach(textdata1)
+        message.attach(textdata2)
+        message.attach(textdata3)
+        message.attach(textdata4)
+
+        r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 200)
+
+        param= {"attachments":False}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/json')
+        obj_from_json = json.loads(r.content)
+
+        resp_url = obj_from_json['more']
+        resp_id = resp_url[-32:]
+
+        more_get = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
+        self.assertEqual(more_get.status_code, 200)
+        self.assertEqual(more_get['Content-Type'], 'application/json')
+         
