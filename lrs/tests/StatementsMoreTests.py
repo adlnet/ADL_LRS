@@ -333,7 +333,7 @@ class StatementsMoreTests(TestCase):
 
     def test_unknown_more_id_url(self):
         moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth )
-        self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
+        self.assertEqual(moreURLGet.status_code, 404)
 
     def test_not_full_page_stmts(self):
         sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)

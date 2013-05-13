@@ -22,6 +22,7 @@ from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONS
 import logging
 from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 import pdb
+import base64
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
@@ -1084,6 +1085,63 @@ class SubStatement(statement_object):
 
         super(SubStatement, self).delete(*args, **kwargs)
 
+class StatementAttachmentDisplay(models.Model):
+    key = models.CharField(max_length=50, db_index=True)
+    value = models.TextField()
+    attachment = models.ForeignKey('StatementAttachment')
+
+    def object_return(self):
+        return {self.key: self.value}
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
+class StatementAttachmentDesc(models.Model):
+    key = models.CharField(max_length=50, db_index=True)
+    value = models.TextField()
+    attachment = models.ForeignKey('StatementAttachment')
+    
+    def object_return(self):
+        return {self.key: self.value}
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
+class StatementAttachment(models.Model):
+    usageType = models.CharField(max_length=MAX_URL_LENGTH)
+    contentType = models.CharField(max_length=128)
+    length = models.PositiveIntegerField()
+    sha2 = models.CharField(max_length=128, blank=True)
+    fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    payload = models.FileField(upload_to="attachment_payloads", null=True)
+
+    def object_return(self):
+        ret = {}
+        ret['usageType'] = self.usageType
+
+        # TODO - better way to create these sets??
+        statement_attachment_display_set = StatementAttachmentDisplay.objects.filter(attachment=self)
+        if len(statement_attachment_display_set) > 0:
+            ret['display'] = {}
+            for lang_map in statement_attachment_display_set:
+                ret['display'].update(lang_map.object_return())
+
+        statement_attachment_desc_set = StatementAttachmentDesc.objects.filter(attachment=self)
+        if len(statement_attachment_desc_set) > 0:
+            ret['description'] = {}
+            for lang_map in statement_attachment_desc_set:
+                ret['description'].update(lang_map.object_return())        
+
+        ret['contentType'] = self.contentType
+        ret['length'] = self.length
+
+        if self.sha2:
+            ret['sha2'] = self.sha2
+
+        if self.fileUrl:
+            ret['fileUrl'] = self.fileUrl
+        return ret
+
 class statement(models.Model):
     statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
     stmt_object = models.ForeignKey(statement_object, related_name="object_of_statement", db_index=True,
@@ -1101,6 +1159,7 @@ class statement(models.Model):
     context = models.OneToOneField(context, related_name="statement_context", null=True, on_delete=models.SET_NULL)
     version = models.CharField(max_length=7, default="1.0.0")
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
+    attachments = models.ManyToManyField(StatementAttachment)
 
     def get_a_name(self):
         return self.statement_id
@@ -1149,6 +1208,9 @@ class statement(models.Model):
             ret['authority'] = self.authority.get_agent_json(format)
         
         ret['version'] = self.version
+
+        if len(self.attachments.all()) > 0:
+            ret['attachments'] = [a.object_return() for a in self.attachments.all()]
         return ret
 
     def unvoid_statement(self):

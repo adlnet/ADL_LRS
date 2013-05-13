@@ -10,6 +10,7 @@ adldir = settings.MEDIA_ROOT
 agent_profile = 'agent_profile'
 activity_profile = 'activity_profile'
 activity_state = 'activity_state'
+statement_attachments = 'attachment_payloads'
 
 INSTALL_STEPS = ['sudo easy_install pip',
                  'sudo pip install virtualenv',
@@ -31,6 +32,10 @@ def deps_local():
     if not os.path.exists(path.join(adldir,agent_profile)):
 	os.makedirs(path.join(adldir,agent_profile))
 	os.chmod(path.join(adldir,agent_profile), 0777)
+
+    if not os.path.exists(path.join(adldir,statement_attachments)):
+    os.makedirs(path.join(adldir,statement_attachments))
+    os.chmod(path.join(adldir,statement_attachments), 0777)
 
 def deps_remote():
     for step in INSTALL_STEPS:

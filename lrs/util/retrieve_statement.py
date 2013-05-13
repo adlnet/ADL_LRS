@@ -11,6 +11,7 @@ from itertools import chain
 from lrs import models
 from lrs.objects import Agent
 from lrs.util import convert_to_utc, convert_to_dict
+from lrs.exceptions import NotFound
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
@@ -94,8 +95,6 @@ def complex_get(req_dict):
         registrationQ = Q(context__registration=the_dict['registration'])
 
     format = the_dict['format']
-    
-    # attachments
     
     # Set language if one
     # pull from req_dict since language is from a header, not an arg 
@@ -185,7 +184,7 @@ def get_statement_request(req_id):
 
     # Could have expired or never existed
     if not encoded_info:
-        return ['List does not exist - may have expired after 24 hours']
+        raise NotFound("List does not exist - may have expired after 24 hours")
 
     # Decode info
     decoded_info = pickle.loads(encoded_info)
@@ -198,9 +197,13 @@ def get_statement_request(req_id):
     #Build list from query_dict
     stmt_list = complex_get(query_dict)
 
+    # All query dicts will have attachments set from GET/stmt endpoint
+    # Return this for the GET/more endpoint
+    attachments = query_dict.get('attachments')
+
     # Build statementResult
     stmt_result = build_statement_result(query_dict, stmt_list, req_id)
-    return stmt_result
+    return stmt_result, attachments
 
 def set_limit(req_dict):
     limit = None

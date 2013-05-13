@@ -151,6 +151,25 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 @log_parent_action(endpoint='statements')
 @check_oauth
 def statements_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    attachment_payloads = r_dict.get('attachment_payloads', None)
+    
+    # Could be batch POST or single stmt POST
+    if type(r_dict['body']) is list:
+        for stmt in r_dict['body']:
+            if 'attachments' in stmt:
+                attachment_data = stmt['attachments']
+                validate_attachments(log_dict, attachment_data, attachment_payloads)
+        # Delete the payloads since their contents are now set in the stmt attachments payload field
+        if attachment_payloads:
+            del r_dict['attachment_payloads']
+    else:
+        if 'attachments' in r_dict['body']:
+            attachment_data = r_dict['body']['attachments']
+            validate_attachments(log_dict, attachment_data, attachment_payloads)
+        # Delete the payloads since their contents are now set in the stmt attachments payload field
+            if attachment_payloads:
+                del r_dict['attachment_payloads']
     return r_dict
 
 @auth
@@ -197,6 +216,17 @@ def statements_get(r_dict):
             log_exception(log_dict, err_msg, statements_put.__name__)
             update_log_status(log_dict, 400)
             raise ParamError(err_msg)
+
+    # Django converts all query values to string - make boolean depending on if client wants attachments or not
+    # Only need to do this in GET b/c GET/more will have it saved in pickle information
+    if 'attachments' in r_dict:
+        if r_dict['attachments'] == 'True':
+            r_dict['attachments'] = True
+        else:
+            r_dict['attachments'] = False
+    else:
+        r_dict['attachments'] = False
+   
     return r_dict
 
 @auth
@@ -227,7 +257,53 @@ def statements_put(r_dict):
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
 
+    if 'attachments' in r_dict['body']:
+        attachment_data = r_dict['body']['attachments']
+        attachment_payloads = r_dict.get('attachment_payloads', None)
+        validate_attachments(log_dict, attachment_data, attachment_payloads)
+        # Delete the payloads since their contents are now set in the stmt attachments payload field
+        if attachment_payloads:
+            del r_dict['attachment_payloads']
     return r_dict
+
+def validate_attachments(log_dict, attachment_data, payload):
+    # For each attachment that is in the actual statement
+    for attachment in attachment_data:
+        # If display is not in the attachment it fails
+        if not 'display' in attachment:
+            err_msg = "Attachment must contain display property"
+            log_exception(log_dict, err_msg, validate_attachments.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+
+        # If the attachment data has a sha2 field, must validate it against the payload data
+        if 'sha2' in attachment:
+            sha2 = attachment['sha2']
+            # Check if the sha2 field is a key in the payload dict
+            if sha2 in [p[0] for p in payload]:
+                # Set the attachment payload in the statment data to the payload in the dict that has the correct
+                # sha2 as the key
+                # attachment['payload'] = (x[sha2]['payload'] for x in payload if x.keys()[0] == sha2).next()
+                attachment['payload'] = (x[1] for x in payload if x[0] == sha2).next()
+            # Else there is no payload with a sha2 listed in the stmt which is invalid
+            else:
+                err_msg = "Could not find attachment payload with sha: %s" % sha2
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
+        # If sha2 is not in the attachment and neither is fileURL, that is invalid 
+        elif not 'fileUrl' in attachment:
+                err_msg = "Attachment did not contain a sha2 and did not contain a fileUrl"
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
+        # TODO - validate url/uri here? 
+        # If sha2 is not in the attachment but fileUrl and has an empty value, that is invalid
+        elif 'fileUrl' in attachment and not attachment['fileUrl']:
+                err_msg = "Attachment had no value for fileUrl"
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
 
 @auth
 @log_parent_action(endpoint='activities/state')
