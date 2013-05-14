@@ -1,8 +1,10 @@
 import json
+import pickle
 from datetime import datetime
 from functools import wraps
 from django.utils.decorators import decorator_from_middleware
 from django.utils.timezone import utc
+from django.core.cache import get_cache
 from lrs import models
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound
 from Authorization import auth
@@ -11,6 +13,7 @@ import pdb
 import pprint
 
 logger = logging.getLogger('user_system_actions')
+att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
     exists = False
@@ -280,11 +283,13 @@ def validate_attachments(log_dict, attachment_data, payload):
         if 'sha2' in attachment:
             sha2 = attachment['sha2']
             # Check if the sha2 field is a key in the payload dict
-            if sha2 in [p[0] for p in payload]:
+            if sha2 in payload:
+            # if sha2 in [p[0] for p in payload]:
                 # Set the attachment payload in the statment data to the payload in the dict that has the correct
                 # sha2 as the key
-                # attachment['payload'] = (x[sha2]['payload'] for x in payload if x.keys()[0] == sha2).next()
-                attachment['payload'] = (x[1] for x in payload if x[0] == sha2).next()
+                # attachment['payload'] = (x[1] for x in payload if x[0] == sha2).next()
+                encoded_attach = att_cache.get(sha2)
+                attachment['payload'] = pickle.loads(encoded_attach)
             # Else there is no payload with a sha2 listed in the stmt which is invalid
             else:
                 err_msg = "Could not find attachment payload with sha: %s" % sha2
