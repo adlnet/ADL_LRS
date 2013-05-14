@@ -1,8 +1,10 @@
 import StringIO
 import email
+import pickle
 from collections import defaultdict
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
+from django.core.cache import get_cache
 from lrs.util import etag, convert_to_dict
 from lrs.exceptions import OauthUnauthorized, ParamError
 from oauth_provider.oauth.oauth import OAuthError
@@ -10,6 +12,8 @@ from oauth_provider.utils import send_oauth_error
 from oauth_provider.decorators import CheckOAuth
 import pdb
 import pprint
+
+att_cache = get_cache('attachment_cache')
 
 def parse(request, more_id=None):
     r_dict = {}
@@ -110,11 +114,9 @@ def parse_body(r, request):
                         if not thehash:
                             raise ParamError("X-Experience-API-Hash header was missing from attachment")
                         headers = defaultdict(str)
-                        # Don't need headers right now
-                        # for h,v in a.items():
-                        #     headers[h] = v
-                        # r['attachment_payloads'].append({thehash : {"headers":headers,"payload":a.get_payload()}})
-                        r['attachment_payloads'].append((thehash, a.get_payload(decode=True)))
+                        # r['attachment_payloads'].append((thehash, a.get_payload(decode=True)))
+                        r['attachment_payloads'].append(thehash)
+                        att_cache.set(thehash, pickle.dumps(a.get_payload(decode=True)))
             else:
                 raise ParamError("This content was not multipart.")
         # Normal POST/PUT data

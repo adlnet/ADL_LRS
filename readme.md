@@ -21,6 +21,10 @@ Install Fabric
 
     sudo apt-get install fabric
 
+Install Memcached
+
+    sudo apt-get install memcached
+
 Install other dependencies
 
     sudo apt-get install python-setuptools libmysqlclient-dev python-dev python-mysqldb python-libxml2 python-libxslt1 libxml2-dev libxslt1-dev
