@@ -3,6 +3,7 @@ import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.core.files.base import ContentFile
+from django.core.cache import get_cache
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
@@ -15,6 +16,7 @@ import pprint
 import pdb
 
 logger = logging.getLogger('user_system_actions')
+att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -273,6 +275,7 @@ class Statement():
     def populateAttachments(self, attachment_data):
         log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
         # Iterate through each attachment
+        sha2s = []
         for attach in attachment_data:
             # Pop displays and descs off
             displays = attach.pop('display')
@@ -281,6 +284,7 @@ class Statement():
 
             # Get or create based on sha2
             if 'sha2' in attach:
+                sha2s.append(attach['sha2'])
                 try:
                     attachment = models.StatementAttachment.objects.get(sha2=attach['sha2'])
                     created = False
@@ -347,6 +351,7 @@ class Statement():
 
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)
+            att_cache.delete_many(sha2s)
         self.model_object.save()
 
     def populateContext(self, stmt_data):
