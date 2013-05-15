@@ -1,10 +1,10 @@
 import StringIO
 import email
-import pickle
 from collections import defaultdict
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
 from django.core.cache import get_cache
+from django.core.files.base import ContentFile
 from lrs.util import etag, convert_to_dict
 from lrs.exceptions import OauthUnauthorized, ParamError
 from oauth_provider.oauth.oauth import OAuthError
@@ -116,7 +116,8 @@ def parse_body(r, request):
                         headers = defaultdict(str)
                         # r['attachment_payloads'].append((thehash, a.get_payload(decode=True)))
                         r['attachment_payloads'].append(thehash)
-                        att_cache.set(thehash, pickle.dumps(a.get_payload(decode=True)))
+                        # Save msg object to cache
+                        att_cache.set(thehash, a)
             else:
                 raise ParamError("This content was not multipart.")
         # Normal POST/PUT data

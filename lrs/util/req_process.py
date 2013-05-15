@@ -181,9 +181,7 @@ def build_response(req_dict, stmt_result, content_length):
             binary_message = MIMEBase('application', 'octet-stream')
             binary_message.add_header('X-Experience-API-Hash', sha2[0])
             binary_message.add_header('Content-Transfer-Encoding', 'binary')
-            # file_data = bytearray()
-            # for chunk in sha2[1].chunks():
-            #     file_data.extend(chunk)
+
             chunks = []
             for chunk in sha2[1].chunks():
                 chunks.append(chunk)
