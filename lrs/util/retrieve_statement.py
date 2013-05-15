@@ -1,7 +1,6 @@
 import bencode
 import hashlib
 import json
-import pickle
 from datetime import datetime
 from django.core.cache import cache
 from django.conf import settings
@@ -12,6 +11,7 @@ from lrs import models
 from lrs.objects import Agent
 from lrs.util import convert_to_utc, convert_to_dict
 from lrs.exceptions import NotFound
+import pdb
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
@@ -148,27 +148,28 @@ def create_cache_key(stmt_list):
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
     return key
 
-def initial_cache_return(stmt_list, encoded_list, req_dict, limit):
+def initial_cache_return(stmt_list, encoded_list, attachments, limit):
     # First time someone queries POST/GET
     result = {}
     stmt_pager = Paginator(stmt_list, limit)
  
     cache_list = []
     
-    # Always going to start on page 1
+    # Always start on first page
     current_page = 1
     total_pages = stmt_pager.num_pages
     # Create cache key from hashed data (always 32 digits)
     cache_key = create_cache_key(stmt_list)
 
     # Add data to cache
-    cache_list.append(req_dict)
+    cache_list.append(stmt_list)
     cache_list.append(current_page)
     cache_list.append(total_pages)
     cache_list.append(limit)
+    cache_list.append(attachments)
 
     # Encode data
-    encoded_info = pickle.dumps(cache_list)
+    encoded_info = json.dumps(cache_list)
 
     # Save encoded_dict in cache
     cache.set(cache_key,encoded_info)
@@ -187,37 +188,26 @@ def get_statement_request(req_id):
         raise NotFound("List does not exist - may have expired after 24 hours")
 
     # Decode info
-    decoded_info = pickle.loads(encoded_info)
+    decoded_info = json.loads(encoded_info)
 
-    # Info is always cached as [query_dict, start_page, total_pages, limit]
-    query_dict = decoded_info[0]
+    # Info is always cached as [stmt_list, start_page, total_pages, limit, attachments]
+    stmt_list = decoded_info[0]
     start_page = decoded_info[1]
     limit = decoded_info[3]
-
-    #Build list from query_dict
-    stmt_list = complex_get(query_dict)
-
-    # All query dicts will have attachments set from GET/stmt endpoint
-    # Return this for the GET/more endpoint
-    attachments = query_dict.get('attachments')
+    attachments = decoded_info[4]
 
     # Build statementResult
-    stmt_result = build_statement_result(query_dict, stmt_list, req_id)
+    stmt_result = build_statement_result(limit, stmt_list, attachments, req_id)
     return stmt_result, attachments
 
-def set_limit(req_dict):
-    limit = None
-    if 'limit' in req_dict:
-        limit = int(req_dict['limit'])
-    elif 'body' in req_dict and 'limit' in req_dict['body']:
-        limit = int(req_dict['body']['limit'])
+def set_limit(req_limit):
 
-    if not limit or limit > settings.SERVER_STMT_LIMIT:
-        limit = settings.SERVER_STMT_LIMIT
+    if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
+        req_limit = settings.SERVER_STMT_LIMIT
 
-    return limit
+    return req_limit
 
-def build_statement_result(req_dict, stmt_list, more_id=None):
+def build_statement_result(req_limit, stmt_list, attachments, more_id=None):
     result = {}
     limit = None
     # Get length of stmt list
@@ -228,7 +218,7 @@ def build_statement_result(req_dict, stmt_list, more_id=None):
     if more_id:
         more_cache_list = []
         # Get query_info and there should always be an encoded_list if there is a more_id
-        query_info = pickle.loads(encoded_list)
+        query_info = json.loads(encoded_list)
         # Get page info 
         start_page = query_info[1]
         total_pages = query_info[2]
@@ -240,8 +230,9 @@ def build_statement_result(req_dict, stmt_list, more_id=None):
             result['statements'] = stmt_pager.page(current_page).object_list
             result['more'] = ''
             # Set current page back for when someone hits the URL again
-            query_info[1] = query_info[1] - 1
-            encoded_list = pickle.dumps(query_info)
+            current_page -= 1
+            query_info[1] = current_page
+            encoded_list = json.dumps(query_info)
             cache.set(more_id, encoded_list)
             return result
         # There are more pages to display
@@ -250,28 +241,30 @@ def build_statement_result(req_dict, stmt_list, more_id=None):
             # Create cache key from hashed data (always 32 digits)
             cache_key = create_cache_key(stmt_list)
             # Set result to have selected page of stmts and more endpoing
-            result['statements'] = stmt_pager.page(current_page).object_list
+            stmt_batch = stmt_pager.page(current_page).object_list
+            result['statements'] = stmt_batch
             result['more'] = MORE_ENDPOINT + cache_key
             more_cache_list = []
             # Increment next page
-            start_page = query_info[1] + 1
-            more_cache_list.append(req_dict)
+            start_page = current_page
+            more_cache_list.append(stmt_list)
             more_cache_list.append(start_page)
-            more_cache_list.append(query_info[2])
+            more_cache_list.append(total_pages)
             more_cache_list.append(limit)
+            more_cache_list.append(attachments)
             # Encode info
-            encoded_list = pickle.dumps(more_cache_list)
+            encoded_list = json.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
             return result
     # If get to here, this is on the initial request
     # List will only be larger first time of more URLs. Limit can be set directly in request dict if 
     # a GET or in request dict body if a POST
     if not limit:
-        limit = set_limit(req_dict)
+        limit = set_limit(req_limit)
 
     # If there are more than the limit, build the initial return
     if statement_amount > limit:
-        result = initial_cache_return(stmt_list, encoded_list, req_dict, limit)
+        result = initial_cache_return(stmt_list, encoded_list, attachments, limit)
     # Just provide statements since the list is under the limit
     else:
         result['statements'] = stmt_list
