@@ -55,7 +55,9 @@ class Activity():
 
         # See if id resolves
         try:
-            act_resp = urllib2.urlopen(act_id, timeout=10)
+            req = urllib2.Request(act_id)
+            req.add_header('Accept', 'application/json, */*')
+            act_resp = urllib2.urlopen(req, timeout=10)
         except Exception, e:
             # Doesn't resolve-hopefully data is in payload
             resolves = False

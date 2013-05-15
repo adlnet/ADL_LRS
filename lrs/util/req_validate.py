@@ -154,18 +154,18 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 @check_oauth
 def statements_post(r_dict):
     log_dict = r_dict['initial_user_action']
-    attachment_payloads = r_dict.get('attachment_payloads', None)
+    payload_sha2s = r_dict.get('payload_sha2s', None)
     
     # Could be batch POST or single stmt POST
     if type(r_dict['body']) is list:
         for stmt in r_dict['body']:
             if 'attachments' in stmt:
                 attachment_data = stmt['attachments']
-                validate_attachments(log_dict, attachment_data, attachment_payloads)
+                validate_attachments(log_dict, attachment_data, payload_sha2s)
     else:
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
-            validate_attachments(log_dict, attachment_data, attachment_payloads)
+            validate_attachments(log_dict, attachment_data, payload_sha2s)
     return r_dict
 
 @auth
@@ -255,11 +255,11 @@ def statements_put(r_dict):
 
     if 'attachments' in r_dict['body']:
         attachment_data = r_dict['body']['attachments']
-        attachment_payloads = r_dict.get('attachment_payloads', None)
-        validate_attachments(log_dict, attachment_data, attachment_payloads)
+        payload_sha2s = r_dict.get('payload_sha2s', None)
+        validate_attachments(log_dict, attachment_data, payload_sha2s)
     return r_dict
 
-def validate_attachments(log_dict, attachment_data, payload):
+def validate_attachments(log_dict, attachment_data, payload_sha2s):
     # For each attachment that is in the actual statement
     for attachment in attachment_data:
         # If display is not in the attachment it fails
@@ -273,7 +273,7 @@ def validate_attachments(log_dict, attachment_data, payload):
         if 'sha2' in attachment:
             sha2 = attachment['sha2']
             # Check if the sha2 field is a key in the payload dict
-            if not sha2 in payload:
+            if not sha2 in payload_sha2s:
                 err_msg = "Could not find attachment payload with sha: %s" % sha2
                 log_exception(log_dict, err_msg, validate_attachments.__name__)
                 update_log_status(log_dict, 400)
