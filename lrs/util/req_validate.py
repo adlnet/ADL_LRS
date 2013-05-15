@@ -1,5 +1,4 @@
 import json
-import pickle
 from datetime import datetime
 from functools import wraps
 from django.utils.decorators import decorator_from_middleware
@@ -163,16 +162,10 @@ def statements_post(r_dict):
             if 'attachments' in stmt:
                 attachment_data = stmt['attachments']
                 validate_attachments(log_dict, attachment_data, attachment_payloads)
-        # Delete the payloads since their contents are now set in the stmt attachments payload field
-        if attachment_payloads:
-            del r_dict['attachment_payloads']
     else:
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
             validate_attachments(log_dict, attachment_data, attachment_payloads)
-        # Delete the payloads since their contents are now set in the stmt attachments payload field
-            if attachment_payloads:
-                del r_dict['attachment_payloads']
     return r_dict
 
 @auth
@@ -264,9 +257,6 @@ def statements_put(r_dict):
         attachment_data = r_dict['body']['attachments']
         attachment_payloads = r_dict.get('attachment_payloads', None)
         validate_attachments(log_dict, attachment_data, attachment_payloads)
-        # Delete the payloads since their contents are now set in the stmt attachments payload field
-        if attachment_payloads:
-            del r_dict['attachment_payloads']
     return r_dict
 
 def validate_attachments(log_dict, attachment_data, payload):
@@ -283,15 +273,7 @@ def validate_attachments(log_dict, attachment_data, payload):
         if 'sha2' in attachment:
             sha2 = attachment['sha2']
             # Check if the sha2 field is a key in the payload dict
-            if sha2 in payload:
-            # if sha2 in [p[0] for p in payload]:
-                # Set the attachment payload in the statment data to the payload in the dict that has the correct
-                # sha2 as the key
-                # attachment['payload'] = (x[1] for x in payload if x[0] == sha2).next()
-                encoded_attach = att_cache.get(sha2)
-                attachment['payload'] = pickle.loads(encoded_attach)
-            # Else there is no payload with a sha2 listed in the stmt which is invalid
-            else:
+            if not sha2 in payload:
                 err_msg = "Could not find attachment payload with sha: %s" % sha2
                 log_exception(log_dict, err_msg, validate_attachments.__name__)
                 update_log_status(log_dict, 400)

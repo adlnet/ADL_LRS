@@ -272,34 +272,36 @@ class Statement():
         #Save result
         return self.saveResultToDB(result, resultExts)
 
-    def populateAttachments(self, attachment_data):
+    def populateAttachments(self, attachment_data, attachment_payloads):
         log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
         # Iterate through each attachment
-        sha2s = []
         for attach in attachment_data:
             # Pop displays and descs off
             displays = attach.pop('display')
             descriptions = attach.pop('description', None)
-            payload_pop = attach.pop('payload', None)
 
             # Get or create based on sha2
             if 'sha2' in attach:
-                sha2s.append(attach['sha2'])
+                sha2 = attach['sha2']
                 try:
-                    attachment = models.StatementAttachment.objects.get(sha2=attach['sha2'])
+                    attachment = models.StatementAttachment.objects.get(sha2=sha2)
                     created = False
                 except models.StatementAttachment.DoesNotExist:
                     attachment = models.StatementAttachment.objects.create(**attach)
                     created = True                
-                    # Since there is a sha2, there must be a payload so create it 
+                    # Since there is a sha2, there must be a payload cached
+                    # Decode payload from msg object saved in cache and create ContentFile from raw data
+                    msg = att_cache.get(sha2)
+                    raw_payload = msg.get_payload(decode=True)
                     try:
-                        payload = ContentFile(payload_pop.read())
+                        payload = ContentFile(raw_payload)
                     except:
                         try:
-                            payload = ContentFile(payload_pop)
-                        except:
-                            payload = ContentFile(str(payload_pop))
-                    attachment.payload.save(attachment.sha2, payload)
+                            payload = ContentFile(raw_payload.read())
+                        except Exception, e:
+                            raise e    
+                    # Save ContentFile payload to attachment model object
+                    attachment.payload.save(sha2, payload)
             # If no sha2 there must be a fileUrl which is unique
             else:
                 try:
@@ -351,7 +353,10 @@ class Statement():
 
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)
-            att_cache.delete_many(sha2s)
+
+            # Delete everything in cache for this statement
+            if attachment_payloads:
+                att_cache.delete_many(attachment_payloads)
         self.model_object.save()
 
     def populateContext(self, stmt_data):
@@ -624,7 +629,7 @@ class Statement():
             self.populateResult(stmt_data)
 
         if 'attachments' in stmt_data:
-            self.populateAttachments(stmt_data['attachments'])
+            self.populateAttachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))
 
 
 class SubStatement(Statement):
