@@ -312,18 +312,18 @@ class Statement():
             if created:
                 for display in displays.items():
                     models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
-                        attachment=attachment)
+                        content_object=attachment)
             
                 if descriptions:
                     for desc in descriptions.items():
                         models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
-                            attachment=attachment)
+                            content_object=attachment)
 
             # If have define permission and attachment already has existed
             if self.define and not created:
                 # Grab existing display and desc keys for the attachment
-                existing_display_keys = models.StatementAttachmentDisplay.objects.filter(attachment=attachment).values_list('key', flat=True)
-                existing_desc_keys = models.StatementAttachmentDesc.objects.filter(attachment=attachment).values_list('key', flat=True)
+                existing_display_keys = attachment.display.all().values_list('key', flat=True)
+                existing_desc_keys = attachment.description.all().values_list('key', flat=True)                
 
                 # Iterate through each incoming display
                 for d in displays.items():
@@ -331,22 +331,22 @@ class Statement():
                     if isinstance(d, tuple):
                         # If the new key already exists, update that display with the new value
                         if d[0] in existing_display_keys:
-                            existing_attach_display = models.StatementAttachmentDisplay.objects.filter(attachment=attachment,key=d[0]).update(value=d[1])
+                            existing_attach_display = attachment.display.filter(key=d[0]).update(value=d[1])
                         # Else it doesn't exist so just create it
                         else:
                             models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
-                                attachment=attachment)
+                                content_object=attachment)
                 # Iterate through each incoming desc
                 for de in descriptions.items():
                     # If it's a tuple
                     if isinstance(de, tuple):
                         #  If the new key alerady exists, update that desc with the new value
                         if de[0] in existing_desc_keys:
-                            existing_attach_desc = models.StatementAttachmentDesc.objects.filter(attachment=attachment,key=de[0]).update(value=de[1])
+                            existing_attach_desc = attachment.description.filter(key=de[0]).update(value=de[1])
                         #  Else it doesn't exist so just create it
                         else:
                             models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
-                                attachment=attachment)
+                                content_object=attachment)
 
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)

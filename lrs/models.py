@@ -1116,48 +1116,38 @@ class SubStatement(statement_object):
 
         super(SubStatement, self).delete(*args, **kwargs)
 
-class StatementAttachmentDisplay(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
-    attachment = models.ForeignKey('StatementAttachment')
+class StatementAttachmentDisplay(LanguageMap):
+    pass
 
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
-class StatementAttachmentDesc(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
-    attachment = models.ForeignKey('StatementAttachment')
-    
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
+class StatementAttachmentDesc(LanguageMap):
+    pass
 
 class StatementAttachment(models.Model):
     usageType = models.CharField(max_length=MAX_URL_LENGTH)
     contentType = models.CharField(max_length=128)
+    display = generic.GenericRelation(StatementAttachmentDisplay)
+    description = generic.GenericRelation(StatementAttachmentDesc)
     length = models.PositiveIntegerField()
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     payload = models.FileField(upload_to="attachment_payloads", null=True)
 
-    def object_return(self):
+    def object_return(self, lang=None):
         ret = {}
         ret['usageType'] = self.usageType
 
-        # TODO - better way to create these sets??
-        statement_attachment_display_set = StatementAttachmentDisplay.objects.filter(attachment=self)
+        if lang is not None:
+            statement_attachment_display_set = self.display.filter(key=lang)
+            statement_attachment_desc_set = self.description.filter(key=lang)
+        else:
+            statement_attachment_display_set = self.display.all()
+            statement_attachment_desc_set = self.description.all()
+
         if len(statement_attachment_display_set) > 0:
             ret['display'] = {}
             for lang_map in statement_attachment_display_set:
                 ret['display'].update(lang_map.object_return())
-
-        statement_attachment_desc_set = StatementAttachmentDesc.objects.filter(attachment=self)
+        
         if len(statement_attachment_desc_set) > 0:
             ret['description'] = {}
             for lang_map in statement_attachment_desc_set:
@@ -1241,7 +1231,7 @@ class statement(models.Model):
         ret['version'] = self.version
 
         if len(self.attachments.all()) > 0:
-            ret['attachments'] = [a.object_return() for a in self.attachments.all()]
+            ret['attachments'] = [a.object_return(lang) for a in self.attachments.all()]
         return ret
 
     def unvoid_statement(self):

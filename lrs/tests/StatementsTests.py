@@ -2332,8 +2332,8 @@ class StatementsTests(TestCase):
         attach_objs = models.StatementAttachment.objects.all()
         self.assertEqual(len(attach_objs), 1)
 
-        displays = models.StatementAttachmentDisplay.objects.filter(attachment=attach_objs[0])
-        descs = models.StatementAttachmentDesc.objects.filter(attachment=attach_objs[0])
+        displays = attach_objs[0].display.all()
+        descs = attach_objs[0].description.all()
 
         self.assertEqual(len(displays), 2)
         self.assertEqual(len(descs), 2)
