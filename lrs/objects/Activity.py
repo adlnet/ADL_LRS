@@ -213,9 +213,22 @@ class Activity():
             self.populate_definition(activity_definition, act_created)
         
     # Save language map object for activity definition name or description
-    def save_lang_map(self, lang_map, parent):
-        language_map = models.LanguageMap(key = lang_map[0], value = lang_map[1], content_object=parent)       
-        language_map.save()        
+    def save_lang_map(self, lang_map, parent, lang_map_type):
+        if lang_map_type == 'choice':
+            language_map = models.ActivityDefinitionChoiceDesc.objects.create(key = lang_map[0],
+                value = lang_map[1], content_object=parent)
+        elif lang_map_type == 'scale':
+            language_map = models.ActivityDefinitionScaleDesc.objects.create(key = lang_map[0],
+                value = lang_map[1],content_object=parent)        
+        elif lang_map_type == 'step':
+            language_map = models.ActivityDefinitionStepDesc.objects.create(key = lang_map[0],
+                value = lang_map[1],content_object=parent)
+        elif lang_map_type == 'source':
+            language_map = models.ActivityDefinitionSourceDesc.objects.create(key = lang_map[0],
+                value = lang_map[1],content_object=parent)
+        elif lang_map_type == 'target':            
+            language_map = models.ActivityDefinitionTargetDesc.objects.create(key = lang_map[0],
+                value = lang_map[1],content_object=parent)
         return language_map
 
     def validate_cmi_interaction(self, act_def, act_created):
@@ -409,7 +422,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in c['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self.save_lang_map(desc_lang_map, choice)
+                        lang_map = self.save_lang_map(desc_lang_map, choice, "choice")
                         choice.save()
                     else:
                         choice.delete()
@@ -425,7 +438,7 @@ class Activity():
                 # Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self.save_lang_map(desc_lang_map, scale)
+                        lang_map = self.save_lang_map(desc_lang_map, scale, "scale")
                         scale.save()
                     else:
                         scale.delete()
@@ -441,7 +454,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self.save_lang_map(desc_lang_map, step)
+                        lang_map = self.save_lang_map(desc_lang_map, step, "step")
                         step.save()
                     else:
                         step.delete()
@@ -457,7 +470,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self.save_lang_map(desc_lang_map, source)
+                        lang_map = self.save_lang_map(desc_lang_map, source, "source")
                         source.save()
                     else:
                         source.delete()
@@ -472,7 +485,7 @@ class Activity():
                 #Save description as string, not a dictionary
                 for desc_lang_map in t['description'].items():
                     if isinstance(desc_lang_map, tuple):
-                        lang_map = self.save_lang_map(desc_lang_map, target)
+                        lang_map = self.save_lang_map(desc_lang_map, target, "target")
                         target.save()
                     else:
                         target.delete()
@@ -489,6 +502,5 @@ class Activity():
                 update_parent_log_status(self.log_dict, 400)                   
                 raise exceptions.ParamError(err_msg)
 
-            act_def_ext = models.extensions(key=k, value=v,
+            act_def_ext = models.ActivityDefinitionExtensions.objects.create(key=k, value=v,
                 content_object=self.activity.activity_definition)
-            act_def_ext.save()    

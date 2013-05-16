@@ -144,8 +144,7 @@ class Statement():
                     log_message(self.log_dict, err_msg, __name__, self.saveResultToDB.__name__, True)
                     update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)
-                resExt = models.extensions(key=k, value=v, content_object=rslt)
-                resExt.save()
+                resExt = models.ResultExtensions.objects.create(key=k, value=v, content_object=rslt)
         log_message(self.log_dict, "Result saved to database", __name__, self.saveResultToDB.__name__)
         return rslt
 
@@ -210,10 +209,8 @@ class Statement():
                     err_msg = "Extension ID %s is not a valid URI" % k
                     log_message(self.log_dict, err_msg, __name__, self.saveContextToDB.__name__, True)
                     update_parent_log_status(self.log_dict, 400)
-                    raise exceptions.ParamError(err_msg)                    
-                conExt = models.extensions(key=k, value=v, content_object=cntx)
-                conExt.save()
-
+                    raise exceptions.ParamError(err_msg)              
+                conExt = models.ContextExtensions.objects.create(key=k, value=v, content_object=cntx)
         log_message(self.log_dict, "Context saved to database", __name__, self.saveContextToDB.__name__)
         return cntx        
 
@@ -407,7 +404,7 @@ class Statement():
         v = lang_map[1]
 
         # Save lang map
-        language_map = models.LanguageMap(key = k, value = v, content_object=verb)
+        language_map = models.VerbDisplay(key = k, value = v, content_object=verb)
         language_map.save()        
 
         return language_map
@@ -450,7 +447,7 @@ class Statement():
                         lang_map = self.save_lang_map(verb_lang_map, verb_object)    
                     else:
                         existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
-                        models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
+                        models.VerbDisplay.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
                 else:
                     err_msg = "Verb display for verb %s is not a correct language map" % verb_id
                     log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 

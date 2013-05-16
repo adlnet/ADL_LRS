@@ -223,16 +223,21 @@ class LanguageMap(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
     
+    class Meta:
+        abstract = True
+
     def object_return(self):
         return {self.key: self.value}
 
     def __unicode__(self):
         return json.dumps(self.object_return())
 
+class VerbDisplay(LanguageMap):
+    pass
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    display = generic.GenericRelation(LanguageMap)
+    display = generic.GenericRelation(VerbDisplay)
 
     def object_return(self, lang=None):
         ret = {}
@@ -276,13 +281,18 @@ class extensions(models.Model):
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-
+    
+    class Meta:
+        abstract = True
+    
     def object_return(self):
         return {self.key:self.value}
 
     def __unicode__(self):
         return json.dumps(self.object_return())
 
+class ResultExtensions(extensions):
+    pass
 
 class result(models.Model): 
     success = models.NullBooleanField()
@@ -290,7 +300,7 @@ class result(models.Model):
     response = models.TextField(blank=True)
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=40, blank=True)
-    extensions = generic.GenericRelation(extensions)
+    extensions = generic.GenericRelation(ResultExtensions)
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
@@ -721,6 +731,8 @@ class desc_lang(models.Model):
     def __unicode__(self):
         return json.dumps(self.object_return())
 
+class ActivityDefinitionExtensions(extensions):
+    pass
 
 class activity_definition(models.Model):
     name = generic.GenericRelation(name_lang, related_name="name_lang")
@@ -729,7 +741,7 @@ class activity_definition(models.Model):
     moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     interactionType = models.CharField(max_length=25, blank=True)
     activity = models.OneToOneField(activity)
-    extensions = generic.GenericRelation(extensions)
+    extensions = generic.GenericRelation(ActivityDefinitionExtensions)
 
     def object_return(self, lang=None):
         ret = {}
@@ -819,9 +831,12 @@ class correctresponsespattern_answer(models.Model):
     def __unicode__(self):
         return objReturn()
 
+class ActivityDefinitionChoiceDesc(LanguageMap):
+    pass
+
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionChoiceDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
@@ -839,9 +854,12 @@ class activity_definition_choice(models.Model):
         
         return ret
 
+class ActivityDefinitionScaleDesc(LanguageMap):
+    pass
+
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionScaleDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
@@ -858,9 +876,12 @@ class activity_definition_scale(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
+class ActivityDefinitionSourceDesc(LanguageMap):
+    pass
+
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionSourceDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
     
     def object_return(self, lang=None):
@@ -876,9 +897,12 @@ class activity_definition_source(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
+class ActivityDefinitionTargetDesc(LanguageMap):
+    pass
+
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionTargetDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
     
     def object_return(self, lang=None):
@@ -894,9 +918,12 @@ class activity_definition_target(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
+class ActivityDefinitionStepDesc(LanguageMap):
+    pass
+
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionStepDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
@@ -940,6 +967,9 @@ class ContextActivity(models.Model):
         ret[self.key] = [a.object_return(lang, format) for a in self.context_activity.all()]
         return ret
 
+class ContextExtensions(extensions):
+    pass
+
 class context(models.Model):
     registration = models.CharField(max_length=40, blank=True, db_index=True)
     instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, db_index=True,
@@ -949,7 +979,7 @@ class context(models.Model):
     revision = models.TextField(blank=True)
     platform = models.CharField(max_length=50,blank=True)
     language = models.CharField(max_length=50,blank=True)
-    extensions = generic.GenericRelation(extensions)
+    extensions = generic.GenericRelation(ContextExtensions)
     # context also has a stmt field which can reference a sub-statement or statementref
     statement = generic.GenericRelation(statement_object)
 

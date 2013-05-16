@@ -1138,7 +1138,7 @@ class StatementsTests(TestCase):
         
         results = models.result.objects.filter(response='wrong')
         scores = models.score.objects.filter(scaled=.99)
-        exts = models.extensions.objects.filter(key__contains='wrong')
+        ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
         
         contexts = models.context.objects.filter(registration=cguid1)
         
@@ -1157,7 +1157,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(results), 0) 
         self.assertEqual(len(scores), 0)
         # Will have 3 exts from activity
-        self.assertEqual(len(exts), 3)
+        self.assertEqual(len(ad_exts), 3)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(verbs), 3)
         self.assertEqual(len(activities), 3)
@@ -1193,7 +1193,7 @@ class StatementsTests(TestCase):
         john_agent = models.agent.objects.filter(mbox='mailto:john@john.com')
         s_agent = models.agent.objects.filter(mbox='mailto:s@s.com')
         auth_agent = models.agent.objects.filter(mbox='mailto:test1@tester.com')
-        verb_display = models.LanguageMap.objects.filter(key__contains='wrong')
+        verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
         self.assertEqual(len(wrong_verbs), 1)
@@ -1257,7 +1257,7 @@ class StatementsTests(TestCase):
         activities = models.activity.objects.filter(activity_id__contains="wrong")
         results = models.result.objects.filter(response__contains="wrong")
         contexts = models.context.objects.filter(registration=sub_context_id)
-        con_exts = models.extensions.objects.filter(key__contains="wrong")
+        con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.statement.objects.all()
 
@@ -1318,7 +1318,7 @@ class StatementsTests(TestCase):
         foogie_activities = models.activity.objects.filter(activity_id__exact="act:foogie")
         results = models.result.objects.filter(response__contains="wrong")
         contexts = models.context.objects.filter(registration=sub_context_id)
-        con_exts = models.extensions.objects.filter(key__contains="wrong")
+        con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.statement.objects.all()
 
@@ -2196,6 +2196,29 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("Attachment did not contain a sha2 and did not contain a fileUrl", response.content)
+
+    def test_app_json_invalid_fileUrl(self):
+        stmt_id = str(uuid.uuid1())
+        stmt = {"id":stmt_id,
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "fileUrl": "blah"}]}
+
+        param = {"statementId":stmt_id}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        response = self.client.put(path, json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("fileUrl blah is not a valid URI", response.content)
+
+
 
     def test_multiple_app_json_multipart_no_fileUrl_put(self):
         stmt_id = str(uuid.uuid1())

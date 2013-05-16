@@ -5,6 +5,7 @@ from django.utils.decorators import decorator_from_middleware
 from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
+from lrs.util import uri
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound
 from Authorization import auth
 import logging
@@ -284,13 +285,16 @@ def validate_attachments(log_dict, attachment_data, payload_sha2s):
                 log_exception(log_dict, err_msg, validate_attachments.__name__)
                 update_log_status(log_dict, 400)
                 raise ParamError(err_msg)
-        # TODO - validate url/uri here? 
         # If sha2 is not in the attachment but fileUrl and has an empty value, that is invalid
-        elif 'fileUrl' in attachment and not attachment['fileUrl']:
+        elif 'fileUrl' in attachment:
+            if not attachment['fileUrl']:
                 err_msg = "Attachment had no value for fileUrl"
                 log_exception(log_dict, err_msg, validate_attachments.__name__)
                 update_log_status(log_dict, 400)
                 raise ParamError(err_msg)
+            if not uri.validate_uri(attachment['fileUrl']):
+                raise ParamError('fileUrl %s is not a valid URI' % attachment['fileUrl'])
+
 
 @auth
 @log_parent_action(endpoint='activities/state')

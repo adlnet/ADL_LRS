@@ -897,8 +897,7 @@ class AuthTests(TestCase):
         
         results = models.result.objects.filter(response='wrong')
         scores = models.score.objects.filter(scaled=.99)
-        exts = models.extensions.objects.filter(key__contains='wrong')
-        
+        ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
         contexts = models.context.objects.filter(registration=cguid1)
         
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
@@ -914,7 +913,7 @@ class AuthTests(TestCase):
 
         self.assertEqual(len(results), 0)
         self.assertEqual(len(scores), 0)
-        self.assertEqual(len(exts), 3)
+        self.assertEqual(len(ad_exts), 3)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(verbs), 3)
         self.assertEqual(len(activities), 3)
@@ -949,7 +948,7 @@ class AuthTests(TestCase):
         john_agent = models.agent.objects.filter(mbox='mailto:john@john.com')
         s_agent = models.agent.objects.filter(mbox='mailto:s@s.com')
         auth_agent = models.agent.objects.filter(mbox='mailto:test1@tester.com')
-        verb_display = models.LanguageMap.objects.filter(key__contains='wrong')
+        verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
         self.assertEqual(len(wrong_verbs), 1)
@@ -1010,7 +1009,7 @@ class AuthTests(TestCase):
         activities = models.activity.objects.filter(activity_id__contains="wrong")
         results = models.result.objects.filter(response__contains="wrong")
         contexts = models.context.objects.filter(registration=sub_context_id)
-        con_exts = models.extensions.objects.filter(key__contains="wrong")
+        con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.statement.objects.all()
 
