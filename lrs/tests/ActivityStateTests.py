@@ -7,7 +7,7 @@ from django.utils.timezone import utc
 from django.utils import timezone
 import hashlib
 import urllib
-from os import path
+import os
 import base64
 import json
 
@@ -58,6 +58,14 @@ class ActivityStateTests(TestCase):
         self.client.delete(self.url, self.testparams2, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.client.delete(self.url, self.testparams3, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.client.delete(self.url, self.testparams4, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "activity_state")
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
 
     def test_put(self):
         self.assertEqual(self.put1.status_code, 204)

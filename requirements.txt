@@ -1,10 +1,5 @@
 Django==1.4
-MySQL-python==1.2.3
-URLObject==2.0.1
-django-uuidfield==0.2
-djangorestframework==0.3.3
 gunicorn==0.14.2
-meld3==0.6.8
 pycrypto==2.5
 pytz==2012c
 ssh==1.7.13
@@ -18,3 +13,4 @@ psycopg2
 isodate==0.4.9
 python-dateutil==1.5
 South
+unipath

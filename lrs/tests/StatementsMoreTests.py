@@ -1,3 +1,4 @@
+import os
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from lrs import views, models
@@ -13,9 +14,9 @@ from lrs.util import retrieve_statement
 from django.conf import settings
 
 class StatementsMoreTests(TestCase):
-    settings.SERVER_STMT_LIMIT=10
 
     def setUp(self):
+        settings.SERVER_STMT_LIMIT=10
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True        
         
@@ -242,7 +243,6 @@ class StatementsMoreTests(TestCase):
         stmt_list.append(self.existStmt25)
 
 
-
         # Post statements
         post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="1.0.0")
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
@@ -330,6 +330,16 @@ class StatementsMoreTests(TestCase):
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=30)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid25).update(stored=time)
 
+    def tearDown(self):
+        settings.SERVER_STMT_LIMIT=10
+
+        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "attachment_payloads")
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
 
     def test_unknown_more_id_url(self):
         moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth )

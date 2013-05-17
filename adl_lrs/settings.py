@@ -1,5 +1,8 @@
 # Django settings for adl_lrs project.
+from unipath import Path
 
+
+PROJECT_ROOT = Path(__file__).ancestor(3)
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -48,7 +51,8 @@ USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
-MEDIA_ROOT = '/var/www/adllrs/media/'
+# MEDIA_ROOT = '/var/www/adllrs/media/'
+MEDIA_ROOT = PROJECT_ROOT.child('media')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.

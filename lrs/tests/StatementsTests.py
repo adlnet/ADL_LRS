@@ -43,7 +43,7 @@ class StatementsTests(TestCase):
         self.guid1 = str(uuid.uuid1())
        
     def tearDown(self):
-        attach_folder_path = "/var/www/adllrs/media/attachment_payloads"
+        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "attachment_payloads")
         for the_file in os.listdir(attach_folder_path):
             file_path = os.path.join(attach_folder_path, the_file)
             try:

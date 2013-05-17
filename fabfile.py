@@ -23,19 +23,15 @@ def deps_local():
     #Create media directories and give them open permissions
     if not os.path.exists(path.join(adldir,activity_profile)):
         os.makedirs(path.join(adldir,activity_profile))
-        os.chmod(path.join(adldir,activity_profile), 0777)
 
     if not os.path.exists(path.join(adldir,activity_state)):
         os.makedirs(path.join(adldir,activity_state))
-        os.chmod(path.join(adldir,activity_state), 0777)
 
     if not os.path.exists(path.join(adldir,agent_profile)):
         os.makedirs(path.join(adldir,agent_profile))
-        os.chmod(path.join(adldir,agent_profile), 0777)
 
     if not os.path.exists(path.join(adldir,statement_attachments)):
         os.makedirs(path.join(adldir,statement_attachments))
-        os.chmod(path.join(adldir,statement_attachments), 0777)
 
 def deps_remote():
     for step in INSTALL_STEPS:
