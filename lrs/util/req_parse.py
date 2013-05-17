@@ -5,6 +5,7 @@ from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
 from django.core.cache import get_cache
 from lrs.util import etag, convert_to_dict
+from lrs.util.jws import JWS, JWSException
 from lrs.exceptions import OauthUnauthorized, ParamError
 from oauth_provider.oauth.oauth import OAuthError
 from oauth_provider.utils import send_oauth_error
@@ -118,6 +119,22 @@ def parse_body(r, request):
                         att_cache.set(thehash, a)
             else:
                 raise ParamError("This content was not multipart.")
+            # see if the posted statements have attachments
+            att_stmts = [s for s in r['body'] if 'attachments' in s]
+            if att_stmts:
+                # find if any of those statements with attachments have a signed statement
+                signed_stmts = [a for a in att_stmts if a['attachments']['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]]
+                if signed_stmts:
+                    for ss in signed_stmts:
+                        attmnt = att_cache.get(a['attachments']['sha2'])
+                        jws = JWS(jws=attmnt)
+                        try:
+                            if not jws.verify() or not jws.validate(ss)
+                                raise ParamError("The JSON Web Signature is not valid")
+                        except JWSException as jwsx:
+                            raise ParamError(jwsx)
+
+
         # Normal POST/PUT data
         else:
             if request.body:
