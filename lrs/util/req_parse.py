@@ -4,7 +4,6 @@ from collections import defaultdict
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
 from django.core.cache import get_cache
-from django.core.files.base import ContentFile
 from lrs.util import etag, convert_to_dict
 from lrs.exceptions import OauthUnauthorized, ParamError
 from oauth_provider.oauth.oauth import OAuthError
@@ -107,15 +106,14 @@ def parse_body(r, request):
                 # parts[1] better be the statement
                 r['body'] = convert_to_dict(parts[1].get_payload())
                 if len(parts) > 2:
-                    r['attachment_payloads'] = []
+                    r['payload_sha2s'] = []
                     for a in parts[2:]:
                         # attachments
                         thehash = a.get("X-Experience-API-Hash")
                         if not thehash:
                             raise ParamError("X-Experience-API-Hash header was missing from attachment")
                         headers = defaultdict(str)
-                        # r['attachment_payloads'].append((thehash, a.get_payload(decode=True)))
-                        r['attachment_payloads'].append(thehash)
+                        r['payload_sha2s'].append(thehash)
                         # Save msg object to cache
                         att_cache.set(thehash, a)
             else:

@@ -223,16 +223,21 @@ class LanguageMap(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
     
+    class Meta:
+        abstract = True
+
     def object_return(self):
         return {self.key: self.value}
 
     def __unicode__(self):
         return json.dumps(self.object_return())
 
+class VerbDisplay(LanguageMap):
+    pass
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    display = generic.GenericRelation(LanguageMap)
+    display = generic.GenericRelation(VerbDisplay)
 
     def object_return(self, lang=None):
         ret = {}
@@ -276,13 +281,18 @@ class extensions(models.Model):
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-
+    
+    class Meta:
+        abstract = True
+    
     def object_return(self):
         return {self.key:self.value}
 
     def __unicode__(self):
         return json.dumps(self.object_return())
 
+class ResultExtensions(extensions):
+    pass
 
 class result(models.Model): 
     success = models.NullBooleanField()
@@ -290,7 +300,7 @@ class result(models.Model):
     response = models.TextField(blank=True)
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=40, blank=True)
-    extensions = generic.GenericRelation(extensions)
+    extensions = generic.GenericRelation(ResultExtensions)
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
@@ -377,6 +387,7 @@ class statement_object(KnowsChild):
     content_type = models.ForeignKey(ContentType, null=True)
     object_id = models.PositiveIntegerField(null=True)
     content_object = generic.GenericForeignKey('content_type', 'object_id')
+
     
     def get_a_name(self):
         return "please override"
@@ -720,6 +731,8 @@ class desc_lang(models.Model):
     def __unicode__(self):
         return json.dumps(self.object_return())
 
+class ActivityDefinitionExtensions(extensions):
+    pass
 
 class activity_definition(models.Model):
     name = generic.GenericRelation(name_lang, related_name="name_lang")
@@ -728,7 +741,7 @@ class activity_definition(models.Model):
     moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     interactionType = models.CharField(max_length=25, blank=True)
     activity = models.OneToOneField(activity)
-    extensions = generic.GenericRelation(extensions)
+    extensions = generic.GenericRelation(ActivityDefinitionExtensions)
 
     def object_return(self, lang=None):
         ret = {}
@@ -818,9 +831,12 @@ class correctresponsespattern_answer(models.Model):
     def __unicode__(self):
         return objReturn()
 
+class ActivityDefinitionChoiceDesc(LanguageMap):
+    pass
+
 class activity_definition_choice(models.Model):
     choice_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionChoiceDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
@@ -838,9 +854,12 @@ class activity_definition_choice(models.Model):
         
         return ret
 
+class ActivityDefinitionScaleDesc(LanguageMap):
+    pass
+
 class activity_definition_scale(models.Model):
     scale_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionScaleDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
@@ -857,9 +876,12 @@ class activity_definition_scale(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
+class ActivityDefinitionSourceDesc(LanguageMap):
+    pass
+
 class activity_definition_source(models.Model):
     source_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionSourceDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
     
     def object_return(self, lang=None):
@@ -875,9 +897,12 @@ class activity_definition_source(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
+class ActivityDefinitionTargetDesc(LanguageMap):
+    pass
+
 class activity_definition_target(models.Model):
     target_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionTargetDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
     
     def object_return(self, lang=None):
@@ -893,9 +918,12 @@ class activity_definition_target(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
+class ActivityDefinitionStepDesc(LanguageMap):
+    pass
+
 class activity_definition_step(models.Model):
     step_id = models.CharField(max_length=50)
-    description = generic.GenericRelation(LanguageMap)
+    description = generic.GenericRelation(ActivityDefinitionStepDesc)
     activity_definition = models.ForeignKey(activity_definition, db_index=True)
 
     def object_return(self, lang=None):
@@ -939,6 +967,9 @@ class ContextActivity(models.Model):
         ret[self.key] = [a.object_return(lang, format) for a in self.context_activity.all()]
         return ret
 
+class ContextExtensions(extensions):
+    pass
+
 class context(models.Model):
     registration = models.CharField(max_length=40, blank=True, db_index=True)
     instructor = models.ForeignKey(agent,blank=True, null=True, on_delete=models.SET_NULL, db_index=True,
@@ -948,7 +979,7 @@ class context(models.Model):
     revision = models.TextField(blank=True)
     platform = models.CharField(max_length=50,blank=True)
     language = models.CharField(max_length=50,blank=True)
-    extensions = generic.GenericRelation(extensions)
+    extensions = generic.GenericRelation(ContextExtensions)
     # context also has a stmt field which can reference a sub-statement or statementref
     statement = generic.GenericRelation(statement_object)
 
@@ -1085,48 +1116,38 @@ class SubStatement(statement_object):
 
         super(SubStatement, self).delete(*args, **kwargs)
 
-class StatementAttachmentDisplay(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
-    attachment = models.ForeignKey('StatementAttachment')
+class StatementAttachmentDisplay(LanguageMap):
+    pass
 
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
-class StatementAttachmentDesc(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
-    attachment = models.ForeignKey('StatementAttachment')
-    
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
+class StatementAttachmentDesc(LanguageMap):
+    pass
 
 class StatementAttachment(models.Model):
     usageType = models.CharField(max_length=MAX_URL_LENGTH)
     contentType = models.CharField(max_length=128)
+    display = generic.GenericRelation(StatementAttachmentDisplay)
+    description = generic.GenericRelation(StatementAttachmentDesc)
     length = models.PositiveIntegerField()
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     payload = models.FileField(upload_to="attachment_payloads", null=True)
 
-    def object_return(self):
+    def object_return(self, lang=None):
         ret = {}
         ret['usageType'] = self.usageType
 
-        # TODO - better way to create these sets??
-        statement_attachment_display_set = StatementAttachmentDisplay.objects.filter(attachment=self)
+        if lang is not None:
+            statement_attachment_display_set = self.display.filter(key=lang)
+            statement_attachment_desc_set = self.description.filter(key=lang)
+        else:
+            statement_attachment_display_set = self.display.all()
+            statement_attachment_desc_set = self.description.all()
+
         if len(statement_attachment_display_set) > 0:
             ret['display'] = {}
             for lang_map in statement_attachment_display_set:
                 ret['display'].update(lang_map.object_return())
-
-        statement_attachment_desc_set = StatementAttachmentDesc.objects.filter(attachment=self)
+        
         if len(statement_attachment_desc_set) > 0:
             ret['description'] = {}
             for lang_map in statement_attachment_desc_set:
@@ -1210,7 +1231,7 @@ class statement(models.Model):
         ret['version'] = self.version
 
         if len(self.attachments.all()) > 0:
-            ret['attachments'] = [a.object_return() for a in self.attachments.all()]
+            ret['attachments'] = [a.object_return(lang) for a in self.attachments.all()]
         return ret
 
     def unvoid_statement(self):

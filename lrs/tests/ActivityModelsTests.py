@@ -51,7 +51,7 @@ class ActivityModelsTests(TestCase):
         # Recreate lang map and add to list for check
         lang_map_list = []
         for desc in desc_lang_maps:
-            d = models.LanguageMap.objects.get(id=desc)
+            d = models.ActivityDefinitionChoiceDesc.objects.get(id=desc)
             tup = (d.key, d.value)
             lang_map_list.append(tup)
 
@@ -73,7 +73,7 @@ class ActivityModelsTests(TestCase):
         # Recreate lang map and add to list for check
         lang_map_list = []
         for desc in desc_lang_maps:
-            d = models.LanguageMap.objects.get(id=desc)
+            d = models.ActivityDefinitionScaleDesc.objects.get(id=desc)
             tup = (d.key, d.value)
             lang_map_list.append(tup)
         
@@ -95,7 +95,7 @@ class ActivityModelsTests(TestCase):
         # Recreate lang map and add to list for check
         lang_map_list = []
         for desc in desc_lang_maps:
-            d = models.LanguageMap.objects.get(id=desc)
+            d = models.ActivityDefinitionStepDesc.objects.get(id=desc)
             tup = (d.key, d.value)
             lang_map_list.append(tup)        
         steps = models.activity_definition_step.objects.values_list('step_id',
@@ -117,7 +117,7 @@ class ActivityModelsTests(TestCase):
         # Recreate lang map and add to list for check
         source_lang_map_list = []
         for desc in source_desc_lang_maps:
-            d = models.LanguageMap.objects.get(id=desc)
+            d = models.ActivityDefinitionSourceDesc.objects.get(id=desc)
             tup = (d.key, d.value)
             source_lang_map_list.append(tup)
 
@@ -131,7 +131,7 @@ class ActivityModelsTests(TestCase):
         # Recreate lang map and add to list for check
         target_lang_map_list = []
         for desc in target_desc_lang_maps:
-            d = models.LanguageMap.objects.get(id=desc)
+            d = models.ActivityDefinitionTargetDesc.objects.get(id=desc)
             tup = (d.key, d.value)
             target_lang_map_list.append(tup)
         
