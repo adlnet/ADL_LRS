@@ -12,14 +12,14 @@ Software Installation
 
 Setup Postgres
 
-    sudo passwd postgres (set password)
+    sudo passwd postgres (set password for postgres system user)
+    sudo -u postgres createuser -P <db_owner> (create postgres user that will be owner of the db)
     su postgres
     psql template1
     
-Create database and owner inside of postgres shell
+Create database inside of postgres shell
 
-    createuser -P <db_owner>
-    create database lrs owner <db_owner>
+    CREATE DATABASE lrs OWNER <db_owner>;
     \q (exits shell)
     
 Create ADL LRS system user
