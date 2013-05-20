@@ -13,7 +13,7 @@ Software Installation
 Setup Postgres
 
     sudo passwd postgres (set password for postgres system user)
-    sudo -u postgres createuser -P <db_owner> (create postgres user that will be owner of the db)
+    sudo -u postgres createuser -P <db_owner> (create postgres user that will be owner of the db - make superuser)
     su postgres
     psql template1
     
@@ -21,10 +21,11 @@ Create database inside of postgres shell
 
     CREATE DATABASE lrs OWNER <db_owner>;
     \q (exits shell)
+    exit (logout as system postgres user)
     
 Create ADL LRS system user
 
-    sudo useradd -c "ADL Learning Record Store System" -m -s "/bin/bash/" adllrs
+    sudo useradd -c "ADL Learning Record Store System" -m -s "/bin/bash" adllrs
     sudo passwd adllrs (set password)
     su adllrs
     cd ~
