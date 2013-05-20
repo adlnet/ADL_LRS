@@ -49,7 +49,7 @@ Setup the environment
     
 Setup the LRS (creates media directories and cache tables, then syncs database)
 
-    fab setup_lrs
+    fab setup_lrs (when prompted make adllrs a Django superuser)
 
 ## Starting
 While still in the ADL_LRS directory, run
