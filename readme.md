@@ -40,7 +40,8 @@ Clone the LRS repository
     git clone https://github.com/adlnet/ADL_LRS.git
     cd ADL_LRS
     
-Note: Under ADL_LRS/adl_lrs/settings.py, make sure the database USER and PASSWORD are the same as the db_owner created earlier
+Note: Under ADL_LRS/adl_lrs/settings.py, make sure the database USER and PASSWORD are the same as the db_owner created
+earlier. Also, be sure to replace the current SECRET_KEY flag with a secret string of your own, and be sure not to share it.
 
 Setup the environment
 
