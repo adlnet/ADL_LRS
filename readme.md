@@ -63,7 +63,9 @@ To verify it's running
 
 You should see a task named web running. This will host the application using gunicorn with 2 worker processes.
 If you open a browser and visit http://localhost:8000/xapi you will hit the LRS. Gunicorn does not serve static files
-so no CSS will be present. To serve static files using NGINX, please read these instructions.
+so no CSS will be present. This is fine if you're doing testing/development but if you want to host a production-ready
+LRS, Nginx needs to be setup to work with Gunicorn to serve static files. Please read these instructions for including
+Nginx.
 
 ## Test LRS
     
