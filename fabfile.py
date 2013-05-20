@@ -16,9 +16,13 @@ def setup_lrs():
     
     # Add env packages and project to the path
     cwd = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(cwd)
+    
+    if not cwd in sys.path:
+        sys.path.append(cwd)
+    
     env_dir = os.path.join(cwd, '../env/lib/python2.7/site-packages')
-    sys.path.append(env_dir)
+    if not env_dir in sys.path:
+        sys.path.append(env_dir)
 
     # Add settings module so fab file can see it
     os.environ['DJANGO_SETTINGS_MODULE'] = "adl_lrs.settings"

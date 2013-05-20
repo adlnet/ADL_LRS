@@ -1,14 +1,16 @@
 # Django settings for adl_lrs project.
 from unipath import Path
 
+# Root of LRS
 PROJECT_ROOT = Path(__file__).ancestor(3)
-DEBUG = True
+
+# If you want to debug
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
-
 MANAGERS = ADMINS
 
 DATABASES = {
@@ -84,12 +86,18 @@ STMTS_PER_PAGE = 10
 # use 0 if you don't want the entries deleted
 DAYS_TO_LOG_DELETE = 7
 
+# Whether HTTP auth or OAuth is enabled
 HTTP_AUTH_ENABLED = True
 OAUTH_ENABLED = True
+
+# OAuth callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
+
+# Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
 
+# Caches for /more endpoint and attachments
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
@@ -171,7 +179,6 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-    # 'south',
 )
 
 # A sample logging configuration. The only tangible logging
