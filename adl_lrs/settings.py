@@ -1,7 +1,6 @@
 # Django settings for adl_lrs project.
 from unipath import Path
 
-
 PROJECT_ROOT = Path(__file__).ancestor(3)
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
