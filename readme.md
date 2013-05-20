@@ -65,7 +65,7 @@ You should see a task named web running. This will host the application using gu
 If you open a browser and visit http://localhost:8000/xapi you will hit the LRS. Gunicorn does not serve static files
 so no CSS will be present. This is fine if you're doing testing/development but if you want to host a production-ready
 LRS, Nginx needs to be setup to work with Gunicorn to serve static files. Please read these instructions for including
-Nginx.
+Nginx. For a more detailed description of the tools being used in general, visit this page.
 
 ## Test LRS
     
