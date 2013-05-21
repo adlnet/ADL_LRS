@@ -752,14 +752,17 @@ class activity_definition(models.Model):
             name_lang_map_set = self.name.all()
             desc_lang_map_set = self.description.all()
 
-        ret['name'] = {}
-        ret['description'] = {}
-        for lang_map in name_lang_map_set:
-            ret['name'].update(lang_map.object_return())                   
-        for lang_map in desc_lang_map_set:
-            ret['description'].update(lang_map.object_return())
+        if name_lang_map_set:
+            ret['name'] = {}
+            for lang_map in name_lang_map_set:
+                ret['name'].update(lang_map.object_return())
+        if desc_lang_map_set:
+            ret['description'] = {}
+            for lang_map in desc_lang_map_set:
+                ret['description'].update(lang_map.object_return())
 
-        ret['type'] = self.activity_definition_type
+        if self.activity_definition_type:
+            ret['type'] = self.activity_definition_type
         
         if self.moreInfo != '':
             ret['moreInfo'] = self.moreInfo
