@@ -250,6 +250,13 @@ class OAuthTests(TestCase):
         models.Nonce.objects.all().delete()
         User.objects.all().delete()
 
+        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "activity_state")
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
 
     def test_all_error_flows(self):
         # Test request_token without appropriate headers
@@ -709,14 +716,7 @@ class OAuthTests(TestCase):
         self.assertEqual(get.status_code, 403)
         self.assertEqual(get.content, 'Incorrect permissions to GET at /statements')
 
-        # Added here to remove any extra activity states since tearDown is not working
-        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "activity_state")
-        for the_file in os.listdir(attach_folder_path):
-            file_path = os.path.join(attach_folder_path, the_file)
-            try:
-                os.unlink(file_path)
-            except Exception, e:
-                raise e
+
 
     def stmt_get_then_wrong_profile_scope(self):
         guid = str(uuid.uuid1())
