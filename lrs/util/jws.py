@@ -8,8 +8,8 @@ import json
 
 # https://www.dlitz.net/software/pycrypto/api/current/
 
-fixb64padding = lambda s: s + '=' * (4-len(s) % 4)
-rmb64padding = lambda s: s[:s.index('=')]
+fixb64padding = lambda s: s if len(s) % 4 == 0 else s + '=' * (4 - (len(s) % 4))
+rmb64padding = lambda s: s.rstrip('=')
 algs = {"RS256": SHA256,
         "RS384": SHA384,
         "RS512": SHA512}
@@ -87,6 +87,23 @@ class JWS(object):
 
         return self.jws
 
+    def sha2(self, jwsobj=None, alg=None):
+        """
+        Hash (SHA256) the JWS according to xAPI attachment rules 
+        for the sha2 attribute. Returns the hexdigest value. If 
+        a parameter isn't provided, this will use the values provided 
+        when creating this jws object.
+
+        :param jwsobj:
+            The JWS (header.paylaod.signature) to be hashed (optional)
+
+        :param alg:
+            The hashing algorithm to use ['RS256'(default), 'RS384', 'RS512'] (optional)
+        """
+        thealg = alg if alg else "RS256"
+        thejws = jwsobj if jwsobj else self.jws
+        return algs[thealg].new(thejws).hexdigest()
+
     def validate(self, stmt):
         """
         Validate the incoming Statement against the Statement in the JWS payload.
@@ -97,7 +114,10 @@ class JWS(object):
         # free pass for those who don't use x5c
         if not self.should_verify:
             return True
-        stmtobj = json.loads(stmt)
+        if type(stmt) != dict:
+            stmtobj = json.loads(stmt)
+        else:
+            stmtobj = stmt
         atts = stmtobj.pop('attachments', None)
         if atts:
             atts = [a for a in atts if a.get('usageType',None) != "http://adlnet.gov/expapi/attachments/signature"]

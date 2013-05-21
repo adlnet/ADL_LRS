@@ -1,5 +1,6 @@
 import StringIO
 import email
+import json
 from collections import defaultdict
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
@@ -120,20 +121,24 @@ def parse_body(r, request):
             else:
                 raise ParamError("This content was not multipart.")
             # see if the posted statements have attachments
-            att_stmts = [s for s in r['body'] if 'attachments' in s]
+            att_stmts = []
+            if type(r['body']) == list:
+                for s in r['body']:
+                    if 'attachments' in s:
+                        att_stmts.append(s)
+            elif 'attachments' in r['body']:
+                att_stmts.append(r['body'])
             if att_stmts:
                 # find if any of those statements with attachments have a signed statement
-                signed_stmts = [a for a in att_stmts if a['attachments']['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]]
+                signed_stmts = [(s,a) for s in att_stmts for a in s.get('attachments', None) if a['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
                 for ss in signed_stmts:
-                    attmnt = att_cache.get(a['attachments']['sha2'])
+                    attmnt = att_cache.get(ss[1]['sha2']).get_payload(decode=True)
                     jws = JWS(jws=attmnt)
                     try:
-                        if not jws.verify() or not jws.validate(ss)
+                        if not jws.verify() or not jws.validate(ss[0]):
                             raise ParamError("The JSON Web Signature is not valid")
                     except JWSException as jwsx:
                         raise ParamError(jwsx)
-
-
         # Normal POST/PUT data
         else:
             if request.body:
