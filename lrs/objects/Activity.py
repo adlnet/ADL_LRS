@@ -15,8 +15,8 @@ import pprint
 logger = logging.getLogger('user_system_actions')
 
 class Activity():
-    # Activity definition required fields
-    ADRFs = ['name', 'description', 'type']
+    # Activity definition required fields - all optional now
+    # ADRFs = ['name', 'description', 'type']
 
     # Use single transaction for all the work done in function
     @transaction.commit_on_success
@@ -330,24 +330,27 @@ class Activity():
 
         #Check if all activity definition required fields are present - deletes existing activity model
         #if error with required activity definition fields
-        for k in Activity.ADRFs:
-            if k not in act_def.keys() and k != 'extensions':
-                if act_created:
-                    self.activity.delete()
-                    self.activity = None
-                err_msg = "Activity definition error with key: %s" % k
-                log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
-                raise exceptions.ParamError(err_msg)
+        # all optional now
+        # for k in Activity.ADRFs:
+        #     if k not in act_def.keys() and k != 'extensions':
+        #         if act_created:
+        #             self.activity.delete()
+        #             self.activity = None
+        #         err_msg = "Activity definition error with key: %s" % k
+        #         log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+        #         update_parent_log_status(self.log_dict, 400)
+        #         raise exceptions.ParamError(err_msg)
 
-        act_def_type = act_def['type']
-        if not uri.validate_uri(act_def_type):
-            raise exceptions.ParamError('Activity definition type %s is not a valid URI' % act_def_type)
+        act_def_type = ''
+        if 'type' in act_def:
+            act_def_type = act_def['type']
+            if not uri.validate_uri(act_def_type):
+                raise exceptions.ParamError('Activity definition type %s is not a valid URI' % act_def_type)
         
-        #If the type is cmi.interaction, have to check interactionType
-        interaction_flag = None
-        if act_def_type == 'http://adlnet.gov/expapi/activities/cmi.interaction':
-            interaction_flag = self.validate_cmi_interaction(act_def, act_created)
+            #If the type is cmi.interaction, have to check interactionType
+            interaction_flag = None
+            if act_def_type == 'http://adlnet.gov/expapi/activities/cmi.interaction':
+                interaction_flag = self.validate_cmi_interaction(act_def, act_created)
 
         if 'moreInfo' in act_def:
             moreInfo = act_def['moreInfo']
@@ -372,29 +375,31 @@ class Activity():
             # If created and have permisson to (re)define activities
             if self.define:
                 # Save activity definition name and description
-                for name_lang_map in act_def['name'].items():
-                    if isinstance(name_lang_map, tuple):
-                        n = models.name_lang(key=name_lang_map[0],
-                                      value=name_lang_map[1],
-                                      content_object=self.activity.activity_definition)
-                        n.save()
-                    else:
-                        err_msg = "Activity with id %s has a name that is not a language map" % self.activity.activity_id
-                        log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
-                        update_parent_log_status(self.log_dict, 400)
-                        raise exceptions.ParamError(err_msg)
+                if 'name' in act_def:
+                    for name_lang_map in act_def['name'].items():
+                        if isinstance(name_lang_map, tuple):
+                            n = models.name_lang(key=name_lang_map[0],
+                                          value=name_lang_map[1],
+                                          content_object=self.activity.activity_definition)
+                            n.save()
+                        else:
+                            err_msg = "Activity with id %s has a name that is not a language map" % self.activity.activity_id
+                            log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
+                            update_parent_log_status(self.log_dict, 400)
+                            raise exceptions.ParamError(err_msg)
 
-                for desc_lang_map in act_def['description'].items():
-                    if isinstance(desc_lang_map, tuple):
-                        d = models.desc_lang(key=desc_lang_map[0],
-                                      value=desc_lang_map[1],
-                                      content_object=self.activity.activity_definition)
-                        d.save()
-                    else:
-                        err_msg = "Activity with id %s has a description that is not a language map" % self.activity.activity_id
-                        log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True) 
-                        update_parent_log_status(self.log_dict, 400)                   
-                        raise exceptions.ParamError(err_msg)
+                if 'description' in act_def:
+                    for desc_lang_map in act_def['description'].items():
+                        if isinstance(desc_lang_map, tuple):
+                            d = models.desc_lang(key=desc_lang_map[0],
+                                          value=desc_lang_map[1],
+                                          content_object=self.activity.activity_definition)
+                            d.save()
+                        else:
+                            err_msg = "Activity with id %s has a description that is not a language map" % self.activity.activity_id
+                            log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True) 
+                            update_parent_log_status(self.log_dict, 400)                   
+                            raise exceptions.ParamError(err_msg)
         
         #If there is a correctResponsesPattern then save the pattern
         if act_def_created and 'correctResponsesPattern' in act_def.keys():
