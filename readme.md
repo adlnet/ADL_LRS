@@ -40,7 +40,8 @@ Clone the LRS repository
     git clone https://github.com/adlnet/ADL_LRS.git
     cd ADL_LRS
     
-Note: Under ADL_LRS/adl_lrs/settings.py, make sure the database USER and PASSWORD are the same as the db_owner created earlier
+Note: Under ADL_LRS/adl_lrs/settings.py, make sure the database USER and PASSWORD are the same as the db_owner created
+earlier. Also, be sure to replace the current SECRET_KEY flag with a secret string of your own, and be sure not to share it.
 
 Setup the environment
 
@@ -62,7 +63,9 @@ To verify it's running
 
 You should see a task named web running. This will host the application using gunicorn with 2 worker processes.
 If you open a browser and visit http://localhost:8000/xapi you will hit the LRS. Gunicorn does not serve static files
-so no CSS will be present. To serve static files using NGINX, please read these instructions.
+so no CSS will be present. This is fine if you're doing testing/development but if you want to host a production-ready
+LRS, Nginx needs to be setup to work with Gunicorn to serve static files. Please read these instructions for including
+Nginx. For a more detailed description of the tools being used in general, visit this page.
 
 ## Test LRS
     
