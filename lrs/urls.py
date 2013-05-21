@@ -22,7 +22,7 @@ urlpatterns = patterns('lrs.views',
     url(r'^me/tokens/', 'delete_token'),
     url(r'^me/log/(?P<log_id>\d+)$', 'my_log'),
     url(r'^me/', 'me'),
-    url(r'^about', 'home')
+    url(r'^about', 'about')
 )
 urlpatterns += patterns('',
   url(r'^accounts/login/$', 'django.contrib.auth.views.login', name="login"),

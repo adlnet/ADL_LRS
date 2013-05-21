@@ -428,20 +428,6 @@ class AuthTests(TestCase):
         rsp = getResponse.content
         self.assertIn(self.guid1, rsp)
 
-
-    # def test_get_wrong_auth(self):
-    #     username = "tester2"
-    #     email = "test2@tester.com"
-    #     password = "test"
-    #     auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
-    #     form = {"username":username, "email":email,"password":password,"password2":password}
-    #     response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
-
-    #     param = {"statementId":self.guid1}
-    #     path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
-    #     getResponse = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=auth)
-    #     self.assertEqual(getResponse.status_code, 403)
-
     def test_get_no_existing_ID(self):
         param = {"statementId":"aaaaaa"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -452,8 +438,7 @@ class AuthTests(TestCase):
         getResponse = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", )
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
-        # Will only return 10 since that is server limit
-        self.assertEqual(len(jsn["statements"]), 10)
+        self.assertEqual(len(jsn["statements"]), 11)
        
 
     # Sever activities are PUT-contextActivites create 3 more
