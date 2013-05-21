@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def home(request):
+    return render_to_response('home.html', context_instance=RequestContext(request))
+
+@decorator_from_middleware(accept_middleware.AcceptMiddleware)
+def about(request):
     lrs_data = { 
         "version": "1.0.0",
         "Extensions":{
@@ -124,10 +128,7 @@ def home(request):
             }
         }
     }
-
-    if "application/json" in request.accepted_types or 'about' in request.path:
-        return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
-    return render_to_response('home.html', {"lrs_data": lrs_data}, context_instance=RequestContext(request))
+    return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
 
 def actexample(request):
     return render_to_response('actexample.json', mimetype="application/json")

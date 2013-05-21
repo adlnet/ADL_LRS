@@ -5,7 +5,7 @@ from unipath import Path
 PROJECT_ROOT = Path(__file__).ancestor(3)
 
 # If you want to debug
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -37,6 +37,9 @@ TIME_ZONE = 'America/New_York'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-US'
 
+# The ID, as an integer, of the current site in the django_site database table.
+# This is used so that application data can hook into specific sites and a single database can manage
+# content for multiple sites.
 SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
@@ -52,7 +55,6 @@ USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
-# MEDIA_ROOT = '/var/www/adllrs/media/'
 MEDIA_ROOT = PROJECT_ROOT.child('media')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
@@ -77,6 +79,7 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+# Where to be redirected after logging in
 LOGIN_REDIRECT_URL = '/XAPI/me'
 
 # Me view has a tab of user's statements
@@ -93,6 +96,8 @@ OAUTH_ENABLED = True
 # OAuth callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
+OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
+OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
@@ -142,14 +147,14 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'lrs.util.AllowOriginMiddleware.AllowOriginMiddleware',
     # Uncomment the next line for simple clickjacking protection:
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+# Main url router
 ROOT_URLCONF = 'adl_lrs.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
@@ -161,10 +166,6 @@ TEMPLATE_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
-# OAUTH_AUTHORIZE_VIEW = 'lrs.views.oauth_authorize'
-OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
-OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
-
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -175,15 +176,9 @@ INSTALLED_APPS = (
     'lrs',
     'gunicorn',
     'oauth_provider',
-    # Uncomment the next line to enable the admin:
     'django.contrib.admin',
-    # Uncomment the next line to enable admin documentation:
-    # 'django.contrib.admindocs',
 )
 
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error when DEBUG=False.
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
 LOGGING = {
@@ -197,21 +192,11 @@ LOGGING = {
             'format': '%(levelname)s %(message)s'
         },
     },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
-    },
     'handlers': {
         'user_actions': {
             'level': 'INFO',
             'formatter': 'verbose',
             'class': 'lrs.handlers.DBLogHandler'
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
         }
     },
     'loggers': {
