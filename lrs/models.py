@@ -754,12 +754,12 @@ class activity_definition(models.Model):
 
         if name_lang_map_set:
             ret['name'] = {}
-        for lang_map in name_lang_map_set:
-            ret['name'].update(lang_map.object_return())
+            for lang_map in name_lang_map_set:
+                ret['name'].update(lang_map.object_return())
         if desc_lang_map_set:
             ret['description'] = {}
-        for lang_map in desc_lang_map_set:
-            ret['description'].update(lang_map.object_return())
+            for lang_map in desc_lang_map_set:
+                ret['description'].update(lang_map.object_return())
 
         if self.activity_definition_type:
             ret['type'] = self.activity_definition_type
