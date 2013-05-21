@@ -31,17 +31,17 @@ class StatementFilterTests(TestCase):
 
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0")
-
+    
     def tearDown(self):
-        settings.SERVER_STMT_LIMIT=self.saved_stmt_limit
-        attach_folder_path = "/var/www/adllrs/media/attachment_payloads"
+        settings.SERVER_STMT_LIMIT = 100
+        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "attachment_payloads")
         for the_file in os.listdir(attach_folder_path):
             file_path = os.path.join(attach_folder_path, the_file)
             try:
                 os.unlink(file_path)
             except Exception, e:
                 raise e
-
+    
     def test_limit_filter(self):
         # Test limit
         for i in range(1,4):

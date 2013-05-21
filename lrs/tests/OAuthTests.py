@@ -12,6 +12,7 @@ import uuid
 import json
 import urllib
 import ast
+import os
 import hashlib
 import base64
 import re
@@ -44,7 +45,8 @@ class OAuthTests(TestCase):
         response2 = self.client.post(reverse(views.reg_client),form2, X_Experience_API_Version="1.0.0")
         self.consumer2 = models.Consumer.objects.get(name=self.name2)
         self.client.logout()
-
+    
+    
     def perform_oauth_handshake(self, scope=True, scope_type=None, request_nonce=None,
         access_nonce=None, resource_nonce=None):
         # TEST REQUEST TOKEN
@@ -248,6 +250,13 @@ class OAuthTests(TestCase):
         models.Nonce.objects.all().delete()
         User.objects.all().delete()
 
+        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "activity_state")
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
 
     def test_all_error_flows(self):
         # Test request_token without appropriate headers
@@ -706,6 +715,8 @@ class OAuthTests(TestCase):
 
         self.assertEqual(get.status_code, 403)
         self.assertEqual(get.content, 'Incorrect permissions to GET at /statements')
+
+
 
     def stmt_get_then_wrong_profile_scope(self):
         guid = str(uuid.uuid1())

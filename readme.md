@@ -1,109 +1,56 @@
 # ADL LRS 
 
-## Installation on Ubuntu machine (Note: This is still in the development stage and NOT ready for production)
+#### Installation tested on Ubuntu 12.10 machine with Python 2.7.3. Should be good with Ubuntu 10.04 LTS - 13.04 releases and Python 2.7.X. This is still in the development stage and NOT ready for production
 
-If python is not installed, run
+## Installation
 
-    sudo apt-get install python
+Software Installation
 
-Install django
+    sudo apt-get install git fabric postgresql-9.1 python-setuptools postgresql-server-dev-9.1 python-dev
+    sudo easy_install pip
+    sudo pip install virtualenv
 
-    wget "http://www.djangoproject.com/download/1.4/tarball/" -O Django-1.4.tar.gz
-    tar xzvf Django-1.4.tar.gz
-    cd Django-1.4
-    sudo python setup.py install
+Setup Postgres
 
-Install Git
-    
-    sudo apt-get install git
-
-Install Fabric
-
-    sudo apt-get install fabric
-
-Install Memcached
-
-    sudo apt-get install memcached
-
-Install other dependencies
-
-    sudo apt-get install python-setuptools libmysqlclient-dev python-dev python-mysqldb python-libxml2 python-libxslt1 libxml2-dev libxslt1-dev
-
-Currently the LRS supports both Postgres and MySQL backends. Depending on which you want to use, comment out the backend you don't want and follow the instructions below for the one you chose. When xAPI 1.0 is released we will be moving to Postgres full time
-
-**MySQL**
-
-Install MySQL
-
-    sudo apt-get install mysql-server
-
-Create LRS database
-
-    mysqladmin -h localhost -u {username} -p create lrs
-
-**End MySQL**
-
-**Postgres**
-
-Install Postgres
-
-    sudo apt-get install postgresql-9.1
-
-Set postgres user password
-
-    sudo passwd postgres
-
-Create user for postgres that will own LRS database
-    
-    sudo -u postgres createuser -P {username}
-
-Switch to postgres user
-
+    sudo passwd postgres (set password for postgres system user)
+    sudo -u postgres createuser -P <db_owner> (create postgres user that will be owner of the db - make superuser)
     su postgres
-
-Enter Postgres shell
-
     psql template1
+    
+Create database inside of postgres shell
 
-Create DB and owner
+    CREATE DATABASE lrs OWNER <db_owner>;
+    \q (exits shell)
+    exit (logout as system postgres user)
+    
+Create ADL LRS system user
 
-    CREATE DATABASE lrs OWNER {username} ENCODING 'UTF8';
-    (To exit shell - '\q', then switch back to your normal Linux user)
+    sudo useradd -c "ADL Learning Record Store System" -m -s "/bin/bash" adllrs
+    sudo passwd adllrs (set password)
+    su adllrs
+    cd ~
+    
+Create desired directory to keep LRS
 
-Download python-psycopg2 and libpq-dev
-
-    sudo apt-get install python-psycopg2 libpq-dev
-
-**End Postgres**
-
-Navigate to desired repository directory and clone LRS repository
+    mkdir <dir_name>
+    cd <dir_name>
+    
+Clone the LRS repository
 
     git clone https://github.com/adlnet/ADL_LRS.git
     cd ADL_LRS
     
-NOTE: Be sure in your settings file (ADL_LRS/adl_lrs/settings.py) your USER and PASSWORD entries are correct for your DB)
+Note: Under ADL_LRS/adl_lrs/settings.py, make sure the database USER and PASSWORD are the same as the db_owner created
+earlier. Also, be sure to replace the current SECRET_KEY flag with a secret string of your own, and be sure not to share it.
 
-Run fabric file to install all local dependencies and create needed directories    
+Setup the environment
 
-    sudo fab deps_local
-
-Activate your virtual environment (while still in ADL_LRS)
-
-    . env/bin/activate
-
-Create LRS cache table
-
-    python manage.py createcachetable cache_statement_list
-
-While still in the ADL_LRS directory, update the database
+    fab setup_env
+    source ../env/bin/activate 
     
-    python manage.py syncdb
+Setup the LRS (creates media directories and cache tables, then syncs database)
 
-When prompted to create a superuser, say yes
-  
-If you want to use South for DB migration (more on that [here](https://github.com/adlnet/ADL_LRS/wiki/DB-Migration-with-South))
-    
-    python manage.py convert_to_south lrs
+    fab setup_lrs (when prompted make adllrs a Django superuser)
 
 ## Starting
 While still in the ADL_LRS directory, run
@@ -114,7 +61,11 @@ To verify it's running
 
     supervisorctl
 
-You should see a task named web running. This will host the application using gunicorn with 2 worker processes
+You should see a task named web running. This will host the application using gunicorn with 2 worker processes.
+If you open a browser and visit http://localhost:8000/xapi you will hit the LRS. Gunicorn does not serve static files
+so no CSS will be present. This is fine if you're doing testing/development but if you want to host a production-ready
+LRS, Nginx needs to be setup to work with Gunicorn to serve static files. Please read these instructions for including
+Nginx. For a more detailed description of the tools being used in general, visit this page.
 
 ## Test LRS
     
