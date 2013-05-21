@@ -15,8 +15,8 @@ import pprint
 logger = logging.getLogger('user_system_actions')
 
 class Activity():
-    # Activity definition required fields
-    ADRFs = ['name', 'description', 'type']
+    # Activity definition required fields - all optional now
+    # ADRFs = ['name', 'description', 'type']
 
     # Use single transaction for all the work done in function
     @transaction.commit_on_success
