@@ -21,7 +21,7 @@ import pdb
 import pprint
 
 logger = logging.getLogger(__name__)
-
+ 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def home(request):
     return render_to_response('home.html', context_instance=RequestContext(request))
@@ -127,7 +127,7 @@ def about(request):
                 }
             }
         }
-    }
+    }    
     return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
 
 def actexample(request):
