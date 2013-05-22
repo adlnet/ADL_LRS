@@ -1,3 +1,4 @@
+import os
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from lrs import views, models
@@ -13,9 +14,9 @@ from lrs.util import retrieve_statement
 from django.conf import settings
 
 class StatementsMoreTests(TestCase):
-    settings.SERVER_STMT_LIMIT=10
 
     def setUp(self):
+        settings.SERVER_STMT_LIMIT=10
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True        
         
@@ -64,7 +65,7 @@ class StatementsMoreTests(TestCase):
             "verb":{"id":"verb:attempted",
             "display":{"en-US":"attempted", 'en-GB':"altattempted"}},"object": {'objectType': 'Activity',
             'id':'act:foogie','definition': {'name': {'en-US':'testname2', 'en-GB':'altname'},
-            'description': {'en-US':'testdesc2','en-GB':'altdesc'}, 'type': 'cmi.interaction',
+            'description': {'en-US':'testdesc2','en-GB':'altdesc'}, 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answer'],'extensions': {'ext:key1': 'value1',
             'ext:key2': 'value2','ext:key3': 'value3'}}}, "result": {'score':{'scaled':.85}, 'completion': True, 'success': True,
             'response': 'kicked','duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}},
@@ -77,7 +78,7 @@ class StatementsMoreTests(TestCase):
             "verb":{"id":"verb:verb/created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'act:foogie','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
-            'type': 'cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answers'],
+            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'ext:key11': 'value11', 'ext:key22': 'value22','ext:key33': 'value33'}}}, 
             "result": {'score':{'scaled':.75}, 'completion': True, 'success': True, 'response': 'shouted',
             'duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:dkey1': 'dvalue1', 'ext:dkey2':'dvalue2'}},
@@ -90,7 +91,7 @@ class StatementsMoreTests(TestCase):
             "verb":{"id":"verb:created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'act:foogals','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
-            'type': 'cmi.interaction',
+            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'ext:key111': 'value111', 'ext:key222': 'value222','ext:key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -104,7 +105,7 @@ class StatementsMoreTests(TestCase):
         self.existStmt4 = json.dumps({"statement_id":self.guid4,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "verb":{"id":"verb:verb/created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity', 'id':'act:foogal',
-            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'cmi.interaction',
+            'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'interactionType': 'fill-in','correctResponsesPattern': ['answers'],
             'extensions': {'ext:key111': 'value111', 'ext:key222': 'value222','ext:key333': 'value333'}}}, 
             "result": {'score':{'scaled':.79}, 'completion': True, 'success': True, 'response': 'shouted',
@@ -242,9 +243,8 @@ class StatementsMoreTests(TestCase):
         stmt_list.append(self.existStmt25)
 
 
-
         # Post statements
-        post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="0.95")
+        post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="1.0.0")
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
@@ -330,13 +330,23 @@ class StatementsMoreTests(TestCase):
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=30)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid25).update(stored=time)
 
+    def tearDown(self):
+        settings.SERVER_STMT_LIMIT=10
+
+        attach_folder_path = os.path.join(settings.MEDIA_ROOT, "attachment_payloads")
+        for the_file in os.listdir(attach_folder_path):
+            file_path = os.path.join(attach_folder_path, the_file)
+            try:
+                os.unlink(file_path)
+            except Exception, e:
+                raise e
 
     def test_unknown_more_id_url(self):
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth )
-        self.assertContains(moreURLGet, 'List does not exist - may have expired after 24 hours')
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth )
+        self.assertEqual(moreURLGet.status_code, 404)
 
     def test_not_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         
         self.assertEqual(sincePostResponse.status_code, 200)
         rsp = sincePostResponse.content
@@ -372,7 +382,7 @@ class StatementsMoreTests(TestCase):
 
         sincePostResponse = self.client.post(reverse(views.statements),
             {"until":self.thirdTime},
-            content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+            content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sincePostResponse.status_code, 200)
         rsp = sincePostResponse.content
         self.assertIn(self.guid10, rsp)
@@ -403,7 +413,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid11, rsp)
 
     def test_single_full_second_not_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sincePostResponse.status_code, 200)
         rsp = sincePostResponse.content
         resp_json = json.loads(rsp)
@@ -438,7 +448,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
@@ -470,7 +480,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
     def test_two_pages_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sincePostResponse.status_code, 200)
         rsp = sincePostResponse.content
         resp_json = json.loads(rsp)
@@ -505,7 +515,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
@@ -537,7 +547,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
     def test_two_pages_full_third_not_full_more_stmts_url(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
         resp_json = json.loads(rsp)
@@ -573,7 +583,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -607,7 +617,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -637,9 +647,10 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid6, another_rsp)
         self.assertNotIn(self.guid5, another_rsp)
         self.assertNotIn(self.guid25, another_rsp)    
-    
+                
+
     def test_limit_less_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8}, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
         resp_json = json.loads(rsp)
@@ -675,7 +686,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -709,7 +720,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -742,7 +753,7 @@ class StatementsMoreTests(TestCase):
 
 
     def test_limit_same_as_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10}, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
         resp_json = json.loads(rsp)
@@ -778,7 +789,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -812,7 +823,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -844,7 +855,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, another_rsp)    
 
     def test_limit_more_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12}, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
         resp_json = json.loads(rsp)
@@ -879,7 +890,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -914,7 +925,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
 
@@ -947,7 +958,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_multiple_hits(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime}, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content        
         resp_json = json.loads(rsp)
@@ -982,7 +993,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, rsp)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
         more_resp_url = more_json['more']
@@ -1017,7 +1028,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more2URLGet.status_code, 200)
         more2_rsp = more2URLGet.content
         self.assertIn(self.guid4, more2_rsp)
@@ -1048,7 +1059,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2_rsp)        
 
         # Simulate user clicking returned 'more' URL
-        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         another_more_rsp = anotherMoreURLGet.content
         another_more_json = json.loads(another_more_rsp)
         another_more_resp_url = another_more_json['more']
@@ -1083,7 +1094,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, another_more_rsp)
 
         # Simulate user clicking returned 'more' URL
-        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}), X_Experience_API_Version="0.95",HTTP_AUTHORIZATION=self.auth)
+        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}), X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherMore2URLGet.status_code, 200)
         another_more2_rsp = anotherMore2URLGet.content
         self.assertIn(self.guid4, another_more2_rsp)

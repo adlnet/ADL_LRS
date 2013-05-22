@@ -13,7 +13,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import req_validate, req_parse, req_process, TCAPIversionHeaderMiddleware, accept_middleware
+from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware
 from lrs import forms, models, exceptions
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
@@ -21,122 +21,126 @@ import pdb
 import pprint
 
 logger = logging.getLogger(__name__)
-
+ 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def home(request):
+    return render_to_response('home.html', context_instance=RequestContext(request))
+
+@decorator_from_middleware(accept_middleware.AcceptMiddleware)
+def about(request):
     lrs_data = { 
-        "xapi": {
-            "version": "0.95",
-            "statements":
-            {
-                "name": "Statements",
-                "methods": ["GET", "POST", "PUT"],
-                "endpoint": reverse('lrs.views.statements'),
-                "description": "Endpoint to submit and retrieve XAPI statments.",
-                "content-types": []
+        "version": "1.0.0",
+        "Extensions":{
+            "xapi": {
+                "statements":
+                {
+                    "name": "Statements",
+                    "methods": ["GET", "POST", "PUT", "HEAD"],
+                    "endpoint": reverse('lrs.views.statements'),
+                    "description": "Endpoint to submit and retrieve XAPI statments.",
+                    "content-types": []
+                },
+                "activities":
+                {
+                    "name": "Activities",
+                    "methods": ["GET", "HEAD"],
+                    "endpoint": reverse('lrs.views.activities'),
+                    "description": "Endpoint to retrieve a complete activity object.",
+                    "content-types": []
+                },
+                "activities_state":
+                {
+                    "name": "Activities State",
+                    "methods": ["PUT","POST","GET","DELETE", "HEAD"],
+                    "endpoint": reverse('lrs.views.activity_state'),
+                    "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
+                    "content-types": []
+                },
+                "activities_profile":
+                {
+                    "name": "Activities Profile",
+                    "methods": ["PUT","POST","GET","DELETE", "HEAD"],
+                    "endpoint": reverse('lrs.views.activity_profile'),
+                    "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
+                    "content-types": []
+                },
+                "agents":
+                {
+                    "name": "Agents",
+                    "methods": ["GET", "HEAD"],
+                    "endpoint": reverse('lrs.views.agents'),
+                    "description": "Returns a special, Person object for a specified agent.",
+                    "content-types": []
+                },
+                "agents_profile":
+                {
+                    "name": "Agent Profile",
+                    "methods": ["PUT","POST","GET","DELETE", "HEAD"],
+                    "endpoint": reverse('lrs.views.agent_profile'),
+                    "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
+                    "content-types": []
+                }
             },
-            "activities":
-            {
-                "name": "Activities",
-                "methods": ["GET"],
-                "endpoint": reverse('lrs.views.activities'),
-                "description": "Endpoint to retrieve a complete activity object.",
-                "content-types": []
+            "lrs":{
+                "user_register":
+                {
+                    "name": "User Registration",
+                    "methods": ["POST"],
+                    "endpoint": reverse('lrs.views.register'),
+                    "description": "Registers a user within the LRS.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                },
+                "client_register":
+                {
+                    "name": "Client Registration",
+                    "methods": ["POST"],
+                    "endpoint": reverse('lrs.views.reg_client'),
+                    "description": "Registers a client applicaton with the LRS.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                }
             },
-            "activities_state":
+            "oauth":
             {
-                "name": "Activities State",
-                "methods": ["PUT","POST","GET","DELETE"],
-                "endpoint": reverse('lrs.views.activity_state'),
-                "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
-                "content-types": []
-            },
-            "activities_profile":
-            {
-                "name": "Activities Profile",
-                "methods": ["PUT","POST","GET","DELETE"],
-                "endpoint": reverse('lrs.views.activity_profile'),
-                "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
-                "content-types": []
-            },
-            "agents":
-            {
-                "name": "Agents",
-                "methods": ["GET"],
-                "endpoint": reverse('lrs.views.agents'),
-                "description": "Returns a special, Person object for a specified agent.",
-                "content-types": []
-            },
-            "agents_profile":
-            {
-                "name": "Agent Profile",
-                "methods": ["PUT","POST","GET","DELETE"],
-                "endpoint": reverse('lrs.views.agent_profile'),
-                "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
-                "content-types": []
-            }
-        },
-        "lrs":{
-            "user_register":
-            {
-                "name": "User Registration",
-                "methods": ["POST"],
-                "endpoint": reverse('lrs.views.register'),
-                "description": "Registers a user within the LRS.",
-                "content-types": ["application/x-www-form-urlencoded"]
-            },
-            "client_register":
-            {
-                "name": "Client Registration",
-                "methods": ["POST"],
-                "endpoint": reverse('lrs.views.reg_client'),
-                "description": "Registers a client applicaton with the LRS.",
-                "content-types": ["application/x-www-form-urlencoded"]
-            }
-        },
-        "oauth":
-        {
-            "initiate":
-            {
-                "name": "Oauth Initiate",
-                "methods": ["POST"],
-                "endpoint": reverse('oauth_provider.views.request_token'),
-                "description": "Authorize a client and return temporary credentials.",
-                "content-types": ["application/x-www-form-urlencoded"]
-            },
-            "authorize":
-            {
-                "name": "Oauth Authorize",
-                "methods": ["GET"],
-                "endpoint": reverse('oauth_provider.views.user_authorization'),
-                "description": "Authorize a user.",
-                "content-types": []
-            },
-            "token":
-            {
-                "name": "Oauth Token",
-                "methods": ["POST"],
-                "endpoint": reverse('oauth_provider.views.access_token'),
-                "description": "Provides Oauth token to the client.",
-                "content-types": ["application/x-www-form-urlencoded"]
+                "initiate":
+                {
+                    "name": "Oauth Initiate",
+                    "methods": ["POST"],
+                    "endpoint": reverse('oauth_provider.views.request_token'),
+                    "description": "Authorize a client and return temporary credentials.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                },
+                "authorize":
+                {
+                    "name": "Oauth Authorize",
+                    "methods": ["GET"],
+                    "endpoint": reverse('oauth_provider.views.user_authorization'),
+                    "description": "Authorize a user.",
+                    "content-types": []
+                },
+                "token":
+                {
+                    "name": "Oauth Token",
+                    "methods": ["POST"],
+                    "endpoint": reverse('oauth_provider.views.access_token'),
+                    "description": "Provides Oauth token to the client.",
+                    "content-types": ["application/x-www-form-urlencoded"]
+                }
             }
         }
-    }
-    if "application/json" in request.accepted_types:
-        return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
-    return render_to_response('home.html', {"lrs_data": lrs_data}, context_instance=RequestContext(request))
+    }    
+    return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
 
-def tcexample(request):
-    return render_to_response('tcexample.xml')
+def actexample(request):
+    return render_to_response('actexample.json', mimetype="application/json")
 
-def tcexample2(request):
-    return render_to_response('tcexample2.xml')
+def actexample2(request):
+    return render_to_response('actexample2.json', mimetype="application/json")
 
-def tcexample3(request):
-    return render_to_response('tcexample3.xml')
+def actexample3(request):
+    return render_to_response('actexample3.json', mimetype="application/json")
 
-def tcexample4(request):
-    return render_to_response('tcexample4.xml')
+def actexample4(request):
+    return render_to_response('actexample4.json', mimetype="application/json")
 
 def register(request):
     if request.method == 'GET':
@@ -312,40 +316,39 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('lrs.views.home'))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
-@require_http_methods(["GET"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+@require_http_methods(["GET", "HEAD"])
 def statements_more(request, more_id):
     return handle_request(request, more_id)
 
-@require_http_methods(["PUT","GET","POST"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["PUT","GET","POST", "HEAD"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
     return handle_request(request)   
 
-@require_http_methods(["PUT","POST","GET","DELETE"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activity_state(request):
     return handle_request(request)  
 
-@require_http_methods(["PUT","POST","GET","DELETE"])
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activity_profile(request):
     return handle_request(request)
 
-@require_GET
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["GET", "HEAD"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activities(request):
     return handle_request(request)
 
-@require_http_methods(["PUT","POST","GET","DELETE"])    
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])    
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agent_profile(request):
     return handle_request(request)
 
 # returns a 405 (Method Not Allowed) if not a GET
-#@require_http_methods(["GET"]) or shortcut
-@require_GET
-@decorator_from_middleware(TCAPIversionHeaderMiddleware.TCAPIversionHeaderMiddleware)
+@require_http_methods(["GET", "HEAD"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agents(request):
     return handle_request(request)
 
@@ -373,6 +376,7 @@ def handle_request(request, more_id=None):
 
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
+
     except exceptions.BadRequest as err:
         return HttpResponse(err.message, status=400)
     except ValidationError as ve:
@@ -398,31 +402,41 @@ validators = {
     reverse(statements).lower() : {
         "POST" : req_validate.statements_post,
         "GET" : req_validate.statements_get,
-        "PUT" : req_validate.statements_put
+        "PUT" : req_validate.statements_put,
+        "HEAD" : req_validate.statements_get
     },
     reverse(activity_state).lower() : {
+        "POST": req_validate.activity_state_post,
         "PUT" : req_validate.activity_state_put,
         "GET" : req_validate.activity_state_get,
+        "HEAD" : req_validate.activity_state_get,
         "DELETE" : req_validate.activity_state_delete
     },
     reverse(activity_profile).lower() : {
+        "POST": req_validate.activity_profile_post,
         "PUT" : req_validate.activity_profile_put,
         "GET" : req_validate.activity_profile_get,
+        "HEAD" : req_validate.activity_profile_get,
         "DELETE" : req_validate.activity_profile_delete
     },
     reverse(activities).lower() : {
-        "GET" : req_validate.activities_get
+        "GET" : req_validate.activities_get,
+        "HEAD" : req_validate.activities_get
     },
     reverse(agent_profile) : {
+        "POST": req_validate.agent_profile_post,
         "PUT" : req_validate.agent_profile_put,
         "GET" : req_validate.agent_profile_get,
+        "HEAD" : req_validate.agent_profile_get,
         "DELETE" : req_validate.agent_profile_delete
     },
    reverse(agents).lower() : {
-       "GET" : req_validate.agents_get
+       "GET" : req_validate.agents_get,
+       "HEAD" : req_validate.agents_get
    },
    "/xapi/statements/more" : {
-        "GET" : req_validate.statements_more_get
+        "GET" : req_validate.statements_more_get,
+        "HEAD" : req_validate.statements_more_get
    }
 }
 
@@ -430,31 +444,41 @@ processors = {
     reverse(statements).lower() : {
         "POST" : req_process.statements_post,
         "GET" : req_process.statements_get,
+        "HEAD" : req_process.statements_get,
         "PUT" : req_process.statements_put
     },
     reverse(activity_state).lower() : {
+        "POST": req_process.activity_state_post,
         "PUT" : req_process.activity_state_put,
         "GET" : req_process.activity_state_get,
+        "HEAD" : req_process.activity_state_get,
         "DELETE" : req_process.activity_state_delete
     },
     reverse(activity_profile).lower() : {
+        "POST": req_process.activity_profile_post,
         "PUT" : req_process.activity_profile_put,
         "GET" : req_process.activity_profile_get,
+        "HEAD" : req_process.activity_profile_get,
         "DELETE" : req_process.activity_profile_delete
     },
     reverse(activities).lower() : {
-        "GET" : req_process.activities_get
+        "GET" : req_process.activities_get,
+        "HEAD" : req_process.activities_get
     },
     reverse(agent_profile).lower() : {
+        "POST": req_process.agent_profile_post,
         "PUT" : req_process.agent_profile_put,
         "GET" : req_process.agent_profile_get,
+        "HEAD" : req_process.agent_profile_get,
         "DELETE" : req_process.agent_profile_delete
     },
    reverse(agents).lower() : {
-       "GET" : req_process.agents_get
+       "GET" : req_process.agents_get,
+       "HEAD" : req_process.agents_get
    },
    "/xapi/statements/more" : {
-        "GET" : req_process.statements_more_get
+        "GET" : req_process.statements_more_get,
+        "HEAD" : req_process.statements_more_get
    }      
 }
 

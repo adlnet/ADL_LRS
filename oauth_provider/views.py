@@ -17,7 +17,6 @@ import pdb
 from django.shortcuts import render_to_response
 from lrs.forms import AuthClientForm
 from lrs.models import Token
-from lrs.util import TCAPIversionHeaderMiddleware
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'

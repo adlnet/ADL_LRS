@@ -1,0 +1,11 @@
+{
+        "name":{"en-US": "Example Name"},
+        "description": {"en-US": "Example Desc"},
+        "type":"type:module",
+        "interactionType": "course",
+        "extensions":{
+                "ext:keya": "first value",
+                "ext:keyb": "second value",
+                "ext:keyc": "third value"
+                        }
+}
