@@ -5,7 +5,7 @@ from django.db import transaction
 from lrs.models import agent_profile
 from lrs.models import agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status, uri
 import logging
 import pdb
 
@@ -42,6 +42,13 @@ class Agent():
                     params.pop('member', None)
                 # If retreiving agents always get global version                
                 params['global_representation'] = True
+                # gotta get account info right for this..
+                if 'account' in params:
+                    acc = params.pop('account')
+                    if 'homePage' in acc:
+                        params['agent_account__homePage'] = acc['homePage']
+                    if 'name' in acc:
+                        params['agent_account__name'] = acc['name']
                 self.agent = ag.objects.get(**params)
                 log_message(self.log_dict, "Retrieved %s from database" % self.agent.objectType, __name__, self.__init__.__name__)
 
@@ -51,6 +58,31 @@ class Agent():
                 update_parent_log_status(self.log_dict, 404)
                 raise IDNotFoundError(err_msg) 
         
+    def post_profile(self, request_dict):
+        post_profile = request_dict['profile']
+
+        profile_id = request_dict['profileId']
+        if not uri.validate_uri(profile_id):
+            err_msg = 'Profile ID %s is not a valid URI' % profile_id
+            log_message(self.log_dict, err_msg, __name__, self.post_profile.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
+            raise exceptions.ParamError(err_msg)
+
+        user = get_user_from_auth(request_dict.get('auth', None))
+        p, created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent, user=user)
+        if created:
+            log_message(self.log_dict, "Created Agent Profile", __name__, self.post_profile.__name__)
+            profile = ContentFile(post_profile)
+        else:
+            original_profile = json.load(p.profile)
+            post_profile = json.loads(post_profile)
+            log_message(self.log_dict, "Found a profile. Merging the two profiles", __name__, self.post_profile.__name__)
+            merged = dict(original_profile.items() + post_profile.items())
+            p.profile.delete()
+            profile = ContentFile(json.dumps(merged))
+
+        self.save_profile(p, created, profile, request_dict)
+
     def put_profile(self, request_dict):
         try:
             profile = ContentFile(request_dict['profile'].read())
@@ -59,12 +91,25 @@ class Agent():
                 profile = ContentFile(request_dict['profile'])
             except:
                 profile = ContentFile(str(request_dict['profile']))
+        
+        profile_id = request_dict['profileId']
+        if not uri.validate_uri(profile_id):
+            err_msg = 'Profile ID %s is not a valid URI' % profile_id
+            log_message(self.log_dict, err_msg, __name__, self.put_profile.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
+            raise exceptions.ParamError(err_msg)
 
         user = get_user_from_auth(request_dict.get('auth', None))
-        p,created = agent_profile.objects.get_or_create(profileId=request_dict['profileId'],agent=self.agent, user=user)
-        if not created:
+        p,created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent, user=user)
+        if created:
+            log_message(self.log_dict, "Created Agent Profile", __name__, self.put_profile.__name__)
+        else:
             etag.check_preconditions(request_dict,p, required=True)
+            log_message(self.log_dict, "Found an existing profile. Etag test passed. Replacing existing profile.", __name__, self.put_profile.__name__)
             p.profile.delete()
+        self.save_profile(p, created, profile, request_dict)
+
+    def save_profile(self, p, created, profile, request_dict):
         p.content_type = request_dict['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
         if request_dict['updated']:
@@ -75,6 +120,8 @@ class Agent():
 
         fn = "%s_%s" % (p.agent_id,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
+
+        log_message(self.log_dict, "Saved Agent Profile", __name__, self.save_profile.__name__)
     
     def get_profile(self, profileId):
         try:
@@ -92,10 +139,10 @@ class Agent():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 profs = self.agent.agent_profile_set.filter(updated__gte=since)
             except ValidationError:
-                from django.utils import timezone
-                since_i = int(float(since))# this handles timestamp like str(time.time())
-                since_dt = datetime.datetime.fromtimestamp(since_i).replace(tzinfo=timezone.get_default_timezone())
-                profs = self.agent.agent_profile_set.filter(updated__gte=since_dt)
+                err_msg = 'Since field is not in correct format'
+                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)          
+                raise ParamError(err_msg) 
             except:
                 err_msg = 'There are no profiles associated with the id: %s' % profileId
                 log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 

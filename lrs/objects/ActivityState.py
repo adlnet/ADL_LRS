@@ -3,28 +3,30 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from lrs import models
 from lrs.objects.Agent import Agent
-from lrs.exceptions import IDNotFoundError
-from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status
+from lrs.exceptions import IDNotFoundError, ParamError
+from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status, uri
 import logging
 import pdb
+import json
 
 logger = logging.getLogger('user_system_actions')
 
 class ActivityState():
     def __init__(self, request_dict, log_dict=None):
+        self.log_dict = log_dict
+        
+        if not uri.validate_uri(request_dict['activityId']):
+            err_msg = 'Activity ID %s is not a valid URI' % request_dict['activityId']
+            log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True) 
+            update_parent_log_status(self.log_dict, 400)       
+            raise exceptions.ParamError(err_msg)
+
         self.req_dict = request_dict
         self.log_dict = log_dict
         self.agent = request_dict['agent']
         self.auth = request_dict.get('auth', None)
         self.user = get_user_from_auth(self.auth)
-        try:
-            # Always want global version
-            self.activity = models.activity.objects.get(activity_id=request_dict['activityId'],
-                global_representation=True)
-        except models.activity.DoesNotExist:
-            err_msg = "Error with Activity State. The activity id (%s) did not match any activities on record" % (request_dict['activityId'])
-            log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
-            raise IDNotFoundError(err_msg)
+        self.activity_id = request_dict['activityId']
         self.registrationId = request_dict.get('registrationId', None)
         self.stateId = request_dict.get('stateId', None)
         self.updated = request_dict.get('updated', None)
@@ -35,6 +37,27 @@ class ActivityState():
 
     def __get_agent(self, create=False):
         return Agent(self.agent, create).agent
+
+    def post(self):
+        agent = self.__get_agent(create=True)
+        post_state = self.state
+        if self.registrationId:
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId, user=self.user)
+        else:
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id, user=self.user)
+        
+        if created:
+            log_message(self.log_dict, "Created Activity State", __name__, self.post.__name__)
+            state = ContentFile(post_state)
+        else:
+            original_state = json.load(p.state)
+            post_state = json.loads(post_state)
+            log_message(self.log_dict, "Found an existing state. Merging the two documents", __name__, self.post.__name__)
+            merged = dict(original_state.items() + post_state.items())
+            p.state.delete()
+            state = ContentFile(json.dumps(merged))
+
+        self.save_state(p, created, state)
 
     @transaction.commit_on_success
     def put(self):
@@ -48,9 +71,9 @@ class ActivityState():
                 state = ContentFile(str(self.state))
 
         if self.registrationId:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity,registration_id=self.registrationId, user=self.user)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId, user=self.user)
         else:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity=self.activity, user=self.user)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id, user=self.user)
         
         if created:
             log_message(self.log_dict, "Created Activity State", __name__, self.put.__name__)
@@ -58,7 +81,9 @@ class ActivityState():
             etag.check_preconditions(self.req_dict,p)
             p.state.delete() # remove old state file
             log_message(self.log_dict, "Retrieved Activity State", __name__, self.put.__name__)
+        self.save_state(p, created, state)
 
+    def save_state(self, p, created, state):
         p.content_type = self.content_type
         p.etag = etag.create_tag(state.read())
         if self.updated:
@@ -70,15 +95,15 @@ class ActivityState():
         fn = "%s_%s_%s" % (p.agent_id,p.activity_id, self.req_dict.get('filename', p.id))
         p.state.save(fn, state)
 
-        log_message(self.log_dict, "Saved Activity State", __name__, self.put.__name__)
+        log_message(self.log_dict, "Saved Activity State", __name__, self.save_state.__name__)
 
 
     def get(self, auth):
         agent = self.__get_agent()
         try:
             if self.registrationId:
-                return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity=self.activity, registration_id=self.registrationId)
-            return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity=self.activity)
+                return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
+            return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id)
         except models.activity_state.DoesNotExist:
             err_msg = 'There is no activity state associated with the id: %s' % self.stateId
             log_message(self.log_dict, err_msg, __name__, self.get.__name__, True)
@@ -88,9 +113,9 @@ class ActivityState():
     def get_set(self,auth,**kwargs):
         agent = self.__get_agent()
         if self.registrationId:
-            state_set = models.activity_state.objects.filter(agent=agent, activity=self.activity, registration_id=self.registrationId)
+            state_set = models.activity_state.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
         else:
-            state_set = models.activity_state.objects.filter(agent=agent, activity=self.activity)
+            state_set = models.activity_state.objects.filter(agent=agent, activity_id=self.activity_id)
         return state_set
 
 
@@ -107,10 +132,10 @@ class ActivityState():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 state_set = state_set.filter(updated__gte=self.since)
             except ValidationError:
-                from django.utils import timezone
-                since_i = int(float(since))# this handles timestamp like str(time.time())
-                since_dt = datetime.datetime.fromtimestamp(since_i).replace(tzinfo=timezone.get_default_timezone())
-                state_set = state_set.filter(updated__gte=since_dt)
+                err_msg = 'Since field is not in correct format'
+                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
+                update_parent_log_status(self.log_dict, 400)          
+                raise ParamError(err_msg) 
         return state_set.values_list('state_id', flat=True)
 
     def delete(self, auth):

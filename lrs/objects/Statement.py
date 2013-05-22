@@ -2,6 +2,8 @@ import json
 import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.core.files.base import ContentFile
+from django.core.cache import get_cache
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
@@ -14,6 +16,7 @@ import pprint
 import pdb
 
 logger = logging.getLogger('user_system_actions')
+att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
     def __init__(self,default):
@@ -80,14 +83,42 @@ class Statement():
             update_parent_log_status(self.log_dict, 403)
             raise exceptions.Forbidden(err_msg)
 
+    # Statement fields are score_min and score_max
     def validateScoreResult(self, score_data):
-        if 'min' in score_data:
+        # If min and max are both in score, make sure min is less than max and if raw is included
+        # make sure it's between those two values
+        # Elif it's either just min or max, set them
+        if 'min' in score_data and 'max' in score_data:
+            sc_min = score_data['min']
+            sc_max = score_data['max']
+            if sc_min >= sc_max:
+                err_msg = "Score minimum must be less than the maximum"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+            
+            if 'raw' in score_data and (score_data['raw'] < sc_min or score_data['raw'] > sc_max):
+                err_msg = "Raw must be between minimum and maximum"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+            score_data['score_min'] = sc_min
+            score_data['score_max'] = sc_max
+        elif 'min' in score_data:
             score_data['score_min'] = score_data['min']
             del score_data['min']
-
-        if 'max' in score_data:
+        elif 'max' in score_data:
             score_data['score_max'] = score_data['max']
             del score_data['max']
+
+        # If scale is included make sure it's between -1 and 1
+        if 'scaled' in score_data:
+            if score_data['scaled'] < -1 or score_data['scaled'] > 1:
+                err_msg = "Scaled must be between -1 and 1"
+                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
+
         return score_data
 
     def saveScoreToDB(self, score):
@@ -113,8 +144,7 @@ class Statement():
                     log_message(self.log_dict, err_msg, __name__, self.saveResultToDB.__name__, True)
                     update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)
-                resExt = models.extensions(key=k, value=v, content_object=rslt)
-                resExt.save()
+                resExt = models.ResultExtensions.objects.create(key=k, value=v, content_object=rslt)
         log_message(self.log_dict, "Result saved to database", __name__, self.saveResultToDB.__name__)
         return rslt
 
@@ -125,30 +155,52 @@ class Statement():
             con_act_data = context['contextActivities']
             del context['contextActivities']
 
-        # Set context statement
-        cs = None
-        if 'cntx_statement' in context:
-            cs = context['cntx_statement'] 
-            del context['cntx_statement']
-        
+        # Save context stmt if one
+        stmt_data = None
+        if 'statement' in context:
+            stmt_data = context['statement']
+            del context['statement']
+
         # Save context
-        cntx = models.context(content_object=self.model_object, **context)    
+        cntx = models.context(**context)    
         cntx.save()
 
-        # Set context in context statement and save
-        if cs:
-            cs.context = cntx
-            cs.save()
+        # Save context stmt if one
+        if stmt_data:
+            # Check objectType since can be both ref or sub
+            if 'objectType' in stmt_data:
+                if stmt_data['objectType'] == 'StatementRef':
+                    stmt_ref = models.StatementRef.objects.create(ref_id=stmt_data['id'], content_object=cntx)
+                else:
+                    err_msg = "Statement in context must be StatementRef"
+                    log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
+                    update_parent_log_status(self.log_dict, 400)
+                    raise exceptions.ParamError(err_msg)                    
+            else:
+                err_msg = "Statement in context must contain the objectType"
+                log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
+                update_parent_log_status(self.log_dict, 400)
+                raise exceptions.ParamError(err_msg)
 
         # Save context activities
         if con_act_data:
-            for con_act in con_act_data.items():
-                ca_id = con_act[1]['id']
-                if not uri.validate_uri(ca_id):
-                    raise exceptions.ParamError('Context Activity ID %s is not a valid URI' % ca_id)
-                ca = models.ContextActivity(key=con_act[0], context_activity=ca_id, context=cntx)
+            context_types = ['parent', 'grouping', 'category', 'other']
+            # Can have multiple groupings
+            for con_act_group in con_act_data.items():
+                if not con_act_group[0] in context_types:
+                    raise exceptions.ParamError('Context Activity type is not valid.')
+                ca = models.ContextActivity.objects.create(key=con_act_group[0], context=cntx)
+                # Incoming contextActivities can either be a list or dict
+                if isinstance(con_act_group[1], list):
+                    for con_act in con_act_group[1]:
+                        act = Activity(con_act,auth=self.auth, log_dict=self.log_dict,
+                            define=self.define).activity
+                        ca.context_activity.add(act)
+                else:
+                    act = Activity(con_act_group[1],auth=self.auth, log_dict=self.log_dict,
+                        define=self.define).activity
+                    ca.context_activity.add(act)
                 ca.save()
-            cntx.save()
 
         # Save context extensions
         if contextExts:
@@ -157,12 +209,9 @@ class Statement():
                     err_msg = "Extension ID %s is not a valid URI" % k
                     log_message(self.log_dict, err_msg, __name__, self.saveContextToDB.__name__, True)
                     update_parent_log_status(self.log_dict, 400)
-                    raise exceptions.ParamError(err_msg)                    
-                conExt = models.extensions(key=k, value=v, content_object=cntx)
-                conExt.save()
-
+                    raise exceptions.ParamError(err_msg)              
+                conExt = models.ContextExtensions.objects.create(key=k, value=v, content_object=cntx)
         log_message(self.log_dict, "Context saved to database", __name__, self.saveContextToDB.__name__)
-
         return cntx        
 
     #Save statement to DB
@@ -220,13 +269,95 @@ class Statement():
         #Save result
         return self.saveResultToDB(result, resultExts)
 
-    def populateContext(self, stmt_data):
-        instructor = False
-        team = False
-        revision = True
-        platform = True
-        contextExts = {}
+    def populateAttachments(self, attachment_data, attachment_payloads):
+        log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
+        # Iterate through each attachment
+        for attach in attachment_data:
+            # Pop displays and descs off
+            displays = attach.pop('display')
+            descriptions = attach.pop('description', None)
 
+            # Get or create based on sha2
+            if 'sha2' in attach:
+                sha2 = attach['sha2']
+                try:
+                    attachment = models.StatementAttachment.objects.get(sha2=sha2)
+                    created = False
+                except models.StatementAttachment.DoesNotExist:
+                    attachment = models.StatementAttachment.objects.create(**attach)
+                    created = True                
+                    # Since there is a sha2, there must be a payload cached
+                    # Decode payload from msg object saved in cache and create ContentFile from raw data
+                    msg = att_cache.get(sha2)
+                    raw_payload = msg.get_payload(decode=True)
+                    try:
+                        payload = ContentFile(raw_payload)
+                    except:
+                        try:
+                            payload = ContentFile(raw_payload.read())
+                        except Exception, e:
+                            raise e    
+                    # Save ContentFile payload to attachment model object
+                    attachment.payload.save(sha2, payload)
+            # If no sha2 there must be a fileUrl which is unique
+            else:
+                try:
+                    attachment = models.StatementAttachment.objects.get(fileUrl=attach['fileUrl'])
+                    created = False
+                except Exception, e:
+                    attachment = models.StatementAttachment.objects.create(**attach)
+                    created = True
+
+            # If it was just created, create the displays and descs
+            if created:
+                for display in displays.items():
+                    models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
+                        content_object=attachment)
+            
+                if descriptions:
+                    for desc in descriptions.items():
+                        models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
+                            content_object=attachment)
+
+            # If have define permission and attachment already has existed
+            if self.define and not created:
+                # Grab existing display and desc keys for the attachment
+                existing_display_keys = attachment.display.all().values_list('key', flat=True)
+                existing_desc_keys = attachment.description.all().values_list('key', flat=True)                
+
+                # Iterate through each incoming display
+                for d in displays.items():
+                    # If it's a tuple
+                    if isinstance(d, tuple):
+                        # If the new key already exists, update that display with the new value
+                        if d[0] in existing_display_keys:
+                            existing_attach_display = attachment.display.filter(key=d[0]).update(value=d[1])
+                        # Else it doesn't exist so just create it
+                        else:
+                            models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
+                                content_object=attachment)
+                # Iterate through each incoming desc
+                for de in descriptions.items():
+                    # If it's a tuple
+                    if isinstance(de, tuple):
+                        #  If the new key alerady exists, update that desc with the new value
+                        if de[0] in existing_desc_keys:
+                            existing_attach_desc = attachment.description.filter(key=de[0]).update(value=de[1])
+                        #  Else it doesn't exist so just create it
+                        else:
+                            models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
+                                content_object=attachment)
+
+            # Add each attach to the stmt
+            self.model_object.attachments.add(attachment)
+
+            # Delete everything in cache for this statement
+            if attachment_payloads:
+                att_cache.delete_many(attachment_payloads)
+        self.model_object.save()
+
+    def populateContext(self, stmt_data):
+        contextExts = {}
         log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
 
         if 'registration' in stmt_data['context']:
@@ -235,17 +366,18 @@ class Statement():
         if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
                 create=True, log_dict=self.log_dict, define=self.define).agent
-
-        # If there is an actor or object is a group in the stmt then remove the team
-        if 'actor' in stmt_data or 'group' == stmt_data['object']['objectType'].lower():
-            if 'team' in stmt_data['context']:                
-                del stmt_data['context']['team']                
+            
+        if 'team' in stmt_data['context']:
+            stmt_data['context']['team'] = Agent(initial=stmt_data['context']['team'],
+                create=True, log_dict=self.log_dict, define=self.define).agent
 
         # Revision and platform not applicable if object is agent
         if 'objectType' in stmt_data['object'] and ('agent' == stmt_data['object']['objectType'].lower()
                                                 or 'group' == stmt_data['object']['objectType'].lower()):
-            del stmt_data['context']['revision']
-            del stmt_data['context']['platform']
+            if 'revision' in stmt_data['context']:
+                del stmt_data['context']['revision']
+            if 'platform' in stmt_data['context']:
+                del stmt_data['context']['platform']
 
         # Set extensions
         if 'extensions' in stmt_data['context']:
@@ -254,15 +386,7 @@ class Statement():
         else:
             context = stmt_data['context']
 
-        # Save context stmt if one
-        if 'statement' in context:
-            stmt_ref = models.StatementRef(ref_id=context['statement']['id'])
-            stmt_ref.save()
-            context['cntx_statement'] = stmt_ref
-            del context['statement']
-
         return self.saveContextToDB(context, contextExts)
-
 
     def save_lang_map(self, lang_map, verb):
         # If verb is model object but not saved yet
@@ -280,7 +404,7 @@ class Statement():
         v = lang_map[1]
 
         # Save lang map
-        language_map = models.LanguageMap(key = k, value = v, content_object=verb)
+        language_map = models.VerbDisplay(key = k, value = v, content_object=verb)
         language_map.save()        
 
         return language_map
@@ -295,15 +419,16 @@ class Statement():
             log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
-
-        if not uri.validate_uri(incoming_verb['id']):
-            err_msg = 'Verb ID %s is not a valid URI' % incoming_verb['id']
+        
+        verb_id = incoming_verb['id']
+        if not uri.validate_uri(verb_id):
+            err_msg = 'Verb ID %s is not a valid URI' % verb_id
             log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         # Get or create the verb
-        verb_object, created = models.Verb.objects.get_or_create(verb_id=incoming_verb['id'])
+        verb_object, created = models.Verb.objects.get_or_create(verb_id=verb_id)
 
         # If existing, get existing keys
         if not created:
@@ -322,9 +447,9 @@ class Statement():
                         lang_map = self.save_lang_map(verb_lang_map, verb_object)    
                     else:
                         existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
-                        models.LanguageMap.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
+                        models.VerbDisplay.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
                 else:
-                    err_msg = "Verb display for verb %s is not a correct language map" % incoming_verb['id']
+                    err_msg = "Verb display for verb %s is not a correct language map" % verb_id
                     log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
                     update_parent_log_status(self.log_dict, 400)       
                     raise exceptions.ParamError(err_msg)
@@ -434,15 +559,41 @@ class Statement():
         if 'timestamp' in stmt_data:
             args['timestamp'] = stmt_data['timestamp']
 
+        # If non oauth group won't be sent with the authority key, so if it's a group it's a non
+        # oauth group which isn't allowed to be the authority
         if 'authority' in stmt_data:
-            args['authority'] = Agent(initial=stmt_data['authority'], create=True,
-                log_dict=self.log_dict, define=self.define).agent
+            auth_data = stmt_data['authority']
+            if not isinstance(auth_data, dict):
+                auth_data = json.loads(auth_data)
+
+            # If they're trying to put their oauth group in authority for some reason, just retrieve
+            # it. If it doesn't exist, the Agent class responds with a 404
+            if auth_data['objectType'].lower() == 'group':
+                args['authority'] = Agent(initial=stmt_data['authority'], create=False,
+                    log_dict=self.log_dict, define=self.define).agent
+            else:
+                args['authority'] = Agent(initial=stmt_data['authority'], create=True,
+                    log_dict=self.log_dict, define=self.define).agent
+
+            # If they try using a non-oauth group that already exists-throw error
+            if args['authority'].objectType == 'Group' and not args['authority'].oauth_identifier:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                update_parent_log_status(self.log_dict, 400)                   
+                raise exceptions.ParamError(err_msg)
+
         else:
-            # Look at request from auth if not supplied in stmt_data
+            # Look at request from auth if not supplied in stmt_data.
             if self.auth:
                 authArgs = {}
                 if self.auth.__class__.__name__ == 'agent':
-                    args['authority'] = self.auth
+                    if self.auth.oauth_identifier:
+                        args['authority'] = self.auth
+                    else:
+                        err_msg = "Statements cannot have a non-Oauth group as the authority"
+                        log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
+                        update_parent_log_status(self.log_dict, 400)                   
+                        raise exceptions.ParamError(err_msg)
                 else:    
                     authArgs['name'] = self.auth.username
                     if self.auth.email.startswith("mailto:"):
@@ -464,15 +615,19 @@ class Statement():
                 log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
                 update_parent_log_status(self.log_dict, 409)                   
                 raise exceptions.ParamConflict(err_msg)
-
+        
+        if 'context' in stmt_data:
+            args['context'] = self.populateContext(stmt_data)
+        
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)
 
         if 'result' in stmt_data:
             self.populateResult(stmt_data)
 
-        if 'context' in stmt_data:
-            self.populateContext(stmt_data)
+        if 'attachments' in stmt_data:
+            self.populateAttachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))
+
 
 class SubStatement(Statement):
     @transaction.commit_on_success

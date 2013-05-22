@@ -3,7 +3,9 @@ from datetime import datetime
 from functools import wraps
 from django.utils.decorators import decorator_from_middleware
 from django.utils.timezone import utc
+from django.core.cache import get_cache
 from lrs import models
+from lrs.util import uri
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound
 from Authorization import auth
 import logging
@@ -11,6 +13,7 @@ import pdb
 import pprint
 
 logger = logging.getLogger('user_system_actions')
+att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
     exists = False
@@ -34,10 +37,12 @@ def update_log_status(log_dict, status):
     parent_action.status_code = status
     parent_action.save()
 
-def log_parent_action(method, endpoint):
+def log_parent_action(endpoint):
     def inner(func):
         @wraps(func)
         def wrapper(r_dict, *args, **kwargs):
+            # HEAD uses same funcs as GET which passes GET as method
+            method = r_dict['method'] 
             request_time = datetime.utcnow().replace(tzinfo=utc).isoformat()
             if 'auth' in r_dict and r_dict['auth']:
                 user_action = models.SystemAction(level=models.SystemAction.REQUEST, timestamp=request_time,
@@ -75,6 +80,14 @@ def validate_oauth_scope(r_dict):
                     "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
                     "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
                 },
+             'HEAD':{"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                    "/statements/more": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                    "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
+                    "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
+                    "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
+                    "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
+                    "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
+                },   
              'PUT':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
                     "/activities": True if 'all' in scopes or 'define' in scopes else False,
                     "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
@@ -138,13 +151,26 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
             raise Forbidden(err_msg)
 
 @auth
-@log_parent_action(method='POST', endpoint='statements')
+@log_parent_action(endpoint='statements')
 @check_oauth
 def statements_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    payload_sha2s = r_dict.get('payload_sha2s', None)
+    
+    # Could be batch POST or single stmt POST
+    if type(r_dict['body']) is list:
+        for stmt in r_dict['body']:
+            if 'attachments' in stmt:
+                attachment_data = stmt['attachments']
+                validate_attachments(log_dict, attachment_data, payload_sha2s)
+    else:
+        if 'attachments' in r_dict['body']:
+            attachment_data = r_dict['body']['attachments']
+            validate_attachments(log_dict, attachment_data, payload_sha2s)
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='statements/more')
+@log_parent_action(endpoint='statements/more')
 @check_oauth
 def statements_more_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -156,13 +182,52 @@ def statements_more_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='statements')
+@log_parent_action(endpoint='statements')
 @check_oauth
 def statements_get(r_dict):
+    formats = ['exact', 'canonical', 'ids']
+    if 'format' in r_dict:
+        if r_dict['format'] not in formats:
+            raise ParamError("The format filter value (%s) was not one of the known values: %s" % (r_dict['format'], ','.join(formats)))
+    else:
+        r_dict['format'] = 'exact'
+
+    # if this was the weird POST/GET then put the format in the body
+    # so that retrieve_statement finds it
+    if 'body' in r_dict:
+        r_dict['body']['format'] = r_dict['format']        
+    
+    if 'statementId' in r_dict or 'voidedStatementId' in r_dict:
+        if 'statementId' in r_dict and 'voidedStatementId' in r_dict:
+            err_msg = "Cannot have both statementId and voidedStatementId in a GET request"
+            log_exception(log_dict, err_msg, statements_put.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+        
+        not_allowed = ["agent", "verb", "activity", "registration", 
+                       "related_activities", "related_agents", "since",
+                       "until", "limit", "ascending"]
+        bad_keys = set(not_allowed) & set(r_dict.keys())
+        if bad_keys:
+            err_msg = "Cannot have %s in a GET request only 'format' and/or 'attachements' are allowed with 'statementId' and 'voidedStatementId'" % ', '.join(bad_keys)
+            log_exception(log_dict, err_msg, statements_put.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+
+    # Django converts all query values to string - make boolean depending on if client wants attachments or not
+    # Only need to do this in GET b/c GET/more will have it saved in pickle information
+    if 'attachments' in r_dict:
+        if r_dict['attachments'] == 'True':
+            r_dict['attachments'] = True
+        else:
+            r_dict['attachments'] = False
+    else:
+        r_dict['attachments'] = False
+   
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='statements')
+@log_parent_action(endpoint='statements')
 @check_oauth
 def statements_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -189,10 +254,107 @@ def statements_put(r_dict):
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
 
+    if 'attachments' in r_dict['body']:
+        attachment_data = r_dict['body']['attachments']
+        payload_sha2s = r_dict.get('payload_sha2s', None)
+        validate_attachments(log_dict, attachment_data, payload_sha2s)
+    return r_dict
+
+def validate_attachments(log_dict, attachment_data, payload_sha2s):
+    # For each attachment that is in the actual statement
+    for attachment in attachment_data:
+        # If display is not in the attachment it fails
+        if not 'display' in attachment:
+            err_msg = "Attachment must contain display property"
+            log_exception(log_dict, err_msg, validate_attachments.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+
+        # If the attachment data has a sha2 field, must validate it against the payload data
+        if 'sha2' in attachment:
+            sha2 = attachment['sha2']
+            # Check if the sha2 field is a key in the payload dict
+            if not sha2 in payload_sha2s:
+                err_msg = "Could not find attachment payload with sha: %s" % sha2
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
+        # If sha2 is not in the attachment and neither is fileURL, that is invalid 
+        elif not 'fileUrl' in attachment:
+                err_msg = "Attachment did not contain a sha2 and did not contain a fileUrl"
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
+        # If sha2 is not in the attachment but fileUrl and has an empty value, that is invalid
+        elif 'fileUrl' in attachment:
+            if not attachment['fileUrl']:
+                err_msg = "Attachment had no value for fileUrl"
+                log_exception(log_dict, err_msg, validate_attachments.__name__)
+                update_log_status(log_dict, 400)
+                raise ParamError(err_msg)
+            if not uri.validate_uri(attachment['fileUrl']):
+                raise ParamError('fileUrl %s is not a valid URI' % attachment['fileUrl'])
+
+
+@auth
+@log_parent_action(endpoint='activities/state')
+@check_oauth
+def activity_state_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    try:
+        r_dict['activityId']
+    except KeyError:
+        err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    if not 'activity_state_agent_validated' in r_dict:
+        try:
+            r_dict['agent']
+        except KeyError:
+            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
+            log_exception(log_dict, err_msg, activity_state_post.__name__)
+            update_log_status(log_dict, 400)
+            raise ParamError(err_msg)
+    try:
+        r_dict['stateId']
+    except KeyError:
+        err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+
+    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+        err_msg = "The content type for activity state POSTs must be application/json"
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    
+    # Must have body included for state
+    if 'body' not in r_dict:
+        err_msg = "Could not find the state"
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "state")
+
+    # Set state
+    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
+    try:
+        json.loads(body_dict)
+        r_dict['state'] = body_dict
+    except Exception as e:
+        err_msg = "Could not parse the content into JSON"
+        log_exception(log_dict, err_msg, activity_state_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError("\n".join((err_msg, e)))
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='activities/state')
+@log_parent_action(endpoint='activities/state')
 @check_oauth
 def activity_state_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -235,7 +397,7 @@ def activity_state_put(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='activities/state')
+@log_parent_action(endpoint='activities/state')
 @check_oauth
 def activity_state_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -261,7 +423,7 @@ def activity_state_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='DELETE', endpoint='activities/state')
+@log_parent_action(endpoint='activities/state')
 @check_oauth
 def activity_state_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -287,7 +449,50 @@ def activity_state_delete(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='activities/profile')
+@log_parent_action(endpoint='activities/profile')
+@check_oauth
+def activity_profile_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    try:
+        r_dict['activityId']
+    except KeyError:
+        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)    
+    try:
+        r_dict['profileId']
+    except KeyError:
+        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+
+    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+        err_msg = "The content type for activity profile POSTs must be application/json"
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    
+    if 'body' not in r_dict:
+        err_msg = "Could not find the profile document"
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+
+    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
+    try:
+        json.loads(body_dict)
+        r_dict['profile'] = body_dict
+    except Exception as e:
+        err_msg = "Could not parse the content into JSON"
+        log_exception(log_dict, err_msg, activity_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError("\n".join((err_msg, e)))
+    return r_dict
+
+@auth
+@log_parent_action(endpoint='activities/profile')
 @check_oauth
 def activity_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -307,7 +512,7 @@ def activity_profile_put(r_dict):
         raise ParamError(err_msg)
     
     if 'body' not in r_dict:
-        err_msg = "Could not find the profile"
+        err_msg = "Could not find the profile document"
         log_exception(log_dict, err_msg, activity_profile_put.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
@@ -319,7 +524,7 @@ def activity_profile_put(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='activities/profile')
+@log_parent_action(endpoint='activities/profile')
 @check_oauth
 def activity_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -333,7 +538,7 @@ def activity_profile_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='DELETE', endpoint='activities/profile')
+@log_parent_action(endpoint='activities/profile')
 @check_oauth
 def activity_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -354,7 +559,7 @@ def activity_profile_delete(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='activities')
+@log_parent_action(endpoint='activities')
 @check_oauth
 def activities_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -368,7 +573,55 @@ def activities_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='PUT', endpoint='agents/profile')
+@log_parent_action(endpoint='agents/profile')
+@check_oauth
+def agent_profile_post(r_dict):
+    log_dict = r_dict['initial_user_action']
+    try: 
+        r_dict['agent']
+    except KeyError:
+        err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    try:
+        r_dict['profileId']
+    except KeyError:
+        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method']
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(msg)
+
+    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+        err_msg = "The content type for agent profile POSTs must be application/json"
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+    
+    if 'body' not in r_dict:
+        err_msg = "Could not find the profile document"
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError(err_msg)
+
+    # Extra validation if oauth
+    if r_dict['lrs_auth'] == 'oauth':
+        validate_oauth_state_or_profile_agent(r_dict, "profile")
+    
+    # Set profile
+    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
+    try:
+        json.loads(body_dict)
+        r_dict['profile'] = body_dict
+    except Exception as e:
+        err_msg = "Could not parse the content into JSON"
+        log_exception(log_dict, err_msg, agent_profile_post.__name__)
+        update_log_status(log_dict, 400)
+        raise ParamError("\n".join((err_msg, e)))
+    return r_dict
+
+@auth
+@log_parent_action(endpoint='agents/profile')
 @check_oauth
 def agent_profile_put(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -388,7 +641,7 @@ def agent_profile_put(r_dict):
         raise ParamError(msg)
     
     if 'body' not in r_dict:
-        err_msg = "Could not find the profile"
+        err_msg = "Could not find the profile document"
         log_exception(log_dict, err_msg, agent_profile_put.__name__)
         update_log_status(log_dict, 400)
         raise ParamError(err_msg)
@@ -397,12 +650,12 @@ def agent_profile_put(r_dict):
     if r_dict['lrs_auth'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     
-    # Set profile
-    r_dict['profile'] = r_dict.pop('body')
+    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
+    r_dict['profile'] = str(body_dict)
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='agents/profile')
+@log_parent_action(endpoint='agents/profile')
 @check_oauth
 def agent_profile_get(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -420,7 +673,7 @@ def agent_profile_get(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='DELETE', endpoint='agents/profile')
+@log_parent_action(endpoint='agents/profile')
 @check_oauth
 def agent_profile_delete(r_dict):
     log_dict = r_dict['initial_user_action']
@@ -445,7 +698,7 @@ def agent_profile_delete(r_dict):
     return r_dict
 
 @auth
-@log_parent_action(method='GET', endpoint='agents')
+@log_parent_action(endpoint='agents')
 @check_oauth
 def agents_get(r_dict):
     log_dict = r_dict['initial_user_action']
