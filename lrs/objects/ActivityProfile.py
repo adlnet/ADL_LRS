@@ -22,7 +22,7 @@ class ActivityProfile():
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             log_message(self.log_dict, err_msg, __name__, self.post_profile.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
-            raise exceptions.ParamError(err_msg)
+            raise ParamError(err_msg)
 
         # get / create  profile
         user = get_user_from_auth(request_dict.get('auth', None))
@@ -58,8 +58,8 @@ class ActivityProfile():
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             log_message(self.log_dict, err_msg, __name__, self.put_profile.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
-            raise exceptions.ParamError(err_msg)
+            update_parent_log_status(self.log_dict, 400)
+            raise ParamError(err_msg)
 
 
         user = get_user_from_auth(request_dict.get('auth', None))
