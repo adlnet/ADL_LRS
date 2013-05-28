@@ -24,6 +24,10 @@ def setup_lrs():
     if not env_dir in sys.path:
         sys.path.append(env_dir)
 
+    log_dir = os.path.join(cwd, '../logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     # Add settings module so fab file can see it
     os.environ['DJANGO_SETTINGS_MODULE'] = "adl_lrs.settings"
     from django.conf import settings
