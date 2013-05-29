@@ -85,10 +85,6 @@ LOGIN_REDIRECT_URL = '/XAPI/me'
 # Me view has a tab of user's statements
 STMTS_PER_PAGE = 10
 
-# LRS will delete SystemAction entries after n number of days
-# use 0 if you don't want the entries deleted
-DAYS_TO_LOG_DELETE = 7
-
 # Whether HTTP auth or OAuth is enabled
 HTTP_AUTH_ENABLED = True
 OAUTH_ENABLED = False
@@ -112,7 +108,7 @@ CACHES = {
     'attachment_cache':{
         'BACKEND':'django.core.cache.backends.db.DatabaseCache',
         'LOCATION':'attachment_cache',
-    }
+    },
 }
 
 # List of finder classes that know how to find static files in

@@ -5,17 +5,13 @@ from django.db import transaction
 from lrs.models import agent_profile
 from lrs.models import agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status, uri
-import logging
+from lrs.util import etag, get_user_from_auth, uri
 import pdb
-
-logger = logging.getLogger('user_system_actions')
 
 class Agent():
     @transaction.commit_on_success
-    def __init__(self, initial=None, create=False, log_dict=None, define=True):
+    def __init__(self, initial=None, create=False, define=True):
         self.initial = initial
-        self.log_dict = log_dict
         self.define = define
         params = self.initial
 
@@ -25,17 +21,11 @@ class Agent():
             except Exception, e:
                 err_msg = "Error parsing the Agent object. Expecting json. Received: %s which is %s" % (self.initial,
                     type(self.initial))
-                log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg) 
                 
         if create:
             params['define'] = self.define
             self.agent, created = ag.objects.gen(**params)
-            if created:
-                log_message(self.log_dict, "Created %s in database" % self.agent.objectType, __name__, self.__init__.__name__)
-            elif not created:
-                log_message(self.log_dict, "Retrieved %s from database" % self.agent.objectType, __name__, self.__init__.__name__)
         else:
             try:
                 if 'member' in params:
@@ -50,12 +40,8 @@ class Agent():
                     if 'name' in acc:
                         params['agent_account__name'] = acc['name']
                 self.agent = ag.objects.get(**params)
-                log_message(self.log_dict, "Retrieved %s from database" % self.agent.objectType, __name__, self.__init__.__name__)
-
             except:
                 err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
-                log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
-                update_parent_log_status(self.log_dict, 404)
                 raise IDNotFoundError(err_msg) 
         
     def post_profile(self, request_dict):
@@ -64,19 +50,15 @@ class Agent():
         profile_id = request_dict['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
-            log_message(self.log_dict, err_msg, __name__, self.post_profile.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         user = get_user_from_auth(request_dict.get('auth', None))
         p, created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent, user=user)
         if created:
-            log_message(self.log_dict, "Created Agent Profile", __name__, self.post_profile.__name__)
             profile = ContentFile(post_profile)
         else:
             original_profile = json.load(p.profile)
             post_profile = json.loads(post_profile)
-            log_message(self.log_dict, "Found a profile. Merging the two profiles", __name__, self.post_profile.__name__)
             merged = dict(original_profile.items() + post_profile.items())
             p.profile.delete()
             profile = ContentFile(json.dumps(merged))
@@ -95,17 +77,12 @@ class Agent():
         profile_id = request_dict['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
-            log_message(self.log_dict, err_msg, __name__, self.put_profile.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         user = get_user_from_auth(request_dict.get('auth', None))
         p,created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent, user=user)
-        if created:
-            log_message(self.log_dict, "Created Agent Profile", __name__, self.put_profile.__name__)
-        else:
+        if not created:
             etag.check_preconditions(request_dict,p, required=True)
-            log_message(self.log_dict, "Found an existing profile. Etag test passed. Replacing existing profile.", __name__, self.put_profile.__name__)
             p.profile.delete()
         self.save_profile(p, created, profile, request_dict)
 
@@ -120,16 +97,12 @@ class Agent():
 
         fn = "%s_%s" % (p.agent_id,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
-
-        log_message(self.log_dict, "Saved Agent Profile", __name__, self.save_profile.__name__)
     
     def get_profile(self, profileId):
         try:
             return self.agent.agent_profile_set.get(profileId=profileId)
         except:
             err_msg = 'There is no profile associated with the id: %s' % profileId
-            log_message(self.log_dict, err_msg, __name__, self.get_profile.__name__, True)
-            update_parent_log_status(self.log_dict, 404)            
             raise IDNotFoundError(err_msg)
 
     def get_profile_ids(self, since=None):
@@ -140,13 +113,9 @@ class Agent():
                 profs = self.agent.agent_profile_set.filter(updated__gte=since)
             except ValidationError:
                 err_msg = 'Since field is not in correct format'
-                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
-                update_parent_log_status(self.log_dict, 400)          
                 raise ParamError(err_msg) 
             except:
                 err_msg = 'There are no profiles associated with the id: %s' % profileId
-                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
-                update_parent_log_status(self.log_dict, 404)          
                 raise IDNotFoundError(err_msg) 
 
             ids = [p.profileId for p in profs]

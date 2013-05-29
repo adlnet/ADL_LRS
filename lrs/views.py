@@ -198,19 +198,7 @@ def reg_client(request):
 def me(request):
     client_apps = models.Consumer.objects.filter(user=request.user)
     access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
-
-    action_list = []
-    #TODO: need to generate groups (user/clientapp) and get those actions, too
-    user_type = ContentType.objects.get_for_model(request.user)
-    parent_action_list = models.SystemAction.objects.filter(parent_action__isnull=True).filter(
-        content_type__pk=user_type.id, object_id=request.user.id).order_by('-timestamp')
-
-    for pa in parent_action_list:
-        children = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')
-        action_tup = (pa, children)
-        action_list.append(action_tup)
-
-    return render_to_response('me.html', {'action_list':action_list, 'client_apps':client_apps, 'access_tokens':access_tokens},
+    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens},
         context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
@@ -258,19 +246,6 @@ def my_statements(request):
             if page.has_next():
                 s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
             return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
-    except Exception as e:
-        return HttpResponse(e, status=400)
-
-@login_required(login_url="/XAPI/accounts/login")
-def my_log(request, log_id):
-    try:
-        user_type = ContentType.objects.get_for_model(request.user)
-        pa = models.SystemAction.objects.get(pk=log_id, content_type__pk=user_type.id)
-        obj = pa.object_return()
-        kids = models.SystemAction.objects.filter(parent_action=pa).order_by('timestamp')
-        if kids:
-            obj['actions'] = [k.object_return() for k in kids]
-        return HttpResponse(json.dumps(obj), mimetype="application/json", status=200)
     except Exception as e:
         return HttpResponse(e, status=400)
 
@@ -395,8 +370,8 @@ def handle_request(request, more_id=None):
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
         return HttpResponse(pf.message, status=412)
-    except Exception as err:
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     return HttpResponse(err.message, status=500)
 
 validators = {
     reverse(statements).lower() : {

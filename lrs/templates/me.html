@@ -6,30 +6,10 @@
     
 <div id="tab-container" class="tab-container">
   <ul class='etabs'>
-    <li class='tab default'><a href="#recentactivity">Recent Activity</a></li>
-    <li class='tab statements'><a href="#mystatements">Statements</a></li>
-    <li class='tab'><a href="#clientapps">Client Apps</a></li>
+    <li class='tab default'><a href="#clientapps">Client Apps</a></li>
     <li class='tab'><a href="#myaccesstokens">Access Tokens</a></li>
+    <li class='tab statements'><a href="#mystatements">Statements</a></li>
   </ul>
-    <div id="recentactivity">
-        <span class="heading">Recent Requests:</span>
-        <ul>
-            {% for action in action_list %}
-                <li class="parentaction"><span style='color:{{ action.0.get_color }}'>{% if action.0.status_code %}{{ action.0.status_code }}{% else %}---{% endif %}</span> <span class="request">{{ action.0.message }}</span> [{{ action.0.timestamp|date:"r"}}]</li>
-                <ul class="req_details">
-                    <li class="left">Submitted by: {% if action.0.content_object %} {{ action.0.content_object }} {% else %} Unknown {% endif %}
-                    <span class="lpad attn">deleted in {{ action.0.days_til_del }} days (<a href="{% url lrs.views.my_log log_id=action.0.id %}">download</a>)</span></li>
-                </ul>
-                <ul class="req_actions">
-                    {% for ch_action in action.1 %}
-                        <li>{{ ch_action.get_level_display }} {% if ch_action.level == 21 %}<a href="#" class="stmt_link">{{ ch_action.message }}</a>{% else %}{{ ch_action.message }}{% endif %} [{{ ch_action.timestamp|date:"j M Y H:i:s" }}]</li>
-                    {% endfor %}
-                </ul>
-            {% empty %}
-                <li>Sorry, no action yet!</li>
-            {% endfor %}
-        </ul>
-    </div>
     <div id="mystatements">
         <span class="heading">Statements:</span><span class="small-link"><a id="delstmts" href="#mystatements">delete all statements</a></span>
         <!-- content -->

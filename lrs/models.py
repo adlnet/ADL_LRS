@@ -19,8 +19,6 @@ from .exceptions import IDNotFoundError, ParamError
 from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
-import logging
-from logging import INFO, WARN, WARNING, ERROR, CRITICAL, DEBUG, FATAL, NOTSET
 import pdb
 import base64
 
@@ -156,65 +154,6 @@ import time
 def filename(instance, filename):
     print filename
     return filename
-
-class SystemAction(models.Model):
-    REQUEST = 1 #should fall in debug level, only works cuz we manually enter this in db
-    STMT_REF = 21 #using info level so that it's picked up by logger
-    LEVEL_TYPES = (
-        (REQUEST, 'REQUEST'),
-        (STMT_REF, 'The statement'),
-        (INFO, logging.getLevelName(INFO)), #20
-        (WARN, logging.getLevelName(WARN)), #30
-        (WARNING, logging.getLevelName(WARNING)), #30 
-        (ERROR, logging.getLevelName(ERROR)), #40
-        (CRITICAL, logging.getLevelName(CRITICAL)), #50
-        (DEBUG, logging.getLevelName(DEBUG)), #10
-        (FATAL, logging.getLevelName(FATAL)), #50
-        (NOTSET, logging.getLevelName(NOTSET)), #0
-    )
-    level = models.SmallIntegerField(choices=LEVEL_TYPES)
-    parent_action = models.ForeignKey('self', blank=True, null=True, db_index=True)
-    message = models.TextField()
-    timestamp = models.DateTimeField(db_index=True)
-    status_code = models.CharField(max_length=3, blank=True)
-    #Content_type is the user since it can be a User or group object
-    content_type = models.ForeignKey(ContentType, null=True, blank=True)
-    object_id = models.PositiveIntegerField(null=True, blank=True)
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-
-    def __unicode__(self):
-        return "[%s(%s)] %s -- by: %s" % (self.get_level_display(),self.level, self.message, self.content_object)
-
-    def days_til_del(self):
-        deleteday = self.timestamp + dt.timedelta(days=settings.DAYS_TO_LOG_DELETE)
-        days = (deleteday - datetime.utcnow().replace(tzinfo = pytz.utc)).days
-        if days <= 0:
-            days = 0
-        return days
-
-    def get_color(self):
-        color = 'black'
-        try:
-            code = int(self.status_code)
-            if code >= 200 and code < 300:
-                color = 'green'
-            elif code >=300 and code < 400:
-                color = 'darkorange'
-            else:
-                color = 'darkred'
-        except:
-            pass
-        return color
-
-    def object_return(self):
-        ret = {}
-        ret['message_type'] = self.get_level_display()
-        if not self.parent_action:
-            ret['statuscode'] = self.status_code
-        ret['message'] = self.message
-        ret['timestamp'] = str(self.timestamp)
-        return ret
-
 
 class LanguageMap(models.Model):
     key = models.CharField(max_length=50, db_index=True)
