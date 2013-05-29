@@ -1,7 +1,7 @@
 from django.test import TestCase
 from lrs import models
 import json
-from lrs.exceptions import ParamError, InvalidXML
+from lrs.exceptions import ParamError
 from lrs.objects import Activity
 import pdb
 

@@ -408,7 +408,7 @@ class agentmgr(models.Manager):
     def gen(self, **kwargs):
         types = ['Agent', 'Group']
         if 'objectType' in kwargs and kwargs['objectType'] not in types:
-            raise ParamError('objectType must be: %s' % ' or '.join(types))
+            raise ParamError('Actor objectType must be: %s' % ' or '.join(types))
         # Gen will only get called from Agent or Authorization. Since global is true by default and
         # Agent always sets the define key based off of the oauth scope, default this to True if the
         # define key is not true
@@ -420,7 +420,7 @@ class agentmgr(models.Manager):
         attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
         # If it is an agent, it must have one IFP
         if not is_group and len(attrs) != 1:
-            raise ParamError('One and only one of %s may be supplied' % ', '.join(agent_attrs_can_only_be_one))
+            raise ParamError('One and only one of %s may be supplied with an Agent' % ', '.join(agent_attrs_can_only_be_one))
         # If there is an IFP (could be blank if group) make a dict with the IFP key and value
         if attrs:
             attr = attrs[0]
@@ -456,7 +456,7 @@ class agentmgr(models.Manager):
                 ret_agent, created = self.create_agent(kwargs, define)
             # Cannot have no IFP and no members
             elif not attrs and not members:
-                raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must have a member list")
+                raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must be a group with members")
             # If there is and IFP and members (group with IFP that's not account since it should be
             # updated already from above)if there is an IFP that isn't account and no members (agent object)
             else:

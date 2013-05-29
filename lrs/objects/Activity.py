@@ -11,9 +11,6 @@ import pdb
 import pprint
 
 class Activity():
-    # Activity definition required fields - all optional now
-    # ADRFs = ['name', 'description', 'type']
-
     # Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, data, auth=None, define=True):
@@ -214,7 +211,7 @@ class Activity():
             if act_created:
                 self.activity.delete()
                 self.activity = None
-            err_msg = "Activity definition interactionType not valid"
+            err_msg = "Activity definition interactionType %s is not valid" % act_def['interactionType']
             raise exceptions.ParamError(err_msg)
 
         #Must have correctResponsesPattern if they have a valid interactionType

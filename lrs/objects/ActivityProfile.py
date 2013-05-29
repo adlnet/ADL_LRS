@@ -97,7 +97,7 @@ class ActivityProfile():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 profs = models.activity_profile.objects.filter(updated__gte=since, activityId=activityId)
             except ValidationError:
-                err_msg = 'Since field is not in correct format'
+                err_msg = 'Since field is not in correct format for retrieval of activity profile IDs'
                 raise ParamError(err_msg) 
             ids = [p.profileId for p in profs]
         else:

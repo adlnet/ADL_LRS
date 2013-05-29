@@ -7,7 +7,7 @@ from django.utils.translation import ugettext as _
 from django.core.cache import get_cache
 from lrs.util import etag, convert_to_dict
 from lrs.util.jws import JWS, JWSException
-from lrs.exceptions import OauthUnauthorized, ParamError
+from lrs.exceptions import OauthUnauthorized, ParamError, BadRequest
 from oauth_provider.oauth.oauth import OAuthError
 from oauth_provider.utils import send_oauth_error
 from oauth_provider.decorators import CheckOAuth
@@ -39,7 +39,7 @@ def parse(request, more_id=None):
                 r_dict['oauth_token'] = token
                 r_dict['lrs_auth'] = 'oauth'
             else:
-                raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid request parameters.'))))
+                raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid OAuth request parameters.'))))
 
             # Used for OAuth scope
             endpoint = request.path[5:]
@@ -96,14 +96,14 @@ def parse_body(r, request):
                 if 'boundary' in request.META['CONTENT_TYPE']:
                     message = request.META['CONTENT_TYPE'] + message
                 else:
-                    raise ParamError("Could not find the boundary for this multipart content")
+                    raise BadRequest("Could not find the boundary for the multipart content")
             msg = email.message_from_string(message)
             if msg.is_multipart():
                 parts = []
                 for part in msg.walk():
                     parts.append(part)
                 if len(parts) < 1:
-                    raise ParamError("The content didn't contain a statement")
+                    raise ParamError("The content of the multipart request didn't contain a statement")
                 # ignore parts[0], it's the whole thing
                 # parts[1] better be the statement
                 r['body'] = convert_to_dict(parts[1].get_payload())
@@ -113,13 +113,13 @@ def parse_body(r, request):
                         # attachments
                         thehash = a.get("X-Experience-API-Hash")
                         if not thehash:
-                            raise ParamError("X-Experience-API-Hash header was missing from attachment")
+                            raise BadRequest("X-Experience-API-Hash header was missing from attachment")
                         headers = defaultdict(str)
                         r['payload_sha2s'].append(thehash)
                         # Save msg object to cache
                         att_cache.set(thehash, a)
             else:
-                raise ParamError("This content was not multipart.")
+                raise ParamError("This content was not multipart for the multipart request.")
             # see if the posted statements have attachments
             att_stmts = []
             if type(r['body']) == list:
@@ -136,9 +136,9 @@ def parse_body(r, request):
                     jws = JWS(jws=attmnt)
                     try:
                         if not jws.verify() or not jws.validate(ss[0]):
-                            raise ParamError("The JSON Web Signature is not valid")
+                            raise BadRequest("The JSON Web Signature is not valid")
                     except JWSException as jwsx:
-                        raise ParamError(jwsx)
+                        raise BadRequest(jwsx)
         # Normal POST/PUT data
         else:
             if request.body:

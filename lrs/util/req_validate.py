@@ -133,7 +133,7 @@ def statements_post(r_dict):
 @check_oauth
 def statements_more_get(r_dict):
     if not 'more_id' in r_dict:
-        err_msg = "Missing more_id"
+        err_msg = "Missing more_id while trying to hit /more endpoint"
         raise ParamError(err_msg)
     return r_dict
 
@@ -162,7 +162,7 @@ def statements_get(r_dict):
                        "until", "limit", "ascending"]
         bad_keys = set(not_allowed) & set(r_dict.keys())
         if bad_keys:
-            err_msg = "Cannot have %s in a GET request only 'format' and/or 'attachements' are allowed with 'statementId' and 'voidedStatementId'" % ', '.join(bad_keys)
+            err_msg = "Cannot have %s in a GET request only 'format' and/or 'attachments' are allowed with 'statementId' and 'voidedStatementId'" % ', '.join(bad_keys)
             raise ParamError(err_msg)
 
     # Django converts all query values to string - make boolean depending on if client wants attachments or not
@@ -189,12 +189,12 @@ def statements_put(r_dict):
     
     # If statement with that ID already exists-raise conflict error
     if check_for_existing_statementId(statement_id):
-        err_msg = "StatementId conflict"
+        err_msg = "A statement with ID %s already exists" % statement_id
         raise ParamConflict(err_msg)
 
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
-        err_msg = "No Content supplied"
+        err_msg = "No other params are supplied"
         raise ParamError(err_msg)
 
     if 'attachments' in r_dict['body']:
@@ -296,7 +296,7 @@ def activity_state_put(r_dict):
     
     # Must have body included for state
     if 'body' not in r_dict:
-        err_msg = "Could not find the profile"
+        err_msg = "Could not find the state"
         raise ParamError(err_msg)
     
     # Extra validation if oauth
