@@ -548,6 +548,7 @@ class StatementsTests(TestCase):
             param = {"statementId":self.guid1}
             path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
             stmt_payload = existStmt1
+
             putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
             
             wrong_username = "tester2"
@@ -568,7 +569,7 @@ class StatementsTests(TestCase):
                 "context":{"registration": str(uuid.uuid1()), "contextActivities": {"other": {"id": "act:NewActivityID2"}},
                 "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
                 "ext:ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"mailto:auth@example.com"}})
-            
+
             post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
                 Authorization=wrong_auth, X_Experience_API_Version="1.0.0")
             self.assertEqual(post_response.status_code, 403)

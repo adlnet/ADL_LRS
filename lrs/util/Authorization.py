@@ -90,6 +90,5 @@ def oauth_helper(request):
     ]
     kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.key, user_email)}
     # create/get oauth group and set in dictionary
-    # oauth_group, created = agent.objects.gen(**kwargs)
     oauth_group, created = agent.objects.oauth_group(**kwargs)
     request['auth'] = oauth_group

@@ -8,14 +8,12 @@ from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 from lrs import models, exceptions
-from lrs.util import get_user_from_auth, log_message, update_parent_log_status, uri
+from lrs.util import get_user_from_auth, uri
 from Agent import Agent
 from Activity import Activity
-import logging
 import pprint
 import pdb
 
-logger = logging.getLogger('user_system_actions')
 att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
@@ -33,10 +31,9 @@ class default_on_exception(object):
 class Statement():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
-    def __init__(self, data, auth=None, log_dict=None, define=True):
+    def __init__(self, data, auth=None, define=True):
         self.auth = auth
         self.params = data
-        self.log_dict = log_dict
         self.define = define
         if not isinstance(data, dict):
             self.params = self.parse(data)
@@ -48,24 +45,17 @@ class Statement():
             params = json.loads(data)
         except Exception, e:
             err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
-            log_message(self.log_dict, err_msg, __name__, self.parse.__name__, True)
-            update_parent_log_status(self.log_dict, 400)
             raise exceptions.ParamError(err_msg) 
         return params
 
     def voidStatement(self,stmt_id):
-        str_id = str(stmt_id)
-        log_message(self.log_dict, "Voiding Statement with ID %s" % str_id,
-            __name__, self.voidStatement.__name__)        
-        
+        str_id = str(stmt_id)        
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
             stmt = models.statement.objects.get(statement_id=stmt_id)
         except Exception:
             err_msg = "Statement with ID %s does not exist" % str(stmt_id)
-            log_message(self.log_dict, err_msg, __name__, self.voidStatement.__name__, True)
-            update_parent_log_status(self.log_dict, 404)
             raise exceptions.IDNotFoundError(err_msg)
         
         # Check if it is already voided 
@@ -79,8 +69,6 @@ class Statement():
             return stmt_ref
         else:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % str_id
-            log_message(self.log_dict, err_msg, __name__, self.voidStatement.__name__, True)
-            update_parent_log_status(self.log_dict, 403)
             raise exceptions.Forbidden(err_msg)
 
     # Statement fields are score_min and score_max
@@ -93,14 +81,10 @@ class Statement():
             sc_max = score_data['max']
             if sc_min >= sc_max:
                 err_msg = "Score minimum must be less than the maximum"
-                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
             
             if 'raw' in score_data and (score_data['raw'] < sc_min or score_data['raw'] > sc_max):
                 err_msg = "Raw must be between minimum and maximum"
-                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
             score_data['score_min'] = sc_min
             score_data['score_max'] = sc_max
@@ -115,8 +99,6 @@ class Statement():
         if 'scaled' in score_data:
             if score_data['scaled'] < -1 or score_data['scaled'] > 1:
                 err_msg = "Scaled must be between -1 and 1"
-                log_message(self.log_dict, err_msg, __name__, self.validateScoreResult.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
 
         return score_data
@@ -124,7 +106,6 @@ class Statement():
     def saveScoreToDB(self, score):
         sc = models.score(**score)
         sc.save()
-        log_message(self.log_dict, "Score saved to database", __name__, self.saveScoreToDB.__name__)
         return sc
 
     def saveResultToDB(self, result, resultExts):
@@ -141,11 +122,8 @@ class Statement():
             for k, v in resultExts.items():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
-                    log_message(self.log_dict, err_msg, __name__, self.saveResultToDB.__name__, True)
-                    update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)
                 resExt = models.ResultExtensions.objects.create(key=k, value=v, content_object=rslt)
-        log_message(self.log_dict, "Result saved to database", __name__, self.saveResultToDB.__name__)
         return rslt
 
     def saveContextToDB(self, context, contextExts):
@@ -173,13 +151,9 @@ class Statement():
                     stmt_ref = models.StatementRef.objects.create(ref_id=stmt_data['id'], content_object=cntx)
                 else:
                     err_msg = "Statement in context must be StatementRef"
-                    log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
-                    update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)                    
             else:
                 err_msg = "Statement in context must contain the objectType"
-                log_message(self.log_dict, err_msg, __name__, self.populateContext.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
 
         # Save context activities
@@ -193,12 +167,10 @@ class Statement():
                 # Incoming contextActivities can either be a list or dict
                 if isinstance(con_act_group[1], list):
                     for con_act in con_act_group[1]:
-                        act = Activity(con_act,auth=self.auth, log_dict=self.log_dict,
-                            define=self.define).activity
+                        act = Activity(con_act,auth=self.auth, define=self.define).activity
                         ca.context_activity.add(act)
                 else:
-                    act = Activity(con_act_group[1],auth=self.auth, log_dict=self.log_dict,
-                        define=self.define).activity
+                    act = Activity(con_act_group[1],auth=self.auth, define=self.define).activity
                     ca.context_activity.add(act)
                 ca.save()
 
@@ -207,11 +179,8 @@ class Statement():
             for k, v in contextExts.items():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
-                    log_message(self.log_dict, err_msg, __name__, self.saveContextToDB.__name__, True)
-                    update_parent_log_status(self.log_dict, 400)
                     raise exceptions.ParamError(err_msg)              
                 conExt = models.ContextExtensions.objects.create(key=k, value=v, content_object=cntx)
-        log_message(self.log_dict, "Context saved to database", __name__, self.saveContextToDB.__name__)
         return cntx        
 
     #Save statement to DB
@@ -232,18 +201,9 @@ class Statement():
         else:
             stmt = models.statement(**args)
             stmt.save()
-
-        if self.log_dict:
-            self.log_dict['message'] = "Saved statement to database in %s.%s" % (__name__, self.saveObjectToDB.__name__)
-            logger.info(msg=self.log_dict)
-            self.log_dict['message'] = stmt.statement_id #stmt.object_return()
-            logger.log(models.SystemAction.STMT_REF, msg=self.log_dict)            
-
         return stmt
 
     def populateResult(self, stmt_data):
-        log_message(self.log_dict, "Populating result", __name__, self.populateResult.__name__)
-
         resultExts = {}                    
         #Catch contradictory results
         if 'extensions' in stmt_data['result']:
@@ -257,8 +217,6 @@ class Statement():
             try:
                 dur = parse_duration(result['duration'])
             except ISO8601Error as e:
-                log_message(self.log_dict, e.message, __name__, self.populateResult.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(e.message)
 
         if 'score' in result.keys():
@@ -270,7 +228,6 @@ class Statement():
         return self.saveResultToDB(result, resultExts)
 
     def populateAttachments(self, attachment_data, attachment_payloads):
-        log_message(self.log_dict, "Populating attachments", __name__, self.populateAttachments.__name__)
         # Iterate through each attachment
         for attach in attachment_data:
             # Pop displays and descs off
@@ -358,18 +315,17 @@ class Statement():
 
     def populateContext(self, stmt_data):
         contextExts = {}
-        log_message(self.log_dict, "Populating context", __name__, self.populateContext.__name__)
 
         if 'registration' in stmt_data['context']:
             self.validate_incoming_uuid(stmt_data['context']['registration'])
 
         if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
-                create=True, log_dict=self.log_dict, define=self.define).agent
+                create=True, define=self.define).agent
             
         if 'team' in stmt_data['context']:
             stmt_data['context']['team'] = Agent(initial=stmt_data['context']['team'],
-                create=True, log_dict=self.log_dict, define=self.define).agent
+                create=True, define=self.define).agent
 
         # Revision and platform not applicable if object is agent
         if 'objectType' in stmt_data['object'] and ('agent' == stmt_data['object']['objectType'].lower()
@@ -396,8 +352,6 @@ class Statement():
                 verb.save()
             except ValidationError as e:
                 err_msg = e.messages[0]
-                log_message(self.log_dict, err_msg, __name__, self.save_lang_map.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
         
         k = lang_map[0]
@@ -410,21 +364,15 @@ class Statement():
         return language_map
 
     def build_verb_object(self, incoming_verb):
-        log_message(self.log_dict, "Building verb object", __name__, self.build_verb_object.__name__)
-
         verb = {}    
         # Must have an ID
         if 'id' not in incoming_verb:
             err_msg = "ID field is not included in statement verb"
-            log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
         
         verb_id = incoming_verb['id']
         if not uri.validate_uri(verb_id):
             err_msg = 'Verb ID %s is not a valid URI' % verb_id
-            log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         # Get or create the verb
@@ -450,8 +398,6 @@ class Statement():
                         models.VerbDisplay.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
                 else:
                     err_msg = "Verb display for verb %s is not a correct language map" % verb_id
-                    log_message(self.log_dict, err_msg, __name__, self.build_verb_object.__name__, True) 
-                    update_parent_log_status(self.log_dict, 400)       
                     raise exceptions.ParamError(err_msg)
             verb_object.save()
 
@@ -462,22 +408,16 @@ class Statement():
         match = regex.match(incoming_uuid)
         if not match:
             err_msg = "%s is not a valid UUID" % incoming_uuid
-            log_message(self.log_dict, err_msg, __name__, self.validate_incoming_uuid.__name__, True)
-            update_parent_log_status(self.log_dict, 400)                   
             raise exceptions.ParamError(err_msg)
 
     #Once JSON is verified, populate the statement object
     def populate(self, stmt_data):
-        log_message(self.log_dict, "Populating Statement", __name__, self.populate.__name__)
-
         args ={}
         # Must include verb - set statement verb 
         try:
             raw_verb = stmt_data['verb']
         except KeyError:
             err_msg = "No verb provided, must provide 'verb' field"
-            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         # Must include object - set statement object
@@ -485,8 +425,6 @@ class Statement():
             statementObjectData = stmt_data['object']
         except KeyError:
             err_msg = "No object provided, must provide 'object' field"
-            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
         
         # Must include actor - set statement actor
@@ -494,8 +432,6 @@ class Statement():
             raw_actor = stmt_data['actor']
         except KeyError:
             err_msg = "No actor provided, must provide 'actor' field"
-            log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         args['verb'] = self.build_verb_object(raw_verb)
@@ -504,8 +440,6 @@ class Statement():
         if 'voided' in stmt_data:
             if stmt_data['voided']:
                 err_msg = "Cannot have voided statement unless it is being voided by another statement"
-                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)  
-                update_parent_log_status(self.log_dict, 403)      
                 raise exceptions.Forbidden(err_msg)
         
         # If not specified, the object is assumed to be an activity
@@ -521,27 +455,21 @@ class Statement():
                 args['stmt_object'] = stmt_ref
             else:
                 err_msg = "There was a problem voiding the Statement"
-                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True) 
-                update_parent_log_status(self.log_dict, 400)       
                 raise exceptions.ParamError(err_msg)
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
-                args['stmt_object'] = Activity(statementObjectData,auth=self.auth,
-                    log_dict=self.log_dict, define=self.define).activity
+                args['stmt_object'] = Activity(statementObjectData,auth=self.auth, define=self.define).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                args['stmt_object'] = Agent(initial=statementObjectData, create=True,
-                    log_dict=self.log_dict, define=self.define).agent
+                args['stmt_object'] = Agent(initial=statementObjectData, create=True, define=self.define).agent
             elif statementObjectData['objectType'].lower() == 'substatement':
-                sub_statement = SubStatement(statementObjectData, self.auth, self.log_dict)
+                sub_statement = SubStatement(statementObjectData, self.auth)
                 args['stmt_object'] = sub_statement.model_object
             elif statementObjectData['objectType'].lower() == 'statementref':
                 try:
                     existing_stmt = models.statement.objects.get(statement_id=statementObjectData['id'])
                 except models.statement.DoesNotExist:
                     err_msg = "No statement with ID %s was found" % statementObjectData['id']
-                    log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
-                    update_parent_log_status(self.log_dict, 404)
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
                     stmt_ref = models.StatementRef(ref_id=statementObjectData['id'])
@@ -549,8 +477,7 @@ class Statement():
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor
-        args['actor'] = Agent(initial=stmt_data['actor'], create=True, log_dict=self.log_dict,
-            define=self.define).agent
+        args['actor'] = Agent(initial=stmt_data['actor'], create=True, define=self.define).agent
 
         #Set voided to default false
         args['voided'] = False
@@ -569,17 +496,15 @@ class Statement():
             # If they're trying to put their oauth group in authority for some reason, just retrieve
             # it. If it doesn't exist, the Agent class responds with a 404
             if auth_data['objectType'].lower() == 'group':
-                args['authority'] = Agent(initial=stmt_data['authority'], create=False,
-                    log_dict=self.log_dict, define=self.define).agent
+                args['authority'] = Agent(initial=stmt_data['authority'], create=False, 
+                    define=self.define).agent
             else:
-                args['authority'] = Agent(initial=stmt_data['authority'], create=True,
-                    log_dict=self.log_dict, define=self.define).agent
+                args['authority'] = Agent(initial=stmt_data['authority'], create=True, 
+                    define=self.define).agent
 
             # If they try using a non-oauth group that already exists-throw error
             if args['authority'].objectType == 'Group' and not args['authority'].oauth_identifier:
                 err_msg = "Statements cannot have a non-Oauth group as the authority"
-                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
-                update_parent_log_status(self.log_dict, 400)                   
                 raise exceptions.ParamError(err_msg)
 
         else:
@@ -591,8 +516,6 @@ class Statement():
                         args['authority'] = self.auth
                     else:
                         err_msg = "Statements cannot have a non-Oauth group as the authority"
-                        log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
-                        update_parent_log_status(self.log_dict, 400)                   
                         raise exceptions.ParamError(err_msg)
                 else:    
                     authArgs['name'] = self.auth.username
@@ -600,8 +523,7 @@ class Statement():
                         authArgs['mbox'] = self.auth.email
                     else:
                         authArgs['mbox'] = "mailto:%s" % self.auth.email
-                    args['authority'] = Agent(initial=authArgs, create=True,
-                        log_dict=self.log_dict, define=self.define).agent
+                    args['authority'] = Agent(initial=authArgs, create=True, define=self.define).agent
 
         # Check if statement_id already exists, throw exception if it does
         if 'statement_id' in stmt_data:
@@ -612,8 +534,6 @@ class Statement():
                 args['statement_id'] = stmt_data['statement_id']
             else:
                 err_msg = "The Statement ID %s already exists in the system" % stmt_data['statement_id']
-                log_message(self.log_dict, err_msg, __name__, self.populate.__name__, True)
-                update_parent_log_status(self.log_dict, 409)                   
                 raise exceptions.ParamConflict(err_msg)
         
         if 'context' in stmt_data:
@@ -631,22 +551,17 @@ class Statement():
 
 class SubStatement(Statement):
     @transaction.commit_on_success
-    def __init__(self, data, auth, log_dict=None):
-        self.log_dict = log_dict
+    def __init__(self, data, auth):
         unallowed_fields = ['id', 'stored', 'authority']
         # Raise error if an unallowed field is present
         for field in unallowed_fields:
             if field in data:
                 err_msg = "%s is not allowed in a SubStatement." % field
-                log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
-                update_parent_log_status(self.log_dict, 400)    
                 raise exceptions.ParamError(err_msg)
         # Make sure object isn't another substatement
         if 'objectType' in data['object']:
             if data['object']['objectType'].lower() == 'substatement':
                 err_msg = "SubStatements cannot be nested inside of other SubStatements"
-                log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True)
-                update_parent_log_status(self.log_dict, 400)
                 raise exceptions.ParamError(err_msg)
 
         Statement.__init__(self, data, auth)

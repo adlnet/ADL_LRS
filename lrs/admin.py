@@ -13,7 +13,6 @@ class AgentProfileAdmin(admin.ModelAdmin):
     model = models.agent_profile
     readonly_fields = ('profileId','updated','etag')
 
-admin.site.register(models.SystemAction)
 admin.site.register(models.Verb)
 admin.site.register(models.ResultExtensions)
 admin.site.register(models.result, ResultAdmin)
