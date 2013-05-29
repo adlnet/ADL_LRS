@@ -20,7 +20,6 @@ urlpatterns = patterns('lrs.views',
     url(r'^me/statements/', 'my_statements'),
     url(r'^me/apps/', 'my_app_status'),
     url(r'^me/tokens/', 'delete_token'),
-    url(r'^me/log/(?P<log_id>\d+)$', 'my_log'),
     url(r'^me/', 'me'),
     url(r'^about', 'about')
 )

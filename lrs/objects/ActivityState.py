@@ -4,25 +4,17 @@ from django.db import transaction
 from lrs import models
 from lrs.objects.Agent import Agent
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, log_message, update_parent_log_status, uri
-import logging
+from lrs.util import etag, get_user_from_auth, uri
 import pdb
 import json
 
-logger = logging.getLogger('user_system_actions')
-
 class ActivityState():
-    def __init__(self, request_dict, log_dict=None):
-        self.log_dict = log_dict
-        
+    def __init__(self, request_dict):       
         if not uri.validate_uri(request_dict['activityId']):
             err_msg = 'Activity ID %s is not a valid URI' % request_dict['activityId']
-            log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True) 
-            update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         self.req_dict = request_dict
-        self.log_dict = log_dict
         self.agent = request_dict['agent']
         self.auth = request_dict.get('auth', None)
         self.user = get_user_from_auth(self.auth)
@@ -47,12 +39,10 @@ class ActivityState():
             p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id, user=self.user)
         
         if created:
-            log_message(self.log_dict, "Created Activity State", __name__, self.post.__name__)
             state = ContentFile(post_state)
         else:
             original_state = json.load(p.state)
             post_state = json.loads(post_state)
-            log_message(self.log_dict, "Found an existing state. Merging the two documents", __name__, self.post.__name__)
             merged = dict(original_state.items() + post_state.items())
             p.state.delete()
             state = ContentFile(json.dumps(merged))
@@ -75,12 +65,9 @@ class ActivityState():
         else:
             p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id, user=self.user)
         
-        if created:
-            log_message(self.log_dict, "Created Activity State", __name__, self.put.__name__)
-        elif not created:
+        if not created:
             etag.check_preconditions(self.req_dict,p)
             p.state.delete() # remove old state file
-            log_message(self.log_dict, "Retrieved Activity State", __name__, self.put.__name__)
         self.save_state(p, created, state)
 
     def save_state(self, p, created, state):
@@ -95,9 +82,6 @@ class ActivityState():
         fn = "%s_%s_%s" % (p.agent_id,p.activity_id, self.req_dict.get('filename', p.id))
         p.state.save(fn, state)
 
-        log_message(self.log_dict, "Saved Activity State", __name__, self.save_state.__name__)
-
-
     def get(self, auth):
         agent = self.__get_agent()
         try:
@@ -106,8 +90,6 @@ class ActivityState():
             return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id)
         except models.activity_state.DoesNotExist:
             err_msg = 'There is no activity state associated with the id: %s' % self.stateId
-            log_message(self.log_dict, err_msg, __name__, self.get.__name__, True)
-            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
 
     def get_set(self,auth,**kwargs):
@@ -124,8 +106,6 @@ class ActivityState():
             state_set = self.get_set(auth)
         except models.activity_state.DoesNotExist:
             err_msg = 'There is no activity state associated with the ID: %s' % self.stateId
-            log_message(self.log_dict, err_msg, __name__, self.get_ids.__name__, True)
-            update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
         if self.since:
             try:
@@ -133,8 +113,6 @@ class ActivityState():
                 state_set = state_set.filter(updated__gte=self.since)
             except ValidationError:
                 err_msg = 'Since field is not in correct format'
-                log_message(self.log_dict, err_msg, __name__, self.get_profile_ids.__name__, True) 
-                update_parent_log_status(self.log_dict, 400)          
                 raise ParamError(err_msg) 
         return state_set.values_list('state_id', flat=True)
 
