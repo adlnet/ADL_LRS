@@ -15,25 +15,23 @@ class ActivityState():
     def __init__(self, request_dict, log_dict=None):
         self.log_dict = log_dict
         
-        if not uri.validate_uri(request_dict['activityId']):
-            err_msg = 'Activity ID %s is not a valid URI' % request_dict['activityId']
+        if not uri.validate_uri(request_dict['params']['activityId']):
+            err_msg = 'Activity ID %s is not a valid URI' % request_dict['params']['activityId']
             log_message(self.log_dict, err_msg, __name__, self.__init__.__name__, True) 
             update_parent_log_status(self.log_dict, 400)       
             raise exceptions.ParamError(err_msg)
 
         self.req_dict = request_dict
         self.log_dict = log_dict
-        self.agent = request_dict['agent']
-        self.auth = request_dict.get('auth', None)
-        self.user = get_user_from_auth(self.auth)
-        self.activity_id = request_dict['activityId']
-        self.registrationId = request_dict.get('registrationId', None)
-        self.stateId = request_dict.get('stateId', None)
-        self.updated = request_dict.get('updated', None)
-        self.content_type = request_dict.get('CONTENT_TYPE', None)
+        self.agent = request_dict['params']['agent']
+        self.activity_id = request_dict['params']['activityId']
+        self.registrationId = request_dict['params'].get('registrationId', None)
+        self.stateId = request_dict['params'].get('stateId', None)
+        self.updated = request_dict['headers'].get('updated', None)
+        self.content_type = request_dict['headers'].get('CONTENT_TYPE', None)
         self.state = request_dict.get('state', None)
         self.etag = request_dict.get('ETAG', None)
-        self.since = request_dict.get('since', None)
+        self.since = request_dict['params'].get('since', None)
 
     def __get_agent(self, create=False):
         return Agent(self.agent, create).agent
@@ -42,9 +40,9 @@ class ActivityState():
         agent = self.__get_agent(create=True)
         post_state = self.state
         if self.registrationId:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId, user=self.user)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
         else:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id, user=self.user)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
         if created:
             log_message(self.log_dict, "Created Activity State", __name__, self.post.__name__)
@@ -71,9 +69,9 @@ class ActivityState():
                 state = ContentFile(str(self.state))
 
         if self.registrationId:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId, user=self.user)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
         else:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id, user=self.user)
+            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
         if created:
             log_message(self.log_dict, "Created Activity State", __name__, self.put.__name__)
@@ -98,7 +96,7 @@ class ActivityState():
         log_message(self.log_dict, "Saved Activity State", __name__, self.save_state.__name__)
 
 
-    def get(self, auth):
+    def get(self):
         agent = self.__get_agent()
         try:
             if self.registrationId:
@@ -110,7 +108,7 @@ class ActivityState():
             update_parent_log_status(self.log_dict, 404)
             raise IDNotFoundError(err_msg)
 
-    def get_set(self,auth,**kwargs):
+    def get_set(self,**kwargs):
         agent = self.__get_agent()
         if self.registrationId:
             state_set = models.activity_state.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
@@ -119,9 +117,9 @@ class ActivityState():
         return state_set
 
 
-    def get_ids(self, auth):
+    def get_ids(self):
         try:
-            state_set = self.get_set(auth)
+            state_set = self.get_set()
         except models.activity_state.DoesNotExist:
             err_msg = 'There is no activity state associated with the ID: %s' % self.stateId
             log_message(self.log_dict, err_msg, __name__, self.get_ids.__name__, True)
@@ -138,14 +136,14 @@ class ActivityState():
                 raise ParamError(err_msg) 
         return state_set.values_list('state_id', flat=True)
 
-    def delete(self, auth):
+    def delete(self):
         try:
             if not self.stateId:
-                state = self.get_set(auth)
+                state = self.get_set()
                 for s in state:
                     s.delete() # bulk delete skips the custom delete function
             else:
-                state = self.get(auth)
+                state = self.get()
                 state.delete()
         except models.activity_state.DoesNotExist:
             pass
