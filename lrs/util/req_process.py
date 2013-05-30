@@ -89,10 +89,8 @@ def statements_get(req_dict):
     log_dict = req_dict['initial_user_action']    
     log_info_processing(log_dict, 'GET', __name__)
     
-    if 'auth' in req_dict and 'statements_mine_only' in req_dict['auth']:
-        mine_only = True
-    else:
-        mine_only = False
+    auth = req_dict.get('auth', None)
+    mine_only = auth and 'statements_mine_only' in auth
 
     stmt_result = {}
     mime_type = "application/json"

@@ -56,7 +56,9 @@ def log_parent_action(endpoint):
 def check_oauth(func):
     @wraps(func)
     def inner(r_dict, *args, **kwargs):
-        if 'auth' in r_dict and ('type' in r_dict['auth'] and r_dict['auth']['type'] == 'oauth'):
+        auth = r_dict.get('auth', None)
+        auth_type = r_dict['auth'].get('type', None) if auth else None
+        if auth_type and auth_type == 'oauth':
             validate_oauth_scope(r_dict)    
         return func(r_dict, *args, **kwargs)
     return inner    

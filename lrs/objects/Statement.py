@@ -12,8 +12,6 @@ from lrs.util import get_user_from_auth, log_message, update_parent_log_status, 
 from Agent import Agent
 from Activity import Activity
 import logging
-import pprint
-import pdb
 
 logger = logging.getLogger('user_system_actions')
 att_cache = get_cache('attachment_cache')

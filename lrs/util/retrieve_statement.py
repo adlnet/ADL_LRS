@@ -41,7 +41,8 @@ def complex_get(req_dict):
         stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
-    if 'auth' in req_dict and 'statements_mine_only' in req_dict['auth']:
+
+    if 'auth' in req_dict and (req_dict['auth'] and 'statements_mine_only' in req_dict['auth']):
         stmtset = stmtset.filter(authority=req_dict['auth']['id'])
 
     agentQ = Q()
