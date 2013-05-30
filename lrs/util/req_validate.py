@@ -14,11 +14,7 @@ import pprint
 att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
-    exists = False
-    stmt = models.statement.objects.filter(statement_id=stmtID)
-    if stmt:
-        exists = True
-    return exists
+    return models.statement.objects.filter(statement_id=stmtID).exists()
 
 def check_for_no_other_params_supplied(query_dict):
     supplied = True

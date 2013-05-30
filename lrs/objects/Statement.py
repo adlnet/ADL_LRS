@@ -54,7 +54,7 @@ class Statement():
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
             stmt = models.statement.objects.get(statement_id=stmt_id)
-        except Exception:
+        except models.statement.DoesNotExist:
             err_msg = "Statement with ID %s does not exist" % str(stmt_id)
             raise exceptions.IDNotFoundError(err_msg)
         
@@ -63,9 +63,7 @@ class Statement():
             stmt.voided = True
             stmt.save()
             # Create statement ref
-            stmt_ref = models.StatementRef(ref_id=stmt_id)
-            stmt_ref.save()
-
+            stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
             return stmt_ref
         else:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % str_id
@@ -104,15 +102,13 @@ class Statement():
         return score_data
 
     def saveScoreToDB(self, score):
-        sc = models.score(**score)
-        sc.save()
+        sc = models.score.objects.create(**score)
         return sc
 
     def saveResultToDB(self, result, resultExts):
         # Save the result with all of the args
         sc = result.pop('score', None)
-        rslt = models.result(content_object=self.model_object, **result)
-        rslt.save()
+        rslt = models.result.objects.create(content_object=self.model_object, **result)
         if sc:
             sc.result = rslt
             sc.save()
@@ -140,8 +136,7 @@ class Statement():
             del context['statement']
 
         # Save context
-        cntx = models.context(**context)    
-        cntx.save()
+        cntx = models.context.objects.create(**context)
 
         # Save context stmt if one
         if stmt_data:
@@ -196,11 +191,9 @@ class Statement():
             
             if 'authority' in args:
                 del args['authority']
-            stmt = models.SubStatement(**args)
-            stmt.save()
+            stmt = models.SubStatement.objects.create(**args)
         else:
-            stmt = models.statement(**args)
-            stmt.save()
+            stmt = models.statement.objects.create(**args)
         return stmt
 
     def populateResult(self, stmt_data):
@@ -358,9 +351,7 @@ class Statement():
         v = lang_map[1]
 
         # Save lang map
-        language_map = models.VerbDisplay(key = k, value = v, content_object=verb)
-        language_map.save()        
-
+        language_map = models.VerbDisplay.objects.create(key = k, value = v, content_object=verb)
         return language_map
 
     def build_verb_object(self, incoming_verb):
@@ -472,8 +463,7 @@ class Statement():
                     err_msg = "No statement with ID %s was found" % statementObjectData['id']
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
-                    stmt_ref = models.StatementRef(ref_id=statementObjectData['id'])
-                    stmt_ref.save()
+                    stmt_ref = models.StatementRef.objects.create(ref_id=statementObjectData['id'])
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor

@@ -66,10 +66,8 @@ class Activity():
             self.activity.activity_definition
             created = False
         except:
-            actdef = models.activity_definition(activity_definition_type=act_def_type,
+            actdef = models.activity_definition.objects.create(activity_definition_type=act_def_type,
                   interactionType=intType, activity=self.activity, moreInfo=moreInfo)
-            actdef.save()
-
         return created
 
     def check_activity_definition_value(self, new_name_value, existing_name_value):
@@ -159,8 +157,7 @@ class Activity():
                 global_representation=True)
         else:
             # Not allowed to create global version b/c don't have define permissions
-            self.activity = models.activity(activity_id=activity_id, global_representation=False)
-            self.activity.save()
+            self.activity = models.activity.objects.create(activity_id=activity_id, global_representation=False)
             act_created = False
 
         if act_created:
@@ -317,10 +314,9 @@ class Activity():
                 if 'name' in act_def:
                     for name_lang_map in act_def['name'].items():
                         if isinstance(name_lang_map, tuple):
-                            n = models.name_lang(key=name_lang_map[0],
+                            n = models.name_lang.objects.create(key=name_lang_map[0],
                                           value=name_lang_map[1],
                                           content_object=self.activity.activity_definition)
-                            n.save()
                         else:
                             err_msg = "Activity with id %s has a name that is not a language map" % self.activity.activity_id
                             raise exceptions.ParamError(err_msg)
@@ -328,10 +324,9 @@ class Activity():
                 if 'description' in act_def:
                     for desc_lang_map in act_def['description'].items():
                         if isinstance(desc_lang_map, tuple):
-                            d = models.desc_lang(key=desc_lang_map[0],
+                            d = models.desc_lang.objects.create(key=desc_lang_map[0],
                                           value=desc_lang_map[1],
                                           content_object=self.activity.activity_definition)
-                            d.save()
                         else:
                             err_msg = "Activity with id %s has a description that is not a language map" % self.activity.activity_id
                             raise exceptions.ParamError(err_msg)
@@ -344,19 +339,17 @@ class Activity():
             self.populate_extensions(act_def) 
 
     def populate_correctResponsesPattern(self, act_def, interactionFlag):
-        crp = models.activity_def_correctresponsespattern(activity_definition=self.activity.activity_definition)
-        crp.save()
+        crp = models.activity_def_correctresponsespattern.objects.create(activity_definition=self.activity.activity_definition)
 
         #For each answer in the pattern save it
         for i in act_def['correctResponsesPattern']:
-            answer = models.correctresponsespattern_answer(answer=i, correctresponsespattern=crp)
-            answer.save()
+            answer = models.correctresponsespattern_answer.objects.create(answer=i, correctresponsespattern=crp)
 
         #Depending on which type of interaction, save the unique fields accordingly
         if interactionFlag == 'choices' or interactionFlag == 'sequencing':
             for c in act_def['choices']:
-                choice = models.activity_definition_choice(choice_id=c['id'], activity_definition=self.activity.activity_definition)
-                choice.save()
+                choice = models.activity_definition_choice.objects.create(choice_id=c['id'],
+                    activity_definition=self.activity.activity_definition)
                 #Save description as string, not a dictionary
                 for desc_lang_map in c['description'].items():
                     if isinstance(desc_lang_map, tuple):
@@ -369,8 +362,8 @@ class Activity():
 
         elif interactionFlag == 'scale':
             for s in act_def['scale']:
-                scale = models.activity_definition_scale(scale_id=s['id'], activity_definition=self.activity.activity_definition)        
-                scale.save()
+                scale = models.activity_definition_scale.objects.create(scale_id=s['id'],
+                    activity_definition=self.activity.activity_definition)        
                 # Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
@@ -383,8 +376,8 @@ class Activity():
 
         elif interactionFlag == 'steps':
             for s in act_def['steps']:
-                step = models.activity_definition_step(step_id=s['id'], activity_definition=self.activity.activity_definition)
-                step.save()
+                step = models.activity_definition_step.objects.create(step_id=s['id'],
+                    activity_definition=self.activity.activity_definition)
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
@@ -397,8 +390,8 @@ class Activity():
 
         elif interactionFlag == 'source':
             for s in act_def['source']:
-                source = models.activity_definition_source(source_id=s['id'], activity_definition=self.activity.activity_definition)
-                source.save()                        
+                source = models.activity_definition_source.objects.create(source_id=s['id'],
+                    activity_definition=self.activity.activity_definition)
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
                     if isinstance(desc_lang_map, tuple):
@@ -410,8 +403,8 @@ class Activity():
                         raise exceptions.ParamError(err_msg)
 
             for t in act_def['target']:
-                target = models.activity_definition_target(target_id=t['id'], activity_definition=self.activity.activity_definition)
-                target.save()
+                target = models.activity_definition_target.objects.create(target_id=t['id'],
+                    activity_definition=self.activity.activity_definition)
                 #Save description as string, not a dictionary
                 for desc_lang_map in t['description'].items():
                     if isinstance(desc_lang_map, tuple):
