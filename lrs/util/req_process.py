@@ -23,14 +23,11 @@ def statements_post(req_dict):
             for st in req_dict['body']:
                 stmt = Statement.Statement(st, auth=req_dict['auth'],define=define).model_object
                 stmt_responses.append(str(stmt.statement_id))
-        # TODO - see if we can remove nested try and catch exception being thrown-no more 500
-        except Exception, e:
+        # Catch exceptions being thrown from object classes, delete the statement first then raise 
+        except Exception:
             for stmt_id in stmt_responses:
-                try:
-                    models.statement.objects.get(statement_id=stmt_id).delete()
-                except models.statement.DoesNotExist:
-                    pass # stmt already deleted 
-            raise e
+                models.statement.objects.get(statement_id=stmt_id).delete()
+            raise
     else:
         # Handle single POST
         stmt = Statement.Statement(req_dict['body'], auth=req_dict['auth'], define=define).model_object
@@ -229,7 +226,6 @@ def activity_profile_put(req_dict):
     return HttpResponse('', status=204)
 
 def activity_profile_get(req_dict):
-    #TODO:need eTag for returning list of IDs?
     # Instantiate ActivityProfile
     ap = ActivityProfile.ActivityProfile()
     # Get profileId and activityId
@@ -248,7 +244,6 @@ def activity_profile_get(req_dict):
     resource = ap.get_profile_ids(activityId,since)
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     response['since'] = since
-    #response['ETag'] = '"%s"' % resource.etag
     return response
 
 

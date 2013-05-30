@@ -10,7 +10,7 @@ def convert_to_utc(timestr):
     try:
         date_object = parser.parse(timestr)
     except ValueError as e:
-        raise ParamError(e)
+        raise ParamError("There was an error while parsing the date from %s -- Error: %s" % (timestr, e.message))
     return date_object
 
 def convert_to_dict(incoming_data):
@@ -22,7 +22,7 @@ def convert_to_dict(incoming_data):
         try:
             data = ast.literal_eval(incoming_data)
         except Exception, e:
-            raise BadRequest("Cannot evaluate data into dictionary to parse")
+            raise BadRequest("Cannot evaluate data into dictionary to parse -- Error: %s in %s") % (e.message, incoming_data)
     return data
 
 def get_user_from_auth(auth):

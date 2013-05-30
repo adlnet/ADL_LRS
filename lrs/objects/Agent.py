@@ -112,7 +112,7 @@ class Agent():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 profs = self.agent.agent_profile_set.filter(updated__gte=since)
             except ValidationError:
-                err_msg = 'Since field is not in correct format'
+                err_msg = 'Since field is not in correct format for retrieval of agent profiles'
                 raise ParamError(err_msg) 
             except:
                 err_msg = 'There are no profiles associated with the id: %s' % profileId

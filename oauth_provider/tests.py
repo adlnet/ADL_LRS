@@ -289,7 +289,6 @@ redirects her back to the Consumer's callback URL::
     
     >>> # fake authorization by the user
     >>> parameters['authorize_access'] = 1
-    >>> # TODO: find a proper way to use test Client's content_type arg.
     >>> response = c.post("/oauth/authorize/", parameters)#, content_type="application/x-www-form-urlencoded")
     >>> response.status_code
     302

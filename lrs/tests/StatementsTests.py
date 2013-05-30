@@ -530,6 +530,35 @@ class StatementsTests(TestCase):
         acts = len(models.activity.objects.all())
         self.assertEqual(9, acts)
 
+
+    def test_amsterdam_snafu(self):
+        stmt = json.dumps({
+            "timestamp": "2013-05-23T10:46:39+02:00",
+            "verb": {"id": "http:\/\/www.adlnet.gov\/expapi\/verbs\/experienced"},
+            "context": {
+                "contextActivities": {
+                    "parent": {
+                        "id": "http:\/\/localhost:8080\/portal\/site\/~88a4933d-99d2-4a35-8906-993fdcdf2259"
+                    }
+                }
+            },
+            "object": {
+                "id": "http:\/\/localhost:8080\/portal\/web\/~88a4933d-99d2-4a35-8906-993fdcdf2259\/id\/c50bf034-0f3e-4055-a1e7-8d1cf92be353\/url\/%2Flibrary%2Fcontent%2Fmyworkspace_info.html",
+                "definition": {
+                    "type": "http:\/\/adlnet.gov\/expapi\/activities\/view-web-content"
+                },
+                "objectType": "Activity"
+            },
+            "actor": {
+                "name": "Alan Tester",
+                "objectType": "Agent",
+                "mbox": "mailto:tester@dev.nl"
+            }
+        })
+        post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post_response.status_code, 200)
+
     def test_update_activity_wrong_auth(self):
         # Will respond with 200 if HTTP_AUTH_ENABLED is enabled
         if settings.HTTP_AUTH_ENABLED:
@@ -1108,7 +1137,6 @@ class StatementsTests(TestCase):
     def test_post_list_rollback(self):
         self.bunchostmts()
         cguid1 = str(uuid.uuid1())
-        # print cguid1
         stmts = json.dumps([
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},
             "object": {"id":"act:test_wrong_list_post2"},"actor":{"objectType":"Agent",
@@ -1136,7 +1164,7 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
         results = models.result.objects.filter(response='wrong')
         scores = models.score.objects.filter(scaled=.99)
@@ -1182,7 +1210,7 @@ class StatementsTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
         created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
         wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
@@ -1221,7 +1249,7 @@ class StatementsTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         voided_st = models.statement.objects.get(statement_id=str(self.exist_stmt_id))
         voided_verb = models.Verb.objects.filter(verb_id__contains='voided')
         only_actor = models.agent.objects.filter(mbox="mailto:only-s@s.com")
@@ -1249,7 +1277,7 @@ class StatementsTests(TestCase):
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
         s_agent = models.agent.objects.filter(mbox="mailto:wrong-s@s.com")
         ss_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
@@ -1309,7 +1337,7 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
         s_agent = models.agent.objects.filter(mbox="mailto:wrong-s@s.com")
         ss_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@ss.com")

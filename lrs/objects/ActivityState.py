@@ -112,7 +112,7 @@ class ActivityState():
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
                 state_set = state_set.filter(updated__gte=self.since)
             except ValidationError:
-                err_msg = 'Since field is not in correct format'
+                err_msg = 'Since field is not in correct format for retrieval of state IDs'
                 raise ParamError(err_msg) 
         return state_set.values_list('state_id', flat=True)
 

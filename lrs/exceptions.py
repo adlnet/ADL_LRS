@@ -1,15 +1,8 @@
 class BadRequest(Exception):
     pass
 
-class InvalidLanguageMap(BadRequest):
-    pass
-
 class ParamError(BadRequest):
     pass
-
-class InvalidXML(BadRequest):
-    pass
-
 
 class Unauthorized(Exception):
     pass
