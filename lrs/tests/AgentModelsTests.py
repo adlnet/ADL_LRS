@@ -5,10 +5,6 @@ from lrs.objects.Agent import Agent
 import hashlib
 import json
 import pdb
-''' TODO:
-recreate this to make agents (personas) at the model level w/in setUp
-then make tests to get merged results (persons)
-'''
 
 class AgentModelsTests(TestCase):
     def test_agent_mbox_create(self):

@@ -878,7 +878,7 @@ class AuthTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
         results = models.result.objects.filter(response='wrong')
         scores = models.score.objects.filter(scaled=.99)
@@ -920,7 +920,7 @@ class AuthTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
         created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
         wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
@@ -955,7 +955,7 @@ class AuthTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
         voided_st = models.statement.objects.get(statement_id=str(self.exist_stmt_id))
         voided_verb = models.Verb.objects.filter(verb_id__contains='voided')
@@ -984,7 +984,7 @@ class AuthTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided, must provide 'actor' field", response.content)
+        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
         s_agent = models.agent.objects.filter(mbox="mailto:wrong-s@s.com")
         ss_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@ss.com")

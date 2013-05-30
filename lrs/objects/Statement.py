@@ -80,11 +80,11 @@ class Statement():
             sc_min = score_data['min']
             sc_max = score_data['max']
             if sc_min >= sc_max:
-                err_msg = "Score minimum must be less than the maximum"
+                err_msg = "Score minimum in statement result must be less than the maximum"
                 raise exceptions.ParamError(err_msg)
             
             if 'raw' in score_data and (score_data['raw'] < sc_min or score_data['raw'] > sc_max):
-                err_msg = "Raw must be between minimum and maximum"
+                err_msg = "Raw value in statement result must be between minimum and maximum"
                 raise exceptions.ParamError(err_msg)
             score_data['score_min'] = sc_min
             score_data['score_max'] = sc_max
@@ -98,7 +98,7 @@ class Statement():
         # If scale is included make sure it's between -1 and 1
         if 'scaled' in score_data:
             if score_data['scaled'] < -1 or score_data['scaled'] > 1:
-                err_msg = "Scaled must be between -1 and 1"
+                err_msg = "Scaled value in statement result must be between -1 and 1"
                 raise exceptions.ParamError(err_msg)
 
         return score_data
@@ -153,7 +153,7 @@ class Statement():
                     err_msg = "Statement in context must be StatementRef"
                     raise exceptions.ParamError(err_msg)                    
             else:
-                err_msg = "Statement in context must contain the objectType"
+                err_msg = "Statement in context must contain an objectType"
                 raise exceptions.ParamError(err_msg)
 
         # Save context activities
@@ -417,21 +417,21 @@ class Statement():
         try:
             raw_verb = stmt_data['verb']
         except KeyError:
-            err_msg = "No verb provided, must provide 'verb' field"
+            err_msg = "No verb provided in the statement, must provide 'verb' field"
             raise exceptions.ParamError(err_msg)
 
         # Must include object - set statement object
         try:
             statementObjectData = stmt_data['object']
         except KeyError:
-            err_msg = "No object provided, must provide 'object' field"
+            err_msg = "No object provided in the statement, must provide 'object' field"
             raise exceptions.ParamError(err_msg)
         
         # Must include actor - set statement actor
         try:
             raw_actor = stmt_data['actor']
         except KeyError:
-            err_msg = "No actor provided, must provide 'actor' field"
+            err_msg = "No actor provided in the statement, must provide 'actor' field"
             raise exceptions.ParamError(err_msg)
 
         args['verb'] = self.build_verb_object(raw_verb)
@@ -454,7 +454,7 @@ class Statement():
                 stmt_ref = self.voidStatement(statementObjectData['id'])
                 args['stmt_object'] = stmt_ref
             else:
-                err_msg = "There was a problem voiding the Statement"
+                err_msg = "When voiding, the objectType must be a StatementRef and contain an ID to void"
                 raise exceptions.ParamError(err_msg)
         else:
             # Check objectType, get object based on type

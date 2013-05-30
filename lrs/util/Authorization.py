@@ -64,7 +64,7 @@ def oauth_helper(request):
 
     # make sure the token is an approved access token
     if token.token_type != Token.ACCESS or not token.is_approved:
-        raise OauthUnauthorized(send_oauth_error("The token is not valid"))
+        raise OauthUnauthorized(send_oauth_error("The access token is not valid"))
     
     user = token.user
     user_name = user.username

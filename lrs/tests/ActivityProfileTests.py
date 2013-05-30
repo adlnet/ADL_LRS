@@ -11,7 +11,6 @@ from lrs.objects import Activity
 import base64
 import pdb
 
-#TODO: delete profiles that are being stored in /var/www/adllrs/media/activity profiles
 class ActivityProfileTests(TestCase):
     test_activityId1 = 'act:act-1'
     test_activityId2 = 'act:act-2'
@@ -155,13 +154,11 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % self.testprofile1)
   
-    #TODO: Need etag for ID list?
     def test_get_activity_only(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId2}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.testprofileId2)
-        #resp_hash = hashlib.sha1(response.content).hexdigest()
-        #self.assertEqual(response['etag'], '"%s"' % resp_hash)
+
         params = {'activityId': self.test_activityId2, 'profileId': self.testprofileId2}
 
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")

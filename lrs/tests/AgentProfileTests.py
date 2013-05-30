@@ -9,7 +9,7 @@ import urllib
 import base64
 import json
 import pdb
-#TODO: delete profiles that are being stored
+
 class AgentProfileTests(TestCase):
     testagent = '{"mbox":"mailto:test@example.com"}'
     otheragent = '{"mbox":"mailto:other@example.com"}'
