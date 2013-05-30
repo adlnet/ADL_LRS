@@ -11,14 +11,13 @@ class ActivityProfile():
     def post_profile(self, request_dict):
         post_profile = request_dict['profile']
         
-        profile_id = request_dict['profileId']
+        profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id      
             raise ParamError(err_msg)
 
         # get / create  profile
-        user = get_user_from_auth(request_dict.get('auth', None))
-        p, created = models.activity_profile.objects.get_or_create(activityId=request_dict['activityId'],  profileId=request_dict['profileId'], user=user)
+        p, created = models.activity_profile.objects.get_or_create(activityId=request_dict['params']['activityId'],  profileId=request_dict['params']['profileId'])
         if created:
             profile = ContentFile(post_profile)
         else:
@@ -44,14 +43,13 @@ class ActivityProfile():
             except:
                 profile = ContentFile(str(request_dict['profile']))
 
-        profile_id = request_dict['profileId']
+        profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             raise ParamError(err_msg)
 
-        user = get_user_from_auth(request_dict.get('auth', None))
         #Get the profile, or if not already created, create one
-        p,created = models.activity_profile.objects.get_or_create(profileId=request_dict['profileId'],activityId=request_dict['activityId'], user=user)
+        p,created = models.activity_profile.objects.get_or_create(profileId=request_dict['params']['profileId'],activityId=request_dict['params']['activityId'])
         
         if not created:
             #If it already exists delete it
@@ -62,12 +60,12 @@ class ActivityProfile():
 
     def save_profile(self, p, created, profile, request_dict):
         #Save profile content type based on incoming content type header and create etag
-        p.content_type = request_dict['CONTENT_TYPE']
+        p.content_type = request_dict['headers']['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
         
         #Set updated
-        if request_dict['updated']:
-            p.updated = request_dict['updated']
+        if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
+            p.updated = request_dict['headers']['updated']
         
         #Go to beginning of file
         profile.seek(0)
@@ -108,7 +106,7 @@ class ActivityProfile():
     def delete_profile(self, request_dict):
         #Get profile and delete it
         try:
-            prof = self.get_profile(request_dict['profileId'], request_dict['activityId'])
+            prof = self.get_profile(request_dict['params']['profileId'], request_dict['params']['activityId'])
             prof.delete()
         except models.activity_profile.DoesNotExist:
             pass #we don't want it anyway

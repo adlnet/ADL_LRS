@@ -53,10 +53,6 @@ class AgentProfileTests(TestCase):
         self.client.delete(reverse(views.agent_profile), self.testparams3, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.client.delete(reverse(views.agent_profile), self.testparams4, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
-    def test_user_in_model(self):
-        prof = agent_profile.objects.all()[0]
-        self.assertEqual(self.username, prof.user.username)
-
     def test_get_agent_not_found(self):
         a = '{"mbox":["mailto:notfound@example.com"]}'
         p = 'http://agent.not.found'
