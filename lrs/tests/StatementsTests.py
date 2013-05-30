@@ -530,6 +530,35 @@ class StatementsTests(TestCase):
         acts = len(models.activity.objects.all())
         self.assertEqual(9, acts)
 
+
+    def test_amsterdam_snafu(self):
+        stmt = json.dumps({
+            "timestamp": "2013-05-23T10:46:39+02:00",
+            "verb": {"id": "http:\/\/www.adlnet.gov\/expapi\/verbs\/experienced"},
+            "context": {
+                "contextActivities": {
+                    "parent": {
+                        "id": "http:\/\/localhost:8080\/portal\/site\/~88a4933d-99d2-4a35-8906-993fdcdf2259"
+                    }
+                }
+            },
+            "object": {
+                "id": "http:\/\/localhost:8080\/portal\/web\/~88a4933d-99d2-4a35-8906-993fdcdf2259\/id\/c50bf034-0f3e-4055-a1e7-8d1cf92be353\/url\/%2Flibrary%2Fcontent%2Fmyworkspace_info.html",
+                "definition": {
+                    "type": "http:\/\/adlnet.gov\/expapi\/activities\/view-web-content"
+                },
+                "objectType": "Activity"
+            },
+            "actor": {
+                "name": "Alan Tester",
+                "objectType": "Agent",
+                "mbox": "mailto:tester@dev.nl"
+            }
+        })
+        post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post_response.status_code, 200)
+
     def test_update_activity_wrong_auth(self):
         # Will respond with 200 if HTTP_AUTH_ENABLED is enabled
         if settings.HTTP_AUTH_ENABLED:
