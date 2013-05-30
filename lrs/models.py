@@ -150,11 +150,6 @@ class Token(models.Model):
                 query, fragment))
         return self.callback
 
-import time
-def filename(instance, filename):
-    print filename
-    return filename
-
 class LanguageMap(models.Model):
     key = models.CharField(max_length=50, db_index=True)
     value = models.TextField()
@@ -400,8 +395,7 @@ class agentmgr(models.Manager):
                 ret_agent = agent(**kwargs)
             ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
             ret_agent.save()
-            acc = agent_account(agent=ret_agent, **account)
-            acc.save()
+            acc = agent_account.objects.create(agent=ret_agent, **account)
             created = True
         return ret_agent, created
 
@@ -709,42 +703,39 @@ class activity_definition(models.Model):
         if self.interactionType != '':
             ret['interactionType'] = self.interactionType
 
-        try:
-            self.correctresponsespattern = self.activity_def_correctresponsespattern
-        except activity_def_correctresponsespattern.DoesNotExist:
-            self.correctresponsespattern = None
-
-        if not self.correctresponsespattern is None:
+        if hasattr(self, 'activity_def_correctresponsespattern'):
             ret['correctResponsesPattern'] = []
             # Get answers
-            answers = correctresponsespattern_answer.objects.filter(correctresponsespattern=self.correctresponsespattern)
+            answers = self.activity_def_correctresponsespattern.correctresponsespattern_answer_set.all()
+            
             for a in answers:
-                ret['correctResponsesPattern'].append(a.objReturn())            
-            scales = activity_definition_scale.objects.filter(activity_definition=self)
+                ret['correctResponsesPattern'].append(a.object_return())            
+            # Get scales
+            scales = self.activity_definition_scale_set.all()
             if scales:
                 ret['scale'] = []
                 for s in scales:
                     ret['scale'].append(s.object_return())
             # Get choices
-            choices = activity_definition_choice.objects.filter(activity_definition=self)
+            choices = self.activity_definition_choice_set.all()
             if choices:
                 ret['choices'] = []
                 for c in choices:
                     ret['choices'].append(c.object_return())
             # Get steps
-            steps = activity_definition_step.objects.filter(activity_definition=self)
+            steps = self.activity_definition_step_set.all()
             if steps:
                 ret['steps'] = []
                 for st in steps:
                     ret['steps'].append(st.object_return())
             # Get sources
-            sources = activity_definition_source.objects.filter(activity_definition=self)
+            sources = self.activity_definition_source_set.all()
             if sources:
                 ret['source'] = []
                 for so in sources:
                     ret['source'].append(so.object_return())
             # Get targets
-            targets = activity_definition_target.objects.filter(activity_definition=self)
+            targets = self.activity_definition_target_set.all()
             if targets:
                 ret['target'] = []
                 for t in targets:
@@ -767,11 +758,11 @@ class correctresponsespattern_answer(models.Model):
     answer = models.TextField()
     correctresponsespattern = models.ForeignKey(activity_def_correctresponsespattern)    
 
-    def objReturn(self):
+    def object_return(self):
         return self.answer
 
     def __unicode__(self):
-        return objReturn()
+        return self.object_return()
 
 class ActivityDefinitionChoiceDesc(LanguageMap):
     pass
