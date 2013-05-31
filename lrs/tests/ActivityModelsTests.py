@@ -159,8 +159,11 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        # name_set = models.name_lang.objects.filter(act_def=act_def)
+        # desc_set = models.desc_lang.objects.filter(act_def=act_def)
+
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
 
         # Set not always returned in the same order
         for ns in name_set:
@@ -196,8 +199,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
         self.assertEqual(name_set[0].key, 'en-US')
         self.assertEqual(name_set[0].value, 'Example Name')
@@ -222,8 +225,8 @@ class ActivityModelsTests(TestCase):
         
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
         self.assertEqual(name_set[0].key, 'en-CH')
         self.assertEqual(name_set[0].value, 'testname')
@@ -243,8 +246,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
 
         self.assertEqual(name_set[0].key, 'en-FR')
         self.assertEqual(name_set[0].value, 'name')
@@ -264,8 +267,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
         self.assertEqual(name_set[0].key, 'en-GB')
         self.assertEqual(name_set[0].value, 'testname')
@@ -299,8 +302,10 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        # name_set = models.name_lang.objects.filter(act_def=act_def)
+        # desc_set = models.desc_lang.objects.filter(act_def=act_def)
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
         self.assertEqual(name_set[0].key, 'en-GB')
         self.assertEqual(name_set[0].value, 'testname')
@@ -319,8 +324,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-GB')
@@ -362,8 +367,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-FR')
@@ -387,8 +392,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         def_fk = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = def_fk[0].name.all()
-        desc_set = def_fk[0].description.all()
+        name_set = def_fk[0].name_lang_set.all()
+        desc_set = def_fk[0].desc_lang_set.all()
         
         for ns in name_set:
             if ns.key == 'en-US':
@@ -444,8 +449,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-FR')
@@ -479,8 +484,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-US')
@@ -529,8 +534,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-FR')
@@ -562,8 +567,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-FR')
@@ -597,8 +602,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-CH')
@@ -637,8 +642,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-CH')
@@ -678,8 +683,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-us')
@@ -715,8 +720,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-GB')
@@ -748,8 +753,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-CH')
@@ -781,8 +786,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-FR')
@@ -823,8 +828,8 @@ class ActivityModelsTests(TestCase):
         fk = models.activity.objects.filter(id=act.activity.id)
         act_def = models.activity_definition.objects.filter(activity=fk)
 
-        name_set = act_def[0].name.all()
-        desc_set = act_def[0].description.all()
+        name_set = models.name_lang.objects.filter(act_def=act_def)
+        desc_set = models.desc_lang.objects.filter(act_def=act_def)
         
 
         self.assertEqual(name_set[0].key, 'en-US')
@@ -849,8 +854,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
         act_def1 = models.activity_definition.objects.filter(activity=fk1)
 
-        name_set1 = act_def1[0].name.all()
-        desc_set1 = act_def1[0].description.all()
+        name_set1 = act_def1[0].name_lang_set.all()
+        desc_set1 = act_def1[0].desc_lang_set.all()
         
 
         self.assertEqual(name_set1[0].key, 'en-US')
@@ -866,8 +871,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
         act_def2 = models.activity_definition.objects.filter(activity=fk2)
 
-        name_set2 = act_def2[0].name.all()
-        desc_set2 = act_def2[0].description.all()
+        name_set2 = act_def2[0].name_lang_set.all()
+        desc_set2 = act_def2[0].desc_lang_set.all()
         
 
         self.assertEqual(name_set2[0].key, 'en-US')
@@ -899,8 +904,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act1.activity.id, 'act:foobe', 'Activity')
         act_def1 = models.activity_definition.objects.get(activity=fk1)
 
-        name_set1 = act_def1.name.all()
-        desc_set1 = act_def1.description.all()
+        name_set1 = act_def1.name_lang_set.all()
+        desc_set1 = act_def1.desc_lang_set.all()
         
 
         self.assertEqual(name_set1[0].key, 'en-US')
@@ -914,8 +919,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act2.activity.id, 'act:foobe', 'Activity')
         act_def2 = models.activity_definition.objects.get(activity=fk2)
 
-        name_set2 = act_def2.name.all()
-        desc_set2 = act_def2.description.all()
+        name_set2 = act_def2.name_lang_set.all()
+        desc_set2 = act_def2.desc_lang_set.all()
         
         self.assertEqual(name_set2[0].key, 'en-US')
         self.assertEqual(name_set2[0].value, 'actname')
@@ -948,8 +953,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
         act_def1 = models.activity_definition.objects.filter(activity=fk1)
 
-        name_set1 = act_def1[0].name.all()
-        desc_set1 = act_def1[0].description.all()
+        name_set1 = act_def1[0].name_lang_set.all()
+        desc_set1 = act_def1[0].desc_lang_set.all()
         
 
         self.assertEqual(name_set1[0].key, 'en-CH')
@@ -964,8 +969,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
         act_def2 = models.activity_definition.objects.filter(activity=fk2)
 
-        name_set2 = act_def2[0].name.all()
-        desc_set2 = act_def2[0].description.all()
+        name_set2 = act_def2[0].name_lang_set.all()
+        desc_set2 = act_def2[0].desc_lang_set.all()
         
 
         self.assertEqual(name_set2[0].key, 'en-CH')
@@ -997,8 +1002,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
         act_def1 = models.activity_definition.objects.filter(activity=fk1)
 
-        name_set1 = act_def1[0].name.all()
-        desc_set1 = act_def1[0].description.all()
+        name_set1 = act_def1[0].name_lang_set.all()
+        desc_set1 = act_def1[0].desc_lang_set.all()
         
         for ns in name_set1:
             if ns.key == 'en-CH':
@@ -1018,8 +1023,8 @@ class ActivityModelsTests(TestCase):
         self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
         act_def2 = models.activity_definition.objects.filter(activity=fk2)
 
-        name_set2 = act_def2[0].name.all()
-        desc_set2 = act_def2[0].description.all()
+        name_set2 = act_def2[0].name_lang_set.all()
+        desc_set2 = act_def2[0].desc_lang_set.all()
         
         for ns in name_set2:
             if ns.key == 'en-CH':

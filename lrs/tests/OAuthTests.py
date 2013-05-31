@@ -1148,8 +1148,8 @@ class OAuthTests(TestCase):
         self.assertEqual(len(acts), 2)
         act_defs = models.activity_definition.objects.all()
         name_list = []
-        name_list.append(str(act_defs[0].name.all()[0].value))
-        name_list.append(str(act_defs[1].name.all()[0].value))
+        name_list.append(str(act_defs[0].name_lang_set.all()[0].value))
+        name_list.append(str(act_defs[1].name_lang_set.all()[0].value))
         self.assertIn('altname', name_list)
         self.assertIn('definealtname', name_list)
 

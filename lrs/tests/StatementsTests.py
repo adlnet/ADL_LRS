@@ -624,8 +624,8 @@ class StatementsTests(TestCase):
         act = models.activity.objects.get(activity_id="act:foogie")
         act_def = models.activity_definition.objects.get(activity=act)
 
-        name_set = act_def.name.all()
-        desc_set = act_def.description.all()
+        name_set = act_def.name_lang_set.all()
+        desc_set = act_def.desc_lang_set.all()
 
         for ns in name_set:
             if ns.key == 'en-GB':

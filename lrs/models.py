@@ -641,9 +641,10 @@ class activity(statement_object):
 class name_lang(models.Model):
     key = models.CharField(max_length=50, db_index=True)
     value = models.TextField()
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    # content_type = models.ForeignKey(ContentType)
+    # object_id = models.PositiveIntegerField()
+    # content_object = generic.GenericForeignKey('content_type', 'object_id')
+    act_def = models.ForeignKey("activity_definition")
     
     def object_return(self):
         return {self.key: self.value}
@@ -654,10 +655,11 @@ class name_lang(models.Model):
 class desc_lang(models.Model):
     key = models.CharField(max_length=50, db_index=True)
     value = models.TextField()
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-    
+    # content_type = models.ForeignKey(ContentType)
+    # object_id = models.PositiveIntegerField()
+    # content_object = generic.GenericForeignKey('content_type', 'object_id')
+    act_def = models.ForeignKey("activity_definition")
+
     def object_return(self):
         return {self.key: self.value}
 
@@ -668,8 +670,8 @@ class ActivityDefinitionExtensions(extensions):
     pass
 
 class activity_definition(models.Model):
-    name = generic.GenericRelation(name_lang, related_name="name_lang")
-    description = generic.GenericRelation(desc_lang, related_name="desc_lang")
+    # name = generic.GenericRelation(name_lang, related_name="name_lang")
+    # description = generic.GenericRelation(desc_lang, related_name="desc_lang")
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     interactionType = models.CharField(max_length=25, blank=True)
@@ -679,11 +681,15 @@ class activity_definition(models.Model):
     def object_return(self, lang=None):
         ret = {}
         if lang:
-            name_lang_map_set = self.name.filter(key=lang)
-            desc_lang_map_set = self.description.filter(key=lang)
+            # name_lang_map_set = self.name.filter(key=lang)
+            # desc_lang_map_set = self.description.filter(key=lang)
+            name_lang_map_set = self.name_lang_set.all().filter(key=lang)
+            desc_lang_map_set = self.desc_lang_set.all().filter(key=lang)
         else:
-            name_lang_map_set = self.name.all()
-            desc_lang_map_set = self.description.all()
+            # name_lang_map_set = self.name.all()
+            # desc_lang_map_set = self.description.all()
+            name_lang_map_set = self.name_lang_set.all()
+            desc_lang_map_set = self.desc_lang_set.all()
 
         if name_lang_map_set:
             ret['name'] = {}

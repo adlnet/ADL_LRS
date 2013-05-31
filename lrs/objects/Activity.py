@@ -85,13 +85,15 @@ class Activity():
         # update it with new name and/or description info
         if existing_act_def:
             # Get list of existing name lang maps
-            existing_name_lang_map_set = existing_act_def.name.all()
+            # existing_name_lang_map_set = existing_act_def.name.all()
+            existing_name_lang_map_set = existing_act_def.name_lang_set.all()
 
             # Make lists of keys and values from existing name lang maps
             existing_name_key_set = existing_name_lang_map_set.values_list('key', flat=True)
 
             # Get list of existing desc lang maps
-            existing_desc_lang_map_set = existing_act_def.description.all()
+            # existing_desc_lang_map_set = existing_act_def.description.all()
+            existing_desc_lang_map_set = existing_act_def.desc_lang_set.all()
 
             # Make lists of keys and values from existing desc lang maps
             existing_desc_key_set = existing_desc_lang_map_set.values_list('key', flat=True)
@@ -109,15 +111,20 @@ class Activity():
                 if new_name_lang_map[0] in existing_name_key_set:
                     name_same = True                    
                     # Retrieve existing language map with same key (all in the existing act_def)
-                    existing_lang_map = existing_act_def.name.get(key=new_name_lang_map[0])
+                    # existing_lang_map = existing_act_def.name.get(key=new_name_lang_map[0])
+                    existing_lang_map = models.name_lang.objects.get(key=new_name_lang_map[0],
+                        act_def=existing_act_def)
                     name_same = self.check_activity_definition_value(new_name_lang_map[1], existing_lang_map.value)
                     # If names are different, update the language map with the new name
                     if not name_same:
-                        existing_act_def.name.filter(id=existing_lang_map.id).update(value=new_name_lang_map[1])
+                        # existing_act_def.name.filter(id=existing_lang_map.id).update(value=new_name_lang_map[1])
+                        models.name_lang.objects.filter(id=existing_lang_map.id).update(value=new_name_lang_map[1])
                 # Else it's a new lang map and needs added
                 else:
-                    existing_act_def.name.create(key=new_name_lang_map[0], value=new_name_lang_map[1])
-                    existing_act_def.save()                    
+                    # existing_act_def.name.create(key=new_name_lang_map[0], value=new_name_lang_map[1])
+                    models.name_lang.objects.create(key=new_name_lang_map[0], value=new_name_lang_map[1],
+                        act_def=existing_act_def)
+                    # existing_act_def.save()
 
             # Loop through all language maps in description
             try:
@@ -128,16 +135,21 @@ class Activity():
             for new_desc_lang_map in the_descriptions.items():
                 # If there is already an entry in the same language
                 if new_desc_lang_map[0] in existing_desc_key_set:
-                    desc_same = False
+                    desc_same = True
                     # Retrieve existing language map with same key (all in the existing act_def)
-                    existing_lang_map = existing_act_def.description.get(key=new_desc_lang_map[0])
+                    # existing_lang_map = existing_act_def.description.get(key=new_desc_lang_map[0])
+                    existing_lang_map = models.desc_lang.objects.get(key=new_desc_lang_map[0],
+                        act_def=existing_act_def)
                     desc_same = self.check_activity_definition_value(new_desc_lang_map[1], existing_lang_map.value)
                     # If desc are different, update the langage map with the new desc
                     if not desc_same:
-                        existing_act_def.description.filter(id=existing_lang_map.id).update(value=new_desc_lang_map[1])
+                        # existing_act_def.description.filter(id=existing_lang_map.id).update(value=new_desc_lang_map[1])
+                        models.desc_lang.objects.filter(id=existing_lang_map.id).update(value=new_desc_lang_map[1])
                 else:
-                    existing_act_def.description.create(key=new_desc_lang_map[0], value=new_desc_lang_map[1])
-                    existing_act_def.save()                    
+                    # existing_act_def.description.create(key=new_desc_lang_map[0], value=new_desc_lang_map[1])
+                    models.desc_lang.objects.create(key=new_desc_lang_map[0], value=new_desc_lang_map[1],
+                        act_def=existing_act_def)
+                    # existing_act_def.save()
 
     #Once JSON is verified, populate the activity objects
     def populate(self, the_object):        
@@ -314,9 +326,12 @@ class Activity():
                 if 'name' in act_def:
                     for name_lang_map in act_def['name'].items():
                         if isinstance(name_lang_map, tuple):
+                            # n = models.name_lang.objects.create(key=name_lang_map[0],
+                            #               value=name_lang_map[1],
+                            #               content_object=self.activity.activity_definition)
                             n = models.name_lang.objects.create(key=name_lang_map[0],
                                           value=name_lang_map[1],
-                                          content_object=self.activity.activity_definition)
+                                          act_def=self.activity.activity_definition)
                         else:
                             err_msg = "Activity with id %s has a name that is not a language map" % self.activity.activity_id
                             raise exceptions.ParamError(err_msg)
@@ -324,9 +339,12 @@ class Activity():
                 if 'description' in act_def:
                     for desc_lang_map in act_def['description'].items():
                         if isinstance(desc_lang_map, tuple):
+                            # d = models.desc_lang.objects.create(key=desc_lang_map[0],
+                            #               value=desc_lang_map[1],
+                            #               content_object=self.activity.activity_definition)
                             d = models.desc_lang.objects.create(key=desc_lang_map[0],
                                           value=desc_lang_map[1],
-                                          content_object=self.activity.activity_definition)
+                                          act_def=self.activity.activity_definition)
                         else:
                             err_msg = "Activity with id %s has a description that is not a language map" % self.activity.activity_id
                             raise exceptions.ParamError(err_msg)
