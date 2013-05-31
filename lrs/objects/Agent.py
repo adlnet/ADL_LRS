@@ -47,13 +47,12 @@ class Agent():
     def post_profile(self, request_dict):
         post_profile = request_dict['profile']
 
-        profile_id = request_dict['profileId']
+        profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             raise exceptions.ParamError(err_msg)
 
-        user = get_user_from_auth(request_dict.get('auth', None))
-        p, created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent, user=user)
+        p, created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent)
         if created:
             profile = ContentFile(post_profile)
         else:
@@ -74,23 +73,22 @@ class Agent():
             except:
                 profile = ContentFile(str(request_dict['profile']))
         
-        profile_id = request_dict['profileId']
+        profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             raise exceptions.ParamError(err_msg)
 
-        user = get_user_from_auth(request_dict.get('auth', None))
-        p,created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent, user=user)
+        p,created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent)
         if not created:
             etag.check_preconditions(request_dict,p, required=True)
             p.profile.delete()
         self.save_profile(p, created, profile, request_dict)
 
     def save_profile(self, p, created, profile, request_dict):
-        p.content_type = request_dict['CONTENT_TYPE']
+        p.content_type = request_dict['headers']['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
-        if request_dict['updated']:
-            p.updated = request_dict['updated']
+        if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
+            p.updated = request_dict['headers']['updated']
         profile.seek(0)
         if created:
             p.save()

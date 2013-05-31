@@ -1,15 +1,12 @@
 import json
 from datetime import datetime
 from functools import wraps
-from django.utils.decorators import decorator_from_middleware
 from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
 from lrs.util import uri
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound
 from Authorization import auth
-import pdb
-import pprint
 
 att_cache = get_cache('attachment_cache')
 
@@ -29,15 +26,17 @@ def check_for_no_other_params_supplied(query_dict):
 def check_oauth(func):
     @wraps(func)
     def inner(r_dict, *args, **kwargs):
-        if r_dict['lrs_auth'] == 'oauth':
+        auth = r_dict.get('auth', None)
+        auth_type = r_dict['auth'].get('type', None) if auth else None
+        if auth_type and auth_type == 'oauth':
             validate_oauth_scope(r_dict)    
         return func(r_dict, *args, **kwargs)
     return inner    
 
 def validate_oauth_scope(r_dict):
     method = r_dict['method']
-    endpoint = r_dict['endpoint']
-    token = r_dict['oauth_token']
+    endpoint = r_dict['auth']['endpoint']
+    token = r_dict['auth']['oauth_token']
     scopes = token.scope_to_list()
     err_msg = "Incorrect permissions to %s at %s" % (str(method), str(endpoint))
 
@@ -86,18 +85,18 @@ def validate_oauth_scope(r_dict):
 
     # Set flag to read only statements owned by user
     if 'statements/read/mine' in scopes:
-        r_dict['statements_mine_only'] = True
+        r_dict['auth']['statements_mine_only'] = True
 
     # Set flag for define - allowed to update global representation of activities/agents
     if 'define' in scopes or 'all' in scopes:
-        r_dict['oauth_define'] = True
+        r_dict['auth']['oauth_define'] = True
     else:
-        r_dict['oauth_define'] = False
+        r_dict['auth']['oauth_define'] = False
 
 # Extra agent validation for state and profile
 def validate_oauth_state_or_profile_agent(r_dict, endpoint):    
-    ag = r_dict['agent']
-    token = r_dict['oauth_token']
+    ag = r_dict['params']['agent']
+    token = r_dict['auth']['oauth_token']
     scopes = token.scope_to_list()
     if not 'all' in scopes:
         if not isinstance(ag, dict):
@@ -108,7 +107,7 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
             err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
             raise NotFound(err_msg)
 
-        if not agent in r_dict['auth'].member.all():
+        if not agent in r_dict['auth']['id'].member.all():
             err_msg = "Authorization doesn't match agent in %s" % endpoint
             raise Forbidden(err_msg)
 
@@ -141,39 +140,39 @@ def statements_more_get(r_dict):
 @check_oauth
 def statements_get(r_dict):
     formats = ['exact', 'canonical', 'ids']
-    if 'format' in r_dict:
-        if r_dict['format'] not in formats:
-            raise ParamError("The format filter value (%s) was not one of the known values: %s" % (r_dict['format'], ','.join(formats)))
+    if 'params' in r_dict and 'format' in r_dict['params']:
+        if r_dict['params']['format'] not in formats:
+            raise ParamError("The format filter value (%s) was not one of the known values: %s" % (r_dict['params']['format'], ','.join(formats)))
     else:
-        r_dict['format'] = 'exact'
+        r_dict['params']['format'] = 'exact'
 
     # if this was the weird POST/GET then put the format in the body
     # so that retrieve_statement finds it
-    if 'body' in r_dict:
-        r_dict['body']['format'] = r_dict['format']        
+    # if 'body' in r_dict:
+    #     r_dict['body']['format'] = r_dict['format']        
     
-    if 'statementId' in r_dict or 'voidedStatementId' in r_dict:
-        if 'statementId' in r_dict and 'voidedStatementId' in r_dict:
+    if 'params' in r_dict and ('statementId' in r_dict['params'] or 'voidedStatementId' in r_dict['params']):
+        if 'statementId' in r_dict['params'] and 'voidedStatementId' in r_dict['params']:
             err_msg = "Cannot have both statementId and voidedStatementId in a GET request"
             raise ParamError(err_msg)
         
         not_allowed = ["agent", "verb", "activity", "registration", 
                        "related_activities", "related_agents", "since",
                        "until", "limit", "ascending"]
-        bad_keys = set(not_allowed) & set(r_dict.keys())
+        bad_keys = set(not_allowed) & set(r_dict['params'].keys())
         if bad_keys:
             err_msg = "Cannot have %s in a GET request only 'format' and/or 'attachments' are allowed with 'statementId' and 'voidedStatementId'" % ', '.join(bad_keys)
             raise ParamError(err_msg)
 
     # Django converts all query values to string - make boolean depending on if client wants attachments or not
     # Only need to do this in GET b/c GET/more will have it saved in pickle information
-    if 'attachments' in r_dict:
-        if r_dict['attachments'] == 'True':
-            r_dict['attachments'] = True
+    if 'params' in r_dict and 'attachments' in r_dict['params']:
+        if r_dict['params']['attachments'] == 'True':
+            r_dict['params']['attachments'] = True
         else:
-            r_dict['attachments'] = False
+            r_dict['params']['attachments'] = False
     else:
-        r_dict['attachments'] = False
+        r_dict['params']['attachments'] = False
    
     return r_dict
 
@@ -182,7 +181,7 @@ def statements_get(r_dict):
 def statements_put(r_dict):
     # Must have statementId param-if not raise paramerror
     try:
-        statement_id = r_dict['statementId']
+        statement_id = r_dict['params']['statementId']
     except KeyError:
         err_msg = "Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method']
         raise ParamError(err_msg)
@@ -235,23 +234,23 @@ def validate_attachments(attachment_data, payload_sha2s):
 @check_oauth
 def activity_state_post(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
     if not 'activity_state_agent_validated' in r_dict:
         try:
-            r_dict['agent']
+            r_dict['params']['agent']
         except KeyError:
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
     try:
-        r_dict['stateId']
+        r_dict['params']['stateId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
 
-    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+    if 'headers' not in r_dict or ('CONTENT_TYPE' not in r_dict['headers'] or r_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for activity state POSTs must be application/json"
         raise ParamError(err_msg)
     
@@ -261,7 +260,7 @@ def activity_state_post(r_dict):
         raise ParamError(err_msg)
     
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "state")
 
     # Set state
@@ -278,18 +277,18 @@ def activity_state_post(r_dict):
 @check_oauth
 def activity_state_put(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
     if not 'activity_state_agent_validated' in r_dict:
         try:
-            r_dict['agent']
+            r_dict['params']['agent']
         except KeyError:
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
     try:
-        r_dict['stateId']
+        r_dict['params']['stateId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
@@ -300,7 +299,7 @@ def activity_state_put(r_dict):
         raise ParamError(err_msg)
     
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "state")
 
     # Set state
@@ -311,19 +310,19 @@ def activity_state_put(r_dict):
 @check_oauth
 def activity_state_get(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
     if not 'activity_state_agent_validated' in r_dict:
         try:
-            r_dict['agent']
+            r_dict['params']['agent']
         except KeyError:
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
 
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "state")    
     return r_dict
 
@@ -331,19 +330,19 @@ def activity_state_get(r_dict):
 @check_oauth
 def activity_state_delete(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
     if not 'activity_state_agent_validated' in r_dict:
         try:
-            r_dict['agent']
+            r_dict['params']['agent']
         except KeyError:
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
     
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "state")
     return r_dict
 
@@ -351,17 +350,17 @@ def activity_state_delete(r_dict):
 @check_oauth
 def activity_profile_post(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method']
         raise ParamError(err_msg)    
     try:
-        r_dict['profileId']
+        r_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method']
         raise ParamError(err_msg)
 
-    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+    if 'headers' not in r_dict or ('CONTENT_TYPE' not in r_dict['headers'] or r_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for activity profile POSTs must be application/json"
         raise ParamError(err_msg)
     
@@ -382,12 +381,12 @@ def activity_profile_post(r_dict):
 @check_oauth
 def activity_profile_put(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % r_dict['method']
         raise ParamError(err_msg)    
     try:
-        r_dict['profileId']
+        r_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % r_dict['method']
         raise ParamError(err_msg)
@@ -406,7 +405,7 @@ def activity_profile_put(r_dict):
 @check_oauth
 def activity_profile_get(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method']
         raise ParamError(err_msg)
@@ -416,12 +415,12 @@ def activity_profile_get(r_dict):
 @check_oauth
 def activity_profile_delete(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % r_dict['method']
         raise ParamError(err_msg)
     try:
-        r_dict['profileId']
+        r_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method']
         raise ParamError(err_msg)
@@ -431,7 +430,7 @@ def activity_profile_delete(r_dict):
 @check_oauth
 def activities_get(r_dict):
     try:
-        r_dict['activityId']
+        r_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activities - method = %s, but activityId parameter is missing" % r_dict['method']
         raise ParamError(err_msg)
@@ -441,17 +440,17 @@ def activities_get(r_dict):
 @check_oauth
 def agent_profile_post(r_dict):
     try: 
-        r_dict['agent']
+        r_dict['params']['agent']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % r_dict['method']
         raise ParamError(err_msg)
     try:
-        r_dict['profileId']
+        r_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method']
         raise ParamError(msg)
 
-    if 'CONTENT_TYPE' not in r_dict or r_dict['CONTENT_TYPE'] != "application/json":
+    if 'headers' not in r_dict or ('CONTENT_TYPE' not in r_dict['headers'] or r_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for agent profile POSTs must be application/json"
         raise ParamError(err_msg)
     
@@ -460,7 +459,7 @@ def agent_profile_post(r_dict):
         raise ParamError(err_msg)
 
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     
     # Set profile
@@ -477,12 +476,12 @@ def agent_profile_post(r_dict):
 @check_oauth
 def agent_profile_put(r_dict):
     try: 
-        r_dict['agent']
+        r_dict['params']['agent']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % r_dict['method']
         raise ParamError(err_msg)
     try:
-        r_dict['profileId']
+        r_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method']
         raise ParamError(msg)
@@ -492,7 +491,7 @@ def agent_profile_put(r_dict):
         raise ParamError(err_msg)
 
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     
     body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
@@ -503,13 +502,13 @@ def agent_profile_put(r_dict):
 @check_oauth
 def agent_profile_get(r_dict):
     try: 
-        r_dict['agent']
+        r_dict['params']['agent']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % r_dict['method']
         raise ParamError(err_msg)
 
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     return r_dict
 
@@ -517,18 +516,18 @@ def agent_profile_get(r_dict):
 @check_oauth
 def agent_profile_delete(r_dict):
     try: 
-        r_dict['agent']
+        r_dict['params']['agent']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but no agent parameter.. the agent parameter is required" % r_dict['method']
         raise ParamError(err_msg)
     try:
-        r_dict['profileId']
+        r_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % r_dict['method']
         raise ParamError(err_msg)
     
     # Extra validation if oauth
-    if r_dict['lrs_auth'] == 'oauth':
+    if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     return r_dict
 
@@ -536,7 +535,7 @@ def agent_profile_delete(r_dict):
 @check_oauth
 def agents_get(r_dict):
     try: 
-        r_dict['agent']
+        r_dict['params']['agent']
     except KeyError:
         err_msg = "Error -- agents url, but no agent parameter.. the agent parameter is required"
         raise ParamError(err_msg)

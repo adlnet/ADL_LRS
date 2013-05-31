@@ -80,10 +80,6 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId2)[0].activityId, self.test_activityId2)
         self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId3)[0].activityId, self.test_activityId3)
 
-    def test_user_in_model(self):
-        prof = models.activity_profile.objects.all()[0]
-        self.assertEquals(self.username, prof.user.username)
-        
     def test_put_no_params(self):
         put = self.client.put(reverse(views.activity_profile) ,content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEquals(put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
@@ -186,10 +182,10 @@ class ActivityProfileTests(TestCase):
         actid = "test:activity"
         profid = "test://test/tz"
         act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': actid}))
-        params = {"profileId": profid, "activityId": actid, "updated":"2012-11-11T12:00:00+00:00"}
+        params = {"profileId": profid, "activityId": actid}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         prof = {"test":"timezone since","obj":{"activity":"other"}}
-        r = self.client.put(path, prof, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        r = self.client.put(path, prof, content_type=self.content_type, updated="2012-11-11T12:00:00+00:00", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 204)
 
         since = "2012-11-11T12:00:00-02:00"
