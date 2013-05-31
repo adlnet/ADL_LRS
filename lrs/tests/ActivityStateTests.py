@@ -236,10 +236,6 @@ class ActivityStateTests(TestCase):
         # r5 = self.client.get(self.url, self.testparams3, X_Experience_API_Version="1.0.0", Authorization=auth)
         # self.assertEqual(r5.status_code, 403)
 
-    def test_user_in_model(self):
-        actstate = models.activity_state.objects.all()[0]
-        self.assertEqual(self.username, actstate.user.username)
-
     def test_get_no_existing_id(self):
         testparams = {"stateId": "testID", "activityId": self.activityId, "agent": self.testagent}
         r = self.client.get(self.url, testparams, X_Experience_API_Version="1.0.0", Authorization=self.auth)

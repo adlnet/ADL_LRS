@@ -11,8 +11,6 @@ from lrs import models, exceptions
 from lrs.util import get_user_from_auth, uri
 from Agent import Agent
 from Activity import Activity
-import pprint
-import pdb
 
 att_cache = get_cache('attachment_cache')
 
