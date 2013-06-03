@@ -119,7 +119,7 @@ class Statement():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
                     raise exceptions.ParamError(err_msg)
-                resExt = models.ResultExtensions.objects.create(key=k, value=v, content_object=rslt)
+                resExt = models.ResultExtensions.objects.create(key=k, value=v, result=rslt)
         return rslt
 
     def saveContextToDB(self, context, contextExts):
@@ -175,7 +175,7 @@ class Statement():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
                     raise exceptions.ParamError(err_msg)              
-                conExt = models.ContextExtensions.objects.create(key=k, value=v, content_object=cntx)
+                conExt = models.ContextExtensions.objects.create(key=k, value=v, context=cntx)
         return cntx        
 
     #Save statement to DB
@@ -201,7 +201,7 @@ class Statement():
         #Catch contradictory results
         if 'extensions' in stmt_data['result']:
             result = {key: value for key, value in stmt_data['result'].items() if not key == 'extensions'}
-            resultExts = stmt_data['result']['extensions']   
+            resultExts = stmt_data['result']['extensions']
         else:
             result = stmt_data['result']
 
@@ -215,8 +215,6 @@ class Statement():
         if 'score' in result.keys():
             result['score'] = self.validateScoreResult(result['score'])
             result['score'] = self.saveScoreToDB(result['score'])
-
-
         #Save result
         return self.saveResultToDB(result, resultExts)
 
@@ -262,18 +260,18 @@ class Statement():
             if created:
                 for display in displays.items():
                     models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
-                        content_object=attachment)
+                        attachment=attachment)
             
                 if descriptions:
                     for desc in descriptions.items():
                         models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
-                            content_object=attachment)
+                            attachment=attachment)
 
             # If have define permission and attachment already has existed
             if self.define and not created:
                 # Grab existing display and desc keys for the attachment
-                existing_display_keys = attachment.display.all().values_list('key', flat=True)
-                existing_desc_keys = attachment.description.all().values_list('key', flat=True)                
+                existing_display_keys = attachment.statementattachmentdisplay_set.all().values_list('key', flat=True)
+                existing_desc_keys = attachment.statementattachmentdesc_set.all().values_list('key', flat=True)                
 
                 # Iterate through each incoming display
                 for d in displays.items():
@@ -281,22 +279,26 @@ class Statement():
                     if isinstance(d, tuple):
                         # If the new key already exists, update that display with the new value
                         if d[0] in existing_display_keys:
-                            existing_attach_display = attachment.display.filter(key=d[0]).update(value=d[1])
+                            existing_display = attachment.statementattachmentdisplay_set.get(key=d[0])
+                            existing_display.value = d[1]
+                            existing_display.save()
                         # Else it doesn't exist so just create it
                         else:
                             models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
-                                content_object=attachment)
+                                attachment=attachment)
                 # Iterate through each incoming desc
                 for de in descriptions.items():
                     # If it's a tuple
                     if isinstance(de, tuple):
                         #  If the new key alerady exists, update that desc with the new value
                         if de[0] in existing_desc_keys:
-                            existing_attach_desc = attachment.description.filter(key=de[0]).update(value=de[1])
+                            existing_desc = attachment.statementattachmentdesc_set.get(key=de[0])
+                            existing_desc.value = de[1]
+                            existing_desc.save()
                         #  Else it doesn't exist so just create it
                         else:
                             models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
-                                content_object=attachment)
+                                attachment=attachment)
 
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)
@@ -351,7 +353,7 @@ class Statement():
         v = lang_map[1]
 
         # Save lang map
-        language_map = models.VerbDisplay.objects.create(key = k, value = v, content_object=verb)
+        language_map = models.VerbDisplay.objects.create(key = k, value = v, verb=verb)
         return language_map
 
     def build_verb_object(self, incoming_verb):
@@ -371,7 +373,7 @@ class Statement():
 
         # If existing, get existing keys
         if not created:
-            existing_lang_map_keys = verb_object.display.all().values_list('key', flat=True)
+            existing_lang_map_keys = verb_object.verbdisplay_set.all().values_list('key', flat=True)
         else:
             existing_lang_map_keys = []
 
@@ -385,8 +387,9 @@ class Statement():
                     if not verb_lang_map[0] in existing_lang_map_keys: 
                         lang_map = self.save_lang_map(verb_lang_map, verb_object)    
                     else:
-                        existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
-                        models.VerbDisplay.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
+                        existing_verb_lang_map = verb_object.verbdisplay_set.get(key=verb_lang_map[0])
+                        existing_verb_lang_map.value = verb_lang_map[1]
+                        existing_verb_lang_map.save()
                 else:
                     err_msg = "Verb display for verb %s is not a correct language map" % verb_id
                     raise exceptions.ParamError(err_msg)

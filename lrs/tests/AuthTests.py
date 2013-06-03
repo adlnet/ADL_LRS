@@ -304,8 +304,8 @@ class AuthTests(TestCase):
         stmt2 = models.statement.objects.get(stmt_object=activity2)
         verb1 = models.Verb.objects.get(id=stmt1.verb.id)
         verb2 = models.Verb.objects.get(id=stmt2.verb.id)
-        lang_map1 = verb1.display.all()[0]
-        lang_map2 = verb2.display.all()[0]
+        lang_map1 = verb1.verbdisplay_set.all()[0]
+        lang_map2 = verb2.verbdisplay_set.all()[0]
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
