@@ -108,7 +108,7 @@ class Statement():
     def saveResultToDB(self, result, resultExts):
         # Save the result with all of the args
         sc = result.pop('score', None)
-        rslt = models.result.objects.create(content_object=self.model_object, **result)
+        rslt = models.result.objects.create(**result)
         if sc:
             sc.result = rslt
             sc.save()
@@ -532,11 +532,11 @@ class Statement():
         if 'context' in stmt_data:
             args['context'] = self.populateContext(stmt_data)
         
+        if 'result' in stmt_data:
+            args['result'] = self.populateResult(stmt_data)
+
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)
-
-        if 'result' in stmt_data:
-            self.populateResult(stmt_data)
 
         if 'attachments' in stmt_data:
             self.populateAttachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))

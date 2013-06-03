@@ -226,9 +226,6 @@ class result(models.Model):
     response = models.TextField(blank=True)
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=40, blank=True)
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     def object_return(self):
         ret = {}
@@ -961,7 +958,7 @@ class SubStatement(statement_object):
         on_delete=models.SET_NULL)
     actor = models.ForeignKey(agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
-    result = generic.GenericRelation(result)
+    result = models.OneToOneField(result, related_name="substatement_result", null=True, on_delete=models.SET_NULL)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context = models.OneToOneField(context, related_name="substatement_context", null=True,
@@ -990,9 +987,8 @@ class SubStatement(statement_object):
         else:
             ret['object'] = stmt_object.get_agent_json(format, as_object=True)
 
-        if len(self.result.all()) > 0:
-            # if any, should only be 1
-            ret['result'] = self.result.all()[0].object_return()
+        if self.result:
+            ret['result'] = self.result.object_return()
 
         if self.context:
             ret['context'] = self.context.object_return(lang, format)
@@ -1018,8 +1014,10 @@ class SubStatement(statement_object):
 
         # If there is a context
         if self.context:
-            cntx = context.objects.get(id=self.context.id)
-            cntx.delete()
+            self.context.delete()
+
+        if self.result:
+            self.result.delete()
 
         if object_type == 'statementref':
             stmt_object.delete()
@@ -1078,7 +1076,7 @@ class statement(models.Model):
     actor = models.ForeignKey(agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
-    result = generic.GenericRelation(result)
+    result = models.OneToOneField(result, related_name="statement_result", null=True, on_delete=models.SET_NULL)
     stored = models.DateTimeField(auto_now_add=True,blank=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
@@ -1123,9 +1121,9 @@ class statement(models.Model):
             ret['object'] = stmt_object.object_return()
         else:
             ret['object'] = stmt_object.get_agent_json(format, as_object=True)
-        if len(self.result.all()) > 0:
-            # should only ever be one.. used generic fk to handle sub stmt and stmt
-            ret['result'] = self.result.all()[0].object_return()        
+        
+        if self.result:
+            ret['result'] = self.result.object_return()        
 
         if self.context:
             ret['context'] = self.context.object_return(lang, format)
@@ -1159,9 +1157,11 @@ class statement(models.Model):
 
         # If there is a context get it and call it's delete (FK will be set to null here)
         if self.context:
-            cntx = context.objects.get(id=self.context.id)
-            cntx.delete()
+            self.context.delete()
         
+        if self.result:
+            self.result.delete()
+
         # If sub or ref, FK will be set to null, then call delete
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             if object_type == 'substatement' or object_type == 'statementref':

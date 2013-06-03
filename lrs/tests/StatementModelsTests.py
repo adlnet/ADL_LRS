@@ -181,17 +181,13 @@ class StatementModelsTests(TestCase):
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-        self.assertEqual(len(stmt.model_object.result.all()), 1)
-        resid = stmt.model_object.result.all()[0].id
-        result = models.result.objects.get(id=resid)
+        result = models.result.objects.get(id=stmt.model_object.result.id)
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(stmt.model_object.result.all()[0].id, result.id)
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.all()[0].id, result.id)
 
         self.assertEqual(result.completion, True)
         self.assertEqual(result.success, True)
@@ -210,9 +206,7 @@ class StatementModelsTests(TestCase):
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-        self.assertEqual(len(stmt.model_object.result.all()), 1)
-        resid = stmt.model_object.result.all()[0].id
-        result = models.result.objects.get(id=resid)
+        result = models.result.objects.get(id=stmt.model_object.result.id)
         actor = models.agent.objects.get(id=stmt.model_object.actor.id)
         extList = result.resultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
@@ -220,12 +214,10 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(stmt.model_object.result.all()[0].id, result.id)
         self.assertEqual(stmt.model_object.actor.id, actor.id)
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.all()[0].id, result.id)
         self.assertEqual(st.actor.id, actor.id)
 
         self.assertEqual(result.completion, True)
@@ -304,10 +296,8 @@ class StatementModelsTests(TestCase):
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-        self.assertEqual(len(stmt.model_object.result.all()), 1)
-        resid = stmt.model_object.result.all()[0].id
-        result = models.result.objects.get(id=resid)
-        score = models.score.objects.get(id=stmt.model_object.result.all()[0].score.id)
+        result = models.result.objects.get(id=stmt.model_object.result.id)
+        score = models.score.objects.get(id=stmt.model_object.result.score.id)
         actor = models.agent.objects.get(id=stmt.model_object.actor.id)
         extList = result.resultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
@@ -315,12 +305,10 @@ class StatementModelsTests(TestCase):
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(stmt.model_object.result.all()[0].id, result.id)
         self.assertEqual(stmt.model_object.actor.id, actor.id)
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.all()[0].id, result.id)
         self.assertEqual(st.actor.id, actor.id)
 
         self.assertEqual(result.completion, True)
@@ -716,9 +704,7 @@ class StatementModelsTests(TestCase):
         sub_obj = models.activity.objects.get(id=sub_stmt.stmt_object.id)
         sub_act = models.agent.objects.get(id=sub_stmt.actor.id)
         sub_con = models.context.objects.get(id=sub_stmt.context.id)
-        self.assertEqual(len(sub_stmt.result.all()), 1)
-        resid = sub_stmt.result.all()[0].id
-        sub_res = models.result.objects.get(id=resid)
+        sub_res = models.result.objects.get(id=sub_stmt.result.id)
 
         self.assertEqual(outer_stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(outer_stmt.actor.mbox, 'mailto:s@s.com')        
@@ -783,7 +769,7 @@ class StatementModelsTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result1 = models.result.objects.create(success=True, content_object=stmt1.model_object)
+        result1 = models.result.objects.create(success=True)
         score1 = models.score.objects.create(scaled=0.50, result=result1)
         res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1', result=result1)
         res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2', result=result1)
@@ -805,7 +791,7 @@ class StatementModelsTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result2 = models.result.objects.create(success=True, content_object=stmt2.model_object)
+        result2 = models.result.objects.create(success=True)
         score2 = models.score.objects.create(scaled=0.50, result=result2)
         res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
         res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
@@ -828,7 +814,7 @@ class StatementModelsTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result3 = models.result.objects.create(success=True, content_object=stmt3.model_object)
+        result3 = models.result.objects.create(success=True)
         score3 = models.score.objects.create(scaled=0.50, result=result3)
         res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
         res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
