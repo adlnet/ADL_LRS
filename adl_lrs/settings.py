@@ -192,11 +192,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'user_actions': {
-            'level': 'INFO',
-            'formatter': 'verbose',
-            'class': 'lrs.handlers.DBLogHandler'
-        },
         'default': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
@@ -224,11 +219,6 @@ LOGGING = {
             'handlers': ['request_handler'],
             'level': 'DEBUG',
             'propagate': False
-        },
-        'user_system_actions': {
-            'handlers': ['user_actions'],
-            'level': 'INFO',
-            'propagate': False,
         },
     }
 }

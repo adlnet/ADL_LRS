@@ -30,7 +30,7 @@ class StatementModelsTests(TestCase):
 
     def test_given_stmtID_stmt(self):
         st_id = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":st_id,
+        stmt = Statement.Statement(json.dumps({"id":st_id,
             "actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
@@ -56,16 +56,16 @@ class StatementModelsTests(TestCase):
 
     def test_existing_stmtID_stmt(self):
         st_id = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":st_id,"verb":{"id":"verb:verb/url",
+        stmt = Statement.Statement(json.dumps({"id":st_id,"verb":{"id":"verb:verb/url",
             "display":{"en-US":"myverb"}}, "object": {"id":"act:activity"}, "actor":{"objectType":"Agent",
             "mbox":"mailto:t@t.com"}}))
-        self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"statement_id":st_id,
+        self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"id":st_id,
             "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
             "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
         
     def test_invalid_stmtID(self):
         st_id = "aaa"
-        self.assertRaises(ParamError, Statement.Statement, json.dumps({"statement_id":st_id,
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"id":st_id,
             "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
             "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 
@@ -95,7 +95,7 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"},
-            "statement_id":st_id}))
+            "id":st_id}))
 
         stmt2 = Statement.Statement(json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
@@ -146,7 +146,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_voided_true_stmt(self):
-        self.assertRaises(Forbidden, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'},
             'verb': {"id":'verb:verb/url/kicked'},'voided': True,
             'object': {'id':'act:activity3'}}))
 
@@ -469,7 +469,7 @@ class StatementModelsTests(TestCase):
     def test_stmtref_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
 
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
@@ -509,7 +509,7 @@ class StatementModelsTests(TestCase):
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
@@ -551,7 +551,7 @@ class StatementModelsTests(TestCase):
 
     def test_actor_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
@@ -593,7 +593,7 @@ class StatementModelsTests(TestCase):
 
     def test_agent_as_object_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
             'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())

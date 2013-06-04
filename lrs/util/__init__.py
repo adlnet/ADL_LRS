@@ -5,6 +5,7 @@ from django.core.cache import get_cache
 from dateutil import parser
 from lrs.models import Consumer
 from lrs.exceptions import ParamError, BadRequest
+import pdb
 
 def convert_to_utc(timestr):
     try:
@@ -35,6 +36,11 @@ def get_user_from_auth(auth):
         try:
             key = auth.member.all()[0].agent_account.name
         except:
-            key = auth.member.all()[1].agent_account.name
+            try:
+                key = auth.member.all()[1].agent_account.name
+            except Exception, e:
+                pdb.set_trace()
+                raise e
+            
         user = Consumer.objects.get(key__exact=key).user
     return user

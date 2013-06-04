@@ -19,6 +19,8 @@ def check_for_no_other_params_supplied(query_dict):
         supplied = False
     return supplied
 
+
+
 def check_oauth(func):
     @wraps(func)
     def inner(r_dict, *args, **kwargs):
@@ -111,7 +113,7 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 @check_oauth
 def statements_post(r_dict):
     payload_sha2s = r_dict.get('payload_sha2s', None)
-    
+
     # Could be batch POST or single stmt POST
     if type(r_dict['body']) is list:
         for stmt in r_dict['body']:
@@ -189,7 +191,7 @@ def statements_put(r_dict):
 
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
-        err_msg = "No other params are supplied"
+        err_msg = "No other params are supplied with statementId."
         raise ParamError(err_msg)
 
     if 'attachments' in r_dict['body']:

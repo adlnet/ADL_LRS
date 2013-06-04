@@ -400,7 +400,7 @@ class AuthTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        existStmt = Statement.Statement(json.dumps({"statement_id":guid,
+        existStmt = Statement.Statement(json.dumps({"id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 

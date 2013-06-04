@@ -11,7 +11,7 @@ from lrs import models, exceptions
 from lrs.util import get_user_from_auth, uri
 from Agent import Agent
 from Activity import Activity
-
+import pdb
 att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
@@ -35,7 +35,20 @@ class Statement():
         self.define = define
         if not isinstance(data, dict):
             self.params = self.parse(data)
+        self.validate_statement_fields(self.params)
         self.populate(self.params)
+
+    def validate_statement_fields(self, stmt):
+        if self.__class__.__name__ == 'Statement':
+            allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version',
+                            'attachments']
+        else:
+            allowed_fields = ['actor', 'verb', 'object', 'result', 'context', 'timestamp', "objectType"]
+
+        failed_list = [x for x in stmt.keys() if not x in allowed_fields]
+        if failed_list:
+            err_msg = "Invalid field(s) found in statement %s" % ', '.join(failed_list)
+            raise exceptions.ParamError(err_msg)
 
     #Make sure initial data being received is JSON
     def parse(self,data):
@@ -517,14 +530,15 @@ class Statement():
                     args['authority'] = Agent(initial=authArgs, create=True, define=self.define).agent
 
         # Check if statement_id already exists, throw exception if it does
-        if 'statement_id' in stmt_data:
+        # There will only be an ID when someone is performing a PUT
+        if 'id' in stmt_data:
             try:
-                existingSTMT = models.statement.objects.get(statement_id=stmt_data['statement_id'])
+                existingSTMT = models.statement.objects.get(statement_id=stmt_data['id'])
             except models.statement.DoesNotExist:
-                self.validate_incoming_uuid(stmt_data['statement_id'])
-                args['statement_id'] = stmt_data['statement_id']
+                self.validate_incoming_uuid(stmt_data['id'])
+                args['statement_id'] = stmt_data['id']
             else:
-                err_msg = "The Statement ID %s already exists in the system" % stmt_data['statement_id']
+                err_msg = "The Statement ID %s already exists in the system" % stmt_data['id']
                 raise exceptions.ParamConflict(err_msg)
         
         if 'context' in stmt_data:
@@ -539,20 +553,12 @@ class Statement():
         if 'attachments' in stmt_data:
             self.populateAttachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))
 
-
 class SubStatement(Statement):
     @transaction.commit_on_success
-    def __init__(self, data, auth):
-        unallowed_fields = ['id', 'stored', 'authority']
-        # Raise error if an unallowed field is present
-        for field in unallowed_fields:
-            if field in data:
-                err_msg = "%s is not allowed in a SubStatement." % field
-                raise exceptions.ParamError(err_msg)
+    def __init__(self, data, auth):        
         # Make sure object isn't another substatement
         if 'objectType' in data['object']:
             if data['object']['objectType'].lower() == 'substatement':
                 err_msg = "SubStatements cannot be nested inside of other SubStatements"
                 raise exceptions.ParamError(err_msg)
-
         Statement.__init__(self, data, auth)

@@ -858,7 +858,7 @@ class StatementFilterTests(TestCase):
         theid = str(uuid.uuid1())
         Statement(json.dumps(
         {
-        "statement_id":theid,
+        "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
         "object": {
             "mbox": "mailto:louo@example.com", 
@@ -956,7 +956,7 @@ class StatementFilterTests(TestCase):
         theid = str(uuid.uuid1())
         Statement(json.dumps(
         {
-        "statement_id":theid,
+        "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
         "object": {
             "mbox": "mailto:louo@example.com", 
