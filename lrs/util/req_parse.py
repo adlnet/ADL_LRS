@@ -11,8 +11,6 @@ from lrs.exceptions import OauthUnauthorized, ParamError, BadRequest
 from oauth_provider.oauth.oauth import OAuthError
 from oauth_provider.utils import send_oauth_error
 from oauth_provider.decorators import CheckOAuth
-import pdb
-import pprint
 
 att_cache = get_cache('attachment_cache')
 
@@ -20,13 +18,14 @@ def parse(request, more_id=None):
     r_dict = {}
     
     # Build headers from request in request dict
-    r_dict = get_headers(request.META, r_dict)
+    r_dict['headers'] = get_headers(request.META)
     
     # Traditional authorization should be passed in headers
-    if 'Authorization' in r_dict:
-        # OAuth will always be dict, not http auth. Set required fields for oauth module and lrs_auth for authentication
+    r_dict['auth'] = {}
+    if 'Authorization' in r_dict['headers']:
+        # OAuth will always be dict, not http auth. Set required fields for oauth module and type for authentication
         # module
-        auth_params = r_dict['Authorization']
+        auth_params = r_dict['headers']['Authorization']
         if auth_params[:6] == 'OAuth ':
             # Make sure it has the required/valid oauth headers
             if CheckOAuth.is_valid_request(request):
@@ -35,9 +34,9 @@ def parse(request, more_id=None):
                 except OAuthError, e:
                     raise OauthUnauthorized(send_oauth_error(e))
                 # Set consumer and token for authentication piece
-                r_dict['oauth_consumer'] = consumer
-                r_dict['oauth_token'] = token
-                r_dict['lrs_auth'] = 'oauth'
+                r_dict['auth']['oauth_consumer'] = consumer
+                r_dict['auth']['oauth_token'] = token
+                r_dict['auth']['type'] = 'oauth'
             else:
                 raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid OAuth request parameters.'))))
 
@@ -46,29 +45,38 @@ def parse(request, more_id=None):
             # Since we accept with or without / on end
             if endpoint.endswith("/"):
                 endpoint = endpoint[:-1]
-            r_dict['endpoint'] = endpoint
+            r_dict['auth']['endpoint'] = endpoint
         else:
-            r_dict['lrs_auth'] = 'http'
+            r_dict['auth']['type'] = 'http'
     elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
         # Authorization could be passed into body if cross origin request
-        r_dict['lrs_auth'] = 'http'
+        r_dict['auth']['type'] = 'http'
     else:
-        r_dict['lrs_auth'] = 'none'
+        r_dict['auth']['type'] = 'none'
 
+    r_dict['params'] = {}
     if request.method == 'POST' and 'method' in request.GET:
         bdy = convert_to_dict(request.body)
-        r_dict.update(bdy)
-        if 'content' in r_dict: # body is in 'content' for the IE cors POST
-            r_dict['body'] = r_dict.pop('content')
+        if 'content' in bdy: # body is in 'content' for the IE cors POST
+            r_dict['body'] = bdy.pop('content')
+        r_dict['headers'].update(get_headers(bdy))
+        for h in r_dict['headers']:
+            bdy.pop(h, None)
+        r_dict['params'].update(bdy)
+        for k in request.GET:
+            if k == 'method':
+                r_dict[k] = request.GET[k]
+            r_dict['params'][k] = request.GET[k]
     else:
         r_dict = parse_body(r_dict, request)
 
     # Update dict with any GET data
-    r_dict.update(request.GET.dict())
+    r_dict['params'].update(request.GET.dict())
+
 
     # A 'POST' can actually be a GET
-    if 'method' not in r_dict:
-        if request.method == "POST" and "application/json" not in r_dict['CONTENT_TYPE'] and "multipart/mixed" not in r_dict['CONTENT_TYPE']:
+    if 'method' not in r_dict['params']:
+        if request.method == "POST" and "application/json" not in r_dict['headers']['CONTENT_TYPE'] and "multipart/mixed" not in r_dict['headers']['CONTENT_TYPE']:
             r_dict['method'] = 'GET'
         else:
             r_dict['method'] = request.method
@@ -84,7 +92,7 @@ def parse_body(r, request):
         # Parse out profiles/states if the POST dict is not empty
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
             if request.POST.dict().keys():
-                r.update(request.POST.dict())
+                r['params'].update(request.POST.dict())
                 parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
                 post, files = parser.parse()
                 r['files'] = files
@@ -150,19 +158,25 @@ def parse_body(r, request):
                 raise Exception("No body in request")
     return r
 
-def get_headers(headers, r):
+def get_headers(headers):
+    r = {}
     if 'HTTP_UPDATED' in headers:
         r['updated'] = headers['HTTP_UPDATED']
-    else:
-        r['updated'] = headers.get('updated', None)
+    elif 'updated' in headers:
+        r['updated'] = headers['updated']
 
     r['CONTENT_TYPE'] = headers.get('CONTENT_TYPE', '')
+    if r['CONTENT_TYPE'] == '' and 'Content-Type' in headers:
+        r['CONTENT_TYPE'] = headers['Content-Type']
 
-    r['ETAG'] = etag.get_etag_info(headers, r, required=False)
+    r['ETAG'] = etag.get_etag_info(headers, required=False)
     if 'HTTP_AUTHORIZATION' in headers:
-        r['Authorization'] = headers['HTTP_AUTHORIZATION']
-    if 'Authorization' in headers:
-        r['Authorization'] = headers['Authorization']
+        r['Authorization'] = headers.get('HTTP_AUTHORIZATION', None)
+    elif 'Authorization' in headers:
+        r['Authorization'] = headers.get('Authorization', None)
+
     if 'Accept_Language' in headers:
-        r['language'] = headers['Accept_Language']    
+        r['language'] = headers.get('Accept_Language', None)
+    elif 'Accept-Language' in headers:
+        r['language'] = headers['Accept-Language']
     return r

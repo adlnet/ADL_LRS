@@ -22,12 +22,14 @@ def complex_get(req_dict):
     reffilter = False
 
     # Parse out params into single dict-GET data not in body
+    the_dict={}
     try:
         the_dict = req_dict['body']
         if not isinstance(the_dict, dict):
             the_dict = convert_to_dict(the_dict)
     except KeyError:
-        the_dict = req_dict
+        pass # no params in the body    
+    the_dict.update(req_dict['params'])
 
     sinceq = None
     if 'since' in the_dict:
@@ -39,8 +41,9 @@ def complex_get(req_dict):
         stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
-    if 'statements_mine_only' in the_dict:
-        stmtset = stmtset.filter(authority=the_dict['auth'])
+
+    if 'auth' in req_dict and (req_dict['auth'] and 'statements_mine_only' in req_dict['auth']):
+        stmtset = stmtset.filter(authority=req_dict['auth']['id'])
 
     agentQ = Q()
     if 'agent' in the_dict:
@@ -74,7 +77,7 @@ def complex_get(req_dict):
             return[]     
     
     verbQ = Q()
-    if 'verb' in req_dict:
+    if 'verb' in the_dict:
         reffilter = True
         verbQ = Q(verb__verb_id=the_dict['verb'])
         
@@ -99,9 +102,9 @@ def complex_get(req_dict):
     # Set language if one
     # pull from req_dict since language is from a header, not an arg 
     language = None
-    if 'format' in req_dict and req_dict['format'] == "canonical":
-        if 'language' in req_dict:
-            language = req_dict['language']
+    if 'headers' in req_dict and ('format' in the_dict and the_dict['format'] == "canonical"):
+        if 'language' in req_dict['headers']:
+            language = req_dict['headers']['language']
         else:
             language = settings.LANGUAGE_CODE
 

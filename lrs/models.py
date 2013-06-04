@@ -947,7 +947,6 @@ class activity_profile(models.Model):
     profile = models.FileField(upload_to="activity_profile")
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
-    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         self.profile.delete()
