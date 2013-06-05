@@ -626,27 +626,11 @@ class activity(statement_object):
     def __unicode__(self):
         return json.dumps(self.object_return())
 
-class name_lang(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
-    act_def = models.ForeignKey("activity_definition")
-    
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
-class desc_lang(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
+class name_lang(LanguageMap):
     act_def = models.ForeignKey("activity_definition")
 
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
+class desc_lang(LanguageMap):
+    act_def = models.ForeignKey("activity_definition")
 
 class ActivityDefinitionExtensions(extensions):
     act_def = models.ForeignKey('activity_definition')
