@@ -47,7 +47,7 @@ class Statement():
 
         failed_list = [x for x in stmt.keys() if not x in allowed_fields]
         if failed_list:
-            err_msg = "Invalid field(s) found in statement %s" % ', '.join(failed_list)
+            err_msg = "Invalid field(s) found in statement - %s" % ', '.join(failed_list)
             raise exceptions.ParamError(err_msg)
 
     #Make sure initial data being received is JSON
@@ -55,7 +55,8 @@ class Statement():
         try:
             params = json.loads(data)
         except Exception, e:
-            err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
+            err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data,
+                type(data))
             raise exceptions.ParamError(err_msg) 
         return params
 
@@ -113,13 +114,23 @@ class Statement():
         return score_data
 
     def saveScoreToDB(self, score):
-        sc = models.score.objects.create(**score)
+        try:
+            sc = models.score.objects.create(**score)
+        except TypeError, e:
+            err_msg = "Invalid field in score - %s" %  e.message
+            raise exceptions.ParamError(err_msg)
         return sc
 
     def saveResultToDB(self, result, resultExts):
         # Save the result with all of the args
         sc = result.pop('score', None)
-        rslt = models.result.objects.create(**result)
+        try:
+            rslt = models.result.objects.create(**result)
+        except TypeError, e:
+            err_msg = "Invalid field in result - %s" % e.message
+            raise exceptions.ParamError(err_msg)
+
+        # Set score if one
         if sc:
             sc.result = rslt
             sc.save()
@@ -147,7 +158,11 @@ class Statement():
             del context['statement']
 
         # Save context
-        cntx = models.context.objects.create(**context)
+        try:
+            cntx = models.context.objects.create(**context)
+        except TypeError, e:
+            err_msg = "Invalid field in context - %s" % e.message
+            raise exceptions.ParamError(err_msg)
 
         # Save context stmt if one
         if stmt_data:
@@ -202,6 +217,7 @@ class Statement():
             
             if 'authority' in args:
                 del args['authority']
+
             stmt = models.SubStatement.objects.create(**args)
         else:
             stmt = models.statement.objects.create(**args)
@@ -243,7 +259,12 @@ class Statement():
                     attachment = models.StatementAttachment.objects.get(sha2=sha2)
                     created = False
                 except models.StatementAttachment.DoesNotExist:
-                    attachment = models.StatementAttachment.objects.create(**attach)
+                    try:
+                        attachment = models.StatementAttachment.objects.create(**attach)
+                    except TypeError, e:
+                        err_msg = "Invalid field in attachments - %s" % e.message
+                        raise exceptions.ParamError(err_msg)
+                        
                     created = True                
                     # Since there is a sha2, there must be a payload cached
                     # Decode payload from msg object saved in cache and create ContentFile from raw data
@@ -264,7 +285,11 @@ class Statement():
                     attachment = models.StatementAttachment.objects.get(fileUrl=attach['fileUrl'])
                     created = False
                 except Exception, e:
-                    attachment = models.StatementAttachment.objects.create(**attach)
+                    try:
+                        attachment = models.StatementAttachment.objects.create(**attach)
+                    except TypeError, e:
+                        err_msg = "Invalid field in attachments - %s" % e.message
+                        raise exceptions.ParamError(err_msg)
                     created = True
 
             # If it was just created, create the displays and descs

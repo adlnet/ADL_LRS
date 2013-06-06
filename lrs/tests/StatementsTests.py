@@ -252,6 +252,41 @@ class StatementsTests(TestCase):
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
         stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
+    def test_invalid_result_fields(self):
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object": {"objectType": "Activity", "id":"act:foogie"}, 
+            "result": {"bad":"fields","foo":"bar","score":{"scaled":.85}, "completion": True, "success": True,
+            "response": "kicked","duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:key1": "value1",
+            "ext:key2":"value2"}}})        
+
+        resp = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.content, "Invalid field in result - 'bad' is an invalid keyword argument for this function")
+
+
+    def test_invalid_context_fields(self):
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object": {"objectType": "Activity", "id":"act:foogals",
+            "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": ["answers"],
+            "extensions": {"ext:key111": "value111", "ext:key222": "value222","ext:key333": "value333"}}}, 
+            "result": {"score":{"scaled":.79}, "completion": True, "success": True, "response": "shouted",
+            "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:dkey1": "dvalue1", "ext:dkey2":"dvalue2"}},
+            "context":{"contextActivities": {"other": {"id": "act:NewActivityID22"}},
+            "revision": "food", "bad":"foo","platform":"bard","language": "en-US",
+            "instructor":{"objectType": "Agent", "name":"bob", "mbox":"mailto:bob@bob.com"}, 
+            "extensions":{"ext:ckey111": "cval111","ext:ckey222": "cval222"}}})        
+
+        resp = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.content, "Invalid field in context - 'bad' is an invalid keyword argument for this function")
+    
 
     def test_post_with_no_valid_params(self):
         # Error will be thrown in statements class
@@ -271,6 +306,41 @@ class StatementsTests(TestCase):
         self.assertEqual(act.activity_id, "act:test_post")
         agent = models.agent.objects.get(mbox="mailto:t@t.com")
         self.assertEqual(agent.name, "bob")
+
+    def test_invalid_actor_fields(self):
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob", "bad": "blah",
+            "foo":"bar"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Invalid field(s) found in agent/group bad, foo')
+
+    def test_invalid_activity_fields(self):
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post", "bad":"foo", "foo":"bar"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Invalid field(s) found in activity - bad, foo")
+
+    def test_invalid_activity_def_fields(self):
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {'objectType': 'Activity', 'id':'act:food',
+                'definition': {'bad':'foo','name': {'en-FR':'testname2','en-US': 'testnameEN'},'description': {'en-CH':'testdesc2',
+                'en-GB': 'testdescGB'},'type': 'type:course','interactionType': 'intType2', 'extensions': {'ext:key1': 'value1',
+                'ext:key2': 'value2','ext:key3': 'value3'}}}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Invalid field(s) found in activity definition - bad")
+
 
     def test_post_wrong_duration(self):
         stmt = json.dumps({"actor":{'name':'jon',
@@ -1942,6 +2012,25 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
+
+    def test_app_json_multipart_wrong_fields(self):
+        stmt = {"actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "bad": "foo",
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "fileUrl": "http://my/file/url"}]}
+        
+        response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Invalid field in attachments - 'bad' is an invalid keyword argument for this function")
+
     def test_app_json_multipart_one_fileURL(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
             "verb":{"id":"http://tom.com/verb/butted"},
@@ -2526,3 +2615,5 @@ lBRK8g7ZncekbGW3aRLVGVOxClnLLTzwOlamBKOUm8V6XxsMHQ6TE2D+fKJoNUY1
 2HGpk+FWwy2D1hRGuoUCQAXfaLSxtaWdPtlZTPVueF7ZikQDsVg+vtTFgpuHloR2
 6EVc1RbHHZm32yvGDY8IkcoMfJQqLONDdLfS/05yoNU=
 -----END RSA PRIVATE KEY-----"""
+
+

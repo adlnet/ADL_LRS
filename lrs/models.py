@@ -314,7 +314,7 @@ class statement_object(KnowsChild):
     def get_a_name(self):
         return "please override"
 
-agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openid', 'account')
+agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openID', 'account')
 class agentmgr(models.Manager):
     # Have to return ret_agent since we may re-bind it after update
     def update_agent_name_and_members(self, kwargs, ret_agent, members, define):
@@ -391,10 +391,6 @@ class agentmgr(models.Manager):
         types = ['Agent', 'Group']
         if 'objectType' in kwargs and kwargs['objectType'] not in types:
             raise ParamError('Actor objectType must be: %s' % ' or '.join(types))
-        # Gen will only get called from Agent or Authorization. Since global is true by default and
-        # Agent always sets the define key based off of the oauth scope, default this to True if the
-        # define key is not true
-        define = kwargs.pop('define', True)
 
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
@@ -409,6 +405,11 @@ class agentmgr(models.Manager):
             # Don't create the attrs_dict if the IFP is an account
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
+
+        # Gen will only get called from Agent or Authorization. Since global is true by default and
+        # Agent always sets the define key based off of the oauth scope, default this to True if the
+        # define key is not true
+        define = kwargs.pop('define', True)
         
         # Agents won't have members 
         members = None
@@ -475,7 +476,7 @@ class agent(statement_object):
     name = models.CharField(max_length=100, blank=True)
     mbox = models.CharField(max_length=128, blank=True, db_index=True)
     mbox_sha1sum = models.CharField(max_length=40, blank=True, db_index=True)
-    openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
+    openID = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
     oauth_identifier = models.CharField(max_length=192, blank=True, db_index=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     global_representation = models.BooleanField(default=True)
@@ -494,8 +495,8 @@ class agent(statement_object):
         if self.mbox != '' and not uri.validate_email(self.mbox):
             raise ValidationError('mbox value [%s] did not start with mailto:' % self.mbox)
 
-        if self.openid != '' and not uri.validate_uri(self.openid):
-            raise ValidationError('openid value [%s] is not a valid URI' % self.openid)            
+        if self.openID != '' and not uri.validate_uri(self.openID):
+            raise ValidationError('openID value [%s] is not a valid URI' % self.openID)            
 
     def get_agent_json(self, format='exact', as_object=False):
         just_id = format == 'ids'
@@ -511,8 +512,8 @@ class agent(statement_object):
             ret['mbox'] = self.mbox
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = self.mbox_sha1sum
-        if self.openid:
-            ret['openid'] = self.openid
+        if self.openID:
+            ret['openID'] = self.openID
         try:
             ret['account'] = self.agent_account.get_json()
         except:
@@ -520,7 +521,7 @@ class agent(statement_object):
         if self.objectType == 'Group':
             # show members for groups if format isn't 'ids'
             # show members' ids for anon groups if format is 'ids'
-            if not just_id or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
+            if not just_id or not (set(['mbox','mbox_sha1sum','openID','account']) & set(ret.keys())):
                 ret['member'] = [a.get_agent_json(format) for a in self.member.all()]
         return ret
 
@@ -534,8 +535,8 @@ class agent(statement_object):
             ret['mbox'] = [self.mbox]
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = [self.mbox_sha1sum]
-        if self.openid:
-            ret['openid'] = [self.openid]
+        if self.openID:
+            ret['openID'] = [self.openID]
         try:
             ret['account'] = [self.agent_account.get_json()]
         except:
@@ -549,8 +550,8 @@ class agent(statement_object):
             return self.mbox
         if self.mbox_sha1sum:
             return self.mbox_sha1sum
-        if self.openid:
-            return self.openid
+        if self.openID:
+            return self.openID
         try:
             return self.agent_account.get_a_name()
         except:
