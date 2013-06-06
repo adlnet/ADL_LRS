@@ -6,6 +6,7 @@ from dateutil import parser
 from lrs.models import Consumer
 from lrs.exceptions import ParamError, BadRequest
 
+
 def convert_to_utc(timestr):
     try:
         date_object = parser.parse(timestr)
@@ -36,5 +37,6 @@ def get_user_from_auth(auth):
             key = auth.member.all()[0].agent_account.name
         except:
             key = auth.member.all()[1].agent_account.name
+            
         user = Consumer.objects.get(key__exact=key).user
     return user

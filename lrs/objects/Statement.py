@@ -11,7 +11,7 @@ from lrs import models, exceptions
 from lrs.util import get_user_from_auth, uri
 from Agent import Agent
 from Activity import Activity
-
+import pdb
 att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
@@ -35,7 +35,20 @@ class Statement():
         self.define = define
         if not isinstance(data, dict):
             self.params = self.parse(data)
+        self.validate_statement_fields(self.params)
         self.populate(self.params)
+
+    def validate_statement_fields(self, stmt):
+        if self.__class__.__name__ == 'Statement':
+            allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version',
+                            'attachments']
+        else:
+            allowed_fields = ['actor', 'verb', 'object', 'result', 'context', 'timestamp', "objectType"]
+
+        failed_list = [x for x in stmt.keys() if not x in allowed_fields]
+        if failed_list:
+            err_msg = "Invalid field(s) found in statement %s" % ', '.join(failed_list)
+            raise exceptions.ParamError(err_msg)
 
     #Make sure initial data being received is JSON
     def parse(self,data):
@@ -52,7 +65,7 @@ class Statement():
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
             stmt = models.statement.objects.get(statement_id=stmt_id)
-        except Exception:
+        except models.statement.DoesNotExist:
             err_msg = "Statement with ID %s does not exist" % str(stmt_id)
             raise exceptions.IDNotFoundError(err_msg)
         
@@ -61,9 +74,7 @@ class Statement():
             stmt.voided = True
             stmt.save()
             # Create statement ref
-            stmt_ref = models.StatementRef(ref_id=stmt_id)
-            stmt_ref.save()
-
+            stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
             return stmt_ref
         else:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % str_id
@@ -102,15 +113,13 @@ class Statement():
         return score_data
 
     def saveScoreToDB(self, score):
-        sc = models.score(**score)
-        sc.save()
+        sc = models.score.objects.create(**score)
         return sc
 
     def saveResultToDB(self, result, resultExts):
         # Save the result with all of the args
         sc = result.pop('score', None)
-        rslt = models.result(content_object=self.model_object, **result)
-        rslt.save()
+        rslt = models.result.objects.create(**result)
         if sc:
             sc.result = rslt
             sc.save()
@@ -121,7 +130,7 @@ class Statement():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
                     raise exceptions.ParamError(err_msg)
-                resExt = models.ResultExtensions.objects.create(key=k, value=v, content_object=rslt)
+                resExt = models.ResultExtensions.objects.create(key=k, value=v, result=rslt)
         return rslt
 
     def saveContextToDB(self, context, contextExts):
@@ -138,8 +147,7 @@ class Statement():
             del context['statement']
 
         # Save context
-        cntx = models.context(**context)    
-        cntx.save()
+        cntx = models.context.objects.create(**context)
 
         # Save context stmt if one
         if stmt_data:
@@ -178,7 +186,7 @@ class Statement():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
                     raise exceptions.ParamError(err_msg)              
-                conExt = models.ContextExtensions.objects.create(key=k, value=v, content_object=cntx)
+                conExt = models.ContextExtensions.objects.create(key=k, value=v, context=cntx)
         return cntx        
 
     #Save statement to DB
@@ -194,11 +202,9 @@ class Statement():
             
             if 'authority' in args:
                 del args['authority']
-            stmt = models.SubStatement(**args)
-            stmt.save()
+            stmt = models.SubStatement.objects.create(**args)
         else:
-            stmt = models.statement(**args)
-            stmt.save()
+            stmt = models.statement.objects.create(**args)
         return stmt
 
     def populateResult(self, stmt_data):
@@ -206,7 +212,7 @@ class Statement():
         #Catch contradictory results
         if 'extensions' in stmt_data['result']:
             result = {key: value for key, value in stmt_data['result'].items() if not key == 'extensions'}
-            resultExts = stmt_data['result']['extensions']   
+            resultExts = stmt_data['result']['extensions']
         else:
             result = stmt_data['result']
 
@@ -220,8 +226,6 @@ class Statement():
         if 'score' in result.keys():
             result['score'] = self.validateScoreResult(result['score'])
             result['score'] = self.saveScoreToDB(result['score'])
-
-
         #Save result
         return self.saveResultToDB(result, resultExts)
 
@@ -267,18 +271,18 @@ class Statement():
             if created:
                 for display in displays.items():
                     models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
-                        content_object=attachment)
+                        attachment=attachment)
             
                 if descriptions:
                     for desc in descriptions.items():
                         models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
-                            content_object=attachment)
+                            attachment=attachment)
 
             # If have define permission and attachment already has existed
             if self.define and not created:
                 # Grab existing display and desc keys for the attachment
-                existing_display_keys = attachment.display.all().values_list('key', flat=True)
-                existing_desc_keys = attachment.description.all().values_list('key', flat=True)                
+                existing_display_keys = attachment.statementattachmentdisplay_set.all().values_list('key', flat=True)
+                existing_desc_keys = attachment.statementattachmentdesc_set.all().values_list('key', flat=True)                
 
                 # Iterate through each incoming display
                 for d in displays.items():
@@ -286,22 +290,26 @@ class Statement():
                     if isinstance(d, tuple):
                         # If the new key already exists, update that display with the new value
                         if d[0] in existing_display_keys:
-                            existing_attach_display = attachment.display.filter(key=d[0]).update(value=d[1])
+                            existing_display = attachment.statementattachmentdisplay_set.get(key=d[0])
+                            existing_display.value = d[1]
+                            existing_display.save()
                         # Else it doesn't exist so just create it
                         else:
                             models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
-                                content_object=attachment)
+                                attachment=attachment)
                 # Iterate through each incoming desc
                 for de in descriptions.items():
                     # If it's a tuple
                     if isinstance(de, tuple):
                         #  If the new key alerady exists, update that desc with the new value
                         if de[0] in existing_desc_keys:
-                            existing_attach_desc = attachment.description.filter(key=de[0]).update(value=de[1])
+                            existing_desc = attachment.statementattachmentdesc_set.get(key=de[0])
+                            existing_desc.value = de[1]
+                            existing_desc.save()
                         #  Else it doesn't exist so just create it
                         else:
                             models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
-                                content_object=attachment)
+                                attachment=attachment)
 
             # Add each attach to the stmt
             self.model_object.attachments.add(attachment)
@@ -356,9 +364,7 @@ class Statement():
         v = lang_map[1]
 
         # Save lang map
-        language_map = models.VerbDisplay(key = k, value = v, content_object=verb)
-        language_map.save()        
-
+        language_map = models.VerbDisplay.objects.create(key = k, value = v, verb=verb)
         return language_map
 
     def build_verb_object(self, incoming_verb):
@@ -378,7 +384,7 @@ class Statement():
 
         # If existing, get existing keys
         if not created:
-            existing_lang_map_keys = verb_object.display.all().values_list('key', flat=True)
+            existing_lang_map_keys = verb_object.verbdisplay_set.all().values_list('key', flat=True)
         else:
             existing_lang_map_keys = []
 
@@ -392,8 +398,9 @@ class Statement():
                     if not verb_lang_map[0] in existing_lang_map_keys: 
                         lang_map = self.save_lang_map(verb_lang_map, verb_object)    
                     else:
-                        existing_verb_lang_map = verb_object.display.get(key=verb_lang_map[0])
-                        models.VerbDisplay.objects.filter(id=existing_verb_lang_map.id).update(value=verb_lang_map[1])
+                        existing_verb_lang_map = verb_object.verbdisplay_set.get(key=verb_lang_map[0])
+                        existing_verb_lang_map.value = verb_lang_map[1]
+                        existing_verb_lang_map.save()
                 else:
                     err_msg = "Verb display for verb %s is not a correct language map" % verb_id
                     raise exceptions.ParamError(err_msg)
@@ -470,8 +477,7 @@ class Statement():
                     err_msg = "No statement with ID %s was found" % statementObjectData['id']
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
-                    stmt_ref = models.StatementRef(ref_id=statementObjectData['id'])
-                    stmt_ref.save()
+                    stmt_ref = models.StatementRef.objects.create(ref_id=statementObjectData['id'])
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor
@@ -524,42 +530,35 @@ class Statement():
                     args['authority'] = Agent(initial=authArgs, create=True, define=self.define).agent
 
         # Check if statement_id already exists, throw exception if it does
-        if 'statement_id' in stmt_data:
+        # There will only be an ID when someone is performing a PUT
+        if 'id' in stmt_data:
             try:
-                existingSTMT = models.statement.objects.get(statement_id=stmt_data['statement_id'])
+                existingSTMT = models.statement.objects.get(statement_id=stmt_data['id'])
             except models.statement.DoesNotExist:
-                self.validate_incoming_uuid(stmt_data['statement_id'])
-                args['statement_id'] = stmt_data['statement_id']
+                self.validate_incoming_uuid(stmt_data['id'])
+                args['statement_id'] = stmt_data['id']
             else:
-                err_msg = "The Statement ID %s already exists in the system" % stmt_data['statement_id']
+                err_msg = "The Statement ID %s already exists in the system" % stmt_data['id']
                 raise exceptions.ParamConflict(err_msg)
         
         if 'context' in stmt_data:
             args['context'] = self.populateContext(stmt_data)
         
+        if 'result' in stmt_data:
+            args['result'] = self.populateResult(stmt_data)
+
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)
-
-        if 'result' in stmt_data:
-            self.populateResult(stmt_data)
 
         if 'attachments' in stmt_data:
             self.populateAttachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))
 
-
 class SubStatement(Statement):
     @transaction.commit_on_success
-    def __init__(self, data, auth):
-        unallowed_fields = ['id', 'stored', 'authority']
-        # Raise error if an unallowed field is present
-        for field in unallowed_fields:
-            if field in data:
-                err_msg = "%s is not allowed in a SubStatement." % field
-                raise exceptions.ParamError(err_msg)
+    def __init__(self, data, auth):        
         # Make sure object isn't another substatement
         if 'objectType' in data['object']:
             if data['object']['objectType'].lower() == 'substatement':
                 err_msg = "SubStatements cannot be nested inside of other SubStatements"
                 raise exceptions.ParamError(err_msg)
-
         Statement.__init__(self, data, auth)

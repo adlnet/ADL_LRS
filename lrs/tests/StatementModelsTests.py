@@ -30,14 +30,14 @@ class StatementModelsTests(TestCase):
 
     def test_given_stmtID_stmt(self):
         st_id = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":st_id,
+        stmt = Statement.Statement(json.dumps({"id":st_id,
             "actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         verb = models.Verb.objects.get(id=stmt.model_object.verb.id)
         actor = models.agent.objects.get(id=stmt.model_object.actor.id)
-        lang_maps = verb.display.all()
+        lang_maps = verb.verbdisplay_set.all()
 
         for lm in lang_maps:
             if lm.key == 'en-GB':
@@ -56,16 +56,16 @@ class StatementModelsTests(TestCase):
 
     def test_existing_stmtID_stmt(self):
         st_id = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":st_id,"verb":{"id":"verb:verb/url",
+        stmt = Statement.Statement(json.dumps({"id":st_id,"verb":{"id":"verb:verb/url",
             "display":{"en-US":"myverb"}}, "object": {"id":"act:activity"}, "actor":{"objectType":"Agent",
             "mbox":"mailto:t@t.com"}}))
-        self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"statement_id":st_id,
+        self.assertRaises(ParamConflict, Statement.Statement, json.dumps({"id":st_id,
             "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
             "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
         
     def test_invalid_stmtID(self):
         st_id = "aaa"
-        self.assertRaises(ParamError, Statement.Statement, json.dumps({"statement_id":st_id,
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({"id":st_id,
             "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
             "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 
@@ -95,7 +95,7 @@ class StatementModelsTests(TestCase):
         stmt = Statement.Statement(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"},
-            "statement_id":st_id}))
+            "id":st_id}))
 
         stmt2 = Statement.Statement(json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
@@ -146,7 +146,7 @@ class StatementModelsTests(TestCase):
 
 
     def test_voided_true_stmt(self):
-        self.assertRaises(Forbidden, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'},
+        self.assertRaises(ParamError, Statement.Statement, json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'},
             'verb': {"id":'verb:verb/url/kicked'},'voided': True,
             'object': {'id':'act:activity3'}}))
 
@@ -181,17 +181,13 @@ class StatementModelsTests(TestCase):
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-        self.assertEqual(len(stmt.model_object.result.all()), 1)
-        resid = stmt.model_object.result.all()[0].id
-        result = models.result.objects.get(id=resid)
+        result = models.result.objects.get(id=stmt.model_object.result.id)
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(stmt.model_object.result.all()[0].id, result.id)
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.all()[0].id, result.id)
 
         self.assertEqual(result.completion, True)
         self.assertEqual(result.success, True)
@@ -210,22 +206,18 @@ class StatementModelsTests(TestCase):
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-        self.assertEqual(len(stmt.model_object.result.all()), 1)
-        resid = stmt.model_object.result.all()[0].id
-        result = models.result.objects.get(id=resid)
+        result = models.result.objects.get(id=stmt.model_object.result.id)
         actor = models.agent.objects.get(id=stmt.model_object.actor.id)
-        extList = result.extensions.values_list()
+        extList = result.resultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(stmt.model_object.result.all()[0].id, result.id)
         self.assertEqual(stmt.model_object.actor.id, actor.id)
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.all()[0].id, result.id)
         self.assertEqual(st.actor.id, actor.id)
 
         self.assertEqual(result.completion, True)
@@ -304,23 +296,19 @@ class StatementModelsTests(TestCase):
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
 
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
-        self.assertEqual(len(stmt.model_object.result.all()), 1)
-        resid = stmt.model_object.result.all()[0].id
-        result = models.result.objects.get(id=resid)
-        score = models.score.objects.get(id=stmt.model_object.result.all()[0].score.id)
+        result = models.result.objects.get(id=stmt.model_object.result.id)
+        score = models.score.objects.get(id=stmt.model_object.result.score.id)
         actor = models.agent.objects.get(id=stmt.model_object.actor.id)
-        extList = result.extensions.values_list()
+        extList = result.resultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(stmt.model_object.result.all()[0].id, result.id)
         self.assertEqual(stmt.model_object.actor.id, actor.id)
 
         st = models.statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.result.all()[0].id, result.id)
         self.assertEqual(st.actor.id, actor.id)
 
         self.assertEqual(result.completion, True)
@@ -452,7 +440,7 @@ class StatementModelsTests(TestCase):
         activity = models.activity.objects.get(id=stmt.model_object.stmt_object.id)
         ctxid = get_ctx_id(stmt.model_object)
         context = models.context.objects.get(id=ctxid)
-        extList = context.extensions.values_list()
+        extList = context.contextextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
         context_activities = stmt.model_object.context.contextactivity_set.all()
@@ -481,7 +469,7 @@ class StatementModelsTests(TestCase):
     def test_stmtref_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
 
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
@@ -521,7 +509,7 @@ class StatementModelsTests(TestCase):
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
@@ -563,7 +551,7 @@ class StatementModelsTests(TestCase):
 
     def test_actor_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
@@ -605,7 +593,7 @@ class StatementModelsTests(TestCase):
 
     def test_agent_as_object_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+        existing_stmt = Statement.Statement(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
             'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
 
         guid = str(uuid.uuid1())
@@ -716,9 +704,7 @@ class StatementModelsTests(TestCase):
         sub_obj = models.activity.objects.get(id=sub_stmt.stmt_object.id)
         sub_act = models.agent.objects.get(id=sub_stmt.actor.id)
         sub_con = models.context.objects.get(id=sub_stmt.context.id)
-        self.assertEqual(len(sub_stmt.result.all()), 1)
-        resid = sub_stmt.result.all()[0].id
-        sub_res = models.result.objects.get(id=resid)
+        sub_res = models.result.objects.get(id=sub_stmt.result.id)
 
         self.assertEqual(outer_stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(outer_stmt.actor.mbox, 'mailto:s@s.com')        
@@ -756,8 +742,8 @@ class StatementModelsTests(TestCase):
     # Verbs cannot share languagemaps. Will have many lang_maps attached to one verb
     def test_verb_delete(self):
         verb1 = models.Verb.objects.create(verb_id="verb:created")
-        lang_map1 = models.VerbDisplay.objects.create(key='en-US', value='created', content_object=verb1)
-        lang_map2 = models.VerbDisplay.objects.create(key='en-GB', value='created', content_object=verb1)
+        lang_map1 = models.VerbDisplay.objects.create(key='en-US', value='created', verb=verb1)
+        lang_map2 = models.VerbDisplay.objects.create(key='en-GB', value='created', verb=verb1)
 
         # Should remove any lang maps attached to it
         models.Verb.objects.get(id=verb1.id).delete()
@@ -767,8 +753,8 @@ class StatementModelsTests(TestCase):
         self.assertEqual(lang_maps, 0)
 
         verb2 = models.Verb.objects.create(verb_id="verb:deleted")
-        lang_map3 = models.VerbDisplay.objects.create(key='en-US', value='deleted', content_object=verb2)
-        lang_map4 = models.VerbDisplay.objects.create(key='en-GB', value='deleted', content_object=verb2)
+        lang_map3 = models.VerbDisplay.objects.create(key='en-US', value='deleted', verb=verb2)
+        lang_map4 = models.VerbDisplay.objects.create(key='en-GB', value='deleted', verb=verb2)
 
         # Deleting lang map should not affect anything else
         models.VerbDisplay.objects.get(id=lang_map3.id).delete()
@@ -783,10 +769,10 @@ class StatementModelsTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result1 = models.result.objects.create(success=True, content_object=stmt1.model_object)
+        result1 = models.result.objects.create(success=True)
         score1 = models.score.objects.create(scaled=0.50, result=result1)
-        res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1', content_object=result1)
-        res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2', content_object=result1)
+        res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1', result=result1)
+        res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2', result=result1)
 
         # There should never be a time that a result object gets deleted by itself. In this case, the statement
         # will remain
@@ -805,10 +791,10 @@ class StatementModelsTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result2 = models.result.objects.create(success=True, content_object=stmt2.model_object)
+        result2 = models.result.objects.create(success=True)
         score2 = models.score.objects.create(scaled=0.50, result=result2)
-        res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4', content_object=result2)
-        res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4', content_object=result2)
+        res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
+        res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
 
         # There should never be a time that a score object gets deleted by itself. It is OneToOne with result,
         # the result object does not get removed. Once again stmt will remain
@@ -828,10 +814,10 @@ class StatementModelsTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result3 = models.result.objects.create(success=True, content_object=stmt3.model_object)
+        result3 = models.result.objects.create(success=True)
         score3 = models.score.objects.create(scaled=0.50, result=result3)
-        res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4', content_object=result3)
-        res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4', content_object=result3)
+        res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
+        res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
 
         # Deleting an ext should not affect anything else
         models.ResultExtensions.objects.get(id=res_ext6.id).delete()
