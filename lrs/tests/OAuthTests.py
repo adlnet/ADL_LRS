@@ -526,7 +526,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_simple_get(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -591,7 +591,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_get_then_wrong_scope(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -687,7 +687,7 @@ class OAuthTests(TestCase):
         
         # Set up for Get
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -720,7 +720,7 @@ class OAuthTests(TestCase):
 
     def stmt_get_then_wrong_profile_scope(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -859,7 +859,7 @@ class OAuthTests(TestCase):
         oauth_group = models.agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
 
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}))
         param = {"statementId":guid}
@@ -933,7 +933,7 @@ class OAuthTests(TestCase):
         oauth_group = models.agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
 
-        stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}))
         
@@ -1035,7 +1035,7 @@ class OAuthTests(TestCase):
     def test_define_scope_activity(self):
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent",
+        existing_stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent",
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}))
 
@@ -1074,8 +1074,8 @@ class OAuthTests(TestCase):
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
-
-        # Put statements
+        # Put statements - does not have define scope, therefore it creates another activity with 
+        # global_representation as false
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 204)
@@ -1112,7 +1112,7 @@ class OAuthTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/tested","display": {"en-US":"tested"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
-            'description': {'en-US':'definedesc', 'en-GB': 'definedesc'},'type': 'type:course',
+            'description': {'en-US':'definedesc', 'en-GB': 'definealtdesc'},'type': 'type:course',
             'interactionType': 'intType'}}}
         stmt_json = json.dumps(post_stmt)
 
@@ -1129,7 +1129,6 @@ class OAuthTests(TestCase):
         
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del post_oauth_header_resource_params_dict['OAuth realm']
-        # post_oauth_header_resource_params_dict.update(post_stmt)
         
         post_oauth_request = OAuthRequest.from_token_and_callback(post_access_token, http_method='POST',
             http_url='http://testserver/XAPI/statements/',
@@ -1140,23 +1139,37 @@ class OAuthTests(TestCase):
             post_access_token)
 
         post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
-        
+        # This adds the act_def to the very first activity created in this test sine this has define scope
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 200)
         acts = models.activity.objects.all()
         self.assertEqual(len(acts), 2)
         act_defs = models.activity_definition.objects.all()
-        name_list = []
-        name_list.append(str(act_defs[0].name.all()[0].value))
-        name_list.append(str(act_defs[1].name.all()[0].value))
-        self.assertIn('altname', name_list)
-        self.assertIn('definealtname', name_list)
+        self.assertEqual(len(acts), 2)
+
+        global_act = models.activity.objects.get(global_representation=True)        
+        global_name_list = global_act.activity_definition.name_lang_set.all().values_list('value', flat=True)
+        self.assertIn('definename', global_name_list)
+        self.assertIn('definealtname', global_name_list)
+        global_desc_list = global_act.activity_definition.desc_lang_set.all().values_list('value', flat=True)
+        self.assertIn('definedesc', global_desc_list)
+        self.assertIn('definealtdesc', global_desc_list)
+
+        non_global_act = models.activity.objects.get(global_representation=False)        
+        non_global_name_list = non_global_act.activity_definition.name_lang_set.all().values_list('value',
+            flat=True)
+        self.assertIn('testname', non_global_name_list)
+        self.assertIn('altname', non_global_name_list)
+        non_global_desc_list = non_global_act.activity_definition.desc_lang_set.all().values_list('value',
+            flat=True)
+        self.assertIn('testdesc', non_global_desc_list)
+        self.assertIn('altdesc', non_global_desc_list)
 
     def test_define_scope_agent(self):
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({"statement_id":guid,"actor":{"objectType": "Agent",
+        existing_stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent",
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/helped",
             "display": {"en-US":"helped"}},"object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com",
             "name":"tim"}}))

@@ -43,7 +43,7 @@ def statements_put(req_dict):
         define = auth['oauth_define']    
 
     # Set statement ID in body so all data is together
-    req_dict['body']['statement_id'] = req_dict['params']['statementId']
+    req_dict['body']['id'] = req_dict['params']['statementId']
     stmt = Statement.Statement(req_dict['body'], auth=auth_id, define=define).model_object
     
     return HttpResponse("No Content", status=204)

@@ -10,7 +10,6 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
 from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware
@@ -182,8 +181,8 @@ def reg_client(request):
             try:
                 client = models.Consumer.objects.get(name__exact=name)
             except models.Consumer.DoesNotExist:
-                client = models.Consumer(name=name, description=description, user=request.user, status=ACCEPTED, default_scopes=",".join(scopes))
-                client.save()
+                client = models.Consumer.objects.create(name=name, description=description, user=request.user,
+                    status=ACCEPTED, default_scopes=",".join(scopes))
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
             d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
@@ -213,7 +212,7 @@ def my_statements(request):
                 raise Exception("unable to delete statements")
         stmt_id = request.GET.get("stmt_id", None)
         if stmt_id:
-            s = models.statement.objects.get(Q(statement_id=stmt_id), Q(user=request.user))
+            s = models.statement.objects.get(statement_id=stmt_id, user=request.user)
             return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
         else:
             s = {}

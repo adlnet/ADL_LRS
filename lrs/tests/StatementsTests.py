@@ -29,7 +29,7 @@ class StatementsTests(TestCase):
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True
-
+        
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
@@ -318,8 +318,8 @@ class StatementsTests(TestCase):
         stmt2 = models.statement.objects.get(stmt_object=activity2)
         verb1 = models.Verb.objects.get(id=stmt1.verb.id)
         verb2 = models.Verb.objects.get(id=stmt2.verb.id)
-        lang_map1 = verb1.display.all()[0]
-        lang_map2 = verb2.display.all()[0]
+        lang_map1 = verb1.verbdisplay_set.all()[0]
+        lang_map2 = verb2.verbdisplay_set.all()[0]
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
@@ -419,7 +419,7 @@ class StatementsTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        existStmt = Statement.Statement(json.dumps({"statement_id":guid,
+        existStmt = Statement.Statement(json.dumps({"id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 
@@ -624,8 +624,8 @@ class StatementsTests(TestCase):
         act = models.activity.objects.get(activity_id="act:foogie")
         act_def = models.activity_definition.objects.get(activity=act)
 
-        name_set = act_def.name.all()
-        desc_set = act_def.description.all()
+        name_set = act_def.name_lang_set.all()
+        desc_set = act_def.desc_lang_set.all()
 
         for ns in name_set:
             if ns.key == 'en-GB':
@@ -2362,8 +2362,8 @@ class StatementsTests(TestCase):
         attach_objs = models.StatementAttachment.objects.all()
         self.assertEqual(len(attach_objs), 1)
 
-        displays = attach_objs[0].display.all()
-        descs = attach_objs[0].description.all()
+        displays = attach_objs[0].statementattachmentdisplay_set.all()
+        descs = attach_objs[0].statementattachmentdesc_set.all()
 
         self.assertEqual(len(displays), 2)
         self.assertEqual(len(descs), 2)
