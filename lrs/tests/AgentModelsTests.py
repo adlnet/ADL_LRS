@@ -22,11 +22,11 @@ class AgentModelsTests(TestCase):
         self.assertFalse(bob.name)
         self.assertFalse(bob.mbox)
 
-    def test_agent_openid_create(self):
-        openid = "bob.openid.com"
-        bob = agent(openid=openid)
+    def test_agent_openID_create(self):
+        openID = "bob.openID.com"
+        bob = agent(openID=openID)
         bob.save()
-        self.assertEquals(bob.openid, openid)
+        self.assertEquals(bob.openID, openID)
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
         self.assertFalse(bob.mbox)
@@ -45,7 +45,7 @@ class AgentModelsTests(TestCase):
         self.assertFalse(bob.name)
         self.assertFalse(bob.mbox)
         self.assertFalse(bob.mbox_sha1sum)
-        self.assertFalse(bob.openid)
+        self.assertFalse(bob.openID)
 
     def test_agent_kwargs_basic(self):
         ot = "Agent"
@@ -251,7 +251,7 @@ class AgentModelsTests(TestCase):
     def test_agent_json_many_ids(self):
         self.assertRaises(ParamError, agent.objects.gen, 
             **{"mbox":"mailto:bob@example.com",
-               "openid":"bob.bobson.openid.org"})
+               "openID":"bob.bobson.openID.org"})
 
     def test_group(self):
         ot = "Group"
@@ -387,26 +387,26 @@ class AgentModelsTests(TestCase):
 
         ot_b = "Agent"
         name_b = "batman"
-        openid_b = "id:batman"
-        kwargs_b = {"objectType":ot_b,"name":name_b,"openid":openid_b}
+        openID_b = "id:batman"
+        kwargs_b = {"objectType":ot_b,"name":name_b,"openID":openID_b}
         bruce, created = agent.objects.gen(**kwargs_b)
         self.assertTrue(created)
         bruce.save()
         self.assertEquals(bruce.objectType, ot_b)
         self.assertEquals(bruce.name, name_b)
-        self.assertEquals(bruce.openid, openid_b)
+        self.assertEquals(bruce.openID, openID_b)
 
         bruce_exact = bruce.get_agent_json()
         self.assertEquals(bruce_exact['objectType'], ot_b)
         self.assertEquals(bruce_exact['name'], name_b)
-        self.assertEquals(bruce_exact['openid'], openid_b)
+        self.assertEquals(bruce_exact['openID'], openID_b)
 
         bruce_ids = bruce.get_agent_json(format='ids')
         self.assertFalse('objectType' in str(bruce_ids), "object type was found in agent json")
         self.assertFalse('name' in str(bruce_ids), "name was found in agent json")
         self.assertFalse('mbox' in str(bruce_ids), "mbox was found in agent json")
         self.assertFalse('mbox_sha1sum' in str(bruce_ids), "mbox_sha1sum was found in agent json")
-        self.assertEquals(bruce_ids['openid'], openid_b)
+        self.assertEquals(bruce_ids['openID'], openID_b)
 
         ot_f = "Agent"
         name_f = "the flash"
@@ -431,7 +431,7 @@ class AgentModelsTests(TestCase):
         self.assertFalse('name' in barry_ids.items(), "name was found in agent json")
         self.assertFalse('mbox' in barry_ids.items(), "mbox was found in agent json")
         self.assertFalse('mbox_sha1sum' in str(barry_ids), "mbox_sha1sum was found in agent json")
-        self.assertFalse('openid' in str(barry_ids), "openid was found in agent json")
+        self.assertFalse('openID' in str(barry_ids), "openID was found in agent json")
         self.assertEquals(barry_ids['account']['homePage'], account_f['homePage'])
         self.assertEquals(barry_ids['account']['name'], account_f['name'])
 
