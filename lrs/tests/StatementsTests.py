@@ -307,6 +307,18 @@ class StatementsTests(TestCase):
         agent = models.agent.objects.get(mbox="mailto:t@t.com")
         self.assertEqual(agent.name, "bob")
 
+    def test_openid(self):
+        guid = str(uuid.uuid1())
+        stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
+            'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        agent = models.agent.objects.get(name='lulu')
+        self.assertEqual(agent.openID, 'id:luluid')
+
     def test_invalid_actor_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob", "bad": "blah",
             "foo":"bar"},

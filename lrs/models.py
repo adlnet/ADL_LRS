@@ -314,7 +314,7 @@ class statement_object(KnowsChild):
     def get_a_name(self):
         return "please override"
 
-agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openID', 'account')
+agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openID', 'account', 'openid')
 class agentmgr(models.Manager):
     # Have to return ret_agent since we may re-bind it after update
     def update_agent_name_and_members(self, kwargs, ret_agent, members, define):
@@ -402,6 +402,9 @@ class agentmgr(models.Manager):
         # If there is an IFP (could be blank if group) make a dict with the IFP key and value
         if attrs:
             attr = attrs[0]
+            # Here until spec makes decision on openID vs openid
+            if attr == 'openid':
+                attr = 'openID'
             # Don't create the attrs_dict if the IFP is an account
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
