@@ -428,7 +428,7 @@ class ActivityModelsTests(TestCase):
         self.assertRaises(ParamError, Activity.Activity, json.dumps({'objectType': 'Activity', 
                 'id':'http://facebook.com','definition': {'name': {'en-US':'testname2'},
                 'description': {'en-GB':'testdesc2'}, 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
-                'interactionType': 'intType2', 'correctResponsesPatteRN': 'response',
+                'interactionType': 'intType2', 'correctResponsesPattern': 'response',
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}))
      
         self.assertRaises(models.activity.DoesNotExist, models.activity.objects.get,

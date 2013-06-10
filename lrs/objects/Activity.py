@@ -144,6 +144,12 @@ class Activity():
 
     #Once JSON is verified, populate the activity objects
     def populate(self, the_object):        
+        allowed_fields = ["objectType", "id", "definition"]
+        failed_list = [x for x in the_object.keys() if not x in allowed_fields]
+        if failed_list:
+            err_msg = "Invalid field(s) found in activity - %s" % ', '.join(failed_list)
+            raise exceptions.ParamError(err_msg)
+
         # Must include activity_id - set object's activity_id
         # Make sure it's a URI
         try:
@@ -184,19 +190,19 @@ class Activity():
     # Save language map object for activity definition name or description
     def save_lang_map(self, lang_map, parent, lang_map_type):
         if lang_map_type == 'choice':
-            language_map = models.ActivityDefinitionChoiceDesc.objects.create(key = lang_map[0],
+            language_map = models.ActivityDefinitionChoiceDesc.objects.create(key=lang_map[0],
                 value = lang_map[1],act_def_choice=parent)
         elif lang_map_type == 'scale':
-            language_map = models.ActivityDefinitionScaleDesc.objects.create(key = lang_map[0],
+            language_map = models.ActivityDefinitionScaleDesc.objects.create(key=lang_map[0],
                 value = lang_map[1],act_def_scale=parent)        
         elif lang_map_type == 'step':
-            language_map = models.ActivityDefinitionStepDesc.objects.create(key = lang_map[0],
+            language_map = models.ActivityDefinitionStepDesc.objects.create(key=lang_map[0],
                 value = lang_map[1],act_def_step=parent)
         elif lang_map_type == 'source':
-            language_map = models.ActivityDefinitionSourceDesc.objects.create(key = lang_map[0],
+            language_map = models.ActivityDefinitionSourceDesc.objects.create(key=lang_map[0],
                 value = lang_map[1],act_def_source=parent)
         elif lang_map_type == 'target':            
-            language_map = models.ActivityDefinitionTargetDesc.objects.create(key = lang_map[0],
+            language_map = models.ActivityDefinitionTargetDesc.objects.create(key=lang_map[0],
                 value = lang_map[1],act_def_target=parent)
         return language_map
 
@@ -277,6 +283,14 @@ class Activity():
 
     #Populate definition either from JSON or validated XML
     def populate_definition(self, act_def, act_created):
+        allowed_fields = ['name', 'description', 'type', 'moreInfo', 'extensions', 'interactionType',
+        'correctResponsesPattern', 'choices', 'scale', 'source', 'target', 'steps']
+
+        failed_list = [x for x in act_def.keys() if not x in allowed_fields]
+        if failed_list:
+            err_msg = "Invalid field(s) found in activity definition - %s" % ', '.join(failed_list)
+            raise exceptions.ParamError(err_msg)
+
         # only update existing def stuff if request has authority to do so
         if not act_created and (self.activity.authoritative != '' and self.activity.authoritative != self.auth):
             err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."

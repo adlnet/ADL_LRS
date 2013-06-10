@@ -21,8 +21,14 @@ class Agent():
             except Exception, e:
                 err_msg = "Error parsing the Agent object. Expecting json. Received: %s which is %s" % (self.initial,
                     type(self.initial))
-                raise exceptions.ParamError(err_msg) 
-                
+                raise ParamError(err_msg) 
+
+        allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'account']
+        failed_list = [x for x in params.keys() if not x in allowed_fields]
+        if failed_list:
+            err_msg = "Invalid field(s) found in agent/group %s" % ', '.join(failed_list)
+            raise ParamError(err_msg)
+        
         if create:
             params['define'] = self.define
             self.agent, created = ag.objects.gen(**params)
@@ -50,7 +56,7 @@ class Agent():
         profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
-            raise exceptions.ParamError(err_msg)
+            raise ParamError(err_msg)
 
         p, created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent)
         if created:
@@ -76,7 +82,7 @@ class Agent():
         profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
-            raise exceptions.ParamError(err_msg)
+            raise ParamError(err_msg)
 
         p,created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent)
         if not created:
