@@ -306,6 +306,35 @@ class StatementsTests(TestCase):
         agent = models.Agent.objects.get(mbox="mailto:t@t.com")
         self.assertEqual(agent.name, "bob")
 
+    def test_post_wrong_crp_type(self):
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
+            "object": {"objectType": "Activity", "id":"act:foogie",
+            "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
+            "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/http://adlnet.gov/expapi/activities/cmi.interaction",
+            "interactionType": "fill-in","correctResponsesPattern": "wrong"}},
+            "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "correctResponsesPattern value type must be an array")
+
+    def test_post_wrong_choice_type(self):
+        stmt = json.dumps(
+            {"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
+            "object": {"objectType": "Activity", "id":"act:foogie",
+                "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
+                    "description": {"en-US":"testdesc2", "en-GB": "altdesc"},
+                    "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+                    "interactionType": "choice","correctResponsesPattern": ["a1[,]a3[,]a6[,]a7"],
+                    "choices":"wrong"}},
+            "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "choices value type must be an array")
+
     def test_openid(self):
         guid = str(uuid.uuid1())
         stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
@@ -771,6 +800,20 @@ class StatementsTests(TestCase):
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
 
+    def test_post_with_group_member_not_array(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        members = "wrong" 
+        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+
+        stmt = json.dumps({"actor":group,"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            "object": {"id":"act:i.pity.the.fool"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "member value type must be an array")
+
+
     def test_post_with_non_oauth_not_existing_group(self):
         ot = "Group"
         name = "the group ST"
@@ -783,7 +826,8 @@ class StatementsTests(TestCase):
         stmt = json.dumps({"actor":agent_a,"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
             "object": {"id":"act:i.pity.the.fool"}, "authority": group})
         
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, 'Error with Agent. The agent partial ({"member": [{"mbox": "mailto:agentA@example.com", "name": "agentA"}, {"mbox": "mailto:agentB@example.com", "name": "agentB"}], "mbox": "mailto:the.groupST@example.com", "name": "the group ST", "objectType": "Group"}) did not match any agents on record')
 
@@ -2306,6 +2350,21 @@ class StatementsTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
+
+    def test_app_json_multipart_not_array(self):
+        stmt_id = str(uuid.uuid1())
+        stmt = {"id":stmt_id,
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": "wrong"}
+        
+        param = {"statementId":stmt_id}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
+        response = self.client.put(path, json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "attachments value type must be an array")
 
     def test_app_json_multipart_no_fileUrl_put(self):
         stmt_id = str(uuid.uuid1())

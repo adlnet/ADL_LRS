@@ -327,16 +327,20 @@ class AgentMgr(models.Manager):
                 need_to_create = True
         # Get or create members in list
         if members:
-            # If have define, update - if not need to create new agent
-            ags = [self.gen(**a) for a in members]
-            # If any of the members are not in the current member list of ret_agent, add them
-            for ag in ags:
-                if not ag[0] in ret_agent.member.all():
-                    if define:
-                        ret_agent.member.add(ag[0])
-                    else:
-                        need_to_create = True
-                        break
+            if isinstance(members, list):
+                # If have define, update - if not need to create new agent
+                ags = [self.gen(**a) for a in members]
+                # If any of the members are not in the current member list of ret_agent, add them
+                for ag in ags:
+                    if not ag[0] in ret_agent.member.all():
+                        if define:
+                            ret_agent.member.add(ag[0])
+                        else:
+                            need_to_create = True
+                            break
+            else:
+                err_msg = "member value type must be an array"
+                raise ParamError(err)
         return ret_agent, need_to_create
 
     def create_agent(self, kwargs, define):
@@ -459,8 +463,12 @@ class AgentMgr(models.Manager):
         # If it is a group and has just been created, grab all of the members and send them through
         # this process then clean and save
         if is_group and created:
-            ags = [self.gen(**a) for a in members]
-            ret_agent.member.add(*(a for a, c in ags))
+            if isinstance(members, list):
+                ags = [self.gen(**a) for a in members]
+                ret_agent.member.add(*(a for a, c in ags))
+            else:
+                err_msg = "member value type must be an array"
+                raise ParamError(err_msg)
         ret_agent.full_clean(exclude='subclass, content_type, content_object, object_id')
         ret_agent.save()
         return ret_agent, created

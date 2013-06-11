@@ -31,12 +31,11 @@ class StatementManager():
     @transaction.commit_on_success
     def __init__(self, data, auth=None, define=True):
         self.auth = auth
-        self.params = data
         self.define = define
         if not isinstance(data, dict):
-            self.params = self.parse(data)
-        self.validate_statement_fields(self.params)
-        self.populate(self.params)
+            data = self.parse(data)
+        self.validate_statement_fields(data)
+        self.populate(data)
 
     def validate_statement_fields(self, stmt):
         if self.__class__.__name__ == 'StatementManager':
@@ -351,11 +350,11 @@ class StatementManager():
             self.validate_incoming_uuid(stmt_data['context']['registration'])
 
         if 'instructor' in stmt_data['context']:
-            stmt_data['context']['instructor'] = AgentManager(initial=stmt_data['context']['instructor'],
+            stmt_data['context']['instructor'] = AgentManager(params=stmt_data['context']['instructor'],
                 create=True, define=self.define).Agent
             
         if 'team' in stmt_data['context']:
-            stmt_data['context']['team'] = AgentManager(initial=stmt_data['context']['team'],
+            stmt_data['context']['team'] = AgentManager(params=stmt_data['context']['team'],
                 create=True, define=self.define).Agent
 
         # Revision and platform not applicable if object is agent
@@ -491,7 +490,7 @@ class StatementManager():
             if statementObjectData['objectType'].lower() == 'activity':
                 args['stmt_object'] = ActivityManager(statementObjectData,auth=self.auth, define=self.define).Activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                args['stmt_object'] = AgentManager(initial=statementObjectData, create=True, define=self.define).Agent
+                args['stmt_object'] = AgentManager(params=statementObjectData, create=True, define=self.define).Agent
             elif statementObjectData['objectType'].lower() == 'substatement':
                 sub_statement = SubStatementManager(statementObjectData, self.auth)
                 args['stmt_object'] = sub_statement.model_object
@@ -506,7 +505,7 @@ class StatementManager():
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor
-        args['actor'] = AgentManager(initial=stmt_data['actor'], create=True, define=self.define).Agent
+        args['actor'] = AgentManager(params=stmt_data['actor'], create=True, define=self.define).Agent
 
         #Set voided to default false
         args['voided'] = False
@@ -525,10 +524,10 @@ class StatementManager():
             # If they're trying to put their oauth group in authority for some reason, just retrieve
             # it. If it doesn't exist, the Agent class responds with a 404
             if auth_data['objectType'].lower() == 'group':
-                args['authority'] = AgentManager(initial=stmt_data['authority'], create=False, 
+                args['authority'] = AgentManager(params=stmt_data['authority'], create=False, 
                     define=self.define).Agent
             else:
-                args['authority'] = AgentManager(initial=stmt_data['authority'], create=True, 
+                args['authority'] = AgentManager(params=stmt_data['authority'], create=True, 
                     define=self.define).Agent
 
             # If they try using a non-oauth group that already exists-throw error
@@ -552,7 +551,7 @@ class StatementManager():
                         authArgs['mbox'] = self.auth.email
                     else:
                         authArgs['mbox'] = "mailto:%s" % self.auth.email
-                    args['authority'] = AgentManager(initial=authArgs, create=True, define=self.define).Agent
+                    args['authority'] = AgentManager(params=authArgs, create=True, define=self.define).Agent
 
         # Check if statement_id already exists, throw exception if it does
         # There will only be an ID when someone is performing a PUT

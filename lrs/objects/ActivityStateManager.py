@@ -8,9 +8,7 @@ from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
 
 class ActivityStateManager():
-    def __init__(self, request_dict, log_dict=None):
-        self.log_dict = log_dict
-        
+    def __init__(self, request_dict, log_dict=None):        
         if not uri.validate_uri(request_dict['params']['activityId']):
             err_msg = 'Activity ID %s is not a valid URI' % request_dict['params']['activityId']       
             raise exceptions.ParamError(err_msg)

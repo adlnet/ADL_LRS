@@ -284,7 +284,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g = AgentManager(initial=kwargs, create=True).Agent
+        g = AgentManager(params=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -299,7 +299,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
-        g = AgentManager(initial=kwargs, create=True).Agent
+        g = AgentManager(params=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -314,7 +314,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"the agent","account":account},
                     {"name":"the user","mbox":"mailto:user@example.com"}]
         kwargs = {"objectType":ot, "name":name, "member":members}
-        g = AgentManager(initial=kwargs, create=True).Agent
+        g = AgentManager(params=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, '')
         mems = g.member.values_list('name', flat=True)

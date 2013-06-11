@@ -1,5 +1,6 @@
 import json
 import datetime
+import copy
 from django.core.files.base import ContentFile
 from django.db import transaction
 from lrs.models import AgentProfile
@@ -9,17 +10,15 @@ from lrs.util import etag, get_user_from_auth, uri
 
 class AgentManager():
     @transaction.commit_on_success
-    def __init__(self, initial=None, create=False, define=True):
-        self.initial = initial
+    def __init__(self, params=None, create=False, define=True):
         self.define = define
-        params = self.initial
-
+        self.initial = params
         if not isinstance(params, dict):
             try:
-                params = json.loads(self.initial)
+                params = json.loads(params)
             except Exception, e:
-                err_msg = "Error parsing the Agent object. Expecting json. Received: %s which is %s" % (self.initial,
-                    type(self.initial))
+                err_msg = "Error parsing the Agent object. Expecting json. Received: %s which is %s" % (params,
+                    type(params))
                 raise ParamError(err_msg) 
 
         allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'openid','account']
