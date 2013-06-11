@@ -11,15 +11,13 @@ from Authorization import auth
 att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
-    return models.statement.objects.filter(statement_id=stmtID).exists()
+    return models.Statement.objects.filter(statement_id=stmtID).exists()
 
 def check_for_no_other_params_supplied(query_dict):
     supplied = True
     if len(query_dict) <= 1:
         supplied = False
     return supplied
-
-
 
 def check_oauth(func):
     @wraps(func)
@@ -100,8 +98,8 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
         if not isinstance(ag, dict):
             ag = json.loads(ag)
         try:
-            agent = models.agent.objects.get(**ag)
-        except models.agent.DoesNotExist:
+            agent = models.Agent.objects.get(**ag)
+        except models.Agent.DoesNotExist:
             err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
             raise NotFound(err_msg)
 

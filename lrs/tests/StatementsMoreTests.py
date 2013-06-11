@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from django.utils.timezone import utc
 from lrs.objects import Activity
 import time
-import pdb
 from lrs.util import retrieve_statement
 from django.conf import settings
 
@@ -246,89 +245,89 @@ class StatementsMoreTests(TestCase):
         # Post statements
         post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="1.0.0")
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=5)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid5).update(stored=time)
 
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid7).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid8).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid9).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
         self.thirdTime = str((datetime.utcnow()+timedelta(seconds=12)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=13)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid11).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid11).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=14)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid12).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid12).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=15)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid13).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid13).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=16)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid14).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid14).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=17)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid15).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid15).update(stored=time)
 
         self.fourthTime = str((datetime.utcnow()+timedelta(seconds=18)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=19)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid16).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid16).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=20)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid17).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid17).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=21)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid18).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid18).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=22)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid19).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid19).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=23)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid20).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid20).update(stored=time)
 
         self.fifthTime = str((datetime.utcnow()+timedelta(seconds=24)).replace(tzinfo=utc).isoformat())
  
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=25)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid21).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid21).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=26)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid22).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid22).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=27)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid23).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid23).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=28)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid24).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid24).update(stored=time)
 
         self.sixthTime = str((datetime.utcnow()+timedelta(seconds=29)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=30)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid25).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid25).update(stored=time)
 
     def tearDown(self):
         settings.SERVER_STMT_LIMIT=10

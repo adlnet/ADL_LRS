@@ -1,14 +1,13 @@
 import datetime
+import json
 from django.core.files.base import ContentFile
 from django.db import transaction
 from lrs import models
-from lrs.objects.Agent import Agent
+from .AgentManager import AgentManager
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
-import pdb
-import json
 
-class ActivityState():
+class ActivityStateManager():
     def __init__(self, request_dict, log_dict=None):
         self.log_dict = log_dict
         
@@ -28,15 +27,15 @@ class ActivityState():
         self.since = request_dict['params'].get('since', None)
 
     def __get_agent(self, create=False):
-        return Agent(self.agent, create).agent
+        return AgentManager(self.agent, create).agent
 
     def post(self):
         agent = self.__get_agent(create=True)
         post_state = self.state
         if self.registrationId:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
+            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
         else:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
+            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
         if created:
             state = ContentFile(post_state)
@@ -61,9 +60,9 @@ class ActivityState():
                 state = ContentFile(str(self.state))
 
         if self.registrationId:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
+            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
         else:
-            p,created = models.activity_state.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
+            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
         if not created:
             etag.check_preconditions(self.req_dict,p)
@@ -86,25 +85,25 @@ class ActivityState():
         agent = self.__get_agent()
         try:
             if self.registrationId:
-                return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
-            return models.activity_state.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id)
-        except models.activity_state.DoesNotExist:
+                return models.ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
+            return models.ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id)
+        except models.ActivityState.DoesNotExist:
             err_msg = 'There is no activity state associated with the id: %s' % self.stateId
             raise IDNotFoundError(err_msg)
 
     def get_set(self,**kwargs):
         agent = self.__get_agent()
         if self.registrationId:
-            state_set = models.activity_state.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
+            state_set = models.ActivityState.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
         else:
-            state_set = models.activity_state.objects.filter(agent=agent, activity_id=self.activity_id)
+            state_set = models.ActivityState.objects.filter(agent=agent, activity_id=self.activity_id)
         return state_set
 
 
     def get_ids(self):
         try:
             state_set = self.get_set()
-        except models.activity_state.DoesNotExist:
+        except models.ActivityState.DoesNotExist:
             err_msg = 'There is no activity state associated with the ID: %s' % self.stateId
             raise IDNotFoundError(err_msg)
         if self.since:
@@ -125,7 +124,7 @@ class ActivityState():
             else:
                 state = self.get()
                 state.delete()
-        except models.activity_state.DoesNotExist:
+        except models.ActivityState.DoesNotExist:
             pass
         except IDNotFoundError:
             pass

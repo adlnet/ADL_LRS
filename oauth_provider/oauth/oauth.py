@@ -29,7 +29,6 @@ import random
 import urlparse
 import hmac
 import binascii
-import pdb
 import ast
 
 VERSION = '1.0' # Hi Blaine!

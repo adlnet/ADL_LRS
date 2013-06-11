@@ -5,7 +5,10 @@ from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from django.http import HttpResponse
 from lrs import models, exceptions
-from lrs.objects import Agent, Activity, ActivityState, ActivityProfile, Statement
+from lrs.objects.ActivityProfileManager import ActivityProfileManager
+from lrs.objects.ActivityStateManager import ActivityStateManager 
+from lrs.objects.AgentManager import AgentManager
+from lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
 def statements_post(req_dict):
@@ -21,16 +24,16 @@ def statements_post(req_dict):
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
-                stmt = Statement.Statement(st, auth=auth_id, define=define).model_object
+                stmt = StatementManager(st, auth=auth_id, define=define).model_object
                 stmt_responses.append(str(stmt.statement_id))
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
         except Exception:
             for stmt_id in stmt_responses:
-                models.statement.objects.get(statement_id=stmt_id).delete()
+                models.Statement.objects.get(statement_id=stmt_id).delete()
             raise
     else:
         # Handle single POST
-        stmt = Statement.Statement(req_dict['body'], auth=auth_id, define=define).model_object
+        stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
         stmt_responses.append(stmt.statement_id)
 
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
@@ -44,7 +47,7 @@ def statements_put(req_dict):
 
     # Set statement ID in body so all data is together
     req_dict['body']['id'] = req_dict['params']['statementId']
-    stmt = Statement.Statement(req_dict['body'], auth=auth_id, define=define).model_object
+    stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
     
     return HttpResponse("No Content", status=204)
 
@@ -63,7 +66,7 @@ def statements_more_get(req_dict):
     
     # Add consistent header and set content-length
     try:
-        resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
+        resp['X-Experience-API-Consistent-Through'] = str(models.Statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     resp['Content-Length'] = str(content_length)
@@ -87,8 +90,8 @@ def statements_get(req_dict):
 
         # Try to retrieve stmt, if DNE then return empty else return stmt info                
         try:
-            st = models.statement.objects.get(statement_id=statementId)
-        except models.statement.DoesNotExist:
+            st = models.Statement.objects.get(statement_id=statementId)
+        except models.Statement.DoesNotExist:
             err_msg = 'There is no statement associated with the id: %s' % statementId
             raise exceptions.IDNotFoundError(err_msg)
 
@@ -131,7 +134,7 @@ def statements_get(req_dict):
     
     # Set consistent through and content length headers for all responses
     try:
-        resp['X-Experience-API-Consistent-Through'] = str(models.statement.objects.latest('stored').stored)
+        resp['X-Experience-API-Consistent-Through'] = str(models.Statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     
@@ -181,21 +184,21 @@ def build_response(stmt_result, content_length):
 
 def activity_state_post(req_dict):
     # test ETag for concurrency
-    actstate = ActivityState.ActivityState(req_dict)
+    actstate = ActivityStateManager(req_dict)
     actstate.post()
 
     return HttpResponse("", status=204)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
-    actstate = ActivityState.ActivityState(req_dict)
+    actstate = ActivityStateManager(req_dict)
     actstate.put()
 
     return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
     # add ETag for concurrency
-    actstate = ActivityState.ActivityState(req_dict)
+    actstate = ActivityStateManager(req_dict)
     stateId = req_dict['params'].get('stateId', None) if 'params' in req_dict else None
     if stateId: # state id means we want only 1 item
         resource = actstate.get()
@@ -207,28 +210,28 @@ def activity_state_get(req_dict):
     return response
 
 def activity_state_delete(req_dict):
-    actstate = ActivityState.ActivityState(req_dict)
+    actstate = ActivityStateManager(req_dict)
     # Delete state
     actstate.delete()
     return HttpResponse('', status=204)
 
 def activity_profile_post(req_dict):
     #Instantiate ActivityProfile
-    ap = ActivityProfile.ActivityProfile()
+    ap = ActivityProfileManager()
     #Put profile and return 204 response
     ap.post_profile(req_dict)
     return HttpResponse('', status=204)
 
 def activity_profile_put(req_dict):
     #Instantiate ActivityProfile
-    ap = ActivityProfile.ActivityProfile()
+    ap = ActivityProfileManager()
     #Put profile and return 204 response
     ap.put_profile(req_dict)
     return HttpResponse('', status=204)
 
 def activity_profile_get(req_dict):
     # Instantiate ActivityProfile
-    ap = ActivityProfile.ActivityProfile()
+    ap = ActivityProfileManager()
     # Get profileId and activityId
     profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
     activityId = req_dict['params'].get('activityId', None) if 'params' in req_dict else None
@@ -250,7 +253,7 @@ def activity_profile_get(req_dict):
 
 def activity_profile_delete(req_dict):
     #Instantiate activity profile
-    ap = ActivityProfile.ActivityProfile()
+    ap = ActivityProfileManager()
     # Delete profile and return success
     ap.delete_profile(req_dict)
 
@@ -259,7 +262,7 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
-    act_list = models.activity.objects.filter(activity_id=activityId)
+    act_list = models.Activity.objects.filter(activity_id=activityId)
     if not act_list:
         err_msg = "No activities found with ID %s" % activityId
         raise exceptions.IDNotFoundError(err_msg)
@@ -275,7 +278,7 @@ def activities_get(req_dict):
 def agent_profile_post(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
-    a = Agent.Agent(agent, create=True)
+    a = AgentManager(agent, create=True)
     a.post_profile(req_dict)
 
     return HttpResponse("", status=204)
@@ -283,7 +286,7 @@ def agent_profile_post(req_dict):
 def agent_profile_put(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
-    a = Agent.Agent(agent, create=True)
+    a = AgentManager(agent, create=True)
     a.put_profile(req_dict)
 
     return HttpResponse("", status=204)
@@ -291,7 +294,7 @@ def agent_profile_put(req_dict):
 def agent_profile_get(req_dict):
     # add ETag for concurrency
     agent = req_dict['params']['agent']
-    a = Agent.Agent(agent)
+    a = AgentManager(agent)
     
     profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
     if profileId:
@@ -307,7 +310,7 @@ def agent_profile_get(req_dict):
 
 def agent_profile_delete(req_dict):
     agent = req_dict['params']['agent']
-    a = Agent.Agent(agent)
+    a = AgentManager(agent)
     profileId = req_dict['params']['profileId']
     a.delete_profile(profileId)
 
@@ -315,7 +318,7 @@ def agent_profile_delete(req_dict):
 
 def agents_get(req_dict):
     agent = req_dict['params']['agent']
-    a = Agent.Agent(agent)
+    a = AgentManager(agent)
     agent_data = a.get_person_json()
     resp = HttpResponse(agent_data, mimetype="application/json")
     resp['Content-Length'] = str(len(agent_data))

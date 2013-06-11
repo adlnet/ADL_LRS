@@ -12,7 +12,8 @@ from django.conf import settings
 from lrs import views, models
 from lrs.util import retrieve_statement
 from lrs.util.jws import JWS, JWSException    
-from lrs.objects import Activity, Statement
+from lrs.objects import Activity
+from lrs.objects.StatementManager import StatementManager
 import os
 from datetime import datetime, timedelta
 import sys
@@ -21,9 +22,7 @@ import base64
 import uuid
 import time
 import urllib
-import pdb
 import hashlib
-import pprint
 
 class StatementsTests(TestCase):
     def setUp(self):
@@ -72,12 +71,12 @@ class StatementsTests(TestCase):
         self.cguid8 = str(uuid.uuid1())
 
         if settings.HTTP_AUTH_ENABLED:
-            self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            self.existStmt = StatementManager(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
                 "authority":{"objectType":"Agent","name":"tester1","mbox":"mailto:test1@tester.com"}}))
         else:
-            self.existStmt = Statement.Statement(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            self.existStmt = StatementManager(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}))            
         
@@ -170,7 +169,7 @@ class StatementsTests(TestCase):
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse1.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid1).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
 
         param = {"statementId":self.guid3}
@@ -179,7 +178,7 @@ class StatementsTests(TestCase):
         self.putresponse3 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse3.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid3).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
         
         param = {"statementId":self.guid4}
@@ -188,7 +187,7 @@ class StatementsTests(TestCase):
         self.putresponse4 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse4.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid4).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat())
         
@@ -198,7 +197,7 @@ class StatementsTests(TestCase):
         self.putresponse2 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         self.assertEqual(self.putresponse2.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid2).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
 
         param = {"statementId":self.guid5}
@@ -207,7 +206,7 @@ class StatementsTests(TestCase):
         self.putresponse5 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse5.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid5).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid5).update(stored=time)
         
 
         param = {"statementId":self.guid6}
@@ -216,7 +215,7 @@ class StatementsTests(TestCase):
         self.putresponse6 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse6.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid6).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
         
         param = {"statementId":self.guid7}
@@ -225,7 +224,7 @@ class StatementsTests(TestCase):
         self.putresponse7 = self.client.put(path, stmt_payload,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse7.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid7).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid7).update(stored=time)
         
 
         param = {"statementId":self.guid8}
@@ -234,7 +233,7 @@ class StatementsTests(TestCase):
         self.putresponse8 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse8.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid8).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid8).update(stored=time)
         
         param = {"statementId": self.guid9}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -242,7 +241,7 @@ class StatementsTests(TestCase):
         self.putresponse9 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse9.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid9).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid9).update(stored=time)
 
         param = {"statementId": self.guid10}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -250,7 +249,7 @@ class StatementsTests(TestCase):
         self.putresponse10 = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(self.putresponse10.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
-        stmt = models.statement.objects.filter(statement_id=self.guid10).update(stored=time)
+        stmt = models.Statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
     def test_invalid_result_fields(self):
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
@@ -302,9 +301,9 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
-        act = models.activity.objects.get(activity_id="act:test_post")
+        act = models.Activity.objects.get(activity_id="act:test_post")
         self.assertEqual(act.activity_id, "act:test_post")
-        agent = models.agent.objects.get(mbox="mailto:t@t.com")
+        agent = models.Agent.objects.get(mbox="mailto:t@t.com")
         self.assertEqual(agent.name, "bob")
 
     def test_openid(self):
@@ -316,7 +315,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
-        agent = models.agent.objects.get(name='lulu')
+        agent = models.Agent.objects.get(name='lulu')
         self.assertEqual(agent.openID, 'id:luluid')
 
     def test_invalid_actor_fields(self):
@@ -384,7 +383,7 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
-        agent = models.agent.objects.get(mbox="mailto:mr.t@example.com")
+        agent = models.Agent.objects.get(mbox="mailto:mr.t@example.com")
 
     def test_list_post(self):
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -394,10 +393,10 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
-        activity1 = models.activity.objects.get(activity_id="act:test_list_post")
-        activity2 = models.activity.objects.get(activity_id="act:test_list_post1")
-        stmt1 = models.statement.objects.get(stmt_object=activity1)
-        stmt2 = models.statement.objects.get(stmt_object=activity2)
+        activity1 = models.Activity.objects.get(activity_id="act:test_list_post")
+        activity2 = models.Activity.objects.get(activity_id="act:test_list_post1")
+        stmt1 = models.Statement.objects.get(stmt_object=activity1)
+        stmt2 = models.Statement.objects.get(stmt_object=activity2)
         verb1 = models.Verb.objects.get(id=stmt1.verb.id)
         verb2 = models.Verb.objects.get(id=stmt2.verb.id)
         lang_map1 = verb1.verbdisplay_set.all()[0]
@@ -423,9 +422,9 @@ class StatementsTests(TestCase):
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(putResponse.status_code, 204)
-        stmt = models.statement.objects.get(statement_id=guid)
+        stmt = models.Statement.objects.get(statement_id=guid)
 
-        act = models.activity.objects.get(activity_id="act:test_put")
+        act = models.Activity.objects.get(activity_id="act:test_put")
         self.assertEqual(act.activity_id, "act:test_put")
 
         self.assertEqual(stmt.actor.mbox, "mailto:t@t.com")
@@ -501,7 +500,7 @@ class StatementsTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        existStmt = Statement.Statement(json.dumps({"id":guid,
+        existStmt = StatementManager(json.dumps({"id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 
@@ -609,7 +608,7 @@ class StatementsTests(TestCase):
     # Sever activities are PUT - contextActivities create 3 more
     def test_number_of_activities(self):
         self.bunchostmts()
-        acts = len(models.activity.objects.all())
+        acts = len(models.Activity.objects.all())
         self.assertEqual(9, acts)
 
 
@@ -703,8 +702,8 @@ class StatementsTests(TestCase):
         post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
-        act = models.activity.objects.get(activity_id="act:foogie")
-        act_def = models.activity_definition.objects.get(activity=act)
+        act = models.Activity.objects.get(activity_id="act:foogie")
+        act_def = models.ActivityDefinition.objects.get(activity=act)
 
         name_set = act_def.name_lang_set.all()
         desc_set = act_def.desc_lang_set.all()
@@ -731,12 +730,12 @@ class StatementsTests(TestCase):
         response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
 
-        act = models.activity.objects.get(activity_id="act:test_cors_post_put")
+        act = models.Activity.objects.get(activity_id="act:test_cors_post_put")
         self.assertEqual(act.activity_id, "act:test_cors_post_put")
 
         # This agent is created from registering an auth user, so won't be created if no HTTP_AUTH_ENABLED
         if settings.HTTP_AUTH_ENABLED:
-            agent = models.agent.objects.get(mbox="mailto:test1@tester.com")
+            agent = models.Agent.objects.get(mbox="mailto:test1@tester.com")
             self.assertEqual(agent.name, "tester1")
             self.assertEqual(agent.mbox, "mailto:test1@tester.com")
 
@@ -764,7 +763,7 @@ class StatementsTests(TestCase):
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
-        g = models.agent.objects.get(mbox="mailto:the.groupST@example.com")
+        g = models.Agent.objects.get(mbox="mailto:the.groupST@example.com")
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list("name", flat=True)
@@ -796,7 +795,7 @@ class StatementsTests(TestCase):
         agent_b = {"name":"agentB","mbox":"mailto:agentB@example.com"}
         members = [agent_a,agent_b]
         group = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        gr_object = models.agent.objects.gen(**group)
+        gr_object = models.Agent.objects.gen(**group)
 
         stmt = json.dumps({"actor":agent_a,"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
             "object": {"id":"act:i.pity.the.fool"}, "authority": group})
@@ -1248,19 +1247,19 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
-        results = models.result.objects.filter(response='wrong')
-        scores = models.score.objects.filter(scaled=.99)
+        results = models.Result.objects.filter(response='wrong')
+        scores = models.Score.objects.filter(scaled=.99)
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
         
-        contexts = models.context.objects.filter(registration=cguid1)
+        contexts = models.Context.objects.filter(registration=cguid1)
         
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
-        activities = models.activity.objects.filter(activity_id__contains='test_wrong_list_post')
-        activity_definitions = models.activity_definition.objects.all()
+        activities = models.Activity.objects.filter(activity_id__contains='test_wrong_list_post')
+        activity_definitions = models.ActivityDefinition.objects.all()
         crp_answers = models.correctresponsespattern_answer.objects.filter(answer__contains='wrong')
         
-        statements = models.statement.objects.all()
+        statements = models.Statement.objects.all()
 
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
@@ -1297,14 +1296,14 @@ class StatementsTests(TestCase):
         created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
         wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
         
-        activities = models.activity.objects.filter(activity_id='act:foogie')
+        activities = models.Activity.objects.filter(activity_id='act:foogie')
         
-        statements = models.statement.objects.all()
+        statements = models.Statement.objects.all()
 
-        wrong_agent = models.agent.objects.filter(mbox='mailto:wrong-t@t.com')
-        john_agent = models.agent.objects.filter(mbox='mailto:john@john.com')
-        s_agent = models.agent.objects.filter(mbox='mailto:s@s.com')
-        auth_agent = models.agent.objects.filter(mbox='mailto:test1@tester.com')
+        wrong_agent = models.Agent.objects.filter(mbox='mailto:wrong-t@t.com')
+        john_agent = models.Agent.objects.filter(mbox='mailto:john@john.com')
+        s_agent = models.Agent.objects.filter(mbox='mailto:s@s.com')
+        auth_agent = models.Agent.objects.filter(mbox='mailto:test1@tester.com')
         verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
@@ -1332,10 +1331,10 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
-        voided_st = models.statement.objects.get(statement_id=str(self.exist_stmt_id))
+        voided_st = models.Statement.objects.get(statement_id=str(self.exist_stmt_id))
         voided_verb = models.Verb.objects.filter(verb_id__contains='voided')
-        only_actor = models.agent.objects.filter(mbox="mailto:only-s@s.com")
-        statements = models.statement.objects.all()
+        only_actor = models.Agent.objects.filter(mbox="mailto:only-s@s.com")
+        statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
         self.assertEqual(voided_st.voided, False)
@@ -1361,17 +1360,17 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
-        s_agent = models.agent.objects.filter(mbox="mailto:wrong-s@s.com")
-        ss_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
-        john_agent  = models.agent.objects.filter(mbox="mailto:john@john.com")
+        s_agent = models.Agent.objects.filter(mbox="mailto:wrong-s@s.com")
+        ss_agent = models.Agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
+        john_agent  = models.Agent.objects.filter(mbox="mailto:john@john.com")
         subs = models.SubStatement.objects.all()
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
-        activities = models.activity.objects.filter(activity_id__contains="wrong")
-        results = models.result.objects.filter(response__contains="wrong")
-        contexts = models.context.objects.filter(registration=sub_context_id)
+        activities = models.Activity.objects.filter(activity_id__contains="wrong")
+        results = models.Result.objects.filter(response__contains="wrong")
+        contexts = models.Context.objects.filter(registration=sub_context_id)
         con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context=contexts)
-        statements = models.statement.objects.all()
+        statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
         self.assertEqual(len(s_agent), 1)
@@ -1421,18 +1420,18 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
 
-        s_agent = models.agent.objects.filter(mbox="mailto:wrong-s@s.com")
-        ss_agent = models.agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
-        john_agent  = models.agent.objects.filter(mbox="mailto:john@john.com")
+        s_agent = models.Agent.objects.filter(mbox="mailto:wrong-s@s.com")
+        ss_agent = models.Agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
+        john_agent  = models.Agent.objects.filter(mbox="mailto:john@john.com")
         subs = models.SubStatement.objects.all()
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
-        wrong_activities = models.activity.objects.filter(activity_id__contains="wrong")
-        foogie_activities = models.activity.objects.filter(activity_id__exact="act:foogie")
-        results = models.result.objects.filter(response__contains="wrong")
-        contexts = models.context.objects.filter(registration=sub_context_id)
+        wrong_activities = models.Activity.objects.filter(activity_id__contains="wrong")
+        foogie_activities = models.Activity.objects.filter(activity_id__exact="act:foogie")
+        results = models.Result.objects.filter(response__contains="wrong")
+        contexts = models.Context.objects.filter(registration=sub_context_id)
         con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context=contexts)
-        statements = models.statement.objects.all()
+        statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
         self.assertEqual(len(s_agent), 1)
@@ -1580,8 +1579,8 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
-        stmt_db = models.statement.objects.get(statement_id=json.loads(response.content)[0])
-        act = models.activity.objects.get(id=stmt_db.stmt_object.id)
+        stmt_db = models.Statement.objects.get(statement_id=json.loads(response.content)[0])
+        act = models.Activity.objects.get(id=stmt_db.stmt_object.id)
         self.assertEqual(act.activity_id.encode('utf-8'), act_id)
 
     def test_invalid_act_id_iri(self):
@@ -1604,8 +1603,8 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
-        stmt_db = models.statement.objects.get(statement_id=json.loads(response.content)[0])
-        act = models.activity.objects.get(id=stmt_db.stmt_object.id)
+        stmt_db = models.Statement.objects.get(statement_id=json.loads(response.content)[0])
+        act = models.Activity.objects.get(id=stmt_db.stmt_object.id)
         self.assertEqual(act.activity_id, act_id)
 
     def test_multipart(self):
@@ -1684,9 +1683,9 @@ class StatementsTests(TestCase):
         returned_ids = json.loads(r.content)
         stmt_id1 = returned_ids[0]
         stmt_id2 = returned_ids[1]
-        saved_stmt1 = models.statement.objects.get(statement_id=stmt_id1)
-        saved_stmt2 = models.statement.objects.get(statement_id=stmt_id2)
-        statements = models.statement.objects.all()
+        saved_stmt1 = models.Statement.objects.get(statement_id=stmt_id1)
+        saved_stmt2 = models.Statement.objects.get(statement_id=stmt_id2)
+        statements = models.Statement.objects.all()
         attachments = models.StatementAttachment.objects.all()
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 2)
@@ -1737,9 +1736,9 @@ class StatementsTests(TestCase):
         returned_ids = json.loads(r.content)
         stmt_id1 = returned_ids[0]
         stmt_id2 = returned_ids[1]
-        saved_stmt1 = models.statement.objects.get(statement_id=stmt_id1)
-        saved_stmt2 = models.statement.objects.get(statement_id=stmt_id2)
-        statements = models.statement.objects.all()
+        saved_stmt1 = models.Statement.objects.get(statement_id=stmt_id1)
+        saved_stmt2 = models.Statement.objects.get(statement_id=stmt_id2)
+        statements = models.Statement.objects.all()
         attachments = models.StatementAttachment.objects.all()
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 1)
@@ -1787,9 +1786,9 @@ class StatementsTests(TestCase):
         returned_ids = json.loads(r.content)
         stmt_id1 = returned_ids[0]
         stmt_id2 = returned_ids[1]
-        saved_stmt1 = models.statement.objects.get(statement_id=stmt_id1)
-        saved_stmt2 = models.statement.objects.get(statement_id=stmt_id2)
-        statements = models.statement.objects.all()
+        saved_stmt1 = models.Statement.objects.get(statement_id=stmt_id1)
+        saved_stmt2 = models.Statement.objects.get(statement_id=stmt_id2)
+        statements = models.Statement.objects.all()
         attachments = models.StatementAttachment.objects.all()
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 2)
@@ -1873,10 +1872,10 @@ class StatementsTests(TestCase):
         returned_ids = json.loads(r.content)
         stmt_id1 = returned_ids[0]
         stmt_id2 = returned_ids[1]
-        saved_stmt1 = models.statement.objects.get(statement_id=stmt_id1)
-        saved_stmt2 = models.statement.objects.get(statement_id=stmt_id2)
+        saved_stmt1 = models.Statement.objects.get(statement_id=stmt_id1)
+        saved_stmt2 = models.Statement.objects.get(statement_id=stmt_id2)
 
-        statements = models.statement.objects.all()
+        statements = models.Statement.objects.all()
         attachments = models.StatementAttachment.objects.all()
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 4)
@@ -2073,9 +2072,9 @@ class StatementsTests(TestCase):
         returned_ids = json.loads(response.content)
         stmt_id1 = returned_ids[0]
         stmt_id2 = returned_ids[1]
-        saved_stmt1 = models.statement.objects.get(statement_id=stmt_id1)
-        saved_stmt2 = models.statement.objects.get(statement_id=stmt_id2)
-        statements = models.statement.objects.all()
+        saved_stmt1 = models.Statement.objects.get(statement_id=stmt_id1)
+        saved_stmt2 = models.Statement.objects.get(statement_id=stmt_id2)
+        statements = models.Statement.objects.all()
         attachments = models.StatementAttachment.objects.all()
         self.assertEqual(len(statements), 2)
         self.assertEqual(len(attachments), 1)

@@ -6,7 +6,6 @@ import json
 from os import path
 import sys
 import base64
-
 from lrs.models import agent
 
 class AgentsTests(TestCase):

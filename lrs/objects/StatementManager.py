@@ -9,9 +9,9 @@ from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 from lrs import models, exceptions
 from lrs.util import get_user_from_auth, uri
-from Agent import Agent
-from Activity import Activity
-import pdb
+from AgentManager import AgentManager
+from ActivityManager import ActivityManager
+
 att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
@@ -26,7 +26,7 @@ class default_on_exception(object):
                 return self.default
         return closure
 
-class Statement():
+class StatementManager():
     #Use single transaction for all the work done in function
     @transaction.commit_on_success
     def __init__(self, data, auth=None, define=True):
@@ -39,7 +39,7 @@ class Statement():
         self.populate(self.params)
 
     def validate_statement_fields(self, stmt):
-        if self.__class__.__name__ == 'Statement':
+        if self.__class__.__name__ == 'StatementManager':
             allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version',
                             'attachments']
         else:
@@ -60,13 +60,13 @@ class Statement():
             raise exceptions.ParamError(err_msg) 
         return params
 
-    def voidStatement(self,stmt_id):
+    def void_statement(self,stmt_id):
         str_id = str(stmt_id)        
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
-            stmt = models.statement.objects.get(statement_id=stmt_id)
-        except models.statement.DoesNotExist:
+            stmt = models.Statement.objects.get(statement_id=stmt_id)
+        except models.Statement.DoesNotExist:
             err_msg = "Statement with ID %s does not exist" % str(stmt_id)
             raise exceptions.IDNotFoundError(err_msg)
         
@@ -115,7 +115,7 @@ class Statement():
 
     def saveScoreToDB(self, score):
         try:
-            sc = models.score.objects.create(**score)
+            sc = models.Score.objects.create(**score)
         except TypeError, e:
             err_msg = "Invalid field in score - %s" %  e.message
             raise exceptions.ParamError(err_msg)
@@ -125,7 +125,7 @@ class Statement():
         # Save the result with all of the args
         sc = result.pop('score', None)
         try:
-            rslt = models.result.objects.create(**result)
+            rslt = models.Result.objects.create(**result)
         except TypeError, e:
             err_msg = "Invalid field in result - %s" % e.message
             raise exceptions.ParamError(err_msg)
@@ -159,7 +159,7 @@ class Statement():
 
         # Save context
         try:
-            cntx = models.context.objects.create(**context)
+            cntx = models.Context.objects.create(**context)
         except TypeError, e:
             err_msg = "Invalid field in context - %s" % e.message
             raise exceptions.ParamError(err_msg)
@@ -188,10 +188,10 @@ class Statement():
                 # Incoming contextActivities can either be a list or dict
                 if isinstance(con_act_group[1], list):
                     for con_act in con_act_group[1]:
-                        act = Activity(con_act,auth=self.auth, define=self.define).activity
+                        act = ActivityManager(con_act,auth=self.auth, define=self.define).activity
                         ca.context_activity.add(act)
                 else:
-                    act = Activity(con_act_group[1],auth=self.auth, define=self.define).activity
+                    act = ActivityManager(con_act_group[1],auth=self.auth, define=self.define).activity
                     ca.context_activity.add(act)
                 ca.save()
 
@@ -208,7 +208,7 @@ class Statement():
     def saveObjectToDB(self, args):
         # If it's a substatement, remove voided, authority, and id keys
         args['user'] = get_user_from_auth(self.auth)
-        if self.__class__.__name__ == 'SubStatement':
+        if self.__class__.__name__ == 'SubStatementManager':
             del args['voided']
             
             # If ID not given, created by models
@@ -220,7 +220,7 @@ class Statement():
 
             stmt = models.SubStatement.objects.create(**args)
         else:
-            stmt = models.statement.objects.create(**args)
+            stmt = models.Statement.objects.create(**args)
         return stmt
 
     def populateResult(self, stmt_data):
@@ -351,11 +351,11 @@ class Statement():
             self.validate_incoming_uuid(stmt_data['context']['registration'])
 
         if 'instructor' in stmt_data['context']:
-            stmt_data['context']['instructor'] = Agent(initial=stmt_data['context']['instructor'],
+            stmt_data['context']['instructor'] = AgentManager(initial=stmt_data['context']['instructor'],
                 create=True, define=self.define).agent
             
         if 'team' in stmt_data['context']:
-            stmt_data['context']['team'] = Agent(initial=stmt_data['context']['team'],
+            stmt_data['context']['team'] = AgentManager(initial=stmt_data['context']['team'],
                 create=True, define=self.define).agent
 
         # Revision and platform not applicable if object is agent
@@ -481,7 +481,7 @@ class Statement():
         if args['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             # objectType must be statementRef if want to void another statement
             if statementObjectData['objectType'].lower() == 'statementref' and 'id' in statementObjectData.keys():
-                stmt_ref = self.voidStatement(statementObjectData['id'])
+                stmt_ref = self.void_statement(statementObjectData['id'])
                 args['stmt_object'] = stmt_ref
             else:
                 err_msg = "When voiding, the objectType must be a StatementRef and contain an ID to void"
@@ -489,16 +489,16 @@ class Statement():
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
-                args['stmt_object'] = Activity(statementObjectData,auth=self.auth, define=self.define).activity
+                args['stmt_object'] = ActivityManager(statementObjectData,auth=self.auth, define=self.define).activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                args['stmt_object'] = Agent(initial=statementObjectData, create=True, define=self.define).agent
+                args['stmt_object'] = AgentManager(initial=statementObjectData, create=True, define=self.define).agent
             elif statementObjectData['objectType'].lower() == 'substatement':
-                sub_statement = SubStatement(statementObjectData, self.auth)
+                sub_statement = SubStatementManager(statementObjectData, self.auth)
                 args['stmt_object'] = sub_statement.model_object
             elif statementObjectData['objectType'].lower() == 'statementref':
                 try:
-                    existing_stmt = models.statement.objects.get(statement_id=statementObjectData['id'])
-                except models.statement.DoesNotExist:
+                    existing_stmt = models.Statement.objects.get(statement_id=statementObjectData['id'])
+                except models.Statement.DoesNotExist:
                     err_msg = "No statement with ID %s was found" % statementObjectData['id']
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
@@ -506,7 +506,7 @@ class Statement():
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor
-        args['actor'] = Agent(initial=stmt_data['actor'], create=True, define=self.define).agent
+        args['actor'] = AgentManager(initial=stmt_data['actor'], create=True, define=self.define).agent
 
         #Set voided to default false
         args['voided'] = False
@@ -525,10 +525,10 @@ class Statement():
             # If they're trying to put their oauth group in authority for some reason, just retrieve
             # it. If it doesn't exist, the Agent class responds with a 404
             if auth_data['objectType'].lower() == 'group':
-                args['authority'] = Agent(initial=stmt_data['authority'], create=False, 
+                args['authority'] = AgentManager(initial=stmt_data['authority'], create=False, 
                     define=self.define).agent
             else:
-                args['authority'] = Agent(initial=stmt_data['authority'], create=True, 
+                args['authority'] = AgentManager(initial=stmt_data['authority'], create=True, 
                     define=self.define).agent
 
             # If they try using a non-oauth group that already exists-throw error
@@ -552,14 +552,14 @@ class Statement():
                         authArgs['mbox'] = self.auth.email
                     else:
                         authArgs['mbox'] = "mailto:%s" % self.auth.email
-                    args['authority'] = Agent(initial=authArgs, create=True, define=self.define).agent
+                    args['authority'] = AgentManager(initial=authArgs, create=True, define=self.define).agent
 
         # Check if statement_id already exists, throw exception if it does
         # There will only be an ID when someone is performing a PUT
         if 'id' in stmt_data:
             try:
-                existingSTMT = models.statement.objects.get(statement_id=stmt_data['id'])
-            except models.statement.DoesNotExist:
+                existingSTMT = models.Statement.objects.get(statement_id=stmt_data['id'])
+            except models.Statement.DoesNotExist:
                 self.validate_incoming_uuid(stmt_data['id'])
                 args['statement_id'] = stmt_data['id']
             else:
@@ -578,7 +578,7 @@ class Statement():
         if 'attachments' in stmt_data:
             self.populateAttachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))
 
-class SubStatement(Statement):
+class SubStatementManager(StatementManager):
     @transaction.commit_on_success
     def __init__(self, data, auth):        
         # Make sure object isn't another substatement
@@ -586,4 +586,4 @@ class SubStatement(Statement):
             if data['object']['objectType'].lower() == 'substatement':
                 err_msg = "SubStatements cannot be nested inside of other SubStatements"
                 raise exceptions.ParamError(err_msg)
-        Statement.__init__(self, data, auth)
+        StatementManager.__init__(self, data, auth)

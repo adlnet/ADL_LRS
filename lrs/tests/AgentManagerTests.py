@@ -1,12 +1,11 @@
 from django.test import TestCase
 from lrs.exceptions import ParamError
 from lrs.models import agent, agent_account
-from lrs.objects.Agent import Agent
+from lrs.objects.AgentManager import AgentManager
 import hashlib
 import json
-import pdb
 
-class AgentModelsTests(TestCase):
+class AgentManagerTests(TestCase):
     def test_agent_mbox_create(self):
         mbox = "mailto:bob@example.com"
         bob = agent(mbox=mbox)
@@ -285,7 +284,7 @@ class AgentModelsTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g = Agent(initial=kwargs, create=True).agent
+        g = AgentManager(initial=kwargs, create=True).agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -300,7 +299,7 @@ class AgentModelsTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
-        g = Agent(initial=kwargs, create=True).agent
+        g = AgentManager(initial=kwargs, create=True).agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -315,7 +314,7 @@ class AgentModelsTests(TestCase):
         members = [{"name":"the agent","account":account},
                     {"name":"the user","mbox":"mailto:user@example.com"}]
         kwargs = {"objectType":ot, "name":name, "member":members}
-        g = Agent(initial=kwargs, create=True).agent
+        g = AgentManager(initial=kwargs, create=True).agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, '')
         mems = g.member.values_list('name', flat=True)

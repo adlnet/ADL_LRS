@@ -8,16 +8,15 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from itertools import chain
 from lrs import models
-from lrs.objects import Agent
+from lrs.objects.AgentManager import AgentManager
 from lrs.util import convert_to_utc, convert_to_dict
 from lrs.exceptions import NotFound
-import pdb
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
 def complex_get(req_dict):
     # tests if value is True or "true"
-    stmtset = models.statement.objects.filter(voided=False)
+    stmtset = models.Statement.objects.filter(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
 
@@ -56,7 +55,7 @@ def complex_get(req_dict):
             data = convert_to_dict(data)
         
         try:
-            agent = Agent.Agent(data).agent
+            agent = AgentManager(data).agent
             if agent.objectType == "Group":
                 groups = []
             else:
@@ -139,7 +138,7 @@ def findstmtrefs(stmtset, sinceq, untilq):
         q = q & untilq
     # finally weed out voided statements in this lookup
     q = q & Q(voided=False)
-    return findstmtrefs(models.statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
+    return findstmtrefs(models.Statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
 
 def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key

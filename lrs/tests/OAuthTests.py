@@ -4,9 +4,8 @@ from lrs import views, models
 from oauth_provider.oauth.oauth import OAuthRequest, OAuthSignatureMethod_HMAC_SHA1
 from django.test.utils import setup_test_environment
 from django.contrib.auth.models import User
-from lrs.objects import Statement
+from lrs.objects.StatementManager import StatementManager
 import time
-import pdb
 from django.conf import settings
 import uuid
 import json
@@ -526,7 +525,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_simple_get(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -559,7 +558,7 @@ class OAuthTests(TestCase):
         self.assertIn(guid, rsp)
 
     def test_stmt_complex_get(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = StatementManager(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}}))
         param = {"object":{"objectType": "Activity", "id":"act:test_complex_get"}}
@@ -591,7 +590,7 @@ class OAuthTests(TestCase):
 
     def test_stmt_get_then_wrong_scope(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -654,7 +653,7 @@ class OAuthTests(TestCase):
         testagent = '{"name":"jane","mbox":"mailto:jane@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
         stateId = "id:the_state_id"
-        activity = models.activity(activity_id=activityId)
+        activity = models.Activity(activity_id=activityId)
         activity.save()
         testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
         teststate = {"test":"put activity state 1"}
@@ -687,7 +686,7 @@ class OAuthTests(TestCase):
         
         # Set up for Get
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -720,7 +719,7 @@ class OAuthTests(TestCase):
 
     def stmt_get_then_wrong_profile_scope(self):
         guid = str(uuid.uuid1())
-        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}}))
         param = {"statementId":guid}
@@ -775,7 +774,7 @@ class OAuthTests(TestCase):
 
 
     def test_consumer_state(self):
-        stmt = Statement.Statement(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+        stmt = StatementManager(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}}))
         param = {"object":{"objectType": "Activity", "id":"act:test_complex_get"}}
@@ -855,11 +854,11 @@ class OAuthTests(TestCase):
 
         # build stmt data and path
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
-        oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
-        oauth_group = models.agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
+        oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
+        oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
 
-        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+        stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}))
         param = {"statementId":guid}
@@ -929,11 +928,11 @@ class OAuthTests(TestCase):
 
         # build stmt data and path
         oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
-        oauth_agent2 = models.agent.objects.get(mbox="mailto:test1@tester.com")
-        oauth_group = models.agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
+        oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
+        oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
 
-        stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+        stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}))
         
@@ -963,7 +962,7 @@ class OAuthTests(TestCase):
         testagent = '{"name":"joe","mbox":"mailto:joe@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
         stateId = "id:the_state_id"
-        activity = models.activity(activity_id=activityId)
+        activity = models.Activity(activity_id=activityId)
         activity.save()
         testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
         teststate = {"test":"put activity state 1"}
@@ -997,7 +996,7 @@ class OAuthTests(TestCase):
         self.assertEqual(put.content, "Agent in state cannot be found to match user in authorization")
 
     def test_profile_wrong_auth(self):
-        agent = models.agent(name="joe", mbox="mailto:joe@example.com")
+        agent = models.Agent(name="joe", mbox="mailto:joe@example.com")
         agent.save()
 
         url = 'http://testserver/XAPI/agents/profile'
@@ -1035,7 +1034,7 @@ class OAuthTests(TestCase):
     def test_define_scope_activity(self):
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent",
+        existing_stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent",
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}))
 
@@ -1079,7 +1078,7 @@ class OAuthTests(TestCase):
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 204)
-        acts = models.activity.objects.all()
+        acts = models.Activity.objects.all()
         self.assertEqual(len(acts), 2)
         self.assertEqual(acts[0].activity_id, acts[1].activity_id)
 
@@ -1143,12 +1142,12 @@ class OAuthTests(TestCase):
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 200)
-        acts = models.activity.objects.all()
+        acts = models.Activity.objects.all()
         self.assertEqual(len(acts), 2)
-        act_defs = models.activity_definition.objects.all()
+        act_defs = models.ActivityDefinition.objects.all()
         self.assertEqual(len(acts), 2)
 
-        global_act = models.activity.objects.get(global_representation=True)        
+        global_act = models.Activity.objects.get(global_representation=True)        
         global_name_list = global_act.activity_definition.name_lang_set.all().values_list('value', flat=True)
         self.assertIn('definename', global_name_list)
         self.assertIn('definealtname', global_name_list)
@@ -1156,7 +1155,7 @@ class OAuthTests(TestCase):
         self.assertIn('definedesc', global_desc_list)
         self.assertIn('definealtdesc', global_desc_list)
 
-        non_global_act = models.activity.objects.get(global_representation=False)        
+        non_global_act = models.Activity.objects.get(global_representation=False)        
         non_global_name_list = non_global_act.activity_definition.name_lang_set.all().values_list('value',
             flat=True)
         self.assertIn('testname', non_global_name_list)
@@ -1169,7 +1168,7 @@ class OAuthTests(TestCase):
     def test_define_scope_agent(self):
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
-        existing_stmt = Statement.Statement(json.dumps({"id":guid,"actor":{"objectType": "Agent",
+        existing_stmt = StatementManager(json.dumps({"id":guid,"actor":{"objectType": "Agent",
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/helped",
             "display": {"en-US":"helped"}},"object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com",
             "name":"tim"}}))
@@ -1211,14 +1210,14 @@ class OAuthTests(TestCase):
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 204)
-        agents = models.agent.objects.all().values_list('name', flat=True)
+        agents = models.Agent.objects.all().values_list('name', flat=True)
         # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim, tim timson
         self.assertEqual(len(agents), 7)
         self.assertIn('tim', agents)
         self.assertIn('tim timson', agents)
-        tim = models.agent.objects.get(name='tim timson')
+        tim = models.Agent.objects.get(name='tim timson')
         self.assertFalse(tim.global_representation)
-        tim = models.agent.objects.get(name='tim')
+        tim = models.Agent.objects.get(name='tim')
         self.assertTrue(tim.global_representation)
 
         # START GET STMT
@@ -1251,7 +1250,7 @@ class OAuthTests(TestCase):
         members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
                     {"name":"jan doe","mbox":"mailto:jandoe@example.com"}]
         kwargs = {"objectType":ot, "member": members, "name": "doe group"}
-        global_group, created = models.agent.objects.gen(**kwargs)
+        global_group, created = models.Agent.objects.gen(**kwargs)
 
         members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
                     {"name":"jan doe","mbox":"mailto:jandoe@example.com"},
@@ -1290,10 +1289,10 @@ class OAuthTests(TestCase):
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 200)
-        agents = models.agent.objects.all()
+        agents = models.Agent.objects.all()
         
         # These 5 agents are all non-global since created w/o define scope
-        non_globals = models.agent.objects.filter(global_representation=False).values_list('name', flat=True)
+        non_globals = models.Agent.objects.filter(global_representation=False).values_list('name', flat=True)
         self.assertEqual(len(non_globals), 5)
         self.assertIn('bill', non_globals)
         self.assertIn('tim timson', non_globals)
@@ -1302,7 +1301,7 @@ class OAuthTests(TestCase):
         self.assertIn('doe group', non_globals)
         # 2 oauth group objects, all of these agents since created with member or manually and 2 anon
         # account agents for the accounts in the oauth groups
-        global_agents = models.agent.objects.filter(global_representation=True).values_list('name', flat=True)
+        global_agents = models.Agent.objects.filter(global_representation=True).values_list('name', flat=True)
         self.assertEqual(len(global_agents), 11)
         self.assertIn('bob', global_agents)
         self.assertIn('tim', global_agents)

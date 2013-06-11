@@ -17,7 +17,6 @@ import math
 import urllib
 import hashlib
 from lrs.util import convert_to_utc
-import pdb
 
 class StatementFilterTests(TestCase):
 

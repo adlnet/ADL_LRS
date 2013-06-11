@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-import pdb
 from consts import KEY_SIZE, SECRET_SIZE
 
 #  lou w - removed any references to Resource

@@ -16,8 +16,6 @@ from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMidd
 from lrs import forms, models, exceptions
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
-import pdb
-import pprint
 
 logger = logging.getLogger(__name__)
  
@@ -204,20 +202,20 @@ def me(request):
 def my_statements(request):
     try:
         if request.method == "DELETE":
-            models.statement.objects.filter(user=request.user).delete()
-            stmts = models.statement.objects.filter(user=request.user)
+            models.Statement.objects.filter(user=request.user).delete()
+            stmts = models.Statement.objects.filter(user=request.user)
             if not stmts:
                 return HttpResponse(status=204)
             else:
                 raise Exception("unable to delete statements")
         stmt_id = request.GET.get("stmt_id", None)
         if stmt_id:
-            s = models.statement.objects.get(statement_id=stmt_id, user=request.user)
+            s = models.Statement.objects.get(statement_id=stmt_id, user=request.user)
             return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
         else:
             s = {}
             slist = []
-            for stmt in models.statement.objects.filter(user=request.user).order_by('-timestamp'):
+            for stmt in models.Statement.objects.filter(user=request.user).order_by('-timestamp'):
                 d = {}
                 d['timestamp'] = stmt.timestamp.isoformat()
                 d['statement_id'] = stmt.statement_id

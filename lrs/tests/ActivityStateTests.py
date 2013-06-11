@@ -8,7 +8,6 @@ from django.utils import timezone
 import hashlib
 import urllib
 import os
-import base64
 import json
 
 class ActivityStateTests(TestCase):

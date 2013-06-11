@@ -1,15 +1,14 @@
-from django.test import TestCase
-from django.conf import settings
-from django.core.urlresolvers import reverse
-from lrs import models, views
 import json
 import time
 import hashlib
 import urllib
 from os import path
-from lrs.objects import Activity
 import base64
-import pdb
+from django.test import TestCase
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from lrs import models, views
+from lrs.objects.ActivityManager import ActivityManager
 
 class ActivityProfileTests(TestCase):
     test_activityId1 = 'act:act-1'
@@ -76,9 +75,9 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(self.put5.status_code, 204)
 
         #Make sure profiles have correct activities
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId1)[0].activityId, self.test_activityId1)
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId2)[0].activityId, self.test_activityId2)
-        self.assertEqual(models.activity_profile.objects.filter(profileId=self.testprofileId3)[0].activityId, self.test_activityId3)
+        self.assertEqual(models.ActivityProfile.objects.filter(profileId=self.testprofileId1)[0].activityId, self.test_activityId1)
+        self.assertEqual(models.ActivityProfile.objects.filter(profileId=self.testprofileId2)[0].activityId, self.test_activityId2)
+        self.assertEqual(models.ActivityProfile.objects.filter(profileId=self.testprofileId3)[0].activityId, self.test_activityId3)
 
     def test_put_no_params(self):
         put = self.client.put(reverse(views.activity_profile) ,content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -181,7 +180,7 @@ class ActivityProfileTests(TestCase):
     def test_get_activity_since_tz(self):
         actid = "test:activity"
         profid = "test://test/tz"
-        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': actid}))
+        act = ActivityManager(json.dumps({'objectType':'Activity', 'id': actid}))
         params = {"profileId": profid, "activityId": actid}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         prof = {"test":"timezone since","obj":{"activity":"other"}}
@@ -218,7 +217,7 @@ class ActivityProfileTests(TestCase):
         testparams1 = {"profileId": profileid, "activityId": activityid, "Authorization": self.auth}
         testparams1['content'] = {"test":"put profile 1","obj":{"activity":"act:test"}}
         path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
-        the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': activityid}))
+        the_act = ActivityManager(json.dumps({'objectType':'Activity', 'id': activityid}))
         put1 = self.client.post(path, testparams1, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0")
         self.assertEqual(put1.status_code, 204)
         self.client.delete(reverse(views.activity_profile), testparams1, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -227,7 +226,7 @@ class ActivityProfileTests(TestCase):
         pid = 'http://ie.cors.etag/test'
         aid = 'act:ie.cors.etag/test'
 
-        actaid = Activity.Activity(json.dumps({'objectType':'Activity', 'id': aid}))
+        actaid = ActivityManager(json.dumps({'objectType':'Activity', 'id': aid}))
         
         params = {"profileId": pid, "activityId": aid}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
@@ -255,7 +254,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "http://test.tetris/", "activityId": "act:tetris.snafu"}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"put profile 1","obj":{"activity":"test"}}
-        the_act = Activity.Activity(json.dumps({'objectType':'Activity', 'id': "act:tetris.snafu"}))
+        the_act = ActivityManager(json.dumps({'objectType':'Activity', 'id': "act:tetris.snafu"}))
         p_r = self.client.put(path, json.dumps(profile), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(p_r.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), {'activityId': "act:tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="1.0.0", Authorization=self.auth)

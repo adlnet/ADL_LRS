@@ -13,7 +13,6 @@ from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
 from django.utils.decorators import decorator_from_middleware
-import pdb
 from django.shortcuts import render_to_response
 from lrs.forms import AuthClientForm
 from lrs.models import Token
@@ -57,7 +56,6 @@ def user_authorization(request):
     The Consumer cannot use the Request Token until it has been authorized by 
     the User.
     """
-    # pdb.set_trace()
     oauth_server, oauth_request = initialize_server_request(request)
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE

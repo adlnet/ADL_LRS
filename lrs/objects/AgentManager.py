@@ -2,13 +2,12 @@ import json
 import datetime
 from django.core.files.base import ContentFile
 from django.db import transaction
-from lrs.models import agent_profile
-from lrs.models import agent as ag
+from lrs.models import AgentProfile
+from lrs.models import Agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
-import pdb
 
-class Agent():
+class AgentManager():
     @transaction.commit_on_success
     def __init__(self, initial=None, create=False, define=True):
         self.initial = initial
@@ -31,7 +30,7 @@ class Agent():
         
         if create:
             params['define'] = self.define
-            self.agent, created = ag.objects.gen(**params)
+            self.Agent, created = ag.objects.gen(**params)
         else:
             try:
                 if 'member' in params:
@@ -45,7 +44,7 @@ class Agent():
                         params['agent_account__homePage'] = acc['homePage']
                     if 'name' in acc:
                         params['agent_account__name'] = acc['name']
-                self.agent = ag.objects.get(**params)
+                self.Agent = ag.objects.get(**params)
             except:
                 err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
                 raise IDNotFoundError(err_msg) 
@@ -58,7 +57,7 @@ class Agent():
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             raise ParamError(err_msg)
 
-        p, created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent)
+        p, created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
         if created:
             profile = ContentFile(post_profile)
         else:
@@ -84,7 +83,7 @@ class Agent():
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             raise ParamError(err_msg)
 
-        p,created = agent_profile.objects.get_or_create(profileId=profile_id,agent=self.agent)
+        p,created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
         if not created:
             etag.check_preconditions(request_dict,p, required=True)
             p.profile.delete()
@@ -104,7 +103,7 @@ class Agent():
     
     def get_profile(self, profileId):
         try:
-            return self.agent.agent_profile_set.get(profileId=profileId)
+            return self.Agent.AgentProfile_set.get(profileId=profileId)
         except:
             err_msg = 'There is no profile associated with the id: %s' % profileId
             raise IDNotFoundError(err_msg)
@@ -114,7 +113,7 @@ class Agent():
         if since:
             try:
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
-                profs = self.agent.agent_profile_set.filter(updated__gte=since)
+                profs = self.Agent.AgentProfile_set.filter(updated__gte=since)
             except ValidationError:
                 err_msg = 'Since field is not in correct format for retrieval of agent profiles'
                 raise ParamError(err_msg) 
@@ -124,20 +123,20 @@ class Agent():
 
             ids = [p.profileId for p in profs]
         else:
-            ids = self.agent.agent_profile_set.values_list('profileId', flat=True)
+            ids = self.Agent.AgentProfile_set.values_list('profileId', flat=True)
         return ids
 
     def delete_profile(self, profileId):
         try:
             prof = self.get_profile(profileId)
             prof.delete()
-        except agent_profile.DoesNotExist:
+        except AgentProfile.DoesNotExist:
             pass #we don't want it anyway
         except IDNotFoundError:
             pass
 
     def get_agent_json(self):
-        return json.dumps(self.agent.get_agent_json(), sort_keys=True)
+        return json.dumps(self.Agent.get_agent_json(), sort_keys=True)
 
     def get_person_json(self):
-        return json.dumps(self.agent.get_person_json(), sort_keys=True)
+        return json.dumps(self.Agent.get_person_json(), sort_keys=True)
