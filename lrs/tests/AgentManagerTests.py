@@ -35,9 +35,9 @@ class AgentManagerTests(TestCase):
         account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
         bob = Agent()
         bob.save()
-        bobacc = agent_account(agent=bob, **account)
+        bobacc = AgentAccount(agent=bob, **account)
         bobacc.save()
-        a = bob.agent_account
+        a = bob.agentaccount
         self.assertEquals(a.name, "freakshow")
         self.assertEquals(a.homePage, "http://www.adlnet.gov")
         self.assertEquals(a.agent, bob)
@@ -78,7 +78,7 @@ class AgentManagerTests(TestCase):
         self.assertTrue(created)
         self.assertEquals(bob.objectType, ot)
         self.assertEquals(bob.name, name)
-        a = bob.agent_account
+        a = bob.agentaccount
         self.assertEquals(a.homePage, "http://www.adlnet.gov")
         self.assertEquals(a.name, "freakshow")
 
@@ -144,7 +144,7 @@ class AgentManagerTests(TestCase):
         self.assertEquals(bill2.name, name)
         self.assertEquals(bill.id, bill2.id)
         self.assertEquals(len(Agent.objects.all()), 1)
-        self.assertEquals(len(agent_account.objects.all()), 1)
+        self.assertEquals(len(AgentAccount.objects.all()), 1)
 
     def test_group_update_kwargs_with_account(self):
         ot = "Group"
@@ -165,8 +165,8 @@ class AgentManagerTests(TestCase):
         self.assertEquals(g1.name, name)
         self.assertEquals(g.id, g1.id)
         self.assertEquals(len(Agent.objects.all()), 3)
-        self.assertEquals(len(agent_account.objects.all()), 1)
-        self.assertEquals(agent_account.objects.all()[0].Agent.id, g.id)
+        self.assertEquals(len(AgentAccount.objects.all()), 1)
+        self.assertEquals(AgentAccount.objects.all()[0].agent.id, g.id)
 
 
     def test_group_update_kwargs(self):
@@ -240,8 +240,8 @@ class AgentManagerTests(TestCase):
         self.assertEquals(g.id, g1.id)
         # 3 agents 1 group
         self.assertEquals(len(Agent.objects.all()), 4)
-        self.assertEquals(len(agent_account.objects.all()), 1)
-        self.assertEquals(agent_account.objects.all()[0].Agent.id, g1.id)
+        self.assertEquals(len(AgentAccount.objects.all()), 1)
+        self.assertEquals(AgentAccount.objects.all()[0].agent.id, g1.id)
 
     def test_agent_json_no_ids(self):
         self.assertRaises(ParamError, Agent.objects.gen, 
@@ -284,7 +284,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g = AgentManager(initial=kwargs, create=True).agent
+        g = AgentManager(initial=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -299,7 +299,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
-        g = AgentManager(initial=kwargs, create=True).agent
+        g = AgentManager(initial=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -314,7 +314,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"the agent","account":account},
                     {"name":"the user","mbox":"mailto:user@example.com"}]
         kwargs = {"objectType":ot, "name":name, "member":members}
-        g = AgentManager(initial=kwargs, create=True).agent
+        g = AgentManager(initial=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, '')
         mems = g.member.values_list('name', flat=True)
@@ -326,19 +326,19 @@ class AgentManagerTests(TestCase):
     def test_agent_del(self):
         ag = Agent(name="the agent")
         ag.save()
-        acc = agent_account(agent=ag, homePage="http://adlnet.gov/agent/1", name="agent 1 account")
+        acc = AgentAccount(agent=ag, homePage="http://adlnet.gov/agent/1", name="agent 1 account")
         acc.save()
 
         self.assertEquals(ag.name, "the agent")
-        self.assertEquals(ag.agent_account.name, "agent 1 account")
-        self.assertEquals(ag.agent_account.homePage, "http://adlnet.gov/agent/1")
+        self.assertEquals(ag.agentaccount.name, "agent 1 account")
+        self.assertEquals(ag.agentaccount.homePage, "http://adlnet.gov/agent/1")
         self.assertEquals(1, len(Agent.objects.all()))
-        self.assertEquals(1, len(agent_account.objects.all()))
+        self.assertEquals(1, len(AgentAccount.objects.all()))
 
         ag.delete()
 
         self.assertEquals(0, len(Agent.objects.all()))
-        self.assertEquals(0, len(agent_account.objects.all()))
+        self.assertEquals(0, len(AgentAccount.objects.all()))
 
     def test_agent_format(self):
         ot_s = "Agent"
@@ -416,8 +416,8 @@ class AgentManagerTests(TestCase):
         barry.save()
         self.assertEquals(barry.objectType, ot_f)
         self.assertEquals(barry.name, name_f)
-        self.assertEquals(barry.agent_account.homePage, account_f['homePage'])
-        self.assertEquals(barry.agent_account.name, account_f['name'])
+        self.assertEquals(barry.agentaccount.homePage, account_f['homePage'])
+        self.assertEquals(barry.agentaccount.name, account_f['name'])
 
         barry_exact = barry.get_agent_json()
         self.assertEquals(barry_exact['objectType'], ot_f)

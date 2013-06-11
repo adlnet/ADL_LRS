@@ -27,7 +27,7 @@ class ActivityStateManager():
         self.since = request_dict['params'].get('since', None)
 
     def __get_agent(self, create=False):
-        return AgentManager(self.agent, create).agent
+        return AgentManager(self.agent, create).Agent
 
     def post(self):
         agent = self.__get_agent(create=True)

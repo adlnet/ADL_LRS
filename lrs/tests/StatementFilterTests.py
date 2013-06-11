@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.core.urlresolvers import reverse
 from lrs import views
 from lrs.models import Statement
-from lrs.objects.Statement import Statement as St
+from lrs.objects.StatementManager import StatementManager as StMan
 from django.conf import settings
 import json
 import base64
@@ -44,7 +44,7 @@ class StatementFilterTests(TestCase):
     def test_limit_filter(self):
         # Test limit
         for i in range(1,4):
-            St(json.dumps({"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}))
+            StMan(json.dumps({"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}))
         limitGetResponse = self.client.post(reverse(views.statements),{"limit":2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(limitGetResponse.status_code, 200)
         rsp = limitGetResponse.content
@@ -53,7 +53,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 2)    
 
     def test_get_id(self):
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
@@ -96,7 +96,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(obj['result']['score']['raw'], 1918560.0)
 
     def test_agent_filter(self):
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -129,7 +129,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Agent"
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:20.392000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI", 
@@ -174,7 +174,7 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
     def test_group_as_agent_filter(self):
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -204,7 +204,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -258,7 +258,7 @@ class StatementFilterTests(TestCase):
             self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
 
     def test_related_agents_filter(self):
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -297,7 +297,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -324,7 +324,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -458,7 +458,7 @@ class StatementFilterTests(TestCase):
         }]
 
         for s in batch:
-            St(json.dumps(s))
+            StMan(json.dumps(s))
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -534,7 +534,7 @@ class StatementFilterTests(TestCase):
         self.assertItemsEqual(slice_ids, same)
 
     def test_related_agents_filter_until(self):
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -573,7 +573,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -600,7 +600,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -670,7 +670,7 @@ class StatementFilterTests(TestCase):
             self.assertTrue(convert_to_utc(s['stored']) < until)
 
     def test_related_agents_filter_since(self):
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -709,7 +709,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -736,7 +736,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -855,7 +855,7 @@ class StatementFilterTests(TestCase):
 
     def test_verb_filter(self):
         theid = str(uuid.uuid1())
-        St(json.dumps(
+        StMan(json.dumps(
         {
         "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
@@ -894,7 +894,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }))
-        St(json.dumps( 
+        StMan(json.dumps( 
         {
         "verb": {
             "id": "http://special.adlnet.gov/xapi/verbs/frowned", 
@@ -953,7 +953,7 @@ class StatementFilterTests(TestCase):
 
     def test_registration_filter(self):
         theid = str(uuid.uuid1())
-        St(json.dumps(
+        StMan(json.dumps(
         {
         "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
@@ -993,7 +993,7 @@ class StatementFilterTests(TestCase):
             "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a92"
         }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 17:51:38.118000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI"
@@ -1010,7 +1010,7 @@ class StatementFilterTests(TestCase):
                 "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
             }
         }))
-        St(json.dumps(
+        StMan(json.dumps(
         {
         "timestamp": "2013-04-08 21:07:20.392000+00:00", 
         "object": { 
@@ -1082,7 +1082,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 0)
 
     def test_activity_filter(self):
-        St(json.dumps({
+        StMan(json.dumps({
         "timestamp": "2013-04-08 21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
@@ -1104,7 +1104,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
@@ -1131,7 +1131,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         })) 
-        St(json.dumps({
+        StMan(json.dumps({
         "timestamp": "2013-04-08 21:07:20.392000+00:00", 
         "object": {
             "definition": {
@@ -1205,7 +1205,7 @@ class StatementFilterTests(TestCase):
         self.assertTrue(len(stmts) > actcnt, "stmts(%s) was not greater than actcnt(%s)" % (len(stmts), actcnt))
 
     def test_no_activity_filter(self):
-        St(json.dumps({
+        StMan(json.dumps({
         "timestamp": "2013-04-08 21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
@@ -1227,7 +1227,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }))
-        St(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"

@@ -9,6 +9,7 @@ import hashlib
 import urllib
 import os
 import json
+import base64
 
 class ActivityStateTests(TestCase):
     url = reverse(views.activity_state)

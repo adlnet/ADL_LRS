@@ -4,7 +4,7 @@ import json
 from lrs.exceptions import ParamError
 from lrs.objects.ActivityManager import ActivityManager
 
-class ActivityModelsTests(TestCase):        
+class ActivityManagerTests(TestCase):        
     #Called on all activity django models to see if they were created with the correct fields    
     def do_activity_model(self,realid,act_id, objType):
         self.assertEqual(models.Activity.objects.filter(id=realid)[0].objectType, objType)
@@ -163,11 +163,8 @@ class ActivityModelsTests(TestCase):
         act = ActivityManager(json.dumps({'objectType':'Activity',
             'id': 'http://localhost:8000/XAPI/actexample/'}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
-
-        # name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
-        # desc_set = models.ActivityDefDescLangMap.objects.filter(act_def=act_def)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
         desc_set = models.ActivityDefDescLangMap.objects.filter(act_def=act_def)
@@ -185,7 +182,7 @@ class ActivityModelsTests(TestCase):
             elif ns.key == 'en-CH':
                 self.assertEqual(ds.value, 'Alt Desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/actexample/', 'Activity')        
+        self.do_activity_model(act.Activity.id, 'http://localhost:8000/XAPI/actexample/', 'Activity')        
         self.do_activity_definition_model(fk, 'type:module','course')
 
     # Test that passing in the same info gets the same activity
@@ -196,14 +193,14 @@ class ActivityModelsTests(TestCase):
         act2 = ActivityManager(json.dumps({'objectType': 'Activity',
             'id': 'http://localhost:8000/XAPI/actexample/'}))
 
-        self.assertEqual(act2.activity.id, act.activity.id)
+        self.assertEqual(act2.Activity.id, act.Activity.id)
 
     # Test activity that doesn't have a def with extensions (populates everything from XML)
     def test_activity_no_def_schema_conform_extensions(self):
         act = ActivityManager(json.dumps({'objectType':'Activity',
             'id': 'http://localhost:8000/XAPI/actexample2/'}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -215,7 +212,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'Example Desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/actexample2/', 'Activity')        
+        self.do_activity_model(act.Activity.id, 'http://localhost:8000/XAPI/actexample2/', 'Activity')        
         self.do_activity_definition_model(fk, 'type:module','course')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
@@ -228,7 +225,7 @@ class ActivityModelsTests(TestCase):
                 'id':'act://var/www/adllrs/activity/example.json','definition': {'name': {'en-CH':'testname'},
                 'description': {'en-US':'testdesc'}, 'type': 'type:course','interactionType': 'intType'}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
@@ -241,7 +238,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc')
 
-        self.do_activity_model(act.activity.id, 'act://var/www/adllrs/activity/example.json', 'Activity')        
+        self.do_activity_model(act.Activity.id, 'act://var/www/adllrs/activity/example.json', 'Activity')        
         self.do_activity_definition_model(fk, 'type:course', 'intType')
 
     # Test an activity that has a def (should use values from payload and override JSON from ID)
@@ -250,7 +247,7 @@ class ActivityModelsTests(TestCase):
                 'id':'http://localhost:8000/XAPI/actexample4/','definition': {'name': {'en-FR': 'name'},
                 'description': {'en-FR':'desc'}, 'type': 'type:course','interactionType': 'intType'}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -262,7 +259,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-FR')
         self.assertEqual(desc_set[0].value, 'desc')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/actexample4/', 'Activity')        
+        self.do_activity_model(act.Activity.id, 'http://localhost:8000/XAPI/actexample4/', 'Activity')        
         self.do_activity_definition_model(fk, 'type:course','intType')
 
     # Test an activity that has a def and the ID resolves (should use values from payload)
@@ -271,7 +268,7 @@ class ActivityModelsTests(TestCase):
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-GB':'testdesc1'},
                 'type': 'type:link','interactionType': 'intType'}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -283,7 +280,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-GB')
         self.assertEqual(desc_set[0].value, 'testdesc1')
 
-        self.do_activity_model(act.activity.id, 'http://localhost:8000/XAPI/', 'Activity')        
+        self.do_activity_model(act.Activity.id, 'http://localhost:8000/XAPI/', 'Activity')        
         self.do_activity_definition_model(fk, 'type:link', 'intType')
 
     # Throws exception because incoming data is not JSON
@@ -306,11 +303,9 @@ class ActivityModelsTests(TestCase):
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'type:course','interactionType': 'intType'}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
-        # name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
-        # desc_set = models.ActivityDefDescLangMap.objects.filter(act_def=act_def)
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
         desc_set = models.ActivityDefDescLangMap.objects.filter(act_def=act_def)
         
@@ -320,7 +315,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc')
 
-        self.do_activity_model(act.activity.id,'act:fooc', 'Activity')        
+        self.do_activity_model(act.Activity.id,'act:fooc', 'Activity')        
         self.do_activity_definition_model(fk, 'type:course', 'intType')
 
     def test_activity_definition_with_url_field(self):
@@ -328,7 +323,7 @@ class ActivityModelsTests(TestCase):
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'type:course', 'moreInfo':'http://some/json/doc','interactionType': 'intType'}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -341,7 +336,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc')
 
-        self.do_activity_model(act.activity.id,'act:fooc', 'Activity')        
+        self.do_activity_model(act.Activity.id,'act:fooc', 'Activity')        
         self.do_activity_definition_model(fk, 'type:course', 'intType','http://some/json/doc')
 
     # these'll work for now... name, type, and description are technically optional according to the spec
@@ -371,7 +366,7 @@ class ActivityModelsTests(TestCase):
                 'type': 'type:course','interactionType': 'intType2', 'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -384,7 +379,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-CH')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        self.do_activity_model(act.activity.id,'act:food', 'Activity')        
+        self.do_activity_model(act.Activity.id,'act:food', 'Activity')        
         self.do_activity_definition_model(fk, 'type:course','intType2')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
@@ -396,11 +391,11 @@ class ActivityModelsTests(TestCase):
                 'en-GB': 'testdescGB'},'type': 'type:course','interactionType': 'intType2', 'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         def_fk = models.ActivityDefinition.objects.filter(activity=fk)
 
-        name_set = def_fk[0].name_lang_set.all()
-        desc_set = def_fk[0].desc_lang_set.all()
+        name_set = def_fk[0].activitydefnamelangmap_set.all()
+        desc_set = def_fk[0].activitydefdesclangmap_set.all()
         
         for ns in name_set:
             if ns.key == 'en-US':
@@ -414,7 +409,7 @@ class ActivityModelsTests(TestCase):
             elif ds.key == 'en-CH':
                 self.assertEqual(ds.value, 'testdesc2')
 
-        self.do_activity_model(act.activity.id,'act:food', 'Activity')        
+        self.do_activity_model(act.Activity.id,'act:food', 'Activity')        
         self.do_activity_definition_model(fk, 'type:course', 'intType2')
 
         self.do_activity_definition_extensions_model(def_fk, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
@@ -453,7 +448,7 @@ class ActivityModelsTests(TestCase):
                 'correctResponsesPattern': ['true'] ,'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2',
                 'ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -468,7 +463,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id,'act:fooe', 'Activity')                
+        self.do_activity_model(act.Activity.id,'act:fooe', 'Activity')                
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction','true-false')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1',
@@ -488,7 +483,7 @@ class ActivityModelsTests(TestCase):
                 'description': {'en-US': 'Scrabble Example', 'en-GB': 'SCRABBLE'}}],'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -503,7 +498,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id,'act:foof', 'Activity')
+        self.do_activity_model(act.Activity.id,'act:foof', 'Activity')
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'choice')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
@@ -538,7 +533,7 @@ class ActivityModelsTests(TestCase):
                 'correctResponsesPattern': ['Fill in answer'],'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2', 'ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -553,7 +548,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id,'act:foog', 'Activity')
+        self.do_activity_model(act.Activity.id,'act:foog', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction','fill-in')
 
@@ -571,7 +566,7 @@ class ActivityModelsTests(TestCase):
                 'correctResponsesPattern': ['Long fill in answer'],'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -586,7 +581,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'act:fooh', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:fooh', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction','fill-in')
 
@@ -606,7 +601,7 @@ class ActivityModelsTests(TestCase):
                 'description':{'en-US':'Its Cool Cool', 'en-GB':'Tis Cool Cool'}},
                 {'id':'likert_3', 'description': {'en-US': 'Its Gonna Change the World'}}]}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -621,7 +616,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'act:fooi', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:fooi', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'likert')
 
@@ -646,7 +641,7 @@ class ActivityModelsTests(TestCase):
                 'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
                 {'id':'3', 'description':{'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}}]}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -661,7 +656,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'act:fooj', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:fooj', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'matching')
 
@@ -687,7 +682,7 @@ class ActivityModelsTests(TestCase):
                 'description':{'en-US': 'Strokes over par in disc golf at Liberty'}},
                 {'id':'lunch', 'description':{'en-US':'Lunch having been eaten'}}]}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -701,7 +696,7 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set[0].value, 'testdesc2')        
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'act:fook', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:fook', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'performance')
 
@@ -724,7 +719,7 @@ class ActivityModelsTests(TestCase):
                 {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron',
                 'description':{'en-US':'Aaron', 'en-GB': 'Erin'}}]}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -739,7 +734,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'act:fool', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:fool', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'sequencing')
 
@@ -757,7 +752,7 @@ class ActivityModelsTests(TestCase):
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -772,7 +767,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'act:foom', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:foom', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'numeric')
 
@@ -790,7 +785,7 @@ class ActivityModelsTests(TestCase):
                 'correctResponsesPattern': ['(35.937432,-86.868896)'],'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -805,7 +800,7 @@ class ActivityModelsTests(TestCase):
 
         rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
-        self.do_activity_model(act.activity.id, 'act:foon', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:foon', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
@@ -821,10 +816,10 @@ class ActivityModelsTests(TestCase):
         act3 = ActivityManager(json.dumps({'objectType':'Activity', 'id': 'act:foob'}))
         act4 = ActivityManager(json.dumps({'objectType':'Activity', 'id': 'act:foon'}))
 
-        self.assertEqual(act1.activity.id, act2.activity.id)
-        self.assertEqual(act1.activity.id, act3.activity.id)
-        self.assertEqual(act2.activity.id, act3.activity.id)
-        self.assertNotEqual(act1.activity.id, act4.activity.id)
+        self.assertEqual(act1.Activity.id, act2.Activity.id)
+        self.assertEqual(act1.Activity.id, act3.Activity.id)
+        self.assertEqual(act2.Activity.id, act3.Activity.id)
+        self.assertNotEqual(act1.Activity.id, act4.Activity.id)
 
     def test_language_map_description_name(self):
         act = ActivityManager(json.dumps({'objectType': 'Activity', 'id': 'act:foz',
@@ -832,7 +827,7 @@ class ActivityModelsTests(TestCase):
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
                     'correctResponsesPattern': ['(35,-86)']}}))
 
-        fk = models.Activity.objects.filter(id=act.activity.id)
+        fk = models.Activity.objects.filter(id=act.Activity.id)
         act_def = models.ActivityDefinition.objects.filter(activity=fk)
 
         name_set = models.ActivityDefNameLangMap.objects.filter(act_def=act_def)
@@ -844,7 +839,7 @@ class ActivityModelsTests(TestCase):
 
         self.assertEqual(desc_set[0].key, 'en-us')
         self.assertEqual(desc_set[0].value, 'actdesc')
-        self.do_activity_model(act.activity.id, 'act:foz', 'Activity')
+        self.do_activity_model(act.Activity.id, 'act:foz', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
@@ -857,12 +852,12 @@ class ActivityModelsTests(TestCase):
             'definition':{'name': {'en-US':'actname2'},'description': {'en-us':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
-        fk1 = models.Activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
+        fk1 = models.Activity.objects.filter(id=act1.Activity.id)[0]
+        self.do_activity_model(act1.Activity.id, 'act:foob', 'Activity')
         act_def1 = models.ActivityDefinition.objects.filter(activity=fk1)
 
-        name_set1 = act_def1[0].name_lang_set.all()
-        desc_set1 = act_def1[0].desc_lang_set.all()
+        name_set1 = act_def1[0].activitydefnamelangmap_set.all()
+        desc_set1 = act_def1[0].activitydefdesclangmap_set.all()
         
 
         self.assertEqual(name_set1[0].key, 'en-US')
@@ -874,12 +869,12 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_definition_model(fk1, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        fk2 = models.Activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
+        fk2 = models.Activity.objects.filter(id=act2.Activity.id)[0]
+        self.do_activity_model(act2.Activity.id, 'act:foob', 'Activity')
         act_def2 = models.ActivityDefinition.objects.filter(activity=fk2)
 
-        name_set2 = act_def2[0].name_lang_set.all()
-        desc_set2 = act_def2[0].desc_lang_set.all()
+        name_set2 = act_def2[0].activitydefnamelangmap_set.all()
+        desc_set2 = act_def2[0].activitydefdesclangmap_set.all()
         
 
         self.assertEqual(name_set2[0].key, 'en-US')
@@ -889,8 +884,8 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set2[0].value, 'actdesc')        
         self.do_activity_definition_model(fk2, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        self.assertEqual(act1.activity, act2.activity)
-        self.assertEqual(fk1.activity_definition, fk2.activity_definition)
+        self.assertEqual(act1.Activity, act2.Activity)
+        self.assertEqual(fk1.activitydefinition, fk2.activitydefinition)
 
         # __contains makes the filter case sensitive
         self.assertEqual(len(models.ActivityDefNameLangMap.objects.filter(key__contains = 'en-US')), 1)
@@ -907,12 +902,12 @@ class ActivityModelsTests(TestCase):
             'definition':{'name': {'en-US':'actname'},'description': {'en-us':'actdesc2'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
-        fk1 = models.Activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'act:foobe', 'Activity')
+        fk1 = models.Activity.objects.filter(id=act1.Activity.id)[0]
+        self.do_activity_model(act1.Activity.id, 'act:foobe', 'Activity')
         act_def1 = models.ActivityDefinition.objects.get(activity=fk1)
 
-        name_set1 = act_def1.name_lang_set.all()
-        desc_set1 = act_def1.desc_lang_set.all()
+        name_set1 = act_def1.activitydefnamelangmap_set.all()
+        desc_set1 = act_def1.activitydefdesclangmap_set.all()
         
 
         self.assertEqual(name_set1[0].key, 'en-US')
@@ -922,12 +917,12 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set1[0].value, 'actdesc2')        
         self.do_activity_definition_model(fk1, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        fk2 = models.Activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'act:foobe', 'Activity')
+        fk2 = models.Activity.objects.filter(id=act2.Activity.id)[0]
+        self.do_activity_model(act2.Activity.id, 'act:foobe', 'Activity')
         act_def2 = models.ActivityDefinition.objects.get(activity=fk2)
 
-        name_set2 = act_def2.name_lang_set.all()
-        desc_set2 = act_def2.desc_lang_set.all()
+        name_set2 = act_def2.activitydefnamelangmap_set.all()
+        desc_set2 = act_def2.activitydefdesclangmap_set.all()
         
         self.assertEqual(name_set2[0].key, 'en-US')
         self.assertEqual(name_set2[0].value, 'actname')
@@ -938,8 +933,8 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_definition_model(fk2, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        self.assertEqual(act1.activity, act2.activity)
-        self.assertEqual(fk1.activity_definition, fk2.activity_definition)
+        self.assertEqual(act1.Activity, act2.Activity)
+        self.assertEqual(fk1.activitydefinition, fk2.activitydefinition)
 
         # __contains makes the filter case sensitive, no models with en-US should be stored
         self.assertEqual(len(models.ActivityDefNameLangMap.objects.filter(key__contains = 'en-US')), 1)
@@ -956,12 +951,12 @@ class ActivityModelsTests(TestCase):
             'definition':{'name': {'en-CH':'actname2'},'description': {'en-FR':'actdesc2'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
-        fk1 = models.Activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
+        fk1 = models.Activity.objects.filter(id=act1.Activity.id)[0]
+        self.do_activity_model(act1.Activity.id, 'act:foob', 'Activity')
         act_def1 = models.ActivityDefinition.objects.filter(activity=fk1)
 
-        name_set1 = act_def1[0].name_lang_set.all()
-        desc_set1 = act_def1[0].desc_lang_set.all()
+        name_set1 = act_def1[0].activitydefnamelangmap_set.all()
+        desc_set1 = act_def1[0].activitydefdesclangmap_set.all()
         
 
         self.assertEqual(name_set1[0].key, 'en-CH')
@@ -972,12 +967,12 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_definition_model(fk1, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        fk2 = models.Activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
+        fk2 = models.Activity.objects.filter(id=act2.Activity.id)[0]
+        self.do_activity_model(act2.Activity.id, 'act:foob', 'Activity')
         act_def2 = models.ActivityDefinition.objects.filter(activity=fk2)
 
-        name_set2 = act_def2[0].name_lang_set.all()
-        desc_set2 = act_def2[0].desc_lang_set.all()
+        name_set2 = act_def2[0].activitydefnamelangmap_set.all()
+        desc_set2 = act_def2[0].activitydefdesclangmap_set.all()
         
 
         self.assertEqual(name_set2[0].key, 'en-CH')
@@ -987,8 +982,8 @@ class ActivityModelsTests(TestCase):
         self.assertEqual(desc_set2[0].value, 'actdesc2')         
         self.do_activity_definition_model(fk2,'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        self.assertEqual(act1.activity, act2.activity)
-        self.assertEqual(fk1.activity_definition, fk2.activity_definition)
+        self.assertEqual(act1.Activity, act2.Activity)
+        self.assertEqual(fk1.activitydefinition, fk2.activitydefinition)
 
         # __contains makes the filter case sensitive, no models with en-US should be stored
         self.assertEqual(len(models.ActivityDefNameLangMap.objects.filter(key__contains = 'en-US')), 0)
@@ -1005,12 +1000,12 @@ class ActivityModelsTests(TestCase):
             'definition':{'name': {'en-CH':'actname2', 'en-US': 'altname'},'description': {'en-FR':'actdesc2', 'en-GB': 'altdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}))
 
-        fk1 = models.Activity.objects.filter(id=act1.activity.id)[0]
-        self.do_activity_model(act1.activity.id, 'act:foob', 'Activity')
+        fk1 = models.Activity.objects.filter(id=act1.Activity.id)[0]
+        self.do_activity_model(act1.Activity.id, 'act:foob', 'Activity')
         act_def1 = models.ActivityDefinition.objects.filter(activity=fk1)
 
-        name_set1 = act_def1[0].name_lang_set.all()
-        desc_set1 = act_def1[0].desc_lang_set.all()
+        name_set1 = act_def1[0].activitydefnamelangmap_set.all()
+        desc_set1 = act_def1[0].activitydefdesclangmap_set.all()
         
         for ns in name_set1:
             if ns.key == 'en-CH':
@@ -1026,12 +1021,12 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_definition_model(fk1, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        fk2 = models.Activity.objects.filter(id=act2.activity.id)[0]
-        self.do_activity_model(act2.activity.id, 'act:foob', 'Activity')
+        fk2 = models.Activity.objects.filter(id=act2.Activity.id)[0]
+        self.do_activity_model(act2.Activity.id, 'act:foob', 'Activity')
         act_def2 = models.ActivityDefinition.objects.filter(activity=fk2)
 
-        name_set2 = act_def2[0].name_lang_set.all()
-        desc_set2 = act_def2[0].desc_lang_set.all()
+        name_set2 = act_def2[0].activitydefnamelangmap_set.all()
+        desc_set2 = act_def2[0].activitydefdesclangmap_set.all()
         
         for ns in name_set2:
             if ns.key == 'en-CH':
@@ -1047,8 +1042,8 @@ class ActivityModelsTests(TestCase):
 
         self.do_activity_definition_model(fk2,'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
-        self.assertEqual(act1.activity, act2.activity)
-        self.assertEqual(fk1.activity_definition, fk2.activity_definition)
+        self.assertEqual(act1.Activity, act2.Activity)
+        self.assertEqual(fk1.activitydefinition, fk2.activitydefinition)
 
         # __contains makes the filter case sensitive
         self.assertEqual(len(models.ActivityDefNameLangMap.objects.filter(key__contains = 'en-US')), 1)
@@ -1063,9 +1058,9 @@ class ActivityModelsTests(TestCase):
             'correctResponsesPattern': ['(35,-86)']}}))
 
         the_act = models.Activity.objects.all()[0]
-        the_def = the_act.activity_definition
+        the_def = the_act.activitydefinition
 
-        self.assertEqual(act1.activity.id, the_act.id)
+        self.assertEqual(act1.Activity.id, the_act.id)
         self.assertEqual(1, len(models.Activity.objects.all()))
         self.assertEqual(1, len(models.ActivityDefinition.objects.all()))
         self.assertEqual(1, len(models.ActivityDefNameLangMap.objects.all()))
@@ -1075,7 +1070,7 @@ class ActivityModelsTests(TestCase):
 
         the_act.delete()
 
-        self.assertEqual(act1.activity.id, the_act.id)
+        self.assertEqual(act1.Activity.id, the_act.id)
         self.assertEqual(0, len(models.Activity.objects.all()))
         self.assertEqual(0, len(models.ActivityDefinition.objects.all()))
         self.assertEqual(0, len(models.ActivityDefNameLangMap.objects.all()))

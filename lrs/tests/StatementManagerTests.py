@@ -845,8 +845,8 @@ class StatementManagerTests(TestCase):
                 'extensions': {'ext2:key1': 'value1','ext2:key2': 'value2','ext2:key3': 'value3'}}}))
 
         # Set each one individually, if try to get in list, not always in same order
-        act_def1 = models.ActivityDefinition.objects.get(activity=act1.activity)
-        act_def2 = models.ActivityDefinition.objects.get(activity=act2.activity)
+        act_def1 = models.ActivityDefinition.objects.get(activity=act1.Activity)
+        act_def2 = models.ActivityDefinition.objects.get(activity=act2.Activity)
         
         name_lang1_1 = models.ActivityDefNameLangMap.objects.get(value='name')
         name_lang1_2 = models.ActivityDefNameLangMap.objects.get(value='nombre')
@@ -930,7 +930,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(acts, 2)
 
         # Activity 2 will still remain
-        models.Activity.objects.get(id=act1.activity.id).delete()
+        models.Activity.objects.get(id=act1.Activity.id).delete()
         name_langs = len(models.ActivityDefNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefDescLangMap.objects.all())
         exts = len(models.ActivityDefinitionExtensions.objects.all())
@@ -958,8 +958,8 @@ class StatementManagerTests(TestCase):
                 'extensions': {'ext2:key1': 'value1'}}}))
 
         # Set each one individually, if try to get in list, not always in same order
-        act_def1 = models.ActivityDefinition.objects.get(activity=act1.activity)
-        act_def2 = models.ActivityDefinition.objects.get(activity=act2.activity)
+        act_def1 = models.ActivityDefinition.objects.get(activity=act1.Activity)
+        act_def2 = models.ActivityDefinition.objects.get(activity=act2.Activity)
         
         name_lang1 = models.ActivityDefNameLangMap.objects.get(value='testname')
         name_lang2 = models.ActivityDefNameLangMap.objects.get(value='testname2')
@@ -1061,7 +1061,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(crp_answers, 1)
 
         # Deletes its desc lang, def, crp, and crp answer
-        models.Activity.objects.get(id=act1.activity.id).delete()
+        models.Activity.objects.get(id=act1.Activity.id).delete()
         name_langs = len(models.ActivityDefNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefDescLangMap.objects.all())
         exts = len(models.ActivityDefinitionExtensions.objects.all())
@@ -1104,8 +1104,8 @@ class StatementManagerTests(TestCase):
                     'extensions': {'ext2:key1': 'value1'}}}))
 
         # Set each one individually, if try to get in list, not always in same order
-        act_def1 = models.ActivityDefinition.objects.get(activity=act1.activity)
-        act_def2 = models.ActivityDefinition.objects.get(activity=act2.activity)
+        act_def1 = models.ActivityDefinition.objects.get(activity=act1.Activity)
+        act_def2 = models.ActivityDefinition.objects.get(activity=act2.Activity)
         
         name_lang1 = models.ActivityDefNameLangMap.objects.get(value='testname1')
         name_lang2 = models.ActivityDefNameLangMap.objects.get(value='testname2')
@@ -1230,7 +1230,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(choice_lang_maps, 8)
 
         # Delete activity - removes its desc lang, def, crp, crp answers and choices
-        models.Activity.objects.get(id=act1.activity.id).delete()
+        models.Activity.objects.get(id=act1.Activity.id).delete()
         name_langs = len(models.ActivityDefNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefDescLangMap.objects.all())
         exts = len(models.ActivityDefinitionExtensions.objects.all())

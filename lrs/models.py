@@ -242,7 +242,7 @@ class Result(models.Model):
                         
         try:
             ret['score'] = self.score.object_return()
-        except score.DoesNotExist:
+        except Score.DoesNotExist:
             pass
 
         result_ext = self.resultextensions_set.all()
@@ -516,7 +516,7 @@ class Agent(StatementObject):
         if self.openID:
             ret['openID'] = self.openID
         try:
-            ret['account'] = self.agent_account.get_json()
+            ret['account'] = self.agentaccount.get_json()
         except:
             pass
         if self.objectType == 'Group':
@@ -539,7 +539,7 @@ class Agent(StatementObject):
         if self.openID:
             ret['openID'] = [self.openID]
         try:
-            ret['account'] = [self.agent_account.get_json()]
+            ret['account'] = [self.agentaccount.get_json()]
         except:
             pass
         return ret
@@ -554,7 +554,7 @@ class Agent(StatementObject):
         if self.openID:
             return self.openID
         try:
-            return self.agent_account.get_a_name()
+            return self.agentaccount.get_a_name()
         except:
             if self.objectType == 'Agent':
                 return "unknown"
@@ -614,7 +614,7 @@ class Activity(StatementObject):
         if format != 'ids':
             ret['objectType'] = self.objectType
             try:
-                ret['definition'] = self.activity_definition.object_return(lang)
+                ret['definition'] = self.activitydefinition.object_return(lang)
             except ActivityDefinition.DoesNotExist:
                 pass
         return ret
@@ -670,10 +670,10 @@ class ActivityDefinition(models.Model):
         if self.interactionType != '':
             ret['interactionType'] = self.interactionType
 
-        if hasattr(self, 'ActivityDefCorrectResponsesPattern'):
+        if hasattr(self, 'activitydefcorrectresponsespattern'):
             ret['correctResponsesPattern'] = []
             # Get answers
-            answers = self.activity_def_correctresponsespattern.correctresponsespatternanswer_set.all()
+            answers = self.activitydefcorrectresponsespattern.correctresponsespatternanswer_set.all()
             
             for a in answers:
                 ret['correctResponsesPattern'].append(a.object_return())            

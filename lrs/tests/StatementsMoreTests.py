@@ -330,7 +330,7 @@ class StatementsMoreTests(TestCase):
         stmt = models.Statement.objects.filter(statement_id=self.guid25).update(stored=time)
 
     def tearDown(self):
-        settings.SERVER_STMT_LIMIT=10
+        settings.SERVER_STMT_LIMIT=100
 
         attach_folder_path = os.path.join(settings.MEDIA_ROOT, "attachment_payloads")
         for the_file in os.listdir(attach_folder_path):

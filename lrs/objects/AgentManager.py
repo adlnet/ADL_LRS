@@ -22,7 +22,7 @@ class AgentManager():
                     type(self.initial))
                 raise ParamError(err_msg) 
 
-        allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'account']
+        allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'openid','account']
         failed_list = [x for x in params.keys() if not x in allowed_fields]
         if failed_list:
             err_msg = "Invalid field(s) found in agent/group %s" % ', '.join(failed_list)
@@ -41,9 +41,9 @@ class AgentManager():
                 if 'account' in params:
                     acc = params.pop('account')
                     if 'homePage' in acc:
-                        params['agent_account__homePage'] = acc['homePage']
+                        params['agentaccount__homePage'] = acc['homePage']
                     if 'name' in acc:
-                        params['agent_account__name'] = acc['name']
+                        params['agentaccount__name'] = acc['name']
                 self.Agent = ag.objects.get(**params)
             except:
                 err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
@@ -103,7 +103,7 @@ class AgentManager():
     
     def get_profile(self, profileId):
         try:
-            return self.Agent.AgentProfile_set.get(profileId=profileId)
+            return self.Agent.agentprofile_set.get(profileId=profileId)
         except:
             err_msg = 'There is no profile associated with the id: %s' % profileId
             raise IDNotFoundError(err_msg)
@@ -113,7 +113,7 @@ class AgentManager():
         if since:
             try:
                 # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
-                profs = self.Agent.AgentProfile_set.filter(updated__gte=since)
+                profs = self.Agent.agentprofile_set.filter(updated__gte=since)
             except ValidationError:
                 err_msg = 'Since field is not in correct format for retrieval of agent profiles'
                 raise ParamError(err_msg) 
@@ -123,7 +123,7 @@ class AgentManager():
 
             ids = [p.profileId for p in profs]
         else:
-            ids = self.Agent.AgentProfile_set.values_list('profileId', flat=True)
+            ids = self.Agent.agentprofile_set.values_list('profileId', flat=True)
         return ids
 
     def delete_profile(self, profileId):

@@ -55,7 +55,7 @@ def complex_get(req_dict):
             data = convert_to_dict(data)
         
         try:
-            agent = AgentManager(data).agent
+            agent = AgentManager(data).Agent
             if agent.objectType == "Group":
                 groups = []
             else:

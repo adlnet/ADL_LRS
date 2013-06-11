@@ -459,8 +459,8 @@ class AuthTests(TestCase):
         act = models.Activity.objects.get(activity_id="act:foogie")
         act_def = models.ActivityDefinition.objects.get(activity=act)
 
-        name_set = act_def.name_lang_set.all()
-        desc_set = act_def.desc_lang_set.all()
+        name_set = act_def.activitydefnamelangmap_set.all()
+        desc_set = act_def.activitydefdesclangmap_set.all()
 
         for ns in name_set:
             if ns.key == 'en-GB':

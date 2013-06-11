@@ -188,10 +188,10 @@ class StatementManager():
                 # Incoming contextActivities can either be a list or dict
                 if isinstance(con_act_group[1], list):
                     for con_act in con_act_group[1]:
-                        act = ActivityManager(con_act,auth=self.auth, define=self.define).activity
+                        act = ActivityManager(con_act,auth=self.auth, define=self.define).Activity
                         ca.context_activity.add(act)
                 else:
-                    act = ActivityManager(con_act_group[1],auth=self.auth, define=self.define).activity
+                    act = ActivityManager(con_act_group[1],auth=self.auth, define=self.define).Activity
                     ca.context_activity.add(act)
                 ca.save()
 
@@ -352,11 +352,11 @@ class StatementManager():
 
         if 'instructor' in stmt_data['context']:
             stmt_data['context']['instructor'] = AgentManager(initial=stmt_data['context']['instructor'],
-                create=True, define=self.define).agent
+                create=True, define=self.define).Agent
             
         if 'team' in stmt_data['context']:
             stmt_data['context']['team'] = AgentManager(initial=stmt_data['context']['team'],
-                create=True, define=self.define).agent
+                create=True, define=self.define).Agent
 
         # Revision and platform not applicable if object is agent
         if 'objectType' in stmt_data['object'] and ('agent' == stmt_data['object']['objectType'].lower()
@@ -489,9 +489,9 @@ class StatementManager():
         else:
             # Check objectType, get object based on type
             if statementObjectData['objectType'].lower() == 'activity':
-                args['stmt_object'] = ActivityManager(statementObjectData,auth=self.auth, define=self.define).activity
+                args['stmt_object'] = ActivityManager(statementObjectData,auth=self.auth, define=self.define).Activity
             elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                args['stmt_object'] = AgentManager(initial=statementObjectData, create=True, define=self.define).agent
+                args['stmt_object'] = AgentManager(initial=statementObjectData, create=True, define=self.define).Agent
             elif statementObjectData['objectType'].lower() == 'substatement':
                 sub_statement = SubStatementManager(statementObjectData, self.auth)
                 args['stmt_object'] = sub_statement.model_object
@@ -506,7 +506,7 @@ class StatementManager():
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor
-        args['actor'] = AgentManager(initial=stmt_data['actor'], create=True, define=self.define).agent
+        args['actor'] = AgentManager(initial=stmt_data['actor'], create=True, define=self.define).Agent
 
         #Set voided to default false
         args['voided'] = False
@@ -526,10 +526,10 @@ class StatementManager():
             # it. If it doesn't exist, the Agent class responds with a 404
             if auth_data['objectType'].lower() == 'group':
                 args['authority'] = AgentManager(initial=stmt_data['authority'], create=False, 
-                    define=self.define).agent
+                    define=self.define).Agent
             else:
                 args['authority'] = AgentManager(initial=stmt_data['authority'], create=True, 
-                    define=self.define).agent
+                    define=self.define).Agent
 
             # If they try using a non-oauth group that already exists-throw error
             if args['authority'].objectType == 'Group' and not args['authority'].oauth_identifier:
@@ -540,7 +540,7 @@ class StatementManager():
             # Look at request from auth if not supplied in stmt_data.
             if self.auth:
                 authArgs = {}
-                if self.auth.__class__.__name__ == 'agent':
+                if self.auth.__class__.__name__ == 'Agent':
                     if self.auth.oauth_identifier:
                         args['authority'] = self.auth
                     else:
@@ -552,7 +552,7 @@ class StatementManager():
                         authArgs['mbox'] = self.auth.email
                     else:
                         authArgs['mbox'] = "mailto:%s" % self.auth.email
-                    args['authority'] = AgentManager(initial=authArgs, create=True, define=self.define).agent
+                    args['authority'] = AgentManager(initial=authArgs, create=True, define=self.define).Agent
 
         # Check if statement_id already exists, throw exception if it does
         # There will only be an ID when someone is performing a PUT
