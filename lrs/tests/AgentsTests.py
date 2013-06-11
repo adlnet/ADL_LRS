@@ -6,7 +6,7 @@ import json
 from os import path
 import sys
 import base64
-from lrs.models import agent
+from lrs.models import Agent
 
 class AgentsTests(TestCase):
     def setUp(self):
@@ -24,7 +24,7 @@ class AgentsTests(TestCase):
 
     def test_get(self):
         a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
-        me = agent.objects.gen(**json.loads(a))
+        me = Agent.objects.gen(**json.loads(a))
         response = self.client.get(reverse(views.agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         r_data = json.loads(response.content)
         self.assertTrue(isinstance(r_data['mbox'], list))
@@ -36,7 +36,7 @@ class AgentsTests(TestCase):
 
     def test_head(self):
         a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
-        me = agent.objects.gen(**json.loads(a))
+        me = Agent.objects.gen(**json.loads(a))
         response = self.client.head(reverse(views.agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.content, '')
         self.assertIn('content-length', response._headers)

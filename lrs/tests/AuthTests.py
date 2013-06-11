@@ -884,7 +884,7 @@ class AuthTests(TestCase):
         
         activities = models.Activity.objects.filter(activity_id__contains='test_wrong_list_post')
         activity_definitions = models.ActivityDefinition.objects.all()
-        crp_answers = models.correctresponsespattern_answer.objects.filter(answer__contains='wrong')
+        crp_answers = models.CorrectResponsesPatternAnswer.objects.filter(answer__contains='wrong')
 
         statements = models.Statement.objects.all()
 

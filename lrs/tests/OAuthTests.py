@@ -853,7 +853,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.status_code, 403)
 
         # build stmt data and path
-        oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
+        oauth_agent1 = models.AgentAccount.objects.get(name=self.consumer.key).agent
         oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
@@ -927,7 +927,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.status_code, 403)
 
         # build stmt data and path
-        oauth_agent1 = models.agent_account.objects.get(name=self.consumer.key).agent
+        oauth_agent1 = models.AgentAccount.objects.get(name=self.consumer.key).agent
         oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())

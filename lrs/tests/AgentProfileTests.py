@@ -1,6 +1,5 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from lrs.models import agent_profile
 from lrs import views
 import datetime
 from django.utils.timezone import utc
