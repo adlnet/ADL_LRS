@@ -1,10 +1,10 @@
+import base64
+import json
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from lrs import views
-import json
-from lrs.objects import Activity
-import pdb
-import base64
+from lrs.objects.ActivityManager import ActivityManager
+
 
 class ActivityTests(TestCase):
     def setUp(self):
@@ -16,7 +16,7 @@ class ActivityTests(TestCase):
         response = self.client.post(reverse(views.register),form, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_get(self):
-        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
+        act = ActivityManager(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -26,14 +26,14 @@ class ActivityTests(TestCase):
         self.assertIn('content-length', response._headers)
         
     def test_head(self):
-        act = Activity.Activity(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
+        act = ActivityManager(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
         response = self.client.head(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, '')
         self.assertIn('content-length', response._headers)
 
     def test_get_def(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar1',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foobar1',
                 'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},
                 'type': 'type:course','interactionType': 'intType'}})) 
@@ -51,7 +51,7 @@ class ActivityTests(TestCase):
         self.assertIn('altname', rsp)
         
     def test_get_ext(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar2',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foobar2',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'type:course','interactionType': 'intType2', 
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2'}}}))
@@ -71,7 +71,7 @@ class ActivityTests(TestCase):
         self.assertIn('value2', rsp)
 
     def test_get_crp_multiple_choice(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar3',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foobar3',
                 'definition': {'name': {'en-FR':'testname2'},
                 'description': {'en-FR':'testdesc2', 'en-CH': 'altdesc'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'choice',
@@ -105,7 +105,7 @@ class ActivityTests(TestCase):
         self.assertIn('altdesc', rsp)
 
     def test_get_crp_true_false(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar4',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foobar4',
         'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
         'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'true-false','correctResponsesPattern': ['true']}}))
         
@@ -123,7 +123,7 @@ class ActivityTests(TestCase):
         self.assertIn('true', rsp)
 
     def test_get_crp_fill_in(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar5',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foobar5',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Fill in answer']}}))
@@ -142,7 +142,7 @@ class ActivityTests(TestCase):
         self.assertIn('Fill in answer', rsp)
 
     def test_get_crp_long_fill_in(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar6',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foobar6',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
                 'correctResponsesPattern': ['Long fill in answer']}}))        
@@ -162,7 +162,7 @@ class ActivityTests(TestCase):
         self.assertIn('Long fill in answer', rsp)
 
     def test_get_crp_likert(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'act:foobar7',
+        act = ActivityManager(json.dumps({'objectType': 'Still gonna be activity', 'id':'act:foobar7',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
                 'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
@@ -186,7 +186,7 @@ class ActivityTests(TestCase):
         self.assertIn('likert_1', rsp)
 
     def test_get_crp_matching(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Still gonna be activity', 'id':'act:foobar8',
+        act = ActivityManager(json.dumps({'objectType': 'Still gonna be activity', 'id':'act:foobar8',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'matching',
                 'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
@@ -211,7 +211,7 @@ class ActivityTests(TestCase):
         self.assertIn('target', rsp)
 
     def test_get_crp_performance(self):
-        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'act:foobar9',
+        act = ActivityManager(json.dumps({'objectType': 'activity', 'id':'act:foobar9',
                 'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc2'},'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'performance',
@@ -240,7 +240,7 @@ class ActivityTests(TestCase):
         self.assertIn('altlunch', rsp)
 
     def test_get_crp_sequencing(self):
-        act = Activity.Activity(json.dumps({'objectType': 'activity', 'id':'act:foobar10',
+        act = ActivityManager(json.dumps({'objectType': 'activity', 'id':'act:foobar10',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'sequencing',
                 'correctResponsesPattern': ['lou,tom,andy,aaron'],'choices':[{'id': 'lou',
@@ -262,7 +262,7 @@ class ActivityTests(TestCase):
         self.assertIn('lou,tom,andy,aaron', rsp)
 
     def test_get_crp_numeric(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id':'act:foobar11',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foobar11',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}))        
@@ -288,7 +288,7 @@ class ActivityTests(TestCase):
         self.assertIn('value3', rsp)                                
 
     def test_get_crp_other(self):
-        act = Activity.Activity(json.dumps({'objectType': 'Activity', 'id': 'act:foobar12',
+        act = ActivityManager(json.dumps({'objectType': 'Activity', 'id': 'act:foobar12',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
                 'correctResponsesPattern': ['(35.937432,-86.868896)']}}))        

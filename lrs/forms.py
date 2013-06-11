@@ -4,7 +4,6 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from itertools import chain
 from lrs.models import Token
-import pdb
 
 class RegisterForm(forms.Form):
     username = forms.CharField(max_length=200, label='Name')

@@ -6,8 +6,8 @@ from email.mime.text import MIMEText
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from lrs import views
-from lrs.models import statement
-from lrs.objects.Statement import Statement
+from lrs.models import Statement
+from lrs.objects.StatementManager import StatementManager as StMan
 from django.conf import settings
 import json
 import base64
@@ -17,7 +17,6 @@ import math
 import urllib
 import hashlib
 from lrs.util import convert_to_utc
-import pdb
 
 class StatementFilterTests(TestCase):
 
@@ -45,7 +44,7 @@ class StatementFilterTests(TestCase):
     def test_limit_filter(self):
         # Test limit
         for i in range(1,4):
-            Statement(json.dumps({"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}))
+            StMan(json.dumps({"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}))
         limitGetResponse = self.client.post(reverse(views.statements),{"limit":2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(limitGetResponse.status_code, 200)
         rsp = limitGetResponse.content
@@ -54,7 +53,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 2)    
 
     def test_get_id(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
@@ -88,7 +87,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }))
-        sid = statement.objects.get(verb__verb_id="http://adlnet.gov/xapi/verbs/passed(to_go_beyond)").statement_id
+        sid = Statement.objects.get(verb__verb_id="http://adlnet.gov/xapi/verbs/passed(to_go_beyond)").statement_id
         param = {"statementId":sid}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -97,7 +96,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(obj['result']['score']['raw'], 1918560.0)
 
     def test_agent_filter(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -130,7 +129,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Agent"
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:20.392000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI", 
@@ -170,12 +169,12 @@ class StatementFilterTests(TestCase):
         for s in stmts:
             if param['agent']['mbox'] not in str(s['actor']):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
-                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+                self.assertTrue(param['agent']['mbox'] in str(Statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
     def test_group_as_agent_filter(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -205,7 +204,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -251,7 +250,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        count = len(statement.objects.filter(actor__mbox=param['agent']['mbox']))
+        count = len(Statement.objects.filter(actor__mbox=param['agent']['mbox']))
         obj = json.loads(r.content)
         stmts = obj['statements']
         self.assertEqual(len(stmts), count)
@@ -259,7 +258,7 @@ class StatementFilterTests(TestCase):
             self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
 
     def test_related_agents_filter(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -298,7 +297,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -325,7 +324,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -459,7 +458,7 @@ class StatementFilterTests(TestCase):
         }]
 
         for s in batch:
-            Statement(json.dumps(s))
+            StMan(json.dumps(s))
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -471,7 +470,7 @@ class StatementFilterTests(TestCase):
         for s in stmts:
             if param['agent']['mbox'] not in str(s['actor']):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
-                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+                self.assertTrue(param['agent']['mbox'] in str(Statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
@@ -494,7 +493,7 @@ class StatementFilterTests(TestCase):
             since_ids.append(s['id'])
             if param['agent']['mbox'] not in str(s['actor']):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
-                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+                self.assertTrue(param['agent']['mbox'] in str(Statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
@@ -510,7 +509,7 @@ class StatementFilterTests(TestCase):
             until_ids.append(s['id'])
             if param['agent']['mbox'] not in str(s['actor']):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
-                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+                self.assertTrue(param['agent']['mbox'] in str(Statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
         same = [x for x in since_ids if x in until_ids]
@@ -529,13 +528,13 @@ class StatementFilterTests(TestCase):
             slice_ids.append(s['id'])
             if param['agent']['mbox'] not in str(s['actor']):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
-                self.assertTrue(param['agent']['mbox'] in str(statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
+                self.assertTrue(param['agent']['mbox'] in str(Statement.objects.get(statement_id=s['object']['id']).actor.get_agent_json()))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
         self.assertItemsEqual(slice_ids, same)
 
     def test_related_agents_filter_until(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -574,7 +573,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -601,7 +600,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -643,7 +642,7 @@ class StatementFilterTests(TestCase):
                     self.assertTrue(param['agent']['mbox'] in str(s))
                 else:
                     self.assertEqual(s['object']['objectType'], "StatementRef")
-                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    refd = Statement.objects.get(statement_id=s['object']['id']).object_return()
                     self.assertTrue(param['agent']['mbox'] in str(refd))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
@@ -664,14 +663,14 @@ class StatementFilterTests(TestCase):
                     self.assertTrue(param['agent']['mbox'] in str(s))
                 else:
                     self.assertEqual(s['object']['objectType'], "StatementRef")
-                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    refd = Statement.objects.get(statement_id=s['object']['id']).object_return()
                     self.assertTrue(param['agent']['mbox'] in str(refd))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
             self.assertTrue(convert_to_utc(s['stored']) < until)
 
     def test_related_agents_filter_since(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -710,7 +709,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -737,7 +736,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -779,7 +778,7 @@ class StatementFilterTests(TestCase):
                     self.assertTrue(param['agent']['mbox'] in str(s))
                 else:
                     self.assertEqual(s['object']['objectType'], "StatementRef")
-                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    refd = Statement.objects.get(statement_id=s['object']['id']).object_return()
                     self.assertTrue(param['agent']['mbox'] in str(refd))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
@@ -802,7 +801,7 @@ class StatementFilterTests(TestCase):
                     self.assertTrue(param['agent']['mbox'] in str(s))
                 else:
                     self.assertEqual(s['object']['objectType'], "StatementRef")
-                    refd = statement.objects.get(statement_id=s['object']['id']).object_return()
+                    refd = Statement.objects.get(statement_id=s['object']['id']).object_return()
                     self.assertTrue(param['agent']['mbox'] in str(refd))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
@@ -821,7 +820,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
         time = "2013-02-02T12:00:32-05:00"
-        stmt = statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
+        stmt = Statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
 
         stmt2_guid = str(uuid.uuid1())
         stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
@@ -834,7 +833,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
         time = "2013-02-02T10:00:32-05:00"
-        stmt = statement.objects.filter(statement_id=stmt2_guid).update(stored=time)
+        stmt = Statement.objects.filter(statement_id=stmt2_guid).update(stored=time)
 
         param = {"since": "2013-02-02T14:00Z"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))      
@@ -856,7 +855,7 @@ class StatementFilterTests(TestCase):
 
     def test_verb_filter(self):
         theid = str(uuid.uuid1())
-        Statement(json.dumps(
+        StMan(json.dumps(
         {
         "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
@@ -895,7 +894,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }))
-        Statement(json.dumps( 
+        StMan(json.dumps( 
         {
         "verb": {
             "id": "http://special.adlnet.gov/xapi/verbs/frowned", 
@@ -954,7 +953,7 @@ class StatementFilterTests(TestCase):
 
     def test_registration_filter(self):
         theid = str(uuid.uuid1())
-        Statement(json.dumps(
+        StMan(json.dumps(
         {
         "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
@@ -994,7 +993,7 @@ class StatementFilterTests(TestCase):
             "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a92"
         }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 17:51:38.118000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI"
@@ -1011,7 +1010,7 @@ class StatementFilterTests(TestCase):
                 "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
             }
         }))
-        Statement(json.dumps(
+        StMan(json.dumps(
         {
         "timestamp": "2013-04-08 21:07:20.392000+00:00", 
         "object": { 
@@ -1083,7 +1082,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 0)
 
     def test_activity_filter(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
         "timestamp": "2013-04-08 21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
@@ -1105,7 +1104,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
@@ -1132,7 +1131,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         })) 
-        Statement(json.dumps({
+        StMan(json.dumps({
         "timestamp": "2013-04-08 21:07:20.392000+00:00", 
         "object": {
             "definition": {
@@ -1183,7 +1182,7 @@ class StatementFilterTests(TestCase):
         for s in stmts:
             if param['activity'] not in str(s['object']['id']):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
-                self.assertTrue(param['activity'] in str(statement.objects.get(statement_id=s['object']['id']).object_return()))
+                self.assertTrue(param['activity'] in str(Statement.objects.get(statement_id=s['object']['id']).object_return()))
             else:
                 self.assertEqual(s['object']['id'], param['activity'])
 
@@ -1199,14 +1198,14 @@ class StatementFilterTests(TestCase):
         for s in stmts:
             if param['activity'] not in str(s):
                 self.assertEqual(s['object']['objectType'], "StatementRef")
-                self.assertTrue(param['activity'] in str(statement.objects.get(statement_id=s['object']['id']).object_return()))
+                self.assertTrue(param['activity'] in str(Statement.objects.get(statement_id=s['object']['id']).object_return()))
             else:
                 self.assertIn(param['activity'], str(s))
 
         self.assertTrue(len(stmts) > actcnt, "stmts(%s) was not greater than actcnt(%s)" % (len(stmts), actcnt))
 
     def test_no_activity_filter(self):
-        Statement(json.dumps({
+        StMan(json.dumps({
         "timestamp": "2013-04-08 21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
@@ -1228,7 +1227,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }))
-        Statement(json.dumps({
+        StMan(json.dumps({
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"

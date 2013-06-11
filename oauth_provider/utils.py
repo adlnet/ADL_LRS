@@ -5,7 +5,6 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from stores import DataStore
-import pdb
 import ast
 
 OAUTH_REALM_KEY_NAME = getattr(settings, 'OAUTH_REALM_KEY_NAME', '')
@@ -34,7 +33,6 @@ def initialize_server_request(request):
             or request.META.get('SERVER_NAME') == 'testserver'):
         # lou -w -When POST statement data, the actual data is a dict key and has a value of ''
         # have to parse it out correctly...
-        # pdb.set_trace()
         p = dict(request.REQUEST.items()) 
         if p.values()[0] == '':
             # literal eval is putting them in differnt order

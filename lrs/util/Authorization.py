@@ -3,7 +3,7 @@ from functools import wraps
 from django.conf import settings
 from django.contrib.auth import authenticate
 from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest
-from lrs.models import Token, agent
+from lrs.models import Token, Agent
 from oauth_provider.utils import send_oauth_error
 from oauth_provider.consts import  ACCEPTED
 
@@ -89,5 +89,5 @@ def oauth_helper(request):
     ]
     kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.key, user_email)}
     # create/get oauth group and set in dictionary
-    oauth_group, created = agent.objects.oauth_group(**kwargs)
+    oauth_group, created = Agent.objects.oauth_group(**kwargs)
     request['auth']['id'] = oauth_group
