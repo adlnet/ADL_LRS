@@ -1,6 +1,5 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from lrs.models import agent_profile
 from lrs import views
 import datetime
 from django.utils.timezone import utc
@@ -8,7 +7,6 @@ import hashlib
 import urllib
 import base64
 import json
-import pdb
 
 class AgentProfileTests(TestCase):
     testagent = '{"mbox":"mailto:test@example.com"}'
@@ -261,7 +259,7 @@ class AgentProfileTests(TestCase):
         # params['Authorization'] = self.auth
         params['Content-Type'] = "application/json"
         response = self.client.post(path, params, content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        # pdb.set_trace()
+
         r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content, '%s' % params['content'])

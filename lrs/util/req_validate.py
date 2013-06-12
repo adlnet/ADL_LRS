@@ -11,15 +11,13 @@ from Authorization import auth
 att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
-    return models.statement.objects.filter(statement_id=stmtID).exists()
+    return models.Statement.objects.filter(statement_id=stmtID).exists()
 
 def check_for_no_other_params_supplied(query_dict):
     supplied = True
     if len(query_dict) <= 1:
         supplied = False
     return supplied
-
-
 
 def check_oauth(func):
     @wraps(func)
@@ -100,8 +98,8 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
         if not isinstance(ag, dict):
             ag = json.loads(ag)
         try:
-            agent = models.agent.objects.get(**ag)
-        except models.agent.DoesNotExist:
+            agent = models.Agent.objects.get(**ag)
+        except models.Agent.DoesNotExist:
             err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
             raise NotFound(err_msg)
 
@@ -202,31 +200,35 @@ def statements_put(r_dict):
 
 def validate_attachments(attachment_data, payload_sha2s):
     # For each attachment that is in the actual statement
-    for attachment in attachment_data:
-        # If display is not in the attachment it fails
-        if not 'display' in attachment:
-            err_msg = "Attachment must contain display property"
-            raise ParamError(err_msg)
+    if isinstance(attachment_data, list):
+        for attachment in attachment_data:
+            # If display is not in the attachment it fails
+            if not 'display' in attachment:
+                err_msg = "Attachment must contain display property"
+                raise ParamError(err_msg)
 
-        # If the attachment data has a sha2 field, must validate it against the payload data
-        if 'sha2' in attachment:
-            sha2 = attachment['sha2']
-            # Check if the sha2 field is a key in the payload dict
-            if not sha2 in payload_sha2s:
-                err_msg = "Could not find attachment payload with sha: %s" % sha2
-                raise ParamError(err_msg)
-        # If sha2 is not in the attachment and neither is fileURL, that is invalid 
-        elif not 'fileUrl' in attachment:
-                err_msg = "Attachment did not contain a sha2 and did not contain a fileUrl"
-                raise ParamError(err_msg)
-        # If sha2 is not in the attachment but fileUrl and has an empty value, that is invalid
-        elif 'fileUrl' in attachment:
-            if not attachment['fileUrl']:
-                err_msg = "Attachment had no value for fileUrl"
-                raise ParamError(err_msg)
-            if not uri.validate_uri(attachment['fileUrl']):
-                err_msg = 'fileUrl %s is not a valid URI' % attachment['fileUrl']
-                raise ParamError(err_msg)
+            # If the attachment data has a sha2 field, must validate it against the payload data
+            if 'sha2' in attachment:
+                sha2 = attachment['sha2']
+                # Check if the sha2 field is a key in the payload dict
+                if not sha2 in payload_sha2s:
+                    err_msg = "Could not find attachment payload with sha: %s" % sha2
+                    raise ParamError(err_msg)
+            # If sha2 is not in the attachment and neither is fileURL, that is invalid 
+            elif not 'fileUrl' in attachment:
+                    err_msg = "Attachment did not contain a sha2 and did not contain a fileUrl"
+                    raise ParamError(err_msg)
+            # If sha2 is not in the attachment but fileUrl and has an empty value, that is invalid
+            elif 'fileUrl' in attachment:
+                if not attachment['fileUrl']:
+                    err_msg = "Attachment had no value for fileUrl"
+                    raise ParamError(err_msg)
+                if not uri.validate_uri(attachment['fileUrl']):
+                    err_msg = 'fileUrl %s is not a valid URI' % attachment['fileUrl']
+                    raise ParamError(err_msg)
+    else:
+        err_msg = "attachments value type must be an array"
+        raise ParamError(err_msg)
 
 @auth
 @check_oauth

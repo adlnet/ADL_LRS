@@ -8,8 +8,8 @@ from django.utils import timezone
 import hashlib
 import urllib
 import os
-import base64
 import json
+import base64
 
 class ActivityStateTests(TestCase):
     url = reverse(views.activity_state)

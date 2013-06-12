@@ -1,4 +1,3 @@
-import pdb
 
 class OAuthRouter(object):
     """
@@ -35,8 +34,6 @@ class OAuthRouter(object):
         Make sure the lrs app only appears in the oauth_db
         database.
         """
-        # pdb.set_trace()
-        print db
         if db == 'oauth_db':
             print 'model' + str(model)
             print 'label' + str(model._meta.app_label)
