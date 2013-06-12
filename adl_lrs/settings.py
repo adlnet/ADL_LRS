@@ -173,6 +173,7 @@ INSTALLED_APPS = (
     'gunicorn',
     'oauth_provider',
     'django.contrib.admin',
+    'south',
 )
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
