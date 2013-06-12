@@ -1,6 +1,6 @@
 # ADL LRS 
 
-#### Installation tested on Ubuntu 12.10 machine with Python 2.7.3. Should be good with Ubuntu 10.04 LTS - 13.04 releases and Python 2.7.X. This is still in the development stage and NOT ready for production
+#### Installation tested on Ubuntu 12.10 machine with Python 2.7.3. Should be good with Ubuntu 10.04 LTS - 13.04 releases and Python 2.6.X+. This is still in the development stage and NOT ready for production
 
 ## Installation
 
