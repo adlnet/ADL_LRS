@@ -11,3 +11,4 @@ python-dateutil==1.5
 unipath==1.0
 pycrypto==2.5
 lxml==2.3.4
+South==0.8.1
