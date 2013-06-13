@@ -1,12 +1,12 @@
 import pytz
 import ast
 import json
-import uuid
 import urllib
 import urlparse
 import datetime as dt
 from datetime import datetime
 from time import time
+from django_extensions.db.fields import UUIDField
 from django.db import models
 from django.db import transaction
 from django.conf import settings
@@ -20,13 +20,11 @@ from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
 
+
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
 gen_pwd = User.objects.make_random_password
 generate_random = User.objects.make_random_password
-
-def gen_uuid():
-    return str(uuid.uuid1())
 
 class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
@@ -36,14 +34,13 @@ class Nonce(models.Model):
     def __unicode__(self):
         return u"Nonce %s for %s" % (self.key, self.consumer_key)
 
-
 class Consumer(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField()
 
     default_scopes = models.CharField(max_length=100, default="statements/write,statements/read/mine")
     
-    key = models.CharField(max_length=CONSUMER_KEY_SIZE, unique=True, default=gen_uuid)
+    key = UUIDField(version=1)
     secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
 
     status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
@@ -1063,7 +1060,7 @@ class StatementAttachment(models.Model):
         return ret
 
 class Statement(models.Model):
-    statement_id = models.CharField(max_length=40, unique=True, default=gen_uuid, db_index=True)
+    statement_id = UUIDField(version=1, db_index=True)
     stmt_object = models.ForeignKey(StatementObject, related_name="object_of_statement", db_index=True,
         null=True, on_delete=models.SET_NULL)
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
