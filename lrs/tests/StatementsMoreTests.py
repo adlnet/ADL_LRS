@@ -7,7 +7,6 @@ import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
-from lrs.objects import Activity
 import time
 from lrs.util import retrieve_statement
 from django.conf import settings
