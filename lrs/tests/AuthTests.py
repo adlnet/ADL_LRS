@@ -10,7 +10,6 @@ import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
-from lrs.objects import Activity
 from lrs.objects.StatementManager import StatementManager
 import time
 import urllib

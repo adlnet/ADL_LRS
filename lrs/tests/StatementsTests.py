@@ -12,7 +12,6 @@ from django.conf import settings
 from lrs import views, models
 from lrs.util import retrieve_statement
 from lrs.util.jws import JWS, JWSException    
-from lrs.objects import Activity
 from lrs.objects.StatementManager import StatementManager
 import os
 from datetime import datetime, timedelta
