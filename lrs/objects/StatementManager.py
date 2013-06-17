@@ -168,7 +168,7 @@ class StatementManager():
             # Check objectType since can be both ref or sub
             if 'objectType' in stmt_data:
                 if stmt_data['objectType'] == 'StatementRef':
-                    stmt_ref = models.StatementRef.objects.create(ref_id=stmt_data['id'])
+                    stmt_ref, created = models.StatementRef.objects.get_or_create(ref_id=stmt_data['id'])
                     cntx.statement = stmt_ref
                     cntx.save()
                 else:
