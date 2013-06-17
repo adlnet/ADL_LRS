@@ -271,16 +271,19 @@ class Score(models.Model):
 
     def object_return(self):
         ret = {}
-        for field in self._meta.fields:
-            if field.name != 'id' and field.name != 'result':
-                value = getattr(self, field.name)
-                if not value is None:
-                    if field.name is 'score_min':
-                        ret['min'] = value
-                    elif field.name is 'score_max':
-                        ret['max'] = value
-                    else:
-                        ret[field.name] = value
+
+        if not self.scaled is None:
+            ret['scaled'] = self.scaled
+
+        if not self.raw is None:
+            ret['raw'] = self.raw
+
+        if not self.score_min is None:
+            ret['min'] = self.score_min
+
+        if not self.score_max is None:
+            ret['max'] = self.score_max
+
         return ret
 
     def __unicode__(self):
@@ -884,16 +887,24 @@ class Context(models.Model):
     def object_return(self, lang=None, format='exact'):
         ret = {}
         linked_fields = ['instructor', 'team']
-        for field in self._meta.fields:
-            if field.name != 'id':
-                value = getattr(self, field.name)
-                if not value is None and value != "":
-                    if not field.name in linked_fields:
-                        ret[field.name] = value
-                    elif field.name == 'instructor':
-                        ret[field.name] = self.instructor.get_agent_json(format)
-                    elif field.name == 'team':
-                        ret[field.name] = self.team.get_agent_json(format)
+        
+        if self.registration:
+            ret['registration'] = self.registration
+
+        if self.instructor:
+            ret['instructor'] = self.instructor.get_agent_json(format)
+
+        if self.team:
+            ret['team'] = self.team.get_agent_json(format)
+
+        if self.revision:
+            ret['revision'] = self.revision
+
+        if self.platform:
+            ret['platform'] = self.platform
+
+        if self.language:
+            ret['language'] = self.language
 
         if len(self.statement.all()) > 0:
             subclass = self.statement.all()[0].subclass
@@ -1067,7 +1078,7 @@ class Statement(models.Model):
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result = models.OneToOneField(Result, related_name="statement_result", null=True, on_delete=models.SET_NULL)
-    stored = models.DateTimeField(auto_now_add=True,blank=True)
+    stored = models.DateTimeField(auto_now_add=True,blank=True, db_index=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
