@@ -22,7 +22,7 @@ def convert_to_dict(incoming_data):
         try:
             data = ast.literal_eval(incoming_data)
         except Exception, e:
-            raise BadRequest("Cannot evaluate data into dictionary to parse -- Error: %s in %s") % (e.message, incoming_data)
+            raise BadRequest("Cannot evaluate data into dictionary to parse -- Error: %s in %s" % (e.message, incoming_data))
     return data
 
 def get_user_from_auth(auth):
