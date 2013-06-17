@@ -11,8 +11,6 @@ from django.db import models
 from django.db import transaction
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
 from django.core.exceptions import ValidationError
 from django.utils.timezone import utc
 from .exceptions import IDNotFoundError, ParamError
@@ -303,11 +301,7 @@ class KnowsChild(models.Model):
         super(KnowsChild, self).save(*args, **kwargs)
 
 class StatementObject(KnowsChild):
-    # for linking this to other objects
-    content_type = models.ForeignKey(ContentType, null=True)
-    object_id = models.PositiveIntegerField(null=True)
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-
+    pass
     
     def get_a_name(self):
         return "please override"
@@ -881,8 +875,8 @@ class Context(models.Model):
     revision = models.TextField(blank=True)
     platform = models.CharField(max_length=50,blank=True)
     language = models.CharField(max_length=50,blank=True)
-    # context also has a stmt field which can reference a sub-statement or statementref
-    statement = generic.GenericRelation(StatementObject)
+    # context also has a stmt field which is a statementref
+    statement = models.OneToOneField(StatementRef, null=True, on_delete=models.SET_NULL)
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
@@ -906,15 +900,10 @@ class Context(models.Model):
         if self.language:
             ret['language'] = self.language
 
-        if len(self.statement.all()) > 0:
-            subclass = self.statement.all()[0].subclass
-            if subclass == 'statementref':
-                cntx_stmt = StatementRef.objects.get(id=self.statement.all()[0].id)
-                ret['statement'] = cntx_stmt.object_return()          
-            elif subclass == 'substatement':
-                cntx_stmt = SubStatement.objects.get(id=self.statement.all()[0].id)
-                ret['statement'] = cntx_stmt.object_return(lang, format)          
-
+        if self.statement:
+            cntx_stmt = StatementRef.objects.get(id=self.statement_id)
+            ret['statement'] = cntx_stmt.object_return()
+    
         if len(self.contextactivity_set.all()) > 0:
             ret['contextActivities'] = {}
             for con_act in self.contextactivity_set.all():
@@ -926,6 +915,11 @@ class Context(models.Model):
             for ext in context_ext:
                 ret['extensions'].update(ext.object_return())        
         return ret
+
+    def delete(self, *args, **kwargs):
+        if self.statement:
+            self.statement.delete()
+        super(Context, self).delete(*args, **kwargs)
 
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
@@ -1072,8 +1066,8 @@ class StatementAttachment(models.Model):
 
 class Statement(models.Model):
     statement_id = UUIDField(version=1, db_index=True)
-    stmt_object = models.ForeignKey(StatementObject, related_name="object_of_statement", db_index=True,
-        null=True, on_delete=models.SET_NULL)
+    stmt_object = models.ForeignKey(StatementObject, related_name="object_of_statement", null=True,
+        on_delete=models.SET_NULL)
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
