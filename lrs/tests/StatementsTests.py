@@ -1291,7 +1291,6 @@ class StatementsTests(TestCase):
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
         results = models.Result.objects.filter(response='wrong')
-        scores = models.Score.objects.filter(scaled=.99)
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
         
         contexts = models.Context.objects.filter(registration=cguid1)
@@ -1309,7 +1308,6 @@ class StatementsTests(TestCase):
 
 
         self.assertEqual(len(results), 0) 
-        self.assertEqual(len(scores), 0)
         # Will have 3 exts from activity
         self.assertEqual(len(ad_exts), 3)
         self.assertEqual(len(contexts), 0)

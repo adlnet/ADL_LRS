@@ -81,7 +81,7 @@ class StatementManager():
             raise exceptions.Forbidden(err_msg)
 
     # Statement fields are score_min and score_max
-    def validateScoreResult(self, score_data):
+    def validate_score_result(self, score_data):
         # If min and max are both in score, make sure min is less than max and if raw is included
         # make sure it's between those two values
         # Elif it's either just min or max, set them
@@ -112,27 +112,20 @@ class StatementManager():
 
         return score_data
 
-    def saveScoreToDB(self, score):
-        try:
-            sc = models.Score.objects.create(**score)
-        except TypeError, e:
-            err_msg = "Invalid field in score - %s" %  e.message
-            raise exceptions.ParamError(err_msg)
-        return sc
+    def save_result_to_db(self, result, resultExts):
+        if 'score' in result:
+            for k,v in result['score'].iteritems():
+                if not 'score' in k:
+                    result['score_' + k] = v
+                else:
+                    result[k] = v
+            del result['score']
 
-    def saveResultToDB(self, result, resultExts):
-        # Save the result with all of the args
-        sc = result.pop('score', None)
         try:
             rslt = models.Result.objects.create(**result)
         except TypeError, e:
             err_msg = "Invalid field in result - %s" % e.message
             raise exceptions.ParamError(err_msg)
-
-        # Set score if one
-        if sc:
-            sc.result = rslt
-            sc.save()
 
         #If it has extensions, save them all
         if resultExts:
@@ -224,7 +217,7 @@ class StatementManager():
             stmt = models.Statement.objects.create(**args)
         return stmt
 
-    def populateResult(self, stmt_data):
+    def populate_result(self, stmt_data):
         resultExts = {}                    
         #Catch contradictory results
         if 'extensions' in stmt_data['result']:
@@ -241,10 +234,9 @@ class StatementManager():
                 raise exceptions.ParamError(e.message)
 
         if 'score' in result.keys():
-            result['score'] = self.validateScoreResult(result['score'])
-            result['score'] = self.saveScoreToDB(result['score'])
+            result['score'] = self.validate_score_result(result['score'])
         #Save result
-        return self.saveResultToDB(result, resultExts)
+        return self.save_result_to_db(result, resultExts)
 
     def populateAttachments(self, attachment_data, attachment_payloads):
         # Iterate through each attachment
@@ -571,7 +563,7 @@ class StatementManager():
             args['context'] = self.populateContext(stmt_data)
         
         if 'result' in stmt_data:
-            args['result'] = self.populateResult(stmt_data)
+            args['result'] = self.populate_result(stmt_data)
 
         #Save statement/substatement
         self.model_object = self.saveObjectToDB(args)

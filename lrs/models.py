@@ -219,6 +219,19 @@ class Result(models.Model):
     response = models.TextField(blank=True)
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=40, blank=True)
+    score_scaled = models.FloatField(blank=True, null=True)
+    score_raw = models.FloatField(blank=True, null=True)
+    score_min = models.FloatField(blank=True, null=True)
+    score_max = models.FloatField(blank=True, null=True)
+
+    def __init__(self, *args, **kwargs):
+        the_min = kwargs.pop('min', None)
+        the_max = kwargs.pop('max', None)
+        super(Result, self).__init__(*args, **kwargs)
+        if the_min:
+            self.score_min = the_min
+        if the_max:
+            self.score_max = the_max
 
     def object_return(self):
         ret = {}
@@ -234,11 +247,23 @@ class Result(models.Model):
 
         if self.duration:
             ret['duration'] = self.duration
-                        
-        try:
-            ret['score'] = self.score.object_return()
-        except Score.DoesNotExist:
-            pass
+
+        ret['score'] = {}
+        if not self.score_scaled is None:
+            ret['score']['scaled'] = self.score_scaled
+
+        if not self.score_raw is None:
+            ret['score']['raw'] = self.score_raw
+
+        if not self.score_min is None:
+            ret['score']['min'] = self.score_min
+
+        if not self.score_max is None:
+            ret['score']['max'] = self.score_max
+
+        # If there is no score, delete from dict
+        if ret['score'] is None:
+            del ret['score']
 
         result_ext = self.resultextensions_set.all()
         if len(result_ext) > 0:
@@ -249,43 +274,6 @@ class Result(models.Model):
 
     def __unicode__(self):
         return json.dumps(self.object_return())            
-
-
-class Score(models.Model):  
-    scaled = models.FloatField(blank=True, null=True)
-    raw = models.FloatField(blank=True, null=True)
-    score_min = models.FloatField(blank=True, null=True)
-    score_max = models.FloatField(blank=True, null=True)
-    result = models.OneToOneField(Result, blank=True, null=True)
-    
-    def __init__(self, *args, **kwargs):
-        the_min = kwargs.pop('min', None)
-        the_max = kwargs.pop('max', None)
-        super(Score, self).__init__(*args, **kwargs)
-        if the_min:
-            self.score_min = the_min
-        if the_max:
-            self.score_max = the_max
-
-    def object_return(self):
-        ret = {}
-
-        if not self.scaled is None:
-            ret['scaled'] = self.scaled
-
-        if not self.raw is None:
-            ret['raw'] = self.raw
-
-        if not self.score_min is None:
-            ret['min'] = self.score_min
-
-        if not self.score_max is None:
-            ret['max'] = self.score_max
-
-        return ret
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
 
 class KnowsChild(models.Model):
     subclass = models.CharField(max_length=20)

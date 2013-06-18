@@ -875,7 +875,6 @@ class AuthTests(TestCase):
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
         results = models.Result.objects.filter(response='wrong')
-        scores = models.Score.objects.filter(scaled=.99)
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
         contexts = models.Context.objects.filter(registration=cguid1)
         
@@ -891,7 +890,6 @@ class AuthTests(TestCase):
         self.assertEqual(len(statements), 11)
 
         self.assertEqual(len(results), 0)
-        self.assertEqual(len(scores), 0)
         self.assertEqual(len(ad_exts), 3)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(verbs), 3)

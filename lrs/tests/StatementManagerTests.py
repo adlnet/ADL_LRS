@@ -297,7 +297,6 @@ class StatementManagerTests(TestCase):
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
         result = models.Result.objects.get(id=stmt.model_object.result.id)
-        score = models.Score.objects.get(id=stmt.model_object.result.score.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
         extList = result.resultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
@@ -315,9 +314,8 @@ class StatementManagerTests(TestCase):
         self.assertEqual(result.success, True)
         self.assertEqual(result.response, 'yes')
         self.assertEqual(result.duration, time)
-        self.assertEqual(result.score.id, score.id)
 
-        self.assertEqual(score.scaled, .95)
+        self.assertEqual(result.score_scaled, .95)
 
         self.assertEqual(activity.activity_id, 'act:activity14')
 
@@ -770,20 +768,15 @@ class StatementManagerTests(TestCase):
             'object':{'id':'act:test_act'}}))
 
         result1 = models.Result.objects.create(success=True)
-        score1 = models.Score.objects.create(scaled=0.50, result=result1)
         res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1', result=result1)
         res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2', result=result1)
 
-        # There should never be a time that a result object gets deleted by itself. In this case, the statement
-        # will remain
         models.Result.objects.get(id=result1.id).delete()
         stmts = len(models.Statement.objects.all())
         results = len(models.Result.objects.all())
-        scores = len(models.Score.objects.all())
         res_exts = len(models.ResultExtensions.objects.all())
         self.assertEqual(stmts, 1)
         self.assertEqual(results, 0)
-        self.assertEqual(scores, 0)
         self.assertEqual(res_exts, 0)
 
         stmt2 = StatementManager(json.dumps(
@@ -792,21 +785,14 @@ class StatementManagerTests(TestCase):
             'object':{'id':'act:test_act'}}))
 
         result2 = models.Result.objects.create(success=True)
-        score2 = models.Score.objects.create(scaled=0.50, result=result2)
         res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
         res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
 
-        # There should never be a time that a score object gets deleted by itself. It is OneToOne with result,
-        # the result object does not get removed. Once again stmt will remain
-        models.Score.objects.get(id=score2.id).delete()
         stmts = len(models.Statement.objects.all())
         results = len(models.Result.objects.all())
-        scores = len(models.Score.objects.all())
         res_exts = len(models.ResultExtensions.objects.all())
-        # Previous stmt and this one
         self.assertEqual(stmts, 2)
         self.assertEqual(results, 1)
-        self.assertEqual(scores, 0)
         self.assertEqual(res_exts, 2)
 
         stmt3 = StatementManager(json.dumps(
@@ -815,7 +801,6 @@ class StatementManagerTests(TestCase):
             'object':{'id':'act:test_act'}}))
 
         result3 = models.Result.objects.create(success=True)
-        score3 = models.Score.objects.create(scaled=0.50, result=result3)
         res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
         res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
 
@@ -823,11 +808,9 @@ class StatementManagerTests(TestCase):
         models.ResultExtensions.objects.get(id=res_ext6.id).delete()
         stmts = len(models.Statement.objects.all())
         results = len(models.Result.objects.all())
-        scores = len(models.Score.objects.all())
         res_exts = len(models.ResultExtensions.objects.all())
         # Will be two results, one from before and this one
         self.assertEqual(results, 2)
-        self.assertEqual(scores, 1)
         # Will be three exts, two from before and this one
         self.assertEqual(res_exts, 3)
         # 2 stmts from before and this one

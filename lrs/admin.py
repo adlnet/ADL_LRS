@@ -16,7 +16,6 @@ class AgentProfileAdmin(admin.ModelAdmin):
 admin.site.register(models.Verb)
 admin.site.register(models.ResultExtensions)
 admin.site.register(models.Result, ResultAdmin)
-admin.site.register(models.Score)
 admin.site.register(models.StatementObject)
 admin.site.register(models.Agent)
 admin.site.register(models.AgentAccount)
