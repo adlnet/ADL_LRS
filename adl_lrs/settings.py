@@ -173,7 +173,7 @@ INSTALLED_APPS = (
     'gunicorn',
     'oauth_provider',
     'django.contrib.admin',
-    'south',
+    #'south',
 )
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
@@ -183,13 +183,13 @@ LOGGING = {
     'disable_existing_loggers': True,
     'formatters': {
         'verbose': {
-            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            'format': u'%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
         },
         'standard': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+            'format': u'%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
         'simple': {
-            'format': '%(levelname)s %(message)s'
+            'format': u'%(levelname)s %(message)s'
         },
     },
     'handlers': {
@@ -211,7 +211,7 @@ LOGGING = {
         },
     },
     'loggers': {
-        '': {
+        'lrs': {
             'handlers': ['default'],
             'level': 'DEBUG',
             'propagate': True
