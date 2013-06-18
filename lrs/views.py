@@ -338,7 +338,7 @@ def handle_request(request, more_id=None):
     try:
         r_dict = req_parse.parse(request, more_id)
         path = request.path.lower()
-        
+
         if path.endswith('/'):
             path = path.rstrip('/')
 
@@ -350,24 +350,33 @@ def handle_request(request, more_id=None):
         return processors[path][req_dict['method']](req_dict)
 
     except exceptions.BadRequest as err:
+        log_exception(request.path, err)
         return HttpResponse(err.message, status=400)
     except ValidationError as ve:
+        log_exception(request.path, ve)
         return HttpResponse(ve.messages[0], status=400)
     except exceptions.Unauthorized as autherr:
+        log_exception(request.path, autherr)
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
     except exceptions.OauthUnauthorized as oauth_err:
+        log_exception(request.path, oauth_err)
         return oauth_err.response
     except exceptions.Forbidden as forb:
+        log_exception(request.path, forb)
         return HttpResponse(forb.message, status=403)
     except exceptions.NotFound as nf:
+        log_exception(request.path, nf)
         return HttpResponse(nf.message, status=404)
     except exceptions.Conflict as c:
+        log_exception(request.path, c)
         return HttpResponse(c.message, status=409)
     except exceptions.PreconditionFail as pf:
+        log_exception(request.path, pf)
         return HttpResponse(pf.message, status=412)
     except Exception as err:
+        log_exception(request.path, err)
         return HttpResponse(err.message, status=500)
 
 validators = {
@@ -453,6 +462,11 @@ processors = {
         "HEAD" : req_process.statements_more_get
    }      
 }
+
+def log_exception(path, ex):
+    logger.info("Exception while processing: %s" % path)
+    logger.exception(ex)    
+
 
 def print_req_details(request):
     print '=====================details==============='
