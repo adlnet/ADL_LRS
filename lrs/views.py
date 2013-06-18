@@ -464,7 +464,7 @@ processors = {
 }
 
 def log_exception(path, ex):
-    logger.info("Exception while processing: %s" % path)
+    logger.info("\nException while processing: %s" % path)
     logger.exception(ex)    
 
 
