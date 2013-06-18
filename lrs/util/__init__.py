@@ -33,8 +33,8 @@ def get_user_from_auth(auth):
     else:
         # it's a group.. gotta find out which of the 2 members is the client
         for member in auth.member.all():
-            if hasattr(member, 'agentaccount'):
-                key = member.agentaccount.name
+            if member.account_name: 
+                key = member.account_name
 
         user = Consumer.objects.get(key__exact=key).user
     return user

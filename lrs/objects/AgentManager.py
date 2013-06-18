@@ -40,9 +40,9 @@ class AgentManager():
                 if 'account' in params:
                     acc = params.pop('account')
                     if 'homePage' in acc:
-                        params['agentaccount__homePage'] = acc['homePage']
+                        params['account_homePage'] = acc['homePage']
                     if 'name' in acc:
-                        params['agentaccount__name'] = acc['name']
+                        params['account_name'] = acc['name']
                 self.Agent = ag.objects.get(**params)
             except:
                 err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial

@@ -18,7 +18,6 @@ from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
 
-
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
 gen_pwd = User.objects.make_random_password
@@ -262,7 +261,7 @@ class Result(models.Model):
             ret['score']['max'] = self.score_max
 
         # If there is no score, delete from dict
-        if ret['score'] is None:
+        if not ret['score']:
             del ret['score']
 
         result_ext = self.resultextensions_set.all()
@@ -326,50 +325,63 @@ class AgentMgr(models.Manager):
         return ret_agent, need_to_create
 
     def create_agent(self, kwargs, define):
-        if not define:
-            kwargs['global_representation'] = False
-        ret_agent = Agent(**kwargs)
-        ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
-        ret_agent.save()
-        return ret_agent, True
-
-    # Have to return ret_agent since it can be potentially updated
-    def handle_account(self, val, kwargs, members, define):
-        # Load into dict if necessary
-        if not isinstance(val, dict):
-            account = json.loads(val)
-        else:
-            account = val
-        # Try to get the account with the account kwargs. If it exists set ret_agent to the account's
-        # agent and created to false. Update agent if necessary
-        try:
+ 
+        if 'account' in kwargs:
+            account = kwargs['account']
             if 'homePage' in account:
                 from lrs.util import uri
                 if not uri.validate_uri(account['homePage']):
                     raise ValidationError('homePage value [%s] is not a valid URI' % account['homePage'])
-            acc = AgentAccount.objects.get(**account)
-            created = False
-            ret_agent = acc.agent
-            ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
-            if need_to_create:
-                ret_agent, created = self.create_agent(kwargs, define)        
-        except AgentAccount.DoesNotExist:
-            # If account doesn't exist try to get agent with the remaining kwargs (don't need
-            # attr_dict) since IFP is account which doesn't exist yet
-            try:
-                ret_agent = Agent.objects.get(**kwargs)     
-            except Agent.DoesNotExist:
-                # If agent/group does not exist, create, clean, save it and create an account
-                # to attach to it. Created account is true. If don't have define permissions
-                # then the agent/group is non-global
-                if not define:
-                    kwargs['global_representation'] = False
-                ret_agent = Agent(**kwargs)
-            ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
-            ret_agent.save()
-            acc = AgentAccount.objects.create(agent=ret_agent, **account)
-            created = True
-        return ret_agent, created
+                kwargs['account_homePage'] = kwargs['account']['homePage']
+
+            if 'name' in account:
+                kwargs['account_name'] = kwargs['account']['name']
+            del kwargs['account']
+
+        if not define:
+            kwargs['global_representation'] = False
+        ret_agent = Agent(**kwargs)
+        ret_agent.full_clean(exclude=['subclass'])
+        ret_agent.save()
+        return ret_agent, True
+
+    # # Have to return ret_agent since it can be potentially updated
+    # def handle_account(self, val, kwargs, members, define):
+    #     # Load into dict if necessary
+    #     if not isinstance(val, dict):
+    #         account = json.loads(val)
+    #     else:
+    #         account = val
+    #     # Try to get the account with the account kwargs. If it exists set ret_agent to the account's
+    #     # agent and created to false. Update agent if necessary
+    #     try:
+    #         if 'homePage' in account:
+    #             from lrs.util import uri
+    #             if not uri.validate_uri(account['homePage']):
+    #                 raise ValidationError('homePage value [%s] is not a valid URI' % account['homePage'])
+    #         acc = AgentAccount.objects.get(**account)
+    #         created = False
+    #         ret_agent = acc.agent
+    #         ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
+    #         if need_to_create:
+    #             ret_agent, created = self.create_agent(kwargs, define)        
+    #     except AgentAccount.DoesNotExist:
+    #         # If account doesn't exist try to get agent with the remaining kwargs (don't need
+    #         # attr_dict) since IFP is account which doesn't exist yet
+    #         try:
+    #             ret_agent = Agent.objects.get(**kwargs)     
+    #         except Agent.DoesNotExist:
+    #             # If agent/group does not exist, create, clean, save it and create an account
+    #             # to attach to it. Created account is true. If don't have define permissions
+    #             # then the agent/group is non-global
+    #             if not define:
+    #                 kwargs['global_representation'] = False
+    #             ret_agent = Agent(**kwargs)
+    #         ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
+    #         ret_agent.save()
+    #         acc = AgentAccount.objects.create(agent=ret_agent, **account)
+    #         created = True
+    #     return ret_agent, created
 
     def gen(self, **kwargs):
         types = ['Agent', 'Group']
@@ -392,6 +404,17 @@ class AgentMgr(models.Manager):
             # Don't create the attrs_dict if the IFP is an account
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
+            else:
+                if not isinstance(kwargs['account'], dict):
+                    kwargs['account'] = json.loads(kwargs['account'])
+                account = kwargs['account']
+
+                if 'homePage' in account:
+                    attrs_dict = {'account_homePage': account['homePage']}
+
+                if 'name' in account:
+                    attrs_dict = {'account_name': account['name']}
+
 
         # Gen will only get called from AgentManager or Authorization. Since global is true by default and
         # AgentManager always sets the define key based off of the oauth scope, default this to True if the
@@ -413,11 +436,11 @@ class AgentMgr(models.Manager):
                 for a in members:
                     a['global_representation'] = False    
         
-        # Pop account
-        val = kwargs.pop('account', None)
-        # If it is incoming account object
-        if val:
-            ret_agent, created = self.handle_account(val, kwargs, members, define)
+        # # Pop account
+        # val = kwargs.pop('account', None)
+        # # If it is incoming account object
+        # if val:
+        #     ret_agent, created = self.handle_account(val, kwargs, members, define)
 
         # Try to get the agent/group
         try:
@@ -430,9 +453,8 @@ class AgentMgr(models.Manager):
             # If there is and IFP and members (group with IFP that's not account since it should be
             # updated already from above)if there is an IFP that isn't account and no members (agent object)
             else:
-                if not 'account' in attrs:
-                    ret_agent = Agent.objects.get(**attrs_dict)
-                    created = False
+                ret_agent = Agent.objects.get(**attrs_dict)
+                created = False
                 ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
                 if need_to_create:
                     ret_agent, created = self.create_agent(kwargs, define)
@@ -451,7 +473,7 @@ class AgentMgr(models.Manager):
             else:
                 err_msg = "member value type must be an array"
                 raise ParamError(err_msg)
-        ret_agent.full_clean(exclude='subclass, content_type, content_object, object_id')
+        ret_agent.full_clean(exclude='subclass')
         ret_agent.save()
         return ret_agent, created
 
@@ -471,6 +493,8 @@ class Agent(StatementObject):
     oauth_identifier = models.CharField(max_length=192, blank=True, db_index=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     global_representation = models.BooleanField(default=True)
+    account_homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    account_name = models.CharField(max_length=50, blank=True)    
     objects = AgentMgr()
 
     def __init__(self, *args, **kwargs):
@@ -505,10 +529,18 @@ class Agent(StatementObject):
             ret['mbox_sha1sum'] = self.mbox_sha1sum
         if self.openID:
             ret['openID'] = self.openID
-        try:
-            ret['account'] = self.agentaccount.get_json()
-        except:
-            pass
+        
+        ret['account'] = {}
+        if self.account_name:
+            ret['account']['name'] = self.account_name
+
+        if self.account_homePage:
+            ret['account']['homePage'] = self.account_homePage
+
+        # If not account, delete it
+        if not ret['account']:
+            del ret['account']
+
         if self.objectType == 'Group':
             # show members for groups if format isn't 'ids'
             # show members' ids for anon groups if format is 'ids'
@@ -528,10 +560,17 @@ class Agent(StatementObject):
             ret['mbox_sha1sum'] = [self.mbox_sha1sum]
         if self.openID:
             ret['openID'] = [self.openID]
-        try:
-            ret['account'] = [self.agentaccount.get_json()]
-        except:
-            pass
+
+        ret['account'] = {}
+        if self.account_name:
+            ret['account']['name'] = self.account_name
+
+        if self.account_homePage:
+            ret['account']['homePage'] = self.account_homePage
+
+        if not ret['account']:
+            del ret['account']
+
         return ret
 
     def get_a_name(self):
@@ -544,7 +583,7 @@ class Agent(StatementObject):
         if self.openID:
             return self.openID
         try:
-            return self.agentaccount.get_a_name()
+            return self.account_name
         except:
             if self.objectType == 'Agent':
                 return "unknown"
@@ -553,30 +592,6 @@ class Agent(StatementObject):
 
     def __unicode__(self):
         return json.dumps(self.get_agent_json())
-
-
-class AgentAccount(models.Model):  
-    homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    name = models.CharField(max_length=50)
-    agent = models.OneToOneField(Agent, null=True)
-
-    def get_json(self):
-        ret = {}
-        ret['homePage'] = self.homePage
-        ret['name'] = self.name
-        return ret
-    
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.name == other.name and self.homePage == other.homePage 
-
-    def get_a_name(self):
-        return self.name
-
-    def __unicode__(self):
-        return json.dumps(self.get_json())
-
 
 class AgentProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
