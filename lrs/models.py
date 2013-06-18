@@ -324,8 +324,7 @@ class AgentMgr(models.Manager):
                 raise ParamError(err)
         return ret_agent, need_to_create
 
-    def create_agent(self, kwargs, define):
- 
+    def create_agent(self, kwargs, define): 
         if 'account' in kwargs:
             account = kwargs['account']
             if 'homePage' in account:
@@ -345,44 +344,6 @@ class AgentMgr(models.Manager):
         ret_agent.save()
         return ret_agent, True
 
-    # # Have to return ret_agent since it can be potentially updated
-    # def handle_account(self, val, kwargs, members, define):
-    #     # Load into dict if necessary
-    #     if not isinstance(val, dict):
-    #         account = json.loads(val)
-    #     else:
-    #         account = val
-    #     # Try to get the account with the account kwargs. If it exists set ret_agent to the account's
-    #     # agent and created to false. Update agent if necessary
-    #     try:
-    #         if 'homePage' in account:
-    #             from lrs.util import uri
-    #             if not uri.validate_uri(account['homePage']):
-    #                 raise ValidationError('homePage value [%s] is not a valid URI' % account['homePage'])
-    #         acc = AgentAccount.objects.get(**account)
-    #         created = False
-    #         ret_agent = acc.agent
-    #         ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
-    #         if need_to_create:
-    #             ret_agent, created = self.create_agent(kwargs, define)        
-    #     except AgentAccount.DoesNotExist:
-    #         # If account doesn't exist try to get agent with the remaining kwargs (don't need
-    #         # attr_dict) since IFP is account which doesn't exist yet
-    #         try:
-    #             ret_agent = Agent.objects.get(**kwargs)     
-    #         except Agent.DoesNotExist:
-    #             # If agent/group does not exist, create, clean, save it and create an account
-    #             # to attach to it. Created account is true. If don't have define permissions
-    #             # then the agent/group is non-global
-    #             if not define:
-    #                 kwargs['global_representation'] = False
-    #             ret_agent = Agent(**kwargs)
-    #         ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
-    #         ret_agent.save()
-    #         acc = AgentAccount.objects.create(agent=ret_agent, **account)
-    #         created = True
-    #     return ret_agent, created
-
     def gen(self, **kwargs):
         types = ['Agent', 'Group']
         if 'objectType' in kwargs and kwargs['objectType'] not in types:
@@ -401,7 +362,7 @@ class AgentMgr(models.Manager):
             # Here until spec makes decision on openID vs openid
             if attr == 'openid':
                 attr = 'openID'
-            # Don't create the attrs_dict if the IFP is an account
+            # Account attrs is special
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
             else:
@@ -436,12 +397,6 @@ class AgentMgr(models.Manager):
                 for a in members:
                     a['global_representation'] = False    
         
-        # # Pop account
-        # val = kwargs.pop('account', None)
-        # # If it is incoming account object
-        # if val:
-        #     ret_agent, created = self.handle_account(val, kwargs, members, define)
-
         # Try to get the agent/group
         try:
             # If there are no IFPs but there are members (group with no IFPs)
@@ -450,8 +405,7 @@ class AgentMgr(models.Manager):
             # Cannot have no IFP and no members
             elif not attrs and not members:
                 raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must be a group with members")
-            # If there is and IFP and members (group with IFP that's not account since it should be
-            # updated already from above)if there is an IFP that isn't account and no members (agent object)
+            # If there is and IFP and members
             else:
                 ret_agent = Agent.objects.get(**attrs_dict)
                 created = False
@@ -675,43 +629,46 @@ class ActivityDefinition(models.Model):
         if self.interactionType != '':
             ret['interactionType'] = self.interactionType
 
-        if hasattr(self, 'activitydefcorrectresponsespattern'):
+        # Get answers
+        answers = self.correctresponsespatternanswer_set.all()
+        if answers:
             ret['correctResponsesPattern'] = []
-            # Get answers
-            answers = self.activitydefcorrectresponsespattern.correctresponsespatternanswer_set.all()
-            
             for a in answers:
                 ret['correctResponsesPattern'].append(a.object_return())            
-            # Get scales
-            scales = self.activitydefinitionscale_set.all()
-            if scales:
-                ret['scale'] = []
-                for s in scales:
-                    ret['scale'].append(s.object_return())
-            # Get choices
-            choices = self.activitydefinitionchoice_set.all()
-            if choices:
-                ret['choices'] = []
-                for c in choices:
-                    ret['choices'].append(c.object_return())
-            # Get steps
-            steps = self.activitydefinitionstep_set.all()
-            if steps:
-                ret['steps'] = []
-                for st in steps:
-                    ret['steps'].append(st.object_return())
-            # Get sources
-            sources = self.activitydefinitionsource_set.all()
-            if sources:
-                ret['source'] = []
-                for so in sources:
-                    ret['source'].append(so.object_return())
-            # Get targets
-            targets = self.activitydefinitiontarget_set.all()
-            if targets:
-                ret['target'] = []
-                for t in targets:
-                    ret['target'].append(t.object_return())            
+
+        # Get scales
+        scales = self.activitydefinitionscale_set.all()
+        if scales:
+            ret['scale'] = []
+            for s in scales:
+                ret['scale'].append(s.object_return())
+        # Get choices
+        choices = self.activitydefinitionchoice_set.all()
+        if choices:
+            ret['choices'] = []
+            for c in choices:
+                ret['choices'].append(c.object_return())
+        # Get steps
+        steps = self.activitydefinitionstep_set.all()
+        if steps:
+            ret['steps'] = []
+            for st in steps:
+                ret['steps'].append(st.object_return())
+        # Get sources
+        sources = self.activitydefinitionsource_set.all()
+        if sources:
+            ret['source'] = []
+            for so in sources:
+                ret['source'].append(so.object_return())
+        # Get targets
+        targets = self.activitydefinitiontarget_set.all()
+        if targets:
+            ret['target'] = []
+            for t in targets:
+                ret['target'].append(t.object_return())            
+
+
+
         result_ext = self.activitydefinitionextensions_set.all()
         if len(result_ext) > 0:
             ret['extensions'] = {}
@@ -722,13 +679,9 @@ class ActivityDefinition(models.Model):
     def __unicode__(self):
         return json.dumps(self.object_return())
 
-
-class ActivityDefCorrectResponsesPattern(models.Model):
-    activity_definition = models.OneToOneField(ActivityDefinition, blank=True, null=True)
-
 class CorrectResponsesPatternAnswer(models.Model):
     answer = models.TextField()
-    correctresponsespattern = models.ForeignKey(ActivityDefCorrectResponsesPattern)    
+    activity_definition = models.ForeignKey(ActivityDefinition)    
 
     def object_return(self):
         return self.answer

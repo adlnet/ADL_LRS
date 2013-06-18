@@ -34,9 +34,9 @@ class ActivityManagerTests(TestCase):
         self.assertIn(value3, ext_vals)
 
     #Called on all activity django models with a correctResponsePattern because of http://adlnet.gov/expapi/activities/cmi.interaction type
-    def do_activity_definition_correctResponsePattern_model(self, rsp_fk, answers):
+    def do_activity_definition_correctResponsePattern_model(self, act_def, answers):
         rspAnswers = models.CorrectResponsesPatternAnswer.objects.values_list('answer',
-                     flat=True).filter(correctresponsespattern=rsp_fk)
+                     flat=True).filter(activity_definition=act_def)
         
         for answer in answers:
             self.assertIn(answer,rspAnswers)
@@ -461,15 +461,13 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc2')        
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id,'act:fooe', 'Activity')                
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction','true-false')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1',
                                                     'value2', 'value3')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['true'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['true'])
     
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and multiple choice interactionType
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
@@ -496,15 +494,13 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-US')
         self.assertEqual(desc_set[0].value, 'testdesc1')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id,'act:foof', 'Activity')
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'choice')
 
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
                                                      'value3')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['golf', 'tetris'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['golf', 'tetris'])
         
         #Check model choice values
         clist = ['golf', 'tetris', 'facebook', 'scrabble']
@@ -546,8 +542,6 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-FR')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id,'act:foog', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction','fill-in')
@@ -555,7 +549,7 @@ class ActivityManagerTests(TestCase):
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
                                                     'value3')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['Fill in answer'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['Fill in answer'])
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and long fill in interactionType
     def test_activity_definition_cmiInteraction_long_fill_in(self):
@@ -579,8 +573,6 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-FR')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id, 'act:fooh', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction','fill-in')
@@ -588,7 +580,7 @@ class ActivityManagerTests(TestCase):
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
                                                      'value3')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['Long fill in answer'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['Long fill in answer'])
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and likert interactionType
     def test_activity_definition_cmiInteraction_likert(self):    
@@ -614,13 +606,11 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-CH')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id, 'act:fooi', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'likert')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['likert_3'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['likert_3'])
 
         #Check model choice values
         clist = ['likert_0', 'likert_1', 'likert_2', 'likert_3']
@@ -654,13 +644,11 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-CH')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id, 'act:fooj', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'matching')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['lou.3,tom.2,andy.1'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['lou.3,tom.2,andy.1'])
 
         #Check model choice values
         source_id_list = ['lou', 'tom', 'andy']
@@ -694,13 +682,12 @@ class ActivityManagerTests(TestCase):
 
         self.assertEqual(desc_set[0].key, 'en-us')
         self.assertEqual(desc_set[0].value, 'testdesc2')        
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
 
         self.do_activity_model(act.Activity.id, 'act:fook', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'performance')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['pong.1,dg.10,lunch.4'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['pong.1,dg.10,lunch.4'])
 
         #Check model choice values
         slist = ['pong', 'dg', 'lunch']
@@ -732,13 +719,11 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-GB')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id, 'act:fool', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'sequencing')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['lou,tom,andy,aaron'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['lou,tom,andy,aaron'])
         #Check model choice values
         clist = ['lou', 'tom', 'andy', 'aaron']
         dlist = [("en-US", "Lou"),("en-US", "Tom"),("en-US", "Andy"), ("en-US", "Aaron"), ('en-GB', 'Erin')]
@@ -765,8 +750,6 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-CH')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id, 'act:foom', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'numeric')
@@ -774,7 +757,7 @@ class ActivityManagerTests(TestCase):
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
                                                      'value3')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['4'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['4'])
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and other interactionType
     def test_activity_definition_cmiInteraction_other(self):
@@ -798,8 +781,6 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set[0].key, 'en-FR')
         self.assertEqual(desc_set[0].value, 'testdesc2')
 
-        rsp_fk = models.ActivityDefCorrectResponsesPattern.objects.filter(activity_definition=act_def)
-
         self.do_activity_model(act.Activity.id, 'act:foon', 'Activity')
 
         self.do_activity_definition_model(fk, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
@@ -807,7 +788,7 @@ class ActivityManagerTests(TestCase):
         self.do_activity_definition_extensions_model(act_def, 'ext:key1', 'ext:key2', 'ext:key3', 'value1', 'value2',
                                                      'value3')
 
-        self.do_activity_definition_correctResponsePattern_model(rsp_fk, ['(35.937432,-86.868896)'])
+        self.do_activity_definition_correctResponsePattern_model(act_def, ['(35.937432,-86.868896)'])
 
     # Should be the same, no auth required
     def test_multiple_activities(self):
@@ -1066,7 +1047,6 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(1, len(models.ActivityDefNameLangMap.objects.all()))
         self.assertEqual(1, len(models.ActivityDefDescLangMap.objects.all()))
         self.assertEqual(1, len(models.ActivityDefNameLangMap.objects.all()))
-        self.assertEqual(1, len(models.ActivityDefCorrectResponsesPattern.objects.all()))
 
         the_act.delete()
 
@@ -1076,4 +1056,3 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(0, len(models.ActivityDefNameLangMap.objects.all()))
         self.assertEqual(0, len(models.ActivityDefDescLangMap.objects.all()))
         self.assertEqual(0, len(models.ActivityDefNameLangMap.objects.all()))
-        self.assertEqual(0, len(models.ActivityDefCorrectResponsesPattern.objects.all()))

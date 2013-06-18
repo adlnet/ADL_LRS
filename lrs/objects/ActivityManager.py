@@ -353,7 +353,7 @@ class ActivityManager():
         #If there is a correctResponsesPattern then save the pattern
         if act_def_created and 'correctResponsesPattern' in act_def.keys():
             if isinstance(act_def['correctResponsesPattern'], list):
-                self.populate_correctResponsesPattern(act_def, interaction_flag)
+                self.populate_correct_responses_pattern(act_def, interaction_flag)
             else:
                 err_msg = "correctResponsesPattern value type must be an array"
                 raise exceptions.ParamError(err_msg)
@@ -361,12 +361,10 @@ class ActivityManager():
         if act_def_created and 'extensions' in act_def.keys():
             self.populate_extensions(act_def) 
 
-    def populate_correctResponsesPattern(self, act_def, interaction_flag):
-        crp = models.ActivityDefCorrectResponsesPattern.objects.create(activity_definition=self.Activity.activitydefinition)
-
+    def populate_correct_responses_pattern(self, act_def, interaction_flag):
         #For each answer in the pattern save it
         for i in act_def['correctResponsesPattern']:
-            models.CorrectResponsesPatternAnswer.objects.create(answer=i, correctresponsespattern=crp)
+            models.CorrectResponsesPatternAnswer.objects.create(answer=i, activity_definition=self.Activity.activitydefinition)
 
         #Depending on which type of interaction, save the unique fields accordingly
         if interaction_flag == 'choices':
