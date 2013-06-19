@@ -62,15 +62,14 @@ class ActivityManager():
         # Have to check if the activity already has an activity definition. Can only update name and
         # description in definition, so no matter what the user's scope is, if the activity def already
         # exists you can't create another one
-
-        if self.Activity.activity_definition_type or self.Activity.activity_definition_moreInfo or self.Activity.activity_definition_interactionType:
+        if (self.Activity.activity_definition_type or self.Activity.activity_definition_moreInfo or
+                self.Activity.activity_definition_interactionType):
             created = False
         else:
             self.Activity.activity_definition_type = act_def_type
             self.Activity.activity_definition_moreInfo = more_info
             self.Activity.activity_definition_interactionType = int_type
             self.Activity.save()
-        
         return created
 
     def check_activity_definition_value(self, new_name_value, existing_name_value):
@@ -205,11 +204,11 @@ class ActivityManager():
 
     def validate_cmi_interaction(self, act_def, act_created):
         interaction_flag = None
-        scormInteractionTypes = ['true-false', 'choice', 'fill-in','matching', 'performance', 'sequencing',
+        scorm_interaction_types = ['true-false', 'choice', 'fill-in','matching', 'performance', 'sequencing',
                                     'likert', 'numeric', 'other']
     
         #Check if valid SCORM interactionType
-        if act_def['interactionType'] not in scormInteractionTypes:
+        if act_def['interactionType'] not in scorm_interaction_types:
             if act_created:
                 self.Activity.delete()
                 self.Activity = None
@@ -306,16 +305,16 @@ class ActivityManager():
 
         # validate moreInfo if it exists
         if 'moreInfo' in act_def:
-            moreInfo = act_def['moreInfo']
-            if not uri.validate_uri(moreInfo):
-                raise exceptions.ParamError('moreInfo %s is not a valid URI' % moreInfo)
+            more_info = act_def['moreInfo']
+            if not uri.validate_uri(more_info):
+                raise exceptions.ParamError('moreInfo %s is not a valid URI' % more_info)
         else:
-            moreInfo = ''
+            more_info = ''
 
         # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
         # doesn't have a definition
         act_def_created = self.save_activity_definition_to_db(act_def_type, act_def.get('interactionType', ''),
-            moreInfo)
+            more_info)
 
         # If the activity had already existed and lrs auth is off or user has authority to update it
         if not act_created: 
