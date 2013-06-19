@@ -18,7 +18,6 @@ from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
 
-
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
 gen_pwd = User.objects.make_random_password
@@ -219,6 +218,19 @@ class Result(models.Model):
     response = models.TextField(blank=True)
     #Made charfield since it would be stored in ISO8601 duration format
     duration = models.CharField(max_length=40, blank=True)
+    score_scaled = models.FloatField(blank=True, null=True)
+    score_raw = models.FloatField(blank=True, null=True)
+    score_min = models.FloatField(blank=True, null=True)
+    score_max = models.FloatField(blank=True, null=True)
+
+    def __init__(self, *args, **kwargs):
+        the_min = kwargs.pop('min', None)
+        the_max = kwargs.pop('max', None)
+        super(Result, self).__init__(*args, **kwargs)
+        if the_min:
+            self.score_min = the_min
+        if the_max:
+            self.score_max = the_max
 
     def object_return(self):
         ret = {}
@@ -234,11 +246,23 @@ class Result(models.Model):
 
         if self.duration:
             ret['duration'] = self.duration
-                        
-        try:
-            ret['score'] = self.score.object_return()
-        except Score.DoesNotExist:
-            pass
+
+        ret['score'] = {}
+        if not self.score_scaled is None:
+            ret['score']['scaled'] = self.score_scaled
+
+        if not self.score_raw is None:
+            ret['score']['raw'] = self.score_raw
+
+        if not self.score_min is None:
+            ret['score']['min'] = self.score_min
+
+        if not self.score_max is None:
+            ret['score']['max'] = self.score_max
+
+        # If there is no score, delete from dict
+        if not ret['score']:
+            del ret['score']
 
         result_ext = self.resultextensions_set.all()
         if len(result_ext) > 0:
@@ -249,43 +273,6 @@ class Result(models.Model):
 
     def __unicode__(self):
         return json.dumps(self.object_return())            
-
-
-class Score(models.Model):  
-    scaled = models.FloatField(blank=True, null=True)
-    raw = models.FloatField(blank=True, null=True)
-    score_min = models.FloatField(blank=True, null=True)
-    score_max = models.FloatField(blank=True, null=True)
-    result = models.OneToOneField(Result, blank=True, null=True)
-    
-    def __init__(self, *args, **kwargs):
-        the_min = kwargs.pop('min', None)
-        the_max = kwargs.pop('max', None)
-        super(Score, self).__init__(*args, **kwargs)
-        if the_min:
-            self.score_min = the_min
-        if the_max:
-            self.score_max = the_max
-
-    def object_return(self):
-        ret = {}
-
-        if not self.scaled is None:
-            ret['scaled'] = self.scaled
-
-        if not self.raw is None:
-            ret['raw'] = self.raw
-
-        if not self.score_min is None:
-            ret['min'] = self.score_min
-
-        if not self.score_max is None:
-            ret['max'] = self.score_max
-
-        return ret
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
 
 class KnowsChild(models.Model):
     subclass = models.CharField(max_length=20)
@@ -337,51 +324,25 @@ class AgentMgr(models.Manager):
                 raise ParamError(err)
         return ret_agent, need_to_create
 
-    def create_agent(self, kwargs, define):
-        if not define:
-            kwargs['global_representation'] = False
-        ret_agent = Agent(**kwargs)
-        ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
-        ret_agent.save()
-        return ret_agent, True
-
-    # Have to return ret_agent since it can be potentially updated
-    def handle_account(self, val, kwargs, members, define):
-        # Load into dict if necessary
-        if not isinstance(val, dict):
-            account = json.loads(val)
-        else:
-            account = val
-        # Try to get the account with the account kwargs. If it exists set ret_agent to the account's
-        # agent and created to false. Update agent if necessary
-        try:
+    def create_agent(self, kwargs, define): 
+        if 'account' in kwargs:
+            account = kwargs['account']
             if 'homePage' in account:
                 from lrs.util import uri
                 if not uri.validate_uri(account['homePage']):
                     raise ValidationError('homePage value [%s] is not a valid URI' % account['homePage'])
-            acc = AgentAccount.objects.get(**account)
-            created = False
-            ret_agent = acc.agent
-            ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
-            if need_to_create:
-                ret_agent, created = self.create_agent(kwargs, define)        
-        except AgentAccount.DoesNotExist:
-            # If account doesn't exist try to get agent with the remaining kwargs (don't need
-            # attr_dict) since IFP is account which doesn't exist yet
-            try:
-                ret_agent = Agent.objects.get(**kwargs)     
-            except Agent.DoesNotExist:
-                # If agent/group does not exist, create, clean, save it and create an account
-                # to attach to it. Created account is true. If don't have define permissions
-                # then the agent/group is non-global
-                if not define:
-                    kwargs['global_representation'] = False
-                ret_agent = Agent(**kwargs)
-            ret_agent.full_clean(exclude=['subclass', 'content_type', 'content_object', 'object_id'])
-            ret_agent.save()
-            acc = AgentAccount.objects.create(agent=ret_agent, **account)
-            created = True
-        return ret_agent, created
+                kwargs['account_homePage'] = kwargs['account']['homePage']
+
+            if 'name' in account:
+                kwargs['account_name'] = kwargs['account']['name']
+            del kwargs['account']
+
+        if not define:
+            kwargs['global_representation'] = False
+        ret_agent = Agent(**kwargs)
+        ret_agent.full_clean(exclude=['subclass'])
+        ret_agent.save()
+        return ret_agent, True
 
     def gen(self, **kwargs):
         types = ['Agent', 'Group']
@@ -401,9 +362,20 @@ class AgentMgr(models.Manager):
             # Here until spec makes decision on openID vs openid
             if attr == 'openid':
                 attr = 'openID'
-            # Don't create the attrs_dict if the IFP is an account
+            # Account attrs is special
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
+            else:
+                if not isinstance(kwargs['account'], dict):
+                    kwargs['account'] = json.loads(kwargs['account'])
+                account = kwargs['account']
+
+                if 'homePage' in account:
+                    attrs_dict = {'account_homePage': account['homePage']}
+
+                if 'name' in account:
+                    attrs_dict = {'account_name': account['name']}
+
 
         # Gen will only get called from AgentManager or Authorization. Since global is true by default and
         # AgentManager always sets the define key based off of the oauth scope, default this to True if the
@@ -425,12 +397,6 @@ class AgentMgr(models.Manager):
                 for a in members:
                     a['global_representation'] = False    
         
-        # Pop account
-        val = kwargs.pop('account', None)
-        # If it is incoming account object
-        if val:
-            ret_agent, created = self.handle_account(val, kwargs, members, define)
-
         # Try to get the agent/group
         try:
             # If there are no IFPs but there are members (group with no IFPs)
@@ -439,12 +405,10 @@ class AgentMgr(models.Manager):
             # Cannot have no IFP and no members
             elif not attrs and not members:
                 raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must be a group with members")
-            # If there is and IFP and members (group with IFP that's not account since it should be
-            # updated already from above)if there is an IFP that isn't account and no members (agent object)
+            # If there is and IFP and members
             else:
-                if not 'account' in attrs:
-                    ret_agent = Agent.objects.get(**attrs_dict)
-                    created = False
+                ret_agent = Agent.objects.get(**attrs_dict)
+                created = False
                 ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
                 if need_to_create:
                     ret_agent, created = self.create_agent(kwargs, define)
@@ -463,7 +427,7 @@ class AgentMgr(models.Manager):
             else:
                 err_msg = "member value type must be an array"
                 raise ParamError(err_msg)
-        ret_agent.full_clean(exclude='subclass, content_type, content_object, object_id')
+        ret_agent.full_clean(exclude='subclass')
         ret_agent.save()
         return ret_agent, created
 
@@ -483,6 +447,8 @@ class Agent(StatementObject):
     oauth_identifier = models.CharField(max_length=192, blank=True, db_index=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     global_representation = models.BooleanField(default=True)
+    account_homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    account_name = models.CharField(max_length=50, blank=True)    
     objects = AgentMgr()
 
     def __init__(self, *args, **kwargs):
@@ -517,10 +483,18 @@ class Agent(StatementObject):
             ret['mbox_sha1sum'] = self.mbox_sha1sum
         if self.openID:
             ret['openID'] = self.openID
-        try:
-            ret['account'] = self.agentaccount.get_json()
-        except:
-            pass
+        
+        ret['account'] = {}
+        if self.account_name:
+            ret['account']['name'] = self.account_name
+
+        if self.account_homePage:
+            ret['account']['homePage'] = self.account_homePage
+
+        # If not account, delete it
+        if not ret['account']:
+            del ret['account']
+
         if self.objectType == 'Group':
             # show members for groups if format isn't 'ids'
             # show members' ids for anon groups if format is 'ids'
@@ -540,10 +514,17 @@ class Agent(StatementObject):
             ret['mbox_sha1sum'] = [self.mbox_sha1sum]
         if self.openID:
             ret['openID'] = [self.openID]
-        try:
-            ret['account'] = [self.agentaccount.get_json()]
-        except:
-            pass
+
+        ret['account'] = {}
+        if self.account_name:
+            ret['account']['name'] = self.account_name
+
+        if self.account_homePage:
+            ret['account']['homePage'] = self.account_homePage
+
+        if not ret['account']:
+            del ret['account']
+
         return ret
 
     def get_a_name(self):
@@ -556,7 +537,7 @@ class Agent(StatementObject):
         if self.openID:
             return self.openID
         try:
-            return self.agentaccount.get_a_name()
+            return self.account_name
         except:
             if self.objectType == 'Agent':
                 return "unknown"
@@ -565,30 +546,6 @@ class Agent(StatementObject):
 
     def __unicode__(self):
         return json.dumps(self.get_agent_json())
-
-
-class AgentAccount(models.Model):  
-    homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    name = models.CharField(max_length=50)
-    agent = models.OneToOneField(Agent, null=True)
-
-    def get_json(self):
-        ret = {}
-        ret['homePage'] = self.homePage
-        ret['name'] = self.name
-        return ret
-    
-    def equals(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError('Only models of same class can be compared')
-        return self.name == other.name and self.homePage == other.homePage 
-
-    def get_a_name(self):
-        return self.name
-
-    def __unicode__(self):
-        return json.dumps(self.get_json())
-
 
 class AgentProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
@@ -607,6 +564,9 @@ class AgentProfile(models.Model):
 class Activity(StatementObject):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity") 
+    activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    activity_definition_interactionType = models.CharField(max_length=25, blank=True)    
     authoritative = models.CharField(max_length=100, blank=True)
     global_representation = models.BooleanField(default=True)
 
@@ -615,117 +575,103 @@ class Activity(StatementObject):
         ret['id'] = self.activity_id
         if format != 'ids':
             ret['objectType'] = self.objectType
-            try:
-                ret['definition'] = self.activitydefinition.object_return(lang)
-            except ActivityDefinition.DoesNotExist:
-                pass
+            
+            ret['definition'] = {}
+            if lang:
+                name_lang_map_set = self.activitydefinitionnamelangmap_set.filter(key=lang)
+                desc_lang_map_set = self.activitydefinitiondesclangmap_set.filter(key=lang)
+            else:
+                name_lang_map_set = self.activitydefinitionnamelangmap_set.all()
+                desc_lang_map_set = self.activitydefinitiondesclangmap_set.all()
+
+            if name_lang_map_set:
+                ret['definition']['name'] = {}
+                for lang_map in name_lang_map_set:
+                    ret['definition']['name'].update(lang_map.object_return())
+            if desc_lang_map_set:
+                ret['definition']['description'] = {}
+                for lang_map in desc_lang_map_set:
+                    ret['definition']['description'].update(lang_map.object_return())
+
+            if self.activity_definition_type:
+                ret['definition']['type'] = self.activity_definition_type
+            
+            if self.activity_definition_moreInfo != '':
+                ret['definition']['moreInfo'] = self.activity_definition_moreInfo
+
+            if self.activity_definition_interactionType != '':
+                ret['definition']['interactionType'] = self.activity_definition_interactionType
+
+            # Get answers
+            answers = self.correctresponsespatternanswer_set.all()
+            if answers:
+                ret['definition']['correctResponsesPattern'] = []
+                for a in answers:
+                    ret['definition']['correctResponsesPattern'].append(a.object_return())            
+
+            # Get scales
+            scales = self.activitydefinitionscale_set.all()
+            if scales:
+                ret['definition']['scale'] = []
+                for s in scales:
+                    ret['definition']['scale'].append(s.object_return())
+            # Get choices
+            choices = self.activitydefinitionchoice_set.all()
+            if choices:
+                ret['definition']['choices'] = []
+                for c in choices:
+                    ret['definition']['choices'].append(c.object_return())
+            # Get steps
+            steps = self.activitydefinitionstep_set.all()
+            if steps:
+                ret['definition']['steps'] = []
+                for st in steps:
+                    ret['definition']['steps'].append(st.object_return())
+            # Get sources
+            sources = self.activitydefinitionsource_set.all()
+            if sources:
+                ret['definition']['source'] = []
+                for so in sources:
+                    ret['definition']['source'].append(so.object_return())
+            # Get targets
+            targets = self.activitydefinitiontarget_set.all()
+            if targets:
+                ret['definition']['target'] = []
+                for t in targets:
+                    ret['definition']['target'].append(t.object_return())            
+
+            result_ext = self.activitydefinitionextensions_set.all()
+            if len(result_ext) > 0:
+                ret['definition']['extensions'] = {}
+                for ext in result_ext:
+                    ret['definition']['extensions'].update(ext.object_return())        
+
+            if not ret['definition']:
+                del ret['definition']
+
         return ret
 
     def get_a_name(self):
         try:
-            return self.activity_definition.name.get(key='en-US').value
+            return self.activitydefinitionnamelangmap_set.get(key='en-US').value
         except:
             return self.activity_id
 
     def __unicode__(self):
         return json.dumps(self.object_return())
 
-class ActivityDefNameLangMap(LanguageMap):
-    act_def = models.ForeignKey("ActivityDefinition")
+class ActivityDefinitionNameLangMap(LanguageMap):
+    activity = models.ForeignKey(Activity)
 
-class ActivityDefDescLangMap(LanguageMap):
-    act_def = models.ForeignKey("ActivityDefinition")
+class ActivityDefinitionDescLangMap(LanguageMap):
+    activity = models.ForeignKey(Activity)
 
 class ActivityDefinitionExtensions(Extensions):
-    act_def = models.ForeignKey('ActivityDefinition')
-
-class ActivityDefinition(models.Model):
-    activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    interactionType = models.CharField(max_length=25, blank=True)
-    activity = models.OneToOneField(Activity)
-
-    def object_return(self, lang=None):
-        ret = {}
-        if lang:
-            name_lang_map_set = self.activitydefnamelangmap_set.filter(key=lang)
-            desc_lang_map_set = self.activitydefdesclangmap_set.filter(key=lang)
-        else:
-            name_lang_map_set = self.activitydefnamelangmap_set.all()
-            desc_lang_map_set = self.activitydefdesclangmap_set.all()
-
-        if name_lang_map_set:
-            ret['name'] = {}
-            for lang_map in name_lang_map_set:
-                ret['name'].update(lang_map.object_return())
-        if desc_lang_map_set:
-            ret['description'] = {}
-            for lang_map in desc_lang_map_set:
-                ret['description'].update(lang_map.object_return())
-
-        if self.activity_definition_type:
-            ret['type'] = self.activity_definition_type
-        
-        if self.moreInfo != '':
-            ret['moreInfo'] = self.moreInfo
-
-        if self.interactionType != '':
-            ret['interactionType'] = self.interactionType
-
-        if hasattr(self, 'activitydefcorrectresponsespattern'):
-            ret['correctResponsesPattern'] = []
-            # Get answers
-            answers = self.activitydefcorrectresponsespattern.correctresponsespatternanswer_set.all()
-            
-            for a in answers:
-                ret['correctResponsesPattern'].append(a.object_return())            
-            # Get scales
-            scales = self.activitydefinitionscale_set.all()
-            if scales:
-                ret['scale'] = []
-                for s in scales:
-                    ret['scale'].append(s.object_return())
-            # Get choices
-            choices = self.activitydefinitionchoice_set.all()
-            if choices:
-                ret['choices'] = []
-                for c in choices:
-                    ret['choices'].append(c.object_return())
-            # Get steps
-            steps = self.activitydefinitionstep_set.all()
-            if steps:
-                ret['steps'] = []
-                for st in steps:
-                    ret['steps'].append(st.object_return())
-            # Get sources
-            sources = self.activitydefinitionsource_set.all()
-            if sources:
-                ret['source'] = []
-                for so in sources:
-                    ret['source'].append(so.object_return())
-            # Get targets
-            targets = self.activitydefinitiontarget_set.all()
-            if targets:
-                ret['target'] = []
-                for t in targets:
-                    ret['target'].append(t.object_return())            
-        result_ext = self.activitydefinitionextensions_set.all()
-        if len(result_ext) > 0:
-            ret['extensions'] = {}
-            for ext in result_ext:
-                ret['extensions'].update(ext.object_return())        
-        return ret
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
-
-class ActivityDefCorrectResponsesPattern(models.Model):
-    activity_definition = models.OneToOneField(ActivityDefinition, blank=True, null=True)
+    activity = models.ForeignKey(Activity)
 
 class CorrectResponsesPatternAnswer(models.Model):
     answer = models.TextField()
-    correctresponsespattern = models.ForeignKey(ActivityDefCorrectResponsesPattern)    
+    activity = models.ForeignKey(Activity)    
 
     def object_return(self):
         return self.answer
@@ -738,7 +684,7 @@ class ActivityDefinitionChoiceDesc(LanguageMap):
 
 class ActivityDefinitionChoice(models.Model):
     choice_id = models.CharField(max_length=50)
-    activity_definition = models.ForeignKey(ActivityDefinition, db_index=True)
+    activity = models.ForeignKey(Activity, db_index=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -760,7 +706,7 @@ class ActivityDefinitionScaleDesc(LanguageMap):
 
 class ActivityDefinitionScale(models.Model):
     scale_id = models.CharField(max_length=50)
-    activity_definition = models.ForeignKey(ActivityDefinition, db_index=True)
+    activity = models.ForeignKey(Activity, db_index=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -781,7 +727,7 @@ class ActivityDefinitionSourceDesc(LanguageMap):
 
 class ActivityDefinitionSource(models.Model):
     source_id = models.CharField(max_length=50)
-    activity_definition = models.ForeignKey(ActivityDefinition, db_index=True)
+    activity = models.ForeignKey(Activity, db_index=True)
     
     def object_return(self, lang=None):
         ret = {}
@@ -801,7 +747,7 @@ class ActivityDefinitionTargetDesc(LanguageMap):
 
 class ActivityDefinitionTarget(models.Model):
     target_id = models.CharField(max_length=50)
-    activity_definition = models.ForeignKey(ActivityDefinition, db_index=True)
+    activity = models.ForeignKey(Activity, db_index=True)
     
     def object_return(self, lang=None):
         ret = {}
@@ -821,7 +767,7 @@ class ActivityDefinitionStepDesc(LanguageMap):
 
 class ActivityDefinitionStep(models.Model):
     step_id = models.CharField(max_length=50)
-    activity_definition = models.ForeignKey(ActivityDefinition, db_index=True)
+    activity = models.ForeignKey(Activity, db_index=True)
 
     def object_return(self, lang=None):
         ret = {}

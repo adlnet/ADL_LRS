@@ -853,7 +853,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.status_code, 403)
 
         # build stmt data and path
-        oauth_agent1 = models.AgentAccount.objects.get(name=self.consumer.key).agent
+        oauth_agent1 = models.Agent.objects.get(account_name=self.consumer.key)
         oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
@@ -927,7 +927,7 @@ class OAuthTests(TestCase):
         self.assertEqual(resp.status_code, 403)
 
         # build stmt data and path
-        oauth_agent1 = models.AgentAccount.objects.get(name=self.consumer.key).agent
+        oauth_agent1 = models.Agent.objects.get(account_name=self.consumer.key)
         oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
@@ -1144,23 +1144,21 @@ class OAuthTests(TestCase):
         self.assertEqual(post.status_code, 200)
         acts = models.Activity.objects.all()
         self.assertEqual(len(acts), 2)
-        act_defs = models.ActivityDefinition.objects.all()
-        self.assertEqual(len(acts), 2)
 
         global_act = models.Activity.objects.get(global_representation=True)        
-        global_name_list = global_act.activitydefinition.activitydefnamelangmap_set.all().values_list('value', flat=True)
+        global_name_list = global_act.activitydefinitionnamelangmap_set.all().values_list('value', flat=True)
         self.assertIn('definename', global_name_list)
         self.assertIn('definealtname', global_name_list)
-        global_desc_list = global_act.activitydefinition.activitydefdesclangmap_set.all().values_list('value', flat=True)
+        global_desc_list = global_act.activitydefinitiondesclangmap_set.all().values_list('value', flat=True)
         self.assertIn('definedesc', global_desc_list)
         self.assertIn('definealtdesc', global_desc_list)
 
         non_global_act = models.Activity.objects.get(global_representation=False)        
-        non_global_name_list = non_global_act.activitydefinition.activitydefnamelangmap_set.all().values_list('value',
+        non_global_name_list = non_global_act.activitydefinitionnamelangmap_set.all().values_list('value',
             flat=True)
         self.assertIn('testname', non_global_name_list)
         self.assertIn('altname', non_global_name_list)
-        non_global_desc_list = non_global_act.activitydefinition.activitydefdesclangmap_set.all().values_list('value',
+        non_global_desc_list = non_global_act.activitydefinitiondesclangmap_set.all().values_list('value',
             flat=True)
         self.assertIn('testdesc', non_global_desc_list)
         self.assertIn('altdesc', non_global_desc_list)
