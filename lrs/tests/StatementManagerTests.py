@@ -1135,7 +1135,7 @@ class StatementManagerTests(TestCase):
                 'extensions':{'ext:key1': 'value1'},
                 'statement':{'objectType': 'StatementRef','id':st1_id}}}))
 
-        self.assertEqual(len(models.StatementRef.objects.all()), 1)
+        self.assertEqual(stmt2.model_object.context.statement, st1_id)         
         self.assertEqual(len(models.Statement.objects.all()), 2)
         self.assertEqual(len(models.Context.objects.all()), 1)
         # Team creates a group object and the agent inside of itself
@@ -1144,7 +1144,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Activity.objects.all()), 3)
 
         models.Statement.objects.get(id=stmt2.model_object.id).delete()
-        self.assertEqual(len(models.StatementRef.objects.all()), 0)
         self.assertEqual(len(models.Statement.objects.all()), 1)
         self.assertEqual(len(models.Context.objects.all()), 0)
         # Agents/activities/verbs are not deleted
@@ -1343,7 +1342,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Activity.objects.all()), 5)
         self.assertEqual(len(models.Verb.objects.all()), 5)
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
-        self.assertEqual(len(models.StatementRef.objects.all()), 2)
+        self.assertEqual(len(models.StatementRef.objects.all()), 1)
         self.assertEqual(len(models.Context.objects.all()), 2)
         self.assertEqual(len(models.ContextActivity.objects.all()), 2)
         self.assertEqual(len(models.ContextExtensions.objects.all()), 2)

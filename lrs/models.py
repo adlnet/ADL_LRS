@@ -822,7 +822,8 @@ class Context(models.Model):
     platform = models.CharField(max_length=50,blank=True)
     language = models.CharField(max_length=50,blank=True)
     # context also has a stmt field which is a statementref
-    statement = models.OneToOneField(StatementRef, null=True, on_delete=models.SET_NULL)
+    # statement = models.OneToOneField(StatementRef, null=True, on_delete=models.SET_NULL)
+    statement = models.CharField(max_length=40, blank=True)
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
@@ -847,9 +848,10 @@ class Context(models.Model):
             ret['language'] = self.language
 
         if self.statement:
-            cntx_stmt = StatementRef.objects.get(id=self.statement_id)
-            ret['statement'] = cntx_stmt.object_return()
-    
+            # cntx_stmt = StatementRef.objects.get(id=self.statement_id)
+            # ret['statement'] = cntx_stmt.object_return()
+            ret['statement'] = {'id': self.statement, 'objectType': 'StatementRef'}
+
         if len(self.contextactivity_set.all()) > 0:
             ret['contextActivities'] = {}
             for con_act in self.contextactivity_set.all():
@@ -862,10 +864,10 @@ class Context(models.Model):
                 ret['extensions'].update(ext.object_return())        
         return ret
 
-    def delete(self, *args, **kwargs):
-        if self.statement:
-            self.statement.delete()
-        super(Context, self).delete(*args, **kwargs)
+    # def delete(self, *args, **kwargs):
+    #     if self.statement:
+    #         self.statement.delete()
+    #     super(Context, self).delete(*args, **kwargs)
 
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)

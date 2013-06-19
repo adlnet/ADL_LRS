@@ -161,8 +161,11 @@ class StatementManager():
             # Check objectType since can be both ref or sub
             if 'objectType' in stmt_data:
                 if stmt_data['objectType'] == 'StatementRef':
-                    stmt_ref, created = models.StatementRef.objects.get_or_create(ref_id=stmt_data['id'])
-                    cntx.statement = stmt_ref
+                    st_id = stmt_data['id']
+                    if not models.Statement.objects.filter(statement_id=st_id).exists():
+                        err_msg = "No existing statements found for statement in context with ID %s" % st_id
+                        raise exceptions.ParamError(err_msg)
+                    cntx.statement = st_id
                     cntx.save()
                 else:
                     err_msg = "Statement in context must be StatementRef"
