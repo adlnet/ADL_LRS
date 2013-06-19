@@ -731,10 +731,9 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         act = models.Activity.objects.get(activity_id="act:foogie")
-        act_def = models.ActivityDefinition.objects.get(activity=act)
 
-        name_set = act_def.activitydefnamelangmap_set.all()
-        desc_set = act_def.activitydefdesclangmap_set.all()
+        name_set = act.activitydefinitionnamelangmap_set.all()
+        desc_set = act.activitydefinitiondesclangmap_set.all()
 
         for ns in name_set:
             if ns.key == 'en-GB':
@@ -1298,7 +1297,6 @@ class StatementsTests(TestCase):
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
         activities = models.Activity.objects.filter(activity_id__contains='test_wrong_list_post')
-        activity_definitions = models.ActivityDefinition.objects.all()
         crp_answers = models.CorrectResponsesPatternAnswer.objects.filter(answer__contains='wrong')
         
         statements = models.Statement.objects.all()
@@ -1313,8 +1311,6 @@ class StatementsTests(TestCase):
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(verbs), 3)
         self.assertEqual(len(activities), 3)
-        # Should only be 3 from setup (4 there but 2 get merged together to make 1, equaling 3)
-        self.assertEqual(len(activity_definitions), 4)
         self.assertEqual(len(crp_answers), 2)
 
     def test_post_list_rollback_part_2(self):
