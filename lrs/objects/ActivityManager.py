@@ -57,35 +57,35 @@ class ActivityManager():
         return act_json
 
     #Save activity definition to DB
-    def save_activity_definition_to_db(self,act_def_type, intType, moreInfo):
+    def save_activity_definition_to_db(self,act_def_type, int_type, more_info):
         created = True        
         # Have to check if the activity already has an activity definition. Can only update name and
         # description in definition, so no matter what the user's scope is, if the activity def already
         # exists you can't create another one
-        try:
-            self.Activity.activitydefinition
+        if (self.Activity.activity_definition_type or self.Activity.activity_definition_moreInfo or
+                self.Activity.activity_definition_interactionType):
             created = False
-        except:
-            actdef = models.ActivityDefinition.objects.create(activity_definition_type=act_def_type,
-                  interactionType=intType, activity=self.Activity, moreInfo=moreInfo)
+        else:
+            self.Activity.activity_definition_type = act_def_type
+            self.Activity.activity_definition_moreInfo = more_info
+            self.Activity.activity_definition_interactionType = int_type
+            self.Activity.save()
         return created
 
     def check_activity_definition_value(self, new_name_value, existing_name_value):
         return new_name_value == existing_name_value
 
-    def update_activity_name_and_description(self, incoming_definition, existing_activity):
-        # Try grabbing the activity definition
-        existing_act_def = self.Activity.activitydefinition
+    def update_activity_name_and_description(self, incoming_definition):
         # If there is an existing activity definition and the names or descriptions are different,
         # update it with new name and/or description info
         # Get list of existing name lang maps
-        existing_name_lang_set = existing_act_def.activitydefnamelangmap_set.all()
+        existing_name_lang_set = self.Activity.activitydefinitionnamelangmap_set.all()
 
         # Make lists of keys and values from existing name lang maps
         existing_name_key_set = existing_name_lang_set.values_list('key', flat=True)
 
         # Get list of existing desc lang maps
-        existing_desc_lang_set = existing_act_def.activitydefdesclangmap_set.all()
+        existing_desc_lang_set = self.Activity.activitydefinitiondesclangmap_set.all()
 
         # Make lists of keys and values from existing desc lang maps
         existing_desc_key_set = existing_desc_lang_set.values_list('key', flat=True)
@@ -102,8 +102,8 @@ class ActivityManager():
             if new_name_lang_map[0] in existing_name_key_set:
                 name_same = True
                 # Retrieve existing language map with same key (all in the existing act_def)
-                existing_lang_map = models.ActivityDefNameLangMap.objects.get(key=new_name_lang_map[0],
-                    act_def=existing_act_def)
+                existing_lang_map = models.ActivityDefinitionNameLangMap.objects.get(key=new_name_lang_map[0],
+                    activity=self.Activity)
                 # Once you retrieve the existing name_map via the key, check if the value is the same
                 name_same = self.check_activity_definition_value(new_name_lang_map[1], existing_lang_map.value)
                 # If names are different, update the language map with the new name
@@ -112,8 +112,8 @@ class ActivityManager():
                     existing_lang_map.save()
             # Else it's a new lang map and needs added
             else:
-                models.ActivityDefNameLangMap.objects.create(key=new_name_lang_map[0], value=new_name_lang_map[1],
-                    act_def=existing_act_def)
+                models.ActivityDefinitionNameLangMap.objects.create(key=new_name_lang_map[0],
+                    value=new_name_lang_map[1],activity=self.Activity)
 
         # Loop through all language maps in description
         try:
@@ -126,8 +126,8 @@ class ActivityManager():
             if new_desc_lang_map[0] in existing_desc_key_set:
                 desc_same = True
                 # Retrieve existing language map with same key (all in the existing act_def)
-                existing_lang_map = models.ActivityDefDescLangMap.objects.get(key=new_desc_lang_map[0],
-                    act_def=existing_act_def)
+                existing_lang_map = models.ActivityDefinitionDescLangMap.objects.get(key=new_desc_lang_map[0],
+                    activity=self.Activity)
                 desc_same = self.check_activity_definition_value(new_desc_lang_map[1], existing_lang_map.value)
                 # If desc are different, update the langage map with the new desc
                 if not desc_same:
@@ -135,8 +135,8 @@ class ActivityManager():
                     existing_lang_map.save()
             # Else it's a new lang map and needs added
             else:
-                models.ActivityDefDescLangMap.objects.create(key=new_desc_lang_map[0], value=new_desc_lang_map[1],
-                    act_def=existing_act_def)
+                models.ActivityDefinitionDescLangMap.objects.create(key=new_desc_lang_map[0],
+                    value=new_desc_lang_map[1], activity=self.Activity)
 
     #Once JSON is verified, populate the activity objects
     def populate(self, the_object):        
@@ -204,11 +204,11 @@ class ActivityManager():
 
     def validate_cmi_interaction(self, act_def, act_created):
         interaction_flag = None
-        scormInteractionTypes = ['true-false', 'choice', 'fill-in','matching', 'performance', 'sequencing',
+        scorm_interaction_types = ['true-false', 'choice', 'fill-in','matching', 'performance', 'sequencing',
                                     'likert', 'numeric', 'other']
     
         #Check if valid SCORM interactionType
-        if act_def['interactionType'] not in scormInteractionTypes:
+        if act_def['interactionType'] not in scorm_interaction_types:
             if act_created:
                 self.Activity.delete()
                 self.Activity = None
@@ -297,7 +297,7 @@ class ActivityManager():
             act_def_type = act_def['type']
             if not uri.validate_uri(act_def_type):
                 raise exceptions.ParamError('Activity definition type %s is not a valid URI' % act_def_type)
-        
+
             #If the type is cmi.interaction, have to check interactionType
             interaction_flag = None
             if act_def_type == 'http://adlnet.gov/expapi/activities/cmi.interaction':
@@ -305,22 +305,22 @@ class ActivityManager():
 
         # validate moreInfo if it exists
         if 'moreInfo' in act_def:
-            moreInfo = act_def['moreInfo']
-            if not uri.validate_uri(moreInfo):
-                raise exceptions.ParamError('moreInfo %s is not a valid URI' % moreInfo)
+            more_info = act_def['moreInfo']
+            if not uri.validate_uri(more_info):
+                raise exceptions.ParamError('moreInfo %s is not a valid URI' % more_info)
         else:
-            moreInfo = ''
+            more_info = ''
 
         # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
         # doesn't have a definition
         act_def_created = self.save_activity_definition_to_db(act_def_type, act_def.get('interactionType', ''),
-            moreInfo)
+            more_info)
 
         # If the activity had already existed and lrs auth is off or user has authority to update it
         if not act_created: 
             if self.Activity.authoritative == '' or self.Activity.authoritative == self.auth:
                 # Update name and desc if needed
-                self.update_activity_name_and_description(act_def, self.Activity)
+                self.update_activity_name_and_description(act_def)
             else:
                 err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
                 raise exceptions.Forbidden(err_msg)
@@ -332,9 +332,8 @@ class ActivityManager():
                 if 'name' in act_def:
                     for name_lang_map in act_def['name'].items():
                         if isinstance(name_lang_map, tuple):
-                            n = models.ActivityDefNameLangMap.objects.create(key=name_lang_map[0],
-                                          value=name_lang_map[1],
-                                          act_def=self.Activity.activitydefinition)
+                            n = models.ActivityDefinitionNameLangMap.objects.create(key=name_lang_map[0],
+                                          value=name_lang_map[1], activity=self.Activity)
                         else:
                             err_msg = "Activity with id %s has a name that is not a valid language map" % self.Activity.activity_id
                             raise exceptions.ParamError(err_msg)
@@ -342,9 +341,8 @@ class ActivityManager():
                 if 'description' in act_def:
                     for desc_lang_map in act_def['description'].items():
                         if isinstance(desc_lang_map, tuple):
-                            d = models.ActivityDefDescLangMap.objects.create(key=desc_lang_map[0],
-                                          value=desc_lang_map[1],
-                                          act_def=self.Activity.activitydefinition)
+                            d = models.ActivityDefinitionDescLangMap.objects.create(key=desc_lang_map[0],
+                                          value=desc_lang_map[1], activity=self.Activity)
                         else:
                             err_msg = "Activity with id %s has a description that is not a valid language map" % self.Activity.activity_id
                             raise exceptions.ParamError(err_msg)
@@ -353,7 +351,7 @@ class ActivityManager():
         #If there is a correctResponsesPattern then save the pattern
         if act_def_created and 'correctResponsesPattern' in act_def.keys():
             if isinstance(act_def['correctResponsesPattern'], list):
-                self.populate_correctResponsesPattern(act_def, interaction_flag)
+                self.populate_correct_responses_pattern(act_def, interaction_flag)
             else:
                 err_msg = "correctResponsesPattern value type must be an array"
                 raise exceptions.ParamError(err_msg)
@@ -361,12 +359,10 @@ class ActivityManager():
         if act_def_created and 'extensions' in act_def.keys():
             self.populate_extensions(act_def) 
 
-    def populate_correctResponsesPattern(self, act_def, interaction_flag):
-        crp = models.ActivityDefCorrectResponsesPattern.objects.create(activity_definition=self.Activity.activitydefinition)
-
+    def populate_correct_responses_pattern(self, act_def, interaction_flag):
         #For each answer in the pattern save it
         for i in act_def['correctResponsesPattern']:
-            models.CorrectResponsesPatternAnswer.objects.create(answer=i, correctresponsespattern=crp)
+            models.CorrectResponsesPatternAnswer.objects.create(answer=i, activity=self.Activity)
 
         #Depending on which type of interaction, save the unique fields accordingly
         if interaction_flag == 'choices':
@@ -374,7 +370,7 @@ class ActivityManager():
             if isinstance(choices, list):
                 for c in choices:
                     choice = models.ActivityDefinitionChoice.objects.create(choice_id=c['id'],
-                        activity_definition=self.Activity.activitydefinition)
+                        activity=self.Activity)
                     #Save description as string, not a dictionary
                     for desc_lang_map in c['description'].items():
                         if isinstance(desc_lang_map, tuple):
@@ -391,7 +387,7 @@ class ActivityManager():
             if isinstance(scales, list):
                 for s in scales:
                     scale = models.ActivityDefinitionScale.objects.create(scale_id=s['id'],
-                        activity_definition=self.Activity.activitydefinition)        
+                        activity=self.Activity)        
                     # Save description as string, not a dictionary
                     for desc_lang_map in s['description'].items():
                         if isinstance(desc_lang_map, tuple):
@@ -407,7 +403,7 @@ class ActivityManager():
             if isinstance(steps, list):
                 for s in steps:
                     step = models.ActivityDefinitionStep.objects.create(step_id=s['id'],
-                        activity_definition=self.Activity.activitydefinition)
+                        activity=self.Activity)
                     #Save description as string, not a dictionary
                     for desc_lang_map in s['description'].items():
                         if isinstance(desc_lang_map, tuple):
@@ -424,7 +420,7 @@ class ActivityManager():
             if isinstance(sources, list):
                 for s in sources:
                     source = models.ActivityDefinitionSource.objects.create(source_id=s['id'],
-                        activity_definition=self.Activity.activitydefinition)
+                        activity=self.Activity)
                     #Save description as string, not a dictionary
                     for desc_lang_map in s['description'].items():
                         if isinstance(desc_lang_map, tuple):
@@ -440,7 +436,7 @@ class ActivityManager():
             if isinstance(targets, list):
                 for t in targets:
                     target = models.ActivityDefinitionTarget.objects.create(target_id=t['id'],
-                        activity_definition=self.Activity.activitydefinition)
+                        activity=self.Activity)
                     #Save description as string, not a dictionary
                     for desc_lang_map in t['description'].items():
                         if isinstance(desc_lang_map, tuple):
@@ -460,4 +456,4 @@ class ActivityManager():
                 raise exceptions.ParamError(err_msg)
 
             act_def_ext = models.ActivityDefinitionExtensions.objects.create(key=k, value=v,
-                act_def=self.Activity.activitydefinition)
+                activity=self.Activity)

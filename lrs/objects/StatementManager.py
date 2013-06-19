@@ -81,7 +81,7 @@ class StatementManager():
             raise exceptions.Forbidden(err_msg)
 
     # Statement fields are score_min and score_max
-    def validateScoreResult(self, score_data):
+    def validate_score_result(self, score_data):
         # If min and max are both in score, make sure min is less than max and if raw is included
         # make sure it's between those two values
         # Elif it's either just min or max, set them
@@ -112,38 +112,31 @@ class StatementManager():
 
         return score_data
 
-    def saveScoreToDB(self, score):
-        try:
-            sc = models.Score.objects.create(**score)
-        except TypeError, e:
-            err_msg = "Invalid field in score - %s" %  e.message
-            raise exceptions.ParamError(err_msg)
-        return sc
+    def save_result_to_db(self, result, result_exts):
+        if 'score' in result:
+            for k,v in result['score'].iteritems():
+                if not 'score' in k:
+                    result['score_' + k] = v
+                else:
+                    result[k] = v
+            del result['score']
 
-    def saveResultToDB(self, result, resultExts):
-        # Save the result with all of the args
-        sc = result.pop('score', None)
         try:
             rslt = models.Result.objects.create(**result)
         except TypeError, e:
             err_msg = "Invalid field in result - %s" % e.message
             raise exceptions.ParamError(err_msg)
 
-        # Set score if one
-        if sc:
-            sc.result = rslt
-            sc.save()
-
         #If it has extensions, save them all
-        if resultExts:
-            for k, v in resultExts.items():
+        if result_exts:
+            for k, v in result_exts.items():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
                     raise exceptions.ParamError(err_msg)
-                resExt = models.ResultExtensions.objects.create(key=k, value=v, result=rslt)
+                models.ResultExtensions.objects.create(key=k, value=v, result=rslt)
         return rslt
 
-    def saveContextToDB(self, context, contextExts):
+    def save_context_to_db(self, context, context_exts):
         # Set context activities to context dict
         con_act_data = None
         if 'contextActivities' in context:
@@ -197,8 +190,8 @@ class StatementManager():
                 ca.save()
 
         # Save context extensions
-        if contextExts:
-            for k, v in contextExts.items():
+        if context_exts:
+            for k, v in context_exts.items():
                 if not uri.validate_uri(k):
                     err_msg = "Extension ID %s is not a valid URI" % k
                     raise exceptions.ParamError(err_msg)              
@@ -206,7 +199,7 @@ class StatementManager():
         return cntx        
 
     #Save statement to DB
-    def saveObjectToDB(self, args):
+    def save_object_to_db(self, args):
         # If it's a substatement, remove voided, authority, and id keys
         args['user'] = get_user_from_auth(self.auth)
         if self.__class__.__name__ == 'SubStatementManager':
@@ -224,12 +217,12 @@ class StatementManager():
             stmt = models.Statement.objects.create(**args)
         return stmt
 
-    def populateResult(self, stmt_data):
-        resultExts = {}                    
+    def populate_result(self, stmt_data):
+        result_exts = {}                    
         #Catch contradictory results
         if 'extensions' in stmt_data['result']:
             result = dict((key, value) for (key, value) in stmt_data['result'].items() if not key == 'extensions')
-            resultExts = stmt_data['result']['extensions']
+            result_exts = stmt_data['result']['extensions']
         else:
             result = stmt_data['result']
 
@@ -241,12 +234,11 @@ class StatementManager():
                 raise exceptions.ParamError(e.message)
 
         if 'score' in result.keys():
-            result['score'] = self.validateScoreResult(result['score'])
-            result['score'] = self.saveScoreToDB(result['score'])
+            result['score'] = self.validate_score_result(result['score'])
         #Save result
-        return self.saveResultToDB(result, resultExts)
+        return self.save_result_to_db(result, result_exts)
 
-    def populateAttachments(self, attachment_data, attachment_payloads):
+    def populate_attachments(self, attachment_data, attachment_payloads):
         # Iterate through each attachment
         for attach in attachment_data:
             # Pop displays and descs off
@@ -345,8 +337,8 @@ class StatementManager():
                 att_cache.delete_many(attachment_payloads)
         self.model_object.save()
 
-    def populateContext(self, stmt_data):
-        contextExts = {}
+    def populate_context(self, stmt_data):
+        context_exts = {}
 
         if 'registration' in stmt_data['context']:
             self.validate_incoming_uuid(stmt_data['context']['registration'])
@@ -370,11 +362,11 @@ class StatementManager():
         # Set extensions
         if 'extensions' in stmt_data['context']:
             context = dict((key, value) for (key, value) in stmt_data['context'].items() if not key == 'extensions')
-            contextExts = stmt_data['context']['extensions']
+            context_exts = stmt_data['context']['extensions']
         else:
             context = stmt_data['context']
 
-        return self.saveContextToDB(context, contextExts)
+        return self.save_context_to_db(context, context_exts)
 
     def save_lang_map(self, lang_map, verb):
         # If verb is model object but not saved yet
@@ -453,7 +445,7 @@ class StatementManager():
 
         # Must include object - set statement object
         try:
-            statementObjectData = stmt_data['object']
+            statement_object_data = stmt_data['object']
         except KeyError:
             err_msg = "No object provided in the statement, must provide 'object' field"
             raise exceptions.ParamError(err_msg)
@@ -474,36 +466,36 @@ class StatementManager():
                 raise exceptions.Forbidden(err_msg)
         
         # If not specified, the object is assumed to be an activity
-        if not 'objectType' in statementObjectData:
-            statementObjectData['objectType'] = 'Activity'
+        if not 'objectType' in statement_object_data:
+            statement_object_data['objectType'] = 'Activity'
 
         valid_agent_objects = ['agent', 'group']
         # Check to see if voiding statement
         if args['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             # objectType must be statementRef if want to void another statement
-            if statementObjectData['objectType'].lower() == 'statementref' and 'id' in statementObjectData.keys():
-                stmt_ref = self.void_statement(statementObjectData['id'])
+            if statement_object_data['objectType'].lower() == 'statementref' and 'id' in statement_object_data.keys():
+                stmt_ref = self.void_statement(statement_object_data['id'])
                 args['stmt_object'] = stmt_ref
             else:
                 err_msg = "When voiding, the objectType must be a StatementRef and contain an ID to void"
                 raise exceptions.ParamError(err_msg)
         else:
             # Check objectType, get object based on type
-            if statementObjectData['objectType'].lower() == 'activity':
-                args['stmt_object'] = ActivityManager(statementObjectData,auth=self.auth, define=self.define).Activity
-            elif statementObjectData['objectType'].lower() in valid_agent_objects:
-                args['stmt_object'] = AgentManager(params=statementObjectData, create=True, define=self.define).Agent
-            elif statementObjectData['objectType'].lower() == 'substatement':
-                sub_statement = SubStatementManager(statementObjectData, self.auth)
+            if statement_object_data['objectType'].lower() == 'activity':
+                args['stmt_object'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
+            elif statement_object_data['objectType'].lower() in valid_agent_objects:
+                args['stmt_object'] = AgentManager(params=statement_object_data, create=True, define=self.define).Agent
+            elif statement_object_data['objectType'].lower() == 'substatement':
+                sub_statement = SubStatementManager(statement_object_data, self.auth)
                 args['stmt_object'] = sub_statement.model_object
-            elif statementObjectData['objectType'].lower() == 'statementref':
+            elif statement_object_data['objectType'].lower() == 'statementref':
                 try:
-                    existing_stmt = models.Statement.objects.get(statement_id=statementObjectData['id'])
+                    existing_stmt = models.Statement.objects.get(statement_id=statement_object_data['id'])
                 except models.Statement.DoesNotExist:
-                    err_msg = "No statement with ID %s was found" % statementObjectData['id']
+                    err_msg = "No statement with ID %s was found" % statement_object_data['id']
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
-                    stmt_ref = models.StatementRef.objects.create(ref_id=statementObjectData['id'])
+                    stmt_ref = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
                     args['stmt_object'] = stmt_ref
 
         #Retrieve actor
@@ -540,7 +532,7 @@ class StatementManager():
         else:
             # Look at request from auth if not supplied in stmt_data.
             if self.auth:
-                authArgs = {}
+                auth_args = {}
                 if self.auth.__class__.__name__ == 'Agent':
                     if self.auth.oauth_identifier:
                         args['authority'] = self.auth
@@ -548,18 +540,18 @@ class StatementManager():
                         err_msg = "Statements cannot have a non-Oauth group as the authority"
                         raise exceptions.ParamError(err_msg)
                 else:    
-                    authArgs['name'] = self.auth.username
+                    auth_args['name'] = self.auth.username
                     if self.auth.email.startswith("mailto:"):
-                        authArgs['mbox'] = self.auth.email
+                        auth_args['mbox'] = self.auth.email
                     else:
-                        authArgs['mbox'] = "mailto:%s" % self.auth.email
-                    args['authority'] = AgentManager(params=authArgs, create=True, define=self.define).Agent
+                        auth_args['mbox'] = "mailto:%s" % self.auth.email
+                    args['authority'] = AgentManager(params=auth_args, create=True, define=self.define).Agent
 
         # Check if statement_id already exists, throw exception if it does
         # There will only be an ID when someone is performing a PUT
         if 'id' in stmt_data:
             try:
-                existingSTMT = models.Statement.objects.get(statement_id=stmt_data['id'])
+                models.Statement.objects.get(statement_id=stmt_data['id'])
             except models.Statement.DoesNotExist:
                 self.validate_incoming_uuid(stmt_data['id'])
                 args['statement_id'] = stmt_data['id']
@@ -568,16 +560,16 @@ class StatementManager():
                 raise exceptions.ParamConflict(err_msg)
         
         if 'context' in stmt_data:
-            args['context'] = self.populateContext(stmt_data)
+            args['context'] = self.populate_context(stmt_data)
         
         if 'result' in stmt_data:
-            args['result'] = self.populateResult(stmt_data)
+            args['result'] = self.populate_result(stmt_data)
 
         #Save statement/substatement
-        self.model_object = self.saveObjectToDB(args)
+        self.model_object = self.save_object_to_db(args)
 
         if 'attachments' in stmt_data:
-            self.populateAttachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))
+            self.populate_attachments(stmt_data['attachments'], stmt_data.get('attachment_payloads', None))
 
 class SubStatementManager(StatementManager):
     @transaction.commit_on_success
