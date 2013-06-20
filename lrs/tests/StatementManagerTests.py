@@ -206,7 +206,7 @@ class StatementManagerTests(TestCase):
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        extList = result.resultextensions_set.values_list()
+        extList = stmt.model_object.statementresultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 
@@ -295,7 +295,7 @@ class StatementManagerTests(TestCase):
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        extList = result.resultextensions_set.values_list()
+        extList = stmt.model_object.statementresultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 
@@ -312,7 +312,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.result_response, 'yes')
         self.assertEqual(st.result_duration, time)
 
-        self.assertEqual(result.score_scaled, .95)
+        self.assertEqual(st.result_score_scaled, .95)
 
         self.assertEqual(activity.activity_id, 'act:activity14')
 
@@ -763,13 +763,13 @@ class StatementManagerTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1',
+        res_ext1 = models.StatementResultExtensions.objects.create(key='key1', value='value1',
             statement=stmt1.model_object)
-        res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2',
+        res_ext2 = models.StatementResultExtensions.objects.create(key='key2', value='value2',
             statement=stmt1.model_object)
 
         stmts = len(models.Statement.objects.all())
-        res_exts = len(models.ResultExtensions.objects.all())
+        res_exts = len(models.StatementResultExtensions.objects.all())
         self.assertEqual(stmts, 1)
         self.assertEqual(res_exts, 2)
 
@@ -778,13 +778,13 @@ class StatementManagerTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4',
+        res_ext3 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
             statement=stmt2.model_object)
-        res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4',
+        res_ext4 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
             statement=stmt2.model_object)
 
         stmts = len(models.Statement.objects.all())
-        res_exts = len(models.ResultExtensions.objects.all())
+        res_exts = len(models.StatementResultExtensions.objects.all())
         self.assertEqual(stmts, 2)
         self.assertEqual(res_exts, 4)
 
@@ -793,15 +793,15 @@ class StatementManagerTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4',
+        res_ext5 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
             statement=stmt3.model_object)
-        res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4',
+        res_ext6 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
             statement=stmt3.model_object)
 
         # Deleting an ext should not affect anything else
-        models.ResultExtensions.objects.get(id=res_ext6.id).delete()
+        models.StatementResultExtensions.objects.get(id=res_ext6.id).delete()
         stmts = len(models.Statement.objects.all())
-        res_exts = len(models.ResultExtensions.objects.all())
+        res_exts = len(models.StatementResultExtensions.objects.all())
         self.assertEqual(res_exts, 5)
         # 2 stmts from before and this one
         self.assertEqual(stmts, 3)

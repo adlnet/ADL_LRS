@@ -262,7 +262,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.content, "Invalid field in result - 'bad' is an invalid keyword argument for this function")
+        self.assertEqual(resp.content, "Invalid field in Statement - 'result_foo' is an invalid keyword argument for this function")
 
 
     def test_invalid_context_fields(self):

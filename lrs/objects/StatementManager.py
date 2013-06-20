@@ -11,7 +11,7 @@ from lrs import models, exceptions
 from lrs.util import get_user_from_auth, uri
 from AgentManager import AgentManager
 from ActivityManager import ActivityManager
-
+import pdb
 att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
@@ -25,6 +25,30 @@ class default_on_exception(object):
             except:
                 return self.default
         return closure
+
+
+def parse_result_data(func):
+    @wraps(func)
+    def inner(stmt_manager, *args, **kwargs):
+        # pdb.set_trace()
+        if 'result' in args[0]:
+            result = args[0]['result']
+            if 'score' in result:
+                for k,v in result['score'].iteritems():
+                    if not 'score' in k:
+                        args[0]['result_score_' + k] = v
+                    else:
+                        args[0]['result_' + k] = v
+                del args[0]['result']['score']
+
+            if 'extensions' in result:
+                args[0]['result_exts'] = result.pop('extensions')
+
+            for k,v in result.iteritems():
+                args[0]['result_' + k] = v
+            del args[0]['result']
+        return func(stmt_manager, *args, **kwargs)
+    return inner
 
 class StatementManager():
     #Use single transaction for all the work done in function
@@ -109,9 +133,7 @@ class StatementManager():
             if score_data['scaled'] < -1 or score_data['scaled'] > 1:
                 err_msg = "Scaled value in statement result must be between -1 and 1"
                 raise exceptions.ParamError(err_msg)
-
         return score_data
-
 
     def save_context_to_db(self, context, context_exts):
         # Set context activities to context dict
@@ -179,60 +201,55 @@ class StatementManager():
         return cntx        
 
     #Save statement to DB
-    def save_object_to_db(self, args):
+    @parse_result_data
+    def save_object_to_db(self, stmt_data):
+        # pdb.set_trace()
         # If it's a substatement, remove voided, authority, and id keys
-        args['user'] = get_user_from_auth(self.auth)
-        
-        if 'result' in args:
-            result = args['result']
+        stmt_data['user'] = get_user_from_auth(self.auth)
 
-            if 'score' in result:
-                for k,v in result['score'].iteritems():
-                    if not 'score' in k:
-                        args['result_score_' + k] = v
-                    else:
-                        args['result_' + k] = v
-                del args['result']['score']
+        # Pop off any result extensions
+        result_exts = stmt_data.pop('result_exts', None)
 
-            if 'extensions' in result:
-                result_exts = result.pop('extensions')
-
-            for k,v in result.iteritems():
-                args['result_' + k] = v
-            del args['result']
-
+        # Determine if substmt or stmt
         if self.__class__.__name__ == 'SubStatementManager':
-            del args['voided']
-            
+            del stmt_data['voided']
             # If ID not given, created by models
-            if 'statement_id' in args:
-                del args['statement_id']
+            if 'statement_id' in stmt_data:
+                del stmt_data['statement_id']
+            # Remove authority
+            if 'authority' in stmt_data:
+                del stmt_data['authority']
+            # Try to create SubStatement
+            try:
+                stmt = models.SubStatement.objects.create(**stmt_data)
+            except TypeError, e:
+                raise exceptions.ParamError("Invalid field in SubStatement - %s" % e.message)
             
-            if 'authority' in args:
-                del args['authority']
-
-            stmt = models.SubStatement.objects.create(**args)
+            # Save any result extensions
+            if result_exts:
+                for k, v in result_exts.items():
+                    if not uri.validate_uri(k):
+                        err_msg = "Extension ID %s is not a valid URI" % k
+                        raise exceptions.ParamError(err_msg)
+                    models.SubStatementResultExtensions.objects.create(key=k, value=v, substatement=stmt)
         else:
-            stmt = models.Statement.objects.create(**args)
+            # Try to create statement
+            try:
+                stmt = models.Statement.objects.create(**stmt_data)
+            except TypeError, e:
+                raise exceptions.ParamError("Invalid field in Statement - %s" % e.message)
         
-        if result_exts:
-            for k, v in result_exts.items():
-                if not uri.validate_uri(k):
-                    err_msg = "Extension ID %s is not a valid URI" % k
-                    raise exceptions.ParamError(err_msg)
-                models.ResultExtensions.objects.create(key=k, value=v, statement=stmt)
+            # Save any result extensions
+            if result_exts:
+                for k, v in result_exts.items():
+                    if not uri.validate_uri(k):
+                        err_msg = "Extension ID %s is not a valid URI" % k
+                        raise exceptions.ParamError(err_msg)
+                    models.StatementResultExtensions.objects.create(key=k, value=v, statement=stmt)
 
         return stmt
 
     def populate_result(self, stmt_data):
-        # result_exts = {}                    
-        # #Catch contradictory results
-        # if 'extensions' in stmt_data['result']:
-        #     result = dict((key, value) for (key, value) in stmt_data['result'].items() if not key == 'extensions')
-        #     result_exts = stmt_data['result']['extensions']
-        # else:
-        #     result = stmt_data['result']
-
         result = stmt_data['result']
 
         # Validate duration, throw error if duration is not formatted correctly
@@ -244,8 +261,7 @@ class StatementManager():
 
         if 'score' in result.keys():
             result['score'] = self.validate_score_result(result['score'])
-        #Save result
-        # return self.save_result_to_db(result, result_exts)
+
         return result
 
     def populate_attachments(self, attachment_data, attachment_payloads):

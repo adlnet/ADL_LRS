@@ -209,11 +209,6 @@ class Extensions(models.Model):
     def __unicode__(self):
         return json.dumps(self.object_return())
 
-class ResultExtensions(Extensions):
-    # FK to StatementObject since result is in both Statement and SubStatement
-    statement = models.ForeignKey('StatementObject')
-           
-
 class KnowsChild(models.Model):
     subclass = models.CharField(max_length=20)
 
@@ -828,6 +823,12 @@ class ActivityProfile(models.Model):
         self.profile.delete()
         super(ActivityProfile, self).delete(*args, **kwargs)
 
+class StatementResultExtensions(Extensions):
+    statement = models.ForeignKey('Statement')
+           
+class SubStatementResultExtensions(Extensions):
+    substatement = models.ForeignKey('SubStatement')
+
 class SubStatement(StatementObject):
     stmt_object = models.ForeignKey(StatementObject, related_name="object_of_substatement", null=True,
         on_delete=models.SET_NULL)
@@ -884,23 +885,23 @@ class SubStatement(StatementObject):
             ret['result']['duration'] = self.result_duration
 
         ret['result']['score'] = {}
-        if not self.score_scaled is None:
+        if not self.result_score_scaled is None:
             ret['result']['score']['scaled'] = self.result_score_scaled
 
-        if not self.score_raw is None:
+        if not self.result_score_raw is None:
             ret['result']['score']['raw'] = self.result_score_raw
 
-        if not self.score_min is None:
+        if not self.result_score_min is None:
             ret['result']['score']['min'] = self.result_score_min
 
-        if not self.score_max is None:
+        if not self.result_score_max is None:
             ret['result']['score']['max'] = self.result_score_max
 
         # If there is no score, delete from dict
         if not ret['result']['score']:
             del ret['result']['score']
 
-        result_ext = self.resultextensions_set.all()
+        result_ext = self.substatementresultextensions_set.all()
         if len(result_ext) > 0:
             ret['result']['extensions'] = {}
             for ext in result_ext:
@@ -935,22 +936,10 @@ class SubStatement(StatementObject):
         if self.context:
             self.context.delete()
 
-        if self.result:
-            self.result.delete()
-
         if object_type == 'statementref':
             stmt_object.delete()
 
         super(SubStatement, self).delete(*args, **kwargs)
-
-    def __init__(self, *args, **kwargs):
-        the_min = kwargs.pop('min', None)
-        the_max = kwargs.pop('max', None)
-        super(SubStatement, self).__init__(*args, **kwargs)
-        if the_min:
-            self.result_score_min = the_min
-        if the_max:
-            self.result_score_max = the_max
 
 class StatementAttachmentDisplay(LanguageMap):
     attachment = models.ForeignKey("StatementAttachment")
@@ -1072,23 +1061,23 @@ class Statement(models.Model):
             ret['result']['duration'] = self.result_duration
 
         ret['result']['score'] = {}
-        if not self.score_scaled is None:
+        if not self.result_score_scaled is None:
             ret['result']['score']['scaled'] = self.result_score_scaled
 
-        if not self.score_raw is None:
+        if not self.result_score_raw is None:
             ret['result']['score']['raw'] = self.result_score_raw
 
-        if not self.score_min is None:
+        if not self.result_score_min is None:
             ret['result']['score']['min'] = self.result_score_min
 
-        if not self.score_max is None:
+        if not self.result_score_max is None:
             ret['result']['score']['max'] = self.result_score_max
 
         # If there is no score, delete from dict
         if not ret['result']['score']:
             del ret['result']['score']
 
-        result_ext = self.resultextensions_set.all()
+        result_ext = self.statementresultextensions_set.all()
         if len(result_ext) > 0:
             ret['result']['extensions'] = {}
             for ext in result_ext:
@@ -1137,12 +1126,3 @@ class Statement(models.Model):
                 stmt_object.delete()
 
         super(Statement, self).delete(*args, **kwargs)
-    
-    def __init__(self, *args, **kwargs):
-        the_min = kwargs.pop('min', None)
-        the_max = kwargs.pop('max', None)
-        super(Statement, self).__init__(*args, **kwargs)
-        if the_min:
-            self.result_score_min = the_min
-        if the_max:
-            self.result_score_max = the_max

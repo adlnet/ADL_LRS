@@ -9,7 +9,6 @@ class AgentProfileAdmin(admin.ModelAdmin):
     readonly_fields = ('profileId','updated','etag')
 
 admin.site.register(models.Verb)
-admin.site.register(models.ResultExtensions)
 admin.site.register(models.StatementObject)
 admin.site.register(models.Agent)
 admin.site.register(models.AgentProfile, AgentProfileAdmin)
