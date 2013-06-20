@@ -181,7 +181,6 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        result = models.Result.objects.get(id=stmt.model_object.result.id)
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
@@ -189,10 +188,10 @@ class StatementManagerTests(TestCase):
         st = models.Statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
 
-        self.assertEqual(result.completion, True)
-        self.assertEqual(result.success, True)
-        self.assertEqual(result.response, 'kicked')
-        self.assertEqual(result.duration, time)
+        self.assertEqual(st.result_completion, True)
+        self.assertEqual(st.result_success, True)
+        self.assertEqual(st.result_response, 'kicked')
+        self.assertEqual(st.result_duration, time)
 
     def test_result__wrong_duration_stmt(self):
         self.assertRaises(ParamError, StatementManager, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
@@ -206,7 +205,6 @@ class StatementManagerTests(TestCase):
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        result = models.Result.objects.get(id=stmt.model_object.result.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
         extList = result.resultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
@@ -220,10 +218,10 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
-        self.assertEqual(result.completion, True)
-        self.assertEqual(result.success, True)
-        self.assertEqual(result.response, 'yes')
-        self.assertEqual(result.duration, time)
+        self.assertEqual(st.result_completion, True)
+        self.assertEqual(st.result_success, True)
+        self.assertEqual(st.result_response, 'yes')
+        self.assertEqual(st.result_duration, time)
 
         self.assertEqual(actor.name, 'jon')
         self.assertEqual(actor.mbox, 'mailto:jon@example.com')
@@ -296,7 +294,6 @@ class StatementManagerTests(TestCase):
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        result = models.Result.objects.get(id=stmt.model_object.result.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
         extList = result.resultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
@@ -310,10 +307,10 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
-        self.assertEqual(result.completion, True)
-        self.assertEqual(result.success, True)
-        self.assertEqual(result.response, 'yes')
-        self.assertEqual(result.duration, time)
+        self.assertEqual(st.result_completion, True)
+        self.assertEqual(st.result_success, True)
+        self.assertEqual(st.result_response, 'yes')
+        self.assertEqual(st.result_duration, time)
 
         self.assertEqual(result.score_scaled, .95)
 
@@ -702,7 +699,6 @@ class StatementManagerTests(TestCase):
         sub_obj = models.Activity.objects.get(id=sub_stmt.stmt_object.id)
         sub_act = models.Agent.objects.get(id=sub_stmt.actor.id)
         sub_con = models.Context.objects.get(id=sub_stmt.context.id)
-        sub_res = models.Result.objects.get(id=sub_stmt.result.id)
 
         self.assertEqual(outer_stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(outer_stmt.actor.mbox, 'mailto:s@s.com')        
@@ -710,7 +706,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(sub_obj.activity_id, 'act:testex.com')
         self.assertEqual(sub_act.mbox, 'mailto:ss@ss.com')
         self.assertEqual(sub_con.registration, guid)
-        self.assertEqual(sub_res.response, 'kicked')
+        self.assertEqual(sub_stmt.result_response, 'kicked')
 
 
     def test_group_stmt(self):
@@ -767,52 +763,46 @@ class StatementManagerTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result1 = models.Result.objects.create(success=True)
-        res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1', result=result1)
-        res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2', result=result1)
+        res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1',
+            statement=stmt1.model_object)
+        res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2',
+            statement=stmt1.model_object)
 
-        models.Result.objects.get(id=result1.id).delete()
         stmts = len(models.Statement.objects.all())
-        results = len(models.Result.objects.all())
         res_exts = len(models.ResultExtensions.objects.all())
         self.assertEqual(stmts, 1)
-        self.assertEqual(results, 0)
-        self.assertEqual(res_exts, 0)
+        self.assertEqual(res_exts, 2)
 
         stmt2 = StatementManager(json.dumps(
             {'actor':{'mbox':'mailto:s@s.com'},
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result2 = models.Result.objects.create(success=True)
-        res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
-        res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
+        res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt2.model_object)
+        res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt2.model_object)
 
         stmts = len(models.Statement.objects.all())
-        results = len(models.Result.objects.all())
         res_exts = len(models.ResultExtensions.objects.all())
         self.assertEqual(stmts, 2)
-        self.assertEqual(results, 1)
-        self.assertEqual(res_exts, 2)
+        self.assertEqual(res_exts, 4)
 
         stmt3 = StatementManager(json.dumps(
             {'actor':{'mbox':'mailto:s@s.com'},
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result3 = models.Result.objects.create(success=True)
-        res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
-        res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
+        res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt3.model_object)
+        res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt3.model_object)
 
         # Deleting an ext should not affect anything else
         models.ResultExtensions.objects.get(id=res_ext6.id).delete()
         stmts = len(models.Statement.objects.all())
-        results = len(models.Result.objects.all())
         res_exts = len(models.ResultExtensions.objects.all())
-        # Will be two results, one from before and this one
-        self.assertEqual(results, 2)
-        # Will be three exts, two from before and this one
-        self.assertEqual(res_exts, 3)
+        self.assertEqual(res_exts, 5)
         # 2 stmts from before and this one
         self.assertEqual(stmts, 3)
 

@@ -112,29 +112,6 @@ class StatementManager():
 
         return score_data
 
-    def save_result_to_db(self, result, result_exts):
-        if 'score' in result:
-            for k,v in result['score'].iteritems():
-                if not 'score' in k:
-                    result['score_' + k] = v
-                else:
-                    result[k] = v
-            del result['score']
-
-        try:
-            rslt = models.Result.objects.create(**result)
-        except TypeError, e:
-            err_msg = "Invalid field in result - %s" % e.message
-            raise exceptions.ParamError(err_msg)
-
-        #If it has extensions, save them all
-        if result_exts:
-            for k, v in result_exts.items():
-                if not uri.validate_uri(k):
-                    err_msg = "Extension ID %s is not a valid URI" % k
-                    raise exceptions.ParamError(err_msg)
-                models.ResultExtensions.objects.create(key=k, value=v, result=rslt)
-        return rslt
 
     def save_context_to_db(self, context, context_exts):
         # Set context activities to context dict
@@ -205,6 +182,25 @@ class StatementManager():
     def save_object_to_db(self, args):
         # If it's a substatement, remove voided, authority, and id keys
         args['user'] = get_user_from_auth(self.auth)
+        
+        if 'result' in args:
+            result = args['result']
+
+            if 'score' in result:
+                for k,v in result['score'].iteritems():
+                    if not 'score' in k:
+                        args['result_score_' + k] = v
+                    else:
+                        args['result_' + k] = v
+                del args['result']['score']
+
+            if 'extensions' in result:
+                result_exts = result.pop('extensions')
+
+            for k,v in result.iteritems():
+                args['result_' + k] = v
+            del args['result']
+
         if self.__class__.__name__ == 'SubStatementManager':
             del args['voided']
             
@@ -218,16 +214,26 @@ class StatementManager():
             stmt = models.SubStatement.objects.create(**args)
         else:
             stmt = models.Statement.objects.create(**args)
+        
+        if result_exts:
+            for k, v in result_exts.items():
+                if not uri.validate_uri(k):
+                    err_msg = "Extension ID %s is not a valid URI" % k
+                    raise exceptions.ParamError(err_msg)
+                models.ResultExtensions.objects.create(key=k, value=v, statement=stmt)
+
         return stmt
 
     def populate_result(self, stmt_data):
-        result_exts = {}                    
-        #Catch contradictory results
-        if 'extensions' in stmt_data['result']:
-            result = dict((key, value) for (key, value) in stmt_data['result'].items() if not key == 'extensions')
-            result_exts = stmt_data['result']['extensions']
-        else:
-            result = stmt_data['result']
+        # result_exts = {}                    
+        # #Catch contradictory results
+        # if 'extensions' in stmt_data['result']:
+        #     result = dict((key, value) for (key, value) in stmt_data['result'].items() if not key == 'extensions')
+        #     result_exts = stmt_data['result']['extensions']
+        # else:
+        #     result = stmt_data['result']
+
+        result = stmt_data['result']
 
         # Validate duration, throw error if duration is not formatted correctly
         if 'duration' in result:
@@ -239,7 +245,8 @@ class StatementManager():
         if 'score' in result.keys():
             result['score'] = self.validate_score_result(result['score'])
         #Save result
-        return self.save_result_to_db(result, result_exts)
+        # return self.save_result_to_db(result, result_exts)
+        return result
 
     def populate_attachments(self, attachment_data, attachment_payloads):
         # Iterate through each attachment

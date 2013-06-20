@@ -4,18 +4,12 @@ from lrs import models
 class Result_ExtensionsAdmin(admin.StackedInline):
     model = models.Extensions
 
-class ResultAdmin(admin.ModelAdmin):
-    inlines = [
-        Result_ExtensionsAdmin,
-    ]
-
 class AgentProfileAdmin(admin.ModelAdmin):
     model = models.AgentProfile
     readonly_fields = ('profileId','updated','etag')
 
 admin.site.register(models.Verb)
 admin.site.register(models.ResultExtensions)
-admin.site.register(models.Result, ResultAdmin)
 admin.site.register(models.StatementObject)
 admin.site.register(models.Agent)
 admin.site.register(models.AgentProfile, AgentProfileAdmin)

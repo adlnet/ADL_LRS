@@ -1289,7 +1289,6 @@ class StatementsTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
-        results = models.Result.objects.filter(response='wrong')
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
         
         contexts = models.Context.objects.filter(registration=cguid1)
@@ -1304,8 +1303,6 @@ class StatementsTests(TestCase):
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
 
-
-        self.assertEqual(len(results), 0) 
         # Will have 3 exts from activity
         self.assertEqual(len(ad_exts), 3)
         self.assertEqual(len(contexts), 0)
@@ -1403,7 +1400,6 @@ class StatementsTests(TestCase):
         subs = models.SubStatement.objects.all()
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
         activities = models.Activity.objects.filter(activity_id__contains="wrong")
-        results = models.Result.objects.filter(response__contains="wrong")
         contexts = models.Context.objects.filter(registration=sub_context_id)
         con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context=contexts)
@@ -1417,7 +1413,6 @@ class StatementsTests(TestCase):
         self.assertEqual(len(subs), 1)
         self.assertEqual(len(wrong_verb), 3)
         self.assertEqual(len(activities), 2)
-        self.assertEqual(len(results), 0)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(con_exts), 0)
         self.assertEqual(len(con_acts), 0)
@@ -1464,7 +1459,6 @@ class StatementsTests(TestCase):
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
         wrong_activities = models.Activity.objects.filter(activity_id__contains="wrong")
         foogie_activities = models.Activity.objects.filter(activity_id__exact="act:foogie")
-        results = models.Result.objects.filter(response__contains="wrong")
         contexts = models.Context.objects.filter(registration=sub_context_id)
         con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
         con_acts = models.ContextActivity.objects.filter(context=contexts)
@@ -1479,7 +1473,6 @@ class StatementsTests(TestCase):
         self.assertEqual(len(wrong_verb), 3)
         self.assertEqual(len(wrong_activities), 2)
         self.assertEqual(len(foogie_activities), 1)
-        self.assertEqual(len(results), 0)
         self.assertEqual(len(contexts), 0)
         self.assertEqual(len(con_exts), 0)
         self.assertEqual(len(con_acts), 0)
