@@ -827,8 +827,9 @@ class StatementsTests(TestCase):
             "object": {"id":"act:test_cors_post_put"}}
         bdy["Authorization"] = self.auth
         bdy["Content-Type"] = "application/json"
+        bdy["X-Experience-API-Version"] = "0.95"
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"method":"PUT"}))
-        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
+        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 204)
 
         act = models.activity.objects.get(activity_id="act:test_cors_post_put")

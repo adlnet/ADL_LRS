@@ -28,7 +28,7 @@ gen_pwd = User.objects.make_random_password
 generate_random = User.objects.make_random_password
 
 def gen_uuid():
-    return uuid.uuid1().hex
+    return str(uuid.uuid1())
 
 class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
@@ -515,7 +515,7 @@ class agent(statement_object):
     mbox = models.CharField(max_length=128, blank=True, db_index=True)
     mbox_sha1sum = models.CharField(max_length=40, blank=True, db_index=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
-    oauth_identifier = models.CharField(max_length=64, blank=True)
+    oauth_identifier = models.CharField(max_length=192, blank=True, db_index=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     global_representation = models.BooleanField(default=True)
     objects = agentmgr()

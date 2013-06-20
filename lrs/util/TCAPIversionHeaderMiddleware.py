@@ -1,14 +1,18 @@
 from django.http import HttpResponseBadRequest
+from lrs.util import convert_to_dict
 
 class TCAPIversionHeaderMiddleware(object):
     def process_request(self, request):
         try:
-            version = request.META['X-Experience-APIVersion']
+            version = request.META['X-Experience-API-Version']
         except:
             try:
                 version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
             except:
                 version = request.META.get('X_Experience_API_Version', None)
+                if not version:
+                    bdy = convert_to_dict(request.body)
+                    version = bdy.get('X-Experience-API-Version', None)
         if version:
             if version == "0.95":
                 return None
