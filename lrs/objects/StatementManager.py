@@ -11,7 +11,7 @@ from lrs import models, exceptions
 from lrs.util import get_user_from_auth, uri
 from AgentManager import AgentManager
 from ActivityManager import ActivityManager
-import pdb
+
 att_cache = get_cache('attachment_cache')
 
 class default_on_exception(object):
@@ -128,7 +128,6 @@ class StatementManager():
                 del self.data['authority']
             # Try to create SubStatement
             try:
-                # pdb.set_trace()
                 del self.data['objectType']
                 stmt = models.SubStatement.objects.create(**self.data)
             except TypeError, e:
@@ -166,7 +165,6 @@ class StatementManager():
         else:
             # Try to create statement
             try:
-                # pdb.set_trace()
                 stmt = models.Statement.objects.create(**self.data)
             except TypeError, e:
                 raise exceptions.ParamError("Invalid field in Statement - %s" % e.message)
