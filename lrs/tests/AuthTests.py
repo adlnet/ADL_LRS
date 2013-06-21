@@ -15,7 +15,7 @@ import time
 import urllib
 from lrs.util import retrieve_statement
 import hashlib
-
+import pdb
 class AuthTests(TestCase):
     # Want to test no auth, so have to disable both auths
     def setUp(self):
@@ -873,9 +873,7 @@ class AuthTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
-        results = models.Result.objects.filter(response='wrong')
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
-        contexts = models.Context.objects.filter(registration=cguid1)
         
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
@@ -887,9 +885,7 @@ class AuthTests(TestCase):
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(results), 0)
         self.assertEqual(len(ad_exts), 3)
-        self.assertEqual(len(contexts), 0)
         self.assertEqual(len(verbs), 3)
         self.assertEqual(len(activities), 3)
         self.assertEqual(len(crp_answers), 2)
@@ -909,7 +905,6 @@ class AuthTests(TestCase):
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
-
         created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
         wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
         
@@ -924,7 +919,8 @@ class AuthTests(TestCase):
         verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
-        self.assertEqual(len(wrong_verbs), 1)
+        # Both verbs from the first and last stmts in the list would still be there
+        self.assertEqual(len(wrong_verbs), 2)
         self.assertEqual(len(verb_display), 1)
 
         self.assertEqual(len(activities), 1)
@@ -980,10 +976,6 @@ class AuthTests(TestCase):
         subs = models.SubStatement.objects.all()
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
         activities = models.Activity.objects.filter(activity_id__contains="wrong")
-        results = models.Result.objects.filter(response__contains="wrong")
-        contexts = models.Context.objects.filter(registration=sub_context_id)
-        con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
-        con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
@@ -992,9 +984,5 @@ class AuthTests(TestCase):
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 3)
-        self.assertEqual(len(activities), 2)
-        self.assertEqual(len(results), 0)
-        self.assertEqual(len(contexts), 0)
-        self.assertEqual(len(con_exts), 0)
-        self.assertEqual(len(con_acts), 0)                                                                
+        self.assertEqual(len(wrong_verb), 4)
+        self.assertEqual(len(activities), 3)

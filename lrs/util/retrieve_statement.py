@@ -67,11 +67,11 @@ def complex_get(req_dict):
                 me = chain([agent], groups)
                 for a in me:
                     agentQ = agentQ | Q(stmt_object=a) | Q(authority=a) \
-                          | Q(context__instructor=a) | Q(context__team=a) \
+                          | Q(context_instructor=a) | Q(context_team=a) \
                           | Q(stmt_object__substatement__actor=a) \
                           | Q(stmt_object__substatement__stmt_object=a) \
-                          | Q(stmt_object__substatement__context__instructor=a) \
-                          | Q(stmt_object__substatement__context__team=a)       
+                          | Q(stmt_object__substatement__context_instructor=a) \
+                          | Q(stmt_object__substatement__context_team=a)       
         except models.IDNotFoundError:
             return[]     
     
@@ -86,15 +86,15 @@ def complex_get(req_dict):
         reffilter = True
         activityQ = Q(stmt_object__activity__activity_id=the_dict['activity'])
         if 'related_activities' in the_dict and the_dict['related_activities']:
-            activityQ = activityQ | Q(context__contextactivity__context_activity__activity_id=the_dict['activity']) \
+            activityQ = activityQ | Q(statementcontextactivity__context_activity__activity_id=the_dict['activity']) \
                     | Q(stmt_object__substatement__stmt_object__activity__activity_id=the_dict['activity']) \
-                    | Q(stmt_object__substatement__context__contextactivity__context_activity__activity_id=the_dict['activity'])
+                    | Q(stmt_object__substatement__substatementcontextactivity__context_activity__activity_id=the_dict['activity'])
 
 
     registrationQ = Q()
     if 'registration' in the_dict:
         reffilter = True
-        registrationQ = Q(context__registration=the_dict['registration'])
+        registrationQ = Q(context_registration=the_dict['registration'])
 
     format = the_dict['format']
     

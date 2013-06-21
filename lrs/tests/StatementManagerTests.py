@@ -6,11 +6,6 @@ from lrs import models
 from lrs.exceptions import ParamError, Forbidden, ParamConflict, IDNotFoundError
 from lrs.objects.ActivityManager import ActivityManager
 from lrs.objects.StatementManager import StatementManager
-import pdb
-def get_ctx_id(stmt):
-    if stmt.context:
-        return stmt.context.id
-    return None
 
 class StatementManagerTests(TestCase):
          
@@ -181,7 +176,6 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        result = models.Result.objects.get(id=stmt.model_object.result.id)
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
@@ -189,10 +183,10 @@ class StatementManagerTests(TestCase):
         st = models.Statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
 
-        self.assertEqual(result.completion, True)
-        self.assertEqual(result.success, True)
-        self.assertEqual(result.response, 'kicked')
-        self.assertEqual(result.duration, time)
+        self.assertEqual(st.result_completion, True)
+        self.assertEqual(st.result_success, True)
+        self.assertEqual(st.result_response, 'kicked')
+        self.assertEqual(st.result_duration, time)
 
     def test_result__wrong_duration_stmt(self):
         self.assertRaises(ParamError, StatementManager, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
@@ -206,9 +200,8 @@ class StatementManagerTests(TestCase):
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        result = models.Result.objects.get(id=stmt.model_object.result.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        extList = result.resultextensions_set.values_list()
+        extList = stmt.model_object.statementresultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 
@@ -220,10 +213,10 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
-        self.assertEqual(result.completion, True)
-        self.assertEqual(result.success, True)
-        self.assertEqual(result.response, 'yes')
-        self.assertEqual(result.duration, time)
+        self.assertEqual(st.result_completion, True)
+        self.assertEqual(st.result_success, True)
+        self.assertEqual(st.result_response, 'yes')
+        self.assertEqual(st.result_duration, time)
 
         self.assertEqual(actor.name, 'jon')
         self.assertEqual(actor.mbox, 'mailto:jon@example.com')
@@ -296,9 +289,8 @@ class StatementManagerTests(TestCase):
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        result = models.Result.objects.get(id=stmt.model_object.result.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        extList = result.resultextensions_set.values_list()
+        extList = stmt.model_object.statementresultextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
 
@@ -310,12 +302,12 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.stmt_object.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
-        self.assertEqual(result.completion, True)
-        self.assertEqual(result.success, True)
-        self.assertEqual(result.response, 'yes')
-        self.assertEqual(result.duration, time)
+        self.assertEqual(st.result_completion, True)
+        self.assertEqual(st.result_success, True)
+        self.assertEqual(st.result_response, 'yes')
+        self.assertEqual(st.result_duration, time)
 
-        self.assertEqual(result.score_scaled, .95)
+        self.assertEqual(st.result_score_scaled, .95)
 
         self.assertEqual(activity.activity_id, 'act:activity14')
 
@@ -332,9 +324,7 @@ class StatementManagerTests(TestCase):
         # expect the LRS to assign a context registration uuid
         stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'act:activity14'},
                          'context': {'contextActivities': {'other': {'id': 'act:NewActivityID'}}}})).model_object
-        ctxid = get_ctx_id(stmt)
-        context = models.Context.objects.get(id=ctxid)
-        self.assertIsNotNone(context.registration)   
+        self.assertIsNotNone(stmt.context_registration)   
 
     def test_wrong_statement_type_in_context(self):
         self.assertRaises(ParamError, StatementManager,json.dumps({'actor':{'objectType':'Agent',
@@ -359,17 +349,13 @@ class StatementManagerTests(TestCase):
                 'grouping':{'id':'act:GroupID'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.Context.objects.get(id=ctxid)
-        context_activities = stmt.model_object.context.contextactivity_set.all()
+        context_activities = stmt.model_object.statementcontextactivity_set.all()
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(ctxid, context.id)
 
         st = models.Statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
         
         for ca in context_activities:
             if ca.key == 'grouping':
@@ -377,10 +363,10 @@ class StatementManagerTests(TestCase):
             elif ca.key == 'other':
                 self.assertEqual(ca.context_activity.all()[0].activity_id, 'act:NewActivityID')
 
-        self.assertEqual(context.registration, guid)        
-        self.assertEqual(context.revision, 'foo')
-        self.assertEqual(context.platform, 'bar')
-        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(st.context_registration, guid)        
+        self.assertEqual(st.context_revision, 'foo')
+        self.assertEqual(st.context_platform, 'bar')
+        self.assertEqual(st.context_language, 'en-US')
 
     def test_context_activity_list(self):
         guid = str(uuid.uuid1())
@@ -393,10 +379,8 @@ class StatementManagerTests(TestCase):
                 'language': 'en-US'}}))
         
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.Context.objects.get(id=ctxid)
 
-        context_activities = models.ContextActivity.objects.filter(context=context)
+        context_activities = models.StatementContextActivity.objects.filter(statement=stmt.model_object)
         self.assertEqual(len(context_activities), 2)
         
         context_activity_keys = [ca.key for ca in context_activities]
@@ -417,16 +401,14 @@ class StatementManagerTests(TestCase):
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(ctxid, context.id)
 
         st = models.Statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
 
-        self.assertEqual(context.registration, guid)        
-        self.assertEqual(context.revision, 'foo')
-        self.assertEqual(context.platform, 'bar')
-        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(st.context_registration, guid)        
+        self.assertEqual(st.context_revision, 'foo')
+        self.assertEqual(st.context_platform, 'bar')
+        self.assertEqual(st.context_language, 'en-US')
 
     def test_context_ext_stmt(self):
         guid = str(uuid.uuid1())
@@ -436,27 +418,23 @@ class StatementManagerTests(TestCase):
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.Context.objects.get(id=ctxid)
-        extList = context.contextextensions_set.values_list()
+        extList = stmt.model_object.statementcontextextensions_set.values_list()
         extKeys = [ext[1] for ext in extList]
         extVals = [ext[2] for ext in extList]
-        context_activities = stmt.model_object.context.contextactivity_set.all()
+        context_activities = stmt.model_object.statementcontextactivity_set.all()
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.stmt_object.id, activity.id)
-        self.assertEqual(ctxid, context.id)
 
         st = models.Statement.objects.get(id=stmt.model_object.id)
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
 
-        self.assertEqual(context.registration, guid)
+        self.assertEqual(st.context_registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
         self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
-        self.assertEqual(context.revision, 'foo')
-        self.assertEqual(context.platform, 'bar')
-        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(st.context_revision, 'foo')
+        self.assertEqual(st.context_platform, 'bar')
+        self.assertEqual(st.context_language, 'en-US')
 
         self.assertIn('ext:k1', extKeys)
         self.assertIn('ext:k2', extKeys)
@@ -478,21 +456,18 @@ class StatementManagerTests(TestCase):
                 'statement': {'objectType': 'StatementRef','id': stmt_guid}}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.Context.objects.get(id=ctxid)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
 
         st = models.Statement.objects.get(id=stmt.model_object.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
 
-        self.assertEqual(context.registration, guid)
+        self.assertEqual(st.context_registration, guid)
 
-        self.assertEqual(context.revision, 'foo')
-        self.assertEqual(context.platform, 'bar')
-        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(st.context_revision, 'foo')
+        self.assertEqual(st.context_platform, 'bar')
+        self.assertEqual(st.context_language, 'en-US')
         self.assertEqual(stmt_ref.ref_id, stmt_guid)
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
 
@@ -519,32 +494,27 @@ class StatementManagerTests(TestCase):
             'objectType':'StatementRef'}}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.Context.objects.get(id=ctxid)
-        conactor = models.Agent.objects.get(id=stmt.model_object.context.instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.model_object.context.contextactivity_set.all()
+        context_activities = stmt.model_object.statementcontextactivity_set.all()
 
         st = models.Statement.objects.get(id=stmt.model_object.id)
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.instructor.id, conactor.id)
 
-        self.assertEqual(context.registration, guid)
+        self.assertEqual(st.context_registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
         self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
-        self.assertEqual(context.revision, 'foo')
-        self.assertEqual(context.platform, 'bar')
-        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(st.context_revision, 'foo')
+        self.assertEqual(st.context_platform, 'bar')
+        self.assertEqual(st.context_language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
         
-        self.assertEqual(conactor.objectType, 'Agent')
+        self.assertEqual(st.context_instructor.objectType, 'Agent')
         
-        self.assertEqual(conactor.name, 'jon')
-        self.assertEqual(conactor.mbox, 'mailto:jon@example.com') 
+        self.assertEqual(st.context_instructor.name, 'jon')
+        self.assertEqual(st.context_instructor.mbox, 'mailto:jon@example.com') 
 
 
     def test_actor_with_context_stmt(self):
@@ -561,32 +531,27 @@ class StatementManagerTests(TestCase):
             "objectType":"StatementRef"}}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.stmt_object.id)
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.Context.objects.get(id=ctxid)
-        instructor = models.Agent.objects.get(id=stmt.model_object.context.instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
         st = models.Statement.objects.get(id=stmt.model_object.id)
-        context_activities = stmt.model_object.context.contextactivity_set.all()
+        context_activities = stmt.model_object.statementcontextactivity_set.all()
 
         self.assertEqual(st.stmt_object.id, activity.id)
-        self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.instructor.id, instructor.id)
         self.assertEqual(st.verb.verb_id, "verb:verb/url" )
 
-        self.assertEqual(context.registration, guid)
+        self.assertEqual(st.context_registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
         self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
-        self.assertEqual(context.revision, 'foob')
-        self.assertEqual(context.platform, 'bard')
-        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(st.context_revision, 'foob')
+        self.assertEqual(st.context_platform, 'bard')
+        self.assertEqual(st.context_language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
         
-        self.assertEqual(instructor.objectType, 'Agent')
+        self.assertEqual(st.context_instructor.objectType, 'Agent')
         
-        self.assertEqual(instructor.name, 'jon')
-        self.assertEqual(instructor.mbox, 'mailto:jon@example.com') 
+        self.assertEqual(st.context_instructor.name, 'jon')
+        self.assertEqual(st.context_instructor.mbox, 'mailto:jon@example.com') 
 
 
     def test_agent_as_object_with_context_stmt(self):
@@ -630,31 +595,26 @@ class StatementManagerTests(TestCase):
             )
         )
 
-        ctxid = get_ctx_id(stmt.model_object)
-        context = models.Context.objects.get(id=ctxid)
-        instructor = models.Agent.objects.get(id=stmt.model_object.context.instructor.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
         neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.model_object.context.contextactivity_set.all()
+        context_activities = stmt.model_object.statementcontextactivity_set.all()
 
         st = models.Statement.objects.get(id=stmt.model_object.id)
 
-        self.assertEqual(st.context.id, context.id)
-        self.assertEqual(st.context.instructor.id, instructor.id)
         self.assertEqual(st.verb.verb_id, "verb:verb/url")
 
-        self.assertEqual(context.registration, guid)
+        self.assertEqual(st.context_registration, guid)
         self.assertEqual(context_activities[0].key, 'other')
         self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
-        self.assertEqual(context.language, 'en-US')
+        self.assertEqual(st.context_language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
         
-        self.assertEqual(instructor.objectType, 'Agent')
+        self.assertEqual(st.context_instructor.objectType, 'Agent')
         
         # Should be jon
-        self.assertEqual(instructor.name, 'jon')
-        self.assertEqual(instructor.mbox, 'mailto:jon@example.com') 
+        self.assertEqual(st.context_instructor.name, 'jon')
+        self.assertEqual(st.context_instructor.mbox, 'mailto:jon@example.com') 
 
 
     def test_agent_as_object(self):
@@ -701,16 +661,14 @@ class StatementManagerTests(TestCase):
         sub_stmt = models.SubStatement.objects.get(id=outer_stmt.stmt_object.id)
         sub_obj = models.Activity.objects.get(id=sub_stmt.stmt_object.id)
         sub_act = models.Agent.objects.get(id=sub_stmt.actor.id)
-        sub_con = models.Context.objects.get(id=sub_stmt.context.id)
-        sub_res = models.Result.objects.get(id=sub_stmt.result.id)
 
         self.assertEqual(outer_stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(outer_stmt.actor.mbox, 'mailto:s@s.com')        
         self.assertEqual(sub_stmt.verb.verb_id, "verb:verb/url/nest")
         self.assertEqual(sub_obj.activity_id, 'act:testex.com')
         self.assertEqual(sub_act.mbox, 'mailto:ss@ss.com')
-        self.assertEqual(sub_con.registration, guid)
-        self.assertEqual(sub_res.response, 'kicked')
+        self.assertEqual(sub_stmt.context_registration, guid)
+        self.assertEqual(sub_stmt.result_response, 'kicked')
 
 
     def test_group_stmt(self):
@@ -767,52 +725,46 @@ class StatementManagerTests(TestCase):
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result1 = models.Result.objects.create(success=True)
-        res_ext1 = models.ResultExtensions.objects.create(key='key1', value='value1', result=result1)
-        res_ext2 = models.ResultExtensions.objects.create(key='key2', value='value2', result=result1)
+        res_ext1 = models.StatementResultExtensions.objects.create(key='key1', value='value1',
+            statement=stmt1.model_object)
+        res_ext2 = models.StatementResultExtensions.objects.create(key='key2', value='value2',
+            statement=stmt1.model_object)
 
-        models.Result.objects.get(id=result1.id).delete()
         stmts = len(models.Statement.objects.all())
-        results = len(models.Result.objects.all())
-        res_exts = len(models.ResultExtensions.objects.all())
+        res_exts = len(models.StatementResultExtensions.objects.all())
         self.assertEqual(stmts, 1)
-        self.assertEqual(results, 0)
-        self.assertEqual(res_exts, 0)
+        self.assertEqual(res_exts, 2)
 
         stmt2 = StatementManager(json.dumps(
             {'actor':{'mbox':'mailto:s@s.com'},
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result2 = models.Result.objects.create(success=True)
-        res_ext3 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
-        res_ext4 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result2)
+        res_ext3 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt2.model_object)
+        res_ext4 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt2.model_object)
 
         stmts = len(models.Statement.objects.all())
-        results = len(models.Result.objects.all())
-        res_exts = len(models.ResultExtensions.objects.all())
+        res_exts = len(models.StatementResultExtensions.objects.all())
         self.assertEqual(stmts, 2)
-        self.assertEqual(results, 1)
-        self.assertEqual(res_exts, 2)
+        self.assertEqual(res_exts, 4)
 
         stmt3 = StatementManager(json.dumps(
             {'actor':{'mbox':'mailto:s@s.com'},
             'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
             'object':{'id':'act:test_act'}}))
 
-        result3 = models.Result.objects.create(success=True)
-        res_ext5 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
-        res_ext6 = models.ResultExtensions.objects.create(key='key3', value='value4', result=result3)
+        res_ext5 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt3.model_object)
+        res_ext6 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
+            statement=stmt3.model_object)
 
         # Deleting an ext should not affect anything else
-        models.ResultExtensions.objects.get(id=res_ext6.id).delete()
+        models.StatementResultExtensions.objects.get(id=res_ext6.id).delete()
         stmts = len(models.Statement.objects.all())
-        results = len(models.Result.objects.all())
-        res_exts = len(models.ResultExtensions.objects.all())
-        # Will be two results, one from before and this one
-        self.assertEqual(results, 2)
-        # Will be three exts, two from before and this one
-        self.assertEqual(res_exts, 3)
+        res_exts = len(models.StatementResultExtensions.objects.all())
+        self.assertEqual(res_exts, 5)
         # 2 stmts from before and this one
         self.assertEqual(stmts, 3)
 
@@ -1135,18 +1087,14 @@ class StatementManagerTests(TestCase):
                 'extensions':{'ext:key1': 'value1'},
                 'statement':{'objectType': 'StatementRef','id':st1_id}}}))
 
-        self.assertEqual(len(models.StatementRef.objects.all()), 1)
         self.assertEqual(len(models.Statement.objects.all()), 2)
-        self.assertEqual(len(models.Context.objects.all()), 1)
         # Team creates a group object and the agent inside of itself
         self.assertEqual(len(models.Agent.objects.all()), 4)
         self.assertEqual(len(models.Verb.objects.all()), 1)
         self.assertEqual(len(models.Activity.objects.all()), 3)
 
         models.Statement.objects.get(id=stmt2.model_object.id).delete()
-        self.assertEqual(len(models.StatementRef.objects.all()), 0)
         self.assertEqual(len(models.Statement.objects.all()), 1)
-        self.assertEqual(len(models.Context.objects.all()), 0)
         # Agents/activities/verbs are not deleted
         self.assertEqual(len(models.Agent.objects.all()), 4)
         self.assertEqual(len(models.Verb.objects.all()), 1)
@@ -1188,8 +1136,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Activity.objects.all()), 6)
         self.assertEqual(len(models.Agent.objects.all()), 7)
         self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.Context.objects.all()), 3)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 6)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 6)
         self.assertEqual(len(models.Statement.objects.all()), 3)
 
         models.Statement.objects.get(id=stmt3.model_object.id).delete()
@@ -1197,24 +1144,21 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Activity.objects.all()), 6)
         self.assertEqual(len(models.Agent.objects.all()), 7)        
         self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.Context.objects.all()), 2)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 4)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 4)
         self.assertEqual(len(models.Statement.objects.all()), 2)
 
         models.Statement.objects.get(id=stmt2.model_object.id).delete()
         self.assertEqual(len(models.Activity.objects.all()), 6)
         self.assertEqual(len(models.Agent.objects.all()), 7)        
         self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.Context.objects.all()), 1)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 2)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 2)
         self.assertEqual(len(models.Statement.objects.all()), 1)
 
         models.Statement.objects.get(id=stmt1.model_object.id).delete()
         self.assertEqual(len(models.Activity.objects.all()), 6)
         self.assertEqual(len(models.Agent.objects.all()), 7)        
         self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.Context.objects.all()), 0)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
         self.assertEqual(len(models.Statement.objects.all()), 0)
 
     def test_simple_statement_delete(self):
@@ -1343,10 +1287,11 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Activity.objects.all()), 5)
         self.assertEqual(len(models.Verb.objects.all()), 5)
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
-        self.assertEqual(len(models.StatementRef.objects.all()), 2)
-        self.assertEqual(len(models.Context.objects.all()), 2)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 2)
-        self.assertEqual(len(models.ContextExtensions.objects.all()), 2)
+        self.assertEqual(len(models.StatementRef.objects.all()), 1)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
+        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt4.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 3)
@@ -1355,9 +1300,10 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Verb.objects.all()), 5)
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
         self.assertEqual(len(models.StatementRef.objects.all()), 1)
-        self.assertEqual(len(models.Context.objects.all()), 1)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.ContextExtensions.objects.all()), 2)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
+        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt3.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 2)
@@ -1366,9 +1312,10 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Verb.objects.all()), 5)
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
         self.assertEqual(len(models.StatementRef.objects.all()), 1)
-        self.assertEqual(len(models.Context.objects.all()), 1)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.ContextExtensions.objects.all()), 2)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
+        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt2.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 1)
@@ -1377,9 +1324,10 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Verb.objects.all()), 5)
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
         self.assertEqual(len(models.StatementRef.objects.all()), 0)
-        self.assertEqual(len(models.Context.objects.all()), 1)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.ContextExtensions.objects.all()), 2)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
+        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
+        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt1.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 0)
@@ -1388,6 +1336,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Verb.objects.all()), 5)
         self.assertEqual(len(models.SubStatement.objects.all()), 0)
         self.assertEqual(len(models.StatementRef.objects.all()), 0)
-        self.assertEqual(len(models.Context.objects.all()), 0)
-        self.assertEqual(len(models.ContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.ContextExtensions.objects.all()), 0)
+        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
+        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 0)
