@@ -283,7 +283,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.content, "Invalid field in context - 'bad' is an invalid keyword argument for this function")
+        self.assertEqual(resp.content, "Invalid field in Statement - 'context_bad' is an invalid keyword argument for this function")
     
 
     def test_post_with_no_valid_params(self):
@@ -1290,9 +1290,7 @@ class StatementsTests(TestCase):
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
-        
-        contexts = models.Context.objects.filter(registration=cguid1)
-        
+                
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
         activities = models.Activity.objects.filter(activity_id__contains='test_wrong_list_post')
@@ -1305,7 +1303,6 @@ class StatementsTests(TestCase):
 
         # Will have 3 exts from activity
         self.assertEqual(len(ad_exts), 3)
-        self.assertEqual(len(contexts), 0)
         self.assertEqual(len(verbs), 3)
         self.assertEqual(len(activities), 3)
         self.assertEqual(len(crp_answers), 2)
@@ -1400,9 +1397,6 @@ class StatementsTests(TestCase):
         subs = models.SubStatement.objects.all()
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
         activities = models.Activity.objects.filter(activity_id__contains="wrong")
-        contexts = models.Context.objects.filter(registration=sub_context_id)
-        con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
-        con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
@@ -1413,9 +1407,6 @@ class StatementsTests(TestCase):
         self.assertEqual(len(subs), 1)
         self.assertEqual(len(wrong_verb), 3)
         self.assertEqual(len(activities), 2)
-        self.assertEqual(len(contexts), 0)
-        self.assertEqual(len(con_exts), 0)
-        self.assertEqual(len(con_acts), 0)
 
 
     def test_post_list_rollback_context_activities(self):
@@ -1459,9 +1450,6 @@ class StatementsTests(TestCase):
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
         wrong_activities = models.Activity.objects.filter(activity_id__contains="wrong")
         foogie_activities = models.Activity.objects.filter(activity_id__exact="act:foogie")
-        contexts = models.Context.objects.filter(registration=sub_context_id)
-        con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
-        con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
@@ -1473,10 +1461,6 @@ class StatementsTests(TestCase):
         self.assertEqual(len(wrong_verb), 3)
         self.assertEqual(len(wrong_activities), 2)
         self.assertEqual(len(foogie_activities), 1)
-        self.assertEqual(len(contexts), 0)
-        self.assertEqual(len(con_exts), 0)
-        self.assertEqual(len(con_acts), 0)
-
       
     def test_stmts_w_same_regid(self):
         stmt1_guid = str(uuid.uuid1())

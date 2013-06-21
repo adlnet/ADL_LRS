@@ -30,7 +30,6 @@ class default_on_exception(object):
 def parse_result_data(func):
     @wraps(func)
     def inner(stmt_manager, *args, **kwargs):
-        # pdb.set_trace()
         if 'result' in args[0]:
             result = args[0]['result']
             if 'score' in result:
@@ -49,6 +48,28 @@ def parse_result_data(func):
             del args[0]['result']
         return func(stmt_manager, *args, **kwargs)
     return inner
+
+def parse_context_data(func):
+    @wraps(func)
+    def inner(stmt_manager, *args, **kwargs):
+        # pdb.set_trace()
+        if 'context' in args[0]:
+            context = args[0]['context']
+
+            if 'extensions' in context:
+                args[0]['context_exts'] = context.pop('extensions')
+
+            if 'contextActivities' in context:
+                args[0]['context_activities'] = context.pop('contextActivities')
+
+            for k,v in context.iteritems():
+                if k == 'statement':
+                    v = v['id']
+                args[0]['context_' + k] = v
+            del args[0]['context']
+        return func(stmt_manager, *args, **kwargs)
+    return inner
+
 
 class StatementManager():
     #Use single transaction for all the work done in function
@@ -137,23 +158,6 @@ class StatementManager():
 
     def save_context_to_db(self, context, context_exts):
         # Set context activities to context dict
-        con_act_data = None
-        if 'contextActivities' in context:
-            con_act_data = context['contextActivities']
-            del context['contextActivities']
-
-        # Save context stmt if one
-        stmt_data = None
-        if 'statement' in context:
-            stmt_data = context['statement']
-            del context['statement']
-
-        # Save context
-        try:
-            cntx = models.Context.objects.create(**context)
-        except TypeError, e:
-            err_msg = "Invalid field in context - %s" % e.message
-            raise exceptions.ParamError(err_msg)
 
         # Save context stmt if one
         if stmt_data:
@@ -173,42 +177,22 @@ class StatementManager():
                 err_msg = "Statement in context must contain an objectType"
                 raise exceptions.ParamError(err_msg)
 
-        # Save context activities
-        if con_act_data:
-            context_types = ['parent', 'grouping', 'category', 'other']
-            # Can have multiple groupings
-            for con_act_group in con_act_data.items():
-                if not con_act_group[0] in context_types:
-                    raise exceptions.ParamError('Context Activity type is not valid.')
-                ca = models.ContextActivity.objects.create(key=con_act_group[0], context=cntx)
-                # Incoming contextActivities can either be a list or dict
-                if isinstance(con_act_group[1], list):
-                    for con_act in con_act_group[1]:
-                        act = ActivityManager(con_act,auth=self.auth, define=self.define).Activity
-                        ca.context_activity.add(act)
-                else:
-                    act = ActivityManager(con_act_group[1],auth=self.auth, define=self.define).Activity
-                    ca.context_activity.add(act)
-                ca.save()
 
-        # Save context extensions
-        if context_exts:
-            for k, v in context_exts.items():
-                if not uri.validate_uri(k):
-                    err_msg = "Extension ID %s is not a valid URI" % k
-                    raise exceptions.ParamError(err_msg)              
-                conExt = models.ContextExtensions.objects.create(key=k, value=v, context=cntx)
+
         return cntx        
 
     #Save statement to DB
     @parse_result_data
+    @parse_context_data
     def save_object_to_db(self, stmt_data):
-        # pdb.set_trace()
-        # If it's a substatement, remove voided, authority, and id keys
         stmt_data['user'] = get_user_from_auth(self.auth)
-
+        context_activity_types = ['parent', 'grouping', 'category', 'other']
         # Pop off any result extensions
-        result_exts = stmt_data.pop('result_exts', None)
+        result_exts = stmt_data.pop('result_exts', {})
+        # Pop off any context extensions
+        context_exts = stmt_data.pop('context_exts', {})
+        # Pop off any context activities
+        con_act_data = stmt_data.pop('context_activities',{})
 
         # Determine if substmt or stmt
         if self.__class__.__name__ == 'SubStatementManager':
@@ -226,12 +210,34 @@ class StatementManager():
                 raise exceptions.ParamError("Invalid field in SubStatement - %s" % e.message)
             
             # Save any result extensions
-            if result_exts:
-                for k, v in result_exts.items():
-                    if not uri.validate_uri(k):
-                        err_msg = "Extension ID %s is not a valid URI" % k
-                        raise exceptions.ParamError(err_msg)
-                    models.SubStatementResultExtensions.objects.create(key=k, value=v, substatement=stmt)
+            for k, v in result_exts.items():
+                if not uri.validate_uri(k):
+                    err_msg = "Extension ID %s is not a valid URI" % k
+                    raise exceptions.ParamError(err_msg)
+                models.SubStatementResultExtensions.objects.create(key=k, value=v, substatement=stmt)
+
+            # Save any context extensions
+            for k, v in context_exts.items():
+                if not uri.validate_uri(k):
+                    err_msg = "Extension ID %s is not a valid URI" % k
+                    raise exceptions.ParamError(err_msg)              
+                models.SubStatementContextExtensions.objects.create(key=k, value=v, substatement=stmt)
+
+            # Save context activities
+            # Can have multiple groupings
+            for con_act_group in con_act_data.items():
+                if not con_act_group[0] in context_activity_types:
+                    raise exceptions.ParamError('Context Activity type is not valid.')
+                ca = models.SubStatementContextActivity.objects.create(key=con_act_group[0], substatement=stmt)
+                # Incoming contextActivities can either be a list or dict
+                if isinstance(con_act_group[1], list):
+                    for con_act in con_act_group[1]:
+                        act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
+                        ca.context_activity.add(act)
+                else:
+                    act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
+                    ca.context_activity.add(act)
+                ca.save()
         else:
             # Try to create statement
             try:
@@ -240,13 +246,34 @@ class StatementManager():
                 raise exceptions.ParamError("Invalid field in Statement - %s" % e.message)
         
             # Save any result extensions
-            if result_exts:
-                for k, v in result_exts.items():
-                    if not uri.validate_uri(k):
-                        err_msg = "Extension ID %s is not a valid URI" % k
-                        raise exceptions.ParamError(err_msg)
-                    models.StatementResultExtensions.objects.create(key=k, value=v, statement=stmt)
+            for k, v in result_exts.items():
+                if not uri.validate_uri(k):
+                    err_msg = "Extension ID %s is not a valid URI" % k
+                    raise exceptions.ParamError(err_msg)
+                models.StatementResultExtensions.objects.create(key=k, value=v, statement=stmt)
 
+            # Save any context extensions
+            for k, v in context_exts.items():
+                if not uri.validate_uri(k):
+                    err_msg = "Extension ID %s is not a valid URI" % k
+                    raise exceptions.ParamError(err_msg)              
+                models.StatementContextExtensions.objects.create(key=k, value=v, statement=stmt)
+
+            # Save context activities
+            # Can have multiple groupings
+            for con_act_group in con_act_data.items():
+                if not con_act_group[0] in context_activity_types:
+                    raise exceptions.ParamError('Context Activity type is not valid.')
+                ca = models.StatementContextActivity.objects.create(key=con_act_group[0], statement=stmt)
+                # Incoming contextActivities can either be a list or dict
+                if isinstance(con_act_group[1], list):
+                    for con_act in con_act_group[1]:
+                        act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
+                        ca.context_activity.add(act)
+                else:
+                    act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
+                    ca.context_activity.add(act)
+                ca.save()
         return stmt
 
     def populate_result(self, stmt_data):
@@ -364,8 +391,6 @@ class StatementManager():
         self.model_object.save()
 
     def populate_context(self, stmt_data):
-        context_exts = {}
-
         if 'registration' in stmt_data['context']:
             self.validate_incoming_uuid(stmt_data['context']['registration'])
 
@@ -385,14 +410,16 @@ class StatementManager():
             if 'platform' in stmt_data['context']:
                 del stmt_data['context']['platform']
 
-        # Set extensions
-        if 'extensions' in stmt_data['context']:
-            context = dict((key, value) for (key, value) in stmt_data['context'].items() if not key == 'extensions')
-            context_exts = stmt_data['context']['extensions']
-        else:
-            context = stmt_data['context']
+        if 'statement' in stmt_data['context']:
+            if 'objectType' in stmt_data['context']['statement']:
+                if stmt_data['context']['statement']['objectType'] != 'StatementRef':
+                    err_msg = "Statement in context must be StatementRef"
+                    raise exceptions.ParamError(err_msg)                    
+            else:
+                err_msg = "Statement in context must contain an objectType"
+                raise exceptions.ParamError(err_msg)
 
-        return self.save_context_to_db(context, context_exts)
+        return stmt_data['context']
 
     def save_lang_map(self, lang_map, verb):
         # If verb is model object but not saved yet

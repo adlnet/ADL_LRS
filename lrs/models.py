@@ -733,10 +733,10 @@ class StatementRef(StatementObject):
         return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
 
 
-class ContextActivity(models.Model):
+class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
     context_activity = models.ManyToManyField(Activity)
-    context = models.ForeignKey('Context')
+    substatement = models.ForeignKey('SubStatement')
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
@@ -744,57 +744,22 @@ class ContextActivity(models.Model):
         ret[self.key] = [a.object_return(lang, format) for a in self.context_activity.all()]
         return ret
 
-class ContextExtensions(Extensions):
-    context = models.ForeignKey('Context')
-
-class Context(models.Model):
-    registration = models.CharField(max_length=40, blank=True, db_index=True)
-    instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL, db_index=True,
-        related_name='context_instructor')
-    team = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
-        related_name="context_team")
-    revision = models.TextField(blank=True)
-    platform = models.CharField(max_length=50,blank=True)
-    language = models.CharField(max_length=50,blank=True)
-    # context also has a stmt field which is a statementref
-    statement = models.CharField(max_length=40, blank=True)
+class StatementContextActivity(models.Model):
+    key = models.CharField(max_length=8)
+    context_activity = models.ManyToManyField(Activity)
+    statement = models.ForeignKey('Statement')
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
-        linked_fields = ['instructor', 'team']
-        
-        if self.registration:
-            ret['registration'] = self.registration
-
-        if self.instructor:
-            ret['instructor'] = self.instructor.get_agent_json(format)
-
-        if self.team:
-            ret['team'] = self.team.get_agent_json(format)
-
-        if self.revision:
-            ret['revision'] = self.revision
-
-        if self.platform:
-            ret['platform'] = self.platform
-
-        if self.language:
-            ret['language'] = self.language
-
-        if self.statement:
-            ret['statement'] = {'id': self.statement, 'objectType': 'StatementRef'}
-
-        if len(self.contextactivity_set.all()) > 0:
-            ret['contextActivities'] = {}
-            for con_act in self.contextactivity_set.all():
-                ret['contextActivities'].update(con_act.object_return(lang, format))
-
-        context_ext = self.contextextensions_set.all()
-        if len(context_ext) > 0:
-            ret['extensions'] = {}
-            for ext in context_ext:
-                ret['extensions'].update(ext.object_return())        
+        ret[self.key] = {}
+        ret[self.key] = [a.object_return(lang, format) for a in self.context_activity.all()]
         return ret
+
+class SubStatementContextExtensions(Extensions):
+    substatement = models.ForeignKey('SubStatement')
+
+class StatementContextExtensions(Extensions):
+    statement = models.ForeignKey('Statement')
 
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
@@ -845,8 +810,16 @@ class SubStatement(StatementObject):
     result_score_max = models.FloatField(blank=True, null=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
-    context = models.OneToOneField(Context, related_name="substatement_context", null=True,
-        on_delete=models.SET_NULL)
+    context_registration = models.CharField(max_length=40, blank=True, db_index=True)
+    context_instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
+        db_index=True, related_name='substatement_context_instructor')
+    context_team = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
+        related_name="substatement_context_team")
+    context_revision = models.TextField(blank=True)
+    context_platform = models.CharField(max_length=50,blank=True)
+    context_language = models.CharField(max_length=50,blank=True)
+    # context also has a stmt field which is a statementref
+    context_statement = models.CharField(max_length=40, blank=True)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def get_a_name(self):
@@ -910,8 +883,45 @@ class SubStatement(StatementObject):
         if not ret['result']:
             del ret['result']
 
-        if self.context:
-            ret['context'] = self.context.object_return(lang, format)
+
+
+
+        ret['context'] = {}
+        if self.context_registration:
+            ret['context']['registration'] = self.context_registration
+
+        if self.context_instructor:
+            ret['context']['instructor'] = self.context_instructor.get_agent_json(format)
+
+        if self.context_team:
+            ret['context']['team'] = self.context_team.get_agent_json(format)
+
+        if self.context_revision:
+            ret['context']['revision'] = self.context_revision
+
+        if self.context_platform:
+            ret['context']['platform'] = self.context_platform
+
+        if self.context_language:
+            ret['context']['language'] = self.context_language
+
+        if self.context_statement:
+            ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
+
+        if len(self.substatementcontextactivity_set.all()) > 0:
+            ret['context']['contextActivities'] = {}
+            for con_act in self.substatementcontextactivity_set.all():
+                ret['context']['contextActivities'].update(con_act.object_return(lang, format))
+
+        context_ext = self.substatementcontextextensions_set.all()
+        if len(context_ext) > 0:
+            ret['context']['extensions'] = {}
+            for ext in context_ext:
+                ret['context']['extensions'].update(ext.object_return()) 
+
+        if not ret['context']:
+            del ret['context']
+
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
@@ -931,10 +941,6 @@ class SubStatement(StatementObject):
         object_type = None
 
         stmt_object, object_type = self.get_object()
-
-        # If there is a context
-        if self.context:
-            self.context.delete()
 
         if object_type == 'statementref':
             stmt_object.delete()
@@ -1008,7 +1014,16 @@ class Statement(models.Model):
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
         on_delete=models.SET_NULL)
     voided = models.NullBooleanField(default=False)
-    context = models.OneToOneField(Context, related_name="statement_context", null=True, on_delete=models.SET_NULL)
+    context_registration = models.CharField(max_length=40, blank=True, db_index=True)
+    context_instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
+        db_index=True, related_name='statement_context_instructor')
+    context_team = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
+        related_name="statement_context_team")
+    context_revision = models.TextField(blank=True)
+    context_platform = models.CharField(max_length=50,blank=True)
+    context_language = models.CharField(max_length=50,blank=True)
+    # context also has a stmt field which is a statementref
+    context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7, default="1.0.0")
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     attachments = models.ManyToManyField(StatementAttachment)
@@ -1086,8 +1101,41 @@ class Statement(models.Model):
         if not ret['result']:
             del ret['result']
 
-        if self.context:
-            ret['context'] = self.context.object_return(lang, format)
+        ret['context'] = {}
+        if self.context_registration:
+            ret['context']['registration'] = self.context_registration
+
+        if self.context_instructor:
+            ret['context']['instructor'] = self.context_instructor.get_agent_json(format)
+
+        if self.context_team:
+            ret['context']['team'] = self.context_team.get_agent_json(format)
+
+        if self.context_revision:
+            ret['context']['revision'] = self.context_revision
+
+        if self.context_platform:
+            ret['context']['platform'] = self.context_platform
+
+        if self.context_language:
+            ret['context']['language'] = self.context_language
+
+        if self.context_statement:
+            ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
+
+        if len(self.statementcontextactivity_set.all()) > 0:
+            ret['context']['contextActivities'] = {}
+            for con_act in self.statementcontextactivity_set.all():
+                ret['context']['contextActivities'].update(con_act.object_return(lang, format))
+
+        context_ext = self.statementcontextextensions_set.all()
+        if len(context_ext) > 0:
+            ret['context']['extensions'] = {}
+            for ext in context_ext:
+                ret['context']['extensions'].update(ext.object_return()) 
+
+        if not ret['context']:
+            del ret['context']
         
         ret['timestamp'] = str(self.timestamp)
         ret['stored'] = str(self.stored)
@@ -1115,10 +1163,6 @@ class Statement(models.Model):
         # Else retrieve its object
         else:
             stmt_object, object_type = self.get_object()
-
-        # If there is a context get it and call it's delete (FK will be set to null here)
-        if self.context:
-            self.context.delete()
         
         # If sub or ref, FK will be set to null, then call delete
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':

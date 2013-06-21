@@ -874,7 +874,6 @@ class AuthTests(TestCase):
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
         
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
-        contexts = models.Context.objects.filter(registration=cguid1)
         
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
@@ -887,7 +886,6 @@ class AuthTests(TestCase):
         self.assertEqual(len(statements), 11)
 
         self.assertEqual(len(ad_exts), 3)
-        self.assertEqual(len(contexts), 0)
         self.assertEqual(len(verbs), 3)
         self.assertEqual(len(activities), 3)
         self.assertEqual(len(crp_answers), 2)
@@ -978,9 +976,6 @@ class AuthTests(TestCase):
         subs = models.SubStatement.objects.all()
         wrong_verb = models.Verb.objects.filter(verb_id__contains="wrong")
         activities = models.Activity.objects.filter(activity_id__contains="wrong")
-        contexts = models.Context.objects.filter(registration=sub_context_id)
-        con_exts = models.ContextExtensions.objects.filter(key__contains="wrong")
-        con_acts = models.ContextActivity.objects.filter(context=contexts)
         statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
@@ -991,6 +986,3 @@ class AuthTests(TestCase):
         self.assertEqual(len(subs), 1)
         self.assertEqual(len(wrong_verb), 3)
         self.assertEqual(len(activities), 2)
-        self.assertEqual(len(contexts), 0)
-        self.assertEqual(len(con_exts), 0)
-        self.assertEqual(len(con_acts), 0)                                                                
