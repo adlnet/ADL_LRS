@@ -883,9 +883,6 @@ class SubStatement(StatementObject):
         if not ret['result']:
             del ret['result']
 
-
-
-
         ret['context'] = {}
         if self.context_registration:
             ret['context']['registration'] = self.context_registration

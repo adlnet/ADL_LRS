@@ -2,9 +2,13 @@ import json
 import ast
 from django.contrib.auth.models import User
 from django.core.cache import get_cache
+from django.db.models import get_models, get_app
+from django.contrib import admin
+from django.contrib.admin.sites import AlreadyRegistered
 from dateutil import parser
 from lrs.models import Consumer
 from lrs.exceptions import ParamError, BadRequest
+
 
 def convert_to_utc(timestr):
     try:
@@ -38,3 +42,12 @@ def get_user_from_auth(auth):
 
         user = Consumer.objects.get(key__exact=key).user
     return user
+
+def autoregister(*app_list):
+    for app_name in app_list:
+        app_models = get_app(app_name)
+        for model in get_models(app_models):
+            try:
+                admin.site.register(model)
+            except AlreadyRegistered:
+                pass    

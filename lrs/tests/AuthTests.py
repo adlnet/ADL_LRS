@@ -15,7 +15,7 @@ import time
 import urllib
 from lrs.util import retrieve_statement
 import hashlib
-
+import pdb
 class AuthTests(TestCase):
     # Want to test no auth, so have to disable both auths
     def setUp(self):
@@ -905,7 +905,6 @@ class AuthTests(TestCase):
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
-
         created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
         wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
         
@@ -920,7 +919,8 @@ class AuthTests(TestCase):
         verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
-        self.assertEqual(len(wrong_verbs), 1)
+        # Both verbs from the first and last stmts in the list would still be there
+        self.assertEqual(len(wrong_verbs), 2)
         self.assertEqual(len(verb_display), 1)
 
         self.assertEqual(len(activities), 1)
@@ -984,5 +984,5 @@ class AuthTests(TestCase):
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 3)
-        self.assertEqual(len(activities), 2)
+        self.assertEqual(len(wrong_verb), 4)
+        self.assertEqual(len(activities), 3)

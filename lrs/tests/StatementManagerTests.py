@@ -6,11 +6,6 @@ from lrs import models
 from lrs.exceptions import ParamError, Forbidden, ParamConflict, IDNotFoundError
 from lrs.objects.ActivityManager import ActivityManager
 from lrs.objects.StatementManager import StatementManager
-import pdb
-def get_ctx_id(stmt):
-    if stmt.context:
-        return stmt.context.id
-    return None
 
 class StatementManagerTests(TestCase):
          

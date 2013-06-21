@@ -12,7 +12,7 @@ class AgentManager():
     @transaction.commit_on_success
     def __init__(self, params=None, create=False, define=True):
         self.define = define
-        self.initial = params
+        self.initial = copy.deepcopy(params)
         if not isinstance(params, dict):
             try:
                 params = json.loads(params)

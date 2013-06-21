@@ -1,7 +1,7 @@
 from django.contrib import admin
-from lrs.models import Consumer, Token, Nonce
 
-# lou w - removed any references to Resource
+# lou w - removed any references to Resource and registering Consumer, Nonce, and Token since that is done
+# in lrs/admin.py
 
 class ConsumerAdmin(admin.ModelAdmin):
 	pass
@@ -11,7 +11,3 @@ class TokenAdmin(admin.ModelAdmin):
 
 class NonceAdmin(admin.ModelAdmin):
 	pass
-	
-admin.site.register(Consumer, ConsumerAdmin)
-admin.site.register(Token, TokenAdmin)
-admin.site.register(Nonce, NonceAdmin)

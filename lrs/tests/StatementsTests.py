@@ -827,7 +827,7 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.content, 'Error with Agent. The agent partial ({"member": [{"mbox": "mailto:agentA@example.com", "name": "agentA"}, {"mbox": "mailto:agentB@example.com", "name": "agentB"}], "mbox": "mailto:the.groupST@example.com", "name": "the group ST", "objectType": "Group"}) did not match any agents on record')
+        self.assertEqual(response.content, "Error with Agent. The agent partial ({u'member': [{u'mbox': u'mailto:agentA@example.com', u'name': u'agentA'}, {u'mbox': u'mailto:agentB@example.com', u'name': u'agentB'}], u'mbox': u'mailto:the.groupST@example.com', u'name': u'the group ST', u'objectType': u'Group'}) did not match any agents on record")
 
     def test_post_with_non_oauth_existing_group(self):
         ot = "Group"
@@ -1338,7 +1338,7 @@ class StatementsTests(TestCase):
         verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
-        self.assertEqual(len(wrong_verbs), 1)
+        self.assertEqual(len(wrong_verbs), 2)
         self.assertEqual(len(verb_display), 1)
 
         self.assertEqual(len(activities), 1)
@@ -1405,8 +1405,8 @@ class StatementsTests(TestCase):
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 3)
-        self.assertEqual(len(activities), 2)
+        self.assertEqual(len(wrong_verb), 4)
+        self.assertEqual(len(activities), 3)
 
 
     def test_post_list_rollback_context_activities(self):
@@ -1458,8 +1458,8 @@ class StatementsTests(TestCase):
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 3)
-        self.assertEqual(len(wrong_activities), 2)
+        self.assertEqual(len(wrong_verb), 4)
+        self.assertEqual(len(wrong_activities), 3)
         self.assertEqual(len(foogie_activities), 1)
       
     def test_stmts_w_same_regid(self):
