@@ -6,7 +6,7 @@ from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 import ast
 from lrs.exceptions import ParamError
-import pdb
+
 SCHEME = 2
 EMAIL = 5
 uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
