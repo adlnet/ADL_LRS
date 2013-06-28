@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<p>Enter JSON here to validate:</p>
+{% if error_message %}
+<p class="error">
+    <strong>{{ error_message }}</strong>
+</p>
+{% endif %}
+<form action="{% url lrs.views.stmt_validator %}" method="post">
+    <table>
+        {% include 'table_form.html' %}
+    </table>
+    <input type="submit" value="Validate" />
+</form>
+{% if result %}
+<p>
+    <strong>{{ result }}</strong>
+</p>
+{% endif %}
+
+{% endblock content %}

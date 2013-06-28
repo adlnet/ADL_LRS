@@ -5,6 +5,10 @@ from django.utils.safestring import mark_safe
 from itertools import chain
 from lrs.models import Token
 
+class ValidatorForm(forms.Form):
+    jsondata = forms.CharField(label='Data', required=True, 
+        widget=forms.Textarea(attrs={'cols':100, 'rows':20}))
+    
 class RegisterForm(forms.Form):
     username = forms.CharField(max_length=200, label='Name')
     email = forms.CharField(max_length=200, label='Email')

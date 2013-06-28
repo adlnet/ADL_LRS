@@ -12,16 +12,38 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware
+from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from lrs import forms, models, exceptions
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
-
+import pdb
 logger = logging.getLogger(__name__)
  
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def home(request):
     return render_to_response('home.html', context_instance=RequestContext(request))
+
+@decorator_from_middleware(accept_middleware.AcceptMiddleware)
+def stmt_validator(request):
+    if request.method == 'GET':
+        form = forms.ValidatorForm()
+        return render_to_response('validator.html', {"form": form}, context_instance=RequestContext(request))
+    elif request.method == 'POST':
+        form = forms.ValidatorForm(request.POST)
+        if form.is_valid():
+            try:
+                validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
+            except Exception, e:
+                return render_to_response('validator.html', {"form": form, "result": e.message},
+                context_instance=RequestContext(request))
+            try:
+                validator_msg = validator.validate()
+            except exceptions.ParamError, e:
+                validator_msg = e.message
+            return render_to_response('validator.html', {"form": form,"result": validator_msg},
+                context_instance=RequestContext(request))            
+        else:
+            return render_to_response('validator.html', {"form": form}, context_instance=RequestContext(request))
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):

@@ -21,7 +21,8 @@ urlpatterns = patterns('lrs.views',
     url(r'^me/apps/', 'my_app_status'),
     url(r'^me/tokens/', 'delete_token'),
     url(r'^me/', 'me'),
-    url(r'^about', 'about')
+    url(r'^about', 'about'),
+    url(r'^statementvalidator', 'stmt_validator')
 )
 urlpatterns += patterns('',
   url(r'^accounts/login/$', 'django.contrib.auth.views.login', name="login"),
