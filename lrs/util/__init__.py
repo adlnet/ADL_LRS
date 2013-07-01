@@ -27,6 +27,11 @@ def convert_to_dict(incoming_data):
             raise BadRequest("Cannot evaluate data into dictionary to parse")
     return data
 
+def convert_post_body_to_dict(incoming_data):
+    import urllib, urlparse
+    qs = urlparse.parse_qsl(urllib.unquote_plus(incoming_data))
+    return dict((k,v) for k, v in qs)
+
 def get_user_from_auth(auth):
     if not auth:
         return None

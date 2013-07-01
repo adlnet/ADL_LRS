@@ -1,7 +1,7 @@
 import StringIO
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
-from lrs.util import etag, convert_to_dict
+from lrs.util import etag, convert_to_dict, convert_post_body_to_dict
 from lrs.exceptions import OauthUnauthorized
 from oauth_provider.oauth.oauth import OAuthError
 from oauth_provider.utils import send_oauth_error
@@ -49,10 +49,10 @@ def parse(request, more_id=None):
         r_dict['lrs_auth'] = 'none'
 
     if request.method == 'POST' and 'method' in request.GET:
-        bdy = convert_to_dict(request.body)
+        bdy = convert_post_body_to_dict(request.body)
         r_dict.update(bdy)
         if 'content' in r_dict: # body is in 'content' for the IE cors POST
-            r_dict['body'] = r_dict.pop('content')
+            r_dict['body'] = convert_to_dict(r_dict.pop('content'))
     else:
         r_dict = parse_body(r_dict, request)
 

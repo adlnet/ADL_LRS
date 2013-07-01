@@ -11,8 +11,12 @@ class TCAPIversionHeaderMiddleware(object):
             except:
                 version = request.META.get('X_Experience_API_Version', None)
                 if not version:
-                    bdy = convert_to_dict(request.body)
-                    version = bdy.get('X-Experience-API-Version', None)
+                    import re
+                    import urllib
+                    bdy = urllib.unquote_plus(request.body)
+                    v = re.search('X\WExperience\WAPI\WVersion=(?P<num>[\d\.]*)\&?', bdy)
+                    if v:
+                        version = v.group('num')
         if version:
             if version == "0.95":
                 return None
