@@ -761,12 +761,11 @@ class AuthTests(TestCase):
 
     def test_cors_post_put(self):
         st_id = str(uuid.uuid1())
-        bdy = {"statementId": st_id}
-        bdy["content"] = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "mailto:r@r.com"},
+        content = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "mailto:r@r.com"},
             "object": {"id":"act:test_cors_post_put"}}
-        bdy["Content-Type"] = "application/json"
+        bdy = "statementId=%s&content=%s&Content-Type=application/json&X-Experience-API-Version=0.95" % (st_id, content)
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"method":"PUT"}))
-        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="0.95")
+        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 204)
 
         act = models.activity.objects.get(activity_id="act:test_cors_post_put")
