@@ -822,12 +822,9 @@ class StatementsTests(TestCase):
                 self.assertEqual(ds.value, 'testdesc3')
 
     def test_cors_post_put(self):
-        bdy = {"statementId": "886313e1-3b8a-5372-9b90-0c9aee199e5d"}
-        bdy["content"] = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "mailto:r@r.com"},
+        content = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "mailto:r@r.com"},
             "object": {"id":"act:test_cors_post_put"}}
-        bdy["Authorization"] = self.auth
-        bdy["Content-Type"] = "application/json"
-        bdy["X-Experience-API-Version"] = "0.95"
+        bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5d&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=0.95" % (content, self.auth)
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"method":"PUT"}))
         response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 204)
