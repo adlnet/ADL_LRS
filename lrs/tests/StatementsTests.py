@@ -783,9 +783,18 @@ class StatementsTests(TestCase):
             
             post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
                 Authorization=wrong_auth, X_Experience_API_Version="0.95")
-            self.assertEqual(post_response.status_code, 403)
-            self.assertEqual(post_response.content, "This ActivityID already exists, and you do not have" + 
-                            " the correct authority to create or update it.")
+            act = models.activity.objects.get(activity_id="act:foogie")
+            act_def = models.activity_definition.objects.get(activity=act)
+
+            name_set = act_def.name.all()
+            desc_set = act_def.description.all()
+
+            for ns in name_set:
+                if ns.key == 'en-GB':
+                    self.assertEqual(ns.value, 'altname')
+                elif ns.key == 'en-US':
+                    self.assertEqual(ns.value, 'testname2')
+
 
     def test_update_activity_correct_auth(self):
         self.bunchostmts()

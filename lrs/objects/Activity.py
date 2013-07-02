@@ -449,10 +449,7 @@ class Activity():
         log_message(self.log_dict, "Populating activity definition", __name__, self.populate_definition.__name__)
         # only update existing def stuff if request has authority to do so
         if not act_created and (self.activity.authoritative != '' and self.activity.authoritative != self.auth):
-            err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-            log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
-            update_parent_log_status(self.log_dict, 403)
-            raise exceptions.Forbidden(err_msg)
+            return
 
         #Check if all activity definition required fields are present - deletes existing activity model
         #if error with required activity definition fields
@@ -477,11 +474,6 @@ class Activity():
             if self.activity.authoritative == '' or self.activity.authoritative == self.auth:
                 # Update name and desc if needed
                 self.update_activity_name_and_description(act_def, self.activity)
-            else:
-                err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-                log_message(self.log_dict, err_msg, __name__, self.populate_definition.__name__, True)
-                update_parent_log_status(self.log_dict, 403)
-                raise exceptions.Forbidden(err_msg)
         else:
             # If created and have permisson to (re)define activities
             if self.define:
