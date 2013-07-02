@@ -5,7 +5,7 @@ from collections import defaultdict
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
 from django.core.cache import get_cache
-from lrs.util import etag, convert_to_dict
+from lrs.util import etag, convert_to_dict, convert_post_body_to_dict
 from lrs.util.jws import JWS, JWSException
 from lrs.exceptions import OauthUnauthorized, ParamError, BadRequest
 from oauth_provider.oauth.oauth import OAuthError
@@ -56,9 +56,9 @@ def parse(request, more_id=None):
 
     r_dict['params'] = {}
     if request.method == 'POST' and 'method' in request.GET:
-        bdy = convert_to_dict(request.body)
+        bdy = convert_post_body_to_dict(request.body)
         if 'content' in bdy: # body is in 'content' for the IE cors POST
-            r_dict['body'] = bdy.pop('content')
+            r_dict['body'] = convert_to_dict(bdy.pop('content'))
         r_dict['headers'].update(get_headers(bdy))
         for h in r_dict['headers']:
             bdy.pop(h, None)
