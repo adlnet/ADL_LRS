@@ -253,21 +253,20 @@ class AgentProfileTests(TestCase):
 
     def test_post_put_delete(self):
         prof_id = "http://deleteme.too"
-        params = {"profileId": prof_id, "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode({"method":"PUT"}))
-        params['content'] = {"test":"delete profile","obj":{"actor":"test", "testcase":"ie cors post for put and delete"}}
-        # params['Authorization'] = self.auth
-        params['Content-Type'] = "application/json"
-        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        content = {"test":"delete profile","obj":{"actor":"test", "testcase":"ie cors post for put and delete"}}
+        thedata = "profileId=%s&agent=%s&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=1.0.0" % (prof_id, self.testagent, content, self.auth)
+        response = self.client.post(path, thedata, content_type="application/x-www-form-urlencoded")
 
         r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % params['content'])
-
-        dparams = {"profileId": prof_id, "agent": self.testagent}
-        # dparams['Authorization'] = self.auth
+        import ast
+        c = ast.literal_eval(r.content)
+        self.assertEqual(c['test'], content['test'])
+ 
+        thedata = "profileId=%s&agent=%s&Authorization=%s&X-Experience-API-Version=1.0" % (prof_id, self.testagent, self.auth)
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode({"method":"DELETE"}))
-        r = self.client.post(path, dparams,content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        r = self.client.post(path, thedata, content_type="application/x-www-form-urlencoded", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 204)
 
         r = self.client.get(reverse(views.agent_profile), {"profileId": prof_id, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="1.0.0")

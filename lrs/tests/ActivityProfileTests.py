@@ -214,12 +214,22 @@ class ActivityProfileTests(TestCase):
     def test_cors_put(self):
         profileid = 'http://test.cors.put'
         activityid = 'act:test_cors_put-activity'
-        testparams1 = {"profileId": profileid, "activityId": activityid, "Authorization": self.auth}
-        testparams1['content'] = {"test":"put profile 1","obj":{"activity":"act:test"}}
+        
+        testparams1 = {"profileId": profileid, "activityId": activityid}
+        content = {"test":"put profile 1","obj":{"activity":"act:test"}}
+        params = "profileId=%s&activityId=%s&Authorization=%s&content=%s&X-Experience-API-Version=1.0" % (profileid, activityid,self.auth,content)
+         
         path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
         the_act = ActivityManager(json.dumps({'objectType':'Activity', 'id': activityid}))
-        put1 = self.client.post(path, testparams1, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0")
+        thedata = urllib.quote_plus(params)
+        put1 = self.client.post(path, thedata, content_type="application/x-www-form-urlencoded")
         self.assertEqual(put1.status_code, 204)
+        get1 = self.client.get(reverse(views.activity_profile), testparams1, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(get1.status_code, 200)
+        
+        import ast
+        c = ast.literal_eval(get1.content)
+        self.assertEqual(c['test'], content['test'])
         self.client.delete(reverse(views.activity_profile), testparams1, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_cors_put_etag(self):
@@ -234,21 +244,20 @@ class ActivityProfileTests(TestCase):
         put1 = self.client.put(path, tp, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
         
-        params['content'] = {"test":"good - trying to put new profile w/ etag header - IE cors","obj":{"activity":"test IE cors etag"}}
+        content = {"test":"good - trying to put new profile w/ etag header - IE cors","obj":{"activity":"test IE cors etag"}}
         thehash = '"%s"' % hashlib.sha1('%s' % tp).hexdigest()
-        params['If-Match'] = thehash
-        params['Authorization'] = self.auth
-        params['CONTENT_TYPE'] = "application/x-www-form-urlencoded"
+        thedata = "profileId=%s&activityId=%s&If-Match=%s&Authorization=%s&Content-Type=application/x-www-form-urlencoded&content=%s&X-Experience-API-Version=1.0.0" % (pid, aid, thehash, self.auth, content)
 
-        response = self.client.post(path, params, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0")
+        response = self.client.post(path, thedata, content_type="application/x-www-form-urlencoded")
         
         self.assertEqual(response.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % params['content'])
+        import ast
+        c = ast.literal_eval(r.content)
+        self.assertEqual(c['test'], content['test'])
 
         self.client.delete(reverse(views.activity_profile), {'activityId': aid, 'profileId': pid}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
-
 
     def test_tetris_snafu(self):
         params = {"profileId": "http://test.tetris/", "activityId": "act:tetris.snafu"}
