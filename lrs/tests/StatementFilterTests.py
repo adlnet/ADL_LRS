@@ -1391,7 +1391,7 @@ class StatementFilterTests(TestCase):
                 "context": {"contextActivities":{"parent":[{"id":"act:statementfiltertests",
                                                             "definition":{"name":{"en-US":"statement filter", "fr":"statement filter"},
                                                                          "description":{"en-US":"unit tests","fr":"unit tests"},
-                                                                         "type":"type:parent thing"}
+                                                                         "type":"type:parent-thing"}
                                                           }]
                                                 }
 
