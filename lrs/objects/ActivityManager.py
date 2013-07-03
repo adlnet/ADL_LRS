@@ -90,12 +90,7 @@ class ActivityManager():
         # Make lists of keys and values from existing desc lang maps
         existing_desc_key_set = existing_desc_lang_set.values_list('key', flat=True)
 
-        # # Loop through all language maps in name
-        # try:
         the_names = incoming_definition['name']
-        # except KeyError:
-        #     err_msg = "Activity definition has no name attribute"
-        #     raise exceptions.ParamError(err_msg)
         
         for new_name_lang_map in the_names.items():
             # If there is already an entry in the same language
@@ -115,12 +110,7 @@ class ActivityManager():
                 models.ActivityDefinitionNameLangMap.objects.create(key=new_name_lang_map[0],
                     value=new_name_lang_map[1],activity=self.Activity)
 
-        # # Loop through all language maps in description
-        # try:
         the_descriptions = incoming_definition['description']
-        # except KeyError:
-        #     err_msg = "Activity definition has no description attribute"
-        #     raise exceptions.ParamError()
         for new_desc_lang_map in the_descriptions.items():
             # If there is already an entry in the same language
             if new_desc_lang_map[0] in existing_desc_key_set:
@@ -140,21 +130,7 @@ class ActivityManager():
 
     #Once JSON is verified, populate the activity objects
     def populate(self, the_object):        
-        # allowed_fields = ["objectType", "id", "definition"]
-        # failed_list = [x for x in the_object.keys() if not x in allowed_fields]
-        # if failed_list:
-        #     err_msg = "Invalid field(s) found in activity - %s" % ', '.join(failed_list)
-        #     raise exceptions.ParamError(err_msg)
-
-        # # Must include activity_id - set object's activity_id
-        # # Make sure it's a URI
-        # try:
         activity_id = the_object['id']
-            # if not uri.validate_uri(activity_id):
-            #     raise exceptions.ParamError('Activity ID %s is not a valid URI' % activity_id)
-        # except KeyError:
-        #     err_msg = "No id provided, must provide 'id' field"
-        #     raise exceptions.ParamError(err_msg)
 
         # If allowed to define activities-create or get the global version
         if self.define:
@@ -204,88 +180,24 @@ class ActivityManager():
 
     def validate_cmi_interaction(self, act_def, act_created):
         interaction_flag = None
-        # scorm_interaction_types = ['true-false', 'choice', 'fill-in','matching', 'performance', 'sequencing',
-        #                             'likert', 'numeric', 'other']
-    
-        # #Check if valid SCORM interactionType
-        # if act_def['interactionType'] not in scorm_interaction_types:
-        #     if act_created:
-        #         self.Activity.delete()
-        #         self.Activity = None
-        #     err_msg = "Activity definition interactionType %s is not valid" % act_def['interactionType']
-        #     raise exceptions.ParamError(err_msg)
-
-        # #Must have correctResponsesPattern if they have a valid interactionType
-        # try:
-        #     act_def['correctResponsesPattern']  
-        # except KeyError: 
-        #     if act_created:
-        #         self.Activity.delete()
-        #         self.Activity = None   
-        #     err_msg = "Activity definition missing correctResponsesPattern"
-        #     raise exceptions.ParamError(err_msg)    
 
         #Multiple choice and sequencing must have choices
         if act_def['interactionType'] == 'choice' or \
             act_def['interactionType'] == 'sequencing':
-                # try:
-                #     act_def['choices']
-                # except KeyError:
-                #     if act_created:
-                #         self.Activity.delete()
-                #         self.Activity = None
-                #     err_msg = "Activity definition missing choices"
-                #     raise exceptions.ParamError(err_msg)
                 interaction_flag = 'choices' 
-
         #Matching must have both source and target
         elif act_def['interactionType'] == 'matching':
-            # try:
-            #     act_def['source']
-            #     act_def['target']
-            # except KeyError:
-            #     if act_created:
-            #         self.Activity.delete()
-            #         self.Activity = None
-            #     err_msg = "Activity definition missing source/target for matching"
-            #     raise exceptions.ParamError(err_msg)
             interaction_flag = 'source'
-
         #Performance must have steps
         elif act_def['interactionType'] == 'performance':
-            # try:
-            #     act_def['steps']
-            # except KeyError:
-            #     if act_created:
-            #         self.Activity.delete()
-            #         self.Activity = None
-            #     err_msg = "Activity definition missing steps for performance"
-            #     raise exceptions.ParamError(err_msg)    
             interaction_flag = 'steps'
-
         #Likert must have scale
         elif act_def['interactionType'] == 'likert':
-            # try:
-            #     act_def['scale']
-            # except KeyError:
-            #     if act_created:
-            #         self.Activity.delete()
-            #         self.Activity = None
-            #     err_msg = "Activity definition missing scale for likert"
-            #     raise exceptions.ParamError(err_msg)
             interaction_flag = 'scale'
         return interaction_flag
 
     #Populate definition either from JSON or validated XML
     def populate_definition(self, act_def, act_created):
-        # allowed_fields = ['name', 'description', 'type', 'moreInfo', 'extensions', 'interactionType',
-        # 'correctResponsesPattern', 'choices', 'scale', 'source', 'target', 'steps']
-
-        # failed_list = [x for x in act_def.keys() if not x in allowed_fields]
-        # if failed_list:
-        #     err_msg = "Invalid field(s) found in activity definition - %s" % ', '.join(failed_list)
-        #     raise exceptions.ParamError(err_msg)
-
         # only update existing def stuff if request has authority to do so
         if not act_created and (self.Activity.authoritative != '' and self.Activity.authoritative != self.auth):
             err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
@@ -295,8 +207,6 @@ class ActivityManager():
         act_def_type = ''
         if 'type' in act_def:
             act_def_type = act_def['type']
-            # if not uri.validate_uri(act_def_type):
-            #     raise exceptions.ParamError('Activity definition type %s is not a valid URI' % act_def_type)
 
             #If the type is cmi.interaction, have to check interactionType
             interaction_flag = None
@@ -306,8 +216,6 @@ class ActivityManager():
         # validate moreInfo if it exists
         if 'moreInfo' in act_def:
             more_info = act_def['moreInfo']
-            # if not uri.validate_uri(more_info):
-            #     raise exceptions.ParamError('moreInfo %s is not a valid URI' % more_info)
         else:
             more_info = ''
 
@@ -331,30 +239,17 @@ class ActivityManager():
                 # Save activity definition names and descriptions
                 if 'name' in act_def:
                     for name_lang_map in act_def['name'].items():
-                        # if isinstance(name_lang_map, tuple):
                         n = models.ActivityDefinitionNameLangMap.objects.create(key=name_lang_map[0],
                                       value=name_lang_map[1], activity=self.Activity)
-                        # else:
-                        #     err_msg = "Activity with id %s has a name that is not a valid language map" % self.Activity.activity_id
-                        #     raise exceptions.ParamError(err_msg)
-
                 if 'description' in act_def:
                     for desc_lang_map in act_def['description'].items():
-                        # if isinstance(desc_lang_map, tuple):
                         d = models.ActivityDefinitionDescLangMap.objects.create(key=desc_lang_map[0],
                                       value=desc_lang_map[1], activity=self.Activity)
-                        # else:
-                        #     err_msg = "Activity with id %s has a description that is not a valid language map" % self.Activity.activity_id
-                        #     raise exceptions.ParamError(err_msg)
-        
+
         # If the activity definition was just created (can't update the CRP or extensions of a def if already existed)
         #If there is a correctResponsesPattern then save the pattern
         if act_def_created and 'correctResponsesPattern' in act_def.keys():
-            # if isinstance(act_def['correctResponsesPattern'], list):
             self.populate_correct_responses_pattern(act_def, interaction_flag)
-            # else:
-            #     err_msg = "correctResponsesPattern value type must be an array"
-            #     raise exceptions.ParamError(err_msg)
 
         #See if activity definition has extensions
         if act_def_created and 'extensions' in act_def.keys():
@@ -368,93 +263,45 @@ class ActivityManager():
         #Depending on which type of interaction, save the unique fields accordingly
         if interaction_flag == 'choices':
             choices = act_def['choices']
-            # if isinstance(choices, list):
             for c in choices:
                 choice = models.ActivityDefinitionChoice.objects.create(choice_id=c['id'],
                     activity=self.Activity)
                 #Save description as string, not a dictionary
                 for desc_lang_map in c['description'].items():
-                    # if isinstance(desc_lang_map, tuple):
                     lang_map = self.save_lang_map(desc_lang_map, choice, "choice")
-                    # else:
-                    #     choice.delete()
-                    #     err_msg = "Choice description must be a language map"
-                    #     raise exceptions.ParamError(err_msg)
-            # else:
-            #     err_msg = 'choices value type must be an array'
-            #     raise exceptions.ParamError(err_msg)
         elif interaction_flag == 'scale':
             scales = act_def['scale']
-            # if isinstance(scales, list):
             for s in scales:
                 scale = models.ActivityDefinitionScale.objects.create(scale_id=s['id'],
                     activity=self.Activity)        
                 # Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
-                    # if isinstance(desc_lang_map, tuple):
                     lang_map = self.save_lang_map(desc_lang_map, scale, "scale")
-                    # else:
-                    #     scale.delete()
-                    #     err_msg = "Scale description must be a language map"
-                    #     raise exceptions.ParamError(err_msg)
-            # else:
-            #     err_msg = "scale value type must be an array"
         elif interaction_flag == 'steps':
             steps = act_def['steps']
-            # if isinstance(steps, list):
             for s in steps:
                 step = models.ActivityDefinitionStep.objects.create(step_id=s['id'],
                     activity=self.Activity)
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
-                    # if isinstance(desc_lang_map, tuple):
                     lang_map = self.save_lang_map(desc_lang_map, step, "step")
-                    # else:
-                    #     step.delete()
-                    #     err_msg = "Step description must be a language map"
-                    #     raise exceptions.ParamError(err_msg)  
-            # else:
-            #     err_msg = "steps value type must be an array"
-            #     raise exceptions.ParamError(err_msg)
         elif interaction_flag == 'source':
             sources = act_def['source'] 
-            # if isinstance(sources, list):
             for s in sources:
                 source = models.ActivityDefinitionSource.objects.create(source_id=s['id'],
                     activity=self.Activity)
                 #Save description as string, not a dictionary
                 for desc_lang_map in s['description'].items():
-                    # if isinstance(desc_lang_map, tuple):
                     lang_map = self.save_lang_map(desc_lang_map, source, "source")
-                    # else:
-                    #     source.delete()
-                    #     err_msg = "Source description must be a language map"
-                    #     raise exceptions.ParamError(err_msg)
-            # else:
-            #     err_msg = "source value type must be an array"
-            #     raise exceptions.ParamError(err_msg)
             targets = act_def['target']
-            # if isinstance(targets, list):
             for t in targets:
                 target = models.ActivityDefinitionTarget.objects.create(target_id=t['id'],
                     activity=self.Activity)
                 #Save description as string, not a dictionary
                 for desc_lang_map in t['description'].items():
-                    # if isinstance(desc_lang_map, tuple):
                     lang_map = self.save_lang_map(desc_lang_map, target, "target")
-                    # else:
-                    #     target.delete()
-                    #     err_msg = "Target description must be a language map"
-                    #     raise exceptions.ParamError(err_msg)
-            # else:
-            #     err_msg = "target value type must be an array"
-            #     raise exceptions.ParamError(err_msg)
 
     def populate_extensions(self, act_def):
         for k, v in act_def['extensions'].items():
-            # if not uri.validate_uri(k):
-            #     err_msg = "Extension ID %s is not a valid URI" % k
-            #     raise exceptions.ParamError(err_msg)
-
             act_def_ext = models.ActivityDefinitionExtensions.objects.create(key=k, value=v,
                 activity=self.Activity)
