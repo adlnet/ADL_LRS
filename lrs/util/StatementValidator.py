@@ -7,9 +7,40 @@ from isodate.isoerror import ISO8601Error
 import ast
 import json
 from lrs.exceptions import ParamError
+
 SCHEME = 2
 EMAIL = 5
 uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
+
+statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
+statement_required_fields = ['actor', 'verb', 'object']
+
+attachment_allowed_fields = ['usageType', 'display', 'description', 'contentType', 'length', 'sha2', 'fileUrl']
+attachment_required_fields = ['usageType', 'display', 'contentType', 'length']
+
+agent_ifis_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
+agent_allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'openid','account']
+
+account_fields = ['homePage', 'name']
+
+verb_allowed_fields = ['id', 'display']
+
+ref_fields = ['id', 'objectType']
+
+activity_allowed_fields = ['objectType', 'id', 'definition']
+
+act_def_allowed_fields = ['name', 'description', 'type', 'moreInfo', 'extensions', 'interactionType', 'correctResponsesPattern', 'choices', 'scale', 'source', 'target', 'steps']
+
+int_act_fields = ['id', 'description']
+
+sub_allowed_fields = ['actor', 'verb', 'object', 'result', 'context', 'timestamp', "objectType"]
+sub_required_fields = ['actor', 'verb', 'object']
+
+result_allowed_fields = ['score', 'success', 'completion', 'response', 'duration', 'extensions']
+
+score_allowed_fields = ['scaled', 'raw', 'min', 'max']
+
+context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities', 'revision', 'platform', 'language', 'statement', 'extensions']
 
 class StatementValidator():
 	def __init__(self, data):
@@ -26,15 +57,6 @@ class StatementValidator():
 			except Exception, e:
 				self.stmt = data
 
-		# if isinstance(data, unicode):
-		# 	self.stmt = ast.literal_eval(data)
-		# elif isinstance(data, list):
-		# 	if not all(isinstance(item, dict) for item in data):
-		# 		self.stmt = map(ast.literal_eval, data)
-		# 	else:
-		# 		self.stmt = data
-		# else:
-		# 	self.stmt = data
 	def validate(self):
 		# If list, validate each stmt inside
 		if isinstance(self.stmt, list):
@@ -84,11 +106,8 @@ class StatementValidator():
 	def validate_statement(self, stmt):
 		# Ensure dict was submitted as stmt and check allowed and required fields
 		self.check_if_dict(stmt, "Statement")
-		allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority',
-			'version', 'attachments']
-		self.check_allowed_fields(allowed_fields, stmt, "Statement")
-		required_fields = ['actor', 'verb', 'object']
-		self.check_required_fields(required_fields, stmt, "Statement")
+		self.check_allowed_fields(statement_allowed_fields, stmt, "Statement")
+		self.check_required_fields(statement_required_fields, stmt, "Statement")
 
 		# If version included in stmt (usually in header instead) make sure it is 1.0.0 +
 		if 'version' in stmt:
@@ -139,13 +158,11 @@ class StatementValidator():
 	def validate_attachments(self, attachments):
 		# Ensure attachments is a list
 		self.check_if_list(attachments, "Attachments")
-		allowed_fields = ['usageType', 'display', 'description', 'contentType', 'length', 'sha2', 'fileUrl']
-		required_fields = ['usageType', 'display', 'contentType', 'length']
 
 		for attach in attachments:
 			# For each attachment, check allowed and required fields
-			self.check_allowed_fields(allowed_fields, attach, "Attachment")
-			self.check_required_fields(required_fields, attach, "Attachment")
+			self.check_allowed_fields(attachment_allowed_fields, attach, "Attachment")
+			self.check_required_fields(attachment_required_fields, attach, "Attachment")
 
 			# Validate usageType
 			self.validate_uri(attach['usageType'], 'Attachments usageType')
@@ -188,8 +205,7 @@ class StatementValidator():
 	def validate_agent(self, agent, placement):
 		# Ensure incoming agent is a dict and check allowed fields
 		self.check_if_dict(agent, "Agent in %s" % placement)
-		allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'openid','account']
-		self.check_allowed_fields(allowed_fields, agent, "Agent/Group")
+		self.check_allowed_fields(agent_allowed_fields, agent, "Agent/Group")
 
 		# If the agent is the object of a stmt, the objectType must be present
 		if placement == 'object' and not 'objectType' in agent:
@@ -204,7 +220,6 @@ class StatementValidator():
 
 		# Agent must have only one inverse functionlal identifier (Group may be Anonymous Group where no IFI is
 		# required)
-		agent_ifis_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 		ifis = [a for a in agent_ifis_can_only_be_one if agent.get(a, None) != None]
 		if agent['objectType'] == 'Agent' and len(ifis) != 1:
 			self.return_error("One and only one of %s may be supplied with an Agent" % ", ".join(agent_ifis_can_only_be_one))
@@ -258,10 +273,8 @@ class StatementValidator():
 	def validate_account(self, account):
 		# Ensure incoming account is a dict and check allowed and required fields
 		self.check_if_dict(account, "Account")
-		allowed_fields = ['homePage', 'name']
-		self.check_allowed_fields(allowed_fields, account, "Account")
-		required_fields = ['homePage', 'name']
-		self.check_required_fields(required_fields, account, "Account")
+		self.check_allowed_fields(account_fields, account, "Account")
+		self.check_required_fields(account_fields, account, "Account")
 
 		# Ensure homePage is a valid URI
 		self.validate_uri(account['homePage'], 'homePage')
@@ -273,8 +286,7 @@ class StatementValidator():
 	def validate_verb(self, verb):
 		# Ensure incoming verb is a dict and check allowed fields
 		self.check_if_dict(verb, "Verb")
-		allowed_fields = ['id', 'display']
-		self.check_allowed_fields(allowed_fields, verb, "Verb")
+		self.check_allowed_fields(verb_allowed_fields, verb, "Verb")
 
 		# Verb must conatin id - then validate it
 		if not 'id' in verb:
@@ -310,10 +322,8 @@ class StatementValidator():
 		if ref['objectType'] != "StatementRef":
 			self.return_error("StatementRef objectType must be set to 'StatementRef'")
 
-		allowed_fields = ['id', 'objectType']
-		self.check_allowed_fields(allowed_fields, ref, "StatementRef")
-		required_fields = ['id', 'objectType']
-		self.check_required_fields(required_fields, ref, "StatementRef")
+		self.check_allowed_fields(ref_fields, ref, "StatementRef")
+		self.check_required_fields(ref_fields, ref, "StatementRef")
 
 		# Ensure id is a valid UUID
 		self.validate_uuid(ref['id'], 'StatementRef id')
@@ -321,8 +331,7 @@ class StatementValidator():
 	def validate_activity(self, activity):
 		# Ensure incoming activity is a dict and check allowed fields
 		self.check_if_dict(activity, "Activity")
-		allowed_fields = ['objectType', 'id', 'definition']
-		self.check_allowed_fields(allowed_fields, activity, "Activity")
+		self.check_allowed_fields(activity_allowed_fields, activity, "Activity")
 
 		# Id must be present
 		if not 'id' in activity:
@@ -338,9 +347,7 @@ class StatementValidator():
 	def validate_activity_definition(self, definition):
 		# Ensure incoming def is a dict and check allowed fields
 		self.check_if_dict(definition, "Activity definition")
-		allowed_fields = ['name', 'description', 'type', 'moreInfo', 'extensions', 'interactionType',
-		'correctResponsesPattern', 'choices', 'scale', 'source', 'target', 'steps']
-		self.check_allowed_fields(allowed_fields, definition, "Activity definition")
+		self.check_allowed_fields(act_def_allowed_fields, definition, "Activity definition")
 
 		# If name or description included, ensure it is a dict (language map)
 		if 'name' in definition:
@@ -421,13 +428,11 @@ class StatementValidator():
 			self.validate_extensions(definition['extensions'], 'activity definition')		
 
 	def validate_interaction_activities(self, activities, field):
-		allowed_fields = ['id', 'description']
-		required_fields = ['id', 'description']
 		for act in activities:
 			# Ensure each interaction activity is a dict and check allowed fields
 			self.check_if_dict(act, "%s interaction component" % field)
-			self.check_allowed_fields(allowed_fields, act, "Activity definition %s" % field)
-			self.check_required_fields(required_fields, act, "Activity definition %s" % field)
+			self.check_allowed_fields(int_act_fields, act, "Activity definition %s" % field)
+			self.check_required_fields(int_act_fields, act, "Activity definition %s" % field)
 
 			# Ensure id value is string
 			if not isinstance(act['id'], unicode):
@@ -439,10 +444,8 @@ class StatementValidator():
 	def validate_substatement(self, substmt):
 		# Ensure incoming substmt is a dict and check allowed and required fields
 		self.check_if_dict(substmt, "SubStatement")
-		allowed_fields = ['actor', 'verb', 'object', 'result', 'context', 'timestamp', "objectType"]
-		self.check_allowed_fields(allowed_fields, substmt, "SubStatement")
-		required_fields = ['actor', 'verb', 'object']
-		self.check_required_fields(required_fields, substmt, "SubStatement")
+		self.check_allowed_fields(sub_allowed_fields, substmt, "SubStatement")
+		self.check_required_fields(sub_required_fields, substmt, "SubStatement")
 
 		# If timestamp is included, ensure a valid time can be parsed
 		if 'timestamp' in substmt:
@@ -475,8 +478,7 @@ class StatementValidator():
 	def validate_result(self, result):
 		# Ensure incoming result is dict and check allowed fields
 		self.check_if_dict(result, "Result")
-		allowed_fields = ['score', 'success', 'completion', 'response', 'duration', 'extensions']
-		self.check_allowed_fields(allowed_fields, result, "Result")
+		self.check_allowed_fields(result_allowed_fields, result, "Result")
 
 		# If duration included, ensure valid duration can be parsed from it
 		if 'duration' in result:
@@ -509,8 +511,7 @@ class StatementValidator():
 	def validate_score(self, score):
 		# Ensure incoming score is a dict and check allowed fields
 		self.check_if_dict(score, "Score")
-		allowed_fields = ['scaled', 'raw', 'min', 'max']
-		self.check_allowed_fields(allowed_fields, score, "Score")
+		self.check_allowed_fields(score_allowed_fields, score, "Score")
 
 		# If min and max are included, ensure min <= max
 		if 'min' in score and 'max' in score:
@@ -534,9 +535,7 @@ class StatementValidator():
 	def validate_context(self, context, stmt_object):
 		# Ensure incoming context is a dict and check allowed fields
 		self.check_if_dict(context, "Context")
-		allowed_fields = ['registration', 'instructor', 'team', 'contextActivities', 'revision', 'platform',
-			'language', 'statement', 'extensions']
-		self.check_allowed_fields(allowed_fields, context, "Context")
+		self.check_allowed_fields(context_allowed_fields, context, "Context")
 
 		# If registration included, ensure it is valid UUID
 		if 'registration' in context:
