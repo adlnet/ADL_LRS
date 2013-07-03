@@ -243,29 +243,29 @@ class AgentMgr(models.Manager):
                 need_to_create = True
         # Get or create members in list
         if members:
-            if isinstance(members, list):
-                # If have define, update - if not need to create new agent
-                ags = [self.gen(**a) for a in members]
-                # If any of the members are not in the current member list of ret_agent, add them
-                for ag in ags:
-                    if not ag[0] in ret_agent.member.all():
-                        if define:
-                            ret_agent.member.add(ag[0])
-                        else:
-                            need_to_create = True
-                            break
-            else:
-                err_msg = "member value type must be an array"
-                raise ParamError(err)
+            # if isinstance(members, list):
+            # If have define, update - if not need to create new agent
+            ags = [self.gen(**a) for a in members]
+            # If any of the members are not in the current member list of ret_agent, add them
+            for ag in ags:
+                if not ag[0] in ret_agent.member.all():
+                    if define:
+                        ret_agent.member.add(ag[0])
+                    else:
+                        need_to_create = True
+                        break
+            # else:
+            #     err_msg = "member value type must be an array"
+            #     raise ParamError(err)
         return ret_agent, need_to_create
 
     def create_agent(self, kwargs, define): 
         if 'account' in kwargs:
             account = kwargs['account']
             if 'homePage' in account:
-                from lrs.util import uri
-                if not uri.validate_uri(account['homePage']):
-                    raise ValidationError('homePage value [%s] is not a valid URI' % account['homePage'])
+                # from lrs.util import uri
+                # if not uri.validate_uri(account['homePage']):
+                #     raise ValidationError('homePage value [%s] is not a valid URI' % account['homePage'])
                 kwargs['account_homePage'] = kwargs['account']['homePage']
 
             if 'name' in account:
@@ -289,20 +289,20 @@ class AgentMgr(models.Manager):
         # Find any IFPs
         attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
         # If it is an agent, it must have one IFP
-        if not is_group and len(attrs) != 1:
-            raise ParamError('One and only one of %s may be supplied with an Agent' % ', '.join(agent_attrs_can_only_be_one))
+        # if not is_group and len(attrs) != 1:
+        #     raise ParamError('One and only one of %s may be supplied with an Agent' % ', '.join(agent_attrs_can_only_be_one))
         # If there is an IFP (could be blank if group) make a dict with the IFP key and value
         if attrs:
             attr = attrs[0]
             # Here until spec makes decision on openID vs openid
-            if attr == 'openid':
-                attr = 'openID'
+            # if attr == 'openid':
+            #     attr = 'openID'
             # Account attrs is special
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
             else:
-                if not isinstance(kwargs['account'], dict):
-                    kwargs['account'] = json.loads(kwargs['account'])
+                # if not isinstance(kwargs['account'], dict):
+                #     kwargs['account'] = json.loads(kwargs['account'])
                 account = kwargs['account']
 
                 if 'homePage' in account:
@@ -338,8 +338,8 @@ class AgentMgr(models.Manager):
             if not attrs and members:
                 ret_agent, created = self.create_agent(kwargs, define)
             # Cannot have no IFP and no members
-            elif not attrs and not members:
-                raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must be a group with members")
+            # elif not attrs and not members:
+            #     raise ParamError("Agent object cannot have zero IFPs. If the object has zero IFPs it must be a group with members")
             # If there is and IFP and members
             else:
                 ret_agent = Agent.objects.get(**attrs_dict)
@@ -356,12 +356,12 @@ class AgentMgr(models.Manager):
         # If it is a group and has just been created, grab all of the members and send them through
         # this process then clean and save
         if is_group and created:
-            if isinstance(members, list):
-                ags = [self.gen(**a) for a in members]
-                ret_agent.member.add(*(a for a, c in ags))
-            else:
-                err_msg = "member value type must be an array"
-                raise ParamError(err_msg)
+            # if isinstance(members, list):
+            ags = [self.gen(**a) for a in members]
+            ret_agent.member.add(*(a for a, c in ags))
+            # else:
+            #     err_msg = "member value type must be an array"
+            #     raise ParamError(err_msg)
         ret_agent.full_clean(exclude='subclass')
         ret_agent.save()
         return ret_agent, created

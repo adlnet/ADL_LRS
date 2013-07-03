@@ -5,16 +5,38 @@ from dateutil import parser as timeparser
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 import ast
+import json
 from lrs.exceptions import ParamError
-
+import pdb
 SCHEME = 2
 EMAIL = 5
 uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
 
 class StatementValidator():
 	def __init__(self, data):
-		self.stmt = ast.literal_eval(data)
-		
+		# pdb.set_trace()
+		if isinstance(data, unicode):
+			self.stmt = ast.literal_eval(data)
+		elif isinstance(data, list):
+			if not all(isinstance(item, dict) for item in data):
+				self.stmt = [json.loads(st) for st in data]
+			else:
+				self.stmt = data
+		else:
+			try:
+				self.stmt = json.loads(data)
+			except Exception, e:
+				self.stmt = data
+
+		# if isinstance(data, unicode):
+		# 	self.stmt = ast.literal_eval(data)
+		# elif isinstance(data, list):
+		# 	if not all(isinstance(item, dict) for item in data):
+		# 		self.stmt = map(ast.literal_eval, data)
+		# 	else:
+		# 		self.stmt = data
+		# else:
+		# 	self.stmt = data
 	def validate(self):
 		# If list, validate each stmt inside
 		if isinstance(self.stmt, list):
@@ -211,7 +233,7 @@ class StatementValidator():
 			if 'member' in agent:
 				# Ensure member list is array
 				members = agent['member']
-				self.check_if_list(member, "Members")
+				self.check_if_list(members, "Members")
 				
 				# Make sure no member of group is another group
 				object_types = [t['objectType'] for t in members if 'objectType' in t]
@@ -307,6 +329,9 @@ class StatementValidator():
 		if not 'id' in activity:
 			self.return_error("Id field must be present in an Activity")
 
+		# Id must be valid URI
+		self.validate_uri(activity['id'], "Activity id")
+
 		# If definition included, validate it
 		if 'definition' in activity:
 			self.validate_activity_definition(activity['definition'])
@@ -330,10 +355,20 @@ class StatementValidator():
 		if 'moreInfo' in definition:
 			self.validate_uri(definition['moreInfo'], 'Activity definition moreInfo')
 
+		interactionType = None
 		# If interactionType included, ensure it is a string
 		if 'interactionType' in definition:
 			if not isinstance(definition['interactionType'], unicode):
 				self.return_error("Activity definition interactionType must be a string")
+
+			scorm_interaction_types = ['true-false', 'choice', 'fill-in','matching', 'performance',
+				'sequencing', 'likert', 'numeric', 'other']
+
+			#Check if valid SCORM interactionType
+			if definition['interactionType'] not in scorm_interaction_types:
+				self.return_error("Activity definition interactionType %s is not valid" % definition['interactionType'])
+
+			interactionType = definition['interactionType']
 
 		# If correctResponsesPatter included, ensure it is an array
 		if 'correctResponsesPattern' in definition:
@@ -343,36 +378,45 @@ class StatementValidator():
 				if not isinstance(answer, unicode):
 					self.return_error("Activity definition correctResponsesPattern answer's must all be strings")
 
-		# If choices included, ensure it is an array and validate it
-		if 'choices' in definition:
-			choices = definition['choices']
-			self.check_if_list(choices, "Activity definition choices")
-			self.validate_interaction_activities(choices, 'choices')			
-
-		# If scale included, ensure it is an array and validate it
-		if 'scale' in definition:
-			scale = definition['scale']
-			self.check_if_list(scale, "Activity definition scale")
-			self.validate_interaction_activities(scale, 'scale')
-
-		# If scale included, ensure it is an array and validate it
-		if 'source' in definition:
-			source = definition['source']
-			self.check_if_list(source, "Activity definition source")
-			self.validate_interaction_activities(source, 'source')
-
-		# If target included, ensure it is an array and validate it
-		if 'target' in definition:
-			target = definition['target']
-			self.check_if_list(target, "Activity definition target")
-			self.validate_interaction_activities(target, 'target')
-
+		if interactionType == "choice" or interactionType == "sequencing":
+			# If choices included, ensure it is an array and validate it
+			if 'choices' in definition:
+				choices = definition['choices']
+				self.check_if_list(choices, "Activity definition choices")
+				self.validate_interaction_activities(choices, 'choices')			
+			else:
+				self.return_error("Activity definition is missing choices")
+		elif interactionType == "likert":
+			# If scale included, ensure it is an array and validate it
+			if 'scale' in definition:
+				scale = definition['scale']
+				self.check_if_list(scale, "Activity definition scale")
+				self.validate_interaction_activities(scale, 'scale')
+			else:
+				self.return_error("Activity definition is missing scale")
+		elif interactionType == "matching":
+			# If scale included, ensure it is an array and validate it
+			if 'source' in definition:
+				source = definition['source']
+				self.check_if_list(source, "Activity definition source")
+				self.validate_interaction_activities(source, 'source')
+			else:
+				self.return_error("Activity definition is missing source")
+			# If target included, ensure it is an array and validate it
+			if 'target' in definition:
+				target = definition['target']
+				self.check_if_list(target, "Activity definition target")
+				self.validate_interaction_activities(target, 'target')
+			else:
+				self.return_error("Activity definition is missing target")
+		elif interactionType == "performance":
 		# If steps included, ensure it is an array and validate it
-		if 'steps' in definition:
-			steps = definition['steps']
-			self.check_if_list(steps, "Activity definition steps")
-			self.validate_interaction_activities(steps, 'steps')
-
+			if 'steps' in definition:
+				steps = definition['steps']
+				self.check_if_list(steps, "Activity definition steps")
+				self.validate_interaction_activities(steps, 'steps')
+			else:
+				self.return_error("Activity definition is missing steps")
 		# If extensions, validate it
 		if 'extensions' in definition:
 			self.validate_extensions(definition['extensions'], 'activity definition')		

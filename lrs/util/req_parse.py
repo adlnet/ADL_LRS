@@ -84,7 +84,6 @@ def parse(request, more_id=None):
     # Set if someone is hitting the statements/more endpoint
     if more_id:
         r_dict['more_id'] = more_id
-
     return r_dict
 
 def parse_body(r, request):

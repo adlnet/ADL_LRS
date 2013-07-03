@@ -15,7 +15,7 @@ import time
 import urllib
 from lrs.util import retrieve_statement
 import hashlib
-import pdb
+
 class AuthTests(TestCase):
     # Want to test no auth, so have to disable both auths
     def setUp(self):
@@ -123,7 +123,7 @@ class AuthTests(TestCase):
         self.existStmt9 = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:sub@sub.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:ss@ss.com"},"verb": {"id":"nested:verb/url/nested"},
-            "object": {"objectType":"activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
+            "object": {"objectType":"Activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": self.cguid6,
             "contextActivities": {"other": {"id": "act:NewActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
@@ -268,7 +268,7 @@ class AuthTests(TestCase):
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:ref@ref.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
-            "id":"aaaaaaaaa"}})
+            "id":"12345678-1234-5678-1234-567812345678"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
              X_Experience_API_Version="1.0.0")        
 
@@ -339,7 +339,7 @@ class AuthTests(TestCase):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:sass@sass.com"},
             "verb": {"id":"verb:verb/url/tested"}, "object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
-            "object": {"objectType":"activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
+            "object": {"objectType":"Activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": con_guid,
             "contextActivities": {"other": {"id": "act:NewActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
@@ -501,11 +501,9 @@ class AuthTests(TestCase):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
-        members = [{"name":"agentA","mbox":"mailto:agentA@example.com"},
-                    {"name":"agentB","mbox":"mailto:agentB@example.com"}]
-        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
 
-        stmt = json.dumps({"actor":group,"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},
+            {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
@@ -645,7 +643,7 @@ class AuthTests(TestCase):
             "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:resultKey1": "resultValue1", "ext:resultKey2":"resultValue2"}},
             "context":{"registration": context_id, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
-            "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+            "language": "en-US",
             "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
             "extensions":{"ext:contextKey1": "contextVal1","ext:contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
@@ -871,7 +869,7 @@ class AuthTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
         
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
         
@@ -885,10 +883,10 @@ class AuthTests(TestCase):
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(ad_exts), 3)
-        self.assertEqual(len(verbs), 3)
-        self.assertEqual(len(activities), 3)
-        self.assertEqual(len(crp_answers), 2)
+        self.assertEqual(len(ad_exts), 0)
+        self.assertEqual(len(verbs), 0)
+        self.assertEqual(len(activities), 0)
+        self.assertEqual(len(crp_answers), 0)
 
     def test_post_list_rollback_part_2(self):
         stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"},
@@ -904,7 +902,7 @@ class AuthTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
         created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
         wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
         
@@ -920,14 +918,14 @@ class AuthTests(TestCase):
 
         self.assertEqual(len(created_verbs), 1)
         # Both verbs from the first and last stmts in the list would still be there
-        self.assertEqual(len(wrong_verbs), 2)
-        self.assertEqual(len(verb_display), 1)
+        self.assertEqual(len(wrong_verbs), 0)
+        self.assertEqual(len(verb_display), 0)
 
         self.assertEqual(len(activities), 1)
         
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(wrong_agent), 1)
+        self.assertEqual(len(wrong_agent), 0)
         self.assertEqual(len(john_agent), 1)
         self.assertEqual(len(s_agent), 1)
 
@@ -939,7 +937,7 @@ class AuthTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
 
         voided_st = models.Statement.objects.get(statement_id=str(self.exist_stmt_id))
         voided_verb = models.Verb.objects.filter(verb_id__contains='voided')
@@ -948,8 +946,8 @@ class AuthTests(TestCase):
 
         self.assertEqual(len(statements), 11)
         self.assertEqual(voided_st.voided, False)
-        self.assertEqual(len(voided_verb), 1)
-        self.assertEqual(len(only_actor), 1)
+        self.assertEqual(len(voided_verb), 0)
+        self.assertEqual(len(only_actor), 0)
 
     def test_post_list_rollback_with_subs(self):
         sub_context_id = str(uuid.uuid1())
@@ -960,7 +958,7 @@ class AuthTests(TestCase):
             "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"wrong-en-US":"wrong-next"}},
             "object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},"verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
-            "object": {"objectType":"activity", "id":"act:wrong-testex.com"}, "result":{"completion": True, "success": True,
+            "object": {"objectType":"Activity", "id":"act:wrong-testex.com"}, "result":{"completion": True, "success": True,
             "response": "sub-wrong-kicked"}, "context":{"registration": sub_context_id,
             "contextActivities": {"other": {"id": "act:sub-wrong-ActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:wrong-k1": "v1", "ext:wrong-k2": "v2"}}}},
@@ -968,7 +966,7 @@ class AuthTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
 
         s_agent = models.Agent.objects.filter(mbox="mailto:wrong-s@s.com")
         ss_agent = models.Agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
@@ -979,10 +977,10 @@ class AuthTests(TestCase):
         statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
-        self.assertEqual(len(s_agent), 1)
-        self.assertEqual(len(ss_agent), 1)
+        self.assertEqual(len(s_agent), 0)
+        self.assertEqual(len(ss_agent), 0)
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 4)
-        self.assertEqual(len(activities), 3)
+        self.assertEqual(len(wrong_verb), 0)
+        self.assertEqual(len(activities), 0)

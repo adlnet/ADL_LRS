@@ -15,6 +15,7 @@ import os
 import hashlib
 import base64
 import re
+import pdb
 
 class OAuthTests(TestCase):
     def setUp(self):
@@ -1045,7 +1046,7 @@ class OAuthTests(TestCase):
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
-            'interactionType': 'intType'}}})
+            'interactionType': 'other'}}})
 
         param = {"statementId":put_guid}
         path = "%s?%s" % (url, urllib.urlencode(param))
@@ -1077,6 +1078,7 @@ class OAuthTests(TestCase):
         # global_representation as false
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+
         self.assertEqual(resp.status_code, 204)
         acts = models.Activity.objects.all()
         self.assertEqual(len(acts), 2)
@@ -1112,7 +1114,7 @@ class OAuthTests(TestCase):
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
             'description': {'en-US':'definedesc', 'en-GB': 'definealtdesc'},'type': 'type:course',
-            'interactionType': 'intType'}}}
+            'interactionType': 'other'}}}
         stmt_json = json.dumps(post_stmt)
 
         post_oauth_header_resource_params, post_access_token = self.perform_oauth_handshake2(scope_type='define,statements/write',
