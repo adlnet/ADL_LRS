@@ -9,11 +9,12 @@ fragment  = $9
 '''
 SCHEME = 2
 EMAIL = 5
-uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
+uri_re = re.compile('^(([^:/?#\s]+):)?(//([^/?#\s]*))?([^?#\s]*)(\?([^#\s]*))?(#([^\s]*))?')
 
 def validate_uri(s):
-	return uri_re.match(s).group(SCHEME) != None
+	res = uri_re.match(s)
+	return res.group(SCHEME) != None and res.group(0) == s
 
 def validate_email(s):
 	res = uri_re.match(s)
-	return res.group(SCHEME) != None and res.group(EMAIL) != None
+	return res.group(SCHEME) == "mailto" and res.group(EMAIL) != None and res.group(0) == s

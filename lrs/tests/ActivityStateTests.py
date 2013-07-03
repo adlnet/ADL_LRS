@@ -516,30 +516,29 @@ class ActivityStateTests(TestCase):
         form = {'username':username,'email': email,'password':password,'password2':password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
-
         testagent = '{"name":"another test","mbox":"mailto:anothertest@example.com"}'
         sid = "test_ie_cors_put_delete_set_1"
         sparam1 = {"stateId": sid, "activityId": self.activityId, "agent": testagent}
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
-        sparam1['content'] = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
-        sparam1['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
-        sparam1['Authorization'] = auth
-        put1 = self.client.post(path, sparam1, content_type='application/x-www-form-urlencoded', X_Experience_API_Version="1.0.0")
-
+        
+        content = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
+        param = "stateId=%s&activityId=%s&agent=%s&content=%s&Content-Type=application/x-www-form-urlencoded&Authorization=%s&X-Experience-API-Version=1.0.0" % (sid, self.activityId, testagent, content, auth)
+        put1 = self.client.post(path, param, content_type='application/x-www-form-urlencoded')
+ 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
         
         r = self.client.get(self.url, {"stateId": sid, "activityId": self.activityId, "agent": testagent}, X_Experience_API_Version="1.0.0", Authorization=auth)
         self.assertEqual(r.status_code, 200)
-        state1_str = '%s' % sparam1['content']
-        self.assertEqual(r.content, state1_str)
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(state1_str).hexdigest())
+        import ast
+        c = ast.literal_eval(r.content)
 
-        dparam = {"agent": testagent, "activityId": self.activityId}
-        dparam['Authorization'] = auth
-        dparam['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
+        self.assertEqual(c['test'], content['test'])
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1('%s' % content).hexdigest())
+ 
+        dparam = "agent=%s&activityId=%s&Authorization=%s&Content-Type=application/x-www-form-urlencoded&X-Experience-API-Version=1.0.0" % (testagent,self.activityId,auth)
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"DELETE"}))
-        f_r = self.client.post(path, dparam, content_type='application/x-www-form-urlencoded', X_Experience_API_Version="1.0.0")
+        f_r = self.client.post(path, dparam, content_type='application/x-www-form-urlencoded')
         self.assertEqual(f_r.status_code, 204)
 
     def test_agent_is_group(self):

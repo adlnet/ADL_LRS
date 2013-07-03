@@ -10,6 +10,12 @@ class XAPIVersionHeader(object):
                 version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
             except:
                 version = request.META.get('X_Experience_API_Version', None)
+                if not version:
+                    import urllib
+                    bdy = urllib.unquote_plus(request.body)
+                    v = re.search('X\WExperience\WAPI\WVersion=(?P<num>[\d\.]*)\&?', bdy)
+                    if v:
+                        version = v.group('num')
         if version:
             regex = re.compile("^1\.0(\.\d+)?$")
             if regex.match(version):
