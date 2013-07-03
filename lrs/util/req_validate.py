@@ -7,7 +7,7 @@ from lrs import models
 from lrs.util import uri, StatementValidator
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
 from Authorization import auth
-import pdb
+
 att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):

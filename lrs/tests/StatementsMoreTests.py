@@ -10,7 +10,7 @@ from django.utils.timezone import utc
 import time
 from lrs.util import retrieve_statement
 from django.conf import settings
-import pdb
+
 class StatementsMoreTests(TestCase):
 
     def setUp(self):

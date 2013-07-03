@@ -7,14 +7,12 @@ from isodate.isoerror import ISO8601Error
 import ast
 import json
 from lrs.exceptions import ParamError
-import pdb
 SCHEME = 2
 EMAIL = 5
 uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
 
 class StatementValidator():
 	def __init__(self, data):
-		# pdb.set_trace()
 		if isinstance(data, unicode):
 			self.stmt = ast.literal_eval(data)
 		elif isinstance(data, list):

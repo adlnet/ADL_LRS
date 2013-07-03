@@ -15,7 +15,6 @@ import os
 import hashlib
 import base64
 import re
-import pdb
 
 class OAuthTests(TestCase):
     def setUp(self):
