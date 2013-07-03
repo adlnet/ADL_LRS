@@ -482,6 +482,7 @@ def agent_profile_post(r_dict):
     except Exception as e:
         err_msg = "Could not parse the content into JSON"
         raise ParamError("\n".join((err_msg, e)))
+
     return r_dict
 
 @auth

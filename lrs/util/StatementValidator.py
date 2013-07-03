@@ -307,14 +307,15 @@ class StatementValidator():
 	def validate_statementref(self, ref):
 		# Ensure incoming StatementRef is a dictionary an check allowed and required fields
 		self.check_if_dict(ref, "StatementRef")
-		allowed_fields = ['id', 'objectType']
-		self.check_allowed_fields(allowed_fields, ref, "StatementRef")
-		required_fields = ['id', 'objectType']
-		self.check_required_fields(required_fields, ref, "StatementRef")
 
 		# objectType must be StatementRef
 		if ref['objectType'] != "StatementRef":
 			self.return_error("StatementRef objectType must be set to 'StatementRef'")
+
+		allowed_fields = ['id', 'objectType']
+		self.check_allowed_fields(allowed_fields, ref, "StatementRef")
+		required_fields = ['id', 'objectType']
+		self.check_required_fields(required_fields, ref, "StatementRef")
 
 		# Ensure id is a valid UUID
 		self.validate_uuid(ref['id'], 'StatementRef id')

@@ -1,11 +1,11 @@
+import base64
+import json
 from django.test import TestCase
 from lrs import models, views
-import json
 from django.core.urlresolvers import reverse
 from django.conf import settings
-import base64
 
-class ActivityManagerTests(TestCase):        
+class ActivityManagerTests(TestCase):
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True

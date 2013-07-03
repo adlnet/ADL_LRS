@@ -301,8 +301,8 @@ class AgentMgr(models.Manager):
             if not 'account' == attr:
                 attrs_dict = {attr:kwargs[attr]}
             else:
-                # if not isinstance(kwargs['account'], dict):
-                #     kwargs['account'] = json.loads(kwargs['account'])
+                if not isinstance(kwargs['account'], dict):
+                    kwargs['account'] = json.loads(kwargs['account'])
                 account = kwargs['account']
 
                 if 'homePage' in account:
