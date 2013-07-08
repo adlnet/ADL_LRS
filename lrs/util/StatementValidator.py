@@ -44,18 +44,23 @@ context_allowed_fields = ['registration', 'instructor', 'team', 'contextActiviti
 
 class StatementValidator():
 	def __init__(self, data):
-		if isinstance(data, unicode):
-			self.stmt = ast.literal_eval(data)
+		# If incoming is a string, ast eval it (exception will be caught with whatever is calling validator)
+		if isinstance(data, basestring):
+			try:
+				self.stmt = ast.literal_eval(data)
+			except Exception, e:
+				self.stmt = json.loads(data)
+		# If incoming data is already a list 
 		elif isinstance(data, list):
+			# If each item in list is not a dict, then try to load them as one
 			if not all(isinstance(item, dict) for item in data):
 				self.stmt = [json.loads(st) for st in data]
+			# Else it is a list of all dicts
 			else:
 				self.stmt = data
+		# If incoming data is not a string or list, try loading into dict
 		else:
-			try:
-				self.stmt = json.loads(data)
-			except Exception, e:
-				self.stmt = data
+			self.stmt = data
 
 	def validate(self):
 		# If list, validate each stmt inside
@@ -176,7 +181,7 @@ class StatementValidator():
 					self.return_error("Attachment sha2 is required when no fileUrl is given")
 
 				# Ensure sha2 is submitted as string
-				if not isinstance(attach['sha2'], unicode):
+				if not isinstance(attach['sha2'], basestring):
 					self.return_error("Attachment sha2 must be a string")
 
 			# Ensure length is an int
@@ -184,7 +189,7 @@ class StatementValidator():
 				self.return_error("Attachment length must be an integer")
 
 			# Ensure contentType is submitted as a string
-			if not isinstance(attach['contentType'], unicode):
+			if not isinstance(attach['contentType'], basestring):
 				self.return_error("Attachment contentType must be a string")
 
 			# Ensure display is a dict (language map)
@@ -226,12 +231,12 @@ class StatementValidator():
 
 		if agent['objectType'] == 'Agent':
 			# If agent, if name given, ensure name is string and validate the IFI
-			if 'name' in agent and not isinstance(agent['name'], unicode):
+			if 'name' in agent and not isinstance(agent['name'], basestring):
 				self.return_error("If name is given in Agent, it must be a string")
 			self.validate_ifi(ifis[0], agent[ifis[0]])
 		else:
 			# If group, if name given, ensure name is string
-			if 'name' in agent and not isinstance(agent['name'], unicode):
+			if 'name' in agent and not isinstance(agent['name'], basestring):
 				self.return_error("If name is given in Group, it must be a string")
 
 			# If no IFIs, it is an anonymous group which must contain the member property 
@@ -280,7 +285,7 @@ class StatementValidator():
 		self.validate_uri(account['homePage'], 'homePage')
 
 		# Ensure name is a string
-		if not isinstance(account['name'], unicode):
+		if not isinstance(account['name'], basestring):
 			self.return_error("account name must be a string")
 
 	def validate_verb(self, verb):
@@ -364,7 +369,7 @@ class StatementValidator():
 		interactionType = None
 		# If interactionType included, ensure it is a string
 		if 'interactionType' in definition:
-			if not isinstance(definition['interactionType'], unicode):
+			if not isinstance(definition['interactionType'], basestring):
 				self.return_error("Activity definition interactionType must be a string")
 
 			scorm_interaction_types = ['true-false', 'choice', 'fill-in','matching', 'performance',
@@ -381,7 +386,7 @@ class StatementValidator():
 			self.check_if_list(definition['correctResponsesPattern'], "Activity definition correctResponsesPattern")
 			for answer in definition['correctResponsesPattern']:
 				# For each answer, ensure it is a string
-				if not isinstance(answer, unicode):
+				if not isinstance(answer, basestring):
 					self.return_error("Activity definition correctResponsesPattern answer's must all be strings")
 
 		if interactionType == "choice" or interactionType == "sequencing":
@@ -435,7 +440,7 @@ class StatementValidator():
 			self.check_required_fields(int_act_fields, act, "Activity definition %s" % field)
 
 			# Ensure id value is string
-			if not isinstance(act['id'], unicode):
+			if not isinstance(act['id'], basestring):
 				self.return_error("Interaction activity in component %s has an id that is not a string" % field)
 
 			# Ensure description is a dict (language map)
@@ -497,7 +502,7 @@ class StatementValidator():
 
 		# If response in result, ensure it is a string
 		if 'response' in result:
-			if not isinstance(result['response'], unicode):
+			if not isinstance(result['response'], basestring):
 				self.return_error("Result response must be a string")
 
 		# If extensions, validate
@@ -554,7 +559,7 @@ class StatementValidator():
 				self.return_error("Revision is not allowed in context if statment object is an Agent or Group")		
 
 			# Check revision is string
-			if not isinstance(context['revision'], unicode):
+			if not isinstance(context['revision'], basestring):
 				self.return_error("Context revision must be a string")
 
 		if 'platform' in context:
@@ -562,12 +567,12 @@ class StatementValidator():
 				self.return_error("Platform is not allowed in context if statment object is an Agent or Group")		
 
 			# Check platform is string
-			if not isinstance(context['platform'], unicode):
+			if not isinstance(context['platform'], basestring):
 				self.return_error("Context platform must be a string")
 
 		# If language given, ensure it is string
 		if 'language' in context:
-			if not isinstance(context['language'], unicode):
+			if not isinstance(context['language'], basestring):
 				self.return_error("Context language must be a string")
 
 		# If statement given, ensure it is a valid StatementRef

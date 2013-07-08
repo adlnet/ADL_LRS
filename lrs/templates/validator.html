@@ -5,6 +5,14 @@
 <p class="error">
     <strong>{{ error_message }}</strong>
 </p>
+{% elif valid_message %}
+<p class="valid">
+    <strong>{{ valid_message }}</strong>
+</p>
+{% else %}
+<p>
+	<br>
+</p>
 {% endif %}
 <form action="{% url lrs.views.stmt_validator %}" method="post">
     <table>
@@ -12,10 +20,4 @@
     </table>
     <input type="submit" value="Validate" />
 </form>
-{% if result %}
-<p>
-    <strong>{{ result }}</strong>
-</p>
-{% endif %}
-
 {% endblock content %}

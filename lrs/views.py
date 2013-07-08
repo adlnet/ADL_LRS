@@ -16,7 +16,7 @@ from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMidd
 from lrs import forms, models, exceptions
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
-
+import pdb
 logger = logging.getLogger(__name__)
  
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
@@ -31,19 +31,31 @@ def stmt_validator(request):
     elif request.method == 'POST':
         form = forms.ValidatorForm(request.POST)
         if form.is_valid():
+            # Initialize validator (validates incoming data structure)
             try:
                 validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
-            except Exception, e:
-                return render_to_response('validator.html', {"form": form, "result": e.message},
+            except SyntaxError, se:
+                return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
                 context_instance=RequestContext(request))
+            except ValueError, ve:
+                return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
+                context_instance=RequestContext(request))                
+            except Exception, e:
+                return render_to_response('validator.html', {"form": form, "error_message": e.message},
+                context_instance=RequestContext(request))
+
+            # Once know it's valid JSON, validate keys and fields
             try:
-                validator_msg = validator.validate()
+                valid = validator.validate()
             except exceptions.ParamError, e:
-                validator_msg = e.message
-            return render_to_response('validator.html', {"form": form,"result": validator_msg},
-                context_instance=RequestContext(request))            
+                return render_to_response('validator.html', {"form": form,"error_message": e.message},
+                    context_instance=RequestContext(request))
+            else:
+                return render_to_response('validator.html', {"form": form,"valid_message": valid},
+                    context_instance=RequestContext(request))
         else:
-            return render_to_response('validator.html', {"form": form}, context_instance=RequestContext(request))
+            return render_to_response('validator.html', {"form": form},
+                context_instance=RequestContext(request))
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
