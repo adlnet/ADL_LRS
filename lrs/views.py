@@ -16,7 +16,7 @@ from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMidd
 from lrs import forms, models, exceptions
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
-import pdb
+
 logger = logging.getLogger(__name__)
  
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
