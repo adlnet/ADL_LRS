@@ -2,13 +2,30 @@ import uuid
 import json
 from datetime import datetime
 from django.test import TestCase
-from lrs import models
+from lrs import models, views
 from lrs.exceptions import ParamError, Forbidden, ParamConflict, IDNotFoundError
 from lrs.objects.ActivityManager import ActivityManager
 from lrs.objects.StatementManager import StatementManager
+from django.core.urlresolvers import reverse
+from django.conf import settings
+import base64
 
 class StatementManagerTests(TestCase):
-         
+    
+    def setUp(self):
+        if not settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = True
+        
+        self.username = "tester1"
+        self.email = "test1@tester.com"
+        self.password = "test"
+        self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
+        form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+
+        if settings.HTTP_AUTH_ENABLED:
+            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+
     def test_minimum_stmt(self):
         stmt = StatementManager(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
@@ -57,12 +74,6 @@ class StatementManagerTests(TestCase):
         self.assertRaises(ParamConflict, StatementManager, json.dumps({"id":st_id,
             "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
             "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
-        
-    def test_invalid_stmtID(self):
-        st_id = "aaa"
-        self.assertRaises(ParamError, StatementManager, json.dumps({"id":st_id,
-            "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
-            "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 
     def test_voided_stmt(self):
         stmt = StatementManager(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
@@ -103,72 +114,50 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(stmts), 2)
 
     def test_stmt_ref_no_existing_stmt(self):
-
-
         self.assertRaises(IDNotFoundError, StatementManager, json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
-            'id': "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}))
+            'id': "12345678-1234-5678-1234-567812345678"}}))
 
     def test_voided_wrong_type(self):
-        stmt = StatementManager(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
-            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
-
-        st_id = stmt.model_object.statement_id
-
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
-            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement',
-            'id': str(st_id)}}))
-
+        stmt = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
+            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement', 'id': "12345678-1234-5678-1234-567812345678"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "The objectType in the statement's object is not valid - Statement")
 
     def test_no_verb_stmt(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"},
-            "object": {'id':'act:activity2'}}))
-
+        stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "object": {'id':'act:activity2'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'verb is missing in Statement')
 
     def test_no_object_stmt(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"},
-            "verb": {"id":"verb:verb/url"}}))
-
+        stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "verb": {"id":"verb:verb/url"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'object is missing in Statement')       
 
     def test_no_actor_stmt(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"object":{"id":"act:activity_test"},
-            "verb": {"id":"verb:verb/url"}}))
-
-
-    def test_not_json_stmt(self):
-        self.assertRaises(ParamError, StatementManager, "This will fail.")
-
+        stmt = json.dumps({"object":{"id":"act:activity_test"}, "verb": {"id":"verb:verb/url"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'actor is missing in Statement')
 
     def test_voided_true_stmt(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'},
-            'verb': {"id":'verb:verb/url/kicked'},'voided': True,
-            'object': {'id':'act:activity3'}}))
-
-
-    def test_contradictory_completion_result_stmt(self):
-    	self.assertRaises(ParamError, StatementManager, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity4'},"result":{"completion": False}}))
-
-    	self.assertRaises(ParamError, StatementManager, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity5'},"result":{"completion": False}}))
-
-    	self.assertRaises(ParamError, StatementManager, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity6'},"result":{"completion": False}}))
-    	
-    	self.assertRaises(ParamError, StatementManager, json.dumps({'verb': {"id":"verb:verb/url"}
-            ,"object": {'id':'act:act:activity7'},"result":{"completion": False}})) 
-
-		
-    def test_contradictory_success_result_stmt(self):
-    	self.assertRaises(ParamError, StatementManager, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity8'},"result":{"success": False}}))
-    	
-    	self.assertRaises(ParamError, StatementManager, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity9'},"result":{"success": False}}))
-    	
-    	self.assertRaises(ParamError, StatementManager, json.dumps({'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity10'},"result":{"success": True}})) 
+        stmt = json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'}, 'verb': {"id":'verb:verb/url/kicked'},'voided': True, 'object': {'id':'act:activity3'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Invalid field(s) found in Statement - voided')
 
     def test_result_stmt(self):
         time = "P0Y0M0DT1H311M01S"
@@ -187,11 +176,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.result_success, True)
         self.assertEqual(st.result_response, 'kicked')
         self.assertEqual(st.result_duration, time)
-
-    def test_result__wrong_duration_stmt(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
-            'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
-            "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': 'notright'}}))
 
     def test_result_ext_stmt(self):
         time = "P0Y0M0DT1H311M01S"
@@ -228,58 +212,99 @@ class StatementManagerTests(TestCase):
         self.assertIn('value2', extVals)
 
     def test_result_score_scaled_up_good(self):
-        StatementManager(json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.0},'completion': True,
-            'success': True, 'response': 'yes'}}))
+            'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
 
     def test_result_score_scaled_down_good(self):
-        StatementManager(json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':00.000},'completion': True,
-            'success': True, 'response': 'yes'}}))
+            'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
 
     def test_result_score_scaled_up_bad(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.01},'completion': True,
-            'success': True, 'response': 'yes'}}))
+            'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+                
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Score scaled value in statement result must be between -1 and 1')
 
     def test_result_score_scaled(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':-1.00001},'completion': True,
-            'success': True, 'response': 'yes'}}))
+            'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+                
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Score scaled value in statement result must be between -1 and 1')
 
     def test_result_score_raw_up_good(self):
-        StatementManager(json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.01,'min':-2.0, 'max':1.01},
-            'completion': True,'success': True, 'response': 'yes'}}))
+            'completion': True,'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
 
     def test_result_score_raw_down_good(self):
-        StatementManager(json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':-20.0,'min':-20.0, 'max':1.01},
-            'completion': True,'success': True, 'response': 'yes'}}))
+            'completion': True,'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
 
     def test_result_score_raw_up_bad(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.02,'min':-2.0, 'max':1.01},
-            'completion': True,'success': True, 'response': 'yes'}}))
+            'completion': True,'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+                
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Score raw value in statement result must be between minimum and maximum')
 
     def test_result_score_raw_down_bad(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':-2.00001,'min':-2.0, 'max':1.01},
-            'completion': True,'success': True, 'response': 'yes'}}))
+            'completion': True,'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+               
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Score raw value in statement result must be between minimum and maximum')
 
     def test_result_score_min_max_bad(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({"actor":{'objectType':'Agent',
+        stmt = json.dumps({"actor":{'objectType':'Agent',
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.5,'min':2.0, 'max':1.01},
-            'completion': True,'success': True, 'response': 'yes'}}))
+            'completion': True,'success': True, 'response': 'yes'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+               
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Score minimum in statement result must be less than the maximum')
 
     def test_result_score_stmt(self):
         time = "P0Y0M0DT1H311M01S"
@@ -327,19 +352,28 @@ class StatementManagerTests(TestCase):
         self.assertIsNotNone(stmt.context_registration)   
 
     def test_wrong_statement_type_in_context(self):
-        self.assertRaises(ParamError, StatementManager,json.dumps({'actor':{'objectType':'Agent',
+        stmt = json.dumps({'actor':{'objectType':'Agent',
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
             'context':{'contextActivities': {'other': {'id': 'act:NewActivityID'}},
             'revision': 'foo', 'platform':'bar','language': 'en-US',
-            'statement': {'objectType': 'Activity','id': "act:some/act"}}}))
+            'statement': {'objectType': 'Activity','id': "act:some/act"}}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+                
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "StatementRef objectType must be set to 'StatementRef'")
 
     def test_invalid_context_registration(self):
-        guid = "bbb"
-        self.assertRaises(ParamError, StatementManager, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
-                'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
+                'context':{'registration': "bbb", 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
                 'revision': 'foo', 'platform':'bar',
-                'language': 'en-US'}}))
+                'language': 'en-US'}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+                
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Context registration - bbb is not a valid UUID')
 
     def test_context_stmt(self):
         guid = str(uuid.uuid1())
@@ -472,13 +506,18 @@ class StatementManagerTests(TestCase):
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
 
     def test_substmt_in_context_stmt(self):
-        self.assertRaises(ParamError, StatementManager, json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
                 'context':{'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'statement': {'objectType':'SubStatement', 'actor':{'objectType':'Agent',
                 'mbox':'mailto:sss@sss.com'},'verb':{'id':'verb:verb/url/nest/nest'},
-                'object':{'id':'act://activity/url'}}}}))
+                'object':{'id':'act://activity/url'}}}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "StatementRef objectType must be set to 'StatementRef'")
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
@@ -630,22 +669,28 @@ class StatementManagerTests(TestCase):
 
 
     def test_unallowed_substmt_field(self):
-        stmt = {'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
             'object': {'objectType':'activity', 'id':'act:testex.com'},
-            'authority':{'objectType':'Agent','mbox':'mailto:s@s.com'}}}
-        self.assertRaises(ParamError, StatementManager, json.dumps(stmt))
-
+            'authority':{'objectType':'Agent','mbox':'mailto:s@s.com'}}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Invalid field(s) found in SubStatement - authority')
 
     def test_nested_substatement(self):
-        stmt = {'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
             'object': {'objectType':'SubStatement', 'actor':{'objectType':'Agent','mbox':'mailto:sss@sss.com'},
-            'verb':{'id':'verb:verb/url/nest/nest'}, 'object':{'id':'act://activity/url'}}}}
-        self.assertRaises(ParamError, StatementManager, json.dumps(stmt))
-
+            'verb':{'id':'verb:verb/url/nest/nest'}, 'object':{'id':'act://activity/url'}}}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Cannot nest a SubStatement inside of another SubStatement')        
 
     def test_substatement_as_object(self):
         guid = str(uuid.uuid1())

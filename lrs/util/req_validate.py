@@ -4,8 +4,8 @@ from functools import wraps
 from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
-from lrs.util import uri
-from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound
+from lrs.util import uri, StatementValidator
+from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
 from Authorization import auth
 
 att_cache = get_cache('attachment_cache')
@@ -112,6 +112,14 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 def statements_post(r_dict):
     payload_sha2s = r_dict.get('payload_sha2s', None)
 
+    try:
+        validator = StatementValidator.StatementValidator(r_dict['body'])
+        msg = validator.validate()
+    except Exception, e:
+        raise BadRequest(e.message)
+    except ParamError, e:
+        raise ParamError(e.message)
+
     # Could be batch POST or single stmt POST
     if type(r_dict['body']) is list:
         for stmt in r_dict['body']:
@@ -140,12 +148,7 @@ def statements_get(r_dict):
         if r_dict['params']['format'] not in formats:
             raise ParamError("The format filter value (%s) was not one of the known values: %s" % (r_dict['params']['format'], ','.join(formats)))
     else:
-        r_dict['params']['format'] = 'exact'
-
-    # if this was the weird POST/GET then put the format in the body
-    # so that retrieve_statement finds it
-    # if 'body' in r_dict:
-    #     r_dict['body']['format'] = r_dict['format']        
+        r_dict['params']['format'] = 'exact'     
     
     if 'params' in r_dict and ('statementId' in r_dict['params'] or 'voidedStatementId' in r_dict['params']):
         if 'statementId' in r_dict['params'] and 'voidedStatementId' in r_dict['params']:
@@ -192,6 +195,15 @@ def statements_put(r_dict):
         err_msg = "No other params are supplied with statementId."
         raise ParamError(err_msg)
 
+    try:
+        validator = StatementValidator.StatementValidator(r_dict['body'])
+        msg = validator.validate()
+    except Exception, e:
+        raise BadRequest(e.message)
+    except ParamError, e:
+        raise ParamError(e.message)
+
+    # Need to validate sha2 payloads if there-validator can't do that
     if 'attachments' in r_dict['body']:
         attachment_data = r_dict['body']['attachments']
         payload_sha2s = r_dict.get('payload_sha2s', None)
@@ -200,35 +212,14 @@ def statements_put(r_dict):
 
 def validate_attachments(attachment_data, payload_sha2s):
     # For each attachment that is in the actual statement
-    if isinstance(attachment_data, list):
-        for attachment in attachment_data:
-            # If display is not in the attachment it fails
-            if not 'display' in attachment:
-                err_msg = "Attachment must contain display property"
+    for attachment in attachment_data:
+        # If the attachment data has a sha2 field, must validate it against the payload data
+        if 'sha2' in attachment:
+            sha2 = attachment['sha2']
+            # Check if the sha2 field is a key in the payload dict
+            if not sha2 in payload_sha2s:
+                err_msg = "Could not find attachment payload with sha: %s" % sha2
                 raise ParamError(err_msg)
-
-            # If the attachment data has a sha2 field, must validate it against the payload data
-            if 'sha2' in attachment:
-                sha2 = attachment['sha2']
-                # Check if the sha2 field is a key in the payload dict
-                if not sha2 in payload_sha2s:
-                    err_msg = "Could not find attachment payload with sha: %s" % sha2
-                    raise ParamError(err_msg)
-            # If sha2 is not in the attachment and neither is fileURL, that is invalid 
-            elif not 'fileUrl' in attachment:
-                    err_msg = "Attachment did not contain a sha2 and did not contain a fileUrl"
-                    raise ParamError(err_msg)
-            # If sha2 is not in the attachment but fileUrl and has an empty value, that is invalid
-            elif 'fileUrl' in attachment:
-                if not attachment['fileUrl']:
-                    err_msg = "Attachment had no value for fileUrl"
-                    raise ParamError(err_msg)
-                if not uri.validate_uri(attachment['fileUrl']):
-                    err_msg = 'fileUrl %s is not a valid URI' % attachment['fileUrl']
-                    raise ParamError(err_msg)
-    else:
-        err_msg = "attachments value type must be an array"
-        raise ParamError(err_msg)
 
 @auth
 @check_oauth
@@ -470,6 +461,7 @@ def agent_profile_post(r_dict):
     except Exception as e:
         err_msg = "Could not parse the content into JSON"
         raise ParamError("\n".join((err_msg, e)))
+
     return r_dict
 
 @auth
