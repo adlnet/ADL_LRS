@@ -1,39 +1,94 @@
 from django.test import TestCase
 from lrs.exceptions import ParamError
 from lrs.models import Agent
-from lrs.objects.AgentManager import AgentManager
 import hashlib
 import json
+import base64
+from lrs import models, views
+from lrs.objects.AgentManager import AgentManager
+from django.core.urlresolvers import reverse
+from django.conf import settings
 
 class AgentManagerTests(TestCase):
+    def setUp(self):
+        if not settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = True
+        
+        self.username = "tester1"
+        self.email = "test1@tester.com"
+        self.password = "test"
+        self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
+        form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+
+        if settings.HTTP_AUTH_ENABLED:
+            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
+
     def test_agent_mbox_create(self):
-        mbox = "mailto:bob@example.com"
-        bob = Agent(mbox=mbox)
-        self.assertEquals(bob.mbox, mbox)
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "object": {'id': 'http://blah.com'}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)        
+        st = models.Statement.objects.get(statement_id=st_id[0])
+        bob = st.actor
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
 
     def test_agent_mbox_sha1sum_create(self):
-        msha = hashlib.sha1("mailto:bob@example.com").hexdigest()
-        bob = Agent(mbox_sha1sum=msha)
-        self.assertEquals(bob.mbox_sha1sum, msha)
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox_sha1sum":hashlib.sha1("mailto:bob@example.com").hexdigest()},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "object": {'id': 'http://blah.com'}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)        
+        st = models.Statement.objects.get(statement_id=st_id[0])
+        bob = st.actor
+
+        self.assertEquals(bob.mbox_sha1sum, hashlib.sha1("mailto:bob@example.com").hexdigest())
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
         self.assertFalse(bob.mbox)
 
     def test_agent_openID_create(self):
-        openID = "bob.openID.com"
-        bob = Agent(openID=openID)
-        bob.save()
-        self.assertEquals(bob.openID, openID)
+        stmt = json.dumps({"actor":{"objectType": "Agent", "openID":"http://bob.openID.com"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "object": {'id': 'http://blah.com'}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)        
+        st = models.Statement.objects.get(statement_id=st_id[0])
+        bob = st.actor
+
+        self.assertEquals(bob.openID, "http://bob.openID.com")
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
         self.assertFalse(bob.mbox)
         self.assertFalse(bob.mbox_sha1sum)
 
     def test_agent_account_create(self):
-        bob = Agent(account_homePage="http://www.adlnet.gov", account_name="freakshow")
-        bob.save()
+        stmt = json.dumps({"actor":{"objectType": "Agent", "account":{"homePage": "http://www.adlnet.gov", "name":"freakshow"}},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "object": {'id': 'http://blah.com'}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)        
+        st = models.Statement.objects.get(statement_id=st_id[0])
+        bob = st.actor
+
         self.assertEquals(bob.account_name, "freakshow")
         self.assertEquals(bob.account_homePage, "http://www.adlnet.gov")
         self.assertFalse(bob.name)
@@ -243,13 +298,26 @@ class AgentManagerTests(TestCase):
 
 
     def test_agent_json_no_ids(self):
-        self.assertRaises(ParamError, Agent.objects.gen, 
-            **{"name":"bob bobson"})
+        stmt = json.dumps({"actor":{"objectType": "Agent", "name":"freakshow"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "object": {'id': 'http://blah.com'}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'One and only one of mbox, mbox_sha1sum, openID, account, openid may be supplied with an Agent')
 
     def test_agent_json_many_ids(self):
-        self.assertRaises(ParamError, Agent.objects.gen, 
-            **{"mbox":"mailto:bob@example.com",
-               "openID":"bob.bobson.openID.org"})
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com", "openid":"bob.bobson.openID.org"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "object": {'id': 'http://blah.com'}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'One and only one of mbox, mbox_sha1sum, openID, account, openid may be supplied with an Agent')
 
     def test_group(self):
         ot = "Group"

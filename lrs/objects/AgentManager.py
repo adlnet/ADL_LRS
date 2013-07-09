@@ -20,12 +20,6 @@ class AgentManager():
                 err_msg = "Error parsing the Agent object. Expecting json. Received: %s which is %s" % (params,
                     type(params))
                 raise ParamError(err_msg) 
-
-        allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'openid','account']
-        failed_list = [x for x in params.keys() if not x in allowed_fields]
-        if failed_list:
-            err_msg = "Invalid field(s) found in agent/group %s" % ', '.join(failed_list)
-            raise ParamError(err_msg)
         
         if create:
             params['define'] = self.define

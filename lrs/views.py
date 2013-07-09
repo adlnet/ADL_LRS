@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render_to_response
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware
+from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from lrs import forms, models, exceptions
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 import logging
@@ -22,6 +22,40 @@ logger = logging.getLogger(__name__)
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def home(request):
     return render_to_response('home.html', context_instance=RequestContext(request))
+
+@decorator_from_middleware(accept_middleware.AcceptMiddleware)
+def stmt_validator(request):
+    if request.method == 'GET':
+        form = forms.ValidatorForm()
+        return render_to_response('validator.html', {"form": form}, context_instance=RequestContext(request))
+    elif request.method == 'POST':
+        form = forms.ValidatorForm(request.POST)
+        if form.is_valid():
+            # Initialize validator (validates incoming data structure)
+            try:
+                validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
+            except SyntaxError, se:
+                return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
+                context_instance=RequestContext(request))
+            except ValueError, ve:
+                return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
+                context_instance=RequestContext(request))                
+            except Exception, e:
+                return render_to_response('validator.html', {"form": form, "error_message": e.message},
+                context_instance=RequestContext(request))
+
+            # Once know it's valid JSON, validate keys and fields
+            try:
+                valid = validator.validate()
+            except exceptions.ParamError, e:
+                return render_to_response('validator.html', {"form": form,"error_message": e.message},
+                    context_instance=RequestContext(request))
+            else:
+                return render_to_response('validator.html', {"form": form,"valid_message": valid},
+                    context_instance=RequestContext(request))
+        else:
+            return render_to_response('validator.html', {"form": form},
+                context_instance=RequestContext(request))
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
@@ -333,7 +367,7 @@ def oauth_authorize(request, request_token, callback_url, params):
 @login_required
 def user_profile(request):
     return render_to_response('registration/profile.html')
-
+ 
 def handle_request(request, more_id=None):
     try:
         r_dict = req_parse.parse(request, more_id)

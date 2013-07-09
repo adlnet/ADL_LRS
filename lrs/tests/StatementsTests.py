@@ -11,7 +11,7 @@ from django.utils.timezone import utc
 from django.conf import settings
 from lrs import views, models
 from lrs.util import retrieve_statement
-from lrs.util.jws import JWS, JWSException    
+from lrs.util.jws import JWS, JWSException
 from lrs.objects.StatementManager import StatementManager
 import os
 from datetime import datetime, timedelta
@@ -152,7 +152,7 @@ class StatementsTests(TestCase):
         self.existStmt9 = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:sub@sub.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
-            "object": {"objectType":"activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
+            "object": {"objectType":"Activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": self.cguid6,
             "contextActivities": {"other": {"id": "act:NewActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
@@ -262,7 +262,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.content, "Invalid field in Statement - 'result_foo' is an invalid keyword argument for this function")
+        self.assertEqual(resp.content, 'Invalid field(s) found in Result - bad, foo')
 
 
     def test_invalid_context_fields(self):
@@ -283,7 +283,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.content, "Invalid field in Statement - 'context_bad' is an invalid keyword argument for this function")
+        self.assertEqual(resp.content, 'Invalid field(s) found in Context - bad')
     
 
     def test_post_with_no_valid_params(self):
@@ -316,7 +316,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "correctResponsesPattern value type must be an array")
+        self.assertEqual(response.content, 'Activity definition correctResponsesPattern is not a properly formatted array')
 
     def test_post_wrong_choice_type(self):
         stmt = json.dumps(
@@ -332,7 +332,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "choices value type must be an array")
+        self.assertEqual(response.content, 'Activity definition choices is not a properly formatted array')
 
     def test_openid(self):
         guid = str(uuid.uuid1())
@@ -355,7 +355,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'Invalid field(s) found in agent/group bad, foo')
+        self.assertEqual(response.content, 'Invalid field(s) found in Agent/Group - bad, foo')
 
     def test_invalid_activity_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
@@ -365,7 +365,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Invalid field(s) found in activity - bad, foo")
+        self.assertEqual(response.content, "Invalid field(s) found in Activity - bad, foo")
 
     def test_invalid_activity_def_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
@@ -378,7 +378,7 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Invalid field(s) found in activity definition - bad")
+        self.assertEqual(response.content, 'Invalid field(s) found in Activity definition - bad')
 
 
     def test_post_wrong_duration(self):
@@ -391,16 +391,15 @@ class StatementsTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Unable to parse duration string u'wrongduration'")
+        self.assertEqual(response.content, "Error with result duration - Unable to parse duration string u'wrongduration'")
 
 
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:ref@ref.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
-            "id":"aaaaaaaaa"}})
+            "id":"12345678-1234-5678-1234-567812345678"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")        
-
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 404)
 
 
@@ -473,7 +472,7 @@ class StatementsTests(TestCase):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:sass@sass.com"},
             "verb": {"id":"verb:verb/url/tested"}, "object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
-            "object": {"objectType":"activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
+            "object": {"objectType":"Activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": con_guid,
             "contextActivities": {"other": {"id": "act:NewActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
@@ -568,14 +567,6 @@ class StatementsTests(TestCase):
         rsp = json.loads(getResponse.content)
         self.assertEqual(len(rsp['statements']), 11)
 
-        # more_resp_url = rsp['more']
-        # resp_id = more_resp_url[-32:]
-        # more_rsp = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
-        #     X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        # self.assertIn('content-length', more_rsp._headers)
-        # more_rsp_content = json.loads(more_rsp.content)
-        # self.assertEqual(len(more_rsp_content['statements']), 1)
-
     def test_post_no_params(self):
         self.bunchostmts()
         getResponse = self.client.post(reverse(views.statements), X_Experience_API_Version="1.0.0",
@@ -585,14 +576,6 @@ class StatementsTests(TestCase):
 
         rsp = json.loads(getResponse.content)
         self.assertEqual(len(rsp['statements']), 11)
-
-        # more_resp_url = rsp['more']
-        # resp_id = more_resp_url[-32:]
-        # more_rsp = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
-        #     X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        # self.assertIn('content-length', more_rsp._headers)
-        # more_rsp_content = json.loads(more_rsp.content)
-        # self.assertEqual(len(more_rsp_content['statements']), 1)
 
     def test_head(self):
         self.bunchostmts()
@@ -781,11 +764,7 @@ class StatementsTests(TestCase):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
-        members = [{"name":"agentA","mbox":"mailto:agentA@example.com"},
-                    {"name":"agentB","mbox":"mailto:agentB@example.com"}]
-        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
-
-        stmt = json.dumps({"actor":group,"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"}, {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
@@ -801,45 +780,35 @@ class StatementsTests(TestCase):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
-        members = "wrong" 
-        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
-
-        stmt = json.dumps({"actor":group,"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+        members = "wrong"
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "member value type must be an array")
+        self.assertEqual(response.content, 'Members is not a properly formatted array')
 
 
     def test_post_with_non_oauth_not_existing_group(self):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
-        agent_a = {"name":"agentA","mbox":"mailto:agentA@example.com"}
-        agent_b = {"name":"agentB","mbox":"mailto:agentB@example.com"}
-        members = [agent_a,agent_b]
-        group = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
-
-        stmt = json.dumps({"actor":agent_a,"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
-            "object": {"id":"act:i.pity.the.fool"}, "authority": group})
+        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+            "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.content, "Error with Agent. The agent partial ({u'member': [{u'mbox': u'mailto:agentA@example.com', u'name': u'agentA'}, {u'mbox': u'mailto:agentB@example.com', u'name': u'agentB'}], u'mbox': u'mailto:the.groupST@example.com', u'name': u'the group ST', u'objectType': u'Group'}) did not match any agents on record")
+        self.assertIn("did not match any agents on record", response.content)
 
     def test_post_with_non_oauth_existing_group(self):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
-        agent_a = {"name":"agentA","mbox":"mailto:agentA@example.com"}
-        agent_b = {"name":"agentB","mbox":"mailto:agentB@example.com"}
-        members = [agent_a,agent_b]
-        group = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
+        group = {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}
         gr_object = models.Agent.objects.gen(**group)
 
-        stmt = json.dumps({"actor":agent_a,"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
-            "object": {"id":"act:i.pity.the.fool"}, "authority": group})
+        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+            "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
@@ -1029,7 +998,6 @@ class StatementsTests(TestCase):
         put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(put_sub_stmt.status_code, 204)        
 
-
         stmt_id = str(uuid.uuid1())
         context_id= str(uuid.uuid1())
         param = {"statementId":stmt_id} 
@@ -1041,7 +1009,7 @@ class StatementsTests(TestCase):
             "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:resultKey1": "resultValue1", "ext:resultKey2":"resultValue2"}},
             "context":{"registration": context_id, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
-            "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+            "language": "en-US",
             "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
             "extensions":{"ext:contextKey1": "contextVal1","ext:contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
@@ -1286,8 +1254,8 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
-        
+        self.assertIn('actor is missing in Statement', response.content)
+
         ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
                 
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
@@ -1296,15 +1264,14 @@ class StatementsTests(TestCase):
         crp_answers = models.CorrectResponsesPatternAnswer.objects.filter(answer__contains='wrong')
         
         statements = models.Statement.objects.all()
-
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
 
         # Will have 3 exts from activity
-        self.assertEqual(len(ad_exts), 3)
-        self.assertEqual(len(verbs), 3)
-        self.assertEqual(len(activities), 3)
-        self.assertEqual(len(crp_answers), 2)
+        self.assertEqual(len(ad_exts), 0)
+        self.assertEqual(len(verbs), 0)
+        self.assertEqual(len(activities), 0)
+        self.assertEqual(len(crp_answers), 0)
 
     def test_post_list_rollback_part_2(self):
         self.bunchostmts()
@@ -1321,7 +1288,7 @@ class StatementsTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
 
         created_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
         wrong_verbs = models.Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
@@ -1337,14 +1304,14 @@ class StatementsTests(TestCase):
         verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
-        self.assertEqual(len(wrong_verbs), 2)
-        self.assertEqual(len(verb_display), 1)
+        self.assertEqual(len(wrong_verbs), 0)
+        self.assertEqual(len(verb_display), 0)
 
         self.assertEqual(len(activities), 1)
         
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(wrong_agent), 1)
+        self.assertEqual(len(wrong_agent), 0)
         self.assertEqual(len(john_agent), 1)
         self.assertEqual(len(s_agent), 1)
 
@@ -1360,7 +1327,7 @@ class StatementsTests(TestCase):
 
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
         voided_st = models.Statement.objects.get(statement_id=str(self.exist_stmt_id))
         voided_verb = models.Verb.objects.filter(verb_id__contains='voided')
         only_actor = models.Agent.objects.filter(mbox="mailto:only-s@s.com")
@@ -1368,8 +1335,8 @@ class StatementsTests(TestCase):
 
         self.assertEqual(len(statements), 11)
         self.assertEqual(voided_st.voided, False)
-        self.assertEqual(len(voided_verb), 1)
-        self.assertEqual(len(only_actor), 1)
+        self.assertEqual(len(voided_verb), 0)
+        self.assertEqual(len(only_actor), 0)
 
     def test_post_list_rollback_with_subs(self):
         self.bunchostmts()
@@ -1381,14 +1348,14 @@ class StatementsTests(TestCase):
             "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"wrong-en-US":"wrong-next"}},
             "object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},"verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
-            "object": {"objectType":"activity", "id":"act:wrong-testex.com"}, "result":{"completion": True, "success": True,
+            "object": {"objectType":"Activity", "id":"act:wrong-testex.com"}, "result":{"completion": True, "success": True,
             "response": "sub-wrong-kicked"}, "context":{"registration": sub_context_id,
             "contextActivities": {"other": {"id": "act:sub-wrong-ActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:wrong-k1": "v1", "ext:wrong-k2": "v2"}}}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
 
         s_agent = models.Agent.objects.filter(mbox="mailto:wrong-s@s.com")
         ss_agent = models.Agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
@@ -1399,13 +1366,13 @@ class StatementsTests(TestCase):
         statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
-        self.assertEqual(len(s_agent), 1)
-        self.assertEqual(len(ss_agent), 1)
+        self.assertEqual(len(s_agent), 0)
+        self.assertEqual(len(ss_agent), 0)
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 4)
-        self.assertEqual(len(activities), 3)
+        self.assertEqual(len(wrong_verb), 0)
+        self.assertEqual(len(activities), 0)
 
 
     def test_post_list_rollback_context_activities(self):
@@ -1423,7 +1390,7 @@ class StatementsTests(TestCase):
                 "objectType":"SubStatement",
                     "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},
                     "verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
-                    "object": {"objectType":"activity", "id":"act:wrong-testex.com"},
+                    "object": {"objectType":"Activity", "id":"act:wrong-testex.com"},
                     "result":{"completion": True, "success": True,"response": "sub-wrong-kicked"},
                     "context":{
                         "registration": sub_context_id,
@@ -1440,7 +1407,7 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), stmts,  content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("No actor provided in the statement, must provide 'actor' field", response.content)
+        self.assertIn('actor is missing in Statement', response.content)
 
         s_agent = models.Agent.objects.filter(mbox="mailto:wrong-s@s.com")
         ss_agent = models.Agent.objects.filter(mbox="mailto:wrong-ss@ss.com")
@@ -1452,13 +1419,13 @@ class StatementsTests(TestCase):
         statements = models.Statement.objects.all()
 
         self.assertEqual(len(statements), 11)
-        self.assertEqual(len(s_agent), 1)
-        self.assertEqual(len(ss_agent), 1)
+        self.assertEqual(len(s_agent), 0)
+        self.assertEqual(len(ss_agent), 0)
         self.assertEqual(len(john_agent), 1)
         # Only 1 sub from setup
         self.assertEqual(len(subs), 1)
-        self.assertEqual(len(wrong_verb), 4)
-        self.assertEqual(len(wrong_activities), 3)
+        self.assertEqual(len(wrong_verb), 0)
+        self.assertEqual(len(wrong_activities), 0)
         self.assertEqual(len(foogie_activities), 1)
       
     def test_stmts_w_same_regid(self):
@@ -2053,7 +2020,7 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Invalid field in attachments - 'bad' is an invalid keyword argument for this function")
+        self.assertEqual(response.content, 'Invalid field(s) found in Attachment - bad')
 
     def test_app_json_multipart_one_fileURL(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -2109,7 +2076,7 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Attachment did not contain a sha2 and did not contain a fileUrl", response.content)
+        self.assertIn('Attachment sha2 is required when no fileUrl is given', response.content)
 
     def test_multiple_app_json_multipart_no_fileUrl(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -2132,7 +2099,7 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Attachment had no value for fileUrl", response.content)
+        self.assertIn('Attachments fileUrl with value  was not a valid URI', response.content)
 
     def test_multipart_put(self):
         stmt_id = str(uuid.uuid1())
@@ -2333,7 +2300,7 @@ class StatementsTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "attachments value type must be an array")
+        self.assertEqual(response.content, 'Attachments is not a properly formatted array')
 
     def test_app_json_multipart_no_fileUrl_put(self):
         stmt_id = str(uuid.uuid1())
@@ -2353,7 +2320,7 @@ class StatementsTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Attachment did not contain a sha2 and did not contain a fileUrl", response.content)
+        self.assertIn( 'Attachment sha2 is required when no fileUrl is given', response.content)
 
     def test_app_json_invalid_fileUrl(self):
         stmt_id = str(uuid.uuid1())
@@ -2374,7 +2341,7 @@ class StatementsTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("fileUrl blah is not a valid URI", response.content)
+        self.assertIn('Attachments fileUrl with value blah was not a valid URI', response.content)
 
 
 
@@ -2404,7 +2371,7 @@ class StatementsTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Attachment had no value for fileUrl", response.content)
+        self.assertIn('Attachments fileUrl with value  was not a valid URI', response.content)
 
     def test_multipart_non_text_file(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
