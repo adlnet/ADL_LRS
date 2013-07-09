@@ -246,9 +246,10 @@ class AgentMgr(models.Manager):
             ags = [self.gen(**a) for a in members]
             # If any of the members are not in the current member list of ret_agent, add them
             for ag in ags:
-                if not ag[0] in ret_agent.member.all():
+                member_agent = ag[0]
+                if not member_agent in ret_agent.member.all():
                     if define:
-                        ret_agent.member.add(ag[0])
+                        ret_agent.member.add(member_agent)
                     else:
                         need_to_create = True
                         break
@@ -337,7 +338,9 @@ class AgentMgr(models.Manager):
         # If it is a group and has just been created, grab all of the members and send them through
         # this process then clean and save
         if is_group and created:
+            # Grabs args for each agent in members list and calls self
             ags = [self.gen(**a) for a in members]
+            # Adds each created/retrieved agent object to the return object since ags is a list of tuples (agent, created)
             ret_agent.member.add(*(a for a, c in ags))
         ret_agent.full_clean(exclude='subclass')
         ret_agent.save()

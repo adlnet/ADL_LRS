@@ -367,7 +367,7 @@ def oauth_authorize(request, request_token, callback_url, params):
 @login_required
 def user_profile(request):
     return render_to_response('registration/profile.html')
-
+ 
 def handle_request(request, more_id=None):
     try:
         r_dict = req_parse.parse(request, more_id)

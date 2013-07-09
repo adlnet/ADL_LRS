@@ -299,8 +299,8 @@ class ActivityManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)
-        st = models.Statement.objects.get(statement_id=st_id[0])
+        st_id = json.loads(response.content)[0]
+        st = models.Statement.objects.get(statement_id=st_id)
         act = models.Activity.objects.get(id=st.stmt_object.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
