@@ -61,7 +61,7 @@ class StatementValidator():
 		# If incoming data is not a string or list, try loading into dict
 		else:
 			self.stmt = data
-
+	
 	def validate(self):
 		# If list, validate each stmt inside
 		if isinstance(self.stmt, list):
