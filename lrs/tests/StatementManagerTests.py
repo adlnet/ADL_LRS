@@ -697,7 +697,7 @@ class StatementManagerTests(TestCase):
         stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
-            'object': {'objectType':'activity', 'id':'act:testex.com'}, 'result':{'completion': True, 'success': True,
+            'object': {'objectType':'Activity', 'id':'act:testex.com'}, 'result':{'completion': True, 'success': True,
             'response': 'kicked'}, 'context':{'registration': guid,
             'contextActivities': {'other': {'id': 'act:NewActivityID'}},'revision': 'foo', 'platform':'bar',
             'language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}}))
@@ -1300,7 +1300,7 @@ class StatementManagerTests(TestCase):
             "object":{"objectType":"SubStatement",
                 "actor":{"objectType":"Agent","mbox":"mailto:sub@sub.com"},
                 "verb": {"id":"verb:verb/url/nest1"},
-                "object": {"objectType":"activity", "id":"act:subactivity1"},
+                "object": {"objectType":"Activity", "id":"act:subactivity1"},
                 "result":{"completion": True, "success": True,"response": "kicked"},
                 "context":{"contextActivities": {"other": {"id": "act:subconactivity1"}},
                     'team':{'objectType': 'Group', 'name':'conteamgroup',
