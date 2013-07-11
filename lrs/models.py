@@ -269,7 +269,7 @@ class AgentMgr(models.Manager):
         if not define:
             kwargs['global_representation'] = False
         ret_agent = Agent(**kwargs)
-        ret_agent.full_clean(exclude=['subclass'])
+        ret_agent.clean()
         ret_agent.save()
         return ret_agent, True
 
@@ -342,7 +342,7 @@ class AgentMgr(models.Manager):
             ags = [self.gen(**a) for a in members]
             # Adds each created/retrieved agent object to the return object since ags is a list of tuples (agent, created)
             ret_agent.member.add(*(a for a, c in ags))
-        ret_agent.full_clean(exclude='subclass')
+        ret_agent.clean()
         ret_agent.save()
         return ret_agent, created
 
