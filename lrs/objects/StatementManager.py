@@ -82,19 +82,10 @@ class StatementManager():
 
         # Determine if substmt or stmt
         if self.__class__.__name__ == 'SubStatementManager':
-            del self.data['voided']
-            # If ID not given, created by models
-            if 'statement_id' in self.data:
-                del self.data['statement_id']
-            # Remove authority
-            if 'authority' in self.data:
-                del self.data['authority']
-            # Try to create SubStatement
-            try:
-                del self.data['objectType']
-                stmt = models.SubStatement.objects.create(**self.data)
-            except TypeError, e:
-                raise exceptions.ParamError("Invalid field in SubStatement - %s" % e.message)
+            # Try to create SubStatement            
+            # Delete objectType since it is not a field in the model
+            del self.data['objectType']
+            stmt = models.SubStatement.objects.create(**self.data)
             
             # Save any result extensions
             for k, v in result_exts.items():
@@ -119,10 +110,7 @@ class StatementManager():
                 ca.save()
         else:
             # Try to create statement
-            try:
-                stmt = models.Statement.objects.create(**self.data)
-            except TypeError, e:
-                raise exceptions.ParamError("Invalid field in Statement - %s" % e.message)
+            stmt = models.Statement.objects.create(**self.data)
         
             # Save any result extensions
             for k, v in result_exts.items():
@@ -325,19 +313,19 @@ class StatementManager():
         if not 'objectType' in statement_object_data:
             statement_object_data['objectType'] = 'Activity'
 
-        valid_agent_objects = ['agent', 'group']
+        valid_agent_objects = ['Agent', 'Group']
         # Check to see if voiding statement
         if self.data['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             self.data['stmt_object'] = self.void_statement(statement_object_data['id'])
         else:
             # Check objectType, get object based on type
-            if statement_object_data['objectType'].lower() == 'activity':
+            if statement_object_data['objectType'] == 'Activity':
                 self.data['stmt_object'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
-            elif statement_object_data['objectType'].lower() in valid_agent_objects:
+            elif statement_object_data['objectType'] in valid_agent_objects:
                 self.data['stmt_object'] = AgentManager(params=statement_object_data, create=True, define=self.define).Agent
-            elif statement_object_data['objectType'].lower() == 'substatement':
+            elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['stmt_object'] = SubStatementManager(statement_object_data, self.auth).model_object
-            elif statement_object_data['objectType'].lower() == 'statementref':
+            elif statement_object_data['objectType'] == 'StatementRef':
                 if not models.Statement.objects.filter(statement_id=statement_object_data['id']).exists():
                     err_msg = "No statement with ID %s was found" % statement_object_data['id']
                     raise exceptions.IDNotFoundError(err_msg)
@@ -348,7 +336,7 @@ class StatementManager():
     def build_authority_object(self):
         if 'authority' in self.data:
             auth_data = self.data['authority']
-            if auth_data['objectType'].lower() == 'group':
+            if auth_data['objectType'] == 'Group':
                 self.data['authority'] = AgentManager(params=auth_data, create=False, 
                     define=self.define).Agent
             else:
@@ -389,23 +377,24 @@ class StatementManager():
 
     #Once JSON is verified, populate the statement object
     def populate(self):
-        #Set voided to default false
-        self.data['voided'] = False
+        if self.__class__.__name__ == 'StatementManager':
+            #Set voided to default false
+            self.data['voided'] = False
+
+            # If non oauth group won't be sent with the authority key, so if it's a group it's a non
+            # oauth group which isn't allowed to be the authority
+            self.build_authority_object()
+
+            # Check if statement_id already exists, throw exception if it does
+            # There will only be an ID when someone is performing a PUT
+            self.check_statement_id()
+        
         self.build_verb_object()
         self.build_statement_object()
 
         self.data['actor'] = AgentManager(params=self.data['actor'], create=True, define=self.define).Agent
 
-        # If non oauth group won't be sent with the authority key, so if it's a group it's a non
-        # oauth group which isn't allowed to be the authority
-        self.build_authority_object()
-
-        # Check if statement_id already exists, throw exception if it does
-        # There will only be an ID when someone is performing a PUT
-        self.check_statement_id()
-
         self.populate_context()
-        
         self.populate_result()
 
         attachment_data = self.data.pop('attachments', None)
