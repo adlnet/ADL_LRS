@@ -73,7 +73,6 @@ def statements_more_get(req_dict):
     resp['Content-Length'] = str(content_length)
     return resp
 
-
 def statements_get(req_dict):
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
