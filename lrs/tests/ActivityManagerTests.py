@@ -183,7 +183,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
 
@@ -225,8 +225,8 @@ class ActivityManagerTests(TestCase):
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])
         st2 = models.Statement.objects.get(statement_id=st_ids[1])
-        act1 = models.Activity.objects.get(id=st1.stmt_object.id)
-        act2 = models.Activity.objects.get(id=st2.stmt_object.id)
+        act1 = models.Activity.objects.get(id=st1.object_activity.id)
+        act2 = models.Activity.objects.get(id=st2.object_activity.id)
         self.assertEqual(act2.id, act1.id)
 
     # Test activity that doesn't have a def with extensions (populates everything from XML)
@@ -241,7 +241,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -273,7 +273,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -301,7 +301,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)[0]
         st = models.Statement.objects.get(statement_id=st_id)
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -329,7 +329,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -381,7 +381,7 @@ class ActivityManagerTests(TestCase):
 
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -411,7 +411,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -442,7 +442,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -498,7 +498,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -538,7 +538,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -597,7 +597,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -634,7 +634,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -674,7 +674,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -719,7 +719,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -765,7 +765,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -808,7 +808,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -844,7 +844,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -881,7 +881,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -934,10 +934,10 @@ class ActivityManagerTests(TestCase):
         st2 = models.Statement.objects.get(statement_id=st_ids[1])
         st3 = models.Statement.objects.get(statement_id=st_ids[2])
         st4 = models.Statement.objects.get(statement_id=st_ids[3])
-        act1 = models.Activity.objects.get(id=st1.stmt_object.id)
-        act2 = models.Activity.objects.get(id=st2.stmt_object.id)
-        act3 = models.Activity.objects.get(id=st3.stmt_object.id)
-        act4 = models.Activity.objects.get(id=st4.stmt_object.id)
+        act1 = models.Activity.objects.get(id=st1.object_activity.id)
+        act2 = models.Activity.objects.get(id=st2.object_activity.id)
+        act3 = models.Activity.objects.get(id=st3.object_activity.id)
+        act4 = models.Activity.objects.get(id=st4.object_activity.id)
 
         self.assertEqual(act1.id, act2.id)
         self.assertEqual(act1.id, act3.id)
@@ -958,7 +958,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         name_set = act.activitydefinitionnamelangmap_set.all()
         desc_set = act.activitydefinitiondesclangmap_set.all()
@@ -997,8 +997,8 @@ class ActivityManagerTests(TestCase):
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])
         st2 = models.Statement.objects.get(statement_id=st_ids[1])        
-        act1 = models.Activity.objects.get(id=st1.stmt_object.id)
-        act2 = models.Activity.objects.get(id=st2.stmt_object.id)
+        act1 = models.Activity.objects.get(id=st1.object_activity.id)
+        act2 = models.Activity.objects.get(id=st2.object_activity.id)
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
@@ -1061,8 +1061,8 @@ class ActivityManagerTests(TestCase):
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])
         st2 = models.Statement.objects.get(statement_id=st_ids[1])        
-        act1 = models.Activity.objects.get(id=st1.stmt_object.id)
-        act2 = models.Activity.objects.get(id=st2.stmt_object.id)
+        act1 = models.Activity.objects.get(id=st1.object_activity.id)
+        act2 = models.Activity.objects.get(id=st2.object_activity.id)
 
         self.do_activity_model(act1.id, 'act:foobe', 'Activity')
 
@@ -1120,8 +1120,8 @@ class ActivityManagerTests(TestCase):
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])
         st2 = models.Statement.objects.get(statement_id=st_ids[1])        
-        act1 = models.Activity.objects.get(id=st1.stmt_object.id)
-        act2 = models.Activity.objects.get(id=st2.stmt_object.id)
+        act1 = models.Activity.objects.get(id=st1.object_activity.id)
+        act2 = models.Activity.objects.get(id=st2.object_activity.id)
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
@@ -1181,8 +1181,8 @@ class ActivityManagerTests(TestCase):
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])
         st2 = models.Statement.objects.get(statement_id=st_ids[1])        
-        act1 = models.Activity.objects.get(id=st1.stmt_object.id)
-        act2 = models.Activity.objects.get(id=st2.stmt_object.id)
+        act1 = models.Activity.objects.get(id=st1.object_activity.id)
+        act2 = models.Activity.objects.get(id=st2.object_activity.id)
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
@@ -1246,7 +1246,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
-        act = models.Activity.objects.get(id=st.stmt_object.id)
+        act = models.Activity.objects.get(id=st.object_activity.id)
 
         self.assertEqual(1, len(models.Activity.objects.all()))
         self.assertEqual(1, len(models.ActivityDefinitionNameLangMap.objects.all()))

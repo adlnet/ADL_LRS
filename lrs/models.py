@@ -208,22 +208,6 @@ class Extensions(models.Model):
 
     def __unicode__(self):
         return json.dumps(self.object_return())
-
-class KnowsChild(models.Model):
-    subclass = models.CharField(max_length=20)
-
-    class Meta:
-        abstract = True
-
-    def as_child(self):
-        return getattr(self, self.subclass)
-
-    def save(self, *args, **kwargs):
-        self.subclass = self.__class__.__name__.lower()
-        super(KnowsChild, self).save(*args, **kwargs)
-
-class StatementObject(KnowsChild):
-    pass
     
     def get_a_name(self):
         return "please override"
@@ -353,7 +337,7 @@ class AgentMgr(models.Manager):
         except:
             return Agent.objects.gen(**kwargs)
 
-class Agent(StatementObject):
+class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
     mbox = models.CharField(max_length=128, blank=True, db_index=True)
@@ -476,7 +460,7 @@ class AgentProfile(models.Model):
         super(AgentProfile, self).delete(*args, **kwargs)
 
 
-class Activity(StatementObject):
+class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity") 
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
@@ -697,7 +681,7 @@ class ActivityDefinitionStep(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
-class StatementRef(StatementObject):
+class StatementRef(models.Model):
     object_type = models.CharField(max_length=12, default="StatementRef")
     ref_id = models.CharField(max_length=40)
 
@@ -774,9 +758,9 @@ class StatementResultExtensions(Extensions):
 class SubStatementResultExtensions(Extensions):
     substatement = models.ForeignKey('SubStatement')
 
-class SubStatement(StatementObject):
-    stmt_object = models.ForeignKey(StatementObject, related_name="object_of_substatement", null=True,
-        on_delete=models.SET_NULL)
+class SubStatement(models.Model):
+    object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
+    object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
     actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
@@ -802,27 +786,16 @@ class SubStatement(StatementObject):
     context_statement = models.CharField(max_length=40, blank=True)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
-    def get_a_name(self):
-        return self.stmt_object.statement_id
-    
     def object_return(self, lang=None, format='exact'):
         activity_object = True
         ret = {}
         ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return()
-        subclass = self.stmt_object.subclass
 
-        if subclass == 'activity':
-           stmt_object = Activity.objects.get(id=self.stmt_object.id)
-        elif subclass == 'agent':
-            stmt_object = Agent.objects.get(id=self.stmt_object.id)
-            activity_object = False
-        else: 
-            raise IDNotFoundError('No activity or agent object found with given ID')
-        if activity_object:
-            ret['object'] = stmt_object.object_return(lang, format)  
+        if self.object_agent:
+            ret['object'] = self.object_agent.get_agent_json(format, as_object=True)
         else:
-            ret['object'] = stmt_object.get_agent_json(format, as_object=True)
+            ret['object'] = self.object_activity.object_return(lang, format)
 
         ret['result'] = {}
         if self.result_success:
@@ -903,27 +876,6 @@ class SubStatement(StatementObject):
         ret['objectType'] = "SubStatement"
         return ret
 
-    def get_object(self):
-        subclass = self.stmt_object.subclass
-        if subclass == 'activity':
-            stmt_object = Activity.objects.get(id=self.stmt_object.id)
-        elif subclass == 'agent':
-            stmt_object = Agent.objects.get(id=self.stmt_object.id)
-        else:
-            raise IDNotFoundError("No activity, or agent found with given ID")
-        return stmt_object, subclass
-
-    def delete(self, *args, **kwargs):
-        stmt_object = None
-        object_type = None
-
-        stmt_object, object_type = self.get_object()
-
-        if object_type == 'statementref':
-            stmt_object.delete()
-
-        super(SubStatement, self).delete(*args, **kwargs)
-
 class StatementAttachmentDisplay(LanguageMap):
     attachment = models.ForeignKey("StatementAttachment")
 
@@ -971,8 +923,10 @@ class StatementAttachment(models.Model):
 
 class Statement(models.Model):
     statement_id = UUIDField(version=1, db_index=True)
-    stmt_object = models.ForeignKey(StatementObject, related_name="object_of_statement", null=True,
-        on_delete=models.SET_NULL)
+    object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)    
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
@@ -1005,23 +959,6 @@ class Statement(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     attachments = models.ManyToManyField(StatementAttachment)
 
-    def get_a_name(self):
-        return self.statement_id
-
-    def get_object(self):
-        subclass = self.stmt_object.subclass
-        if subclass == 'activity':
-            stmt_object = Activity.objects.get(id=self.stmt_object.id)
-        elif subclass == 'agent':    
-            stmt_object = Agent.objects.get(id=self.stmt_object.id)
-        elif subclass == 'substatement':
-            stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
-        elif subclass == 'statementref':
-            stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
-        else:
-            raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
-        return stmt_object, subclass
-
     def object_return(self, lang=None, format='exact'):
         object_type = 'activity'
         ret = {}
@@ -1029,16 +966,15 @@ class Statement(models.Model):
         ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return()
 
-        stmt_object, object_type = self.get_object()
-        if object_type == 'activity':
-            ret['object'] = stmt_object.object_return(lang, format)
-        elif object_type == 'substatement':
-            ret['object'] = stmt_object.object_return(lang, format)  
-        elif object_type == 'statementref':
-            ret['object'] = stmt_object.object_return()
+        if self.object_agent:
+            ret['object'] = self.object_agent.get_agent_json(format, as_object=True)            
+        elif self.object_activity:
+            ret['object'] = self.object_activity.object_return(lang, format)
+        elif self.object_substatement:
+            ret['object'] = self.object_substatement.object_return(lang, format)
         else:
-            ret['object'] = stmt_object.get_agent_json(format, as_object=True)
-        
+            ret['object'] = self.object_statementref.object_return()
+
         ret['result'] = {}
         if self.result_success:
             ret['result']['success'] = self.result_success
@@ -1127,23 +1063,18 @@ class Statement(models.Model):
         return ret
 
     def unvoid_statement(self):
-        statement_ref = StatementRef.objects.get(id=self.stmt_object.id)
-        voided_stmt = Statement.objects.filter(statement_id=statement_ref.ref_id).update(voided=False)
+        Statement.objects.filter(statement_id=self.object_statementref.ref_id).update(voided=False)        
 
-    def delete(self, *args, **kwargs):
-        stmt_object = None
-        object_type = None
-        
+    def delete(self, *args, **kwargs):        
         # Unvoid stmt if verb is voided
         if self.verb.verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             self.unvoid_statement()
-        # Else retrieve its object
-        else:
-            stmt_object, object_type = self.get_object()
         
         # If sub or ref, FK will be set to null, then call delete
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
-            if object_type == 'substatement' or object_type == 'statementref':
-                stmt_object.delete()
+            if self.object_substatement:
+                self.object_substatement.delete()
+            elif self.object_statementref:
+                self.object_statementref.delete()
 
         super(Statement, self).delete(*args, **kwargs)

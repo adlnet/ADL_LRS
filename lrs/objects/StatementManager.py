@@ -316,21 +316,21 @@ class StatementManager():
         valid_agent_objects = ['Agent', 'Group']
         # Check to see if voiding statement
         if self.data['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
-            self.data['stmt_object'] = self.void_statement(statement_object_data['id'])
+            self.data['object_statementref'] = self.void_statement(statement_object_data['id'])
         else:
             # Check objectType, get object based on type
             if statement_object_data['objectType'] == 'Activity':
-                self.data['stmt_object'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
+                self.data['object_activity'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
             elif statement_object_data['objectType'] in valid_agent_objects:
-                self.data['stmt_object'] = AgentManager(params=statement_object_data, create=True, define=self.define).Agent
+                self.data['object_agent'] = AgentManager(params=statement_object_data, create=True, define=self.define).Agent
             elif statement_object_data['objectType'] == 'SubStatement':
-                self.data['stmt_object'] = SubStatementManager(statement_object_data, self.auth).model_object
+                self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
                 if not models.Statement.objects.filter(statement_id=statement_object_data['id']).exists():
                     err_msg = "No statement with ID %s was found" % statement_object_data['id']
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
-                    self.data['stmt_object'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
+                    self.data['object_statementref'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
         del self.data['object']
 
     def build_authority_object(self):
