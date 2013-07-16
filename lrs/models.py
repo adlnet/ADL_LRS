@@ -761,6 +761,7 @@ class SubStatementResultExtensions(Extensions):
 class SubStatement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
+    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)    
     actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
@@ -794,8 +795,10 @@ class SubStatement(models.Model):
 
         if self.object_agent:
             ret['object'] = self.object_agent.get_agent_json(format, as_object=True)
-        else:
+        elif self.object_activity:
             ret['object'] = self.object_activity.object_return(lang, format)
+        else:
+            ret['object'] = self.object_statementref.object_return()
 
         ret['result'] = {}
         if self.result_success:
@@ -875,6 +878,12 @@ class SubStatement(models.Model):
         ret['timestamp'] = str(self.timestamp)
         ret['objectType'] = "SubStatement"
         return ret
+
+    def delete(self, *args, **kwargs):
+        if self.object_statementref:
+            self.object_statementref.delete()
+        
+        super(SubStatement, self).delete(*args, **kwargs)
 
 class StatementAttachmentDisplay(LanguageMap):
     attachment = models.ForeignKey("StatementAttachment")
