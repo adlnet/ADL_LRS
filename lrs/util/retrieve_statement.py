@@ -40,7 +40,6 @@ def complex_get(req_dict):
         stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
-
     if 'auth' in req_dict and (req_dict['auth'] and 'statements_mine_only' in req_dict['auth']):
         stmtset = stmtset.filter(authority=req_dict['auth']['id'])
 
@@ -203,7 +202,6 @@ def get_statement_request(req_id):
     return stmt_result, attachments
 
 def set_limit(req_limit):
-
     if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
         req_limit = settings.SERVER_STMT_LIMIT
 

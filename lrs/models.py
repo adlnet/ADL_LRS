@@ -152,9 +152,6 @@ class LanguageMap(models.Model):
     def object_return(self):
         return {self.key: self.value}
 
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
 class VerbDisplay(LanguageMap):
     verb = models.ForeignKey("Verb")
 
@@ -170,7 +167,7 @@ class Verb(models.Model):
         else:
             lang_map_set = self.verbdisplay_set.all()
 
-        if len(lang_map_set) > 0:
+        if lang_map_set:
             ret['display'] = {}
             for lang_map in lang_map_set:
                 ret['display'].update(lang_map.object_return())        
@@ -192,10 +189,6 @@ class Verb(models.Model):
                 pass
         return self.verbdisplay_set.all()[0].value
 
-    def __unicode__(self):
-        return json.dumps(self.object_return())         
-
-
 class Extensions(models.Model):
     key=models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     value=models.TextField()
@@ -206,13 +199,7 @@ class Extensions(models.Model):
     def object_return(self):
         return {self.key:self.value}
 
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-    
-    def get_a_name(self):
-        return "please override"
-
-agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openID', 'account', 'openid')
+agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 class AgentMgr(models.Manager):
     # Have to return ret_agent since we may re-bind it after update
     def update_agent_name_and_members(self, kwargs, ret_agent, members, define):
@@ -240,6 +227,7 @@ class AgentMgr(models.Manager):
         return ret_agent, need_to_create
 
     def create_agent(self, kwargs, define): 
+        # If account is supplied, rename the kwargs keys to match the model field names for account then delete the old keys, values
         if 'account' in kwargs:
             account = kwargs['account']
             if 'homePage' in account:
@@ -247,9 +235,9 @@ class AgentMgr(models.Manager):
 
             if 'name' in account:
                 kwargs['account_name'] = kwargs['account']['name']
-
             del kwargs['account']
 
+        # Set define and create agent
         if not define:
             kwargs['global_representation'] = False
         ret_agent = Agent(**kwargs)
@@ -258,29 +246,25 @@ class AgentMgr(models.Manager):
         return ret_agent, True
 
     def gen(self, **kwargs):
-        types = ['Agent', 'Group']
-        if 'objectType' in kwargs and kwargs['objectType'] not in types:
-            raise ParamError('Actor objectType must be: %s' % ' or '.join(types))
-
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
-        # Find any IFPs
-        attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
+        # Find the IFP
+        ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]
         # If there is an IFP (could be blank if group) make a dict with the IFP key and value
-        if attrs:
-            attr = attrs[0]
-            if not 'account' == attr:
-                attrs_dict = {attr:kwargs[attr]}
+        if ifp_sent:
+            ifp = ifp_sent[0]
+            if not 'account' == ifp:
+                ifp_dict = {ifp:kwargs[ifp]}
             else:
                 if not isinstance(kwargs['account'], dict):
                     kwargs['account'] = json.loads(kwargs['account'])
                 account = kwargs['account']
 
                 if 'homePage' in account:
-                    attrs_dict = {'account_homePage': account['homePage']}
+                    ifp_dict = {'account_homePage': account['homePage']}
 
                 if 'name' in account:
-                    attrs_dict = {'account_name': account['name']}
+                    ifp_dict = {'account_name': account['name']}
 
         # Gen will only get called from AgentManager or Authorization. Since global is true by default and
         # AgentManager always sets the define key based off of the oauth scope, default this to True if the
@@ -305,10 +289,10 @@ class AgentMgr(models.Manager):
         # Try to get the agent/group
         try:
             # If there are no IFPs but there are members (group with no IFPs)
-            if not attrs and members:
+            if not ifp_sent and members:
                 ret_agent, created = self.create_agent(kwargs, define)
             else:
-                ret_agent = Agent.objects.get(**attrs_dict)
+                ret_agent = Agent.objects.get(**ifp_dict)
                 created = False
                 ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
                 if need_to_create:
@@ -349,14 +333,6 @@ class Agent(models.Model):
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     account_name = models.CharField(max_length=50, blank=True)    
     objects = AgentMgr()
-
-    def __init__(self, *args, **kwargs):
-        if "member" in kwargs:
-            if "objectType" in kwargs and kwargs["objectType"] == "Agent":
-                raise ParamError('An Agent cannot have members')
-
-            kwargs["objectType"] = "Group"
-        super(Agent, self).__init__(*args, **kwargs)
 
     def clean(self):
         from lrs.util import uri
@@ -459,7 +435,6 @@ class AgentProfile(models.Model):
         self.profile.delete()
         super(AgentProfile, self).delete(*args, **kwargs)
 
-
 class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity") 
@@ -550,15 +525,6 @@ class Activity(models.Model):
 
         return ret
 
-    def get_a_name(self):
-        try:
-            return self.activitydefinitionnamelangmap_set.get(key='en-US').value
-        except:
-            return self.activity_id
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
 class ActivityDefinitionNameLangMap(LanguageMap):
     activity = models.ForeignKey(Activity)
 
@@ -574,9 +540,6 @@ class CorrectResponsesPatternAnswer(models.Model):
 
     def object_return(self):
         return self.answer
-
-    def __unicode__(self):
-        return self.object_return()
 
 class ActivityDefinitionChoiceDesc(LanguageMap):
     act_def_choice = models.ForeignKey("ActivityDefinitionChoice")
@@ -691,12 +654,6 @@ class StatementRef(models.Model):
         ret['id'] = self.ref_id
         return ret
 
-    def get_a_name(self):
-        s = Statement.objects.get(statement_id=self.ref_id)
-        o, f = s.get_object()
-        return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
-
-
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
     context_activity = models.ManyToManyField(Activity)
@@ -767,7 +724,7 @@ class SubStatement(models.Model):
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
     result_response = models.TextField(blank=True)
-    #Made charfield since it would be stored in ISO8601 duration format
+    # Made charfield since it would be stored in ISO8601 duration format
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
     result_score_raw = models.FloatField(blank=True, null=True)
@@ -785,7 +742,7 @@ class SubStatement(models.Model):
     context_language = models.CharField(max_length=50,blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
-    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    # user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def object_return(self, lang=None, format='exact'):
         activity_object = True
@@ -831,11 +788,12 @@ class SubStatement(models.Model):
             del ret['result']['score']
 
         result_ext = self.substatementresultextensions_set.all()
-        if len(result_ext) > 0:
+        if result_ext:
             ret['result']['extensions'] = {}
             for ext in result_ext:
                 ret['result']['extensions'].update(ext.object_return())        
 
+        # If no result, delete from dict
         if not ret['result']:
             del ret['result']
 
@@ -861,13 +819,13 @@ class SubStatement(models.Model):
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
 
-        if len(self.substatementcontextactivity_set.all()) > 0:
+        if self.substatementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.substatementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.object_return(lang, format))
 
         context_ext = self.substatementcontextextensions_set.all()
-        if len(context_ext) > 0:
+        if context_ext:
             ret['context']['extensions'] = {}
             for ext in context_ext:
                 ret['context']['extensions'].update(ext.object_return()) 
@@ -910,12 +868,12 @@ class StatementAttachment(models.Model):
             statement_attachment_display_set = self.statementattachmentdisplay_set.all()
             statement_attachment_desc_set = self.statementattachmentdesc_set.all()
 
-        if len(statement_attachment_display_set) > 0:
+        if statement_attachment_display_set:
             ret['display'] = {}
             for lang_map in statement_attachment_display_set:
                 ret['display'].update(lang_map.object_return())
         
-        if len(statement_attachment_desc_set) > 0:
+        if statement_attachment_desc_set:
             ret['description'] = {}
             for lang_map in statement_attachment_desc_set:
                 ret['description'].update(lang_map.object_return())        
@@ -942,7 +900,7 @@ class Statement(models.Model):
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
     result_response = models.TextField(blank=True)
-    #Made charfield since it would be stored in ISO8601 duration format
+    # Made charfield since it would be stored in ISO8601 duration format
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
     result_score_raw = models.FloatField(blank=True, null=True)
@@ -965,11 +923,9 @@ class Statement(models.Model):
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7, default="1.0.0")
-    user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     attachments = models.ManyToManyField(StatementAttachment)
 
     def object_return(self, lang=None, format='exact'):
-        object_type = 'activity'
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.get_agent_json(format)
@@ -1015,7 +971,7 @@ class Statement(models.Model):
             del ret['result']['score']
 
         result_ext = self.statementresultextensions_set.all()
-        if len(result_ext) > 0:
+        if result_ext:
             ret['result']['extensions'] = {}
             for ext in result_ext:
                 ret['result']['extensions'].update(ext.object_return())        
@@ -1045,13 +1001,13 @@ class Statement(models.Model):
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
 
-        if len(self.statementcontextactivity_set.all()) > 0:
+        if self.statementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.statementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.object_return(lang, format))
 
         context_ext = self.statementcontextextensions_set.all()
-        if len(context_ext) > 0:
+        if context_ext:
             ret['context']['extensions'] = {}
             for ext in context_ext:
                 ret['context']['extensions'].update(ext.object_return()) 
@@ -1067,7 +1023,7 @@ class Statement(models.Model):
         
         ret['version'] = self.version
 
-        if len(self.attachments.all()) > 0:
+        if self.attachments.all():
             ret['attachments'] = [a.object_return(lang) for a in self.attachments.all()]
         return ret
 

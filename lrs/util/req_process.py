@@ -249,7 +249,6 @@ def activity_profile_get(req_dict):
     response['since'] = since
     return response
 
-
 def activity_profile_delete(req_dict):
     #Instantiate activity profile
     ap = ActivityProfileManager()
