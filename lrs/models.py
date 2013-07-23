@@ -152,6 +152,9 @@ class LanguageMap(models.Model):
     def object_return(self):
         return {self.key: self.value}
 
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
 class VerbDisplay(LanguageMap):
     verb = models.ForeignKey("Verb")
 
@@ -188,6 +191,9 @@ class Verb(models.Model):
             except:
                 pass
         return self.verbdisplay_set.all()[0].value
+    
+    def __unicode__(self):
+        return json.dumps(self.object_return())
 
 class Extensions(models.Model):
     key=models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
@@ -525,6 +531,15 @@ class Activity(models.Model):
 
         return ret
 
+    def get_a_name(self):
+        try:
+            return self.activitydefinitionnamelangmap_set.get(key='en-US').value
+        except:
+            return self.activity_id
+
+    def __unicode__(self):
+        return json.dumps(self.object_return())
+
 class ActivityDefinitionNameLangMap(LanguageMap):
     activity = models.ForeignKey(Activity)
 
@@ -541,6 +556,8 @@ class CorrectResponsesPatternAnswer(models.Model):
     def object_return(self):
         return self.answer
 
+    def __unicode__(self):
+        return self.object_return()
 class ActivityDefinitionChoiceDesc(LanguageMap):
     act_def_choice = models.ForeignKey("ActivityDefinitionChoice")
 
@@ -654,6 +671,10 @@ class StatementRef(models.Model):
         ret['id'] = self.ref_id
         return ret
 
+    def get_a_name(self):
+        s = Statement.objects.get(statement_id=self.ref_id)
+        o, f = s.get_object()
+        return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
     context_activity = models.ManyToManyField(Activity)
@@ -742,8 +763,7 @@ class SubStatement(models.Model):
     context_language = models.CharField(max_length=50,blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
-    # user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-
+    
     def object_return(self, lang=None, format='exact'):
         activity_object = True
         ret = {}
@@ -837,6 +857,18 @@ class SubStatement(models.Model):
         ret['objectType'] = "SubStatement"
         return ret
 
+    def get_a_name(self):
+        return self.stmt_object.statement_id
+
+    def get_object(self):
+        if self.object_activity:
+            stmt_object = self.object_activity
+        elif self.object_agent:
+            stmt_object = self.object_agent
+        else:
+            stmt_object = self.object_statementref
+        return stmt_object
+
     def delete(self, *args, **kwargs):
         if self.object_statementref:
             self.object_statementref.delete()
@@ -924,7 +956,8 @@ class Statement(models.Model):
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7, default="1.0.0")
     attachments = models.ManyToManyField(StatementAttachment)
-
+    # Used in views
+    user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     def object_return(self, lang=None, format='exact'):
         ret = {}
         ret['id'] = self.statement_id
@@ -1029,6 +1062,20 @@ class Statement(models.Model):
 
     def unvoid_statement(self):
         Statement.objects.filter(statement_id=self.object_statementref.ref_id).update(voided=False)        
+
+    def get_a_name(self):
+        return self.statement_id
+
+    def get_object(self):
+        if self.object_activity:
+            stmt_object = self.object_activity
+        elif self.object_agent:
+            stmt_object = self.object_agent
+        elif self.object_substatement:
+            stmt_object = self.object_substatement
+        else:
+            stmt_object = self.object_statementref
+        return stmt_object
 
     def delete(self, *args, **kwargs):        
         # Unvoid stmt if verb is voided

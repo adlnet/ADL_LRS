@@ -25,8 +25,7 @@ def parse(request, more_id=None):
     if 'Authorization' in r_dict['headers']:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and type for authentication
         # module
-        set_authorization(r_dict, request)
-        
+        set_authorization(r_dict, request)     
     elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
         # Authorization could be passed into body if cross origin request
         r_dict['auth']['type'] = 'http'
@@ -122,7 +121,7 @@ def parse_attachment(r, request):
         raise ParamError("This content was not multipart for the multipart request.")
     # see if the posted statements have attachments
     att_stmts = []
-    if type(r['body']) == list:
+    if isinstance(r['body'], list):
         for s in r['body']:
             if 'attachments' in s:
                 att_stmts.append(s)
