@@ -294,8 +294,8 @@ class AuthTests(TestCase):
         self.assertEqual(response.status_code, 200)
         activity1 = models.Activity.objects.get(activity_id="act:test_list_post")
         activity2 = models.Activity.objects.get(activity_id="act:test_list_post1")
-        stmt1 = models.Statement.objects.get(stmt_object=activity1)
-        stmt2 = models.Statement.objects.get(stmt_object=activity2)
+        stmt1 = models.Statement.objects.get(object_activity=activity1)
+        stmt2 = models.Statement.objects.get(object_activity=activity2)
         verb1 = models.Verb.objects.get(id=stmt1.verb.id)
         verb2 = models.Verb.objects.get(id=stmt2.verb.id)
         lang_map1 = verb1.verbdisplay_set.all()[0]

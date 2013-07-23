@@ -24,7 +24,6 @@ def statements_post(req_dict):
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
-
                 stmt = StatementManager(st, auth=auth_id, define=define).model_object
                 stmt_responses.append(str(stmt.statement_id))
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
@@ -249,7 +248,6 @@ def activity_profile_get(req_dict):
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     response['since'] = since
     return response
-
 
 def activity_profile_delete(req_dict):
     #Instantiate activity profile

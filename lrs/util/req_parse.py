@@ -25,29 +25,7 @@ def parse(request, more_id=None):
     if 'Authorization' in r_dict['headers']:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and type for authentication
         # module
-        auth_params = r_dict['headers']['Authorization']
-        if auth_params[:6] == 'OAuth ':
-            # Make sure it has the required/valid oauth headers
-            if CheckOAuth.is_valid_request(request):
-                try:
-                    consumer, token, parameters = CheckOAuth.validate_token(request)
-                except OAuthError, e:
-                    raise OauthUnauthorized(send_oauth_error(e))
-                # Set consumer and token for authentication piece
-                r_dict['auth']['oauth_consumer'] = consumer
-                r_dict['auth']['oauth_token'] = token
-                r_dict['auth']['type'] = 'oauth'
-            else:
-                raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid OAuth request parameters.'))))
-
-            # Used for OAuth scope
-            endpoint = request.path[5:]
-            # Since we accept with or without / on end
-            if endpoint.endswith("/"):
-                endpoint = endpoint[:-1]
-            r_dict['auth']['endpoint'] = endpoint
-        else:
-            r_dict['auth']['type'] = 'http'
+        set_authorization(r_dict, request)     
     elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
         # Authorization could be passed into body if cross origin request
         r_dict['auth']['type'] = 'http'
@@ -73,7 +51,6 @@ def parse(request, more_id=None):
     # Update dict with any GET data
     r_dict['params'].update(request.GET.dict())
 
-
     # A 'POST' can actually be a GET
     if 'method' not in r_dict['params']:
         if request.method == "POST" and "application/json" not in r_dict['headers']['CONTENT_TYPE'] and "multipart/mixed" not in r_dict['headers']['CONTENT_TYPE']:
@@ -86,6 +63,82 @@ def parse(request, more_id=None):
         r_dict['more_id'] = more_id
     return r_dict
 
+def set_authorization(r_dict, request):
+    auth_params = r_dict['headers']['Authorization']
+    if auth_params[:6] == 'OAuth ':
+        # Make sure it has the required/valid oauth headers
+        if CheckOAuth.is_valid_request(request):
+            try:
+                consumer, token, parameters = CheckOAuth.validate_token(request)
+            except OAuthError, e:
+                raise OauthUnauthorized(send_oauth_error(e))
+            # Set consumer and token for authentication piece
+            r_dict['auth']['oauth_consumer'] = consumer
+            r_dict['auth']['oauth_token'] = token
+            r_dict['auth']['type'] = 'oauth'
+        else:
+            raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid OAuth request parameters.'))))
+
+        # Used for OAuth scope
+        endpoint = request.path[5:]
+        # Since we accept with or without / on end
+        if endpoint.endswith("/"):
+            endpoint = endpoint[:-1]
+        r_dict['auth']['endpoint'] = endpoint
+    else:
+        r_dict['auth']['type'] = 'http'    
+
+def parse_attachment(r, request):
+    message = request.body
+    # i need boundary to be in the message for email to parse it right
+    if 'boundary' not in message[:message.index("--")]:
+        if 'boundary' in request.META['CONTENT_TYPE']:
+            message = request.META['CONTENT_TYPE'] + message
+        else:
+            raise BadRequest("Could not find the boundary for the multipart content")
+    msg = email.message_from_string(message)
+    if msg.is_multipart():
+        parts = []
+        for part in msg.walk():
+            parts.append(part)
+        if len(parts) < 1:
+            raise ParamError("The content of the multipart request didn't contain a statement")
+        # ignore parts[0], it's the whole thing
+        # parts[1] better be the statement
+        r['body'] = convert_to_dict(parts[1].get_payload())
+        if len(parts) > 2:
+            r['payload_sha2s'] = []
+            for a in parts[2:]:
+                # attachments
+                thehash = a.get("X-Experience-API-Hash")
+                if not thehash:
+                    raise BadRequest("X-Experience-API-Hash header was missing from attachment")
+                headers = defaultdict(str)
+                r['payload_sha2s'].append(thehash)
+                # Save msg object to cache
+                att_cache.set(thehash, a)
+    else:
+        raise ParamError("This content was not multipart for the multipart request.")
+    # see if the posted statements have attachments
+    att_stmts = []
+    if isinstance(r['body'], list):
+        for s in r['body']:
+            if 'attachments' in s:
+                att_stmts.append(s)
+    elif 'attachments' in r['body']:
+        att_stmts.append(r['body'])
+    if att_stmts:
+        # find if any of those statements with attachments have a signed statement
+        signed_stmts = [(s,a) for s in att_stmts for a in s.get('attachments', None) if a['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
+        for ss in signed_stmts:
+            attmnt = att_cache.get(ss[1]['sha2']).get_payload(decode=True)
+            jws = JWS(jws=attmnt)
+            try:
+                if not jws.verify() or not jws.validate(ss[0]):
+                    raise BadRequest("The JSON Web Signature is not valid")
+            except JWSException as jwsx:
+                raise BadRequest(jwsx)    
+
 def parse_body(r, request):
     if request.method == 'POST' or request.method == 'PUT':
         # Parse out profiles/states if the POST dict is not empty
@@ -97,55 +150,7 @@ def parse_body(r, request):
                 r['files'] = files
         # If it is multipart/mixed, parse out all data
         elif 'multipart/mixed' in request.META['CONTENT_TYPE']: 
-            message = request.body
-            # i need boundary to be in the message for email to parse it right
-            if 'boundary' not in message[:message.index("--")]:
-                if 'boundary' in request.META['CONTENT_TYPE']:
-                    message = request.META['CONTENT_TYPE'] + message
-                else:
-                    raise BadRequest("Could not find the boundary for the multipart content")
-            msg = email.message_from_string(message)
-            if msg.is_multipart():
-                parts = []
-                for part in msg.walk():
-                    parts.append(part)
-                if len(parts) < 1:
-                    raise ParamError("The content of the multipart request didn't contain a statement")
-                # ignore parts[0], it's the whole thing
-                # parts[1] better be the statement
-                r['body'] = convert_to_dict(parts[1].get_payload())
-                if len(parts) > 2:
-                    r['payload_sha2s'] = []
-                    for a in parts[2:]:
-                        # attachments
-                        thehash = a.get("X-Experience-API-Hash")
-                        if not thehash:
-                            raise BadRequest("X-Experience-API-Hash header was missing from attachment")
-                        headers = defaultdict(str)
-                        r['payload_sha2s'].append(thehash)
-                        # Save msg object to cache
-                        att_cache.set(thehash, a)
-            else:
-                raise ParamError("This content was not multipart for the multipart request.")
-            # see if the posted statements have attachments
-            att_stmts = []
-            if type(r['body']) == list:
-                for s in r['body']:
-                    if 'attachments' in s:
-                        att_stmts.append(s)
-            elif 'attachments' in r['body']:
-                att_stmts.append(r['body'])
-            if att_stmts:
-                # find if any of those statements with attachments have a signed statement
-                signed_stmts = [(s,a) for s in att_stmts for a in s.get('attachments', None) if a['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
-                for ss in signed_stmts:
-                    attmnt = att_cache.get(ss[1]['sha2']).get_payload(decode=True)
-                    jws = JWS(jws=attmnt)
-                    try:
-                        if not jws.verify() or not jws.validate(ss[0]):
-                            raise BadRequest("The JSON Web Signature is not valid")
-                    except JWSException as jwsx:
-                        raise BadRequest(jwsx)
+            parse_attachment(r, request)
         # Normal POST/PUT data
         else:
             if request.body:
