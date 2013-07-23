@@ -40,7 +40,6 @@ def complex_get(req_dict):
         stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
-
     if 'auth' in req_dict and (req_dict['auth'] and 'statements_mine_only' in req_dict['auth']):
         stmtset = stmtset.filter(authority=req_dict['auth']['id'])
 
@@ -66,12 +65,12 @@ def complex_get(req_dict):
             if related:
                 me = chain([agent], groups)
                 for a in me:
-                    agentQ = agentQ | Q(stmt_object=a) | Q(authority=a) \
+                    agentQ = agentQ | Q(object_agent=a) | Q(authority=a) \
                           | Q(context_instructor=a) | Q(context_team=a) \
-                          | Q(stmt_object__substatement__actor=a) \
-                          | Q(stmt_object__substatement__stmt_object=a) \
-                          | Q(stmt_object__substatement__context_instructor=a) \
-                          | Q(stmt_object__substatement__context_team=a)       
+                          | Q(object_substatement__actor=a) \
+                          | Q(object_substatement__object_agent=a) \
+                          | Q(object_substatement__context_instructor=a) \
+                          | Q(object_substatement__context_team=a)       
         except models.IDNotFoundError:
             return[]     
     
@@ -84,11 +83,11 @@ def complex_get(req_dict):
     activityQ = Q()
     if 'activity' in the_dict:
         reffilter = True
-        activityQ = Q(stmt_object__activity__activity_id=the_dict['activity'])
+        activityQ = Q(object_activity__activity_id=the_dict['activity'])
         if 'related_activities' in the_dict and the_dict['related_activities']:
             activityQ = activityQ | Q(statementcontextactivity__context_activity__activity_id=the_dict['activity']) \
-                    | Q(stmt_object__substatement__stmt_object__activity__activity_id=the_dict['activity']) \
-                    | Q(stmt_object__substatement__substatementcontextactivity__context_activity__activity_id=the_dict['activity'])
+                    | Q(object_substatement__object_activity__activity_id=the_dict['activity']) \
+                    | Q(object_substatement__substatementcontextactivity__context_activity__activity_id=the_dict['activity'])
 
 
     registrationQ = Q()
@@ -128,7 +127,7 @@ def findstmtrefs(stmtset, sinceq, untilq):
         return stmtset
     q = Q()
     for s in stmtset:
-        q = q | Q(stmt_object__statementref__ref_id=s.statement_id)
+        q = q | Q(object_statementref__ref_id=s.statement_id)
 
     if sinceq and untilq:
         q = q & Q(sinceq, untilq)
@@ -203,7 +202,6 @@ def get_statement_request(req_id):
     return stmt_result, attachments
 
 def set_limit(req_limit):
-
     if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
         req_limit = settings.SERVER_STMT_LIMIT
 

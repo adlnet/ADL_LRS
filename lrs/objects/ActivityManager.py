@@ -236,15 +236,7 @@ class ActivityManager():
         else:
             # If created and have permisson to (re)define activities
             if self.define:
-                # Save activity definition names and descriptions
-                if 'name' in act_def:
-                    for name_lang_map in act_def['name'].items():
-                        n = models.ActivityDefinitionNameLangMap.objects.create(key=name_lang_map[0],
-                                      value=name_lang_map[1], activity=self.Activity)
-                if 'description' in act_def:
-                    for desc_lang_map in act_def['description'].items():
-                        d = models.ActivityDefinitionDescLangMap.objects.create(key=desc_lang_map[0],
-                                      value=desc_lang_map[1], activity=self.Activity)
+                self.save_act_def_name_and_desc_map(act_def)
 
         # If the activity definition was just created (can't update the CRP or extensions of a def if already existed)
         #If there is a correctResponsesPattern then save the pattern
@@ -254,6 +246,17 @@ class ActivityManager():
         #See if activity definition has extensions
         if act_def_created and 'extensions' in act_def.keys():
             self.populate_extensions(act_def) 
+
+    def save_act_def_name_and_desc_map(self, act_def):
+        # Save activity definition names and descriptions
+        if 'name' in act_def:
+            for name_lang_map in act_def['name'].items():
+                models.ActivityDefinitionNameLangMap.objects.create(key=name_lang_map[0],
+                              value=name_lang_map[1], activity=self.Activity)
+        if 'description' in act_def:
+            for desc_lang_map in act_def['description'].items():
+                models.ActivityDefinitionDescLangMap.objects.create(key=desc_lang_map[0],
+                              value=desc_lang_map[1], activity=self.Activity)
 
     def populate_correct_responses_pattern(self, act_def, interaction_flag):
         #For each answer in the pattern save it

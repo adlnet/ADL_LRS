@@ -49,13 +49,13 @@ class StatementManager():
         return params
 
     def void_statement(self,stmt_id):
-        str_id = str(stmt_id)        
+        # str_id = str(stmt_id)
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
             stmt = models.Statement.objects.get(statement_id=stmt_id)
         except models.Statement.DoesNotExist:
-            err_msg = "Statement with ID %s does not exist" % str(stmt_id)
+            err_msg = "Statement with ID %s does not exist" % stmt_id
             raise exceptions.IDNotFoundError(err_msg)
         
         # Check if it is already voided 
@@ -66,12 +66,11 @@ class StatementManager():
             stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
             return stmt_ref
         else:
-            err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % str_id
+            err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % stmt_id
             raise exceptions.Forbidden(err_msg)
 
-    #Save statement to DB
-    def save_object_to_db(self):
-        self.data['user'] = get_user_from_auth(self.auth)
+    # Save sub to DB
+    def save_substatement_to_db(self):
         context_activity_types = ['parent', 'grouping', 'category', 'other']
         # Pop off any result extensions
         result_exts = self.data.pop('result_extensions', {})
@@ -80,59 +79,70 @@ class StatementManager():
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
-        # Determine if substmt or stmt
-        if self.__class__.__name__ == 'SubStatementManager':
-            # Try to create SubStatement            
-            # Delete objectType since it is not a field in the model
-            del self.data['objectType']
-            stmt = models.SubStatement.objects.create(**self.data)
-            
-            # Save any result extensions
-            for k, v in result_exts.items():
-                models.SubStatementResultExtensions.objects.create(key=k, value=v, substatement=stmt)
-
-            # Save any context extensions
-            for k, v in context_exts.items():              
-                models.SubStatementContextExtensions.objects.create(key=k, value=v, substatement=stmt)
-
-            # Save context activities
-            # Can have multiple groupings
-            for con_act_group in con_act_data.items():
-                ca = models.SubStatementContextActivity.objects.create(key=con_act_group[0], substatement=stmt)
-                # Incoming contextActivities can either be a list or dict
-                if isinstance(con_act_group[1], list):
-                    for con_act in con_act_group[1]:
-                        act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
-                        ca.context_activity.add(act)
-                else:
-                    act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
-                    ca.context_activity.add(act)
-                ca.save()
-        else:
-            # Try to create statement
-            stmt = models.Statement.objects.create(**self.data)
+        # Try to create SubStatement            
+        # Delete objectType since it is not a field in the model
+        del self.data['objectType']
+        sub = models.SubStatement.objects.create(**self.data)
         
-            # Save any result extensions
-            for k, v in result_exts.items():
-                models.StatementResultExtensions.objects.create(key=k, value=v, statement=stmt)
+        # Save any result extensions
+        for k, v in result_exts.items():
+            models.SubStatementResultExtensions.objects.create(key=k, value=v, substatement=sub)
 
-            # Save any context extensions
-            for k, v in context_exts.items():              
-                models.StatementContextExtensions.objects.create(key=k, value=v, statement=stmt)
+        # Save any context extensions
+        for k, v in context_exts.items():              
+            models.SubStatementContextExtensions.objects.create(key=k, value=v, substatement=sub)
 
-            # Save context activities
-            # Can have multiple groupings
-            for con_act_group in con_act_data.items():
-                ca = models.StatementContextActivity.objects.create(key=con_act_group[0], statement=stmt)
-                # Incoming contextActivities can either be a list or dict
-                if isinstance(con_act_group[1], list):
-                    for con_act in con_act_group[1]:
-                        act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
-                        ca.context_activity.add(act)
-                else:
-                    act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
+        # Save context activities
+        # Can have multiple groupings
+        for con_act_group in con_act_data.items():
+            ca = models.SubStatementContextActivity.objects.create(key=con_act_group[0], substatement=sub)
+            # Incoming contextActivities can either be a list or dict
+            if isinstance(con_act_group[1], list):
+                for con_act in con_act_group[1]:
+                    act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
                     ca.context_activity.add(act)
-                ca.save()
+            else:
+                act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
+                ca.context_activity.add(act)
+            ca.save()
+
+        return sub
+
+    # Save statement to DB
+    def save_statement_to_db(self):
+        context_activity_types = ['parent', 'grouping', 'category', 'other']
+        # Pop off any result extensions
+        result_exts = self.data.pop('result_extensions', {})
+        # Pop off any context extensions
+        context_exts = self.data.pop('context_extensions', {})
+        # Pop off any context activities
+        con_act_data = self.data.pop('context_contextActivities',{})
+
+        # Try to create statement
+        stmt = models.Statement.objects.create(**self.data)
+    
+        # Save any result extensions
+        for k, v in result_exts.items():
+            models.StatementResultExtensions.objects.create(key=k, value=v, statement=stmt)
+
+        # Save any context extensions
+        for k, v in context_exts.items():              
+            models.StatementContextExtensions.objects.create(key=k, value=v, statement=stmt)
+
+        # Save context activities
+        # Can have multiple groupings
+        for con_act_group in con_act_data.items():
+            ca = models.StatementContextActivity.objects.create(key=con_act_group[0], statement=stmt)
+            # Incoming contextActivities can either be a list or dict
+            if isinstance(con_act_group[1], list):
+                for con_act in con_act_group[1]:
+                    act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
+                    ca.context_activity.add(act)
+            else:
+                act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
+                ca.context_activity.add(act)
+            ca.save()
+        
         return stmt
 
     def populate_result(self):
@@ -150,6 +160,72 @@ class StatementManager():
 
             del self.data['result']
 
+    def create_attachment_displays_and_descs(self, displays, descriptions, attachment):        
+        for display in displays.items():
+            models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
+                attachment=attachment)
+    
+        if descriptions:
+            for desc in descriptions.items():
+                models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
+                    attachment=attachment)
+
+    def update_attachment_displays_and_descs(self, attachment, displays, descriptions):
+        # Grab existing display and desc keys for the attachment
+        existing_display_keys = attachment.statementattachmentdisplay_set.all().values_list('key', flat=True)
+        existing_desc_keys = attachment.statementattachmentdesc_set.all().values_list('key', flat=True)                
+
+        # Iterate through each incoming display
+        for d in displays.items():
+            # If the new key already exists, update that display with the new value
+            if d[0] in existing_display_keys:
+                existing_display = attachment.statementattachmentdisplay_set.get(key=d[0])
+                existing_display.value = d[1]
+                existing_display.save()
+            # Else it doesn't exist so just create it
+            else:
+                models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
+                    attachment=attachment)
+        # Iterate through each incoming desc
+        for de in descriptions.items():
+            #  If the new key alerady exists, update that desc with the new value
+            if de[0] in existing_desc_keys:
+                existing_desc = attachment.statementattachmentdesc_set.get(key=de[0])
+                existing_desc.value = de[1]
+                existing_desc.save()
+            #  Else it doesn't exist so just create it
+            else:
+                models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
+                    attachment=attachment)
+
+    def save_attachment(self, attach):
+        sha2 = attach['sha2']
+        try:
+            attachment = models.StatementAttachment.objects.get(sha2=sha2)
+            created = False
+        except models.StatementAttachment.DoesNotExist:
+            try:
+                attachment = models.StatementAttachment.objects.create(**attach)
+            except TypeError, e:
+                err_msg = "Invalid field in attachments - %s" % e.message
+                raise exceptions.ParamError(err_msg)
+                
+            created = True                
+            # Since there is a sha2, there must be a payload cached
+            # Decode payload from msg object saved in cache and create ContentFile from raw data
+            msg = att_cache.get(sha2)
+            raw_payload = msg.get_payload(decode=True)
+            try:
+                payload = ContentFile(raw_payload)
+            except:
+                try:
+                    payload = ContentFile(raw_payload.read())
+                except Exception, e:
+                    raise e    
+            # Save ContentFile payload to attachment model object
+            attachment.payload.save(sha2, payload)
+        return attachment, created 
+
     def populate_attachments(self, attachment_data, attachment_payloads):
         if attachment_data:
             # Iterate through each attachment
@@ -160,31 +236,7 @@ class StatementManager():
 
                 # Get or create based on sha2
                 if 'sha2' in attach:
-                    sha2 = attach['sha2']
-                    try:
-                        attachment = models.StatementAttachment.objects.get(sha2=sha2)
-                        created = False
-                    except models.StatementAttachment.DoesNotExist:
-                        try:
-                            attachment = models.StatementAttachment.objects.create(**attach)
-                        except TypeError, e:
-                            err_msg = "Invalid field in attachments - %s" % e.message
-                            raise exceptions.ParamError(err_msg)
-                            
-                        created = True                
-                        # Since there is a sha2, there must be a payload cached
-                        # Decode payload from msg object saved in cache and create ContentFile from raw data
-                        msg = att_cache.get(sha2)
-                        raw_payload = msg.get_payload(decode=True)
-                        try:
-                            payload = ContentFile(raw_payload)
-                        except:
-                            try:
-                                payload = ContentFile(raw_payload.read())
-                            except Exception, e:
-                                raise e    
-                        # Save ContentFile payload to attachment model object
-                        attachment.payload.save(sha2, payload)
+                    attachment, created = self.save_attachment(attach)
                 # If no sha2 there must be a fileUrl which is unique
                 else:
                     try:
@@ -196,43 +248,11 @@ class StatementManager():
 
                 # If it was just created, create the displays and descs
                 if created:
-                    for display in displays.items():
-                        models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
-                            attachment=attachment)
-                
-                    if descriptions:
-                        for desc in descriptions.items():
-                            models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
-                                attachment=attachment)
+                    self.create_attachment_displays_and_descs(displays, descriptions, attachment)
 
                 # If have define permission and attachment already has existed
                 if self.define and not created:
-                    # Grab existing display and desc keys for the attachment
-                    existing_display_keys = attachment.statementattachmentdisplay_set.all().values_list('key', flat=True)
-                    existing_desc_keys = attachment.statementattachmentdesc_set.all().values_list('key', flat=True)                
-
-                    # Iterate through each incoming display
-                    for d in displays.items():
-                        # If the new key already exists, update that display with the new value
-                        if d[0] in existing_display_keys:
-                            existing_display = attachment.statementattachmentdisplay_set.get(key=d[0])
-                            existing_display.value = d[1]
-                            existing_display.save()
-                        # Else it doesn't exist so just create it
-                        else:
-                            models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
-                                attachment=attachment)
-                    # Iterate through each incoming desc
-                    for de in descriptions.items():
-                        #  If the new key alerady exists, update that desc with the new value
-                        if de[0] in existing_desc_keys:
-                            existing_desc = attachment.statementattachmentdesc_set.get(key=de[0])
-                            existing_desc.value = de[1]
-                            existing_desc.save()
-                        #  Else it doesn't exist so just create it
-                        else:
-                            models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
-                                attachment=attachment)
+                    self.update_attachment_displays_and_descs(attachment, displays, descriptions)
 
                 # Add each attach to the stmt
                 self.model_object.attachments.add(attachment)
@@ -316,21 +336,21 @@ class StatementManager():
         valid_agent_objects = ['Agent', 'Group']
         # Check to see if voiding statement
         if self.data['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
-            self.data['stmt_object'] = self.void_statement(statement_object_data['id'])
+            self.data['object_statementref'] = self.void_statement(statement_object_data['id'])
         else:
             # Check objectType, get object based on type
             if statement_object_data['objectType'] == 'Activity':
-                self.data['stmt_object'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
+                self.data['object_activity'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
             elif statement_object_data['objectType'] in valid_agent_objects:
-                self.data['stmt_object'] = AgentManager(params=statement_object_data, create=True, define=self.define).Agent
+                self.data['object_agent'] = AgentManager(params=statement_object_data, create=True, define=self.define).Agent
             elif statement_object_data['objectType'] == 'SubStatement':
-                self.data['stmt_object'] = SubStatementManager(statement_object_data, self.auth).model_object
+                self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
                 if not models.Statement.objects.filter(statement_id=statement_object_data['id']).exists():
                     err_msg = "No statement with ID %s was found" % statement_object_data['id']
                     raise exceptions.IDNotFoundError(err_msg)
                 else:
-                    self.data['stmt_object'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
+                    self.data['object_statementref'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
         del self.data['object']
 
     def build_authority_object(self):
@@ -399,8 +419,12 @@ class StatementManager():
 
         attachment_data = self.data.pop('attachments', None)
         attachment_payloads = self.data.pop('attachment_payloads', None)
-        #Save statement/substatement
-        self.model_object = self.save_object_to_db()
+        
+        if self.__class__.__name__ == 'StatementManager':
+            #Save statement/substatement
+            self.model_object = self.save_statement_to_db()
+        else:
+            self.model_object = self.save_substatement_to_db()
 
         self.populate_attachments(attachment_data, attachment_payloads)
 

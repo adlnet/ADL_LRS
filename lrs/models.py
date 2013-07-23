@@ -170,7 +170,7 @@ class Verb(models.Model):
         else:
             lang_map_set = self.verbdisplay_set.all()
 
-        if len(lang_map_set) > 0:
+        if lang_map_set:
             ret['display'] = {}
             for lang_map in lang_map_set:
                 ret['display'].update(lang_map.object_return())        
@@ -191,10 +191,9 @@ class Verb(models.Model):
             except:
                 pass
         return self.verbdisplay_set.all()[0].value
-
+    
     def __unicode__(self):
-        return json.dumps(self.object_return())         
-
+        return json.dumps(self.object_return())
 
 class Extensions(models.Model):
     key=models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
@@ -206,29 +205,7 @@ class Extensions(models.Model):
     def object_return(self):
         return {self.key:self.value}
 
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
-class KnowsChild(models.Model):
-    subclass = models.CharField(max_length=20)
-
-    class Meta:
-        abstract = True
-
-    def as_child(self):
-        return getattr(self, self.subclass)
-
-    def save(self, *args, **kwargs):
-        self.subclass = self.__class__.__name__.lower()
-        super(KnowsChild, self).save(*args, **kwargs)
-
-class StatementObject(KnowsChild):
-    pass
-    
-    def get_a_name(self):
-        return "please override"
-
-agent_attrs_can_only_be_one = ('mbox', 'mbox_sha1sum', 'openID', 'account', 'openid')
+agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 class AgentMgr(models.Manager):
     # Have to return ret_agent since we may re-bind it after update
     def update_agent_name_and_members(self, kwargs, ret_agent, members, define):
@@ -256,6 +233,7 @@ class AgentMgr(models.Manager):
         return ret_agent, need_to_create
 
     def create_agent(self, kwargs, define): 
+        # If account is supplied, rename the kwargs keys to match the model field names for account then delete the old keys, values
         if 'account' in kwargs:
             account = kwargs['account']
             if 'homePage' in account:
@@ -263,9 +241,9 @@ class AgentMgr(models.Manager):
 
             if 'name' in account:
                 kwargs['account_name'] = kwargs['account']['name']
-
             del kwargs['account']
 
+        # Set define and create agent
         if not define:
             kwargs['global_representation'] = False
         ret_agent = Agent(**kwargs)
@@ -274,29 +252,25 @@ class AgentMgr(models.Manager):
         return ret_agent, True
 
     def gen(self, **kwargs):
-        types = ['Agent', 'Group']
-        if 'objectType' in kwargs and kwargs['objectType'] not in types:
-            raise ParamError('Actor objectType must be: %s' % ' or '.join(types))
-
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
-        # Find any IFPs
-        attrs = [a for a in agent_attrs_can_only_be_one if kwargs.get(a, None) != None]
+        # Find the IFP
+        ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]
         # If there is an IFP (could be blank if group) make a dict with the IFP key and value
-        if attrs:
-            attr = attrs[0]
-            if not 'account' == attr:
-                attrs_dict = {attr:kwargs[attr]}
+        if ifp_sent:
+            ifp = ifp_sent[0]
+            if not 'account' == ifp:
+                ifp_dict = {ifp:kwargs[ifp]}
             else:
                 if not isinstance(kwargs['account'], dict):
                     kwargs['account'] = json.loads(kwargs['account'])
                 account = kwargs['account']
 
                 if 'homePage' in account:
-                    attrs_dict = {'account_homePage': account['homePage']}
+                    ifp_dict = {'account_homePage': account['homePage']}
 
                 if 'name' in account:
-                    attrs_dict = {'account_name': account['name']}
+                    ifp_dict = {'account_name': account['name']}
 
         # Gen will only get called from AgentManager or Authorization. Since global is true by default and
         # AgentManager always sets the define key based off of the oauth scope, default this to True if the
@@ -321,10 +295,10 @@ class AgentMgr(models.Manager):
         # Try to get the agent/group
         try:
             # If there are no IFPs but there are members (group with no IFPs)
-            if not attrs and members:
+            if not ifp_sent and members:
                 ret_agent, created = self.create_agent(kwargs, define)
             else:
-                ret_agent = Agent.objects.get(**attrs_dict)
+                ret_agent = Agent.objects.get(**ifp_dict)
                 created = False
                 ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
                 if need_to_create:
@@ -353,7 +327,7 @@ class AgentMgr(models.Manager):
         except:
             return Agent.objects.gen(**kwargs)
 
-class Agent(StatementObject):
+class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
     mbox = models.CharField(max_length=128, blank=True, db_index=True)
@@ -365,14 +339,6 @@ class Agent(StatementObject):
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     account_name = models.CharField(max_length=50, blank=True)    
     objects = AgentMgr()
-
-    def __init__(self, *args, **kwargs):
-        if "member" in kwargs:
-            if "objectType" in kwargs and kwargs["objectType"] == "Agent":
-                raise ParamError('An Agent cannot have members')
-
-            kwargs["objectType"] = "Group"
-        super(Agent, self).__init__(*args, **kwargs)
 
     def clean(self):
         from lrs.util import uri
@@ -475,8 +441,7 @@ class AgentProfile(models.Model):
         self.profile.delete()
         super(AgentProfile, self).delete(*args, **kwargs)
 
-
-class Activity(StatementObject):
+class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity") 
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
@@ -593,7 +558,6 @@ class CorrectResponsesPatternAnswer(models.Model):
 
     def __unicode__(self):
         return self.object_return()
-
 class ActivityDefinitionChoiceDesc(LanguageMap):
     act_def_choice = models.ForeignKey("ActivityDefinitionChoice")
 
@@ -697,7 +661,7 @@ class ActivityDefinitionStep(models.Model):
             ret['description'].update(lang_map.object_return())
         return ret
 
-class StatementRef(StatementObject):
+class StatementRef(models.Model):
     object_type = models.CharField(max_length=12, default="StatementRef")
     ref_id = models.CharField(max_length=40)
 
@@ -711,8 +675,6 @@ class StatementRef(StatementObject):
         s = Statement.objects.get(statement_id=self.ref_id)
         o, f = s.get_object()
         return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
-
-
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
     context_activity = models.ManyToManyField(Activity)
@@ -774,15 +736,16 @@ class StatementResultExtensions(Extensions):
 class SubStatementResultExtensions(Extensions):
     substatement = models.ForeignKey('SubStatement')
 
-class SubStatement(StatementObject):
-    stmt_object = models.ForeignKey(StatementObject, related_name="object_of_substatement", null=True,
-        on_delete=models.SET_NULL)
+class SubStatement(models.Model):
+    object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
+    object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
+    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)    
     actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
     result_response = models.TextField(blank=True)
-    #Made charfield since it would be stored in ISO8601 duration format
+    # Made charfield since it would be stored in ISO8601 duration format
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
     result_score_raw = models.FloatField(blank=True, null=True)
@@ -800,29 +763,19 @@ class SubStatement(StatementObject):
     context_language = models.CharField(max_length=50,blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
-    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-
-    def get_a_name(self):
-        return self.stmt_object.statement_id
     
     def object_return(self, lang=None, format='exact'):
         activity_object = True
         ret = {}
         ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return()
-        subclass = self.stmt_object.subclass
 
-        if subclass == 'activity':
-           stmt_object = Activity.objects.get(id=self.stmt_object.id)
-        elif subclass == 'agent':
-            stmt_object = Agent.objects.get(id=self.stmt_object.id)
-            activity_object = False
-        else: 
-            raise IDNotFoundError('No activity or agent object found with given ID')
-        if activity_object:
-            ret['object'] = stmt_object.object_return(lang, format)  
+        if self.object_agent:
+            ret['object'] = self.object_agent.get_agent_json(format, as_object=True)
+        elif self.object_activity:
+            ret['object'] = self.object_activity.object_return(lang, format)
         else:
-            ret['object'] = stmt_object.get_agent_json(format, as_object=True)
+            ret['object'] = self.object_statementref.object_return()
 
         ret['result'] = {}
         if self.result_success:
@@ -855,11 +808,12 @@ class SubStatement(StatementObject):
             del ret['result']['score']
 
         result_ext = self.substatementresultextensions_set.all()
-        if len(result_ext) > 0:
+        if result_ext:
             ret['result']['extensions'] = {}
             for ext in result_ext:
                 ret['result']['extensions'].update(ext.object_return())        
 
+        # If no result, delete from dict
         if not ret['result']:
             del ret['result']
 
@@ -885,13 +839,13 @@ class SubStatement(StatementObject):
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
 
-        if len(self.substatementcontextactivity_set.all()) > 0:
+        if self.substatementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.substatementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.object_return(lang, format))
 
         context_ext = self.substatementcontextextensions_set.all()
-        if len(context_ext) > 0:
+        if context_ext:
             ret['context']['extensions'] = {}
             for ext in context_ext:
                 ret['context']['extensions'].update(ext.object_return()) 
@@ -903,25 +857,22 @@ class SubStatement(StatementObject):
         ret['objectType'] = "SubStatement"
         return ret
 
+    def get_a_name(self):
+        return self.stmt_object.statement_id
+
     def get_object(self):
-        subclass = self.stmt_object.subclass
-        if subclass == 'activity':
-            stmt_object = Activity.objects.get(id=self.stmt_object.id)
-        elif subclass == 'agent':
-            stmt_object = Agent.objects.get(id=self.stmt_object.id)
+        if self.object_activity:
+            stmt_object = self.object_activity
+        elif self.object_agent:
+            stmt_object = self.object_agent
         else:
-            raise IDNotFoundError("No activity, or agent found with given ID")
-        return stmt_object, subclass
+            stmt_object = self.object_statementref
+        return stmt_object
 
     def delete(self, *args, **kwargs):
-        stmt_object = None
-        object_type = None
-
-        stmt_object, object_type = self.get_object()
-
-        if object_type == 'statementref':
-            stmt_object.delete()
-
+        if self.object_statementref:
+            self.object_statementref.delete()
+        
         super(SubStatement, self).delete(*args, **kwargs)
 
 class StatementAttachmentDisplay(LanguageMap):
@@ -949,12 +900,12 @@ class StatementAttachment(models.Model):
             statement_attachment_display_set = self.statementattachmentdisplay_set.all()
             statement_attachment_desc_set = self.statementattachmentdesc_set.all()
 
-        if len(statement_attachment_display_set) > 0:
+        if statement_attachment_display_set:
             ret['display'] = {}
             for lang_map in statement_attachment_display_set:
                 ret['display'].update(lang_map.object_return())
         
-        if len(statement_attachment_desc_set) > 0:
+        if statement_attachment_desc_set:
             ret['description'] = {}
             for lang_map in statement_attachment_desc_set:
                 ret['description'].update(lang_map.object_return())        
@@ -971,15 +922,17 @@ class StatementAttachment(models.Model):
 
 class Statement(models.Model):
     statement_id = UUIDField(version=1, db_index=True)
-    stmt_object = models.ForeignKey(StatementObject, related_name="object_of_statement", null=True,
-        on_delete=models.SET_NULL)
+    object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)    
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
     result_response = models.TextField(blank=True)
-    #Made charfield since it would be stored in ISO8601 duration format
+    # Made charfield since it would be stored in ISO8601 duration format
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
     result_score_raw = models.FloatField(blank=True, null=True)
@@ -1002,43 +955,24 @@ class Statement(models.Model):
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7, default="1.0.0")
-    user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     attachments = models.ManyToManyField(StatementAttachment)
-
-    def get_a_name(self):
-        return self.statement_id
-
-    def get_object(self):
-        subclass = self.stmt_object.subclass
-        if subclass == 'activity':
-            stmt_object = Activity.objects.get(id=self.stmt_object.id)
-        elif subclass == 'agent':    
-            stmt_object = Agent.objects.get(id=self.stmt_object.id)
-        elif subclass == 'substatement':
-            stmt_object = SubStatement.objects.get(id=self.stmt_object.id)
-        elif subclass == 'statementref':
-            stmt_object = StatementRef.objects.get(id=self.stmt_object.id)
-        else:
-            raise IDNotFoundError("No activity, agent, substatement, or statementref found with given ID")
-        return stmt_object, subclass
-
+    # Used in views
+    user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     def object_return(self, lang=None, format='exact'):
-        object_type = 'activity'
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return()
 
-        stmt_object, object_type = self.get_object()
-        if object_type == 'activity':
-            ret['object'] = stmt_object.object_return(lang, format)
-        elif object_type == 'substatement':
-            ret['object'] = stmt_object.object_return(lang, format)  
-        elif object_type == 'statementref':
-            ret['object'] = stmt_object.object_return()
+        if self.object_agent:
+            ret['object'] = self.object_agent.get_agent_json(format, as_object=True)            
+        elif self.object_activity:
+            ret['object'] = self.object_activity.object_return(lang, format)
+        elif self.object_substatement:
+            ret['object'] = self.object_substatement.object_return(lang, format)
         else:
-            ret['object'] = stmt_object.get_agent_json(format, as_object=True)
-        
+            ret['object'] = self.object_statementref.object_return()
+
         ret['result'] = {}
         if self.result_success:
             ret['result']['success'] = self.result_success
@@ -1070,7 +1004,7 @@ class Statement(models.Model):
             del ret['result']['score']
 
         result_ext = self.statementresultextensions_set.all()
-        if len(result_ext) > 0:
+        if result_ext:
             ret['result']['extensions'] = {}
             for ext in result_ext:
                 ret['result']['extensions'].update(ext.object_return())        
@@ -1100,13 +1034,13 @@ class Statement(models.Model):
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
 
-        if len(self.statementcontextactivity_set.all()) > 0:
+        if self.statementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.statementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.object_return(lang, format))
 
         context_ext = self.statementcontextextensions_set.all()
-        if len(context_ext) > 0:
+        if context_ext:
             ret['context']['extensions'] = {}
             for ext in context_ext:
                 ret['context']['extensions'].update(ext.object_return()) 
@@ -1122,28 +1056,37 @@ class Statement(models.Model):
         
         ret['version'] = self.version
 
-        if len(self.attachments.all()) > 0:
+        if self.attachments.all():
             ret['attachments'] = [a.object_return(lang) for a in self.attachments.all()]
         return ret
 
     def unvoid_statement(self):
-        statement_ref = StatementRef.objects.get(id=self.stmt_object.id)
-        voided_stmt = Statement.objects.filter(statement_id=statement_ref.ref_id).update(voided=False)
+        Statement.objects.filter(statement_id=self.object_statementref.ref_id).update(voided=False)        
 
-    def delete(self, *args, **kwargs):
-        stmt_object = None
-        object_type = None
-        
+    def get_a_name(self):
+        return self.statement_id
+
+    def get_object(self):
+        if self.object_activity:
+            stmt_object = self.object_activity
+        elif self.object_agent:
+            stmt_object = self.object_agent
+        elif self.object_substatement:
+            stmt_object = self.object_substatement
+        else:
+            stmt_object = self.object_statementref
+        return stmt_object
+
+    def delete(self, *args, **kwargs):        
         # Unvoid stmt if verb is voided
         if self.verb.verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             self.unvoid_statement()
-        # Else retrieve its object
-        else:
-            stmt_object, object_type = self.get_object()
         
         # If sub or ref, FK will be set to null, then call delete
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
-            if object_type == 'substatement' or object_type == 'statementref':
-                stmt_object.delete()
+            if self.object_substatement:
+                self.object_substatement.delete()
+            elif self.object_statementref:
+                self.object_statementref.delete()
 
         super(Statement, self).delete(*args, **kwargs)
