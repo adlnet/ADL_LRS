@@ -77,7 +77,7 @@ class StatementValidator():
 
 	def validate_email(self, email):
 		res = uri_re.match(email)
-		if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None or res.group(0) != s:
+		if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None or res.group(0) != email:
 			self.return_error("mbox value [%s] did not start with mailto:" % email)
 
 	def validate_uri(self, uri_value, field):
