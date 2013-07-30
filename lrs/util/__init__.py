@@ -20,6 +20,8 @@ def convert_to_utc(timestr):
 def convert_to_dict(incoming_data):
     data = {}
     # GET data will be non JSON string-have to try literal_eval
+    if type(incoming_data) == dict:
+        return incoming_data
     try:
         data = json.loads(incoming_data)
     except Exception, e:
