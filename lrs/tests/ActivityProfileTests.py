@@ -1,3 +1,4 @@
+import ast
 import json
 import time
 import hashlib
@@ -32,27 +33,27 @@ class ActivityProfileTests(TestCase):
         self.testparams1 = {"profileId": self.testprofileId1, "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         self.testprofile1 = {"test":"put profile 1","obj":{"activity":"test"}}
-        self.put1 = self.client.put(path, self.testprofile1, content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.put1 = self.client.put(path, json.dumps(self.testprofile1), content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         
         self.testparams2 = {"profileId": self.testprofileId2, "activityId": self.test_activityId2}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams2))
         self.testprofile2 = {"test":"put profile 2","obj":{"activity":"test"}}
-        self.put2 = self.client.put(path, self.testprofile2, content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.put2 = self.client.put(path, json.dumps(self.testprofile2), content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
 
         self.testparams3 = {"profileId": self.testprofileId3, "activityId": self.test_activityId3}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams3))
         self.testprofile3 = {"test":"put profile 3","obj":{"activity":"test"}}
-        self.put3 = self.client.put(path, self.testprofile3, content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.put3 = self.client.put(path, json.dumps(self.testprofile3), content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
 
         self.testparams4 = {"profileId": self.otherprofileId1, "activityId": self.other_activityId}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams4))
         self.otherprofile1 = {"test":"put profile other","obj":{"activity":"other"}}
-        self.put4 = self.client.put(path, self.otherprofile1, content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.put4 = self.client.put(path, json.dumps(self.otherprofile1), content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
 
         self.testparams5 = {"profileId": self.otherprofileId1, "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams5))
         self.anotherprofile1 = {"test":"put another profile 1","obj":{"activity":"other"}}
-        self.put5 = self.client.put(path, self.anotherprofile1, content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.put5 = self.client.put(path, json.dumps(self.anotherprofile1), content_type=self.content_type, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
 
         
     def tearDown(self):
@@ -102,17 +103,19 @@ class ActivityProfileTests(TestCase):
         
         r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % self.testprofile1)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], self.testprofile1['test'])
+        self.assertEqual(robj['obj']['activity'], self.testprofile1['obj']['activity'])
 
     def test_put_etag_right_on_change(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         profile = {"test":"good - trying to put new profile w/ etag header","obj":{"activity":"act:test"}}
-        thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        thehash = '"%s"' % hashlib.sha1(json.dumps(self.testprofile1)).hexdigest()
+        response = self.client.put(path, json.dumps(profile), content_type=self.content_type, If_Match=thehash, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % profile)
+        self.assertEqual(r.content, json.dumps(profile))
 
     def test_put_etag_wrong_on_change(self):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
@@ -124,17 +127,21 @@ class ActivityProfileTests(TestCase):
 
         r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % self.testprofile1)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], self.testprofile1['test'])
+        self.assertEqual(robj['obj']['activity'], self.testprofile1['obj']['activity'])
 
     def test_put_etag_if_none_match_good(self):
         params = {"profileId": 'http://etag.nomatch.good', "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"good - trying to put new profile w/ if none match etag header","obj":{"activity":"act:test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, if_none_match='*', Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        response = self.client.put(path, json.dumps(profile), content_type=self.content_type, if_none_match='*', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), params, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % profile)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], profile['test'])
+        self.assertEqual(robj['obj']['activity'], profile['obj']['activity'])
 
         r = self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
@@ -147,7 +154,9 @@ class ActivityProfileTests(TestCase):
 
         r = self.client.get(reverse(views.activity_profile), self.testparams1, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.content, '%s' % self.testprofile1)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], self.testprofile1['test'])
+        self.assertEqual(robj['obj']['activity'], self.testprofile1['obj']['activity'])
   
     def test_get_activity_only(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId2}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
@@ -161,7 +170,9 @@ class ActivityProfileTests(TestCase):
     def test_get_activity_profileId(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.testprofile1)
+        robj = ast.literal_eval(response.content)
+        self.assertEqual(robj['test'], self.testprofile1['test'])
+        self.assertEqual(robj['obj']['activity'], self.testprofile1['obj']['activity'])
         resp_hash = hashlib.sha1(response.content).hexdigest()
         self.assertEqual(response['etag'], '"%s"' % resp_hash)    
         params = {'activityId': self.test_activityId1, 'profileId': self.testprofileId1}
@@ -184,7 +195,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": profid, "activityId": actid}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         prof = {"test":"timezone since","obj":{"activity":"other"}}
-        r = self.client.put(path, prof, content_type=self.content_type, updated="2012-11-11T12:00:00+00:00", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        r = self.client.put(path, json.dumps(prof), content_type=self.content_type, updated="2012-11-11T12:00:00+00:00", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 204)
 
         since = "2012-11-11T12:00:00-02:00"
@@ -283,7 +294,7 @@ class ActivityProfileTests(TestCase):
         
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
-        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(ast.literal_eval(get.content), prof)
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
         self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
 
@@ -297,7 +308,8 @@ class ActivityProfileTests(TestCase):
         
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
-        self.assertEqual(json.loads(get.content), prof)
+        what = ast.literal_eval(get.content)
+        self.assertEqual(what, prof)
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         params = {"profileId": "prof:test_post_update_profile", "activityId": "act:test.post.update.prof"}
@@ -309,7 +321,7 @@ class ActivityProfileTests(TestCase):
 
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
-        ret_json = json.loads(get.content)
+        ret_json = ast.literal_eval(get.content)
         self.assertEqual(ret_json['added'], prof['added'])
         self.assertEqual(ret_json['test'], "post updated profile")
         self.assertEqual(ret_json['obj']['activity'], prof['obj']['activity'])
@@ -328,7 +340,7 @@ class ActivityProfileTests(TestCase):
         
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
-        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(ast.literal_eval(get.content), prof)
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         params = {"profileId": "prof:test_post_and_put_profile", "activityId": "act:test.post.put.prof"}
@@ -341,7 +353,7 @@ class ActivityProfileTests(TestCase):
         
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
-        self.assertEqual(json.loads(get.content), prof)
+        self.assertEqual(ast.literal_eval(get.content), prof)
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         params = {"profileId": "prof:test_post_and_put_profile", "activityId": "act:test.post.put.prof"}
@@ -353,7 +365,7 @@ class ActivityProfileTests(TestCase):
 
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
-        ret_json = json.loads(get.content)
+        ret_json = ast.literal_eval(get.content)
         self.assertEqual(ret_json['wipe'], "new data")
         self.assertEqual(ret_json['added'], prof['added'])
         self.assertEqual(ret_json['test'], prof['test'])
@@ -362,3 +374,13 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+
+    def test_current_tetris(self):
+        params = {"profileId":"profile:highscores","activityId":"act:adlnet.gov/JsTetris_TCAPI"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        
+        put = self.client.put(path, '[{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":802335,"date":"2013-07-26T13:42:13.465Z"},{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":159482,"date":"2013-07-26T13:49:14.011Z"},{"actor":{"name":"lou","mbox":"mailto:l@l.com"},"score":86690,"date":"2013-07-26T13:27:29.083Z"},{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":15504,"date":"2013-07-26T13:27:30.763Z"},{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":1982,"date":"2013-07-26T13:29:46.067Z"},{"actor":{"name":"unknown","mbox":"mailto:unknown@example.com"},"score":348,"date":"2013-07-26T13:51:08.043Z"}]', content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(put.status_code, 204)
+        
+        theget = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(theget['ETag'], '"d4827d99a5cc3510d3847baa341ba5a3b477fdfc"')

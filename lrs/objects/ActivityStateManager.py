@@ -1,3 +1,4 @@
+import ast
 import datetime
 import json
 from django.core.files.base import ContentFile
@@ -36,36 +37,64 @@ class ActivityStateManager():
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
         if created:
-            state = ContentFile(post_state)
-        else:
-            original_state = json.load(p.state)
-            post_state = json.loads(post_state)
-            merged = dict(original_state.items() + post_state.items())
-            p.state.delete()
-            state = ContentFile(json.dumps(merged))
+            p.json_state = ast.literal_eval(post_state)
+            p.content_type = self.content_type
+            p.etag = etag.create_tag(post_state)
 
-        self.save_state(p, created, state)
+            if self.updated:
+                p.updated = self.updated
+        else:
+            orig_state = ast.literal_eval(p.json_state)
+            post_state = ast.literal_eval(post_state)
+            merged = '%s' % dict(orig_state.items() + post_state.items())
+            p.json_state = merged
+            p.etag = etag.create_tag(merged)
+
+        p.save()
+
+        # if created:
+        #     state = ContentFile(post_state)
+        # else:
+        #     original_state = json.load(p.state)
+        #     post_state = json.loads(post_state)
+        #     merged = dict(original_state.items() + post_state.items())
+        #     p.state.delete()
+        #     state = ContentFile(json.dumps(merged))
+
+        # self.save_state(p, created, state)
 
     @transaction.commit_on_success
     def put(self):
         agent = self.__get_agent(create=True)
-        try:
-            state = ContentFile(self.state.read())
-        except:
-            try:
-                state = ContentFile(self.state)
-            except:
-                state = ContentFile(str(self.state))
-
         if self.registrationId:
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
         else:
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
-        if not created:
-            etag.check_preconditions(self.req_dict,p)
-            p.state.delete() # remove old state file
-        self.save_state(p, created, state)
+        if self.content_type != "application/json":
+            try:
+                state = ContentFile(self.state.read())
+            except:
+                try:
+                    state = ContentFile(self.state)
+                except:
+                    state = ContentFile(str(self.state))
+
+            if not created:
+                etag.check_preconditions(self.req_dict,p)
+                p.state.delete() # remove old state file
+            self.save_state(p, created, state)
+        else:
+            if not created:
+                etag.check_preconditions(self.req_dict, p)
+            the_state = ast.literal_eval(self.state) if type(self.state) != dict else self.state
+
+            p.json_state = the_state
+            p.content_type = self.content_type
+            p.etag = etag.create_tag(json.dumps(the_state))
+            if self.updated:
+                p.updated = self.updated
+            p.save()
 
     def save_state(self, p, created, state):
         p.content_type = self.content_type

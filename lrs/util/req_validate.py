@@ -255,13 +255,7 @@ def activity_state_post(r_dict):
         validate_oauth_state_or_profile_agent(r_dict, "state")
 
     # Set state
-    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
-    try:
-        json.loads(body_dict)
-        r_dict['state'] = body_dict
-    except Exception as e:
-        err_msg = "Could not parse the content into JSON"
-        raise ParamError("\n".join((err_msg, e)))
+    r_dict['state'] = r_dict.pop('raw_body', r_dict.pop('body', None))
     return r_dict
 
 @auth
@@ -359,13 +353,7 @@ def activity_profile_post(r_dict):
         err_msg = "Could not find the profile document"
         raise ParamError(err_msg)
 
-    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
-    try:
-        json.loads(body_dict)
-        r_dict['profile'] = body_dict
-    except Exception as e:
-        err_msg = "Could not parse the content into JSON"
-        raise ParamError("\n".join((err_msg, e)))
+    r_dict['profile'] = r_dict.pop('raw_body', r_dict.pop('body', None))
     return r_dict
 
 @auth
@@ -388,8 +376,7 @@ def activity_profile_put(r_dict):
 
     # Set profile - req_parse converts all request bodies to dict, act profile needs it as string and need to replace single quotes with double quotes
     # b/c of quotation issue when using javascript with activity profile
-    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
-    r_dict['profile'] = str(body_dict)
+    r_dict['profile'] = r_dict.pop('raw_body', r_dict.pop('body', None))
     return r_dict
 
 @auth
@@ -454,13 +441,7 @@ def agent_profile_post(r_dict):
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     
     # Set profile
-    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
-    try:
-        json.loads(body_dict)
-        r_dict['profile'] = body_dict
-    except Exception as e:
-        err_msg = "Could not parse the content into JSON"
-        raise ParamError("\n".join((err_msg, e)))
+    r_dict['profile'] = r_dict.pop('raw_body', r_dict.pop('body', None))
 
     return r_dict
 
@@ -476,7 +457,7 @@ def agent_profile_put(r_dict):
         r_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % r_dict['method']
-        raise ParamError(msg)
+        raise ParamError(err_msg)
     
     if 'body' not in r_dict:
         err_msg = "Could not find the profile document"
@@ -486,8 +467,7 @@ def agent_profile_put(r_dict):
     if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
     
-    body_dict = r_dict.pop('raw_body', r_dict.pop('body', None))
-    r_dict['profile'] = str(body_dict)
+    r_dict['profile'] = r_dict.pop('raw_body', r_dict.pop('body', None))
     return r_dict
 
 @auth

@@ -1,3 +1,4 @@
+import ast
 import datetime
 import json
 from django.core.files.base import ContentFile
@@ -17,45 +18,77 @@ class ActivityProfileManager():
 
         # get / create  profile
         p, created = models.ActivityProfile.objects.get_or_create(activityId=request_dict['params']['activityId'],  profileId=request_dict['params']['profileId'])
+        
         if created:
-            profile = ContentFile(post_profile)
+            p.json_profile = post_profile
+            p.content_type = request_dict['headers']['CONTENT_TYPE']
+            p.etag = etag.create_tag(post_profile)
+            
+            #Set updated
+            if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
+                p.updated = request_dict['headers']['updated']
         else:
-            #   merge, update hash, save
-            original_profile = json.load(p.profile)
-            post_profile = json.loads(post_profile)
-            merged = dict(original_profile.items() + post_profile.items())
-            # delete original one
-            p.profile.delete()
-            # update
-            profile = ContentFile(json.dumps(merged))
+            orig_prof = ast.literal_eval(p.json_profile)
+            post_profile = ast.literal_eval(post_profile)
+            # json.dumps changes the format of the string rep of the dict
+            merged = '%s' % dict(orig_prof.items() + post_profile.items())
+            p.json_profile = merged
+            p.etag = etag.create_tag(merged)
 
-        self.save_profile(p, created, profile, request_dict)
+        p.save()
+        # if created:
+        #     profile = ContentFile(post_profile)
+        # else:
+        #     #   merge, update hash, save
+        #     original_profile = json.load(p.profile)
+        #     post_profile = json.loads(post_profile)
+        #     merged = dict(original_profile.items() + post_profile.items())
+        #     # delete original one
+        #     p.profile.delete()
+        #     # update
+        #     profile = ContentFile(json.dumps(merged))
+
+        # self.save_profile(p, created, profile, request_dict)
 
 	#Save profile to desired activity
     def put_profile(self, request_dict):
         #Parse out profile from request_dict
-        try:
-            profile = ContentFile(request_dict['profile'].read())
-        except:
-            try:
-                profile = ContentFile(request_dict['profile'])
-            except:
-                profile = ContentFile(str(request_dict['profile']))
-
         profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             raise ParamError(err_msg)
 
         #Get the profile, or if not already created, create one
-        p,created = models.ActivityProfile.objects.get_or_create(profileId=request_dict['params']['profileId'],activityId=request_dict['params']['activityId'])
+        p,created = models.ActivityProfile.objects.get_or_create(profileId=profile_id,activityId=request_dict['params']['activityId'])
         
-        if not created:
-            #If it already exists delete it
-            etag.check_preconditions(request_dict,p, required=True)
-            p.profile.delete()
-        
-        self.save_profile(p, created, profile, request_dict)
+        if request_dict['headers']['CONTENT_TYPE'] != "application/json":
+            try:
+                profile = ContentFile(request_dict['profile'].read())
+            except:
+                try:
+                    profile = ContentFile(request_dict['profile'])
+                except:
+                    profile = ContentFile(str(request_dict['profile']))
+
+            if not created:
+                #If it already exists delete it
+                etag.check_preconditions(request_dict,p, required=True)
+                if p.profile:
+                    p.profile.delete()
+            
+            self.save_profile(p, created, profile, request_dict)
+        else:
+            if not created:
+                etag.check_preconditions(request_dict, p, required=True)
+            the_profile = request_dict['profile']
+            p.json_profile = the_profile
+            p.content_type = request_dict['headers']['CONTENT_TYPE']
+            p.etag = etag.create_tag(the_profile)
+            
+            #Set updated
+            if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
+                p.updated = request_dict['headers']['updated']
+            p.save()
 
     def save_profile(self, p, created, profile, request_dict):
         #Save profile content type based on incoming content type header and create etag

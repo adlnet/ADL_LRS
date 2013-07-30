@@ -17,6 +17,7 @@ from .exceptions import IDNotFoundError, ParamError
 from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
+from jsonfield import JSONField
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
@@ -432,13 +433,15 @@ class AgentProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(Agent)
-    profile = models.FileField(upload_to="agent_profile")
+    profile = models.FileField(upload_to="agent_profile", null=True)
+    json_profile = models.TextField(blank=True)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
-        self.profile.delete()
+        if self.profile:
+            self.profile.delete()
         super(AgentProfile, self).delete(*args, **kwargs)
 
 class Activity(models.Model):
@@ -706,7 +709,8 @@ class StatementContextExtensions(Extensions):
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
-    state = models.FileField(upload_to="activity_state")
+    state = models.FileField(upload_to="activity_state", null=True)
+    json_state = models.TextField(blank=True)
     agent = models.ForeignKey(Agent, db_index=True)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     registration_id = models.CharField(max_length=40)
@@ -715,19 +719,22 @@ class ActivityState(models.Model):
     user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
-        self.state.delete()
+        if self.state:
+            self.state.delete()
         super(ActivityState, self).delete(*args, **kwargs)
 
 class ActivityProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     activityId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    profile = models.FileField(upload_to="activity_profile")
+    profile = models.FileField(upload_to="activity_profile", null=True)
+    json_profile = models.TextField(blank=True)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
 
     def delete(self, *args, **kwargs):
-        self.profile.delete()
+        if self.profile:
+            self.profile.delete()
         super(ActivityProfile, self).delete(*args, **kwargs)
 
 class StatementResultExtensions(Extensions):

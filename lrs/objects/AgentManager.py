@@ -1,3 +1,4 @@
+import ast
 import json
 import datetime
 import copy
@@ -51,36 +52,66 @@ class AgentManager():
             raise ParamError(err_msg)
 
         p, created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
+        
         if created:
-            profile = ContentFile(post_profile)
-        else:
-            original_profile = json.load(p.profile)
-            post_profile = json.loads(post_profile)
-            merged = dict(original_profile.items() + post_profile.items())
-            p.profile.delete()
-            profile = ContentFile(json.dumps(merged))
+            p.json_profile = ast.literal_eval(post_profile)
+            p.content_type = request_dict['headers']['CONTENT_TYPE']
+            p.etag = etag.create_tag(post_profile)
 
-        self.save_profile(p, created, profile, request_dict)
+            if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
+                p.updated = request_dict['headers']['updated']
+        else:
+            orig_prof = ast.literal_eval(p.json_profile)
+            post_profile = ast.literal_eval(post_profile)
+            merged = '%s' % dict(orig_prof.items() + post_profile.items())
+            p.json_profile = merged
+            p.etag = etag.create_tag(merged)
+
+        p.save()
+        # if created:
+        #     profile = ContentFile(post_profile)
+        # else:
+        #     original_profile = json.load(p.profile)
+        #     post_profile = json.loads(post_profile)
+        #     merged = dict(original_profile.items() + post_profile.items())
+        #     p.profile.delete()
+        #     profile = ContentFile(json.dumps(merged))
+
+        # self.save_profile(p, created, profile, request_dict)
 
     def put_profile(self, request_dict):
-        try:
-            profile = ContentFile(request_dict['profile'].read())
-        except:
-            try:
-                profile = ContentFile(request_dict['profile'])
-            except:
-                profile = ContentFile(str(request_dict['profile']))
-        
         profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
             err_msg = 'Profile ID %s is not a valid URI' % profile_id
             raise ParamError(err_msg)
 
         p,created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
-        if not created:
-            etag.check_preconditions(request_dict,p, required=True)
-            p.profile.delete()
-        self.save_profile(p, created, profile, request_dict)
+
+        if request_dict['headers']['CONTENT_TYPE'] != "application/json":
+            try:
+                profile = ContentFile(request_dict['profile'].read())
+            except:
+                try:
+                    profile = ContentFile(request_dict['profile'])
+                except:
+                    profile = ContentFile(str(request_dict['profile']))
+        
+
+            if not created:
+                etag.check_preconditions(request_dict,p, required=True)
+                p.profile.delete()
+            self.save_profile(p, created, profile, request_dict)
+        else:
+            if not created:
+                etag.check_preconditions(request_dict, p, required=True)
+            the_profile = request_dict['profile']
+            p.json_profile = ast.literal_eval(the_profile)
+            p.content_type = request_dict['headers']['CONTENT_TYPE']
+            p.etag = etag.create_tag(the_profile)
+            
+            if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
+                p.updated = request_dict['headers']['updated']
+            p.save()
 
     def save_profile(self, p, created, profile, request_dict):
         p.content_type = request_dict['headers']['CONTENT_TYPE']
