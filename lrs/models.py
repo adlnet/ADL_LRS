@@ -17,7 +17,6 @@ from .exceptions import IDNotFoundError, ParamError
 from oauth_provider.managers import TokenManager, ConsumerManager
 from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
-from jsonfield import JSONField
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
 
