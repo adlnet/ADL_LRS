@@ -52,17 +52,6 @@ class ActivityStateManager():
 
         p.save()
 
-        # if created:
-        #     state = ContentFile(post_state)
-        # else:
-        #     original_state = json.load(p.state)
-        #     post_state = json.loads(post_state)
-        #     merged = dict(original_state.items() + post_state.items())
-        #     p.state.delete()
-        #     state = ContentFile(json.dumps(merged))
-
-        # self.save_state(p, created, state)
-
     @transaction.commit_on_success
     def put(self):
         agent = self.__get_agent(create=True)

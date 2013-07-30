@@ -68,16 +68,6 @@ class AgentManager():
             p.etag = etag.create_tag(merged)
 
         p.save()
-        # if created:
-        #     profile = ContentFile(post_profile)
-        # else:
-        #     original_profile = json.load(p.profile)
-        #     post_profile = json.loads(post_profile)
-        #     merged = dict(original_profile.items() + post_profile.items())
-        #     p.profile.delete()
-        #     profile = ContentFile(json.dumps(merged))
-
-        # self.save_profile(p, created, profile, request_dict)
 
     def put_profile(self, request_dict):
         profile_id = request_dict['params']['profileId']
@@ -108,7 +98,7 @@ class AgentManager():
             p.json_profile = ast.literal_eval(the_profile)
             p.content_type = request_dict['headers']['CONTENT_TYPE']
             p.etag = etag.create_tag(the_profile)
-            
+
             if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
                 p.updated = request_dict['headers']['updated']
             p.save()

@@ -36,19 +36,6 @@ class ActivityProfileManager():
             p.etag = etag.create_tag(merged)
 
         p.save()
-        # if created:
-        #     profile = ContentFile(post_profile)
-        # else:
-        #     #   merge, update hash, save
-        #     original_profile = json.load(p.profile)
-        #     post_profile = json.loads(post_profile)
-        #     merged = dict(original_profile.items() + post_profile.items())
-        #     # delete original one
-        #     p.profile.delete()
-        #     # update
-        #     profile = ContentFile(json.dumps(merged))
-
-        # self.save_profile(p, created, profile, request_dict)
 
 	#Save profile to desired activity
     def put_profile(self, request_dict):
