@@ -46,6 +46,9 @@ def statements_put(req_dict):
         define = auth['oauth_define']    
 
     # Set statement ID in body so all data is together
+    if isinstance(req_dict['body'], basestring):
+        from lrs.util import convert_to_dict
+        req_dict['body'] = convert_to_dict(req_dict['body'])
     req_dict['body']['id'] = req_dict['params']['statementId']
     stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
     
@@ -201,7 +204,10 @@ def activity_state_get(req_dict):
     stateId = req_dict['params'].get('stateId', None) if 'params' in req_dict else None
     if stateId: # state id means we want only 1 item
         resource = actstate.get()
-        response = HttpResponse(resource.state.read())
+        if resource.state:
+            response = HttpResponse(resource.state.read())
+        else:
+            response = HttpResponse(resource.json_state, content_type=resource.content_type)
         response['ETag'] = '"%s"' %resource.etag
     else: # no state id means we want an array of state ids
         resource = actstate.get_ids()
@@ -234,11 +240,14 @@ def activity_profile_get(req_dict):
     # Get profileId and activityId
     profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
     activityId = req_dict['params'].get('activityId', None) if 'params' in req_dict else None
-
+    
     #If the profileId exists, get the profile and return it in the response
     if profileId:
         resource = ap.get_profile(profileId, activityId)
-        response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+        if resource.profile:
+            response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+        else:
+            response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
         response['ETag'] = '"%s"' % resource.etag
         return response
 
@@ -297,7 +306,10 @@ def agent_profile_get(req_dict):
     profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
     if profileId:
         resource = a.get_profile(profileId)
-        response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+        if resource.profile:
+            response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+        else:
+            response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
         response['ETag'] = '"%s"' % resource.etag
         return response
 

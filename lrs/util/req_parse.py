@@ -1,6 +1,7 @@
 import StringIO
 import email
 import json
+import urllib
 from collections import defaultdict
 from django.http import MultiPartParser
 from django.utils.translation import ugettext as _
@@ -36,7 +37,7 @@ def parse(request, more_id=None):
     if request.method == 'POST' and 'method' in request.GET:
         bdy = convert_post_body_to_dict(request.body)
         if 'content' in bdy: # body is in 'content' for the IE cors POST
-            r_dict['body'] = convert_to_dict(bdy.pop('content'))
+            r_dict['body'] = urllib.unquote(bdy.pop('content'))
         r_dict['headers'].update(get_headers(bdy))
         for h in r_dict['headers']:
             bdy.pop(h, None)
