@@ -118,6 +118,8 @@ class StatementManager():
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
+        self.data['user'] = get_user_from_auth(self.auth)
+
         # Try to create statement
         stmt = models.Statement.objects.create(**self.data)
     
