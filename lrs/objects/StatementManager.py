@@ -1,6 +1,7 @@
 import json
 import re
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
 from functools import wraps
@@ -26,6 +27,7 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
+    @transaction.commit_on_success
     def __init__(self, data, auth=None, define=True):
         self.auth = auth
         self.define = define
