@@ -3,12 +3,14 @@ import json
 import datetime
 import copy
 from django.core.files.base import ContentFile
+from django.db import transaction
 from lrs.models import AgentProfile
 from lrs.models import Agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
 
 class AgentManager():
+    @transaction.commit_on_success
     def __init__(self, params=None, create=False, define=True):
         self.define = define
         self.initial = copy.deepcopy(params)
