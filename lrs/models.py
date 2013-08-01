@@ -8,7 +8,6 @@ from datetime import datetime
 from time import time
 from django_extensions.db.fields import UUIDField
 from django.db import models
-from django.db import transaction
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -330,23 +329,29 @@ class AgentMgr(models.Manager):
 class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
-    mbox = models.CharField(max_length=128, blank=True, db_index=True)
-    mbox_sha1sum = models.CharField(max_length=40, blank=True, db_index=True)
-    openID = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
-    oauth_identifier = models.CharField(max_length=192, blank=True, db_index=True)
+    mbox = models.CharField(max_length=128, db_index=True, null=True)
+    mbox_sha1sum = models.CharField(max_length=40, db_index=True, null=True)
+    openID = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True)
+    oauth_identifier = models.CharField(max_length=192, db_index=True, null=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     global_representation = models.BooleanField(default=True)
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     account_name = models.CharField(max_length=50, blank=True)    
     objects = AgentMgr()
 
+    class Meta:
+        unique_together = (("mbox", "global_representation"), ("mbox_sha1sum", "global_representation"),
+            ("openID", "global_representation"),("oauth_identifier", "global_representation"))
+
     def clean(self):
         from lrs.util import uri
-        if self.mbox != '' and not uri.validate_email(self.mbox):
+
+        if self.mbox and not uri.validate_email(self.mbox):
             raise ValidationError('mbox value [%s] did not start with mailto:' % self.mbox)
 
-        if self.openID != '' and not uri.validate_uri(self.openID):
+        if self.openID and not uri.validate_uri(self.openID):
             raise ValidationError('openID value [%s] is not a valid URI' % self.openID)            
+
 
     def get_agent_json(self, format='exact', as_object=False):
         just_id = format == 'ids'
@@ -451,6 +456,10 @@ class Activity(models.Model):
     activity_definition_interactionType = models.CharField(max_length=25, blank=True)    
     authoritative = models.CharField(max_length=100, blank=True)
     global_representation = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("activity_id", "global_representation")
+
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
