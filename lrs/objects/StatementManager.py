@@ -1,7 +1,6 @@
 import json
 import re
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
 from functools import wraps
@@ -27,8 +26,6 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
-    #Use single transaction for all the work done in function
-    @transaction.commit_on_success
     def __init__(self, data, auth=None, define=True):
         self.auth = auth
         self.define = define
@@ -429,6 +426,5 @@ class StatementManager():
         self.populate_attachments(attachment_data, attachment_payloads)
 
 class SubStatementManager(StatementManager):
-    @transaction.commit_on_success
     def __init__(self, data, auth):        
         StatementManager.__init__(self, data, auth)

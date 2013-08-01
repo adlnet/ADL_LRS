@@ -2,7 +2,6 @@ import ast
 import datetime
 import json
 from django.core.files.base import ContentFile
-from django.db import transaction
 from lrs import models
 from .AgentManager import AgentManager
 from lrs.exceptions import IDNotFoundError, ParamError
@@ -52,7 +51,6 @@ class ActivityStateManager():
 
         p.save()
 
-    @transaction.commit_on_success
     def put(self):
         agent = self.__get_agent(create=True)
         if self.registrationId:
