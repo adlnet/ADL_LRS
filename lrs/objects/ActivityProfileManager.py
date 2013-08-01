@@ -3,11 +3,14 @@ import datetime
 import json
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from lrs import models
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
 
 class ActivityProfileManager():
+
+    @transaction.commit_on_success
     def post_profile(self, request_dict):
         post_profile = request_dict['profile']
         
@@ -37,6 +40,7 @@ class ActivityProfileManager():
 
         p.save()
 
+    @transaction.commit_on_success
 	#Save profile to desired activity
     def put_profile(self, request_dict):
         #Parse out profile from request_dict
@@ -122,6 +126,7 @@ class ActivityProfileManager():
             ids = models.ActivityProfile.objects.filter(activityId=activityId).values_list('profileId', flat=True)
         return ids
 
+    @transaction.commit_on_success
     def delete_profile(self, request_dict):
         #Get profile and delete it
         try:

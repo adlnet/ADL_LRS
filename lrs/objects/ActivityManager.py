@@ -4,10 +4,12 @@ from StringIO import StringIO
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+from django.db import transaction
 from lrs import models, exceptions
 from lrs.util import uri
 
 class ActivityManager():
+    @transaction.commit_on_success
     def __init__(self, data, auth=None, define=True):
         if auth:
             if auth.__class__.__name__ == 'Agent':

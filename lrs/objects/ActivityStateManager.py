@@ -2,12 +2,14 @@ import ast
 import datetime
 import json
 from django.core.files.base import ContentFile
+from django.db import transaction
 from lrs import models
 from .AgentManager import AgentManager
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
 
 class ActivityStateManager():
+    @transaction.commit_on_success
     def __init__(self, request_dict, log_dict=None):        
         if not uri.validate_uri(request_dict['params']['activityId']):
             err_msg = 'Activity ID %s is not a valid URI' % request_dict['params']['activityId']       
