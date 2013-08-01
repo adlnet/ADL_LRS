@@ -383,7 +383,7 @@ class AgentManagerTests(TestCase):
         kwargs = {"objectType":ot, "name":name, "member":members}
         g = AgentManager(params=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
-        self.assertEquals(g.mbox, '')
+        self.assertEquals(g.mbox, None)
         mems = g.member.values_list('name', flat=True)
         self.assertEquals(len(mems), 2)
         self.assertIn('the agent', mems)
