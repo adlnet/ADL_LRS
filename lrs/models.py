@@ -8,6 +8,7 @@ from datetime import datetime
 from time import time
 from django_extensions.db.fields import UUIDField
 from django.db import models
+from django.db import transaction
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -226,6 +227,7 @@ class AgentMgr(models.Manager):
                 if not member_agent in ret_agent.member.all():
                     if define:
                         ret_agent.member.add(member_agent)
+                        ret_agent.save()
                     else:
                         need_to_create = True
                         break
@@ -250,6 +252,7 @@ class AgentMgr(models.Manager):
         ret_agent.save()
         return ret_agent, True
 
+    @transaction.commit_on_success
     def gen(self, **kwargs):
         # Check if group or not 
         is_group = kwargs.get('objectType', None) == "Group"
@@ -315,8 +318,8 @@ class AgentMgr(models.Manager):
             ags = [self.gen(**a) for a in members]
             # Adds each created/retrieved agent object to the return object since ags is a list of tuples (agent, created)
             ret_agent.member.add(*(a for a, c in ags))
-        ret_agent.clean()
-        ret_agent.save()
+            ret_agent.clean()
+            ret_agent.save()
         return ret_agent, created
 
     def oauth_group(self, **kwargs):

@@ -27,7 +27,6 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
-    @transaction.commit_on_success
     def __init__(self, data, auth=None, define=True):
         self.auth = auth
         self.define = define
@@ -47,6 +46,7 @@ class StatementManager():
             raise exceptions.ParamError(err_msg) 
         return params
 
+    @transaction.commit_on_success
     def void_statement(self,stmt_id):
         # str_id = str(stmt_id)
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
@@ -68,6 +68,7 @@ class StatementManager():
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % stmt_id
             raise exceptions.Forbidden(err_msg)
 
+    @transaction.commit_on_success
     # Save sub to DB
     def save_substatement_to_db(self):
         context_activity_types = ['parent', 'grouping', 'category', 'other']
@@ -107,6 +108,7 @@ class StatementManager():
 
         return sub
 
+    @transaction.commit_on_success
     # Save statement to DB
     def save_statement_to_db(self):
         context_activity_types = ['parent', 'grouping', 'category', 'other']
@@ -171,6 +173,7 @@ class StatementManager():
                 models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
                     attachment=attachment)
 
+    @transaction.commit_on_success
     def update_attachment_displays_and_descs(self, attachment, displays, descriptions):
         # Grab existing display and desc keys for the attachment
         existing_display_keys = attachment.statementattachmentdisplay_set.all().values_list('key', flat=True)
@@ -227,6 +230,7 @@ class StatementManager():
             attachment.payload.save(sha2, payload)
         return attachment, created 
 
+    @transaction.commit_on_success
     def populate_attachments(self, attachment_data, attachment_payloads):
         if attachment_data:
             # Iterate through each attachment
@@ -282,24 +286,16 @@ class StatementManager():
                 self.data['context_statement'] = self.data['context_statement']['id']
 
             del self.data['context']
-
+    
     def save_lang_map(self, lang_map, verb):
-        # If verb is model object but not saved yet
-        if not verb.id:
-            try:
-                verb.full_clean()
-                verb.save()
-            except ValidationError as e:
-                err_msg = e.messages[0]
-                raise exceptions.ParamError(err_msg)
-        
         k = lang_map[0]
         v = lang_map[1]
 
         # Save lang map
         language_map = models.VerbDisplay.objects.create(key=k, value=v, verb=verb)
         return language_map
-
+    
+    @transaction.commit_on_success
     def build_verb_object(self):
         incoming_verb = self.data['verb']
         verb_id = incoming_verb['id']
