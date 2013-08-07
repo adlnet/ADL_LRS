@@ -9,7 +9,6 @@ from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
 
 class ActivityStateManager():
-    @transaction.commit_on_success
     def __init__(self, request_dict, log_dict=None):        
         if not uri.validate_uri(request_dict['params']['activityId']):
             err_msg = 'Activity ID %s is not a valid URI' % request_dict['params']['activityId']       
@@ -29,6 +28,7 @@ class ActivityStateManager():
     def __get_agent(self, create=False):
         return AgentManager(self.agent, create).Agent
 
+    @transaction.commit_on_success
     def post(self):
         agent = self.__get_agent(create=True)
         post_state = self.state
@@ -52,7 +52,8 @@ class ActivityStateManager():
             p.etag = etag.create_tag(merged)
 
         p.save()
-
+        
+    @transaction.commit_on_success
     def put(self):
         agent = self.__get_agent(create=True)
         if self.registrationId:

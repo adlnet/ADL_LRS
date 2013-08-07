@@ -126,7 +126,6 @@ class ActivityProfileManager():
             ids = models.ActivityProfile.objects.filter(activityId=activityId).values_list('profileId', flat=True)
         return ids
 
-    @transaction.commit_on_success
     def delete_profile(self, request_dict):
         #Get profile and delete it
         try:

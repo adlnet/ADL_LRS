@@ -10,7 +10,6 @@ from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
 
 class AgentManager():
-    @transaction.commit_on_success
     def __init__(self, params=None, create=False, define=True):
         self.define = define
         self.initial = copy.deepcopy(params)
@@ -42,7 +41,8 @@ class AgentManager():
             except:
                 err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
                 raise IDNotFoundError(err_msg) 
-        
+
+    @transaction.commit_on_success        
     def post_profile(self, request_dict):
         post_profile = request_dict['profile']
 
@@ -69,6 +69,7 @@ class AgentManager():
 
         p.save()
 
+    @transaction.commit_on_success
     def put_profile(self, request_dict):
         profile_id = request_dict['params']['profileId']
         if not uri.validate_uri(profile_id):
