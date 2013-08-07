@@ -1,7 +1,7 @@
 import bencode
 import hashlib
 import json
-import types
+
 from datetime import datetime
 from django.core import serializers
 from django.core.cache import cache
@@ -16,41 +16,31 @@ from lrs.exceptions import NotFound
 
 MORE_ENDPOINT = '/XAPI/statements/more/'
 
-def complex_get(req_dict):
+def complex_get(param_dict):
     # tests if value is True or "true"
     stmtset = models.Statement.objects.filter(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
 
-    # Parse out params into single dict-GET data not in body
-    the_dict={}
-    try:
-        the_dict = req_dict['body']
-        if not isinstance(the_dict, dict):
-            the_dict = convert_to_dict(the_dict)
-    except KeyError:
-        pass # no params in the body    
-    the_dict.update(req_dict['params'])
-
     sinceq = None
-    if 'since' in the_dict:
-        sinceq = Q(stored__gt=convert_to_utc(the_dict['since']))
+    if 'since' in param_dict:
+        sinceq = Q(stored__gt=convert_to_utc(param_dict['since']))
         stmtset = stmtset.filter(sinceq)
     untilq = None
-    if 'until' in the_dict:
-        untilq = Q(stored__lte=convert_to_utc(the_dict['until']))
+    if 'until' in param_dict:
+        untilq = Q(stored__lte=convert_to_utc(param_dict['until']))
         stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
-    if 'auth' in req_dict and (req_dict['auth'] and 'statements_mine_only' in req_dict['auth']):
-        stmtset = stmtset.filter(authority=req_dict['auth']['id'])
+    if 'auth' in param_dict and (param_dict['auth'] and 'statements_mine_only' in param_dict['auth']):
+        stmtset = stmtset.filter(authority=param_dict['auth']['id'])
 
     agentQ = Q()
-    if 'agent' in the_dict:
+    if 'agent' in param_dict:
         reffilter = True
         agent = None
-        data = the_dict['agent']
-        related = 'related_agents' in the_dict and the_dict['related_agents']
+        data = param_dict['agent']
+        related = 'related_agents' in param_dict and param_dict['related_agents']
         
         if not type(data) is dict:
             data = convert_to_dict(data)
@@ -77,41 +67,28 @@ def complex_get(req_dict):
             return[]     
     
     verbQ = Q()
-    if 'verb' in the_dict:
+    if 'verb' in param_dict:
         reffilter = True
-        verbQ = Q(verb__verb_id=the_dict['verb'])
+        verbQ = Q(verb__verb_id=param_dict['verb'])
         
     # activity
     activityQ = Q()
-    if 'activity' in the_dict:
+    if 'activity' in param_dict:
         reffilter = True
-        activityQ = Q(object_activity__activity_id=the_dict['activity'])
-        if 'related_activities' in the_dict and the_dict['related_activities']:
-            activityQ = activityQ | Q(statementcontextactivity__context_activity__activity_id=the_dict['activity']) \
-                    | Q(object_substatement__object_activity__activity_id=the_dict['activity']) \
-                    | Q(object_substatement__substatementcontextactivity__context_activity__activity_id=the_dict['activity'])
-
+        activityQ = Q(object_activity__activity_id=param_dict['activity'])
+        if 'related_activities' in param_dict and param_dict['related_activities']:
+            activityQ = activityQ | Q(statementcontextactivity__context_activity__activity_id=param_dict['activity']) \
+                    | Q(object_substatement__object_activity__activity_id=param_dict['activity']) \
+                    | Q(object_substatement__substatementcontextactivity__context_activity__activity_id=param_dict['activity'])
 
     registrationQ = Q()
-    if 'registration' in the_dict:
+    if 'registration' in param_dict:
         reffilter = True
-        registrationQ = Q(context_registration=the_dict['registration'])
-
-    format = the_dict['format']
-    
-    # Set language if one
-    # pull from req_dict since language is from a header, not an arg 
-    language = None
-    if 'headers' in req_dict and ('format' in the_dict and the_dict['format'] == "canonical"):
-        if 'language' in req_dict['headers']:
-            language = req_dict['headers']['language']
-        else:
-            language = settings.LANGUAGE_CODE
-
+        registrationQ = Q(context_registration=param_dict['registration'])
 
     # If want ordered by ascending
     stored_param = '-stored'
-    if 'ascending' in the_dict and the_dict['ascending']:
+    if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
     stmtset = stmtset.filter(agentQ & verbQ & activityQ & registrationQ)
@@ -119,12 +96,7 @@ def complex_get(req_dict):
     # since, until, or limit was used 
     if reffilter:
         stmtset = findstmtrefs(stmtset.distinct(), sinceq, untilq)
-    stmt_list = stmtset.order_by(stored_param)
-    # For each stmt retrieve all json
-    # full_stmt_list = []
-    # full_stmt_list = [stmt.object_return(language, format) for stmt in stmt_list]
-    # return full_stmt_list
-    return stmt_list, language, format
+    return stmtset.order_by(stored_param)
 
 def findstmtrefs(stmtset, sinceq, untilq):
     if stmtset.count() == 0:
@@ -153,7 +125,7 @@ def create_cache_key(stmt_list):
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
     return key
 
-def initial_cache_return(language, format, stmt_list, encoded_list, attachments, limit):
+def initial_cache_return(language, format, stmt_list, attachments, limit):
     # First time someone queries POST/GET
     result = {}
     stmt_pager = Paginator(stmt_list, limit)
@@ -190,7 +162,7 @@ def initial_cache_return(language, format, stmt_list, encoded_list, attachments,
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
 
-def get_statement_request(req_id):  
+def get_more_statement_request(req_id):  
     # Retrieve encoded info for statements
     encoded_info = cache.get(req_id)
 
@@ -203,8 +175,6 @@ def get_statement_request(req_id):
 
     # Info is always cached as [stmt_list, start_page, total_pages, limit, attachments]
     stmt_list = decoded_info[0]
-    # Have to deserizlize stmt_list
-    stmt_list = serializers.deserialize('json', stmt_list)
     
     start_page = decoded_info[1]
     limit = decoded_info[3]
@@ -218,14 +188,18 @@ def get_statement_request(req_id):
 def set_limit(req_limit):
     if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
         req_limit = settings.SERVER_STMT_LIMIT
-
     return req_limit
 
+# Gets called from req_process after complex_get with list of django objects and also gets called from get_more_statement_request when
+# more_id is used so list will be serialized
 def build_statement_result(language, format, req_limit, stmt_list, attachments, more_id=None):
     result = {}
     limit = None
-    
-    if isinstance(stmt_list, types.GeneratorType):
+
+    # If from get_more_statement, stmt_list will be serializer generator
+    if isinstance(stmt_list, unicode):
+        # Have to deserizlize stmt_list
+        stmt_list = serializers.deserialize('json', stmt_list)
         fake_list = []
         for obj in stmt_list:
             fake_list.append(obj.object)
@@ -234,10 +208,9 @@ def build_statement_result(language, format, req_limit, stmt_list, attachments, 
     # Get length of stmt list
     statement_amount = len(stmt_list)  
     
-    # See if something is already stored in cache
-    encoded_list = cache.get(more_id)
-    # If there is a more_id (means this is being called from get_statement_request) this is not the initial request (someone is pinging the 'more' link)
+    # If there is a more_id (means this is being called from get_more_statement_request) this is not the initial request (someone is pinging the 'more' link)
     if more_id:
+        encoded_list = cache.get(more_id)
         more_cache_list = []
         # Get query_info and there should always be an encoded_list if there is a more_id
         query_info = json.loads(encoded_list)
@@ -261,10 +234,8 @@ def build_statement_result(language, format, req_limit, stmt_list, attachments, 
         # There are more pages to display
         else:
             stmt_pager = Paginator(stmt_list, limit)
-
             # Have to serialize django objs
             stmt_list = serializers.serialize('json', stmt_list)
-
             # Create cache key from hashed data (always 32 digits)
             cache_key = create_cache_key(stmt_list)
             # Set result to have selected page of stmts and more endpoing
@@ -286,6 +257,7 @@ def build_statement_result(language, format, req_limit, stmt_list, attachments, 
             encoded_list = json.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
             return result
+    
     # If get to here, this is on the initial request
     # List will only be larger first time of more URLs. Limit can be set directly in request dict if 
     # a GET or in request dict body if a POST
@@ -294,10 +266,9 @@ def build_statement_result(language, format, req_limit, stmt_list, attachments, 
 
     # If there are more than the limit, build the initial return
     if statement_amount > limit:
-        result = initial_cache_return(language, format, stmt_list, encoded_list, attachments, limit)
+        result = initial_cache_return(language, format, stmt_list, attachments, limit)
     # Just provide statements since the list is under the limit
     else:
         result['statements'] = [stmt.object_return(language, format) for stmt in stmt_list]
-        # result['statements'] = stmt_list
         result['more'] = ''
     return result

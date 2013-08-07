@@ -4,6 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from django.http import HttpResponse
+from django.conf import settings
 from lrs import models, exceptions
 from lrs.objects.ActivityProfileManager import ActivityProfileManager
 from lrs.objects.ActivityStateManager import ActivityStateManager 
@@ -55,7 +56,7 @@ def statements_put(req_dict):
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
-    stmt_result, attachments = retrieve_statement.get_statement_request(req_dict['more_id'])     
+    stmt_result, attachments = retrieve_statement.get_more_statement_request(req_dict['more_id'])     
     content_length = len(json.dumps(stmt_result))
     mime_type = "application/json"
 
@@ -111,11 +112,34 @@ def statements_get(req_dict):
         # Once validated, return the object, dump to json, and set content length
         stmt_result = json.dumps(st.object_return())
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
-        content_length = len(json.dumps(stmt_result))
+        content_length = len(stmt_result)
     # Complex GET
     else:
+        # Parse out params into single dict-GET data not in body
+        param_dict = {}
+        try:
+            param_dict = req_dict['body']
+            if not isinstance(param_dict, dict):
+                param_dict = convert_to_dict(param_dict)
+        except KeyError:
+            pass # no params in the body    
+        param_dict.update(req_dict['params'])
+        format = param_dict['format']
+        
+        # Set language if one pull from req_dict since language is from a header, not an arg 
+        language = None
+        if 'headers' in req_dict and ('format' in param_dict and param_dict['format'] == "canonical"):
+            if 'language' in req_dict['headers']:
+                language = req_dict['headers']['language']
+            else:
+                language = settings.LANGUAGE_CODE
+
+        # If auth is in req dict, add it to param dict
+        if 'auth' in req_dict:
+            param_dict['auth'] = req_dict['auth']
+
         # Create returned stmt list from the req dict
-        stmt_list, language, format = retrieve_statement.complex_get(req_dict)
+        stmt_list = retrieve_statement.complex_get(param_dict)
         # Build json result({statements:...,more:...}) and set content length
         limit = None
         if 'params' in req_dict and 'limit' in req_dict['params']:
@@ -123,7 +147,9 @@ def statements_get(req_dict):
         elif 'body' in req_dict and 'limit' in req_dict['body']:
             limit = int(req_dict['body']['limit'])
         
-        stmt_result = retrieve_statement.build_statement_result(language, format, limit, stmt_list, req_dict['params']['attachments'])
+        attachments = req_dict['params']['attachments']
+
+        stmt_result = retrieve_statement.build_statement_result(language, format, limit, stmt_list, attachments)
         content_length = len(json.dumps(stmt_result))
 
         # If attachments=True in req_dict then include the attachment payload and return different mime type
@@ -140,8 +166,7 @@ def statements_get(req_dict):
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     
-    resp['Content-Length'] = str(content_length)
-    
+    resp['Content-Length'] = str(content_length)  
     return resp
 
 def build_response(stmt_result, content_length):
