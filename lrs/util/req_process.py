@@ -115,7 +115,7 @@ def statements_get(req_dict):
     # Complex GET
     else:
         # Create returned stmt list from the req dict
-        stmt_list = retrieve_statement.complex_get(req_dict)
+        stmt_list, language, format = retrieve_statement.complex_get(req_dict)
         # Build json result({statements:...,more:...}) and set content length
         limit = None
         if 'params' in req_dict and 'limit' in req_dict['params']:
@@ -123,7 +123,7 @@ def statements_get(req_dict):
         elif 'body' in req_dict and 'limit' in req_dict['body']:
             limit = int(req_dict['body']['limit'])
         
-        stmt_result = retrieve_statement.build_statement_result(limit, stmt_list, req_dict['params']['attachments'])
+        stmt_result = retrieve_statement.build_statement_result(language, format, limit, stmt_list, req_dict['params']['attachments'])
         content_length = len(json.dumps(stmt_result))
 
         # If attachments=True in req_dict then include the attachment payload and return different mime type

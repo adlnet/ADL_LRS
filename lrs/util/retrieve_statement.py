@@ -1,7 +1,9 @@
 import bencode
 import hashlib
 import json
+import types
 from datetime import datetime
+from django.core import serializers
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -106,6 +108,7 @@ def complex_get(req_dict):
         else:
             language = settings.LANGUAGE_CODE
 
+
     # If want ordered by ascending
     stored_param = '-stored'
     if 'ascending' in the_dict and the_dict['ascending']:
@@ -118,9 +121,10 @@ def complex_get(req_dict):
         stmtset = findstmtrefs(stmtset.distinct(), sinceq, untilq)
     stmt_list = stmtset.order_by(stored_param)
     # For each stmt retrieve all json
-    full_stmt_list = []
-    full_stmt_list = [stmt.object_return(language, format) for stmt in stmt_list]
-    return full_stmt_list
+    # full_stmt_list = []
+    # full_stmt_list = [stmt.object_return(language, format) for stmt in stmt_list]
+    # return full_stmt_list
+    return stmt_list, language, format
 
 def findstmtrefs(stmtset, sinceq, untilq):
     if stmtset.count() == 0:
@@ -149,7 +153,7 @@ def create_cache_key(stmt_list):
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
     return key
 
-def initial_cache_return(stmt_list, encoded_list, attachments, limit):
+def initial_cache_return(language, format, stmt_list, encoded_list, attachments, limit):
     # First time someone queries POST/GET
     result = {}
     stmt_pager = Paginator(stmt_list, limit)
@@ -159,6 +163,10 @@ def initial_cache_return(stmt_list, encoded_list, attachments, limit):
     # Always start on first page
     current_page = 1
     total_pages = stmt_pager.num_pages
+
+    # Have to initially serialize django objs
+    stmt_list = serializers.serialize('json', stmt_list)
+
     # Create cache key from hashed data (always 32 digits)
     cache_key = create_cache_key(stmt_list)
 
@@ -168,7 +176,8 @@ def initial_cache_return(stmt_list, encoded_list, attachments, limit):
     cache_list.append(total_pages)
     cache_list.append(limit)
     cache_list.append(attachments)
-
+    cache_list.append(language)
+    cache_list.append(format)
     # Encode data
     encoded_info = json.dumps(cache_list)
 
@@ -176,7 +185,8 @@ def initial_cache_return(stmt_list, encoded_list, attachments, limit):
     cache.set(cache_key,encoded_info)
     # Return first page of results
     stmts = stmt_pager.page(1).object_list
-    result['statements'] = stmts
+    full_stmts = [stmt.object_return(language, format) for stmt in stmts]
+    result['statements'] = full_stmts
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
 
@@ -193,12 +203,16 @@ def get_statement_request(req_id):
 
     # Info is always cached as [stmt_list, start_page, total_pages, limit, attachments]
     stmt_list = decoded_info[0]
+    # Have to deserizlize stmt_list
+    stmt_list = serializers.deserialize('json', stmt_list)
+    
     start_page = decoded_info[1]
     limit = decoded_info[3]
     attachments = decoded_info[4]
-
+    language = decoded_info[5]
+    format = decoded_info[6]
     # Build statementResult
-    stmt_result = build_statement_result(limit, stmt_list, attachments, req_id)
+    stmt_result = build_statement_result(language, format, limit, stmt_list, attachments, req_id)
     return stmt_result, attachments
 
 def set_limit(req_limit):
@@ -207,11 +221,19 @@ def set_limit(req_limit):
 
     return req_limit
 
-def build_statement_result(req_limit, stmt_list, attachments, more_id=None):
+def build_statement_result(language, format, req_limit, stmt_list, attachments, more_id=None):
     result = {}
     limit = None
+    
+    if isinstance(stmt_list, types.GeneratorType):
+        fake_list = []
+        for obj in stmt_list:
+            fake_list.append(obj.object)
+        stmt_list = fake_list
+
     # Get length of stmt list
     statement_amount = len(stmt_list)  
+    
     # See if something is already stored in cache
     encoded_list = cache.get(more_id)
     # If there is a more_id (means this is being called from get_statement_request) this is not the initial request (someone is pinging the 'more' link)
@@ -227,7 +249,8 @@ def build_statement_result(req_limit, stmt_list, attachments, more_id=None):
         # If that was the last page to display then just return the remaining stmts
         if current_page == total_pages:
             stmt_pager = Paginator(stmt_list, limit)
-            result['statements'] = stmt_pager.page(current_page).object_list
+            stmts = stmt_pager.page(current_page).object_list
+            result['statements'] = [stmt.object_return(language, format) for stmt in stmts]
             result['more'] = ''
             # Set current page back for when someone hits the URL again
             current_page -= 1
@@ -238,20 +261,27 @@ def build_statement_result(req_limit, stmt_list, attachments, more_id=None):
         # There are more pages to display
         else:
             stmt_pager = Paginator(stmt_list, limit)
+
+            # Have to serialize django objs
+            stmt_list = serializers.serialize('json', stmt_list)
+
             # Create cache key from hashed data (always 32 digits)
             cache_key = create_cache_key(stmt_list)
             # Set result to have selected page of stmts and more endpoing
             stmt_batch = stmt_pager.page(current_page).object_list
-            result['statements'] = stmt_batch
+            result['statements'] = [stmt.object_return(language, format) for stmt in stmt_batch]
             result['more'] = MORE_ENDPOINT + cache_key
             more_cache_list = []
             # Increment next page
             start_page = current_page
+            
             more_cache_list.append(stmt_list)
             more_cache_list.append(start_page)
             more_cache_list.append(total_pages)
             more_cache_list.append(limit)
             more_cache_list.append(attachments)
+            more_cache_list.append(language)
+            more_cache_list.append(format)
             # Encode info
             encoded_list = json.dumps(more_cache_list)
             cache.set(cache_key, encoded_list)
@@ -264,9 +294,10 @@ def build_statement_result(req_limit, stmt_list, attachments, more_id=None):
 
     # If there are more than the limit, build the initial return
     if statement_amount > limit:
-        result = initial_cache_return(stmt_list, encoded_list, attachments, limit)
+        result = initial_cache_return(language, format, stmt_list, encoded_list, attachments, limit)
     # Just provide statements since the list is under the limit
     else:
-        result['statements'] = stmt_list
+        result['statements'] = [stmt.object_return(language, format) for stmt in stmt_list]
+        # result['statements'] = stmt_list
         result['more'] = ''
     return result
