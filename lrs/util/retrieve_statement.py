@@ -1,7 +1,6 @@
 import bencode
 import hashlib
 import json
-
 from datetime import datetime
 from django.core import serializers
 from django.core.cache import cache
@@ -196,7 +195,7 @@ def build_statement_result(language, format, req_limit, stmt_list, attachments, 
     result = {}
     limit = None
 
-    # If from get_more_statement, stmt_list will be serializer generator
+    # If from get_more_statement, stmt_list will be json
     if isinstance(stmt_list, unicode):
         # Have to deserizlize stmt_list
         stmt_list = serializers.deserialize('json', stmt_list)
