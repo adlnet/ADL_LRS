@@ -36,9 +36,8 @@ class ActivityManagerTests(TestCase):
     # fields and values. All extensions are created with the same three values and keys
     def do_activity_definition_extensions_model(self, act, key1, key2, key3, value1, value2, value3):
         #Create list comprehesions to easier assess keys and values
-        ext_list = act.activitydefinitionextensions_set.values_list()
-        ext_keys = [ext[1] for ext in ext_list]
-        ext_vals = [ext[2] for ext in ext_list]
+        ext_keys = act.activity_definition_extensions.keys()
+        ext_vals = act.activity_definition_extensions.values()
 
         self.assertIn(key1, ext_keys)
         self.assertIn(key2, ext_keys)

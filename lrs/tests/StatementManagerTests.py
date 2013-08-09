@@ -49,13 +49,13 @@ class StatementManagerTests(TestCase):
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         verb = models.Verb.objects.get(id=stmt.model_object.verb.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        lang_maps = verb.verbdisplay_set.all()
+        lang_maps = json.loads(verb.display)
 
-        for lm in lang_maps:
-            if lm.key == 'en-GB':
-                self.assertEqual(lm.value, 'made')
-            elif lm.key == 'en-US':
-                self.assertEqual(lm.value, 'created')
+        for k, v in lang_maps.iteritems():
+            if k == 'en-GB':
+                self.assertEqual(v, 'made')
+            elif k == 'en-US':
+                self.assertEqual(v, 'created')
         
         self.assertEqual(activity.activity_id, "http://example.adlnet.gov/tincan/example/simplestatement")
         self.assertEqual(actor.mbox, "mailto:tincan@adlnet.gov")
@@ -185,9 +185,8 @@ class StatementManagerTests(TestCase):
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        extList = stmt.model_object.statementresultextensions_set.values_list()
-        extKeys = [ext[1] for ext in extList]
-        extVals = [ext[2] for ext in extList]
+        extKeys = stmt.model_object.result_extensions.keys()
+        extVals = stmt.model_object.result_extensions.values()
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.object_activity.id, activity.id)
@@ -315,9 +314,8 @@ class StatementManagerTests(TestCase):
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        extList = stmt.model_object.statementresultextensions_set.values_list()
-        extKeys = [ext[1] for ext in extList]
-        extVals = [ext[2] for ext in extList]
+        extKeys = stmt.model_object.result_extensions.keys()
+        extVals = stmt.model_object.result_extensions.values()
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.model_object.object_activity.id, activity.id)
@@ -452,9 +450,8 @@ class StatementManagerTests(TestCase):
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}))
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
-        extList = stmt.model_object.statementcontextextensions_set.values_list()
-        extKeys = [ext[1] for ext in extList]
-        extVals = [ext[2] for ext in extList]
+        extKeys = stmt.model_object.context_extensions.keys()
+        extVals = stmt.model_object.context_extensions.values()
         context_activities = stmt.model_object.statementcontextactivity_set.all()
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
@@ -740,79 +737,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(actor.name, name)
         self.assertEqual(actor.mbox, mbox)
 
-    # Verbs cannot share languagemaps. Will have many lang_maps attached to one verb
-    def test_verb_delete(self):
-        verb1 = models.Verb.objects.create(verb_id="verb:created")
-        lang_map1 = models.VerbDisplay.objects.create(key='en-US', value='created', verb=verb1)
-        lang_map2 = models.VerbDisplay.objects.create(key='en-GB', value='created', verb=verb1)
-
-        # Should remove any lang maps attached to it
-        models.Verb.objects.get(id=verb1.id).delete()
-        verbs = len(models.Verb.objects.all())
-        lang_maps = len(models.VerbDisplay.objects.all())
-        self.assertEqual(verbs, 0)
-        self.assertEqual(lang_maps, 0)
-
-        verb2 = models.Verb.objects.create(verb_id="verb:deleted")
-        lang_map3 = models.VerbDisplay.objects.create(key='en-US', value='deleted', verb=verb2)
-        lang_map4 = models.VerbDisplay.objects.create(key='en-GB', value='deleted', verb=verb2)
-
-        # Deleting lang map should not affect anything else
-        models.VerbDisplay.objects.get(id=lang_map3.id).delete()
-        verbs = len(models.Verb.objects.all())
-        lang_maps = len(models.VerbDisplay.objects.all())
-        self.assertEqual(verbs, 1)
-        self.assertEqual(lang_maps, 1)
-
-    def test_result_delete(self):
-        stmt1 = StatementManager(json.dumps(
-            {'actor':{'mbox':'mailto:s@s.com'},
-            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
-            'object':{'id':'act:test_act'}}))
-
-        res_ext1 = models.StatementResultExtensions.objects.create(key='key1', value='value1',
-            statement=stmt1.model_object)
-        res_ext2 = models.StatementResultExtensions.objects.create(key='key2', value='value2',
-            statement=stmt1.model_object)
-
-        stmts = len(models.Statement.objects.all())
-        res_exts = len(models.StatementResultExtensions.objects.all())
-        self.assertEqual(stmts, 1)
-        self.assertEqual(res_exts, 2)
-
-        stmt2 = StatementManager(json.dumps(
-            {'actor':{'mbox':'mailto:s@s.com'},
-            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
-            'object':{'id':'act:test_act'}}))
-
-        res_ext3 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
-            statement=stmt2.model_object)
-        res_ext4 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
-            statement=stmt2.model_object)
-
-        stmts = len(models.Statement.objects.all())
-        res_exts = len(models.StatementResultExtensions.objects.all())
-        self.assertEqual(stmts, 2)
-        self.assertEqual(res_exts, 4)
-
-        stmt3 = StatementManager(json.dumps(
-            {'actor':{'mbox':'mailto:s@s.com'},
-            'verb':{'id':'verb:test', 'display':{'en-US':'test'}},
-            'object':{'id':'act:test_act'}}))
-
-        res_ext5 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
-            statement=stmt3.model_object)
-        res_ext6 = models.StatementResultExtensions.objects.create(key='key3', value='value4',
-            statement=stmt3.model_object)
-
-        # Deleting an ext should not affect anything else
-        models.StatementResultExtensions.objects.get(id=res_ext6.id).delete()
-        stmts = len(models.Statement.objects.all())
-        res_exts = len(models.StatementResultExtensions.objects.all())
-        self.assertEqual(res_exts, 5)
-        # 2 stmts from before and this one
-        self.assertEqual(stmts, 3)
-
     def test_activity_definition_delete(self):
         act1 = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foo',
                 'definition': {'name': {'en-UK':'name', 'en-US':'nombre'},'description': {'en-UK':'desc',
@@ -835,64 +759,38 @@ class StatementManagerTests(TestCase):
         desc_lang2_1 = models.ActivityDefinitionDescLangMap.objects.get(value='desc2')
         desc_lang2_2 = models.ActivityDefinitionDescLangMap.objects.get(value='tdesc2')
         
-        ext1_1 = models.ActivityDefinitionExtensions.objects.get(key='ext:key1')
-        ext1_2 = models.ActivityDefinitionExtensions.objects.get(key='ext:key2')
-        ext1_3 = models.ActivityDefinitionExtensions.objects.get(key='ext:key3')
-        ext2_1 = models.ActivityDefinitionExtensions.objects.get(key='ext2:key1')
-        ext2_2 = models.ActivityDefinitionExtensions.objects.get(key='ext2:key2')
-        ext2_3 = models.ActivityDefinitionExtensions.objects.get(key='ext2:key3')
-        
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         self.assertEqual(name_langs, 4)
         self.assertEqual(desc_langs, 4)
-        self.assertEqual(exts, 6)
         self.assertEqual(acts, 2)
         
         # Should only be three name_langs now
         models.ActivityDefinitionNameLangMap.objects.get(id=name_lang1_1.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         self.assertEqual(name_langs, 3)
         self.assertEqual(desc_langs, 4)
-        self.assertEqual(exts, 6)
         self.assertEqual(acts, 2)
 
         # Should only be three desc_langs now
         models.ActivityDefinitionDescLangMap.objects.get(id=desc_lang2_1.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         self.assertEqual(name_langs, 3)
         self.assertEqual(desc_langs, 3)
-        self.assertEqual(exts, 6)
-        self.assertEqual(acts, 2)
-
-        # Should only be five extensions now
-        models.ActivityDefinitionExtensions.objects.get(id=ext1_1.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
-        acts = len(models.Activity.objects.all())
-        self.assertEqual(name_langs, 3)
-        self.assertEqual(desc_langs, 3)
-        self.assertEqual(exts, 5)
         self.assertEqual(acts, 2)
 
         # Activity 2 will still remain
         models.Activity.objects.get(id=act1.Activity.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         self.assertEqual(name_langs, 2)
         self.assertEqual(desc_langs, 1)
-        self.assertEqual(exts, 3)
         self.assertEqual(acts, 1)
 
     def test_activity_correctresponsepattern(self):
@@ -917,20 +815,15 @@ class StatementManagerTests(TestCase):
         desc_lang1 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc')
         desc_lang2 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc2')
         
-        ext1 = models.ActivityDefinitionExtensions.objects.get(key='ext:key1')
-        ext2 = models.ActivityDefinitionExtensions.objects.get(key='ext2:key1')
-
         crp_answer1 = models.CorrectResponsesPatternAnswer.objects.get(activity=act1.Activity)
         crp_answer2 = models.CorrectResponsesPatternAnswer.objects.get(activity=act2.Activity)        
 
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         self.assertEqual(name_langs, 2)
         self.assertEqual(desc_langs, 2)
-        self.assertEqual(exts, 2)
         self.assertEqual(acts, 2)
         self.assertEqual(crp_answers, 2)
 
@@ -938,12 +831,10 @@ class StatementManagerTests(TestCase):
         models.ActivityDefinitionNameLangMap.objects.get(id=name_lang1.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         self.assertEqual(name_langs, 1)
         self.assertEqual(desc_langs, 2)
-        self.assertEqual(exts, 2)
         self.assertEqual(acts, 2)
         self.assertEqual(crp_answers, 2)
 
@@ -951,25 +842,10 @@ class StatementManagerTests(TestCase):
         models.ActivityDefinitionDescLangMap.objects.get(id=desc_lang2.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         self.assertEqual(name_langs, 1)
         self.assertEqual(desc_langs, 1)
-        self.assertEqual(exts, 2)
-        self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 2)
-
-        # Should only be 1 extensions now
-        models.ActivityDefinitionExtensions.objects.get(id=ext1.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 1)
-        self.assertEqual(exts, 1)
         self.assertEqual(acts, 2)
         self.assertEqual(crp_answers, 2)
 
@@ -977,12 +853,10 @@ class StatementManagerTests(TestCase):
         models.Activity.objects.get(id=act1.Activity.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         self.assertEqual(name_langs, 1)
         self.assertEqual(desc_langs, 0)
-        self.assertEqual(exts, 1)
         self.assertEqual(acts, 1)
         self.assertEqual(crp_answers, 1)
 
@@ -1018,9 +892,6 @@ class StatementManagerTests(TestCase):
         desc_lang1 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc1')
         desc_lang2 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc2')
         
-        ext1 = models.ActivityDefinitionExtensions.objects.get(key='ext1:key1')
-        ext2 = models.ActivityDefinitionExtensions.objects.get(key='ext2:key1')
-
         crp_answers1 = models.CorrectResponsesPatternAnswer.objects.filter(activity=act1.Activity)
         crp_answers2 = models.CorrectResponsesPatternAnswer.objects.filter(activity=act2.Activity)        
 
@@ -1029,14 +900,12 @@ class StatementManagerTests(TestCase):
 
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         choices = len(models.ActivityDefinitionChoice.objects.all())
         choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
         self.assertEqual(name_langs, 2)
         self.assertEqual(desc_langs, 2)
-        self.assertEqual(exts, 2)
         self.assertEqual(acts, 2)
         self.assertEqual(crp_answers, 4)
         self.assertEqual(choices, 8)
@@ -1046,14 +915,12 @@ class StatementManagerTests(TestCase):
         models.ActivityDefinitionNameLangMap.objects.get(id=name_lang1.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         choices = len(models.ActivityDefinitionChoice.objects.all())
         choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
         self.assertEqual(name_langs, 1)
         self.assertEqual(desc_langs, 2)
-        self.assertEqual(exts, 2)
         self.assertEqual(acts, 2)
         self.assertEqual(crp_answers, 4)
         self.assertEqual(choices, 8)
@@ -1063,31 +930,12 @@ class StatementManagerTests(TestCase):
         models.ActivityDefinitionDescLangMap.objects.get(id=desc_lang2.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         choices = len(models.ActivityDefinitionChoice.objects.all())
         choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
         self.assertEqual(name_langs, 1)
         self.assertEqual(desc_langs, 1)
-        self.assertEqual(exts, 2)
-        self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 4)
-        self.assertEqual(choices, 8)
-        self.assertEqual(choice_lang_maps, 16)
-
-        # Should only be 1 extensions now
-        models.ActivityDefinitionExtensions.objects.get(id=ext1.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        choices = len(models.ActivityDefinitionChoice.objects.all())
-        choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 1)
-        self.assertEqual(exts, 1)
         self.assertEqual(acts, 2)
         self.assertEqual(crp_answers, 4)
         self.assertEqual(choices, 8)
@@ -1097,14 +945,12 @@ class StatementManagerTests(TestCase):
         models.Activity.objects.get(id=act1.Activity.id).delete()
         name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
         desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        exts = len(models.ActivityDefinitionExtensions.objects.all())
         acts = len(models.Activity.objects.all())
         crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
         choices = len(models.ActivityDefinitionChoice.objects.all())
         choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
         self.assertEqual(name_langs, 1)
         self.assertEqual(desc_langs, 0)
-        self.assertEqual(exts, 1)
         self.assertEqual(acts, 1)
         self.assertEqual(crp_answers, 2)
         self.assertEqual(choices, 4)
@@ -1334,9 +1180,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
         self.assertEqual(len(models.StatementRef.objects.all()), 1)
         self.assertEqual(len(models.StatementContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
         self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt4.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 3)
@@ -1346,9 +1190,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
         self.assertEqual(len(models.StatementRef.objects.all()), 1)
         self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
         self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt3.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 2)
@@ -1358,9 +1200,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
         self.assertEqual(len(models.StatementRef.objects.all()), 1)
         self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
         self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt2.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 1)
@@ -1370,9 +1210,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.SubStatement.objects.all()), 1)
         self.assertEqual(len(models.StatementRef.objects.all()), 0)
         self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
         self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 2)
         models.Statement.objects.get(id=stmt1.model_object.id).delete()
 
         self.assertEqual(len(models.Statement.objects.all()), 0)
@@ -1382,6 +1220,4 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.SubStatement.objects.all()), 0)
         self.assertEqual(len(models.StatementRef.objects.all()), 0)
         self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.StatementContextExtensions.objects.all()), 0)
         self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.SubStatementContextExtensions.objects.all()), 0)

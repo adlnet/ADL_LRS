@@ -242,7 +242,8 @@ class ActivityManager():
 
         #See if activity definition has extensions
         if act_def_created and 'extensions' in act_def.keys():
-            self.populate_extensions(act_def) 
+            self.Activity.activity_definition_extensions = act_def['extensions']
+            self.Activity.save() 
 
     def save_act_def_name_and_desc_map(self, act_def):
         # Save activity definition names and descriptions
@@ -300,8 +301,3 @@ class ActivityManager():
                 #Save description as string, not a dictionary
                 for desc_lang_map in t['description'].items():
                     lang_map = self.save_lang_map(desc_lang_map, target, "target")
-
-    def populate_extensions(self, act_def):
-        for k, v in act_def['extensions'].items():
-            act_def_ext = models.ActivityDefinitionExtensions.objects.create(key=k, value=v,
-                activity=self.Activity)

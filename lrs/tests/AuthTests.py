@@ -298,17 +298,17 @@ class AuthTests(TestCase):
         stmt2 = models.Statement.objects.get(object_activity=activity2)
         verb1 = models.Verb.objects.get(id=stmt1.verb.id)
         verb2 = models.Verb.objects.get(id=stmt2.verb.id)
-        lang_map1 = verb1.verbdisplay_set.all()[0]
-        lang_map2 = verb2.verbdisplay_set.all()[0]
+        lang_map1 = json.loads(verb1.display)
+        lang_map2 = json.loads(verb2.display)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
         self.assertEqual(stmt2.verb.verb_id, "http://adlnet.gov/expapi/verbs/failed")
         
-        self.assertEqual(lang_map1.key, "en-US")
-        self.assertEqual(lang_map1.value, "passed")
-        self.assertEqual(lang_map2.key, "en-GB")
-        self.assertEqual(lang_map2.value, "failed")
+        self.assertEqual(lang_map1.keys()[0], "en-US")
+        self.assertEqual(lang_map1.values()[0], "passed")
+        self.assertEqual(lang_map2.keys()[0], "en-GB")
+        self.assertEqual(lang_map2.values()[0], "failed")
 
 
     def test_put(self):
@@ -871,8 +871,6 @@ class AuthTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('actor is missing in Statement', response.content)
         
-        ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
-        
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
         activities = models.Activity.objects.filter(activity_id__contains='test_wrong_list_post')
@@ -883,7 +881,6 @@ class AuthTests(TestCase):
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(ad_exts), 0)
         self.assertEqual(len(verbs), 0)
         self.assertEqual(len(activities), 0)
         self.assertEqual(len(crp_answers), 0)
@@ -914,12 +911,10 @@ class AuthTests(TestCase):
         john_agent = models.Agent.objects.filter(mbox='mailto:john@john.com')
         s_agent = models.Agent.objects.filter(mbox='mailto:s@s.com')
         auth_agent = models.Agent.objects.filter(mbox='mailto:test1@tester.com')
-        verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
         # Both verbs from the first and last stmts in the list would still be there
         self.assertEqual(len(wrong_verbs), 0)
-        self.assertEqual(len(verb_display), 0)
 
         self.assertEqual(len(activities), 1)
         
