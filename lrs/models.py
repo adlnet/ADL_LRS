@@ -143,19 +143,6 @@ class Token(models.Model):
                 query, fragment))
         return self.callback
 
-class LanguageMap(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
-    
-    class Meta:
-        abstract = True
-
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     display = JSONField(blank=True)
@@ -165,7 +152,7 @@ class Verb(models.Model):
         ret['id'] = self.verb_id
         if self.display:
             ret['display'] = {}
-            dis = json.loads(self.display)
+            dis = self.display
             if lang:
                 ret['display'] = dict((key, value) for (key, value) in dis.items() if key == lang)
             else:
@@ -176,19 +163,19 @@ class Verb(models.Model):
     def get_display(self, lang=None):
         if not self.display:
             return self.verb_id
-        dis = json.loads(self.display)
+
         if lang:
-            for k, v in dis.iteritems():
+            for k, v in self.display.iteritems():
                 if k == lang:
                     return v
         try:    
-            return dis.get('en-US')
+            return self.display.get('en-US')
         except:
             try:
-                return dis.get('en')
+                return self.display.get('en')
             except:
                 pass
-        return dis.values()[0]
+        return self.display.values()[0]
 
     def __unicode__(self):
         return json.dumps(self.object_return())
@@ -441,11 +428,19 @@ class AgentProfile(models.Model):
 
 class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    objectType = models.CharField(max_length=8,blank=True, default="Activity") 
+    objectType = models.CharField(max_length=8,blank=True, default="Activity")
+    activity_definition_name = JSONField(blank=True)
+    activity_definition_description = JSONField(blank=True)
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_interactionType = models.CharField(max_length=25, blank=True)    
     activity_definition_extensions = JSONField(blank=True)
+    activity_definition_crpanswers = JSONField(blank=True)
+    activity_definition_choices = JSONField(blank=True)
+    activity_definition_scales = JSONField(blank=True)
+    activity_definition_sources = JSONField(blank=True)
+    activity_definition_targets = JSONField(blank=True)
+    activity_definition_steps = JSONField(blank=True)            
     authoritative = models.CharField(max_length=100, blank=True)
     global_representation = models.BooleanField(default=True)
 
@@ -459,21 +454,17 @@ class Activity(models.Model):
             ret['objectType'] = self.objectType
             
             ret['definition'] = {}
-            if lang:
-                name_lang_map_set = self.activitydefinitionnamelangmap_set.filter(key=lang)
-                desc_lang_map_set = self.activitydefinitiondesclangmap_set.filter(key=lang)
-            else:
-                name_lang_map_set = self.activitydefinitionnamelangmap_set.all()
-                desc_lang_map_set = self.activitydefinitiondesclangmap_set.all()
+            if self.activity_definition_name:
+                if lang:
+                    ret['definition']['name'] = dict((key, value) for (key, value) in self.activity_definition_name.items() if key == lang)
+                else:
+                    ret['definition']['name'] = dict((key, value) for (key, value) in self.activity_definition_name.items())
 
-            if name_lang_map_set:
-                ret['definition']['name'] = {}
-                for lang_map in name_lang_map_set:
-                    ret['definition']['name'].update(lang_map.object_return())
-            if desc_lang_map_set:
-                ret['definition']['description'] = {}
-                for lang_map in desc_lang_map_set:
-                    ret['definition']['description'].update(lang_map.object_return())
+            if self.activity_definition_description:
+                if lang:
+                    ret['definition']['description'] = dict((key, value) for (key, value) in self.activity_definition_description.items() if key == lang)
+                else:
+                    ret['definition']['description'] = dict((key, value) for (key, value) in self.activity_definition_description.items())
 
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
@@ -485,42 +476,54 @@ class Activity(models.Model):
                 ret['definition']['interactionType'] = self.activity_definition_interactionType
 
             # Get answers
-            answers = self.correctresponsespatternanswer_set.all()
-            if answers:
-                ret['definition']['correctResponsesPattern'] = []
-                for a in answers:
-                    ret['definition']['correctResponsesPattern'].append(a.object_return())            
-
-            # Get scales
-            scales = self.activitydefinitionscale_set.all()
-            if scales:
+            if self.activity_definition_crpanswers:
+                ret['definition']['correctResponsesPattern'] = self.activity_definition_crpanswers
+            
+            if self.activity_definition_scales:
                 ret['definition']['scale'] = []
-                for s in scales:
-                    ret['definition']['scale'].append(s.object_return())
-            # Get choices
-            choices = self.activitydefinitionchoice_set.all()
-            if choices:
-                ret['definition']['choices'] = []
-                for c in choices:
-                    ret['definition']['choices'].append(c.object_return())
-            # Get steps
-            steps = self.activitydefinitionstep_set.all()
-            if steps:
-                ret['definition']['steps'] = []
-                for st in steps:
-                    ret['definition']['steps'].append(st.object_return())
-            # Get sources
-            sources = self.activitydefinitionsource_set.all()
-            if sources:
-                ret['definition']['source'] = []
-                for so in sources:
-                    ret['definition']['source'].append(so.object_return())
-            # Get targets
-            targets = self.activitydefinitiontarget_set.all()
-            if targets:
-                ret['definition']['target'] = []
-                for t in targets:
-                    ret['definition']['target'].append(t.object_return())            
+                if lang:
+                    for s in self.activity_definition_scales:
+                        holder = {'id': s['id']}
+                        holder.update(dict((key, value) for (key, value) in s['description'] if key == lang))
+                        ret['definition']['scale'].append(holder)
+                else:
+                    ret['definition']['scale'] = self.activity_definition_scales
+
+            if self.activity_definition_choices:
+                if lang:
+                    for c in self.activity_definition_choices:
+                        holder = {'id': c['id']}
+                        holder.update(dict((key, value) for (key, value) in c['description'] if key == lang))
+                        ret['definition']['choices'].append(holder)
+                else:
+                    ret['definition']['choices'] = self.activity_definition_choices
+
+            if self.activity_definition_steps:
+                if lang:
+                    for s in self.activity_definition_steps:
+                        holder = {'id': s['id']}
+                        holder.update(dict((key, value) for (key, value) in s['description'] if key == lang))
+                        ret['definition']['steps'].append(holder)
+                else:
+                    ret['definition']['steps'] = self.activity_definition_steps
+
+            if self.activity_definition_sources:
+                if lang:
+                    for s in self.activity_definition_sources:
+                        holder = {'id': s['id']}
+                        holder.update(dict((key, value) for (key, value) in s['description'] if key == lang))
+                        ret['definition']['source'].append(holder)
+                else:
+                    ret['definition']['source'] = self.activity_definition_sources
+
+            if self.activity_definition_targets:
+                if lang:
+                    for t in self.activity_definition_target:
+                        holder = {'id': t['id']}
+                        holder.update(dict((key, value) for (key, value) in t['description'] if key == lang))
+                        ret['definition']['target'].append(holder)
+                else:
+                    ret['definition']['target'] = self.activity_definition_targets
 
             if self.activity_definition_extensions:
                 ret['definition']['extensions'] = self.activity_definition_extensions
@@ -532,130 +535,12 @@ class Activity(models.Model):
 
     def get_a_name(self):
         try:
-            return self.activitydefinitionnamelangmap_set.get(key='en-US').value
+            return self.activity_definition_name.get('en-US')
         except:
             return self.activity_id
 
     def __unicode__(self):
         return json.dumps(self.object_return())
-
-class ActivityDefinitionNameLangMap(LanguageMap):
-    activity = models.ForeignKey(Activity)
-
-class ActivityDefinitionDescLangMap(LanguageMap):
-    activity = models.ForeignKey(Activity)
-
-class CorrectResponsesPatternAnswer(models.Model):
-    answer = models.TextField()
-    activity = models.ForeignKey(Activity)    
-
-    def object_return(self):
-        return self.answer
-
-    def __unicode__(self):
-        return self.object_return()
-class ActivityDefinitionChoiceDesc(LanguageMap):
-    act_def_choice = models.ForeignKey("ActivityDefinitionChoice")
-
-class ActivityDefinitionChoice(models.Model):
-    choice_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.choice_id
-        ret['description'] = {}
-        
-        if lang is not None:
-            lang_map_set = self.activitydefinitionchoicedesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionchoicedesc_set.all()
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        
-        return ret
-
-class ActivityDefinitionScaleDesc(LanguageMap):
-    act_def_scale = models.ForeignKey("ActivityDefinitionScale")
-
-class ActivityDefinitionScale(models.Model):
-    scale_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.scale_id
-        ret['description'] = {}
-        
-        if lang is not None:
-            lang_map_set = self.activitydefinitionscaledesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionscaledesc_set.all()
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
-
-class ActivityDefinitionSourceDesc(LanguageMap):
-    act_def_source = models.ForeignKey("ActivityDefinitionSource")
-
-class ActivityDefinitionSource(models.Model):
-    source_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-    
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.source_id
-        ret['description'] = {}
-        if lang is not None:
-            lang_map_set = self.activitydefinitionsourcedesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionsourcedesc_set.all()        
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
-
-class ActivityDefinitionTargetDesc(LanguageMap):
-    act_def_target = models.ForeignKey("ActivityDefinitionTarget")
-
-class ActivityDefinitionTarget(models.Model):
-    target_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-    
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.target_id
-        ret['description'] = {}
-        if lang is not None:
-            lang_map_set = self.activitydefinitiontargetdesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitiontargetdesc_set.all()        
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
-
-class ActivityDefinitionStepDesc(LanguageMap):
-    act_def_step = models.ForeignKey("ActivityDefinitionStep")
-
-class ActivityDefinitionStep(models.Model):
-    step_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.step_id
-        ret['description'] = {}
-        if lang is not None:
-            lang_map_set = self.activitydefinitionstepdesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionstepdesc_set.all()        
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
 
 class StatementRef(models.Model):
     object_type = models.CharField(max_length=12, default="StatementRef")
@@ -875,13 +760,13 @@ class StatementAttachment(models.Model):
 
         if self.display:
             if lang:
-                ret['display'] = dict((key, value) for (key, value) in json.loads(self.display).items() if key == lang)
+                ret['display'] = dict((key, value) for (key, value) in self.display.items() if key == lang)
             else:
                 ret['display'] = self.display
 
         if self.description:
             if lang:
-                ret['description'] = dict((key, value) for (key, value) in json.loads(self.description).items() if key == lang)
+                ret['description'] = dict((key, value) for (key, value) in self.description.items() if key == lang)
             else:
                 ret['description'] = self.description
 

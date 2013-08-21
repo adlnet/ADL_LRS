@@ -4,7 +4,7 @@ from django.test import TestCase
 from lrs import models, views
 from django.core.urlresolvers import reverse
 from django.conf import settings
-
+import pdb
 class ActivityManagerTests(TestCase):
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
@@ -47,128 +47,65 @@ class ActivityManagerTests(TestCase):
         self.assertIn(value3, ext_vals)
 
     #Called on all activity django models with a correctResponsePattern because of http://adlnet.gov/expapi/activities/cmi.interaction type
-    def do_activity_definition_correctResponsePattern_model(self, act, answers):
-        rspAnswers = models.CorrectResponsesPatternAnswer.objects.values_list('answer',
-                     flat=True).filter(activity=act)
-        
+    def do_activity_definition_correctResponsePattern_model(self, act, answers):        
         for answer in answers:
-            self.assertIn(answer,rspAnswers)
+            self.assertIn(answer,act.activity_definition_crpanswers)
 
     #Called on all activity django models with choices because of sequence and choice interactionType
     def do_actvity_definition_choices_model(self, act, clist, dlist):
         # Grab all lang map IDs in act def
-        choice_objects = models.ActivityDefinitionChoice.objects.filter(activity=act)
-        desc_lang_maps = []
-        for c in choice_objects:
-            for m in c.activitydefinitionchoicedesc_set.all():
-                desc_lang_maps.append(m)
-        
-        # Recreate lang map and add to list for check
-        lang_map_list = []
-        for desc in desc_lang_maps:
-            tup = (desc.key, desc.value)
-            lang_map_list.append(tup)
-
-        choices = models.ActivityDefinitionChoice.objects.values_list('choice_id',
-                flat=True).filter(activity=act)
+        choice_ids = [v['id'] for v in act.activity_definition_choices]
+        choice_descs = [v['description'] for v in act.activity_definition_choices]
         
         for c in clist:
-            self.assertIn(c,choices)
+            self.assertIn(c,choice_ids)
 
         for d in dlist:
-            self.assertIn(d, lang_map_list)
+            self.assertIn(d, choice_descs)
 
     #Called on all activity django models with scale because of likert interactionType
     def do_actvity_definition_likert_model(self, act, clist, dlist):
-        scale_objects = models.ActivityDefinitionScale.objects.filter(activity=act)
-        desc_lang_maps = []
-        for s in scale_objects:
-            for m in s.activitydefinitionscaledesc_set.all():
-                desc_lang_maps.append(m)
-
-        # Recreate lang map and add to list for check
-        lang_map_list = []
-        for desc in desc_lang_maps:
-            tup = (desc.key, desc.value)
-            lang_map_list.append(tup)
-        
-        choices = models.ActivityDefinitionScale.objects.values_list('scale_id',
-                flat=True).filter(activity=act)
+        scale_ids = [v['id'] for v in act.activity_definition_scales]        
+        scale_descs = [v['description'] for v in act.activity_definition_scales]
 
         for c in clist:
-            self.assertIn(c,choices)
+            self.assertIn(c,scale_ids)
 
         for d in dlist:
-            self.assertIn(d, lang_map_list)
+            self.assertIn(d, scale_descs)
 
     #Called on all activity django models with steps because of performance interactionType
     def do_actvity_definition_performance_model(self, act, slist, dlist):
-        step_objects = models.ActivityDefinitionStep.objects.filter(activity=act)
-        desc_lang_maps = []
-        for s in step_objects:
-            for m in s.activitydefinitionstepdesc_set.all():
-                desc_lang_maps.append(m)
+        step_ids = [v['id'] for v in act.activity_definition_steps]
+        step_descs = [v['description'] for v in act.activity_definition_steps]
 
-        # Recreate lang map and add to list for check
-        lang_map_list = []
-        for desc in desc_lang_maps:
-            tup = (desc.key, desc.value)
-            lang_map_list.append(tup)        
-        steps = models.ActivityDefinitionStep.objects.values_list('step_id',
-            flat=True).filter(activity=act)
-        
         for s in slist:
-            self.assertIn(s,steps)
+            self.assertIn(s,step_ids)
 
         for d in dlist:
-            self.assertIn(d, lang_map_list)
+            self.assertIn(d, step_descs)
 
     #Called on all activity django models with source and target because of matching interactionType
     def do_actvity_definition_matching_model(self, act, source_id_list, source_desc_list,
                                              target_id_list, target_desc_list):
 
-        source_objects = models.ActivityDefinitionSource.objects.filter(activity=act)
-        source_desc_lang_maps = []
-        for s in source_objects:
-            for m in s.activitydefinitionsourcedesc_set.all():
-                source_desc_lang_maps.append(m)
-
-        # Recreate lang map and add to list for check
-        source_lang_map_list = []
-        for desc in source_desc_lang_maps:
-            tup = (desc.key, desc.value)
-            source_lang_map_list.append(tup)
-
-        sources = models.ActivityDefinitionSource.objects.values_list('source_id',
-                flat=True).filter(activity=act)
+        source_ids = [v['id'] for v in act.activity_definition_sources]
+        source_descs = [v['description'] for v in act.activity_definition_sources]
         
-        target_objects = models.ActivityDefinitionTarget.objects.filter(activity=act)
-        target_desc_lang_maps = []
+        target_ids = [v['id'] for v in act.activity_definition_targets]
+        target_descs = [v['description'] for v in act.activity_definition_targets]
 
-        for t in target_objects:
-            for m in t.activitydefinitiontargetdesc_set.all():
-                target_desc_lang_maps.append(m)
-
-        # Recreate lang map and add to list for check
-        target_lang_map_list = []
-        for desc in target_desc_lang_maps:
-            tup = (desc.key, desc.value)
-            target_lang_map_list.append(tup)
-        
-        targets = models.ActivityDefinitionTarget.objects.values_list('target_id',
-                flat=True).filter(activity=act)
-        
         for s_id in source_id_list:
-            self.assertIn(s_id,sources)
+            self.assertIn(s_id,source_ids)
 
         for s_desc in source_desc_list:
-            self.assertIn(s_desc, source_lang_map_list)
+            self.assertIn(s_desc, source_descs)
 
         for t_id in target_id_list:
-            self.assertIn(t_id,targets)
+            self.assertIn(t_id,target_ids)
 
         for t_desc in target_desc_list:
-            self.assertIn(t_desc, target_lang_map_list)            
+            self.assertIn(t_desc, target_descs)            
 
 
     # Test activity that doesn't have a def (populates everything from JSON)
@@ -183,21 +120,18 @@ class ActivityManagerTests(TestCase):
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        # Set not always returned in the same order
-        for ns in name_set:
-            if ns.key == 'en-FR':
-                self.assertEqual(ns.value, 'Example Name')
-            elif ns.key == 'en-CH':
-                self.assertEqual(ns.value, 'Alt Name')
+        self.assertEqual(name_set.keys()[0], 'en-FR')
+        self.assertEqual(name_set.values()[0], 'Example Name')
+        self.assertEqual(name_set.keys()[1], 'en-CH')
+        self.assertEqual(name_set.values()[1], 'Alt Name')
 
-        for ds in desc_set:
-            if ds.key == 'en-US':
-                self.assertEqual(ds.value, 'Example Desc')
-            elif ns.key == 'en-CH':
-                self.assertEqual(ds.value, 'Alt Desc')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'Example Desc')
+        self.assertEqual(desc_set.keys()[1], 'en-CH')
+        self.assertEqual(desc_set.values()[1], 'Alt Desc')
 
         self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample/', 'Activity')        
         self.do_activity_definition_model(act, 'type:module','course')
@@ -242,14 +176,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
         
-        self.assertEqual(name_set[0].key, 'en-US')
-        self.assertEqual(name_set[0].value, 'Example Name')
+        self.assertEqual(name_set.keys()[0], 'en-US')
+        self.assertEqual(name_set.values()[0], 'Example Name')
 
-        self.assertEqual(desc_set[0].key, 'en-US')
-        self.assertEqual(desc_set[0].value, 'Example Desc')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'Example Desc')
 
         self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample2/', 'Activity')        
         self.do_activity_definition_model(act, 'type:module','course')
@@ -274,14 +208,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-CH')
-        self.assertEqual(name_set[0].value, 'testname')
+        self.assertEqual(name_set.keys()[0], 'en-CH')
+        self.assertEqual(name_set.values()[0], 'testname')
 
-        self.assertEqual(desc_set[0].key, 'en-US')
-        self.assertEqual(desc_set[0].value, 'testdesc')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'testdesc')
 
         self.do_activity_model(act.id, 'act://var/www/adllrs/activity/example.json', 'Activity')        
         self.do_activity_definition_model(act, 'type:course', 'other')
@@ -302,14 +236,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id)
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-FR')
-        self.assertEqual(name_set[0].value, 'name')
+        self.assertEqual(name_set.keys()[0], 'en-FR')
+        self.assertEqual(name_set.values()[0], 'name')
 
-        self.assertEqual(desc_set[0].key, 'en-FR')
-        self.assertEqual(desc_set[0].value, 'desc')
+        self.assertEqual(desc_set.keys()[0], 'en-FR')
+        self.assertEqual(desc_set.values()[0], 'desc')
 
         self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample4/', 'Activity')        
         self.do_activity_definition_model(act, 'type:course','other')
@@ -330,14 +264,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
         
-        self.assertEqual(name_set[0].key, 'en-GB')
-        self.assertEqual(name_set[0].value, 'testname')
+        self.assertEqual(name_set.keys()[0], 'en-GB')
+        self.assertEqual(name_set.values()[0], 'testname')
 
-        self.assertEqual(desc_set[0].key, 'en-GB')
-        self.assertEqual(desc_set[0].value, 'testdesc1')
+        self.assertEqual(desc_set.keys()[0], 'en-GB')
+        self.assertEqual(desc_set.values()[0], 'testdesc1')
 
         self.do_activity_model(act.id, 'http://localhost:8000/XAPI/', 'Activity')        
         self.do_activity_definition_model(act, 'type:link', 'other')
@@ -382,14 +316,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
         
-        self.assertEqual(name_set[0].key, 'en-GB')
-        self.assertEqual(name_set[0].value, 'testname')
+        self.assertEqual(name_set.keys()[0], 'en-GB')
+        self.assertEqual(name_set.values()[0], 'testname')
 
-        self.assertEqual(desc_set[0].key, 'en-US')
-        self.assertEqual(desc_set[0].value, 'testdesc')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'testdesc')
 
         self.do_activity_model(act.id,'act:fooc', 'Activity')        
         self.do_activity_definition_model(act, 'type:course', 'other')
@@ -412,14 +346,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-FR')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-FR')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-CH')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-CH')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id,'act:food', 'Activity')        
         self.do_activity_definition_model(act, 'type:course','other')
@@ -442,21 +376,19 @@ class ActivityManagerTests(TestCase):
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
+        # pdb.set_trace()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        self.assertEqual(name_set.keys()[0], 'en-US')
+        self.assertEqual(name_set.values()[0], 'testnameEN')
+        self.assertEqual(name_set.keys()[1], 'en-FR')
+        self.assertEqual(name_set.values()[1], 'testname2')
 
-        for ns in name_set:
-            if ns.key == 'en-US':
-                self.assertEqual(ns.value, 'testnameEN')
-            elif ns.key == 'en-FR':
-                self.assertEqual(ns.value, 'testname2')
-
-        for ds in desc_set:
-            if ds.key == 'en-GB':
-                self.assertEqual(ds.value, 'testdescGB')
-            elif ds.key == 'en-CH':
-                self.assertEqual(ds.value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-GB')
+        self.assertEqual(desc_set.values()[0], 'testdescGB')
+        self.assertEqual(desc_set.keys()[1], 'en-CH')
+        self.assertEqual(desc_set.values()[1], 'testdesc2')
 
         self.do_activity_model(act.id,'act:food', 'Activity')        
         self.do_activity_definition_model(act, 'type:course', 'other')
@@ -499,14 +431,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-FR')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-FR')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-US')
-        self.assertEqual(desc_set[0].value, 'testdesc2')        
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')        
 
         self.do_activity_model(act.id,'act:fooe', 'Activity')                
         self.do_activity_definition_model(act, 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -539,14 +471,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-US')
-        self.assertEqual(name_set[0].value, 'testname1')
+        self.assertEqual(name_set.keys()[0], 'en-US')
+        self.assertEqual(name_set.values()[0], 'testname1')
 
-        self.assertEqual(desc_set[0].key, 'en-US')
-        self.assertEqual(desc_set[0].value, 'testdesc1')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'testdesc1')
 
         self.do_activity_model(act.id,'act:foof', 'Activity')
         self.do_activity_definition_model(act, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'choice')
@@ -558,9 +490,8 @@ class ActivityManagerTests(TestCase):
         
         #Check model choice values
         clist = ['golf', 'tetris', 'facebook', 'scrabble']
-        dlist = [("en-US","Golf Example"),("en-US", "Tetris Example"),("en-US", "Facebook App"),
-                 ("en-US", "Scrabble Example"), ('en-GB','GOLF'), ('en-GB', 'TETRIS'), ('en-GB', 'FACEBOOK'),
-                 ('en-GB', 'SCRABBLE')]
+        dlist = [{'en-GB': 'GOLF', 'en-US': 'Golf Example'}, {'en-GB': 'TETRIS', 'en-US': 'Tetris Example'},
+        {'en-GB': 'FACEBOOK', 'en-US': 'Facebook App'}, {'en-GB': 'SCRABBLE', 'en-US': 'Scrabble Example'}]
 
         self.do_actvity_definition_choices_model(act, clist, dlist)        
         
@@ -598,14 +529,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-FR')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-FR')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-FR')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-FR')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id,'act:foog', 'Activity')
 
@@ -635,14 +566,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-FR')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-FR')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-FR')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-FR')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id, 'act:fooh', 'Activity')
 
@@ -675,14 +606,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-CH')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-CH')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-CH')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-CH')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id, 'act:fooi', 'Activity')
 
@@ -693,9 +624,8 @@ class ActivityManagerTests(TestCase):
 
         #Check model choice values
         clist = ['likert_0', 'likert_1', 'likert_2', 'likert_3']
-        dlist = [("en-US", "Its OK"),("en-US", "Its Pretty Cool"), ("en-US", "Its Cool Cool"),
-                 ("en-US", "Its Gonna Change the World"), ('en-GB', 'Tis OK'), ('en-GB', 'Tis Pretty Cool'),
-                 ('en-GB', 'Tis Cool Cool')]
+        dlist = [{'en-GB': 'Tis OK', 'en-US': 'Its OK'},{'en-GB': 'Tis Pretty Cool', 'en-US': 'Its Pretty Cool'},
+                 {'en-GB': 'Tis Cool Cool', 'en-US': 'Its Cool Cool'}, {'en-US': 'Its Gonna Change the World'}]
         
         self.do_actvity_definition_likert_model(act, clist, dlist)
 
@@ -720,14 +650,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-CH')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-CH')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-CH')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-CH')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id, 'act:fooj', 'Activity')
 
@@ -738,10 +668,10 @@ class ActivityManagerTests(TestCase):
 
         #Check model choice values
         source_id_list = ['lou', 'tom', 'andy']
-        source_desc_list = [("en-US", "Lou"),("en-US", "Tom"),("en-US", "Andy"),('it', 'Luigi'), ('it', 'Tim')]
+        source_desc_list = [{'en-US': 'Lou', 'it': 'Luigi'}, {'en-US': 'Tom', 'it': 'Tim'}, {'en-US': 'Andy'}]
         target_id_list = ['1','2','3']
-        target_desc_list = [("en-US", "SCORM Engine"),("en-US", "Pure-sewage"),
-                            ("en-US", "SCORM Cloud"), ('en-CH', 'cloud') ]
+        target_desc_list = [{"en-US": "SCORM Engine"},{"en-US": "Pure-sewage"},
+                            {'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}]
 
         self.do_actvity_definition_matching_model(act, source_id_list, source_desc_list,
                                                   target_id_list, target_desc_list)
@@ -766,14 +696,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
         
-        self.assertEqual(name_set[0].key, 'en-us')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-us')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-us')
-        self.assertEqual(desc_set[0].value, 'testdesc2')        
+        self.assertEqual(desc_set.keys()[0], 'en-us')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')        
 
         self.do_activity_model(act.id, 'act:fook', 'Activity')
 
@@ -784,8 +714,8 @@ class ActivityManagerTests(TestCase):
 
         #Check model choice values
         slist = ['pong', 'dg', 'lunch']
-        dlist = [("en-US", "Net pong matches won"),("en-US", "Strokes over par in disc golf at Liberty"),
-                 ("en-US", "Lunch having been eaten"), ('en-GB', 'won')]
+        dlist = [{'en-GB': 'won', 'en-US': 'Net pong matches won'}, {'en-US': 'Strokes over par in disc golf at Liberty'},
+                    {'en-US': 'Lunch having been eaten'}]
         
         self.do_actvity_definition_performance_model(act, slist, dlist)
 
@@ -809,14 +739,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-GB')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-GB')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-GB')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-GB')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id, 'act:fool', 'Activity')
 
@@ -825,7 +755,7 @@ class ActivityManagerTests(TestCase):
         self.do_activity_definition_correctResponsePattern_model(act, ['lou,tom,andy,aaron'])
         #Check model choice values
         clist = ['lou', 'tom', 'andy', 'aaron']
-        dlist = [("en-US", "Lou"),("en-US", "Tom"),("en-US", "Andy"), ("en-US", "Aaron"), ('en-GB', 'Erin')]
+        dlist = [{"en-US": "Lou"},{"en-US": "Tom"},{"en-US": "Andy"}, {'en-GB': 'Erin', 'en-US': 'Aaron'}]
         self.do_actvity_definition_choices_model(act, clist, dlist)
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and numeric interactionType
@@ -845,14 +775,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-CH')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-CH')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-CH')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-CH')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id, 'act:foom', 'Activity')
 
@@ -882,14 +812,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-FR')
-        self.assertEqual(name_set[0].value, 'testname2')
+        self.assertEqual(name_set.keys()[0], 'en-FR')
+        self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set[0].key, 'en-FR')
-        self.assertEqual(desc_set[0].value, 'testdesc2')
+        self.assertEqual(desc_set.keys()[0], 'en-FR')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
 
         self.do_activity_model(act.id, 'act:foon', 'Activity')
 
@@ -959,14 +889,14 @@ class ActivityManagerTests(TestCase):
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set[0].key, 'en-US')
-        self.assertEqual(name_set[0].value, 'actname')
+        self.assertEqual(name_set.keys()[0], 'en-US')
+        self.assertEqual(name_set.values()[0], 'actname')
 
-        self.assertEqual(desc_set[0].key, 'en-us')
-        self.assertEqual(desc_set[0].value, 'actdesc')
+        self.assertEqual(desc_set.keys()[0], 'en-us')
+        self.assertEqual(desc_set.values()[0], 'actdesc')
         self.do_activity_model(act.id, 'act:foz', 'Activity')
 
         self.do_activity_definition_model(act, 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -1001,14 +931,14 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
-        name_set1 = act1.activitydefinitionnamelangmap_set.all()
-        desc_set1 = act1.activitydefinitiondesclangmap_set.all()
+        name_set1 = act1.activity_definition_name
+        desc_set1 = act1.activity_definition_description
         
-        self.assertEqual(name_set1[0].key, 'en-US')
-        self.assertEqual(name_set1[0].value, 'actname2')
+        self.assertEqual(name_set1.keys()[0], 'en-US')
+        self.assertEqual(name_set1.values()[0], 'actname2')
 
-        self.assertEqual(desc_set1[0].key, 'en-us')
-        self.assertEqual(desc_set1[0].value, 'actdesc')        
+        self.assertEqual(desc_set1.keys()[0], 'en-us')
+        self.assertEqual(desc_set1.values()[0], 'actdesc')        
 
 
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -1016,25 +946,19 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_model(act2.id, 'act:foob', 'Activity')
 
-        name_set2 = act2.activitydefinitionnamelangmap_set.all()
-        desc_set2 = act2.activitydefinitiondesclangmap_set.all()
+        name_set2 = act2.activity_definition_name
+        desc_set2 = act2.activity_definition_description
         
-        self.assertEqual(name_set2[0].key, 'en-US')
-        self.assertEqual(name_set2[0].value, 'actname2')
+        self.assertEqual(name_set2.keys()[0], 'en-US')
+        self.assertEqual(name_set2.values()[0], 'actname2')
 
-        self.assertEqual(desc_set2[0].key, 'en-us')
-        self.assertEqual(desc_set2[0].value, 'actdesc')        
+        self.assertEqual(desc_set2.keys()[0], 'en-us')
+        self.assertEqual(desc_set2.values()[0], 'actdesc')        
 
         self.do_activity_definition_model(act2, 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'other')
 
         self.assertEqual(act1, act2)
-
-        # __contains makes the filter case sensitive
-        self.assertEqual(len(models.ActivityDefinitionNameLangMap.objects.filter(key__contains = 'en-US')), 1)
-
-        # Should have one desc
-        self.assertEqual(len(models.ActivityDefinitionDescLangMap.objects.all()), 1)
         
     def test_multiple_activities_update_desc(self):
         stmt_list = []
@@ -1065,35 +989,29 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_model(act1.id, 'act:foobe', 'Activity')
 
-        name_set1 = act1.activitydefinitionnamelangmap_set.all()
-        desc_set1 = act1.activitydefinitiondesclangmap_set.all()
+        name_set1 = act1.activity_definition_name
+        desc_set1 = act1.activity_definition_description
         
-        self.assertEqual(name_set1[0].key, 'en-US')
-        self.assertEqual(name_set1[0].value, 'actname')
+        self.assertEqual(name_set1.keys()[0], 'en-US')
+        self.assertEqual(name_set1.values()[0], 'actname')
 
-        self.assertEqual(desc_set1[0].key, 'en-us')
-        self.assertEqual(desc_set1[0].value, 'actdesc2')        
+        self.assertEqual(desc_set1.keys()[0], 'en-us')
+        self.assertEqual(desc_set1.values()[0], 'actdesc2')
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
         self.do_activity_model(act2.id, 'act:foobe', 'Activity')
 
-        name_set2 = act2.activitydefinitionnamelangmap_set.all()
-        desc_set2 = act2.activitydefinitiondesclangmap_set.all()
-        
-        self.assertEqual(name_set2[0].key, 'en-US')
-        self.assertEqual(name_set2[0].value, 'actname')
+        name_set2 = act2.activity_definition_name
+        desc_set2 = act2.activity_definition_description
 
-        self.assertEqual(desc_set2[0].key, 'en-us')
-        self.assertEqual(desc_set2[0].value, 'actdesc2')        
+        self.assertEqual(name_set2.keys()[0], 'en-US')
+        self.assertEqual(name_set2.values()[0], 'actname')
+
+        self.assertEqual(desc_set2.keys()[0], 'en-us')
+        self.assertEqual(desc_set2.values()[0], 'actdesc2')        
         self.do_activity_definition_model(act2, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
         self.assertEqual(act1, act2)
-
-        # __contains makes the filter case sensitive, no models with en-US should be stored
-        self.assertEqual(len(models.ActivityDefinitionNameLangMap.objects.filter(key__contains = 'en-US')), 1)
-
-        # Should have 1 desc
-        self.assertEqual(len(models.ActivityDefinitionDescLangMap.objects.all()), 1)
 
     def test_multiple_activities_update_both(self):
         stmt_list = []
@@ -1124,37 +1042,31 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
-        name_set1 = act1.activitydefinitionnamelangmap_set.all()
-        desc_set1 = act1.activitydefinitiondesclangmap_set.all()
+        name_set1 = act1.activity_definition_name
+        desc_set1 = act1.activity_definition_description
         
-        self.assertEqual(name_set1[0].key, 'en-CH')
-        self.assertEqual(name_set1[0].value, 'actname2')
+        self.assertEqual(name_set1.keys()[0], 'en-CH')
+        self.assertEqual(name_set1.values()[0], 'actname2')
 
-        self.assertEqual(desc_set1[0].key, 'en-FR')
-        self.assertEqual(desc_set1[0].value, 'actdesc2')
+        self.assertEqual(desc_set1.keys()[0], 'en-FR')
+        self.assertEqual(desc_set1.values()[0], 'actdesc2')
 
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
         self.do_activity_model(act2.id, 'act:foob', 'Activity')
 
-        name_set2 = act2.activitydefinitionnamelangmap_set.all()
-        desc_set2 = act2.activitydefinitiondesclangmap_set.all()
+        name_set2 = act2.activity_definition_name
+        desc_set2 = act2.activity_definition_description
         
-        self.assertEqual(name_set2[0].key, 'en-CH')
-        self.assertEqual(name_set2[0].value, 'actname2')
+        self.assertEqual(name_set2.keys()[0], 'en-CH')
+        self.assertEqual(name_set2.values()[0], 'actname2')
 
-        self.assertEqual(desc_set2[0].key, 'en-FR')
-        self.assertEqual(desc_set2[0].value, 'actdesc2')         
+        self.assertEqual(desc_set2.keys()[0], 'en-FR')
+        self.assertEqual(desc_set2.values()[0], 'actdesc2')         
         self.do_activity_definition_model(act2,'http://adlnet.gov/expapi/activities/cmi.interaction',
             'other')
 
         self.assertEqual(act1, act2)
-
-        # __contains makes the filter case sensitive, no models with en-US should be stored
-        self.assertEqual(len(models.ActivityDefinitionNameLangMap.objects.filter(key__contains = 'en-US')), 0)
-        
-        # Should have 1 desc
-        self.assertEqual(len(models.ActivityDefinitionDescLangMap.objects.all()), 1)
 
     def test_multiple_activities_update_both_and_add(self):
         stmt_list = []
@@ -1185,51 +1097,41 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
-        name_set1 = act1.activitydefinitionnamelangmap_set.all()
-        desc_set1 = act1.activitydefinitiondesclangmap_set.all()
+        name_set1 = act1.activity_definition_name
+        desc_set1 = act1.activity_definition_description
         
-        for ns in name_set1:
-            if ns.key == 'en-CH':
-                self.assertEqual(ns.value, 'actname2')
-            elif ns.key == 'en-US':
-                self.assertEqual(ns.value, 'altname')
+        self.assertEqual(name_set1.keys()[1], 'en-CH')
+        self.assertEqual(name_set1.values()[1], 'actname2')
+        self.assertEqual(name_set1.keys()[0], 'en-US')
+        self.assertEqual(name_set1.values()[0], 'altname')
 
-        for ds in desc_set1:
-            if ds.key == 'en-FR':
-                self.assertEqual(ds.value, 'actdesc2')
-            elif ds.key == 'en-GB':
-                self.assertEqual(ds.value, 'altdesc')
+        self.assertEqual(desc_set1.keys()[1], 'en-FR')
+        self.assertEqual(desc_set1.values()[1], 'actdesc2')
+        self.assertEqual(desc_set1.keys()[0], 'en-GB')
+        self.assertEqual(desc_set1.values()[0], 'altdesc')
 
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'other')
 
         self.do_activity_model(act2.id, 'act:foob', 'Activity')
 
-        name_set2 = act2.activitydefinitionnamelangmap_set.all()
-        desc_set2 = act2.activitydefinitiondesclangmap_set.all()
-        
-        for ns in name_set2:
-            if ns.key == 'en-CH':
-                self.assertEqual(ns.value, 'actname2')
-            elif ns.key == 'en-US':
-                self.assertEqual(ns.value, 'altname')
+        name_set2 = act2.activity_definition_name
+        desc_set2 = act2.activity_definition_description
 
-        for ds in desc_set2:
-            if ds.key == 'en-FR':
-                self.assertEqual(ds.value, 'actdesc2')
-            elif ns.key == 'en-GB':
-                self.assertEqual(ds.value, 'altdesc')
+        self.assertEqual(name_set2.keys()[1], 'en-CH')
+        self.assertEqual(name_set2.values()[1], 'actname2')
+        self.assertEqual(name_set2.keys()[0], 'en-US')
+        self.assertEqual(name_set2.values()[0], 'altname')
+
+        self.assertEqual(desc_set2.keys()[1], 'en-FR')
+        self.assertEqual(desc_set2.values()[1], 'actdesc2')
+        self.assertEqual(desc_set2.keys()[0], 'en-GB')
+        self.assertEqual(desc_set2.values()[0], 'altdesc')
 
         self.do_activity_definition_model(act2,'http://adlnet.gov/expapi/activities/cmi.interaction',
             'other')
 
         self.assertEqual(act1, act2)
-
-        # __contains makes the filter case sensitive
-        self.assertEqual(len(models.ActivityDefinitionNameLangMap.objects.filter(key__contains = 'en-US')), 1)
-        
-        # Should have 2 descs
-        self.assertEqual(len(models.ActivityDefinitionDescLangMap.objects.all()), 2)
         
     def test_del_act(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
@@ -1248,13 +1150,5 @@ class ActivityManagerTests(TestCase):
         act = models.Activity.objects.get(id=st.object_activity.id)
 
         self.assertEqual(1, len(models.Activity.objects.all()))
-        self.assertEqual(1, len(models.ActivityDefinitionNameLangMap.objects.all()))
-        self.assertEqual(1, len(models.ActivityDefinitionDescLangMap.objects.all()))
-        self.assertEqual(1, len(models.ActivityDefinitionNameLangMap.objects.all()))
-
         act.delete()
-
         self.assertEqual(0, len(models.Activity.objects.all()))
-        self.assertEqual(0, len(models.ActivityDefinitionNameLangMap.objects.all()))
-        self.assertEqual(0, len(models.ActivityDefinitionDescLangMap.objects.all()))
-        self.assertEqual(0, len(models.ActivityDefinitionNameLangMap.objects.all()))

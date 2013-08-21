@@ -49,7 +49,7 @@ class StatementManagerTests(TestCase):
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         verb = models.Verb.objects.get(id=stmt.model_object.verb.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
-        lang_maps = json.loads(verb.display)
+        lang_maps = verb.display
 
         for k, v in lang_maps.iteritems():
             if k == 'en-GB':
@@ -737,62 +737,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(actor.name, name)
         self.assertEqual(actor.mbox, mbox)
 
-    def test_activity_definition_delete(self):
-        act1 = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:foo',
-                'definition': {'name': {'en-UK':'name', 'en-US':'nombre'},'description': {'en-UK':'desc',
-                'en-US': 'tdesc'},'type': 'type:course','interactionType': 'intType2',
-                'extensions': {'ext:key1': 'value1','ext:key2': 'value2','ext:key3': 'value3'}}}))
-
-        act2 = ActivityManager(json.dumps({'objectType': 'Activity', 'id':'act:baz',
-                'definition': {'name': {'en-UK':'name2', 'en-US':'nombre2'},'description': {'en-UK':'desc2',
-                'en-US': 'tdesc2'},'type': 'type:course','interactionType': 'intType2',
-                'extensions': {'ext2:key1': 'value1','ext2:key2': 'value2','ext2:key3': 'value3'}}}))
-
-        
-        name_lang1_1 = models.ActivityDefinitionNameLangMap.objects.get(value='name')
-        name_lang1_2 = models.ActivityDefinitionNameLangMap.objects.get(value='nombre')
-        name_lang2_1= models.ActivityDefinitionNameLangMap.objects.get(value='name2')
-        name_lang2_2= models.ActivityDefinitionNameLangMap.objects.get(value='nombre2')
-        
-        desc_lang1_1 = models.ActivityDefinitionDescLangMap.objects.get(value='desc')
-        desc_lang1_2 = models.ActivityDefinitionDescLangMap.objects.get(value='tdesc')
-        desc_lang2_1 = models.ActivityDefinitionDescLangMap.objects.get(value='desc2')
-        desc_lang2_2 = models.ActivityDefinitionDescLangMap.objects.get(value='tdesc2')
-        
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        self.assertEqual(name_langs, 4)
-        self.assertEqual(desc_langs, 4)
-        self.assertEqual(acts, 2)
-        
-        # Should only be three name_langs now
-        models.ActivityDefinitionNameLangMap.objects.get(id=name_lang1_1.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        self.assertEqual(name_langs, 3)
-        self.assertEqual(desc_langs, 4)
-        self.assertEqual(acts, 2)
-
-        # Should only be three desc_langs now
-        models.ActivityDefinitionDescLangMap.objects.get(id=desc_lang2_1.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        self.assertEqual(name_langs, 3)
-        self.assertEqual(desc_langs, 3)
-        self.assertEqual(acts, 2)
-
-        # Activity 2 will still remain
-        models.Activity.objects.get(id=act1.Activity.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        self.assertEqual(name_langs, 2)
-        self.assertEqual(desc_langs, 1)
-        self.assertEqual(acts, 1)
-
     def test_activity_correctresponsepattern(self):
         act1 = ActivityManager(json.dumps({
             'objectType': 'Activity', 'id':'act:foo',
@@ -808,153 +752,11 @@ class StatementManagerTests(TestCase):
                 'interactionType': 'true-false','correctResponsesPattern': ['true'],
                 'extensions': {'ext2:key1': 'value1'}}}))
 
-        
-        name_lang1 = models.ActivityDefinitionNameLangMap.objects.get(value='testname')
-        name_lang2 = models.ActivityDefinitionNameLangMap.objects.get(value='testname2')
-        
-        desc_lang1 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc')
-        desc_lang2 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc2')
-        
-        crp_answer1 = models.CorrectResponsesPatternAnswer.objects.get(activity=act1.Activity)
-        crp_answer2 = models.CorrectResponsesPatternAnswer.objects.get(activity=act2.Activity)        
 
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
         acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        self.assertEqual(name_langs, 2)
-        self.assertEqual(desc_langs, 2)
         self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 2)
-
-        # Should only be 1 name_langs now
-        models.ActivityDefinitionNameLangMap.objects.get(id=name_lang1.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 2)
-        self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 2)
-
-        # Should only be 1 desc_langs now
-        models.ActivityDefinitionDescLangMap.objects.get(id=desc_lang2.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 1)
-        self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 2)
-
-        # Deletes its desc lang, def, crp, and crp answer
-        models.Activity.objects.get(id=act1.Activity.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 0)
-        self.assertEqual(acts, 1)
-        self.assertEqual(crp_answers, 1)
-
-    # Would be same for steps, target/source, and scale
-    def test_activity_definition_choices(self):
-        act1 = ActivityManager(json.dumps(
-            {'objectType': 'Activity', 'id':'act:foo',
-                'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
-                    'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
-                    'interactionType': 'choice',
-                    'correctResponsesPattern': ['golf', 'tetris'],'choices':[
-                    {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
-                    {'id': 'tetris','description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}},
-                    {'id':'facebook', 'description':{'en-US':'Facebook App', 'en-GB': 'FACEBOOK'}},
-                    {'id':'scrabble', 'description': {'en-US': 'Scrabble Example', 'en-GB': 'SCRABBLE'}}],
-                    'extensions': {'ext1:key1': 'value1'}}}))
-
-        act2 = ActivityManager(json.dumps(
-            {'objectType': 'Activity', 'id':'act:biz',
-                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
-                    'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
-                    'interactionType': 'choice',
-                    'correctResponsesPattern': ['golf', 'tetris'],'choices':[
-                    {'id': 'golf', 'description': {'en-US':'Golf Example', 'en-GB': 'GOLF'}},
-                    {'id': 'tetris','description':{'en-US': 'Tetris Example', 'en-GB': 'TETRIS'}},
-                    {'id':'facebook', 'description':{'en-US':'Facebook App', 'en-GB': 'FACEBOOK'}},
-                    {'id':'scrabble', 'description': {'en-US': 'Scrabble Example', 'en-GB': 'SCRABBLE'}}],
-                    'extensions': {'ext2:key1': 'value1'}}}))
-        
-        name_lang1 = models.ActivityDefinitionNameLangMap.objects.get(value='testname1')
-        name_lang2 = models.ActivityDefinitionNameLangMap.objects.get(value='testname2')
-        
-        desc_lang1 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc1')
-        desc_lang2 = models.ActivityDefinitionDescLangMap.objects.get(value='testdesc2')
-        
-        crp_answers1 = models.CorrectResponsesPatternAnswer.objects.filter(activity=act1.Activity)
-        crp_answers2 = models.CorrectResponsesPatternAnswer.objects.filter(activity=act2.Activity)        
-
-        choices1 = models.ActivityDefinitionChoice.objects.filter(activity=act1.Activity)
-        choices2 = models.ActivityDefinitionChoice.objects.filter(activity=act2.Activity)
-
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        choices = len(models.ActivityDefinitionChoice.objects.all())
-        choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
-        self.assertEqual(name_langs, 2)
-        self.assertEqual(desc_langs, 2)
-        self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 4)
-        self.assertEqual(choices, 8)
-        self.assertEqual(choice_lang_maps, 16)
-
-        # Should only be 1 name_langs now
-        models.ActivityDefinitionNameLangMap.objects.get(id=name_lang1.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        choices = len(models.ActivityDefinitionChoice.objects.all())
-        choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 2)
-        self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 4)
-        self.assertEqual(choices, 8)
-        self.assertEqual(choice_lang_maps, 16)
-
-        # Should only be 1 desc_langs now
-        models.ActivityDefinitionDescLangMap.objects.get(id=desc_lang2.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        choices = len(models.ActivityDefinitionChoice.objects.all())
-        choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 1)
-        self.assertEqual(acts, 2)
-        self.assertEqual(crp_answers, 4)
-        self.assertEqual(choices, 8)
-        self.assertEqual(choice_lang_maps, 16)
-
-        # Delete activity - removes its desc lang, def, crp, crp answers and choices
-        models.Activity.objects.get(id=act1.Activity.id).delete()
-        name_langs = len(models.ActivityDefinitionNameLangMap.objects.all())
-        desc_langs = len(models.ActivityDefinitionDescLangMap.objects.all())
-        acts = len(models.Activity.objects.all())
-        crp_answers = len(models.CorrectResponsesPatternAnswer.objects.all())
-        choices = len(models.ActivityDefinitionChoice.objects.all())
-        choice_lang_maps = len(models.ActivityDefinitionChoiceDesc.objects.all())
-        self.assertEqual(name_langs, 1)
-        self.assertEqual(desc_langs, 0)
-        self.assertEqual(acts, 1)
-        self.assertEqual(crp_answers, 2)
-        self.assertEqual(choices, 4)
-        self.assertEqual(choice_lang_maps, 8)
+        self.assertIn('true', act1.Activity.activity_definition_crpanswers)
+        self.assertIn('true', act2.Activity.activity_definition_crpanswers)
 
     # Tests if an act from context already exists in a different stmt, if an act from context is the object in the
     # same stmt, and if an act from context doesn't exist anywhere

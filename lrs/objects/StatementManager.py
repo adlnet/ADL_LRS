@@ -197,12 +197,12 @@ class StatementManager():
                     else:
                         existing_descriptions = {}
 
-                    # Save verb displays
+                    # Save displays
                     if 'display' in attach:
-                        attachment.display = json.dumps(dict(existing_displays.items() + attach['display'].items()))
+                        attachment.display = dict(existing_displays.items() + attach['display'].items())
 
                     if 'description' in attach:
-                        attachment.description = json.dumps(dict(existing_descriptions.items() + attach['description'].items()))
+                        attachment.description = dict(existing_descriptions.items() + attach['description'].items())
                     attachment.save()
 
                 # Add each attach to the stmt
@@ -244,7 +244,7 @@ class StatementManager():
         # If existing, get existing keys
         if not created:
             if verb_object.display:
-                existing_lang_maps = json.loads(verb_object.display)       
+                existing_lang_maps = verb_object.display    
             else:
                 existing_lang_maps = {}
         else:
@@ -252,7 +252,7 @@ class StatementManager():
 
         # Save verb displays
         if 'display' in incoming_verb:
-            verb_object.display = json.dumps(dict(existing_lang_maps.items() + incoming_verb['display'].items()))
+            verb_object.display = dict(existing_lang_maps.items() + incoming_verb['display'].items())
             verb_object.save()
         self.data['verb'] = verb_object
 
