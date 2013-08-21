@@ -22,7 +22,7 @@ import uuid
 import time
 import urllib
 import hashlib
-import pdb
+
 class StatementsTests(TestCase):
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
@@ -953,7 +953,6 @@ class StatementsTests(TestCase):
 
         self.assertEqual(the_returned['object']['id'], 'http:adlnet.gov/my/Activity/URL')
         self.assertEqual(the_returned['object']['objectType'], 'Activity')
-        # pdb.set_trace()
         self.assertEqual(the_returned['object']['definition']['description']['en-US'], 'This is my activity description.')
         self.assertEqual(the_returned['object']['definition']['description']['en-GB'], 'This is another activity description.')
         self.assertEqual(the_returned['object']['definition']['interactionType'], 'choice')

@@ -4,7 +4,7 @@ from django.test import TestCase
 from lrs import models, views
 from django.core.urlresolvers import reverse
 from django.conf import settings
-import pdb
+
 class ActivityManagerTests(TestCase):
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
@@ -376,7 +376,6 @@ class ActivityManagerTests(TestCase):
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
         act = models.Activity.objects.get(id=st.object_activity.id)
-        # pdb.set_trace()
         name_set = act.activity_definition_name
         desc_set = act.activity_definition_description
 

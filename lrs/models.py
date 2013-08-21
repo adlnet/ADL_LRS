@@ -152,11 +152,10 @@ class Verb(models.Model):
         ret['id'] = self.verb_id
         if self.display:
             ret['display'] = {}
-            dis = self.display
             if lang:
-                ret['display'] = dict((key, value) for (key, value) in dis.items() if key == lang)
+                ret['display'] = dict((key, value) for (key, value) in self.display.items() if key == lang)
             else:
-                ret['display'] = dis               
+                ret['display'] = self.display             
         return ret
 
     # Just return one value for human-readable
@@ -458,13 +457,13 @@ class Activity(models.Model):
                 if lang:
                     ret['definition']['name'] = dict((key, value) for (key, value) in self.activity_definition_name.items() if key == lang)
                 else:
-                    ret['definition']['name'] = dict((key, value) for (key, value) in self.activity_definition_name.items())
+                    ret['definition']['name'] = self.activity_definition_name
 
             if self.activity_definition_description:
                 if lang:
                     ret['definition']['description'] = dict((key, value) for (key, value) in self.activity_definition_description.items() if key == lang)
                 else:
-                    ret['definition']['description'] = dict((key, value) for (key, value) in self.activity_definition_description.items())
+                    ret['definition']['description'] = self.activity_definition_description
 
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type

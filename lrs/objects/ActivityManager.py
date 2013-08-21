@@ -54,7 +54,7 @@ class ActivityManager():
         return act_json
 
     #Save activity definition to DB
-    def save_activity_definition_to_db(self, act_def_type, int_type, more_info, name, desc, crp):
+    def save_activity_definition_to_db(self, act_def_type, int_type, more_info, name, desc, crp, ext):
         created = True        
         # Have to check if the activity already has an activity definition. Can only update name and
         # description in definition, so no matter what the user's scope is, if the activity def already
@@ -69,6 +69,7 @@ class ActivityManager():
             self.Activity.activity_definition_moreInfo = more_info
             self.Activity.activity_definition_interactionType = int_type
             self.Activity.activity_definition_crpanswers = crp
+            self.Activity.activity_definition_extensions = ext
             self.Activity.save()
         return created
 
@@ -109,19 +110,7 @@ class ActivityManager():
     def validate_cmi_interaction(self, act_def, act_created):
         interaction_flag = None
 
-        #Multiple choice and sequencing must have choices
-        if act_def['interactionType'] == 'choice' or \
-            act_def['interactionType'] == 'sequencing':
-                interaction_flag = 'choices' 
-        #Matching must have both source and target
-        elif act_def['interactionType'] == 'matching':
-            interaction_flag = 'source'
-        #Performance must have steps
-        elif act_def['interactionType'] == 'performance':
-            interaction_flag = 'steps'
-        #Likert must have scale
-        elif act_def['interactionType'] == 'likert':
-            interaction_flag = 'scale'
+
         return interaction_flag
 
     #Populate definition either from JSON or validated XML
@@ -131,19 +120,11 @@ class ActivityManager():
             err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
             raise exceptions.Forbidden(err_msg)
 
-        act_def_type = act_def.get('type', '')
-        # validate type if it exists
-        if act_def_type:
-            #If the type is cmi.interaction, have to check interactionType
-            interaction_flag = None
-            if act_def_type == 'http://adlnet.gov/expapi/activities/cmi.interaction':
-                interaction_flag = self.validate_cmi_interaction(act_def, act_created)
-
         # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
         # doesn't have a definition
-        act_def_created = self.save_activity_definition_to_db(act_def_type, act_def.get('interactionType', ''),
+        act_def_created = self.save_activity_definition_to_db(act_def.get('type', ''), act_def.get('interactionType', ''),
             act_def.get('moreInfo', ''), act_def.get('name', ''), act_def.get('description', ''),
-            act_def.get('correctResponsesPattern', ''))
+            act_def.get('correctResponsesPattern', ''), act_def.get('extensions', ''))
 
         # If the activity had already existed and lrs auth is off or user has authority to update it
         if not act_created: 
@@ -163,27 +144,21 @@ class ActivityManager():
         # If the activity definition was just created (can't update the CRP or extensions of a def if already existed)
         #If there is a correctResponsesPattern then save the pattern
         if act_def_created and self.Activity.activity_definition_crpanswers:
-            self.populate_correct_responses_pattern(act_def, interaction_flag)
+            self.populate_correct_responses_pattern(act_def)
 
-        #See if activity definition has extensions
-        if act_def_created and 'extensions' in act_def.keys():
-            self.Activity.activity_definition_extensions = act_def['extensions']
-            self.Activity.save() 
-
-    def populate_correct_responses_pattern(self, act_def, interaction_flag):
-        #Depending on which type of interaction, save the unique fields accordingly
-        if interaction_flag == 'choices':
-            choices = act_def['choices']
-            self.Activity.activity_definition_choices = choices
-        elif interaction_flag == 'scale':
-            scales = act_def['scale']
-            self.Activity.activity_definition_scales = scales
-        elif interaction_flag == 'steps':
-            steps = act_def['steps']
-            self.Activity.activity_definition_steps = steps
-        elif interaction_flag == 'source':
-            sources = act_def['source'] 
-            self.Activity.activity_definition_sources = sources
-            targets = act_def['target']
-            self.Activity.activity_definition_targets = targets
+    def populate_correct_responses_pattern(self, act_def):
+        #Multiple choice and sequencing must have choices
+        if act_def['interactionType'] == 'choice' or \
+            act_def['interactionType'] == 'sequencing':
+            self.Activity.activity_definition_choices = act_def['choices']
+        #Matching must have both source and target
+        elif act_def['interactionType'] == 'matching':
+            self.Activity.activity_definition_sources = act_def['source'] 
+            self.Activity.activity_definition_targets = act_def['target']
+        #Performance must have steps
+        elif act_def['interactionType'] == 'performance':
+            self.Activity.activity_definition_steps = act_def['steps']
+        #Likert must have scale
+        elif act_def['interactionType'] == 'likert':
+            self.Activity.activity_definition_scales = act_def['scale']
         self.Activity.save()
