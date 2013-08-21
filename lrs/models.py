@@ -6,6 +6,7 @@ import urlparse
 import datetime as dt
 from datetime import datetime
 from time import time
+from jsonfield import JSONField
 from django_extensions.db.fields import UUIDField
 from django.db import models
 from django.db import transaction
@@ -142,68 +143,42 @@ class Token(models.Model):
                 query, fragment))
         return self.callback
 
-class LanguageMap(models.Model):
-    key = models.CharField(max_length=50, db_index=True)
-    value = models.TextField()
-    
-    class Meta:
-        abstract = True
-
-    def object_return(self):
-        return {self.key: self.value}
-
-    def __unicode__(self):
-        return json.dumps(self.object_return())
-
-class VerbDisplay(LanguageMap):
-    verb = models.ForeignKey("Verb")
-
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
+    display = JSONField(blank=True)
 
     def object_return(self, lang=None):
         ret = {}
         ret['id'] = self.verb_id
-        
-        if lang is not None:
-            lang_map_set = self.verbdisplay_set.filter(key=lang)
-        else:
-            lang_map_set = self.verbdisplay_set.all()
-
-        if lang_map_set:
+        if self.display:
             ret['display'] = {}
-            for lang_map in lang_map_set:
-                ret['display'].update(lang_map.object_return())        
+            if lang:
+                # Return display where key = lang
+                ret['display'] = {lang:self.display[lang]}
+            else:
+                ret['display'] = self.display             
         return ret
 
     # Just return one value for human-readable
     def get_display(self, lang=None):
-        if not len(self.verbdisplay_set.all()) > 0:
+        if not self.display:
             return self.verb_id
-        if lang:
-            return self.verbdisplay_set.get(key=lang).value
 
-        try:
-            return self.verbdisplay_set.get(key='en-US').value
+        if lang:
+            for k, v in self.display.iteritems():
+                if k == lang:
+                    return v
+        try:    
+            return self.display.get('en-US')
         except:
             try:
-                return self.verbdisplay_set.get(key='en').value
+                return self.display.get('en')
             except:
                 pass
-        return self.verbdisplay_set.all()[0].value
-    
+        return self.display.values()[0]
+
     def __unicode__(self):
         return json.dumps(self.object_return())
-
-class Extensions(models.Model):
-    key=models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    value=models.TextField()
-    
-    class Meta:
-        abstract = True
-    
-    def object_return(self):
-        return {self.key:self.value}
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 class AgentMgr(models.Manager):
@@ -453,16 +428,24 @@ class AgentProfile(models.Model):
 
 class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    objectType = models.CharField(max_length=8,blank=True, default="Activity") 
+    objectType = models.CharField(max_length=8,blank=True, default="Activity")
+    activity_definition_name = JSONField(blank=True)
+    activity_definition_description = JSONField(blank=True)
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_interactionType = models.CharField(max_length=25, blank=True)    
+    activity_definition_extensions = JSONField(blank=True)
+    activity_definition_crpanswers = JSONField(blank=True)
+    activity_definition_choices = JSONField(blank=True)
+    activity_definition_scales = JSONField(blank=True)
+    activity_definition_sources = JSONField(blank=True)
+    activity_definition_targets = JSONField(blank=True)
+    activity_definition_steps = JSONField(blank=True)            
     authoritative = models.CharField(max_length=100, blank=True)
     global_representation = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ("activity_id", "global_representation")
-
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
@@ -471,21 +454,17 @@ class Activity(models.Model):
             ret['objectType'] = self.objectType
             
             ret['definition'] = {}
-            if lang:
-                name_lang_map_set = self.activitydefinitionnamelangmap_set.filter(key=lang)
-                desc_lang_map_set = self.activitydefinitiondesclangmap_set.filter(key=lang)
-            else:
-                name_lang_map_set = self.activitydefinitionnamelangmap_set.all()
-                desc_lang_map_set = self.activitydefinitiondesclangmap_set.all()
+            if self.activity_definition_name:
+                if lang:
+                    ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
+                else:
+                    ret['definition']['name'] = self.activity_definition_name
 
-            if name_lang_map_set:
-                ret['definition']['name'] = {}
-                for lang_map in name_lang_map_set:
-                    ret['definition']['name'].update(lang_map.object_return())
-            if desc_lang_map_set:
-                ret['definition']['description'] = {}
-                for lang_map in desc_lang_map_set:
-                    ret['definition']['description'].update(lang_map.object_return())
+            if self.activity_definition_description:
+                if lang:
+                    ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
+                else:
+                    ret['definition']['description'] = self.activity_definition_description
 
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
@@ -497,48 +476,57 @@ class Activity(models.Model):
                 ret['definition']['interactionType'] = self.activity_definition_interactionType
 
             # Get answers
-            answers = self.correctresponsespatternanswer_set.all()
-            if answers:
-                ret['definition']['correctResponsesPattern'] = []
-                for a in answers:
-                    ret['definition']['correctResponsesPattern'].append(a.object_return())            
-
-            # Get scales
-            scales = self.activitydefinitionscale_set.all()
-            if scales:
+            if self.activity_definition_crpanswers:
+                ret['definition']['correctResponsesPattern'] = self.activity_definition_crpanswers
+            
+            if self.activity_definition_scales:
                 ret['definition']['scale'] = []
-                for s in scales:
-                    ret['definition']['scale'].append(s.object_return())
-            # Get choices
-            choices = self.activitydefinitionchoice_set.all()
-            if choices:
-                ret['definition']['choices'] = []
-                for c in choices:
-                    ret['definition']['choices'].append(c.object_return())
-            # Get steps
-            steps = self.activitydefinitionstep_set.all()
-            if steps:
-                ret['definition']['steps'] = []
-                for st in steps:
-                    ret['definition']['steps'].append(st.object_return())
-            # Get sources
-            sources = self.activitydefinitionsource_set.all()
-            if sources:
-                ret['definition']['source'] = []
-                for so in sources:
-                    ret['definition']['source'].append(so.object_return())
-            # Get targets
-            targets = self.activitydefinitiontarget_set.all()
-            if targets:
-                ret['definition']['target'] = []
-                for t in targets:
-                    ret['definition']['target'].append(t.object_return())            
+                if lang:
+                    for s in self.activity_definition_scales:
+                        holder = {'id': s['id']}
+                        holder.update({lang:self.activity_definition_scales[lang]})
+                        ret['definition']['scale'].append(holder)
+                else:
+                    ret['definition']['scale'] = self.activity_definition_scales
 
-            result_ext = self.activitydefinitionextensions_set.all()
-            if len(result_ext) > 0:
-                ret['definition']['extensions'] = {}
-                for ext in result_ext:
-                    ret['definition']['extensions'].update(ext.object_return())        
+            if self.activity_definition_choices:
+                if lang:
+                    for c in self.activity_definition_choices:
+                        holder = {'id': c['id']}
+                        holder.update({lang:self.activity_definition_choices[lang]})
+                        ret['definition']['choices'].append(holder)
+                else:
+                    ret['definition']['choices'] = self.activity_definition_choices
+
+            if self.activity_definition_steps:
+                if lang:
+                    for s in self.activity_definition_steps:
+                        holder = {'id': s['id']}
+                        holder.update({lang:self.activity_definition_steps[lang]})
+                        ret['definition']['steps'].append(holder)
+                else:
+                    ret['definition']['steps'] = self.activity_definition_steps
+
+            if self.activity_definition_sources:
+                if lang:
+                    for s in self.activity_definition_sources:
+                        holder = {'id': s['id']}
+                        holder.update({lang:self.activity_definition_sources[lang]})
+                        ret['definition']['source'].append(holder)
+                else:
+                    ret['definition']['source'] = self.activity_definition_sources
+
+            if self.activity_definition_targets:
+                if lang:
+                    for t in self.activity_definition_target:
+                        holder = {'id': t['id']}
+                        holder.update({lang:self.activity_definition_targets[lang]})
+                        ret['definition']['target'].append(holder)
+                else:
+                    ret['definition']['target'] = self.activity_definition_targets
+
+            if self.activity_definition_extensions:
+                ret['definition']['extensions'] = self.activity_definition_extensions
 
             if not ret['definition']:
                 del ret['definition']
@@ -547,133 +535,12 @@ class Activity(models.Model):
 
     def get_a_name(self):
         try:
-            return self.activitydefinitionnamelangmap_set.get(key='en-US').value
+            return self.activity_definition_name.get('en-US')
         except:
             return self.activity_id
 
     def __unicode__(self):
         return json.dumps(self.object_return())
-
-class ActivityDefinitionNameLangMap(LanguageMap):
-    activity = models.ForeignKey(Activity)
-
-class ActivityDefinitionDescLangMap(LanguageMap):
-    activity = models.ForeignKey(Activity)
-
-class ActivityDefinitionExtensions(Extensions):
-    activity = models.ForeignKey(Activity)
-
-class CorrectResponsesPatternAnswer(models.Model):
-    answer = models.TextField()
-    activity = models.ForeignKey(Activity)    
-
-    def object_return(self):
-        return self.answer
-
-    def __unicode__(self):
-        return self.object_return()
-class ActivityDefinitionChoiceDesc(LanguageMap):
-    act_def_choice = models.ForeignKey("ActivityDefinitionChoice")
-
-class ActivityDefinitionChoice(models.Model):
-    choice_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.choice_id
-        ret['description'] = {}
-        
-        if lang is not None:
-            lang_map_set = self.activitydefinitionchoicedesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionchoicedesc_set.all()
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        
-        return ret
-
-class ActivityDefinitionScaleDesc(LanguageMap):
-    act_def_scale = models.ForeignKey("ActivityDefinitionScale")
-
-class ActivityDefinitionScale(models.Model):
-    scale_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.scale_id
-        ret['description'] = {}
-        
-        if lang is not None:
-            lang_map_set = self.activitydefinitionscaledesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionscaledesc_set.all()
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
-
-class ActivityDefinitionSourceDesc(LanguageMap):
-    act_def_source = models.ForeignKey("ActivityDefinitionSource")
-
-class ActivityDefinitionSource(models.Model):
-    source_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-    
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.source_id
-        ret['description'] = {}
-        if lang is not None:
-            lang_map_set = self.activitydefinitionsourcedesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionsourcedesc_set.all()        
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
-
-class ActivityDefinitionTargetDesc(LanguageMap):
-    act_def_target = models.ForeignKey("ActivityDefinitionTarget")
-
-class ActivityDefinitionTarget(models.Model):
-    target_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-    
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.target_id
-        ret['description'] = {}
-        if lang is not None:
-            lang_map_set = self.activitydefinitiontargetdesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitiontargetdesc_set.all()        
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
-
-class ActivityDefinitionStepDesc(LanguageMap):
-    act_def_step = models.ForeignKey("ActivityDefinitionStep")
-
-class ActivityDefinitionStep(models.Model):
-    step_id = models.CharField(max_length=50)
-    activity = models.ForeignKey(Activity, db_index=True)
-
-    def object_return(self, lang=None):
-        ret = {}
-        ret['id'] = self.step_id
-        ret['description'] = {}
-        if lang is not None:
-            lang_map_set = self.activitydefinitionstepdesc_set.filter(key=lang)
-        else:
-            lang_map_set = self.activitydefinitionstepdesc_set.all()        
-
-        for lang_map in lang_map_set:
-            ret['description'].update(lang_map.object_return())
-        return ret
 
 class StatementRef(models.Model):
     object_type = models.CharField(max_length=12, default="StatementRef")
@@ -711,12 +578,6 @@ class StatementContextActivity(models.Model):
         ret[self.key] = [a.object_return(lang, format) for a in self.context_activity.all()]
         return ret
 
-class SubStatementContextExtensions(Extensions):
-    substatement = models.ForeignKey('SubStatement')
-
-class StatementContextExtensions(Extensions):
-    statement = models.ForeignKey('Statement')
-
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
@@ -748,12 +609,6 @@ class ActivityProfile(models.Model):
             self.profile.delete()
         super(ActivityProfile, self).delete(*args, **kwargs)
 
-class StatementResultExtensions(Extensions):
-    statement = models.ForeignKey('Statement')
-           
-class SubStatementResultExtensions(Extensions):
-    substatement = models.ForeignKey('SubStatement')
-
 class SubStatement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
@@ -769,6 +624,7 @@ class SubStatement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
+    result_extensions = JSONField(blank=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context_registration = models.CharField(max_length=40, blank=True, db_index=True)
@@ -779,6 +635,7 @@ class SubStatement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
+    context_extensions = JSONField(blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     
@@ -825,11 +682,8 @@ class SubStatement(models.Model):
         if not ret['result']['score']:
             del ret['result']['score']
 
-        result_ext = self.substatementresultextensions_set.all()
-        if result_ext:
-            ret['result']['extensions'] = {}
-            for ext in result_ext:
-                ret['result']['extensions'].update(ext.object_return())        
+        if self.result_extensions:
+            ret['result']['extensions'] = self.result_extensions
 
         # If no result, delete from dict
         if not ret['result']:
@@ -862,11 +716,8 @@ class SubStatement(models.Model):
             for con_act in self.substatementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.object_return(lang, format))
 
-        context_ext = self.substatementcontextextensions_set.all()
-        if context_ext:
-            ret['context']['extensions'] = {}
-            for ext in context_ext:
-                ret['context']['extensions'].update(ext.object_return()) 
+        if self.context_extensions:
+            ret['context']['extensions'] = self.context_extensions
 
         if not ret['context']:
             del ret['context']
@@ -893,12 +744,6 @@ class SubStatement(models.Model):
         
         super(SubStatement, self).delete(*args, **kwargs)
 
-class StatementAttachmentDisplay(LanguageMap):
-    attachment = models.ForeignKey("StatementAttachment")
-
-class StatementAttachmentDesc(LanguageMap):
-    attachment = models.ForeignKey("StatementAttachment")
-
 class StatementAttachment(models.Model):
     usageType = models.CharField(max_length=MAX_URL_LENGTH)
     contentType = models.CharField(max_length=128)
@@ -906,27 +751,24 @@ class StatementAttachment(models.Model):
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     payload = models.FileField(upload_to="attachment_payloads", null=True)
+    display = JSONField(blank=True)
+    description = JSONField(blank=True)
 
     def object_return(self, lang=None):
         ret = {}
         ret['usageType'] = self.usageType
 
-        if lang is not None:
-            statement_attachment_display_set = self.statementattachmentdisplay_set.filter(key=lang)
-            statement_attachment_desc_set = self.statementattachmentdesc_set.filter(key=lang)
-        else:
-            statement_attachment_display_set = self.statementattachmentdisplay_set.all()
-            statement_attachment_desc_set = self.statementattachmentdesc_set.all()
+        if self.display:
+            if lang:
+                ret['display'] = {lang:self.display[lang]}
+            else:
+                ret['display'] = self.display
 
-        if statement_attachment_display_set:
-            ret['display'] = {}
-            for lang_map in statement_attachment_display_set:
-                ret['display'].update(lang_map.object_return())
-        
-        if statement_attachment_desc_set:
-            ret['description'] = {}
-            for lang_map in statement_attachment_desc_set:
-                ret['description'].update(lang_map.object_return())        
+        if self.description:
+            if lang:
+                ret['description'] = {lang:self.description[lang]}
+            else:
+                ret['description'] = self.description
 
         ret['contentType'] = self.contentType
         ret['length'] = self.length
@@ -956,6 +798,7 @@ class Statement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
+    result_extensions = JSONField(blank=True)
     stored = models.DateTimeField(auto_now_add=True,blank=True, db_index=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
@@ -970,6 +813,7 @@ class Statement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
+    context_extensions = JSONField(blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7, default="1.0.0")
@@ -1021,11 +865,8 @@ class Statement(models.Model):
         if not ret['result']['score']:
             del ret['result']['score']
 
-        result_ext = self.statementresultextensions_set.all()
-        if result_ext:
-            ret['result']['extensions'] = {}
-            for ext in result_ext:
-                ret['result']['extensions'].update(ext.object_return())        
+        if self.result_extensions:
+            ret['result']['extensions'] = self.result_extensions
 
         if not ret['result']:
             del ret['result']
@@ -1057,11 +898,8 @@ class Statement(models.Model):
             for con_act in self.statementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.object_return(lang, format))
 
-        context_ext = self.statementcontextextensions_set.all()
-        if context_ext:
-            ret['context']['extensions'] = {}
-            for ext in context_ext:
-                ret['context']['extensions'].update(ext.object_return()) 
+        if self.context_extensions:
+            ret['context']['extensions'] = self.context_extensions
 
         if not ret['context']:
             del ret['context']

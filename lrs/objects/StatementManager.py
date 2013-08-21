@@ -48,7 +48,6 @@ class StatementManager():
 
     @transaction.commit_on_success
     def void_statement(self,stmt_id):
-        # str_id = str(stmt_id)
         # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
         # since you cannot unvoid a statement and should just reissue the statement under a new ID.
         try:
@@ -72,10 +71,7 @@ class StatementManager():
     # Save sub to DB
     def save_substatement_to_db(self):
         context_activity_types = ['parent', 'grouping', 'category', 'other']
-        # Pop off any result extensions
-        result_exts = self.data.pop('result_extensions', {})
-        # Pop off any context extensions
-        context_exts = self.data.pop('context_extensions', {})
+
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
@@ -84,14 +80,6 @@ class StatementManager():
         del self.data['objectType']
         sub = models.SubStatement.objects.create(**self.data)
         
-        # Save any result extensions
-        for k, v in result_exts.items():
-            models.SubStatementResultExtensions.objects.create(key=k, value=v, substatement=sub)
-
-        # Save any context extensions
-        for k, v in context_exts.items():              
-            models.SubStatementContextExtensions.objects.create(key=k, value=v, substatement=sub)
-
         # Save context activities
         # Can have multiple groupings
         for con_act_group in con_act_data.items():
@@ -112,10 +100,7 @@ class StatementManager():
     # Save statement to DB
     def save_statement_to_db(self):
         context_activity_types = ['parent', 'grouping', 'category', 'other']
-        # Pop off any result extensions
-        result_exts = self.data.pop('result_extensions', {})
-        # Pop off any context extensions
-        context_exts = self.data.pop('context_extensions', {})
+
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
@@ -124,14 +109,6 @@ class StatementManager():
         # Try to create statement
         stmt = models.Statement.objects.create(**self.data)
     
-        # Save any result extensions
-        for k, v in result_exts.items():
-            models.StatementResultExtensions.objects.create(key=k, value=v, statement=stmt)
-
-        # Save any context extensions
-        for k, v in context_exts.items():              
-            models.StatementContextExtensions.objects.create(key=k, value=v, statement=stmt)
-
         # Save context activities
         # Can have multiple groupings
         for con_act_group in con_act_data.items():
@@ -162,45 +139,6 @@ class StatementManager():
                 del self.data['result_score']
 
             del self.data['result']
-
-    def create_attachment_displays_and_descs(self, displays, descriptions, attachment):        
-        for display in displays.items():
-            models.StatementAttachmentDisplay.objects.create(key=display[0], value=display[1],
-                attachment=attachment)
-    
-        if descriptions:
-            for desc in descriptions.items():
-                models.StatementAttachmentDesc.objects.create(key=desc[0], value=desc[1],
-                    attachment=attachment)
-
-    @transaction.commit_on_success
-    def update_attachment_displays_and_descs(self, attachment, displays, descriptions):
-        # Grab existing display and desc keys for the attachment
-        existing_display_keys = attachment.statementattachmentdisplay_set.all().values_list('key', flat=True)
-        existing_desc_keys = attachment.statementattachmentdesc_set.all().values_list('key', flat=True)                
-
-        # Iterate through each incoming display
-        for d in displays.items():
-            # If the new key already exists, update that display with the new value
-            if d[0] in existing_display_keys:
-                existing_display = attachment.statementattachmentdisplay_set.get(key=d[0])
-                existing_display.value = d[1]
-                existing_display.save()
-            # Else it doesn't exist so just create it
-            else:
-                models.StatementAttachmentDisplay.objects.create(key=d[0], value=d[1],
-                    attachment=attachment)
-        # Iterate through each incoming desc
-        for de in descriptions.items():
-            #  If the new key alerady exists, update that desc with the new value
-            if de[0] in existing_desc_keys:
-                existing_desc = attachment.statementattachmentdesc_set.get(key=de[0])
-                existing_desc.value = de[1]
-                existing_desc.save()
-            #  Else it doesn't exist so just create it
-            else:
-                models.StatementAttachmentDesc.objects.create(key=de[0], value=de[1],
-                    attachment=attachment)
 
     def save_attachment(self, attach):
         sha2 = attach['sha2']
@@ -235,10 +173,6 @@ class StatementManager():
         if attachment_data:
             # Iterate through each attachment
             for attach in attachment_data:
-                # Pop displays and descs off
-                displays = attach.pop('display')
-                descriptions = attach.pop('description', None)
-
                 # Get or create based on sha2
                 if 'sha2' in attach:
                     attachment, created = self.save_attachment(attach)
@@ -251,13 +185,25 @@ class StatementManager():
                         attachment = models.StatementAttachment.objects.create(**attach)
                         created = True
 
-                # If it was just created, create the displays and descs
-                if created:
-                    self.create_attachment_displays_and_descs(displays, descriptions, attachment)
-
                 # If have define permission and attachment already has existed
                 if self.define and not created:
-                    self.update_attachment_displays_and_descs(attachment, displays, descriptions)
+                    if attachment.display:
+                        existing_displays = attachment.display
+                    else:
+                        existing_displays = {}
+
+                    if attachment.description:
+                        existing_descriptions = attachment.description
+                    else:
+                        existing_descriptions = {}
+
+                    # Save displays
+                    if 'display' in attach:
+                        attachment.display = dict(existing_displays.items() + attach['display'].items())
+
+                    if 'description' in attach:
+                        attachment.description = dict(existing_descriptions.items() + attach['description'].items())
+                    attachment.save()
 
                 # Add each attach to the stmt
                 self.model_object.attachments.add(attachment)
@@ -287,14 +233,6 @@ class StatementManager():
 
             del self.data['context']
     
-    def save_lang_map(self, lang_map, verb):
-        k = lang_map[0]
-        v = lang_map[1]
-
-        # Save lang map
-        language_map = models.VerbDisplay.objects.create(key=k, value=v, verb=verb)
-        return language_map
-    
     @transaction.commit_on_success
     def build_verb_object(self):
         incoming_verb = self.data['verb']
@@ -305,21 +243,16 @@ class StatementManager():
 
         # If existing, get existing keys
         if not created:
-            existing_lang_map_keys = verb_object.verbdisplay_set.all().values_list('key', flat=True)
+            if verb_object.display:
+                existing_lang_maps = verb_object.display    
+            else:
+                existing_lang_maps = {}
         else:
-            existing_lang_map_keys = []
+            existing_lang_maps = {}
 
         # Save verb displays
         if 'display' in incoming_verb:
-            # Iterate incoming lang maps
-            for verb_lang_map in incoming_verb['display'].items():
-                # If incoming key doesn't already exist in verb's lang maps - add it
-                if not verb_lang_map[0] in existing_lang_map_keys: 
-                    lang_map = self.save_lang_map(verb_lang_map, verb_object)    
-                else:
-                    existing_verb_lang_map = verb_object.verbdisplay_set.get(key=verb_lang_map[0])
-                    existing_verb_lang_map.value = verb_lang_map[1]
-                    existing_verb_lang_map.save()
+            verb_object.display = dict(existing_lang_maps.items() + incoming_verb['display'].items())
             verb_object.save()
         self.data['verb'] = verb_object
 
