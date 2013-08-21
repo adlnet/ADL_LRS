@@ -153,7 +153,8 @@ class Verb(models.Model):
         if self.display:
             ret['display'] = {}
             if lang:
-                ret['display'] = dict((key, value) for (key, value) in self.display.items() if key == lang)
+                # Return display where key = lang
+                ret['display'] = {lang:self.display[lang]}
             else:
                 ret['display'] = self.display             
         return ret
@@ -455,13 +456,13 @@ class Activity(models.Model):
             ret['definition'] = {}
             if self.activity_definition_name:
                 if lang:
-                    ret['definition']['name'] = dict((key, value) for (key, value) in self.activity_definition_name.items() if key == lang)
+                    ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
                 else:
                     ret['definition']['name'] = self.activity_definition_name
 
             if self.activity_definition_description:
                 if lang:
-                    ret['definition']['description'] = dict((key, value) for (key, value) in self.activity_definition_description.items() if key == lang)
+                    ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
                 else:
                     ret['definition']['description'] = self.activity_definition_description
 
@@ -483,7 +484,7 @@ class Activity(models.Model):
                 if lang:
                     for s in self.activity_definition_scales:
                         holder = {'id': s['id']}
-                        holder.update(dict((key, value) for (key, value) in s['description'] if key == lang))
+                        holder.update({lang:self.activity_definition_scales[lang]})
                         ret['definition']['scale'].append(holder)
                 else:
                     ret['definition']['scale'] = self.activity_definition_scales
@@ -492,7 +493,7 @@ class Activity(models.Model):
                 if lang:
                     for c in self.activity_definition_choices:
                         holder = {'id': c['id']}
-                        holder.update(dict((key, value) for (key, value) in c['description'] if key == lang))
+                        holder.update({lang:self.activity_definition_choices[lang]})
                         ret['definition']['choices'].append(holder)
                 else:
                     ret['definition']['choices'] = self.activity_definition_choices
@@ -501,7 +502,7 @@ class Activity(models.Model):
                 if lang:
                     for s in self.activity_definition_steps:
                         holder = {'id': s['id']}
-                        holder.update(dict((key, value) for (key, value) in s['description'] if key == lang))
+                        holder.update({lang:self.activity_definition_steps[lang]})
                         ret['definition']['steps'].append(holder)
                 else:
                     ret['definition']['steps'] = self.activity_definition_steps
@@ -510,7 +511,7 @@ class Activity(models.Model):
                 if lang:
                     for s in self.activity_definition_sources:
                         holder = {'id': s['id']}
-                        holder.update(dict((key, value) for (key, value) in s['description'] if key == lang))
+                        holder.update({lang:self.activity_definition_sources[lang]})
                         ret['definition']['source'].append(holder)
                 else:
                     ret['definition']['source'] = self.activity_definition_sources
@@ -519,7 +520,7 @@ class Activity(models.Model):
                 if lang:
                     for t in self.activity_definition_target:
                         holder = {'id': t['id']}
-                        holder.update(dict((key, value) for (key, value) in t['description'] if key == lang))
+                        holder.update({lang:self.activity_definition_targets[lang]})
                         ret['definition']['target'].append(holder)
                 else:
                     ret['definition']['target'] = self.activity_definition_targets
@@ -759,13 +760,13 @@ class StatementAttachment(models.Model):
 
         if self.display:
             if lang:
-                ret['display'] = dict((key, value) for (key, value) in self.display.items() if key == lang)
+                ret['display'] = {lang:self.display[lang]}
             else:
                 ret['display'] = self.display
 
         if self.description:
             if lang:
-                ret['description'] = dict((key, value) for (key, value) in self.description.items() if key == lang)
+                ret['description'] = {lang:self.description[lang]}
             else:
                 ret['description'] = self.description
 
