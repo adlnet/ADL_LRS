@@ -298,17 +298,17 @@ class AuthTests(TestCase):
         stmt2 = models.Statement.objects.get(object_activity=activity2)
         verb1 = models.Verb.objects.get(id=stmt1.verb.id)
         verb2 = models.Verb.objects.get(id=stmt2.verb.id)
-        lang_map1 = verb1.verbdisplay_set.all()[0]
-        lang_map2 = verb2.verbdisplay_set.all()[0]
+        lang_map1 = verb1.display
+        lang_map2 = verb2.display
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
         self.assertEqual(stmt2.verb.verb_id, "http://adlnet.gov/expapi/verbs/failed")
         
-        self.assertEqual(lang_map1.key, "en-US")
-        self.assertEqual(lang_map1.value, "passed")
-        self.assertEqual(lang_map2.key, "en-GB")
-        self.assertEqual(lang_map2.value, "failed")
+        self.assertEqual(lang_map1.keys()[0], "en-US")
+        self.assertEqual(lang_map1.values()[0], "passed")
+        self.assertEqual(lang_map2.keys()[0], "en-GB")
+        self.assertEqual(lang_map2.values()[0], "failed")
 
 
     def test_put(self):
@@ -457,20 +457,18 @@ class AuthTests(TestCase):
         
         act = models.Activity.objects.get(activity_id="act:foogie")
 
-        name_set = act.activitydefinitionnamelangmap_set.all()
-        desc_set = act.activitydefinitiondesclangmap_set.all()
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
 
-        for ns in name_set:
-            if ns.key == 'en-GB':
-                self.assertEqual(ns.value, 'altname')
-            elif ns.key == 'en-US':
-                self.assertEqual(ns.value, 'testname3')
+        self.assertEqual(name_set.keys()[1], "en-US")
+        self.assertEqual(name_set.values()[1], "testname3")
+        self.assertEqual(name_set.keys()[0], "en-GB")
+        self.assertEqual(name_set.values()[0], "altname")
 
-        for ds in desc_set:
-            if ds.key == 'en-GB':
-                self.assertEqual(ds.value, 'altdesc')
-            elif ds.key == 'en-US':
-                self.assertEqual(ds.value, 'testdesc3')
+        self.assertEqual(desc_set.keys()[1], "en-US")
+        self.assertEqual(desc_set.values()[1], "testdesc3")
+        self.assertEqual(desc_set.keys()[0], "en-GB")
+        self.assertEqual(desc_set.values()[0], "altdesc")
 
     def test_cors_post_put(self):
         st_id = str(uuid.uuid1())
@@ -871,22 +869,17 @@ class AuthTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('actor is missing in Statement', response.content)
         
-        ad_exts = models.ActivityDefinitionExtensions.objects.filter(key__contains='wrong')
-        
         verbs = models.Verb.objects.filter(verb_id__contains='wrong')
         
         activities = models.Activity.objects.filter(activity_id__contains='test_wrong_list_post')
-        crp_answers = models.CorrectResponsesPatternAnswer.objects.filter(answer__contains='wrong')
 
         statements = models.Statement.objects.all()
 
         # 11 statements from setup
         self.assertEqual(len(statements), 11)
 
-        self.assertEqual(len(ad_exts), 0)
         self.assertEqual(len(verbs), 0)
         self.assertEqual(len(activities), 0)
-        self.assertEqual(len(crp_answers), 0)
 
     def test_post_list_rollback_part_2(self):
         stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"},
@@ -914,12 +907,10 @@ class AuthTests(TestCase):
         john_agent = models.Agent.objects.filter(mbox='mailto:john@john.com')
         s_agent = models.Agent.objects.filter(mbox='mailto:s@s.com')
         auth_agent = models.Agent.objects.filter(mbox='mailto:test1@tester.com')
-        verb_display = models.VerbDisplay.objects.filter(key__contains='wrong')
 
         self.assertEqual(len(created_verbs), 1)
         # Both verbs from the first and last stmts in the list would still be there
         self.assertEqual(len(wrong_verbs), 0)
-        self.assertEqual(len(verb_display), 0)
 
         self.assertEqual(len(activities), 1)
         
