@@ -59,7 +59,7 @@ def parse(request, more_id=None):
     # Method gets set for cors
     if 'method' not in r_dict['params']:
         # Differentiate GET and POST
-        if request.method == "POST" and request.path[6:] == 'statements':
+        if request.method == "POST" and (request.path[6:] == 'statements' or request.path[6:] == 'statements/'):
             # Can have empty body for POST (acts like GET)
             if 'body' in r_dict:
                 # If body is a list, it's a post
