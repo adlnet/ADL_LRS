@@ -34,6 +34,7 @@ def parse(request, more_id=None):
 
     r_dict['params'] = {}
      
+    # lookin for weird IE CORS stuff.. it'll be a post with a 'method' url param
     if request.method == 'POST' and 'method' in request.GET:
         bdy = convert_post_body_to_dict(request.body)
         
@@ -41,13 +42,16 @@ def parse(request, more_id=None):
         if 'content' in bdy:
             r_dict['body'] = urllib.unquote(bdy.pop('content'))
         
+        # headers are in the body too for IE CORS, we removes them
         r_dict['headers'].update(get_headers(bdy))
         for h in r_dict['headers']:
             bdy.pop(h, None)
         r_dict['params'].update(bdy)
         
+        # all that should be left are params for the request, 
+        # we adds them to the params object
         for k in request.GET:
-            if k == 'method':
+            if k == 'method': # make sure the method param goes in the special method spot
                 r_dict[k] = request.GET[k]
             r_dict['params'][k] = request.GET[k]
     else:
