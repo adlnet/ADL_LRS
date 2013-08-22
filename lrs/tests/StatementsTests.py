@@ -463,6 +463,65 @@ class StatementsTests(TestCase):
         self.assertEqual(stmt.version, "1.0.0")
         self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
 
+    def test_put_id_in_stmt(self):
+        guid = str(uuid.uuid1())
+
+        stmt = json.dumps({"id": guid, "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+
+        putResponse = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(putResponse.status_code, 204)
+        stmt = models.Statement.objects.get(statement_id=guid)
+
+        act = models.Activity.objects.get(activity_id="act:test_put")
+        self.assertEqual(act.activity_id, "act:test_put")
+
+        self.assertEqual(stmt.actor.mbox, "mailto:t@t.com")
+
+        if settings.HTTP_AUTH_ENABLED:
+            self.assertEqual(stmt.authority.name, "tester1")
+            self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
+        
+        self.assertEqual(stmt.version, "1.0.0")
+        self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
+
+    def test_put_id_in_both_same(self):
+        guid = str(uuid.uuid1())
+
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt = json.dumps({"id": guid, "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+
+        putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(putResponse.status_code, 204)
+        stmt = models.Statement.objects.get(statement_id=guid)
+
+        act = models.Activity.objects.get(activity_id="act:test_put")
+        self.assertEqual(act.activity_id, "act:test_put")
+
+        self.assertEqual(stmt.actor.mbox, "mailto:t@t.com")
+
+        if settings.HTTP_AUTH_ENABLED:
+            self.assertEqual(stmt.authority.name, "tester1")
+            self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
+        
+        self.assertEqual(stmt.version, "1.0.0")
+        self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
+
+    def test_put_id_in_both_different(self):
+        guid1 = str(uuid.uuid1())
+        guid2 = str(uuid.uuid1())
+        
+        param = {"statementId":guid1}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt = json.dumps({"id": guid2, "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+
+        putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(putResponse.status_code, 400)
+        self.assertEqual(putResponse.content, "Error -- statements - method = PUT, param and body ID both given, but do not match")
+
     def test_put_with_substatement(self):
         con_guid = str(uuid.uuid1())
         st_guid = str(uuid.uuid1())
@@ -545,7 +604,7 @@ class StatementsTests(TestCase):
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
         response = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn(response.content, "Error -- statements - method = PUT, but statementId paramater is missing")
+        self.assertIn(response.content, "Error -- statements - method = PUT, but no statementId parameter or ID given in statement")
 
     def test_get(self):
         self.bunchostmts()

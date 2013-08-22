@@ -17,7 +17,6 @@ att_cache = get_cache('attachment_cache')
 
 def parse(request, more_id=None):
     r_dict = {}
-    
     # Build headers from request in request dict
     r_dict['headers'] = get_headers(request.META)
     
@@ -34,14 +33,19 @@ def parse(request, more_id=None):
         r_dict['auth']['type'] = 'none'
 
     r_dict['params'] = {}
+     
     if request.method == 'POST' and 'method' in request.GET:
         bdy = convert_post_body_to_dict(request.body)
-        if 'content' in bdy: # body is in 'content' for the IE cors POST
+        
+        # 'content' is in body for the IE cors POST
+        if 'content' in bdy:
             r_dict['body'] = urllib.unquote(bdy.pop('content'))
+        
         r_dict['headers'].update(get_headers(bdy))
         for h in r_dict['headers']:
             bdy.pop(h, None)
         r_dict['params'].update(bdy)
+        
         for k in request.GET:
             if k == 'method':
                 r_dict[k] = request.GET[k]
@@ -52,10 +56,30 @@ def parse(request, more_id=None):
     # Update dict with any GET data
     r_dict['params'].update(request.GET.dict())
 
-    # A 'POST' can actually be a GET
+    # Method gets set for cors
     if 'method' not in r_dict['params']:
-        if request.method == "POST" and "application/json" not in r_dict['headers']['CONTENT_TYPE'] and "multipart/mixed" not in r_dict['headers']['CONTENT_TYPE']:
-            r_dict['method'] = 'GET'
+        # Differentiate GET and POST
+        if request.method == "POST" and request.path[6:] == 'statements':
+            # Can have empty body for POST (acts like GET)
+            if 'body' in r_dict:
+                # If body is a list, it's a post
+                if not isinstance(r_dict['body'], list):
+                    # If actor verb and object not in body - means it's a GET or invalid POST
+                    if not ('actor' in r_dict['body'] and 'verb' in r_dict['body'] and 'object' in r_dict['body']):
+                        # If body keys are in get params - GET - else invalid request
+                        get_params = ['statementId', 'voidedStatementId', 'agent', 'verb', 'activity', 'registration',
+                            'related_activities', 'related_agents', 'since', 'until', 'limit', 'format', 'attachments',
+                            'ascending']
+                        if set(r_dict['body'].keys()).issubset(get_params):
+                            r_dict['method'] = 'GET'
+                        else:
+                            raise BadRequest("Statement is missing actor, verb, or object")
+                    else:
+                        r_dict['method'] = 'POST'
+                else:
+                    r_dict['method'] = 'POST'
+            else:
+                r_dict['method'] = 'GET'
         else:
             r_dict['method'] = request.method
 
