@@ -33,34 +33,31 @@ def parse(request, more_id=None):
         r_dict['auth']['type'] = 'none'
 
     r_dict['params'] = {}
-     
     # lookin for weird IE CORS stuff.. it'll be a post with a 'method' url param
     if request.method == 'POST' and 'method' in request.GET:
         bdy = convert_post_body_to_dict(request.body)
-        
         # 'content' is in body for the IE cors POST
         if 'content' in bdy:
             r_dict['body'] = urllib.unquote(bdy.pop('content'))
-        
         # headers are in the body too for IE CORS, we removes them
         r_dict['headers'].update(get_headers(bdy))
         for h in r_dict['headers']:
             bdy.pop(h, None)
         r_dict['params'].update(bdy)
-        
         # all that should be left are params for the request, 
         # we adds them to the params object
         for k in request.GET:
             if k == 'method': # make sure the method param goes in the special method spot
                 r_dict[k] = request.GET[k]
             r_dict['params'][k] = request.GET[k]
+    # Just parse body for all non IE CORS stuff
     else:
         r_dict = parse_body(r_dict, request)
 
     # Update dict with any GET data
     r_dict['params'].update(request.GET.dict())
 
-    # Method gets set for cors
+    # Method gets set for cors already
     if 'method' not in r_dict['params']:
         # Differentiate GET and POST
         if request.method == "POST" and (request.path[6:] == 'statements' or request.path[6:] == 'statements/'):
