@@ -137,7 +137,7 @@ class StatementManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'verb is missing in Statement')
+        self.assertEqual(response.content, 'Statement is missing actor, verb, or object')
 
     def test_no_object_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "verb": {"id":"verb:verb/url"}})
@@ -145,7 +145,7 @@ class StatementManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'object is missing in Statement')       
+        self.assertEqual(response.content, 'Statement is missing actor, verb, or object')       
 
     def test_no_actor_stmt(self):
         stmt = json.dumps({"object":{"id":"act:activity_test"}, "verb": {"id":"verb:verb/url"}})
@@ -153,7 +153,7 @@ class StatementManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'actor is missing in Statement')
+        self.assertEqual(response.content, 'Statement is missing actor, verb, or object')
 
     def test_voided_true_stmt(self):
         stmt = json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'}, 'verb': {"id":'verb:verb/url/kicked'},'voided': True, 'object': {'id':'act:activity3'}})

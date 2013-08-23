@@ -50,7 +50,7 @@ def statements_put(req_dict):
     if isinstance(req_dict['body'], basestring):
         from lrs.util import convert_to_dict
         req_dict['body'] = convert_to_dict(req_dict['body'])
-    req_dict['body']['id'] = req_dict['params']['statementId']
+    req_dict['body']['id'] = req_dict['statementId']
     stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
     
     return HttpResponse("No Content", status=204)

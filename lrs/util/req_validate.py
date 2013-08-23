@@ -178,17 +178,35 @@ def statements_get(r_dict):
 @auth
 @check_oauth
 def statements_put(r_dict):
-    # Must have statementId param-if not raise paramerror
-    try:
-        statement_id = r_dict['params']['statementId']
-    except KeyError:
-        err_msg = "Error -- statements - method = %s, but statementId paramater is missing" % r_dict['method']
+    # Statement id can be supplied in query param or in put body. If in both, it must be the same
+    if not 'statementId' in r_dict['params'] and not 'id' in r_dict['body']:
+        err_msg = "Error -- statements - method = %s, but no statementId parameter or ID given in statement" % r_dict['method']
         raise ParamError(err_msg)
+    else:
+        try:
+            statement_param_id = r_dict['params']['statementId']
+        except Exception, e:
+            statement_param_id = None
+        try:
+            statement_body_id = r_dict['body']['id']
+        except Exception, e:
+            statement_body_id = None
+
+    if statement_param_id and statement_body_id and statement_param_id != statement_body_id:
+        err_msg = "Error -- statements - method = %s, param and body ID both given, but do not match" % r_dict['method']
+        raise ParamError(err_msg)
+    else:
+        if statement_param_id:
+            statement_id = statement_param_id
+        else:
+            statement_id = statement_body_id 
     
     # If statement with that ID already exists-raise conflict error
     if check_for_existing_statementId(statement_id):
         err_msg = "A statement with ID %s already exists" % statement_id
         raise ParamConflict(err_msg)
+
+    r_dict['statementId'] = statement_id
 
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):

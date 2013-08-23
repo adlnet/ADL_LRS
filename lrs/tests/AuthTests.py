@@ -416,7 +416,7 @@ class AuthTests(TestCase):
             "object": {"id":"act:act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
         response = self.client.put(reverse(views.statements), stmt, content_type="application/json",  X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertIn(response.content, "Error -- statements - method = PUT, but statementId paramater is missing")
+        self.assertIn(response.content, "Error -- statements - method = PUT, but no statementId parameter or ID given in statement")
 
     def test_get(self):
         param = {"statementId":self.guid1}
