@@ -68,10 +68,8 @@ def parse(request, more_id=None):
                     # If actor verb and object not in body - means it's a GET or invalid POST
                     if not ('actor' in r_dict['body'] and 'verb' in r_dict['body'] and 'object' in r_dict['body']):
                         # If body keys are in get params - GET - else invalid request
-                        get_params = ['statementId', 'voidedStatementId', 'agent', 'verb', 'activity', 'registration',
-                            'related_activities', 'related_agents', 'since', 'until', 'limit', 'format', 'attachments',
-                            'ascending']
-                        if set(r_dict['body'].keys()).issubset(get_params):
+                        if set(r_dict['body'].keys()).issubset(['statementId', 'voidedStatementId', 'agent', 'verb', 'activity', 'registration',
+                            'related_activities', 'related_agents', 'since', 'until', 'limit', 'format', 'attachments', 'ascending']):
                             r_dict['method'] = 'GET'
                         else:
                             raise BadRequest("Statement is missing actor, verb, or object")

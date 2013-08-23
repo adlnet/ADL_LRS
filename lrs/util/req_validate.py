@@ -192,7 +192,7 @@ def statements_put(r_dict):
         except Exception, e:
             statement_body_id = None
 
-    if not statement_param_id is None and not statement_body_id is None and statement_param_id != statement_body_id:
+    if statement_param_id and statement_body_id and statement_param_id != statement_body_id:
         err_msg = "Error -- statements - method = %s, param and body ID both given, but do not match" % r_dict['method']
         raise ParamError(err_msg)
     else:
