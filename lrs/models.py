@@ -163,16 +163,13 @@ class Verb(models.Model):
     def get_display(self, lang=None):
         if not self.display:
             return self.verb_id
-
         if lang:
-            for k, v in self.display.iteritems():
-                if k == lang:
-                    return v
+            return self.display[lang]
         try:    
-            return self.display.get('en-US')
+            return self.display['en-US']
         except:
             try:
-                return self.display.get('en')
+                return self.display['en']
             except:
                 pass
         return self.display.values()[0]
