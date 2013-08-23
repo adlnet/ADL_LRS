@@ -13,6 +13,10 @@ from django.conf import settings
 
 class StatementsMoreTests(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         settings.SERVER_STMT_LIMIT=10
         if not settings.HTTP_AUTH_ENABLED:

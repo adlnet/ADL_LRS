@@ -24,6 +24,10 @@ import urllib
 import hashlib
 
 class StatementsTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True

@@ -20,6 +20,10 @@ from lrs.util import convert_to_utc
 
 class StatementFilterTests(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         self.saved_stmt_limit=settings.SERVER_STMT_LIMIT
         settings.SERVER_STMT_LIMIT=100

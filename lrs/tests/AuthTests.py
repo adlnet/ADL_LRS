@@ -18,6 +18,10 @@ import hashlib
 
 class AuthTests(TestCase):
     # Want to test no auth, so have to disable both auths
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         if settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = False

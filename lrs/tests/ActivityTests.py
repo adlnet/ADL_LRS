@@ -7,6 +7,10 @@ from lrs.objects.ActivityManager import ActivityManager
 
 
 class ActivityTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         self.username = "tester"
         self.email = "test@tester.com"
