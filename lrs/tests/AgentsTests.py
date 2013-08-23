@@ -9,6 +9,10 @@ import base64
 from lrs.models import Agent
 
 class AgentsTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         self.username = "tester"
         self.password = "test"

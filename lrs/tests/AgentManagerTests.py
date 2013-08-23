@@ -10,6 +10,10 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 class AgentManagerTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True
@@ -27,7 +31,7 @@ class AgentManagerTests(TestCase):
     def test_agent_mbox_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
-            "object": {'id': 'http://blah.com'}})
+            "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -42,7 +46,7 @@ class AgentManagerTests(TestCase):
     def test_agent_mbox_sha1sum_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox_sha1sum":hashlib.sha1("mailto:bob@example.com").hexdigest()},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
-            "object": {'id': 'http://blah.com'}})
+            "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -60,7 +64,7 @@ class AgentManagerTests(TestCase):
     def test_agent_openID_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "openID":"http://bob.openID.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
-            "object": {'id': 'http://blah.com'}})
+            "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -79,7 +83,7 @@ class AgentManagerTests(TestCase):
     def test_agent_account_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "account":{"homePage": "http://www.adlnet.gov", "name":"freakshow"}},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
-            "object": {'id': 'http://blah.com'}})
+            "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -300,7 +304,7 @@ class AgentManagerTests(TestCase):
     def test_agent_json_no_ids(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "name":"freakshow"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
-            "object": {'id': 'http://blah.com'}})
+            "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -311,7 +315,7 @@ class AgentManagerTests(TestCase):
     def test_agent_json_many_ids(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com", "openid":"bob.bobson.openID.org"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
-            "object": {'id': 'http://blah.com'}})
+            "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")

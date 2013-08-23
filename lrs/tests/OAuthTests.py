@@ -17,6 +17,10 @@ import base64
 import re
 
 class OAuthTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         if not settings.OAUTH_ENABLED:
             settings.OAUTH_ENABLED = True

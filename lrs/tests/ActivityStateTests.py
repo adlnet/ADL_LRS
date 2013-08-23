@@ -25,6 +25,10 @@ class ActivityStateTests(TestCase):
     registrationId = "some_sort_of_reg_id"
     content_type = "application/json"
 
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         self.username = "test"
         self.email = "mailto:test@example.com"        

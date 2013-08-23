@@ -6,6 +6,10 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 class ActivityManagerTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
             settings.HTTP_AUTH_ENABLED = True
