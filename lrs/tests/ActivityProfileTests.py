@@ -22,6 +22,10 @@ class ActivityProfileTests(TestCase):
     testprofileId3 = "http://profile.test.id/test/3"
     otherprofileId1 = "http://profile.test.id/other/1"
 
+    @classmethod
+    def setUpClass(cls):
+        print "\n%s" % __name__
+
     def setUp(self):
         self.username = "tester"
         self.email = "test@tester.com"
