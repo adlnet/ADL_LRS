@@ -13,7 +13,7 @@ from lrs.objects.AgentManager import AgentManager
 from lrs.util import convert_to_utc, convert_to_dict
 from lrs.exceptions import NotFound
 
-MORE_ENDPOINT = '/XAPI/statements/more/'
+MORE_ENDPOINT = 'statements/more/'
 
 def complex_get(param_dict):
     # tests if value is True or "true"
