@@ -306,7 +306,7 @@ def activity_state_put(r_dict):
         validate_oauth_state_or_profile_agent(r_dict, "state")
 
     # Set state
-    r_dict['state'] = r_dict.pop('body')
+    r_dict['state'] = r_dict.pop('raw_body', r_dict.pop('body', None))
     return r_dict
 
 @auth

@@ -110,7 +110,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststateregid['test'])
         self.assertEqual(robj['obj']['agent'], teststateregid['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststateregid)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
         
         # and tests delete w/ registration id
         del_r = self.client.delete(self.url, testparamsregid, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -137,7 +137,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], self.teststate1['test'])
         self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(self.teststate1)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
     def test_put_etag_conflict_if_match(self):
         teststateetagim = {"test":"etag conflict - if match wrong hash","obj":{"agent":"test"}}
@@ -152,7 +152,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], self.teststate1['test'])
         self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(self.teststate1)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
     def test_put_etag_no_conflict_if_match(self):
         teststateetagim = {"test":"etag no conflict - if match good hash","obj":{"agent":"test"}}
@@ -167,7 +167,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststateetagim['test'])
         self.assertEqual(robj['obj']['agent'], teststateetagim['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststateetagim)).hexdigest())   
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())   
 
     def test_put_etag_missing_on_change(self):
         teststateetagim = {'test': 'etag no conflict - if match good hash', 'obj': {'agent': 'test'}}
@@ -182,7 +182,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], self.teststate1['test'])
         self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(self.teststate1)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
     def test_put_without_activityid(self):
         testparamsbad = {"stateId": "bad_state", "agent": self.testagent}
@@ -227,28 +227,28 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], self.teststate1['test'])
         self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(self.teststate1)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         r2 = self.client.get(self.url, self.testparams2, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r2.status_code, 200)
         robj2 = ast.literal_eval(r2.content)
         self.assertEqual(robj2['test'], self.teststate2['test'])
         self.assertEqual(robj2['obj']['agent'], self.teststate2['obj']['agent'])
-        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(json.dumps(self.teststate2)).hexdigest())
+        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(r2.content).hexdigest())
         
         r3 = self.client.get(self.url, self.testparams3, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r3.status_code, 200)
         robj3 = ast.literal_eval(r3.content)
         self.assertEqual(robj3['test'], self.teststate3['test'])
         self.assertEqual(robj3['obj']['agent'], self.teststate3['obj']['agent'])
-        self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(json.dumps(self.teststate3)).hexdigest())
+        self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(r3.content).hexdigest())
 
         r4 = self.client.get(self.url, self.testparams4, X_Experience_API_Version="1.0.0", Authorization=auth)
         self.assertEqual(r4.status_code, 200)
         robj4 = ast.literal_eval(r4.content)
         self.assertEqual(robj4['test'], self.teststate4['test'])
         self.assertEqual(robj4['obj']['agent'], self.teststate4['obj']['agent'])
-        self.assertEqual(r4['etag'], '"%s"' % hashlib.sha1(json.dumps(self.teststate4)).hexdigest())
+        self.assertEqual(r4['etag'], '"%s"' % hashlib.sha1(r4.content).hexdigest())
 
         # r5 = self.client.get(self.url, self.testparams3, X_Experience_API_Version="1.0.0", Authorization=auth)
         # self.assertEqual(r5.status_code, 403)
@@ -286,7 +286,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststatesince['test'])
         self.assertEqual(robj['obj']['agent'], teststatesince['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatesince)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
         params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
@@ -317,7 +317,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststatesince['test'])
         self.assertEqual(robj['obj']['agent'], teststatesince['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatesince)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         state_id2 = "new_tz_state_test"
         testparamssince2 = {"stateId": state_id2, "activityId": self.activityId, "agent": self.testagent}
@@ -335,7 +335,7 @@ class ActivityStateTests(TestCase):
         robj2 = ast.literal_eval(r2.content)
         self.assertEqual(robj2['test'], teststatesince2['test'])
         self.assertEqual(robj2['obj']['agent'], teststatesince2['obj']['agent'])
-        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatesince2)).hexdigest())
+        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(r2.content).hexdigest())
 
         since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
         params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
@@ -369,7 +369,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststatesince['test'])
         self.assertEqual(robj['obj']['agent'], teststatesince['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatesince)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         # create old state w/ registration id
         regid = 'test_since_w_regid'
@@ -388,7 +388,7 @@ class ActivityStateTests(TestCase):
         robj2 = ast.literal_eval(r2.content)
         self.assertEqual(robj2['test'], teststatesince2['test'])
         self.assertEqual(robj2['obj']['agent'], teststatesince2['obj']['agent'])
-        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatesince2)).hexdigest())
+        self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(r2.content).hexdigest())
 
         # create new state w/ registration id
         state_id3 = "old_state_test_w_new_reg"
@@ -406,7 +406,7 @@ class ActivityStateTests(TestCase):
         robj3 = ast.literal_eval(r3.content)
         self.assertEqual(robj3['test'], teststatesince3['test'])
         self.assertEqual(robj3['obj']['agent'], teststatesince3['obj']['agent'])
-        self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatesince3)).hexdigest())
+        self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(r3.content).hexdigest())
 
         # get no reg ids set w/o old state
         since1 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
@@ -464,7 +464,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststateregid['test'])
         self.assertEqual(robj['obj']['agent'], teststateregid['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststateregid)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
@@ -489,7 +489,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststateregid['test'])
         self.assertEqual(robj['obj']['agent'], teststateregid['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststateregid)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(f_r.status_code, 400)
@@ -514,7 +514,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], teststatedelset1['test'])
         self.assertEqual(robj['obj']['agent'], teststatedelset1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatedelset1)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         testparamsdelset2 = {"registrationId": self.registrationId, "stateId": "del_state_set_2", "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsdelset2))
@@ -530,7 +530,7 @@ class ActivityStateTests(TestCase):
         robj2 = ast.literal_eval(r.content)
         self.assertEqual(robj2['test'], teststatedelset2['test'])
         self.assertEqual(robj2['obj']['agent'], teststatedelset2['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(json.dumps(teststatedelset2)).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "agent": self.testagent, "activityId": self.activityId}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(f_r.status_code, 204)
@@ -602,7 +602,7 @@ class ActivityStateTests(TestCase):
         robj = ast.literal_eval(get1.content)
         self.assertEqual(robj['test'], teststate1['test'])
         self.assertEqual(robj['obj']['agent'], teststate1['obj']['agent'])
-        self.assertEqual(get1['etag'], '"%s"' % hashlib.sha1(json.dumps(teststate1)).hexdigest())
+        self.assertEqual(get1['etag'], '"%s"' % hashlib.sha1(get1.content).hexdigest())
 
         delr = self.client.delete(self.url, testparams1, Authorization=auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(delr.status_code, 204)     
