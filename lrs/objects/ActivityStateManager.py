@@ -77,11 +77,10 @@ class ActivityStateManager():
         else:
             if not created:
                 etag.check_preconditions(self.req_dict, p)
-            the_state = ast.literal_eval(self.state) if type(self.state) != dict else self.state
-
+            the_state = self.state
             p.json_state = the_state
             p.content_type = self.content_type
-            p.etag = etag.create_tag(json.dumps(the_state))
+            p.etag = etag.create_tag(the_state)
             if self.updated:
                 p.updated = self.updated
             p.save()
