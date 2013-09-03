@@ -104,14 +104,16 @@ class ActivityManager():
             activity_definition = dict(activity_definition.items() + data_from_payload.items())
 
         # If there is a definition-populate the definition
-        if activity_definition:
+        if activity_definition and (act_created or self.act_def_changed(activity_definition)):
             self.populate_definition(activity_definition, act_created)
 
     def validate_cmi_interaction(self, act_def, act_created):
         interaction_flag = None
 
-
         return interaction_flag
+
+    def act_def_changed(self, act_def):
+        return act_def != self.Activity.object_return().get('definition', {})
 
     #Populate definition either from JSON or validated XML
     def populate_definition(self, act_def, act_created):
