@@ -54,7 +54,7 @@ class AgentManager():
         p, created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
         
         if created:
-            p.json_profile = ast.literal_eval(post_profile)
+            p.json_profile = post_profile
             p.content_type = request_dict['headers']['CONTENT_TYPE']
             p.etag = etag.create_tag(post_profile)
 
@@ -96,7 +96,7 @@ class AgentManager():
             if not created:
                 etag.check_preconditions(request_dict, p, required=True)
             the_profile = request_dict['profile']
-            p.json_profile = ast.literal_eval(the_profile)
+            p.json_profile = the_profile
             p.content_type = request_dict['headers']['CONTENT_TYPE']
             p.etag = etag.create_tag(the_profile)
 

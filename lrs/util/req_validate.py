@@ -484,7 +484,6 @@ def agent_profile_put(r_dict):
     # Extra validation if oauth
     if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "profile")
-    
     r_dict['profile'] = r_dict.pop('raw_body', r_dict.pop('body', None))
     return r_dict
 
