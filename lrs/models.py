@@ -650,10 +650,10 @@ class SubStatement(models.Model):
             ret['object'] = self.object_statementref.object_return()
 
         ret['result'] = {}
-        if self.result_success:
+        if self.result_success != None:
             ret['result']['success'] = self.result_success
 
-        if self.result_completion:
+        if self.result_completion != None:
             ret['result']['completion'] = self.result_completion
 
         if self.result_response:
@@ -833,10 +833,10 @@ class Statement(models.Model):
             ret['object'] = self.object_statementref.object_return()
 
         ret['result'] = {}
-        if self.result_success:
+        if self.result_success != None:
             ret['result']['success'] = self.result_success
 
-        if self.result_completion:
+        if self.result_completion != None:
             ret['result']['completion'] = self.result_completion
 
         if self.result_response:
