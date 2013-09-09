@@ -961,7 +961,7 @@ class StatementsTests(TestCase):
             {"id":"facebook", "description":{"en-US":"Facebook App", "en-GB": "FACEBOOK"}},
             {"id":"scrabble", "description": {"en-US": "Scrabble Example", "en-GB": "SCRABBLE"}}],
             "extensions": {"ext:key1": "value1", "ext:key2": "value2","ext:key3": "value3"}}}, 
-            "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
+            "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": False, "response": "Well done",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:resultKey1": "resultValue1", "ext:resultKey2":"resultValue2"}},
             "context":{"registration": context_id, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"},
             "grouping":{"id":"http://groupingID"} },
@@ -997,7 +997,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['result']['score']['min'], 0)
         self.assertEqual(the_returned['result']['score']['raw'], 85)
         self.assertEqual(the_returned['result']['score']['scaled'], 0.85)
-        self.assertEqual(the_returned['result']['success'], True)
+        self.assertEqual(the_returned['result']['success'], False)
 
         self.assertEqual(the_returned['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
