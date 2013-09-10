@@ -294,17 +294,15 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
     # Try to retrieve activity, if DNE then return empty else return activity info
-    act_list = models.Activity.objects.filter(activity_id=activityId)
-    if not act_list:
-        err_msg = "No activities found with ID %s" % activityId
+    try:
+        act = models.Activity.objects.get(activity_id=activityId, global_representation=True)
+    except models.Activity.DoesNotExist:    
+        err_msg = "No activity found with ID %s" % activityId
         raise exceptions.IDNotFoundError(err_msg)
     
-    full_act_list = []
-    for act in act_list:
-        full_act_list.append(act.object_return())
-
-    resp = HttpResponse(json.dumps([k for k in full_act_list]), mimetype="application/json", status=200)
-    resp['Content-Length'] = str(len(json.dumps(full_act_list)))
+    return_act = json.dumps(act.object_return())    
+    resp = HttpResponse(return_act, mimetype="application/json", status=200)
+    resp['Content-Length'] = str(len(return_act))
     return resp
 
 def agent_profile_post(req_dict):
