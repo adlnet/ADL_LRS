@@ -28,7 +28,17 @@ class ActivityTests(TestCase):
         self.assertIn('Activity', rsp)
         self.assertIn('objectType', rsp)        
         self.assertIn('content-length', response._headers)
-        
+
+    def test_get_not_array(self):
+        act = ActivityManager(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
+        response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        rsp = response.content
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('content-length', response._headers)
+
+        rsp_obj = json.loads(rsp)
+        self.assertEqual('act:foobar', rsp_obj['id'])
+
     def test_head(self):
         act = ActivityManager(json.dumps({'objectType':'Activity', 'id':'act:foobar'}))
         response = self.client.head(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
