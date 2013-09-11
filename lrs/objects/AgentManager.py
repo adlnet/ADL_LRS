@@ -7,7 +7,7 @@ from django.db import transaction
 from lrs.models import AgentProfile
 from lrs.models import Agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, uri
+from lrs.util import etag, get_user_from_auth
 
 class AgentManager():
     def __init__(self, params=None, create=False, define=True):
@@ -47,9 +47,6 @@ class AgentManager():
         post_profile = request_dict['profile']
 
         profile_id = request_dict['params']['profileId']
-        if not uri.validate_uri(profile_id):
-            err_msg = 'Profile ID %s is not a valid URI' % profile_id
-            raise ParamError(err_msg)
 
         p, created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
         
@@ -72,9 +69,6 @@ class AgentManager():
     @transaction.commit_on_success
     def put_profile(self, request_dict):
         profile_id = request_dict['params']['profileId']
-        if not uri.validate_uri(profile_id):
-            err_msg = 'Profile ID %s is not a valid URI' % profile_id
-            raise ParamError(err_msg)
 
         p,created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
 

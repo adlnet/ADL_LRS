@@ -15,9 +15,6 @@ class ActivityProfileManager():
         post_profile = request_dict['profile']
         
         profile_id = request_dict['params']['profileId']
-        if not uri.validate_uri(profile_id):
-            err_msg = 'Profile ID %s is not a valid URI' % profile_id      
-            raise ParamError(err_msg)
 
         # get / create  profile
         p, created = models.ActivityProfile.objects.get_or_create(activityId=request_dict['params']['activityId'],  profileId=request_dict['params']['profileId'])
@@ -45,9 +42,6 @@ class ActivityProfileManager():
     def put_profile(self, request_dict):
         #Parse out profile from request_dict
         profile_id = request_dict['params']['profileId']
-        if not uri.validate_uri(profile_id):
-            err_msg = 'Profile ID %s is not a valid URI' % profile_id
-            raise ParamError(err_msg)
 
         #Get the profile, or if not already created, create one
         p,created = models.ActivityProfile.objects.get_or_create(profileId=profile_id,activityId=request_dict['params']['activityId'])
