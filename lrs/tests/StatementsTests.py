@@ -474,20 +474,7 @@ class StatementsTests(TestCase):
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        self.assertEqual(putResponse.status_code, 204)
-        stmt = models.Statement.objects.get(statement_id=guid)
-
-        act = models.Activity.objects.get(activity_id="act:test_put")
-        self.assertEqual(act.activity_id, "act:test_put")
-
-        self.assertEqual(stmt.actor.mbox, "mailto:t@t.com")
-
-        if settings.HTTP_AUTH_ENABLED:
-            self.assertEqual(stmt.authority.name, "tester1")
-            self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
-        
-        self.assertEqual(stmt.version, "1.0.0")
-        self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
+        self.assertEqual(putResponse.status_code, 400)
 
     def test_put_id_in_both_same(self):
         guid = str(uuid.uuid1())
