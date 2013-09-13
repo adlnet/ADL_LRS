@@ -178,28 +178,21 @@ def statements_get(r_dict):
 @auth
 @check_oauth
 def statements_put(r_dict):
-    # Statement id can be supplied in query param or in put body. If in both, it must be the same
-    if not 'statementId' in r_dict['params'] and not 'id' in r_dict['body']:
+    # Statement id can must be supplied in query param. If in the body too, it must be the same
+    if not 'statementId' in r_dict['params']:
         err_msg = "Error -- statements - method = %s, but no statementId parameter or ID given in statement" % r_dict['method']
         raise ParamError(err_msg)
     else:
-        try:
-            statement_param_id = r_dict['params']['statementId']
-        except Exception, e:
-            statement_param_id = None
-        try:
-            statement_body_id = r_dict['body']['id']
-        except Exception, e:
-            statement_body_id = None
+        statement_id = r_dict['params']['statementId']
 
-    if statement_param_id and statement_body_id and statement_param_id != statement_body_id:
+    try:
+        statement_body_id = r_dict['body']['id']
+    except Exception, e:
+        statement_body_id = None
+
+    if statement_body_id and statement_id != statement_body_id:
         err_msg = "Error -- statements - method = %s, param and body ID both given, but do not match" % r_dict['method']
         raise ParamError(err_msg)
-    else:
-        if statement_param_id:
-            statement_id = statement_param_id
-        else:
-            statement_id = statement_body_id 
     
     # If statement with that ID already exists-raise conflict error
     if check_for_existing_statementId(statement_id):
