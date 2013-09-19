@@ -4,6 +4,7 @@ import json
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils.timezone import utc
 from lrs import models
 from lrs.exceptions import IDNotFoundError, ParamError
 from lrs.util import etag, get_user_from_auth, uri
@@ -27,6 +28,8 @@ class ActivityProfileManager():
             #Set updated
             if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
                 p.updated = request_dict['headers']['updated']
+            else:
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
         else:
             orig_prof = ast.literal_eval(p.json_profile)
             post_profile = ast.literal_eval(post_profile)
@@ -34,6 +37,7 @@ class ActivityProfileManager():
             merged = '%s' % dict(orig_prof.items() + post_profile.items())
             p.json_profile = merged
             p.etag = etag.create_tag(merged)
+            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
 
         p.save()
 
@@ -73,6 +77,8 @@ class ActivityProfileManager():
             #Set updated
             if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
                 p.updated = request_dict['headers']['updated']
+            else:
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
             p.save()
 
     def save_profile(self, p, created, profile, request_dict):
@@ -83,7 +89,9 @@ class ActivityProfileManager():
         #Set updated
         if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
             p.updated = request_dict['headers']['updated']
-        
+        else:
+            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+
         #Go to beginning of file
         profile.seek(0)
         
