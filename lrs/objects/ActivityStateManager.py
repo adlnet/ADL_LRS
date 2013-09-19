@@ -3,6 +3,7 @@ import datetime
 import json
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.utils.timezone import utc
 from lrs import models
 from .AgentManager import AgentManager
 from lrs.exceptions import IDNotFoundError, ParamError
@@ -50,6 +51,7 @@ class ActivityStateManager():
             merged = '%s' % dict(orig_state.items() + post_state.items())
             p.json_state = merged
             p.etag = etag.create_tag(merged)
+            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
 
         p.save()
         
@@ -83,6 +85,8 @@ class ActivityStateManager():
             p.etag = etag.create_tag(the_state)
             if self.updated:
                 p.updated = self.updated
+            else:
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
             p.save()
 
     def save_state(self, p, created, state):
@@ -90,6 +94,8 @@ class ActivityStateManager():
         p.etag = etag.create_tag(state.read())
         if self.updated:
             p.updated = self.updated
+        else:
+            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
         state.seek(0)
         if created:
             p.save()
