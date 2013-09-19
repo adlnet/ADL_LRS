@@ -170,19 +170,18 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())   
 
     def test_put_etag_missing_on_change(self):
-        teststateetagim = {'test': 'etag no conflict - if match good hash', 'obj': {'agent': 'test'}}
+        teststateetagim = {'test': 'etag no need for etag', 'obj': {'agent': 'test'}}
         path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
         r = self.client.put(path, teststateetagim, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        self.assertEqual(r.status_code, 409)
-        self.assertIn('If-Match and If-None-Match headers were missing', r.content)
+        self.assertEqual(r.status_code, 204)
         
         r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         
         robj = ast.literal_eval(r.content)
-        self.assertEqual(robj['test'], self.teststate1['test'])
+        self.assertEqual(robj['test'], teststateetagim['test'])
         self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
+        self.assertEqual(r['etag'], '"%s"' % hashlib.sha1('%s' % teststateetagim).hexdigest())
 
     def test_put_without_activityid(self):
         testparamsbad = {"stateId": "bad_state", "agent": self.testagent}
