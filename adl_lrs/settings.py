@@ -5,7 +5,7 @@ from unipath import Path
 PROJECT_ROOT = Path(__file__).ancestor(3)
 
 # If you want to debug
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -19,8 +19,8 @@ DATABASES = {
         'NAME': 'lrs',                      # Or path to database file if using sqlite3.
         'USER': 'root',                      # Not used with sqlite3.
         'PASSWORD': 'password',                  # Not used with sqlite3.
-        'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'HOST': '10.100.10.73',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '6432',                      # Set to empty string for default. Not used with sqlite3.
     }    
 }
 

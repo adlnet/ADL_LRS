@@ -144,7 +144,7 @@ class Token(models.Model):
         return self.callback
 
 class Verb(models.Model):
-    verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
+    verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     display = JSONField(blank=True)
 
     def object_return(self, lang=None):
