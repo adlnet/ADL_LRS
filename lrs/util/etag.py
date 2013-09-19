@@ -29,10 +29,12 @@ def check_preconditions(request, contents, required=False):
     try:
         request_etag = request['headers']['ETAG']
     except KeyError:
-        if required:
-            raise MissingEtagInfo("If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
-        else:
-            return
+        request_etag = None
+
+    if not request_etag and required:
+        raise MissingEtagInfo("If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
+    else:
+        return
 
     if request_etag[IF_NONE_MATCH]:
         if request_etag[IF_NONE_MATCH] == "*" and contents:
