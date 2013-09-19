@@ -98,6 +98,9 @@ OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
 
+#ActivityID resolve timeout
+ACTIVITY_ID_RESOLVE_TIMEOUT = .2
+
 # Caches for /more endpoint and attachments
 CACHES = {
     'default': {
