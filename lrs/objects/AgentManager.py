@@ -4,6 +4,7 @@ import datetime
 import copy
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.utils.timezone import utc
 from lrs.models import AgentProfile
 from lrs.models import Agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
@@ -57,12 +58,15 @@ class AgentManager():
 
             if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
                 p.updated = request_dict['headers']['updated']
+            else:
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
         else:
             orig_prof = ast.literal_eval(p.json_profile)
             post_profile = ast.literal_eval(post_profile)
             merged = '%s' % dict(orig_prof.items() + post_profile.items())
             p.json_profile = merged
             p.etag = etag.create_tag(merged)
+            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
 
         p.save()
 
@@ -96,6 +100,8 @@ class AgentManager():
 
             if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
                 p.updated = request_dict['headers']['updated']
+            else:
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
             p.save()
 
     def save_profile(self, p, created, profile, request_dict):
@@ -103,6 +109,8 @@ class AgentManager():
         p.etag = etag.create_tag(profile.read())
         if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
             p.updated = request_dict['headers']['updated']
+        else:
+            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
         profile.seek(0)
         if created:
             p.save()
