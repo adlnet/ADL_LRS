@@ -17,22 +17,22 @@ MORE_ENDPOINT = '/xapi/statements/more/'
 
 def complex_get(param_dict):
     # tests if value is True or "true"
-    stmtset = models.Statement.objects.filter(voided=False)
+    vq = Q(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
 
-    sinceq = None
+    sinceq = Q()
     if 'since' in param_dict:
         sinceq = Q(stored__gt=convert_to_utc(param_dict['since']))
-        stmtset = stmtset.filter(sinceq)
-    untilq = None
+
+    untilq = Q()
     if 'until' in param_dict:
         untilq = Q(stored__lte=convert_to_utc(param_dict['until']))
-        stmtset = stmtset.filter(untilq)
 
     # For statements/read/mine oauth scope
+    authq = Q()
     if 'auth' in param_dict and (param_dict['auth'] and 'statements_mine_only' in param_dict['auth']):
-        stmtset = stmtset.filter(authority=param_dict['auth']['id'])
+        authq = Q(authority=param_dict['auth']['id'])
 
     agentQ = Q()
     if 'agent' in param_dict:
@@ -90,7 +90,7 @@ def complex_get(param_dict):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = stmtset.filter(agentQ & verbQ & activityQ & registrationQ)
+    stmtset = models.Statement.objects.filter(vq & untilq & sinceq & authq & agentQ & verbQ & activityQ & registrationQ)
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
