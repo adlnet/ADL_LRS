@@ -48,7 +48,7 @@ def http_auth_helper(request):
                     # the user object of this request.
                     request['auth']['id'] = user
                 else:
-                    raise Unauthorized("User is not authenticated: %s --- %s" % (uname,passwd))
+                    raise Unauthorized("Authorization failed, please verify your username and password")
     else:
         # The username/password combo was incorrect, or not provided.
         raise Unauthorized("Authorization header missing")
