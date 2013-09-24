@@ -13,7 +13,6 @@ from lrs.util import etag, get_user_from_auth
 class AgentManager():
     def __init__(self, params=None, create=False, define=True):
         self.define = define
-        self.initial = copy.deepcopy(params)
         if not isinstance(params, dict):
             try:
                 params = json.loads(params)
@@ -40,7 +39,7 @@ class AgentManager():
                         params['account_name'] = acc['name']
                 self.Agent = ag.objects.get(**params)
             except:
-                err_msg = "Error with Agent. The agent partial (%s) did not match any agents on record" % self.initial
+                err_msg = "Error with Agent. The agent partial did not match any agents on record"
                 raise IDNotFoundError(err_msg) 
 
     @transaction.commit_on_success        
