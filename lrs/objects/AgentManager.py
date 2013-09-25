@@ -5,10 +5,10 @@ import copy
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.timezone import utc
-from lrs.models import AgentProfile
-from lrs.models import Agent as ag
-from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth
+from vendor.xapi.lrs.models import AgentProfile
+from vendor.xapi.lrs.models import Agent as ag
+from vendor.xapi.lrs.exceptions import IDNotFoundError, ParamError
+from vendor.xapi.lrs.util import etag, get_user_from_auth
 
 class AgentManager():
     def __init__(self, params=None, create=False, define=True):

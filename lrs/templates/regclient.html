@@ -10,7 +10,7 @@
     <strong>{{ error_message }}</strong>
 </p>
 {% endif %}
-<form action="{% url lrs.views.reg_client %}" method="post">
+<form action="{% url 'vendor.xapi.lrs.views.reg_client' %}" method="post">
     {% include 'table_form.html' %}
     <input type="submit" value="Register" />
 </form>

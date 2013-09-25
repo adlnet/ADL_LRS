@@ -1,7 +1,7 @@
 import os
 import datetime
 
-PROFILE_LOG_BASE = '/home/ubuntu/Desktop/profiling/profiles/'
+PROFILE_LOG_BASE = '/var/log/httpd/lrs/'
 
 def profile_func(filename):
     """Function/method decorator that will cause only the decorated callable

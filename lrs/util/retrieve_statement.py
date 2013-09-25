@@ -8,10 +8,10 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from itertools import chain
-from lrs import models
-from lrs.objects.AgentManager import AgentManager
-from lrs.util import convert_to_utc, convert_to_dict
-from lrs.exceptions import NotFound
+from vendor.xapi.lrs import models
+from vendor.xapi.lrs.objects.AgentManager import AgentManager
+from vendor.xapi.lrs.util import convert_to_utc, convert_to_dict
+from vendor.xapi.lrs.exceptions import NotFound
 
 MORE_ENDPOINT = '/xapi/statements/more/'
 

@@ -5,11 +5,11 @@ from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from django.http import HttpResponse
 from django.conf import settings
-from lrs import models, exceptions
-from lrs.objects.ActivityProfileManager import ActivityProfileManager
-from lrs.objects.ActivityStateManager import ActivityStateManager 
-from lrs.objects.AgentManager import AgentManager
-from lrs.objects.StatementManager import StatementManager
+from vendor.xapi.lrs import models, exceptions
+from vendor.xapi.lrs.objects.ActivityProfileManager import ActivityProfileManager
+from vendor.xapi.lrs.objects.ActivityStateManager import ActivityStateManager 
+from vendor.xapi.lrs.objects.AgentManager import AgentManager
+from vendor.xapi.lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
 def statements_post(req_dict):
@@ -48,7 +48,7 @@ def statements_put(req_dict):
 
     # Set statement ID in body so all data is together
     if isinstance(req_dict['body'], basestring):
-        from lrs.util import convert_to_dict
+        from vendor.xapi.lrs.util import convert_to_dict
         req_dict['body'] = convert_to_dict(req_dict['body'])
     req_dict['body']['id'] = req_dict['statementId']
     stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object

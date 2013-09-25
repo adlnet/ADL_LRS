@@ -3,7 +3,7 @@ from django.utils.html import conditional_escape
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from itertools import chain
-from lrs.models import Token
+from vendor.xapi.lrs.models import Token
 
 class ValidatorForm(forms.Form):
     jsondata = forms.CharField(label='Data', required=True, 

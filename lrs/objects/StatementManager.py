@@ -7,8 +7,8 @@ from django.core.cache import get_cache
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
-from lrs import models, exceptions
-from lrs.util import get_user_from_auth, uri
+from vendor.xapi.lrs import models, exceptions
+from vendor.xapi.lrs.util import get_user_from_auth, uri
 from AgentManager import AgentManager
 from ActivityManager import ActivityManager
 

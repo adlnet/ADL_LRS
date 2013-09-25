@@ -11,7 +11,7 @@
 </p>
 {% endif %}
 <h3>Register</h3>
-<form action="{% url lrs.views.register %}" method="post">
+<form action="{% url 'vendor.xapi.lrs.views.register' %}" method="post">
     <table>
         {% include 'table_form.html' %}
     </table>

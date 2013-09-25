@@ -7,14 +7,14 @@
     <body>
         <ul id="menu">
             <ul class="left">
-                <li><a href="{% url lrs.views.home %}">ADL Learning Record Store</a></li>
+                <li><a href="{% url 'vendor.xapi.lrs.views.home' %}">ADL Learning Record Store</a></li>
             </ul>
             <ul class="right">
                 {% if user.is_authenticated %}
-                <li><a href="{% url lrs.views.me %}">{{user.username}}</a></li>
-                <li><a href="{% url logout %}">logout</a></li>
+                <li><a href="{% url 'vendor.xapi.lrs.views.me' %}">{{user.username}}</a></li>
+                <li><a href="{% url 'logout' %}">logout</a></li>
                 {% else %}
-                <li><a href="{% url login %}">login</a></li>
+                <li><a href="{% url 'login' %}">login</a></li>
                 {% endif %}    
             </ul>
         </ul>

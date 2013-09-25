@@ -4,7 +4,7 @@ from oauth.oauth import OAuthDataStore, OAuthError, escape
 
 from django.conf import settings
 
-from lrs.models import Nonce, Token, Consumer, generate_random
+from vendor.xapi.lrs.models import Nonce, Token, Consumer, generate_random
 from consts import VERIFIER_SIZE, MAX_URL_LENGTH, OUT_OF_BAND
 
 OAUTH_BLACKLISTED_HOSTNAMES = getattr(settings, 'OAUTH_BLACKLISTED_HOSTNAMES', [])
