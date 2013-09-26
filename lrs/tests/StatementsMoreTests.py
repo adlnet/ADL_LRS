@@ -667,7 +667,7 @@ class StatementsMoreTests(TestCase):
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
 
-        self.assertEqual(len(resp_json['statements']), 8)        
+        self.assertEqual(len(resp_json['statements']), 8)
 
         self.assertIn(self.guid24, rsp)
         self.assertIn(self.guid23, rsp)                
