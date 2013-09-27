@@ -102,14 +102,14 @@ def complex_get(param_dict, limit, language, format, attachments):
     
     # If there are more stmts than the limit, need to break it up and return more id
     if stmtset.count() > return_limit:
-        return initial_cache_return(stmtset.order_by(stored_param).values('statement_id'), return_limit, language, format, attachments)
+        return initial_cache_return(stmtset.order_by(stored_param).values('statement_id'), stored_param, return_limit, language, format, attachments)
     else:
-        return create_stmt_result(stmtset.order_by(stored_param).values('statement_id'), language, format)
+        return create_stmt_result(stmtset.order_by(stored_param).values('statement_id'), stored_param, language, format)
 
-def create_stmt_result(stmt_set, language, format):
+def create_stmt_result(stmt_set, stored, language, format):
     ids = stmt_set.values_list('id', flat=True)
     stmt_result = {}
-    stmt_result['statements'] = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=ids)]
+    stmt_result['statements'] = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=ids).order_by(stored)]
     stmt_result['more'] = ''
     return stmt_result
 
@@ -140,7 +140,7 @@ def create_cache_key(stmt_list):
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
     return key
 
-def initial_cache_return(stmt_list, limit, language, format, attachments):
+def initial_cache_return(stmt_list, stored, limit, language, format, attachments):
     # First time someone queries POST/GET
     result = {}
     stmt_pager = Paginator(stmt_list, limit)
@@ -165,6 +165,7 @@ def initial_cache_return(stmt_list, limit, language, format, attachments):
     cache_list.append(attachments)
     cache_list.append(language)
     cache_list.append(format)
+    cache_list.append(stored)
     
     # Encode data
     encoded_info = json.dumps(cache_list)
@@ -174,7 +175,7 @@ def initial_cache_return(stmt_list, limit, language, format, attachments):
     # Return first page of results
     stmts = stmt_pager.page(1).object_list
     ids = stmts.values_list('id', flat=True)
-    full_stmts = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=ids)]
+    full_stmts = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=ids).order_by(stored)]
     result['statements'] = full_stmts
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
@@ -203,14 +204,15 @@ def get_more_statement_request(req_id):
     attachments = decoded_info[4]
     language = decoded_info[5]
     format = decoded_info[6]
+    stored = decoded_info[7]
     
     # Build statementResult
-    stmt_result = build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, req_id)
+    stmt_result = build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, stored, req_id)
     return stmt_result, attachments
 
 # Gets called from req_process after complex_get with list of django objects and also gets called from get_more_statement_request when
 # more_id is used so list will be serialized
-def build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, more_id):
+def build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, stored, more_id):
     result = {}
     # Have to deserizlize stmt_list
     # stmt_list = serializers.deserialize('json', stmt_list)
@@ -221,7 +223,7 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
     if current_page == total_pages:
         stmt_pager = Paginator(stmt_list, limit)
         stmts = stmt_pager.page(current_page).object_list
-        result['statements'] = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=stmts)]
+        result['statements'] = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=stmts).order_by(stored)]
         result['more'] = ''
 
         # Set current page back for when someone hits the URL again
@@ -258,6 +260,7 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         more_cache_list.append(attachments)
         more_cache_list.append(language)
         more_cache_list.append(format)
+        more_cache_list.append(stored)
         # Encode info
         encoded_list = json.dumps(more_cache_list)
         cache.set(cache_key, encoded_list)
