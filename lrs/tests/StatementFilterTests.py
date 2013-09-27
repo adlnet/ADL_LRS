@@ -5,9 +5,9 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from lrs import views
-from lrs.models import Statement
-from lrs.objects.StatementManager import StatementManager as StMan
+from vendor.xapi.lrs import views
+from vendor.xapi.lrs.models import Statement
+from vendor.xapi.lrs.objects.StatementManager import StatementManager as StMan
 from django.conf import settings
 import json
 import base64
@@ -16,7 +16,7 @@ import uuid
 import math
 import urllib
 import hashlib
-from lrs.util import convert_to_utc
+from vendor.xapi.lrs.util import convert_to_utc
 
 class StatementFilterTests(TestCase):
 

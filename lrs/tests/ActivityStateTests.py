@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from lrs import models, views
+from vendor.xapi.lrs import models, views
 import datetime
 from django.utils.timezone import utc
 from django.utils import timezone

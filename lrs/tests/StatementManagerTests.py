@@ -2,10 +2,10 @@ import uuid
 import json
 from datetime import datetime
 from django.test import TestCase
-from lrs import models, views
-from lrs.exceptions import ParamError, Forbidden, ParamConflict, IDNotFoundError
-from lrs.objects.ActivityManager import ActivityManager
-from lrs.objects.StatementManager import StatementManager
+from vendor.xapi.lrs import models, views
+from vendor.xapi.lrs.exceptions import ParamError, Forbidden, ParamConflict, IDNotFoundError
+from vendor.xapi.lrs.objects.ActivityManager import ActivityManager
+from vendor.xapi.lrs.objects.StatementManager import StatementManager
 from django.core.urlresolvers import reverse
 from django.conf import settings
 import base64

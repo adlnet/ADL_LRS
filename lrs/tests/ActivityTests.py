@@ -2,8 +2,8 @@ import base64
 import json
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from lrs import views
-from lrs.objects.ActivityManager import ActivityManager
+from vendor.xapi.lrs import views
+from vendor.xapi.lrs.objects.ActivityManager import ActivityManager
 
 
 class ActivityTests(TestCase):

@@ -1,11 +1,11 @@
 from django.test import TestCase
-from lrs.exceptions import ParamError
-from lrs.models import Agent
+from vendor.xapi.lrs.exceptions import ParamError
+from vendor.xapi.lrs.models import Agent
 import hashlib
 import json
 import base64
-from lrs import models, views
-from lrs.objects.AgentManager import AgentManager
+from vendor.xapi.lrs import models, views
+from vendor.xapi.lrs.objects.AgentManager import AgentManager
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
