@@ -16,7 +16,7 @@ from lrs.exceptions import NotFound
 MORE_ENDPOINT = '/xapi/statements/more/'
 
 def complex_get(param_dict, limit, language, format, attachments):
-    # tests if value is True or "true"
+    # Tests if value is True or "true"
     vq = Q(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
