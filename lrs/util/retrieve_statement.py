@@ -2,13 +2,12 @@ import bencode
 import hashlib
 import json
 from datetime import datetime
-from django.core import serializers
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from itertools import chain
-from lrs import models
+from lrs.models import Statement, IDNotFoundError
 from lrs.objects.AgentManager import AgentManager
 from lrs.util import convert_to_utc, convert_to_dict
 from lrs.exceptions import NotFound
@@ -62,7 +61,7 @@ def complex_get(param_dict, limit, language, format, attachments):
                           | Q(object_substatement__object_agent=a) \
                           | Q(object_substatement__context_instructor=a) \
                           | Q(object_substatement__context_team=a)       
-        except models.IDNotFoundError:
+        except IDNotFoundError:
             return[]     
     
     verbQ = Q()
@@ -90,7 +89,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = models.Statement.objects.filter(vq & untilq & sinceq & authq & agentQ & verbQ & activityQ & registrationQ)
+    stmtset = Statement.objects.filter(vq & untilq & sinceq & authq & agentQ & verbQ & activityQ & registrationQ)
     
     # only find references when a filter other than
     # since, until, or limit was used 
@@ -109,7 +108,7 @@ def complex_get(param_dict, limit, language, format, attachments):
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
     stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
-            models.Statement.objects.filter(id__in=stmt_set.values_list('id', flat=True)).order_by(stored)]
+            Statement.objects.filter(id__in=stmt_set.values_list('id', flat=True)).order_by(stored)]
     stmt_result['more'] = ''
     return stmt_result
 
@@ -128,7 +127,7 @@ def findstmtrefs(stmtset, sinceq, untilq):
         q = q & untilq
     # finally weed out voided statements in this lookup
     q = q & Q(voided=False)
-    return findstmtrefs(models.Statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
+    return findstmtrefs(Statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
 
 def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key
@@ -171,7 +170,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     cache.set(cache_key,encoded_info)
     # Return first page of results
     full_stmts = [stmt.object_return(language, format) for stmt in \
-            models.Statement.objects.filter(id__in=(stmt_pager.page(1).object_list)).order_by(stored)]
+            Statement.objects.filter(id__in=(stmt_pager.page(1).object_list)).order_by(stored)]
     result['statements'] = full_stmts
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
@@ -210,16 +209,13 @@ def get_more_statement_request(req_id):
 # more_id is used so list will be serialized
 def build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, stored, more_id):
     result = {}
-    # Have to deserizlize stmt_list
-    # stmt_list = serializers.deserialize('json', stmt_list)
-    # stmt_list = [obj.object for obj in stmt_list]
     
     current_page = start_page + 1
     # If that was the last page to display then just return the remaining stmts
     if current_page == total_pages:
         stmt_pager = Paginator(stmt_list, limit)
         result['statements'] = [stmt.object_return(language, format) for stmt in \
-                models.Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
+                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
         result['more'] = ''
 
         # Set current page back for when someone hits the URL again
@@ -236,13 +232,11 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
     # There are more pages to display
     else:
         stmt_pager = Paginator(stmt_list, limit)
-        # Have to serialize django objs
-        # stmt_list = serializers.serialize('json', stmt_list)
         # Create cache key from hashed data (always 32 digits)
         cache_key = create_cache_key(stmt_list)
         # Set result to have selected page of stmts and more endpoint
         result['statements'] = [stmt.object_return(language, format) for stmt in \
-                models.Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
+                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
         result['more'] = MORE_ENDPOINT + cache_key
         
         more_cache_list = []
