@@ -102,14 +102,14 @@ def complex_get(param_dict, limit, language, format, attachments):
     
     # If there are more stmts than the limit, need to break it up and return more id
     if stmtset.count() > return_limit:
-        return initial_cache_return(stmtset.order_by(stored_param).values('statement_id'), stored_param, return_limit, language, format, attachments)
+        return initial_cache_return(stmtset, stored_param, return_limit, language, format, attachments)
     else:
-        return create_stmt_result(stmtset.order_by(stored_param).values('statement_id'), stored_param, language, format)
+        return create_stmt_result(stmtset, stored_param, language, format)
 
 def create_stmt_result(stmt_set, stored, language, format):
-    ids = stmt_set.values_list('id', flat=True)
     stmt_result = {}
-    stmt_result['statements'] = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=ids).order_by(stored)]
+    stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
+            models.Statement.objects.filter(id__in=stmt_set.values_list('id', flat=True)).order_by(stored)]
     stmt_result['more'] = ''
     return stmt_result
 
@@ -143,22 +143,19 @@ def create_cache_key(stmt_list):
 def initial_cache_return(stmt_list, stored, limit, language, format, attachments):
     # First time someone queries POST/GET
     result = {}
-    stmt_pager = Paginator(stmt_list, limit)
- 
     cache_list = []
     
+    cache_list.append([s for s in stmt_list.order_by(stored).values_list('id', flat=True)])
+    stmt_pager = Paginator(cache_list[0], limit)
+ 
     # Always start on first page
     current_page = 1
     total_pages = stmt_pager.num_pages
 
-    # Have to initially serialize django objs
-    # stmt_list = serializers.serialize('json', stmt_list)
-
     # Create cache key from hashed data (always 32 digits)
-    cache_key = create_cache_key(stmt_list)
+    cache_key = create_cache_key(cache_list[0])
 
     # Add data to cache
-    cache_list.append([s for s in stmt_list.values_list('id', flat=True)])
     cache_list.append(current_page)
     cache_list.append(total_pages)
     cache_list.append(limit)
@@ -173,9 +170,8 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     # Save encoded_dict in cache
     cache.set(cache_key,encoded_info)
     # Return first page of results
-    stmts = stmt_pager.page(1).object_list
-    ids = stmts.values_list('id', flat=True)
-    full_stmts = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=ids).order_by(stored)]
+    full_stmts = [stmt.object_return(language, format) for stmt in \
+            models.Statement.objects.filter(id__in=(stmt_pager.page(1).object_list)).order_by(stored)]
     result['statements'] = full_stmts
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
@@ -222,8 +218,8 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
     # If that was the last page to display then just return the remaining stmts
     if current_page == total_pages:
         stmt_pager = Paginator(stmt_list, limit)
-        stmts = stmt_pager.page(current_page).object_list
-        result['statements'] = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=stmts).order_by(stored)]
+        result['statements'] = [stmt.object_return(language, format) for stmt in \
+                models.Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
         result['more'] = ''
 
         # Set current page back for when someone hits the URL again
@@ -245,8 +241,8 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         # Create cache key from hashed data (always 32 digits)
         cache_key = create_cache_key(stmt_list)
         # Set result to have selected page of stmts and more endpoint
-        stmts = stmt_pager.page(current_page).object_list
-        result['statements'] = [stmt.object_return(language, format) for stmt in models.Statement.objects.filter(id__in=stmts)]
+        result['statements'] = [stmt.object_return(language, format) for stmt in \
+                models.Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
         result['more'] = MORE_ENDPOINT + cache_key
         
         more_cache_list = []
