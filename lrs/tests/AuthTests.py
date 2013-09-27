@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
-from lrs import views, models
+from vendor.xapi.lrs import views, models
 from os import path
 from django.conf import settings
 import sys
@@ -10,10 +10,10 @@ import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
-from lrs.objects.StatementManager import StatementManager
+from vendor.xapi.lrs.objects.StatementManager import StatementManager
 import time
 import urllib
-from lrs.util import retrieve_statement
+from vendor.xapi.lrs.util import retrieve_statement
 import hashlib
 
 class AuthTests(TestCase):

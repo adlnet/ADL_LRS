@@ -1,14 +1,14 @@
 import os
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from lrs import views, models
+from vendor.xapi.lrs import views, models
 import json
 import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
 import time
-from lrs.util import retrieve_statement
+from vendor.xapi.lrs.util import retrieve_statement
 from django.conf import settings
 
 class StatementsMoreTests(TestCase):
