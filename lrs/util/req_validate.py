@@ -3,9 +3,9 @@ from datetime import datetime
 from functools import wraps
 from django.utils.timezone import utc
 from django.core.cache import get_cache
-from lrs import models
-from lrs.util import uri, StatementValidator
-from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
+from vendor.xapi.lrs import models
+from vendor.xapi.lrs.util import uri, StatementValidator
+from vendor.xapi.lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
 from Authorization import auth
 
 att_cache = get_cache('attachment_cache')

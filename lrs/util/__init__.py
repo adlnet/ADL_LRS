@@ -6,8 +6,8 @@ from django.db.models import get_models, get_app
 from django.contrib import admin
 from django.contrib.admin.sites import AlreadyRegistered
 from dateutil import parser
-from lrs.models import Consumer
-from lrs.exceptions import ParamError, BadRequest
+from vendor.xapi.lrs.models import Consumer
+from vendor.xapi.lrs.exceptions import ParamError, BadRequest
 
 
 def convert_to_utc(timestr):

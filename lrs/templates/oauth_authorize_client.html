@@ -13,7 +13,7 @@
             <strong>{{ form.non_field_errors }}</strong>
         </p>
         {% endif %}
-        <form action="{% url oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
+        <form action="{% url 'vendor.xapi.oauth_provider.views.user_authorization' %}{% if params %}?{{ params }}{% endif %}" method="post">
             <span>{{ form.authorize_access }}{{ form.obj_id }}</span>
             <p><span class="field">Application:</span><br/>
                 {{ name }}</p>

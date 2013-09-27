@@ -7,7 +7,7 @@
     <strong>{{ error_message }}</strong>
 </p>
 {% endif %}
-<h3>Login <span style="font-size: 75%">(<a href="{% url lrs.views.register %}">register</a>)</span></h3>
+<h3>Login <span style="font-size: 75%">(<a href="{% url 'lrs.views.register' %}">register</a>)</span></h3>
 <form method="post">{% csrf_token %}
     <table>
         {% include 'table_form.html' %}

@@ -14,8 +14,8 @@ from stores import check_valid_callback
 from consts import OUT_OF_BAND
 from django.utils.decorators import decorator_from_middleware
 from django.shortcuts import render_to_response
-from lrs.forms import AuthClientForm
-from lrs.models import Token
+from vendor.xapi.lrs.forms import AuthClientForm
+from vendor.xapi.lrs.models import Token
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'

@@ -1,6 +1,6 @@
 from django.contrib import admin
-from lrs import models
-from lrs.util import autoregister
+from vendor.xapi.lrs import models
+from vendor.xapi.lrs.util import autoregister
 
 class AgentProfileAdmin(admin.ModelAdmin):
     model = models.AgentProfile

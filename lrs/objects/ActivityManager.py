@@ -4,8 +4,8 @@ from StringIO import StringIO
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from lrs import models, exceptions
-from lrs.util import uri
+from vendor.xapi.lrs import models, exceptions
+from vendor.xapi.lrs.util import uri
 
 class ActivityManager():
     def __init__(self, data, auth=None, define=True):

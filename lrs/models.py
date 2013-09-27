@@ -15,8 +15,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils.timezone import utc
 from .exceptions import IDNotFoundError, ParamError
-from oauth_provider.managers import TokenManager, ConsumerManager
-from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
+from vendor.xapi.oauth_provider.managers import TokenManager, ConsumerManager
+from vendor.xapi.oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
                    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
 
 ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
@@ -319,7 +319,7 @@ class Agent(models.Model):
             ("openID", "global_representation"),("oauth_identifier", "global_representation"))
 
     def clean(self):
-        from lrs.util import uri
+        from vendor.xapi.lrs.util import uri
 
         if self.mbox and not uri.validate_email(self.mbox):
             raise ValidationError('mbox value [%s] did not start with mailto:' % self.mbox)
