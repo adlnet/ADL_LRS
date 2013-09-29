@@ -20,8 +20,8 @@ import logging
 logger = logging.getLogger(__name__)
  
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
-def home(request):
-    return render_to_response('home.html', context_instance=RequestContext(request))
+def home_lrs(request):
+    return render_to_response('home_lrs.html', context_instance=RequestContext(request))
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def stmt_validator(request):
@@ -136,7 +136,7 @@ def about(request):
                 {
                     "name": "Oauth Initiate",
                     "methods": ["POST"],
-                    "endpoint": reverse('oauth_provider.views.request_token'),
+                    "endpoint": reverse('vendor.xapi.oauth_provider.views.request_token'),
                     "description": "Authorize a client and return temporary credentials.",
                     "content-types": ["application/x-www-form-urlencoded"]
                 },
@@ -144,7 +144,7 @@ def about(request):
                 {
                     "name": "Oauth Authorize",
                     "methods": ["GET"],
-                    "endpoint": reverse('oauth_provider.views.user_authorization'),
+                    "endpoint": reverse('vendor.xapi.oauth_provider.views.user_authorization'),
                     "description": "Authorize a user.",
                     "content-types": []
                 },
@@ -152,7 +152,7 @@ def about(request):
                 {
                     "name": "Oauth Token",
                     "methods": ["POST"],
-                    "endpoint": reverse('oauth_provider.views.access_token'),
+                    "endpoint": reverse('vendor.xapi.oauth_provider.views.access_token'),
                     "description": "Provides Oauth token to the client.",
                     "content-types": ["application/x-www-form-urlencoded"]
                 }
@@ -198,7 +198,7 @@ def register(request):
     else:
         return Http404
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required()
 def reg_client(request):
     if request.method == 'GET':
         form = forms.RegClientForm()
@@ -224,14 +224,14 @@ def reg_client(request):
     else:
         return Http404
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required()
 def me(request):
     client_apps = models.Consumer.objects.filter(user=request.user)
     access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
     return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens},
         context_instance=RequestContext(request))
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required()
 def my_statements(request):
     try:
         if request.method == "DELETE":
@@ -254,6 +254,8 @@ def my_statements(request):
                 d['statement_id'] = stmt.statement_id
                 d['actor_name'] = stmt.actor.get_a_name()
                 d['verb'] = stmt.verb.get_display()
+                d['score_raw']= stmt.result_score_raw
+                d['score_min']= stmt.result_score_min
                 stmtobj = stmt.get_object()
                 d['object'] = stmtobj.get_a_name()
                 slist.append(d)
@@ -279,7 +281,7 @@ def my_statements(request):
     except Exception as e:
         return HttpResponse(e, status=400)
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required()
 def my_app_status(request):
     try:
         name = request.GET['app_name']
@@ -293,7 +295,7 @@ def my_app_status(request):
     except:
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required()
 def delete_token(request):
     if request.method == "DELETE":
         try:

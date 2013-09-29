@@ -340,6 +340,11 @@ class Agent(models.Model):
             ret['name'] = self.name
         if self.mbox:
             ret['mbox'] = self.mbox
+            user_email = self.mbox.split(":")[1]
+            users = User.objects.filter(email = user_email)
+            if users:
+                user = users[0]
+                ret['user_id']= user.username
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = self.mbox_sha1sum
         if self.openID:

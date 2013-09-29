@@ -1,12 +1,12 @@
 from django.test import TestCase
 from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
-from vendor.xapi.lrs import views
+from lrs import views
 import json
 from os import path
 import sys
 import base64
-from vendor.xapi.lrs.models import Agent
+from lrs.models import Agent
 
 class AgentsTests(TestCase):
     @classmethod

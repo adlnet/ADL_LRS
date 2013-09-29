@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from vendor.xapi.lrs import views
+from lrs import views
 import datetime
 from django.utils.timezone import utc
 import hashlib

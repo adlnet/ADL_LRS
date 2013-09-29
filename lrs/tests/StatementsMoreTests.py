@@ -1,14 +1,14 @@
 import os
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from vendor.xapi.lrs import views, models
+from lrs import views, models
 import json
 import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
 import time
-from vendor.xapi.lrs.util import retrieve_statement
+from lrs.util import retrieve_statement
 from django.conf import settings
 
 class StatementsMoreTests(TestCase):
@@ -667,7 +667,7 @@ class StatementsMoreTests(TestCase):
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
 
-        self.assertEqual(len(resp_json['statements']), 8)
+        self.assertEqual(len(resp_json['statements']), 8)        
 
         self.assertIn(self.guid24, rsp)
         self.assertIn(self.guid23, rsp)                
@@ -1146,113 +1146,3 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid7, another_more2_rsp)
         self.assertNotIn(self.guid6, another_more2_rsp)
         self.assertNotIn(self.guid5, another_more2_rsp)
-
-    def test_get_order(self):
-        r = self.client.get(reverse(views.statements), {"limit":10},
-            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(r.status_code, 200)
-        c = r.content        
-        sresults = json.loads(c)
-        more = sresults['more'][-32:]
-        stmts = sresults['statements']
-
-        self.assertEqual(len(stmts), 10)
-        self.assertEqual(stmts[0]['id'], self.guid25)
-        self.assertEqual(stmts[1]['id'], self.guid24)
-        self.assertEqual(stmts[2]['id'], self.guid23)
-        self.assertEqual(stmts[3]['id'], self.guid22)
-        self.assertEqual(stmts[4]['id'], self.guid21)
-        self.assertEqual(stmts[5]['id'], self.guid20)
-        self.assertEqual(stmts[6]['id'], self.guid19)
-        self.assertEqual(stmts[7]['id'], self.guid18)
-        self.assertEqual(stmts[8]['id'], self.guid17)
-        self.assertEqual(stmts[9]['id'], self.guid16)
-
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
-            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(r.status_code, 200)
-        c = r.content        
-        sresults = json.loads(c)
-        more = sresults['more'][-32:]
-        stmts = sresults['statements']
-
-        self.assertEqual(len(stmts), 10)
-        self.assertEqual(stmts[0]['id'], self.guid15)
-        self.assertEqual(stmts[1]['id'], self.guid14)
-        self.assertEqual(stmts[2]['id'], self.guid13)
-        self.assertEqual(stmts[3]['id'], self.guid12)
-        self.assertEqual(stmts[4]['id'], self.guid11)
-        self.assertEqual(stmts[5]['id'], self.guid10)
-        self.assertEqual(stmts[6]['id'], self.guid9)
-        self.assertEqual(stmts[7]['id'], self.guid8)
-        self.assertEqual(stmts[8]['id'], self.guid7)
-        self.assertEqual(stmts[9]['id'], self.guid6)
-
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
-            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(r.status_code, 200)
-        c = r.content        
-        sresults = json.loads(c)
-        stmts = sresults['statements']
-
-        self.assertEqual(len(stmts), 5)
-        self.assertEqual(stmts[0]['id'], self.guid5)
-        self.assertEqual(stmts[1]['id'], self.guid4)
-        self.assertEqual(stmts[2]['id'], self.guid3)
-        self.assertEqual(stmts[3]['id'], self.guid2)
-        self.assertEqual(stmts[4]['id'], self.guid1)
-
-    def test_get_rev_order(self):
-        r = self.client.get(reverse(views.statements), {"limit":10, "ascending":True},
-            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(r.status_code, 200)
-        c = r.content        
-        sresults = json.loads(c)
-        more = sresults['more'][-32:]
-        stmts = sresults['statements']
-
-        self.assertEqual(len(stmts), 10)
-        self.assertEqual(stmts[0]['id'], self.guid1)
-        self.assertEqual(stmts[1]['id'], self.guid2)
-        self.assertEqual(stmts[2]['id'], self.guid3)
-        self.assertEqual(stmts[3]['id'], self.guid4)
-        self.assertEqual(stmts[4]['id'], self.guid5)
-        self.assertEqual(stmts[5]['id'], self.guid6)
-        self.assertEqual(stmts[6]['id'], self.guid7)
-        self.assertEqual(stmts[7]['id'], self.guid8)
-        self.assertEqual(stmts[8]['id'], self.guid9)
-        self.assertEqual(stmts[9]['id'], self.guid10)
-
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
-            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(r.status_code, 200)
-        c = r.content        
-        sresults = json.loads(c)
-        more = sresults['more'][-32:]
-        stmts = sresults['statements']
-
-        self.assertEqual(len(stmts), 10)
-        self.assertEqual(stmts[0]['id'], self.guid11)
-        self.assertEqual(stmts[1]['id'], self.guid12)
-        self.assertEqual(stmts[2]['id'], self.guid13)
-        self.assertEqual(stmts[3]['id'], self.guid14)
-        self.assertEqual(stmts[4]['id'], self.guid15)
-        self.assertEqual(stmts[5]['id'], self.guid16)
-        self.assertEqual(stmts[6]['id'], self.guid17)
-        self.assertEqual(stmts[7]['id'], self.guid18)
-        self.assertEqual(stmts[8]['id'], self.guid19)
-        self.assertEqual(stmts[9]['id'], self.guid20)
-
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
-            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(r.status_code, 200)
-        c = r.content        
-        sresults = json.loads(c)
-        stmts = sresults['statements']
-
-        self.assertEqual(len(stmts), 5)
-        self.assertEqual(stmts[0]['id'], self.guid21)
-        self.assertEqual(stmts[1]['id'], self.guid22)
-        self.assertEqual(stmts[2]['id'], self.guid23)
-        self.assertEqual(stmts[3]['id'], self.guid24)
-        self.assertEqual(stmts[4]['id'], self.guid25)

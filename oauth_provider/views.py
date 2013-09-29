@@ -50,7 +50,7 @@ def request_token(request):
         return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
 # tom c added login_url
-@login_required(login_url="/XAPI/accounts/login")
+@login_required()
 def user_authorization(request):
     """
     The Consumer cannot use the Request Token until it has been authorized by 

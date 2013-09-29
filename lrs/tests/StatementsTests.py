@@ -9,10 +9,10 @@ from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.conf import settings
-from vendor.xapi.lrs import views, models
-from vendor.xapi.lrs.util import retrieve_statement
-from vendor.xapi.lrs.util.jws import JWS, JWSException
-from vendor.xapi.lrs.objects.StatementManager import StatementManager
+from lrs import views, models
+from lrs.util import retrieve_statement
+from lrs.util.jws import JWS, JWSException
+from lrs.objects.StatementManager import StatementManager
 import os
 from datetime import datetime, timedelta
 import sys

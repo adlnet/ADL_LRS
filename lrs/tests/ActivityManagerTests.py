@@ -1,7 +1,7 @@
 import base64
 import json
 from django.test import TestCase
-from vendor.xapi.lrs import models, views
+from lrs import models, views
 from django.core.urlresolvers import reverse
 from django.conf import settings
 

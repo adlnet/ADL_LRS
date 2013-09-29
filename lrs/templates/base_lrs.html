@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
+        {% block extra_css %}{% endblock extra_css %}
+        <title>{% block title %}ADL LRS{% endblock title %}</title>
+    </head>
+    <body>
+        <ul id="menu">
+            <ul class="left">
+                <li><a href="{{ url('vendor.xapi.lrs.views.home_lrs') }}">ADL Learning Record Store</a></li>
+            </ul>
+            <ul class="right">
+                {% if user.is_authenticated %}
+                <li><a href="{{ url('vendor.xapi.lrs.views.me') }}">{{user.username}}</a></li>
+                <li><a href="{{ url('logout') }}">logout</a></li>
+                {% else %}
+                <li><a href="{{ url('login') }}">login</a></li>
+                {% endif %}
+            </ul>
+        </ul>
+        <h1>{% block heading %}Welcome to the ADL LRS{% endblock heading %}</h1>
+        <div class="content">
+            {% block content %}{% endblock content %}
+
+            <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+
+            {% block extra_js %}{% endblock extra_js %}
+        </div>
+    </body>
+</html>

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_lrs.html" %}
 {% block title %}ADL LRS Client Registration{% endblock title %}
 {% block heading %}ADL LRS Client Registration{% endblock heading %}
 {% block content %}
@@ -10,7 +10,7 @@
     <strong>{{ error_message }}</strong>
 </p>
 {% endif %}
-<form action="{% url 'vendor.xapi.lrs.views.reg_client' %}" method="post">
+<form action="{{ url('vendor.xapi.lrs.views.reg_client') }}" method="post">
     {% include 'table_form.html' %}
     <input type="submit" value="Register" />
 </form>

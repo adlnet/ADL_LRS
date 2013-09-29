@@ -5,9 +5,9 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from vendor.xapi.lrs import views
-from vendor.xapi.lrs.models import Statement
-from vendor.xapi.lrs.objects.StatementManager import StatementManager as StMan
+from lrs import views
+from lrs.models import Statement
+from lrs.objects.StatementManager import StatementManager as StMan
 from django.conf import settings
 import json
 import base64
@@ -16,7 +16,7 @@ import uuid
 import math
 import urllib
 import hashlib
-from vendor.xapi.lrs.util import convert_to_utc
+from lrs.util import convert_to_utc
 
 class StatementFilterTests(TestCase):
 
@@ -463,7 +463,7 @@ class StatementFilterTests(TestCase):
 
         for s in batch:
             StMan(json.dumps(s))
-        
+
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)

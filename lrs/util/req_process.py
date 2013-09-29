@@ -79,7 +79,6 @@ def statements_more_get(req_dict):
 def statements_get(req_dict):
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
-
     stmt_result = {}
     mime_type = "application/json"
     # If statementId is in req_dict then it is a single get
@@ -138,32 +137,27 @@ def statements_get(req_dict):
         if 'auth' in req_dict:
             param_dict['auth'] = req_dict['auth']
 
-        # Get limit if one
+        # Create returned stmt list from the req dict
+        stmt_list = retrieve_statement.complex_get(param_dict)
+        # Build json result({statements:...,more:...}) and set content length
         limit = None
         if 'params' in req_dict and 'limit' in req_dict['params']:
             limit = int(req_dict['params']['limit'])
         elif 'body' in req_dict and 'limit' in req_dict['body']:
             limit = int(req_dict['body']['limit'])
+        
+        attachments = req_dict['params']['attachments']
 
-        # See if attachments should be included
-        try:
-            attachments = req_dict['params']['attachments']
-        except Exception, e:
-            attachments = False
-
-        # Create returned stmt list from the req dict
-        stmt_result = retrieve_statement.complex_get(param_dict, limit, language, format, attachments)
+        stmt_result = retrieve_statement.build_statement_result(language, format, limit, stmt_list, attachments)
         content_length = len(json.dumps(stmt_result))
 
         # If attachments=True in req_dict then include the attachment payload and return different mime type
-        if attachments:
+        if 'params' in req_dict and ('attachments' in req_dict['params'] and req_dict['params']['attachments']):
             stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
             resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
         # Else attachments are false for the complex get so just dump the stmt_result
         else:
-            result = json.dumps(stmt_result)
-            content_length = len(result)
-            resp = HttpResponse(result, mimetype=mime_type, status=200)
+            resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
     
     # Set consistent through and content length headers for all responses
     try:

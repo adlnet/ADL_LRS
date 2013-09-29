@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('vendor.xapi.lrs.views',
-    url(r'^$', 'home'),
+    url(r'^$', 'home_lrs'),
     url(r'^statements/more/(?P<more_id>.{32})$', 'statements_more'),
     url(r'^statements', 'statements'),
     url(r'^activities/state', 'activity_state'),
