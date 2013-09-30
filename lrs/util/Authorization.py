@@ -42,10 +42,14 @@ def http_auth_helper(request):
             if auth[0].lower() == 'basic':
                 # Currently, only basic http auth is used.
                 uname, passwd = base64.b64decode(auth[1]).split(':')
-                user = authenticate(username=uname, password=passwd)
-                if user:
+                #user = authenticate(username=uname, password=passwd)
+                from django.contrib.auth.models import User
+                users = User.objects.filter(username=uname)
+                if users:
                     # If the user successfully logged in, then add/overwrite
                     # the user object of this request.
+                    user = users[0]
+                    user.backend = "userena.backends.UserenaAuthenticationBackend"
                     request['auth']['id'] = user
                 else:
                     raise Unauthorized("Authorization failed, please verify your username and password")

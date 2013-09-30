@@ -13,6 +13,7 @@ from vendor.xapi.lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
 def statements_post(req_dict):
+    print "statement post"
     stmt_responses = []
 
     define = True

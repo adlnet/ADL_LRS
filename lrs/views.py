@@ -256,6 +256,7 @@ def my_statements(request):
                 d['verb'] = stmt.verb.get_display()
                 d['score_raw']= stmt.result_score_raw
                 d['score_min']= stmt.result_score_min
+                d['result']= stmt.result_response
                 stmtobj = stmt.get_object()
                 d['object'] = stmtobj.get_a_name()
                 slist.append(d)
@@ -462,7 +463,6 @@ def handle_request(request, more_id=None):
         # Cutoff more_id
         if '/xapi/statements/more' in path:
             path = '/xapi/statements/more'
-
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
 
@@ -475,7 +475,7 @@ def handle_request(request, more_id=None):
     except exceptions.Unauthorized as autherr:
         log_exception(request.path, autherr)
         r = HttpResponse(autherr, status = 401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
+        r['WWW-Authenticate'] = 'Basic realm="KME4U"'
         return r
     except exceptions.OauthUnauthorized as oauth_err:
         log_exception(request.path, oauth_err)
