@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_lrs.html" %}
 {% block title %}{{user.username}} Home{% endblock title %}
 {% block heading %}{{user.username}} Home{% endblock heading %}
 {% block content %}
@@ -15,7 +15,7 @@
         <!-- content -->
     </div>
     <div id="clientapps">
-        <span class="heading">Client Apps:</span><span class="small-link"><a href="{% url lrs.views.reg_client %}">add app</a></span>
+        <span class="heading">Client Apps:</span><span class="small-link"><a href="{% url 'vendor.xapi.lrs.views.reg_client' %}">add app</a></span>
         {% if client_apps %}
             {% for app in client_apps %}
             <ul>
@@ -79,7 +79,7 @@ $(document).ready(function() {
         if (cur_s == "Accepted") status = "Canceled";
         else status = "Accepted";
         $.ajax({
-            url: "{% url lrs.views.my_app_status %}?app_name="+appname+"&status="+status,
+            url: "{% url 'vendor.xapi.lrs.views.my_app_status' %}?app_name="+appname+"&status="+status,
             type: "POST",
             context: $(this),
             success: function (data){
@@ -107,7 +107,7 @@ $(document).ready(function() {
     $('.delete_token').click(function(){
         var id = $(this).next('span').text();
         $.ajax({
-            url: "{% url lrs.views.delete_token %}?id="+id,
+            url: "{% url 'vendor.xapi.lrs.views.delete_token' %}?id="+id,
             type: "DELETE",
             context: $(this),
             success: function(data){
@@ -129,7 +129,7 @@ $(document).ready(function() {
     });
     $('#mystatements #delstmts').click(function(){
         $.ajax({
-            url: "{% url lrs.views.my_statements %}",
+            url: "{% url 'vendor.xapi.lrs.views.my_statements' %}",
             type: "DELETE",
             context: $(this),
             success: function (data){
@@ -157,7 +157,7 @@ function stmtLink(event){
 }
 
 function getStmts(event){
-    var u = "{% url lrs.views.my_statements %}";
+    var u = "{% url 'vendor.xapi.lrs.views.my_statements' %}";
     if (event && event.data.the_url){
         u = event.data.the_url;
     }
@@ -212,7 +212,7 @@ function uiData(data){
 
 function getStmt(stmtid,ele){
     $.ajax({
-        url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,
+        url: "{% url 'vendor.xapi.lrs.views.my_statements' %}?stmt_id="+stmtid,
         type: "GET",
         success: function (data){
             $(ele).parent().after('<pre id="stmts"></pre>')

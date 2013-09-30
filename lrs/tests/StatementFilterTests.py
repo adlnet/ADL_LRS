@@ -463,7 +463,7 @@ class StatementFilterTests(TestCase):
 
         for s in batch:
             StMan(json.dumps(s))
-        
+
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)

@@ -1,5 +1,5 @@
 import hashlib
-from lrs.exceptions import Conflict, PreconditionFail
+from vendor.xapi.lrs.exceptions import Conflict, PreconditionFail
 
 IF_MATCH = "HTTP_IF_MATCH"
 IF_NONE_MATCH = "HTTP_IF_NONE_MATCH"

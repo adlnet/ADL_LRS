@@ -2,10 +2,10 @@ import base64
 from functools import wraps
 from django.conf import settings
 from django.contrib.auth import authenticate
-from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest
-from lrs.models import Token, Agent
-from oauth_provider.utils import send_oauth_error
-from oauth_provider.consts import  ACCEPTED
+from vendor.xapi.lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest
+from vendor.xapi.lrs.models import Token, Agent
+from vendor.xapi.oauth_provider.utils import send_oauth_error
+from vendor.xapi.oauth_provider.consts import  ACCEPTED
 
 # A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
@@ -42,10 +42,14 @@ def http_auth_helper(request):
             if auth[0].lower() == 'basic':
                 # Currently, only basic http auth is used.
                 uname, passwd = base64.b64decode(auth[1]).split(':')
-                user = authenticate(username=uname, password=passwd)
-                if user:
+                #user = authenticate(username=uname, password=passwd)
+                from django.contrib.auth.models import User
+                users = User.objects.filter(username=uname)
+                if users:
                     # If the user successfully logged in, then add/overwrite
                     # the user object of this request.
+                    user = users[0]
+                    user.backend = "userena.backends.UserenaAuthenticationBackend"
                     request['auth']['id'] = user
                 else:
                     raise Unauthorized("Authorization failed, please verify your username and password")

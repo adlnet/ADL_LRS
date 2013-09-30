@@ -14,8 +14,8 @@ from stores import check_valid_callback
 from consts import OUT_OF_BAND
 from django.utils.decorators import decorator_from_middleware
 from django.shortcuts import render_to_response
-from lrs.forms import AuthClientForm
-from lrs.models import Token
+from vendor.xapi.lrs.forms import AuthClientForm
+from vendor.xapi.lrs.models import Token
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
@@ -50,7 +50,7 @@ def request_token(request):
         return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
 # tom c added login_url
-@login_required(login_url="/XAPI/accounts/login")
+@login_required()
 def user_authorization(request):
     """
     The Consumer cannot use the Request Token until it has been authorized by 

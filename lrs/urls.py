@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 
-urlpatterns = patterns('lrs.views',
-    url(r'^$', 'home'),
+urlpatterns = patterns('vendor.xapi.lrs.views',
+    url(r'^$', 'home_lrs'),
     url(r'^statements/more/(?P<more_id>.{32})$', 'statements_more'),
     url(r'^statements', 'statements'),
     url(r'^activities/state', 'activity_state'),
@@ -15,7 +15,7 @@ urlpatterns = patterns('lrs.views',
     url(r'^actexample4/$', 'actexample4'),
     url(r'^register/$', 'register'),
     url(r'^regclient/$', 'reg_client'),    
-    url(r'^OAuth/', include('oauth_provider.urls')),
+    url(r'^OAuth/', include('vendor.xapi.oauth_provider.urls')),
     # just urls for some user interface... not part of xapi
     url(r'^me/statements/', 'my_statements'),
     url(r'^me/apps/', 'my_app_status'),
@@ -26,5 +26,5 @@ urlpatterns = patterns('lrs.views',
 )
 urlpatterns += patterns('',
   url(r'^accounts/login/$', 'django.contrib.auth.views.login', name="login"),
-  url(r'^accounts/logout/$', 'lrs.views.logout_view', name="logout"),
+  url(r'^accounts/logout/$', 'vendor.xapi.lrs.views.logout_view', name="logout"),
 )
