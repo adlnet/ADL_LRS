@@ -247,18 +247,8 @@ def my_statements(request):
             return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
         else:
             s = {}
-            slist = []
-            for stmt in models.Statement.objects.filter(user=request.user).order_by('-timestamp'):
-                d = {}
-                d['timestamp'] = stmt.timestamp.isoformat()
-                d['statement_id'] = stmt.statement_id
-                d['actor_name'] = stmt.actor.get_a_name()
-                d['verb'] = stmt.verb.get_display()
-                stmtobj = stmt.get_object()
-                d['object'] = stmtobj.get_a_name()
-                slist.append(d)
-            
-            paginator = Paginator(slist, settings.STMTS_PER_PAGE)
+            paginator = Paginator(models.Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
+                settings.STMTS_PER_PAGE)
 
             page_no = request.GET.get('page', 1)
             try:
@@ -270,11 +260,24 @@ def my_statements(request):
                 # If page is out of range (e.g. 9999), deliver last page of results.
                 page = paginator.page(paginator.num_pages)
 
-            s['stmts'] = page.object_list
+            stmtobjs = [stmt for stmt in models.Statement.objects.filter(id__in=(page.object_list)).order_by('-timestamp')]
+
+            slist = []
+            for stmt in stmtobjs:
+                d = {}
+                d['timestamp'] = stmt.timestamp.isoformat()
+                d['statement_id'] = stmt.statement_id
+                d['actor_name'] = stmt.actor.get_a_name()
+                d['verb'] = stmt.verb.get_display()
+                d['object'] = stmt.get_object().get_a_name()
+                slist.append(d)
+
+            s['stmts'] = slist
             if page.has_previous():
                 s['previous'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.previous_page_number())
             if page.has_next():
                 s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
+
             return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
     except Exception as e:
         return HttpResponse(e, status=400)
