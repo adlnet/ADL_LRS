@@ -107,8 +107,12 @@ def complex_get(param_dict, limit, language, format, attachments):
 
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
-    stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
-            Statement.objects.filter(id__in=stmt_set.values_list('id', flat=True)).order_by(stored)]
+    idlist = stmt_set.values_list('id', flat=True)
+    if idlist > 0:
+        stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
+            Statement.objects.filter(id__in=idlist).order_by(stored)]
+    else:
+        stmt_result['statements'] = []
     stmt_result['more'] = ''
     return stmt_result
 
@@ -170,7 +174,8 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     cache.set(cache_key,encoded_info)
     # Return first page of results
     full_stmts = [stmt.object_return(language, format) for stmt in \
-            Statement.objects.filter(id__in=(stmt_pager.page(1).object_list)).order_by(stored)]
+                    Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
+
     result['statements'] = full_stmts
     result['more'] = MORE_ENDPOINT + cache_key        
     return result
