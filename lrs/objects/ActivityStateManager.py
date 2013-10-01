@@ -48,7 +48,7 @@ class ActivityStateManager():
         else:
             orig_state = ast.literal_eval(p.json_state)
             post_state = ast.literal_eval(post_state)
-            merged = '%s' % dict(orig_state.items() + post_state.items())
+            merged = json.dumps(dict(orig_state.items() + post_state.items()))
             p.json_state = merged
             p.etag = etag.create_tag(merged)
             p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
