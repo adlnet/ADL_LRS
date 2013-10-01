@@ -39,7 +39,7 @@ class ActivityStateManager():
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
         if created:
-            p.json_state = ast.literal_eval(post_state)
+            p.json_state = post_state
             p.content_type = self.content_type
             p.etag = etag.create_tag(post_state)
 
@@ -48,7 +48,7 @@ class ActivityStateManager():
         else:
             orig_state = ast.literal_eval(p.json_state)
             post_state = ast.literal_eval(post_state)
-            merged = '%s' % dict(orig_state.items() + post_state.items())
+            merged = json.dumps(dict(orig_state.items() + post_state.items()))
             p.json_state = merged
             p.etag = etag.create_tag(merged)
             p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
