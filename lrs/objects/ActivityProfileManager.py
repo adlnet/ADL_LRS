@@ -31,8 +31,6 @@ class ActivityProfileManager():
             else:
                 p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
         else:
-            import pdb
-            pdb.set_trace()
             etag.check_preconditions(request_dict,p, required=True)
             orig_prof = ast.literal_eval(p.json_profile)
             post_profile = ast.literal_eval(post_profile)
