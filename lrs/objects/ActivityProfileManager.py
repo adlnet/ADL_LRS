@@ -31,10 +31,11 @@ class ActivityProfileManager():
             else:
                 p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
         else:
+            etag.check_preconditions(request_dict,p, required=True)
             orig_prof = ast.literal_eval(p.json_profile)
             post_profile = ast.literal_eval(post_profile)
             # json.dumps changes the format of the string rep of the dict
-            merged = '%s' % dict(orig_prof.items() + post_profile.items())
+            merged = json.dumps(dict(orig_prof.items() + post_profile.items()))
             p.json_profile = merged
             p.etag = etag.create_tag(merged)
             p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)

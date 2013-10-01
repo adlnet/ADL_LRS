@@ -348,13 +348,17 @@ class AgentProfileTests(TestCase):
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
         self.assertEqual(ast.literal_eval(get.content), prof)
-        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+        etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
+        self.assertEqual(get.get('etag'), etag)
 
         params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
         prof = {"obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
-        
+
         post = self.client.post(path, prof, content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 409)
+        
+        post = self.client.post(path, prof, content_type="application/json",If_Match=etag, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 204)
 
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
@@ -392,13 +396,17 @@ class AgentProfileTests(TestCase):
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
         self.assertEqual(ast.literal_eval(get.content), prof)
-        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+        etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
+        self.assertEqual(get.get('etag'), etag)
 
         params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
         prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
         
         post = self.client.post(path, prof, content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 409)
+
+        post = self.client.post(path, prof, content_type="application/json", If_Match=etag, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 204)
 
         get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
