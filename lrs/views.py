@@ -260,7 +260,11 @@ def my_statements(request):
                 # If page is out of range (e.g. 9999), deliver last page of results.
                 page = paginator.page(paginator.num_pages)
 
-            stmtobjs = [stmt for stmt in models.Statement.objects.filter(id__in=(page.object_list)).order_by('-timestamp')]
+            idlist = page.object_list
+            if idlist.count() > 0:
+                stmtobjs = [stmt for stmt in models.Statement.objects.filter(id__in=(idlist)).order_by('-timestamp')]
+            else: 
+                stmtobjs = []
 
             slist = []
             for stmt in stmtobjs:
