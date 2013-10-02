@@ -107,6 +107,7 @@ def complex_get(param_dict, limit, language, format, attachments):
 
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
+    # blows up if the idlist is empty... so i gotta check for that
     idlist = stmt_set.values_list('id', flat=True)
     if idlist > 0:
         stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
