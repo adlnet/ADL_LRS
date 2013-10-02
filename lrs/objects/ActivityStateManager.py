@@ -48,7 +48,10 @@ class ActivityStateManager():
         else:
             orig_state = ast.literal_eval(p.json_state)
             post_state = ast.literal_eval(post_state)
-            merged = json.dumps(dict(orig_state.items() + post_state.items()))
+            if not isinstance(post_state, dict):
+                raise ParamError("The document was not able to be parsed into a JSON object.")
+            else:
+                merged = json.dumps(dict(orig_state.items() + post_state.items()))
             p.json_state = merged
             p.etag = etag.create_tag(merged)
             p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
