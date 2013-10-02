@@ -518,22 +518,41 @@ class StatementValidator():
 		self.check_if_dict(score, "Score")
 		self.check_allowed_fields(score_allowed_fields, score, "Score")
 
+		if 'raw' in score:
+			# If raw included with min and max, ensure it is between min and ax
+			raw = score['raw']
+			# Check raw type
+			if not (isinstance(raw, float) or isinstance(raw, int)):
+				self.return_error("Score raw is not a number")
+		else:
+			raw = None
+
 		# If min and max are included, ensure min <= max
 		if 'min' in score and 'max' in score:
 			sc_min = score['min']
 			sc_max = score['max']
 
+			# Check types of min and max
+			if not (isinstance(sc_min, float) or isinstance(sc_min, int)):
+				self.return_error("Score minimum is not a decimal")
+
+			if not (isinstance(sc_max, float) or isinstance(sc_max, int)):
+				self.return_error("Score maximum is not a decimal")
+
 			if sc_min >= sc_max:
 				self.return_error("Score minimum in statement result must be less than the maximum")
 
-			# If raw included with min and max, ensure it is between min and ax
-			raw = score['raw']
-			if 'raw' in score and (raw < sc_min or raw > sc_max):
+			if raw and (raw < sc_min or raw > sc_max):
 				self.return_error("Score raw value in statement result must be between minimum and maximum")
 
 		# If scale is included make sure it's between -1 and 1
 		if 'scaled' in score:
 			scaled = score['scaled']
+
+			# Check scaled type
+			if not (isinstance(scaled, float) or isinstance(scaled, int)):
+				self.return_error("Score scaled is not a decimal")
+
 			if scaled < -1 or scaled > 1:
 				self.return_error("Score scaled value in statement result must be between -1 and 1")
 
