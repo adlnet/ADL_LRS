@@ -54,7 +54,7 @@ class ActivityProfileManager():
         #Get the profile, or if not already created, create one
         p,created = models.ActivityProfile.objects.get_or_create(profileId=profile_id,activityId=request_dict['params']['activityId'])
         
-        if request_dict['headers']['CONTENT_TYPE'] != "application/json":
+        if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 profile = ContentFile(request_dict['profile'].read())
             except:

@@ -79,7 +79,7 @@ class AgentManager():
 
         p,created = AgentProfile.objects.get_or_create(profileId=profile_id,agent=self.Agent)
 
-        if request_dict['headers']['CONTENT_TYPE'] != "application/json":
+        if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 profile = ContentFile(request_dict['profile'].read())
             except:

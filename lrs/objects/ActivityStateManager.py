@@ -66,7 +66,7 @@ class ActivityStateManager():
         else:
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
-        if self.content_type != "application/json":
+        if "application/json" not in self.content_type:
             try:
                 state = ContentFile(self.state.read())
             except:
