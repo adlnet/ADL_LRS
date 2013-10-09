@@ -60,7 +60,7 @@ def stmt_validator(request):
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 
-        "version": ["1.0.0"],
+        "version": ["1.0.1"],
         "Extensions":{
             "xapi": {
                 "statements":
