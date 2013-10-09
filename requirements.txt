@@ -11,5 +11,4 @@ unipath==1.0
 pycrypto==2.5
 lxml==2.3.4
 django-extensions==1.1.1
-South==0.8.1
 jsonfield==0.9.19
