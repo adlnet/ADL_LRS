@@ -565,7 +565,7 @@ class OAuthTests(TestCase):
         stmt = StatementManager(json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}}))
-        param = {"object":{"objectType": "Activity", "id":"act:test_complex_get"}}
+        param = {"activity":"act:test_complex_get"}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(request_nonce='stmtcomplexrequestnonce',
@@ -1088,7 +1088,7 @@ class OAuthTests(TestCase):
         self.assertEqual(acts[0].activity_id, acts[1].activity_id)
 
         # START GET STMT
-        get_params = {"object":{"objectType": "Activity", "id":"test://test/define/scope"}}
+        get_params = {"activity":"test://test/define/scope"}
         path = "%s?%s" % (url, urllib.urlencode(get_params)) 
 
         del oauth_header_resource_params_dict['statementId']
