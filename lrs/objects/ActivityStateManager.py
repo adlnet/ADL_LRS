@@ -46,8 +46,8 @@ class ActivityStateManager():
             if self.updated:
                 p.updated = self.updated
         else:
-            orig_state = ast.literal_eval(p.json_state)
-            post_state = ast.literal_eval(post_state)
+            orig_state = json.loads(p.json_state)
+            post_state = json.loads(post_state)
             if not isinstance(post_state, dict):
                 raise ParamError("The document was not able to be parsed into a JSON object.")
             else:

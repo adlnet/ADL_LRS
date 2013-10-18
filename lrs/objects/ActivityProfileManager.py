@@ -32,8 +32,8 @@ class ActivityProfileManager():
                 p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
         else:
             etag.check_preconditions(request_dict,p, required=True)
-            orig_prof = ast.literal_eval(p.json_profile)
-            post_profile = ast.literal_eval(post_profile)
+            orig_prof = json.loads(p.json_profile)
+            post_profile = json.loads(post_profile)
             if not isinstance(post_profile, dict):
                 raise ParamError("The document was not able to be parsed into a JSON object.")
             else:
