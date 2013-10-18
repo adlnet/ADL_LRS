@@ -396,3 +396,38 @@ class ActivityProfileTests(TestCase):
         
         theget = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(theget['ETag'], '"d4827d99a5cc3510d3847baa341ba5a3b477fdfc"')
+
+    def test_json_merge(self):
+        prof = '{"test": { "goal": "ensure proper json parse", "attempt": 1, "result": null } }'
+
+        params = {"profileId": "prof:test_json_merge", "activityId": "act:test.json.merge.prof"}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        
+        post = self.client.post(path, prof, content_type="application/json", If_None_Match='*', Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 204)
+        
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.assertEqual(get.status_code, 200)
+        returned = json.loads(get.content)
+        sent = json.loads(prof)
+        self.assertEqual(returned['test']['goal'], sent['test']['goal'])
+        self.assertEqual(returned['test']['attempt'], sent['test']['attempt'])
+        self.assertEqual(returned['test']['result'], sent['test']['result'])
+        etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
+        self.assertEqual(get.get('etag'), etag)
+
+        sent['test']['result'] = True
+        sent['test']['attempt'] = sent['test']['attempt'] + 1
+        prof = json.dumps(sent)
+        post = self.client.post(path, prof, content_type="application/json", If_Match=etag, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 204)
+
+        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        self.assertEqual(get.status_code, 200)
+        returned = json.loads(get.content)
+        sent = json.loads(prof)
+        self.assertEqual(returned['test']['goal'], sent['test']['goal'])
+        self.assertEqual(returned['test']['attempt'], sent['test']['attempt'])
+        self.assertEqual(returned['test']['result'], sent['test']['result'])
+        etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
+        self.assertEqual(get.get('etag'), etag)
