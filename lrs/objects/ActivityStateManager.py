@@ -18,7 +18,7 @@ class ActivityStateManager():
         self.req_dict = request_dict
         self.agent = request_dict['params']['agent']
         self.activity_id = request_dict['params']['activityId']
-        self.registrationId = request_dict['params'].get('registrationId', None)
+        self.registration = request_dict['params'].get('registration', None)
         self.stateId = request_dict['params'].get('stateId', None)
         self.updated = request_dict['headers'].get('updated', None)
         self.content_type = request_dict['headers'].get('CONTENT_TYPE', None)
@@ -33,8 +33,8 @@ class ActivityStateManager():
     def post(self):
         agent = self.__get_agent(create=True)
         post_state = self.state
-        if self.registrationId:
-            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
+        if self.registration:
+            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registration)
         else:
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
@@ -61,8 +61,8 @@ class ActivityStateManager():
     @transaction.commit_on_success
     def put(self):
         agent = self.__get_agent(create=True)
-        if self.registrationId:
-            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registrationId)
+        if self.registration:
+            p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registration)
         else:
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
@@ -109,8 +109,8 @@ class ActivityStateManager():
     def get(self):
         agent = self.__get_agent()
         try:
-            if self.registrationId:
-                return models.ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
+            if self.registration:
+                return models.ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id, registration_id=self.registration)
             return models.ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id)
         except models.ActivityState.DoesNotExist:
             err_msg = 'There is no activity state associated with the id: %s' % self.stateId
@@ -118,8 +118,8 @@ class ActivityStateManager():
 
     def get_set(self,**kwargs):
         agent = self.__get_agent()
-        if self.registrationId:
-            state_set = models.ActivityState.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registrationId)
+        if self.registration:
+            state_set = models.ActivityState.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registration)
         else:
             state_set = models.ActivityState.objects.filter(agent=agent, activity_id=self.activity_id)
         return state_set

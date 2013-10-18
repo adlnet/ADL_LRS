@@ -43,22 +43,29 @@ def parse(request, more_id=None):
         r_dict['headers'].update(get_headers(bdy))
         for h in r_dict['headers']:
             bdy.pop(h, None)
-        r_dict['params'].update(bdy)
+
+        # remove extras from body
+        bdy.pop('X-Experience-API-Version', None)
+        bdy.pop('Content-Type', None)
+        bdy.pop('If-Match', None)
+        bdy.pop('If-None-Match', None)
+        
         # all that should be left are params for the request, 
         # we adds them to the params object
+        r_dict['params'].update(bdy)
         for k in request.GET:
             if k == 'method': # make sure the method param goes in the special method spot
                 r_dict[k] = request.GET[k]
-            r_dict['params'][k] = request.GET[k]
+            else:
+                r_dict['params'][k] = request.GET[k]
     # Just parse body for all non IE CORS stuff
     else:
         r_dict = parse_body(r_dict, request)
-
-    # Update dict with any GET data
-    r_dict['params'].update(request.GET.dict())
+        # Update dict with any GET data
+        r_dict['params'].update(request.GET.dict())
 
     # Method gets set for cors already
-    if 'method' not in r_dict['params']:
+    if 'method' not in r_dict:
         # Differentiate GET and POST
         if request.method == "POST" and (request.path[6:] == 'statements' or request.path[6:] == 'statements/'):
             # Can have empty body for POST (acts like GET)

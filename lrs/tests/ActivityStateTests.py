@@ -22,7 +22,7 @@ class ActivityStateTests(TestCase):
     stateId2 = "state_id_2"
     stateId3 = "third_state_id"
     stateId4 = "4th.id"
-    registrationId = "some_sort_of_reg_id"
+    registration = "some_sort_of_reg_id"
     content_type = "application/json"
 
     @classmethod
@@ -95,10 +95,10 @@ class ActivityStateTests(TestCase):
         self.client.delete(path, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
 
-    def test_put_with_registrationId(self):
-        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+    def test_put_with_registration(self):
+        testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
-        teststateregid = {"test":"put activity state w/ registrationId","obj":{"agent":"test"}}
+        teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put1.status_code, 204)
@@ -118,9 +118,9 @@ class ActivityStateTests(TestCase):
 
     def test_put_without_auth(self):
         # Will return 200 if HTTP_AUTH is not enabled
-        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+        testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
-        teststateregid = {"test":"put activity state w/ registrationId","obj":{"agent":"test"}}
+        teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put1.status_code, 401)
@@ -373,9 +373,9 @@ class ActivityStateTests(TestCase):
         # create old state w/ registration id
         regid = 'test_since_w_regid'
         state_id2 = "old_state_test_w_reg"
-        testparamssince2 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id2}
+        testparamssince2 = {"registration": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id2}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince2))
-        teststatesince2 = {"test":"get w/ since and registrationId","obj":{"agent":"test","stateId":state_id2}}
+        teststatesince2 = {"test":"get w/ since and registration","obj":{"agent":"test","stateId":state_id2}}
         put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put2.status_code, 204)
@@ -391,9 +391,9 @@ class ActivityStateTests(TestCase):
 
         # create new state w/ registration id
         state_id3 = "old_state_test_w_new_reg"
-        testparamssince3 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id3}
+        testparamssince3 = {"registration": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id3}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince3))
-        teststatesince3 = {"test":"get w/ since and registrationId","obj":{"agent":"test","stateId":state_id3}}
+        teststatesince3 = {"test":"get w/ since and registration","obj":{"agent":"test","stateId":state_id3}}
         put3 = self.client.put(path, teststatesince3, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put3.status_code, 204)
@@ -420,7 +420,7 @@ class ActivityStateTests(TestCase):
 
         # get reg id set w/o old state
         since2 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
-        params2 = {"registrationId": regid, "activityId": self.activityId, "agent": self.testagent, "since": since2}
+        params2 = {"registration": regid, "activityId": self.activityId, "agent": self.testagent, "since": since2}
         r = self.client.get(self.url, params2, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertIn(state_id3, r.content)
@@ -450,7 +450,7 @@ class ActivityStateTests(TestCase):
 
     
     def test_delete_without_activityid(self):
-        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+        testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"delete activity state w/o activityid","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -465,7 +465,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(robj['obj']['agent'], teststateregid['obj']['agent'])
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        f_r = self.client.delete(self.url, {"registration": self.registration, "stateId": self.stateId, "agent": self.testagent}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(f_r.status_code, 400)
         self.assertIn('activityId parameter is missing', f_r.content)
@@ -475,7 +475,7 @@ class ActivityStateTests(TestCase):
 
     
     def test_delete_without_agent(self):
-        testparamsregid = {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+        testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"delete activity state w/o agent","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -490,7 +490,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(robj['obj']['agent'], teststateregid['obj']['agent'])
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "stateId": self.stateId, "activityId": self.activityId}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        f_r = self.client.delete(self.url, {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(f_r.status_code, 400)
         self.assertIn('agent parameter is missing', f_r.content)
 
@@ -499,7 +499,7 @@ class ActivityStateTests(TestCase):
 
     
     def test_delete_set(self):
-        testparamsdelset1 = {"registrationId": self.registrationId, "stateId": "del_state_set_1", "activityId": self.activityId, "agent": self.testagent}
+        testparamsdelset1 = {"registration": self.registration, "stateId": "del_state_set_1", "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsdelset1))
         teststatedelset1 = {"test":"delete set #1","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststatedelset1, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -515,7 +515,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(robj['obj']['agent'], teststatedelset1['obj']['agent'])
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
-        testparamsdelset2 = {"registrationId": self.registrationId, "stateId": "del_state_set_2", "activityId": self.activityId, "agent": self.testagent}
+        testparamsdelset2 = {"registration": self.registration, "stateId": "del_state_set_2", "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsdelset2))
         teststatedelset2 = {"test":"delete set #2","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststatedelset2, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -531,7 +531,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(robj2['obj']['agent'], teststatedelset2['obj']['agent'])
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
-        f_r = self.client.delete(self.url, {"registrationId": self.registrationId, "agent": self.testagent, "activityId": self.activityId}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        f_r = self.client.delete(self.url, {"registration": self.registration, "agent": self.testagent, "activityId": self.activityId}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(f_r.status_code, 204)
 
         r = self.client.get(self.url, testparamsdelset1, X_Experience_API_Version="1.0.0", Authorization=self.auth)
