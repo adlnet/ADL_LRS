@@ -4,7 +4,7 @@ from functools import wraps
 from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
-from lrs.util import uri, StatementValidator
+from lrs.util import uri, StatementValidator, validate_uuid
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
 from Authorization import auth
 
@@ -269,6 +269,10 @@ def activity_state_post(r_dict):
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
 
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
+
     if 'headers' not in r_dict or ('CONTENT_TYPE' not in r_dict['headers'] or r_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for activity state POSTs must be application/json"
         raise ParamError(err_msg)
@@ -309,6 +313,10 @@ def activity_state_put(r_dict):
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
+
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
     
     # Must have body included for state
     if 'body' not in r_dict:
@@ -342,6 +350,10 @@ def activity_state_get(r_dict):
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
 
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
+
     # Extra validation if oauth
     if r_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(r_dict, "state")    
@@ -365,6 +377,10 @@ def activity_state_delete(r_dict):
         except KeyError:
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
+
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
     
     # Extra validation if oauth
     if r_dict['auth']['type'] == 'oauth':
