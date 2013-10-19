@@ -97,6 +97,13 @@ class ActivityStateTests(TestCase):
 
 
     def test_put_with_registration(self):
+        testparamsregid = {"registration": "not-uuid", "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
+        put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(put1.status_code, 400)
+
         testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
