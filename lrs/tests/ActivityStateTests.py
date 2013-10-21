@@ -11,6 +11,7 @@ import os
 import json
 import base64
 import ast
+import uuid
 
 class ActivityStateTests(TestCase):
     url = reverse(views.activity_state)
@@ -22,7 +23,7 @@ class ActivityStateTests(TestCase):
     stateId2 = "state_id_2"
     stateId3 = "third_state_id"
     stateId4 = "4th.id"
-    registration = "some_sort_of_reg_id"
+    registration = str(uuid.uuid1())
     content_type = "application/json"
 
     @classmethod
@@ -96,6 +97,13 @@ class ActivityStateTests(TestCase):
 
 
     def test_put_with_registration(self):
+        testparamsregid = {"registration": "not-uuid", "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
+        path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
+        teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
+        put1 = self.client.put(path, teststateregid, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(put1.status_code, 400)
+
         testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
@@ -371,7 +379,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
         # create old state w/ registration id
-        regid = 'test_since_w_regid'
+        regid = str(uuid.uuid1())
         state_id2 = "old_state_test_w_reg"
         testparamssince2 = {"registration": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id2}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince2))
