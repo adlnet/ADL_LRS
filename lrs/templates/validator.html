@@ -15,9 +15,16 @@
 </p>
 {% endif %}
 <form action="{% url lrs.views.stmt_validator %}" method="post">
-    <table>
-        {% include 'table_form.html' %}
-    </table>
-    <input type="submit" value="Validate" />
+	<div class="control-group">
+	    <label class="control-label" for="Data">Data</label>
+	    <div class="controls">
+	      <textarea class="input-block-level" id="id_jsondata" rows="20" cols="100" name="jsondata"></textarea>
+	    </div>
+	  </div>
+	<div class="control-group">
+	    <div class="controls">
+	      <button type="submit" class="btn">Register</button>
+	    </div>
+	  </div>
 </form>
 {% endblock content %}
