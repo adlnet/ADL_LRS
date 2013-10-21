@@ -34,6 +34,8 @@ class StatementManager():
             self.data = self.parse(data)
         else:
             self.data = data
+        # import pdb
+        # pdb.set_trace()
         self.populate()
 
     #Make sure initial data being received is JSON
@@ -99,6 +101,8 @@ class StatementManager():
     @transaction.commit_on_success
     # Save statement to DB
     def save_statement_to_db(self):
+        # import pdb
+        # pdb.set_trace()
         context_activity_types = ['parent', 'grouping', 'category', 'other']
 
         # Pop off any context activities
@@ -315,16 +319,6 @@ class StatementManager():
                         auth_args['mbox'] = "mailto:%s" % self.auth.email
                     self.data['authority'] = AgentManager(params=auth_args, create=True, define=self.define).Agent
 
-    def check_statement_id(self):
-        if 'id' in self.data:
-            stmt_id = self.data['id']
-            if not models.Statement.objects.filter(statement_id=stmt_id).exists():
-                self.data['statement_id'] = stmt_id
-                del self.data['id']
-            else:
-                err_msg = "The Statement ID %s already exists in the system" % stmt_id
-                raise exceptions.ParamConflict(err_msg)        
-
     #Once JSON is verified, populate the statement object
     def populate(self):
         if self.__class__.__name__ == 'StatementManager':
@@ -334,10 +328,6 @@ class StatementManager():
             # If non oauth group won't be sent with the authority key, so if it's a group it's a non
             # oauth group which isn't allowed to be the authority
             self.build_authority_object()
-
-            # Check if statement_id already exists, throw exception if it does
-            # There will only be an ID when someone is performing a PUT
-            self.check_statement_id()
         
         self.build_verb_object()
         self.build_statement_object()

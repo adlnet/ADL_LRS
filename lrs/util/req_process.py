@@ -46,11 +46,6 @@ def statements_put(req_dict):
     if auth and 'oauth_define' in auth:
         define = auth['oauth_define']    
 
-    # Set statement ID in body so all data is together
-    if isinstance(req_dict['body'], basestring):
-        from lrs.util import convert_to_dict
-        req_dict['body'] = convert_to_dict(req_dict['body'])
-    req_dict['body']['id'] = req_dict['statementId']
     stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
     
     return HttpResponse("No Content", status=204)

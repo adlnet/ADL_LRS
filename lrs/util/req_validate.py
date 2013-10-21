@@ -126,13 +126,34 @@ def statements_post(r_dict):
     # Could be batch POST or single stmt POST
     if type(r_dict['body']) is list:
         for stmt in r_dict['body']:
+            if 'id' in stmt:
+                # If statement with that ID already exists-raise conflict error
+                statement_id = stmt['id']
+                if check_for_existing_statementId(statement_id):
+                    err_msg = "A statement with ID %s already exists" % statement_id
+                    raise ParamConflict(err_msg)
+                else:
+                    stmt['statement_id'] = statement_id
+                    del stmt['id']
+            
             if 'attachments' in stmt:
                 attachment_data = stmt['attachments']
                 validate_attachments(attachment_data, payload_sha2s)
     else:
+        if 'id' in r_dict['body']:
+            statement_id = r_dict['body']['id']
+            if check_for_existing_statementId(statement_id):
+                err_msg = "A statement with ID %s already exists" % statement_id
+                raise ParamConflict(err_msg)
+            else:
+                r_dict['body']['statement_id'] = statement_id
+                del r_dict['body']['id']
+
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
             validate_attachments(attachment_data, payload_sha2s)
+    
+
     return r_dict
 
 @auth
@@ -198,27 +219,29 @@ def statements_put(r_dict):
     else:
         statement_id = r_dict['params']['statementId']
 
+    # Might have to convert b/c of CORS
+    if isinstance(r_dict['body'], basestring):
+        from lrs.util import convert_to_dict
+        r_dict['body'] = convert_to_dict(r_dict['body'])
+
+    # Try to get id if in body
     try:
         statement_body_id = r_dict['body']['id']
+        del r_dict['body']['id']
     except Exception, e:
         statement_body_id = None
 
+    # If ids exist in both places, check if they are equal
     if statement_body_id and statement_id != statement_body_id:
         err_msg = "Error -- statements - method = %s, param and body ID both given, but do not match" % r_dict['method']
         raise ParamError(err_msg)
     
-    # If statement with that ID already exists-raise conflict error
-    if check_for_existing_statementId(statement_id):
-        err_msg = "A statement with ID %s already exists" % statement_id
-        raise ParamConflict(err_msg)
-
-    r_dict['statementId'] = statement_id
-
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
         err_msg = "No other params are supplied with statementId."
         raise ParamError(err_msg)
 
+    # Validate statement in body
     try:
         validator = StatementValidator.StatementValidator(r_dict['body'])
         msg = validator.validate()
@@ -226,6 +249,14 @@ def statements_put(r_dict):
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
+
+    # Set statement_id key in body (that's the name of the field in the DB table)
+    r_dict['body']['statement_id'] = statement_id
+
+    # If statement with that ID already exists-raise conflict error
+    if check_for_existing_statementId(statement_id):
+        err_msg = "A statement with ID %s already exists" % statement_id
+        raise ParamConflict(err_msg)
 
     # Need to validate sha2 payloads if there-validator can't do that
     if 'attachments' in r_dict['body']:

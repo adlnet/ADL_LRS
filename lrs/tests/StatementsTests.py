@@ -577,7 +577,7 @@ class StatementsTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        existStmt = StatementManager(json.dumps({"id":guid,
+        existStmt = StatementManager(json.dumps({"statement_id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
 
@@ -2598,7 +2598,7 @@ fixpad = lambda s: s if len(s) % 4 == 0 else s + '=' * (4 - (len(s) % 4))
 
 exstmt = """{
     "version": "1.0.0",
-    "id": "33cff416-e331-4c9d-969e-5373a1756120",
+    "statement_id": "33cff416-e331-4c9d-969e-5373a1756120",
     "actor": {
         "mbox": "mailto:example@example.com",
         "name": "Example Learner",
