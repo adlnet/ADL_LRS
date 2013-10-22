@@ -122,7 +122,7 @@ $('.delete_token').click(function(){
         type: "DELETE",
         context: $(this),
         success: function(data){
-            $(this).parent().parent('ul').remove();
+            $(this).parent().remove();
         },
         error: function(xhr, ajaxOptions, thrownError){
             alert(thrownError);
@@ -133,11 +133,6 @@ $('.delete_token').click(function(){
 if ($('#mystatements').hasClass('active') && ! $('#mystatements ul').length){
     getStmts();
 }
-// $('#tab-container').bind('easytabs:after', function(event, $clicked, $targetPanel, settings){
-//     if ($targetPanel.attr("id") == "mystatements"){
-//         getStmts();
-//     }
-// });
 $('a[data-toggle="tab"]').on('shown', function (e) {
     if (e.target.hash == "#mystatements"){
         getStmts();
