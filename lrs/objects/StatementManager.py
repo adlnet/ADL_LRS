@@ -140,13 +140,9 @@ class StatementManager():
             attachment = models.StatementAttachment.objects.get(sha2=sha2)
             created = False
         except models.StatementAttachment.DoesNotExist:
-            try:
-                attachment = models.StatementAttachment.objects.create(**attach)
-            except TypeError, e:
-                err_msg = "Invalid field in attachments - %s" % e.message
-                raise exceptions.ParamError(err_msg)
-                
-            created = True                
+            attachment = models.StatementAttachment.objects.create(**attach)                
+            created = True
+
             # Since there is a sha2, there must be a payload cached
             # Decode payload from msg object saved in cache and create ContentFile from raw data
             msg = att_cache.get(sha2)

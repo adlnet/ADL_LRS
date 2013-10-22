@@ -107,7 +107,7 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
             err_msg = "Authorization doesn't match agent in %s" % endpoint
             raise Forbidden(err_msg)
 
-def void_statement(void_id):
+def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
     try:
@@ -147,7 +147,7 @@ def statements_post(r_dict):
                     raise ParamConflict(err_msg)
             
             if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
-                void_statement(stmt['object']['id'])
+                validate_void_statement(stmt['object']['id'])
 
             if 'attachments' in stmt:
                 attachment_data = stmt['attachments']
@@ -160,7 +160,7 @@ def statements_post(r_dict):
                 raise ParamConflict(err_msg)
 
         if r_dict['body']['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
-            void_statement(r_dict['body']['object']['id'])
+            validate_void_statement(r_dict['body']['object']['id'])
 
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
@@ -272,7 +272,7 @@ def statements_put(r_dict):
         raise ParamError(e.message)
 
     if r_dict['body']['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
-        void_statement(r_dict['body']['object']['id'])
+        validate_void_statement(r_dict['body']['object']['id'])
 
     # Need to validate sha2 payloads if there-validator can't do that
     if 'attachments' in r_dict['body']:
