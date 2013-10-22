@@ -1,9 +1,8 @@
-{% csrf_token %}
-  {% for field in form %}
-  <div class="control-group">
-    <label class="control-label" for="{{ field.label }}">{{ field.label }}</label>
-    <div class="controls">
-      {{ field }}
-    </div>
-  </div>
-  {% endfor %}
+{% for field in form %}
+<div class="control-group">
+	<label class="control-label" for="{{ field.label }}">{{ field.label }}</label>
+	<div class="controls">
+		{{ field }}
+	</div>
+</div>
+{% endfor %}

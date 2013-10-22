@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.conf import settings
 from django.views.decorators.http import require_http_methods, require_GET
+from django.views.decorators.csrf import csrf_protect
 from django.template import RequestContext
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth.decorators import login_required
@@ -20,6 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
  
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
+@csrf_protect
 def home(request):
     from django.core.context_processors import csrf
     # import pdb
