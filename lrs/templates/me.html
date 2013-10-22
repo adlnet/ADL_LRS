@@ -219,11 +219,11 @@ function uiData(data){
     }
     var prev = "<li class='previous disabled'><a>previous</a></li>";
     if (data['previous']) {
-        prev = "<li class='previous'><a href='#mystatements' data-target='" + data['previous'] + "'>previous</a></li>";
+        prev = "<li class='previous'><a href='#' data-target='" + data['previous'] + "'>previous</a></li>";
     }
     var next = "<li class='next disabled'><a>next</a></li>";
     if (data['next']) {
-        next = "<li class='next'><a href='#mystatements' data-target='" + data['next'] + "'>next</a></li>";
+        next = "<li class='next'><a href='#' data-target='" + data['next'] + "'>next</a></li>";
     }
     ret += "<ul class='pager'>" + prev + next + "</ul>";
     ret += "</div>";
