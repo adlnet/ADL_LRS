@@ -522,7 +522,7 @@ class OAuthTests(TestCase):
         signature_method = OAuthSignatureMethod_HMAC_SHA1()
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature  
-        # print '\n' + oauth_header_resource_params
+
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 200)

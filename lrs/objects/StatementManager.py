@@ -34,8 +34,6 @@ class StatementManager():
             self.data = self.parse(data)
         else:
             self.data = data
-        # import pdb
-        # pdb.set_trace()
         self.populate()
 
     #Make sure initial data being received is JSON
@@ -101,14 +99,17 @@ class StatementManager():
     @transaction.commit_on_success
     # Save statement to DB
     def save_statement_to_db(self):
-        # import pdb
-        # pdb.set_trace()
         context_activity_types = ['parent', 'grouping', 'category', 'other']
 
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
         self.data['user'] = get_user_from_auth(self.auth)
+        
+        # Name of id field in models is statement_id
+        if 'id' in self.data:
+            self.data['statement_id'] = self.data['id']
+            del self.data['id']
 
         # Try to create statement
         stmt = models.Statement.objects.create(**self.data)

@@ -63,7 +63,7 @@ class StatementsMoreTests(TestCase):
         self.mytime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         stmt_list = []
 
-        self.existStmt1 = json.dumps({"id":self.guid1,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt1 = {"id":self.guid1,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "verb":{"id":"verb:attempted",
             "display":{"en-US":"attempted", 'en-GB':"altattempted"}},"object": {'objectType': 'Activity',
             'id':'act:foogie','definition': {'name': {'en-US':'testname2', 'en-GB':'altname'},
@@ -73,10 +73,10 @@ class StatementsMoreTests(TestCase):
             'response': 'kicked','duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}},
             'context':{'registration': self.cguid1, 'contextActivities': {'other': {'id': 'act:NewActivityID2'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ext:ckey1': 'cval1',
-            'ext:ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}})        
+            'ext:ckey2': 'cval2'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}}  
         stmt_list.append(self.existStmt1)
 
-        self.existStmt2 = json.dumps({"id":self.guid2,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt2 = {"id":self.guid2,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "verb":{"id":"verb:verb/created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'act:foogie','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
@@ -86,10 +86,10 @@ class StatementsMoreTests(TestCase):
             'duration': "P3Y6M4DT12H30M5S", 'extensions':{'ext:dkey1': 'dvalue1', 'ext:dkey2':'dvalue2'}},
             'context':{'registration': self.cguid2, 'contextActivities': {'other': {'id': 'act:NewActivityID24'}},
             'revision': 'food', 'platform':'bard','language': 'en-US', 'extensions':{'ext:ckey11': 'cval11',
-            'ext:ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}})        
+            'ext:ckey22': 'cval22'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}}      
         stmt_list.append(self.existStmt2)
 
-        self.existStmt3 = json.dumps({"id":self.guid3,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt3 = {"id":self.guid3,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "verb":{"id":"verb:created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity',
             'id':'act:foogals','definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'},
@@ -101,10 +101,10 @@ class StatementsMoreTests(TestCase):
             'context':{'registration': self.cguid3, 'contextActivities': {'other': {'id': 'act:NewActivityID23'}},
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':'bill',
             'mbox':'mailto:bill@bill.com'} , 'extensions':{'ext:ckey111': 'cval111',
-            'ext:ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}})        
+            'ext:ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}}     
         stmt_list.append(self.existStmt3)
 
-        self.existStmt4 = json.dumps({"id":self.guid4,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt4 = {"id":self.guid4,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "verb":{"id":"verb:verb/created",
             "display":{"en-US":"created", 'en-GB':"altcreated"}}, "object": {'objectType': 'Activity', 'id':'act:foogal',
             'definition': {'name': {'en-US':'testname3'},'description': {'en-US':'testdesc3'}, 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -115,133 +115,133 @@ class StatementsMoreTests(TestCase):
             'context':{'registration': self.cguid4, 'contextActivities': {'other': {'id': 'act:NewActivityID22'}},
             'revision': 'food', 'platform':'bard','language': 'en-US','instructor':{'name':'bill',
             'mbox':'mailto:bill@bill.com'}, 'extensions':{'ext:ckey111': 'cval111',
-            'ext:ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}})
+            'ext:ckey222': 'cval222'}}, 'authority':{'objectType':'Agent','name':'auth1','mbox':'mailto:auth1@example.com'}}
         stmt_list.append(self.existStmt4)
 
-        self.existStmt5 = json.dumps({"id":self.guid5,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt5 = {"id":self.guid5,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon1',
             'mbox':'mailto:jon1@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt5)
 
-        self.existStmt6 = json.dumps({"id":self.guid6,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt6 = {"id":self.guid6,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon2',
             'mbox':'mailto:jon2@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt6)
 
-        self.existStmt7 = json.dumps({"id":self.guid7,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt7 = {"id":self.guid7,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon3',
             'mbox':'mailto:jon3@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt7)
 
-        self.existStmt8 = json.dumps({"id":self.guid8,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt8 = {"id":self.guid8,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon4',
             'mbox':'mailto:jon4@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt8)
 
-        self.existStmt9 = json.dumps({"id":self.guid9,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt9 = {"id":self.guid9,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon5',
             'mbox':'mailto:jon5@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt9)
 
-        self.existStmt10 = json.dumps({"id":self.guid10,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt10 = {"id":self.guid10,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon33',
             'mbox':'mailto:jon33@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})       
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}   
         stmt_list.append(self.existStmt10)
 
-        self.existStmt11 = json.dumps({"id":self.guid11,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt11 = {"id":self.guid11,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon6',
             'mbox':'mailto:jon6@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt11)
 
-        self.existStmt12 = json.dumps({"id":self.guid12,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt12 = {"id":self.guid12,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon7',
             'mbox':'mailto:jon7@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt12)
 
-        self.existStmt13 = json.dumps({"id":self.guid13,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt13 = {"id":self.guid13,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon8',
             'mbox':'mailto:jon8@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt13)
 
-        self.existStmt14 = json.dumps({"id":self.guid14,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt14 = {"id":self.guid14,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon9',
             'mbox':'mailto:jon9@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt14)
 
-        self.existStmt15 = json.dumps({"id":self.guid15,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt15 = {"id":self.guid15,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon10',
             'mbox':'mailto:jon10@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt15)
 
-        self.existStmt16 = json.dumps({"id":self.guid16,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt16 = {"id":self.guid16,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon11',
             'mbox':'mailto:jon11@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt16)
 
-        self.existStmt17 = json.dumps({"id":self.guid17,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt17 = {"id":self.guid17,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon12',
             'mbox':'mailto:jon12@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt17)
 
-        self.existStmt18 = json.dumps({"id":self.guid18,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt18 = {"id":self.guid18,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon13',
             'mbox':'mailto:jon13@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt18)
 
-        self.existStmt19 = json.dumps({"id":self.guid19,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt19 = {"id":self.guid19,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon14',
             'mbox':'mailto:jon14@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt19)
 
-        self.existStmt20 = json.dumps({"id":self.guid20,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt20 = {"id":self.guid20,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon15',
             'mbox':'mailto:jon15@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})       
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt20)
 
-        self.existStmt21 = json.dumps({"id":self.guid21,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt21 = {"id":self.guid21,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon16',
             'mbox':'mailto:jon16@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt21)
 
-        self.existStmt22 = json.dumps({"id":self.guid22,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt22 = {"id":self.guid22,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon17',
             'mbox':'mailto:jon17@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt22)
 
-        self.existStmt23 = json.dumps({"id":self.guid23,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt23 = {"id":self.guid23,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon18',
             'mbox':'mailto:jon18@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt23)
 
-        self.existStmt24 = json.dumps({"id":self.guid24,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt24 = {"id":self.guid24,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon19',
             'mbox':'mailto:jon19@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt24)
 
-        self.existStmt25 = json.dumps({"id":self.guid25,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+        self.existStmt25 = {"id":self.guid25,"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object":{'objectType':'Agent','name':'jon20',
             'mbox':'mailto:jon20@jon.com'},"verb":{"id":"verb:verb/passed",
-            "display":{"en-US":"passed", 'en-GB':"altpassed"}}})
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
         stmt_list.append(self.existStmt25)
 
         # Post statements

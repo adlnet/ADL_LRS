@@ -132,9 +132,6 @@ def statements_post(r_dict):
                 if check_for_existing_statementId(statement_id):
                     err_msg = "A statement with ID %s already exists" % statement_id
                     raise ParamConflict(err_msg)
-                else:
-                    stmt['statement_id'] = statement_id
-                    del stmt['id']
             
             if 'attachments' in stmt:
                 attachment_data = stmt['attachments']
@@ -145,15 +142,11 @@ def statements_post(r_dict):
             if check_for_existing_statementId(statement_id):
                 err_msg = "A statement with ID %s already exists" % statement_id
                 raise ParamConflict(err_msg)
-            else:
-                r_dict['body']['statement_id'] = statement_id
-                del r_dict['body']['id']
 
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
             validate_attachments(attachment_data, payload_sha2s)
     
-
     return r_dict
 
 @auth
@@ -208,6 +201,7 @@ def statements_get(r_dict):
 @auth
 @check_oauth
 def statements_put(r_dict):
+    # Find any unexpected parameters
     rogueparams = set(r_dict['params']) - set(["statementId"])
     if rogueparams:
         raise ParamError("The put statements request contained unexpected parameters: %s" % ", ".join(rogueparams))
@@ -227,7 +221,6 @@ def statements_put(r_dict):
     # Try to get id if in body
     try:
         statement_body_id = r_dict['body']['id']
-        del r_dict['body']['id']
     except Exception, e:
         statement_body_id = None
 
@@ -235,7 +228,16 @@ def statements_put(r_dict):
     if statement_body_id and statement_id != statement_body_id:
         err_msg = "Error -- statements - method = %s, param and body ID both given, but do not match" % r_dict['method']
         raise ParamError(err_msg)
+
+    # If statement with that ID already exists-raise conflict error
+    if check_for_existing_statementId(statement_id):
+        err_msg = "A statement with ID %s already exists" % statement_id
+        raise ParamConflict(err_msg)
     
+    # Set id inside of statement with param id
+    if not statement_body_id:
+        r_dict['body']['id'] = statement_id
+
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
         err_msg = "No other params are supplied with statementId."
@@ -250,19 +252,12 @@ def statements_put(r_dict):
     except ParamError, e:
         raise ParamError(e.message)
 
-    # Set statement_id key in body (that's the name of the field in the DB table)
-    r_dict['body']['statement_id'] = statement_id
-
-    # If statement with that ID already exists-raise conflict error
-    if check_for_existing_statementId(statement_id):
-        err_msg = "A statement with ID %s already exists" % statement_id
-        raise ParamConflict(err_msg)
-
     # Need to validate sha2 payloads if there-validator can't do that
     if 'attachments' in r_dict['body']:
         attachment_data = r_dict['body']['attachments']
         payload_sha2s = r_dict.get('payload_sha2s', None)
         validate_attachments(attachment_data, payload_sha2s)
+    
     return r_dict
 
 def validate_attachments(attachment_data, payload_sha2s):
