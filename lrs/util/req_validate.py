@@ -120,6 +120,39 @@ def validate_void_statement(void_id):
         err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
         raise Forbidden(err_msg)
 
+def server_validation(stmt):
+            if 'id' in stmt:
+                # If statement with that ID already exists-raise conflict error
+                statement_id = stmt['id']
+                if check_for_existing_statementId(statement_id):
+                    err_msg = "A statement with ID %s already exists" % statement_id
+                    raise ParamConflict(err_msg)
+            
+            if stmt['object']['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt['object']['id']):
+                    err_msg = "No statement with ID %s was found" % stmt['object']['id']
+                    raise IDNotFoundError(err_msg)
+
+            if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+                validate_void_statement(stmt['object']['id'])
+
+            if 'authority' in stmt:
+                # If they try using a non-oauth group that already exists-throw error
+                if stmt['authority']['objectType'] == 'Group' and not 'oauth_identifier' in stmt['authority']:
+                    err_msg = "Statements cannot have a non-Oauth group as the authority"
+                    raise ParamError(err_msg)
+                auth_validated = True
+            else:
+                if not auth_validated:
+                    auth = r_dict['auth']
+                    if auth.__class__.__name__ == 'Agent' and auth.oauth_identifier:
+                        err_msg = "Statements cannot have a non-Oauth group as the authority"
+                        raise ParamError(err_msg)
+                    auth_validated = True
+
+            if 'attachments' in stmt:
+                attachment_data = stmt['attachments']
+                validate_attachments(attachment_data, payload_sha2s)
+
 @auth
 @check_oauth
 def statements_post(r_dict):
@@ -159,7 +192,6 @@ def statements_post(r_dict):
                 if stmt['authority']['objectType'] == 'Group' and not 'oauth_identifier' in stmt['authority']:
                     err_msg = "Statements cannot have a non-Oauth group as the authority"
                     raise ParamError(err_msg)
-                auth_validated = True
             else:
                 if not auth_validated:
                     auth = r_dict['auth']
