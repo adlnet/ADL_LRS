@@ -13,6 +13,14 @@
      -moz-border-radius: 4px;
           border-radius: 4px;
 }
+/* for json syntax highlighting */
+pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.string { color: green; }
+.number { color: blue; }
+.boolean { color: red; }
+.null { color: red; }
+.key { color: black; }
+/* end json syntax highlighting */
 </style>
 {% endblock extra_css %}
 {% block title %}{{user.username}} Home{% endblock title %}
@@ -80,8 +88,7 @@
     {% block extra_js %}
     <script type="text/javascript">
         $(document).ready(function() {
-            var painintheass=$('#showme');
-            painintheass.tab('show');
+            $('#showme').tab('show');
             $(".stmt_link").click(stmtLink);
             $('.change_app_status').click(function(){
                 var appname = $(this).parent().siblings(".appname").text();
@@ -158,11 +165,11 @@ function stmtLink(event){
     if (event && event.currentTarget){
         ele = event.target;
     }
-    if(!$(ele).parent().next('pre#stmts').length){
+    if(!$(ele).next('pre#stmts').length){
         getStmt($(ele).text(), this);
     }
     else{
-        $(ele).parent().next('pre#stmts').toggle();
+        $(ele).next('pre#stmts').toggle();
     }
     return false;
 }
@@ -177,17 +184,17 @@ function getStmts(event){
         type: "GET",
         context: $('#mystatements'),
         success: function (data){
-            if ($(this).children('ul').length){
-                $(this).children('ul').replaceWith(uiData(data));
+            if ($(this).children('div').length){
+                $(this).children('div').replaceWith(uiData(data));
             }
             else {
                 $(this).append(uiData(data));
             }
-            $(this).children('ul').find('.stmt_link').click(stmtLink);
-            $(this).children('ul').find('li.prev-next a.previous').click(
-                {the_url: $(this).children('ul').find('li.prev-next a.previous').attr("data-target")}, getStmts);
-            $(this).children('ul').find('li.prev-next a.next').click(
-                {the_url: $(this).children('ul').find('li.prev-next a.next').attr("data-target")}, getStmts);
+            $(this).children('div').children('div').children('div').find('.stmt_link').click(stmtLink);
+            $(this).children('div').children('ul').find('li.previous a').click(
+                {the_url: $(this).children('div').children('ul').find('li.previous a').attr("data-target")}, getStmts);
+            $(this).children('div').children('ul').find('li.next a').click(
+                {the_url: $(this).children('div').children('ul').find('li.next a').attr("data-target")}, getStmts);
         },
         error: function(xhr, ajaxOptions, thrownError){
             alert(thrownError);
@@ -198,26 +205,28 @@ function getStmts(event){
 
 function uiData(data){
     if (data['stmts'].length == 0){
-        return "<ul><li>no statements</li></ul>"
+        return "<p>no statements</p>"
     }
-    var ret = "<ul>";
+    var ret = "<div>";
     for (var i = 0; i < data['stmts'].length; i++) {
         var stmt = data['stmts'][i];
-        ret += "<li><span class='statement field'>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</span>";
-        ret += "<span class='timestamp'>" + stmt['timestamp'] + "</span>";
+        ret += "<div class='row'>";
+        ret += "<div class='span9 border'><span class='statement'>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</span><br>";
+        ret += "<span class='timestamp'>" + stmt['timestamp'] + "</span><br>";
         ret += " <a href='#' class='stmt_link lpad'>" + stmt['statement_id'] + "</a> ";
-        ret += "</li>";
+        ret += "</div>";
+        ret += "</div>";
     }
-    var prev = "<span class='previous'>previous</span>";
+    var prev = "<li class='previous disabled'><a>previous</a></li>";
     if (data['previous']) {
-        prev = "<a class='previous' href='#mystatements' data-target='" + data['previous'] + "'>previous</a>";
+        prev = "<li class='previous'><a href='#mystatements' data-target='" + data['previous'] + "'>previous</a></li>";
     }
-    var next = "<span class='next'>next</span>";
+    var next = "<li class='next disabled'><a>next</a></li>";
     if (data['next']) {
-        next = "<a class='next' href='#mystatements' data-target='" + data['next'] + "'>next</a>";
+        next = "<li class='next'><a href='#mystatements' data-target='" + data['next'] + "'>next</a></li>";
     }
-    ret += "<li class='prev-next'>" + prev + next + "</li>";
-    ret += "</ul>";
+    ret += "<ul class='pager'>" + prev + next + "</ul>";
+    ret += "</div>";
     return ret;
 }
 
@@ -226,8 +235,8 @@ function getStmt(stmtid,ele){
         url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,
         type: "GET",
         success: function (data){
-            $(ele).parent().after('<pre id="stmts"></pre>')
-            $(ele).parent().siblings('pre#stmts').append(syntaxHighlight(data));
+            $(ele).after('<pre id="stmts"></pre>')
+            $(ele).siblings('pre#stmts').append(syntaxHighlight(data));
             $("span.expandable a").click(function(){
                 $(this).next("span.obj").toggle();
                 return false;
