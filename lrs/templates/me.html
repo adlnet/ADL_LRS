@@ -205,7 +205,7 @@ function getStmts(event){
 
 function uiData(data){
     if (data['stmts'].length == 0){
-        return "<p>no statements</p>"
+        return "<div>no statements</div>"
     }
     var ret = "<div>";
     for (var i = 0; i < data['stmts'].length; i++) {

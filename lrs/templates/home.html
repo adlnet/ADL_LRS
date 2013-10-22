@@ -1,4 +1,22 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<style type="text/css">
+.border {
+  position: relative;
+  margin-top: 15px;
+  margin-left: 5px;
+  margin-right: 0px;
+  margin-bottom: 15px;
+  padding: 19px 19px 14px;
+  *padding-top: 19px;
+  background-color: #f9f9ff;
+  border: 1px solid #ddd;
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+</style>
+{% endblock extra_css %}
 {% block content %}
 <a href="https://github.com/adlnet/ADL_LRS"><img style="position: absolute; top: 40px; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
 <div class="hero-unit">
@@ -31,44 +49,52 @@
     </div>
   </div>
 </div>
-<div class="row">
-  <div class="span4">
-    <h4>Sign up</h2>
-    <p>Sign up for HTTP Basic Credentials</p>
-    <p>Create a username and supply an email address with it</p>
-    <p><a class="btn btn-primary" href="{% url lrs.views.register %}">register</a></p>
+<ul class="thumbnails">
+  <li class="span4">
+    <div class="thumbnail" style="padding-left:13px;">
+      <h4>Sign up</h2>
+      <p>Sign up for HTTP Basic Credentials</p>
+      <p>Create a username and supply an email address with it</p>
+      <p><a class="btn btn-primary" href="{% url lrs.views.register %}">register</a></p>
+    </div>
+  </li>
+  <li class="span4">
+    <div class="thumbnail" style="padding-left:13px;">
+      <h4>Github Examples</h2>
+      <p>Visit our GitHub prototype page to find some of the updated 1.0.1 prototypes. These prototypes can be 
+         configured to report to an LRS. See the <a href="https://github.com/adlnet/experienceapi_client_examples/tree/master/1.0/original_prototypes#original-prototypes">Readme</a> for more information.</p>
+      <p><a class="btn" href="https://github.com/adlnet/experienceapi_client_examples">GitHub Prototypes</a></p>
+    </div>
+  </li>
+  <li class="span4">
+    <div class="thumbnail" style="padding-left:13px;">
+      <h4>Statement Validator</h4>
+      <p>Want to make sure your statement is valid? Check it here.
+      </p>
+      <p><a class="btn" href="{% url lrs.views.stmt_validator %}">go to validator</a></p>
+    </div>
+  </li>
+</ul>
+<ul class="thumbnails">
+  <li class="span12">
+  <div class="thumbnail" style="padding-left:13px;">
+    <h4>OAuth Clients</h4>
+      <p><ol>
+          <li>By default, only HTTP Auth is enabled. To enable OAuth, set the 'OAUTH_ENABLED' flag to true
+            in settings.py</li>                
+          <li>Visit our client registration page</li>
+          <li>Submit the name and description of the client you wish to authorize</li>
+          <li>Once submitted, you will receive a client ID and client secret. Use these with the appropriate OAuth
+            headers to perform the initial handshake to gain your temporary token. ({% url oauth_provider.views.request_token %}) <b>NOTE: If you are not familiar with OAuth, please consult the <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md">spec</a> and the OAuth 1.0 <a href="http://tools.ietf.org/html/rfc5849">RFC</a></b></li>
+          <li>You'll then receive your request token. Use this when visiting the authentication page ({% url oauth_provider.views.user_authorization %}). An LRS OAuth ID will be issued to you for you to POST back to the authentication page from your client</li>
+          <li>Once the client is authenticated, send the appropriate OAuth headers and values from your token to gain an access token.({% url oauth_provider.views.access_token %})</li>
+          <li>You can now send this access token in with the OAuth headers when making calls to the LRS system</li>
+        </ol>
+      </p>
+      <p><a class="btn" href="{% url lrs.views.reg_client %}">register a client</a></p>
   </div>
-  <div class="span4">
-    <h4>Github Examples</h2>
-    <p>Visit our GitHub prototype page to find some of the updated 1.0.1 prototypes. These prototypes can be 
-       configured to report to an LRS. See the <a href="https://github.com/adlnet/experienceapi_client_examples/tree/master/1.0/original_prototypes#original-prototypes">Readme</a> for more information.</p>
-    <p><a class="btn" href="https://github.com/adlnet/experienceapi_client_examples">GitHub Prototypes</a></p>
-  </div>
-  <div class="span4">
-    <h4>Statement Validator</h4>
-    <p>Want to make sure your statement is valid? Check it here.
-    </p>
-    <p><a class="btn" href="{% url lrs.views.stmt_validator %}">go to validator</a></p>
-  </div>
-</div>
-<div class="row">
-  <div class="span12">
-  <h4>OAuth Clients</h2>
-    <p><ol>
-        <li>By default, only HTTP Auth is enabled. To enable OAuth, set the 'OAUTH_ENABLED' flag to true
-          in settings.py</li>                
-        <li>Visit our client registration page</li>
-        <li>Submit the name and description of the client you wish to authorize</li>
-        <li>Once submitted, you will receive a client ID and client secret. Use these with the appropriate OAuth
-          headers to perform the initial handshake to gain your temporary token. ({% url oauth_provider.views.request_token %}) <b>NOTE: If you are not familiar with OAuth, please consult the <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md">spec</a> and the OAuth 1.0 <a href="http://tools.ietf.org/html/rfc5849">RFC</a></b></li>
-        <li>You'll then receive your request token. Use this when visiting the authentication page ({% url oauth_provider.views.user_authorization %}). An LRS OAuth ID will be issued to you for you to POST back to the authentication page from your client</li>
-        <li>Once the client is authenticated, send the appropriate OAuth headers and values from your token to gain an access token.({% url oauth_provider.views.access_token %})</li>
-        <li>You can now send this access token in with the OAuth headers when making calls to the LRS system</li>
-      </ol>
-    </p>
-    <p><a class="btn" href="{% url lrs.views.reg_client %}">register a client</a></p>
-  </div>
-</div>
+  </li>
+</ul>
 <!-- <ul>
   <li>Register a user via HTTP
     <ul>
