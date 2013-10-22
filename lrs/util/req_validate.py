@@ -5,7 +5,7 @@ from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
 from lrs.util import uri, StatementValidator, validate_uuid
-from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
+from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 from Authorization import auth
 
 att_cache = get_cache('attachment_cache')
@@ -107,6 +107,19 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
             err_msg = "Authorization doesn't match agent in %s" % endpoint
             raise Forbidden(err_msg)
 
+def void_statement(void_id):
+    # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
+    # since you cannot unvoid a statement and should just reissue the statement under a new ID.
+    try:
+        stmt = models.Statement.objects.get(statement_id=void_id)
+    except models.Statement.DoesNotExist:
+        err_msg = "Statement with ID %s does not exist" % void_id
+        raise IDNotFoundError(err_msg)
+        
+    if stmt.voided:
+        err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
+        raise Forbidden(err_msg)
+
 @auth
 @check_oauth
 def statements_post(r_dict):
@@ -133,6 +146,9 @@ def statements_post(r_dict):
                     err_msg = "A statement with ID %s already exists" % statement_id
                     raise ParamConflict(err_msg)
             
+            if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+                void_statement(stmt['object']['id'])
+
             if 'attachments' in stmt:
                 attachment_data = stmt['attachments']
                 validate_attachments(attachment_data, payload_sha2s)
@@ -142,6 +158,9 @@ def statements_post(r_dict):
             if check_for_existing_statementId(statement_id):
                 err_msg = "A statement with ID %s already exists" % statement_id
                 raise ParamConflict(err_msg)
+
+        if r_dict['body']['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+            void_statement(r_dict['body']['object']['id'])
 
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
@@ -251,6 +270,9 @@ def statements_put(r_dict):
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
+
+    if r_dict['body']['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+        void_statement(r_dict['body']['object']['id'])
 
     # Need to validate sha2 payloads if there-validator can't do that
     if 'attachments' in r_dict['body']:

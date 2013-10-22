@@ -48,24 +48,13 @@ class StatementManager():
 
     @transaction.commit_on_success
     def void_statement(self,stmt_id):
-        # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
-        # since you cannot unvoid a statement and should just reissue the statement under a new ID.
-        try:
-            stmt = models.Statement.objects.get(statement_id=stmt_id)
-        except models.Statement.DoesNotExist:
-            err_msg = "Statement with ID %s does not exist" % stmt_id
-            raise exceptions.IDNotFoundError(err_msg)
-        
-        # Check if it is already voided 
-        if not stmt.voided:
-            stmt.voided = True
-            stmt.save()
-            # Create statement ref
-            stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
-            return stmt_ref
-        else:
-            err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % stmt_id
-            raise exceptions.Forbidden(err_msg)
+        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt.voided = True
+        stmt.save()
+
+        # Create statement ref
+        stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
+        return stmt_ref
 
     @transaction.commit_on_success
     # Save sub to DB

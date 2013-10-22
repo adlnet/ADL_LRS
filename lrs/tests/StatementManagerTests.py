@@ -69,26 +69,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.object_activity.id, activity.id)
         self.assertEqual(st.verb.id, verb.id)
 
-    def test_voided_stmt(self):
-        stmt = StatementManager(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
-            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
-
-        st_id = stmt.model_object.statement_id
-        st_model = models.Statement.objects.get(statement_id=st_id)
-        self.assertEqual(st_model.voided, False)
-
-        stmt2 = StatementManager(json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
-            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'StatementRef',
-            'id': str(st_id)}}))
-        
-        st_model = models.Statement.objects.get(statement_id=st_id)        
-        self.assertEqual(st_model.voided, True)
-
-        stmt_ref = models.StatementRef.objects.get(ref_id=str(st_id))
-        self.assertEqual(stmt_ref.object_type, 'StatementRef')
-
-
     def test_stmt_ref_as_object(self):
         st_id = str(uuid.uuid1())
 
