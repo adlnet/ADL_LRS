@@ -34,12 +34,12 @@
         <div class="row">
             {% for app in client_apps %}
             <div class="span5 border">
-                <h4>{{ app.name }}</h4>
+                <h4 class="appname">{{ app.name }}</h4>
                 <span class="{% if app.status == 1 %}label label-warning
                             {% elif app.status == 2 %}label label-success
                             {% elif app.status == 3 %}label label-important
                             {% elif app.status == 4 %}label label-important
-                            {% endif %}">{{ app.get_status_display}}</span>
+                            {% endif %} app_status">{{ app.get_status_display}}</span>
                 <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
                 <table class="table">
                     <tr><td><strong>key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
@@ -84,7 +84,7 @@
             painintheass.tab('show');
             $(".stmt_link").click(stmtLink);
             $('.change_app_status').click(function(){
-                var appname = $(this).parent().siblings(".field").text();
+                var appname = $(this).parent().siblings(".appname").text();
                 var status = "";
                 cur_s = $(this).parent().siblings(".app_status").text();
                 if (cur_s == "Accepted") status = "Canceled";
@@ -94,20 +94,20 @@
                     type: "POST",
                     context: $(this),
                     success: function (data){
-                        var link, status, color;
+                        var link, status, theclass;
                         if (data['status'] == "Canceled"){
                             link = "Activate";
                             status = data['status'];
-                            color = "darkred";
+                            theclass = "label label-important app_status";
                         }
                         else {
                             link = "Deactivate";
                             status = data['status'];
-                            color = "green";
+                            theclass = "label label-success app_status";
                         }
                         $(this).text(link);
                         $(this).parent().siblings(".app_status").text(status);
-                        $(this).parent().siblings(".app_status").css("color", color);
+                        $(this).parent().siblings(".app_status").removeClass().addClass(theclass);
                     },
                     error: function(xhr, ajaxOptions, thrownError){
                         alert(thrownError);
