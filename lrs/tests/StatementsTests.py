@@ -845,8 +845,9 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        self.assertEqual(response.status_code, 404)
-        self.assertIn("did not match any agents on record", response.content)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Statements cannot have a non-Oauth group as the authority", response.content)
 
     def test_post_with_non_oauth_existing_group(self):
         ot = "Group"

@@ -266,11 +266,7 @@ class StatementManager():
             elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
-                if not models.Statement.objects.filter(statement_id=statement_object_data['id']).exists():
-                    err_msg = "No statement with ID %s was found" % statement_object_data['id']
-                    raise exceptions.IDNotFoundError(err_msg)
-                else:
-                    self.data['object_statementref'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
+                self.data['object_statementref'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
         del self.data['object']
 
     def build_authority_object(self):
@@ -282,21 +278,12 @@ class StatementManager():
             else:
                 self.data['authority'] = AgentManager(params=auth_data, create=True, 
                     define=self.define).Agent
-
-            # If they try using a non-oauth group that already exists-throw error
-            if self.data['authority'].objectType == 'Group' and not self.data['authority'].oauth_identifier:
-                err_msg = "Statements cannot have a non-Oauth group as the authority"
-                raise exceptions.ParamError(err_msg)
         else:
             # Look at request from auth if not supplied in stmt_data.
             if self.auth:
                 auth_args = {}
                 if self.auth.__class__.__name__ == 'Agent':
-                    if self.auth.oauth_identifier:
-                        self.data['authority'] = self.auth
-                    else:
-                        err_msg = "Statements cannot have a non-Oauth group as the authority"
-                        raise exceptions.ParamError(err_msg)
+                    self.data['authority'] = self.auth
                 else:    
                     auth_args['name'] = self.auth.username
                     if self.auth.email.startswith("mailto:"):

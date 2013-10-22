@@ -138,6 +138,7 @@ def statements_post(r_dict):
 
     # Could be batch POST or single stmt POST
     if type(r_dict['body']) is list:
+        auth_validated = False
         for stmt in r_dict['body']:
             if 'id' in stmt:
                 # If statement with that ID already exists-raise conflict error
@@ -146,8 +147,26 @@ def statements_post(r_dict):
                     err_msg = "A statement with ID %s already exists" % statement_id
                     raise ParamConflict(err_msg)
             
+            if stmt['object']['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt['object']['id']):
+                    err_msg = "No statement with ID %s was found" % stmt['object']['id']
+                    raise IDNotFoundError(err_msg)
+
             if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
                 validate_void_statement(stmt['object']['id'])
+
+            if 'authority' in stmt:
+                # If they try using a non-oauth group that already exists-throw error
+                if stmt['authority']['objectType'] == 'Group' and not 'oauth_identifier' in stmt['authority']:
+                    err_msg = "Statements cannot have a non-Oauth group as the authority"
+                    raise ParamError(err_msg)
+                auth_validated = True
+            else:
+                if not auth_validated:
+                    auth = r_dict['auth']
+                    if auth.__class__.__name__ == 'Agent' and auth.oauth_identifier:
+                        err_msg = "Statements cannot have a non-Oauth group as the authority"
+                        raise ParamError(err_msg)
+                    auth_validated = True
 
             if 'attachments' in stmt:
                 attachment_data = stmt['attachments']
@@ -159,8 +178,23 @@ def statements_post(r_dict):
                 err_msg = "A statement with ID %s already exists" % statement_id
                 raise ParamConflict(err_msg)
 
+        if r_dict['body']['object']['objectType'] == 'StatementRef' and not check_for_existing_statementId(r_dict['body']['object']['id']):
+                err_msg = "No statement with ID %s was found" % r_dict['body']['object']['id']
+                raise IDNotFoundError(err_msg)
+
         if r_dict['body']['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
             validate_void_statement(r_dict['body']['object']['id'])
+
+        if 'authority' in r_dict['body']:
+            # If they try using a non-oauth group that already exists-throw error
+            if r_dict['body']['authority']['objectType'] == 'Group' and not 'oauth_identifier' in r_dict['body']['authority']:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                raise ParamError(err_msg)
+        else:
+            auth = r_dict['auth']
+            if auth.__class__.__name__ == 'Agent' and auth.oauth_identifier:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                raise ParamError(err_msg)
 
         if 'attachments' in r_dict['body']:
             attachment_data = r_dict['body']['attachments']
@@ -271,8 +305,25 @@ def statements_put(r_dict):
     except ParamError, e:
         raise ParamError(e.message)
 
+    # If object is a StatementRef, make sure id exists
+    if r_dict['body']['object']['objectType'] == 'StatementRef' and not check_for_existing_statementId(r_dict['body']['object']['id']):
+            err_msg = "No statement with ID %s was found" % r_dict['body']['object']['id']
+            raise IDNotFoundError(err_msg)
+
+    # If voiding stmt, make sure id to void exists
     if r_dict['body']['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         validate_void_statement(r_dict['body']['object']['id'])
+
+    if 'authority' in r_dict['body']:
+        # If they try using a non-oauth group that already exists-throw error
+        if r_dict['body']['authority']['objectType'] == 'Group' and not 'oauth_identifier' in r_dict['body']['authority']:
+            err_msg = "Statements cannot have a non-Oauth group as the authority"
+            raise ParamError(err_msg)
+    else:
+        auth = r_dict['auth']
+        if auth.__class__.__name__ == 'Agent' and auth.oauth_identifier:
+            err_msg = "Statements cannot have a non-Oauth group as the authority"
+            raise ParamError(err_msg)
 
     # Need to validate sha2 payloads if there-validator can't do that
     if 'attachments' in r_dict['body']:

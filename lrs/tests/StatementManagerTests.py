@@ -87,11 +87,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(stmt_refs[0].ref_id, st_id)
         self.assertEqual(len(stmts), 2)
 
-    def test_stmt_ref_no_existing_stmt(self):
-        self.assertRaises(IDNotFoundError, StatementManager, json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
-            'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
-            'id': "12345678-1234-5678-1234-567812345678"}}))
-
     def test_voided_wrong_type(self):
         stmt = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement', 'id': "12345678-1234-5678-1234-567812345678"}})
