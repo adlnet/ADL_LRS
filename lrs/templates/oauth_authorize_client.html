@@ -15,11 +15,11 @@
         {% endif %}
         <form action="{% url oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
             <span>{{ form.authorize_access }}{{ form.obj_id }}</span>
-            <p><span class="field">Application:</span><br/>
+            <p><h3>Application:</h3>
                 {{ name }}</p>
-            <p><span class="field">Description:</span><br/>
+            <p><h3>Description:</h3>
                 {{ description }}</p>
-            <p><span class="field">Scope:</span><br/>
+            <p><h3>Scope:</h3>
                 {% for scope in form.scopes %}
                 {{ scope }}        
                 {% endfor %}
