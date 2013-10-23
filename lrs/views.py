@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.conf import settings
 from django.views.decorators.http import require_http_methods, require_GET
+from django.views.decorators.csrf import csrf_protect
 from django.template import RequestContext
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth.decorators import login_required
@@ -20,8 +21,20 @@ import logging
 logger = logging.getLogger(__name__)
  
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
+@csrf_protect
 def home(request):
-    return render_to_response('home.html', context_instance=RequestContext(request))
+    from django.core.context_processors import csrf
+    # import pdb
+    # pdb.set_trace()
+    context = RequestContext(request)
+    context.update(csrf(request))
+    stats = {}
+    stats['usercnt'] = User.objects.all().count()
+    stats['stmtcnt'] = models.Statement.objects.all().count()
+    stats['agentcnt'] = models.Agent.objects.all().count()
+    stats['verbcnt'] = models.Verb.objects.all().count()
+    stats['activitycnt'] = models.Activity.objects.all().count()
+    return render_to_response('home.html', {'stats':stats}, context_instance=context)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def stmt_validator(request):
