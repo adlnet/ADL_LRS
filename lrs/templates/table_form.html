@@ -1,15 +1,8 @@
-<table>
-{% for error in form.non_field_errors %}
-    <tr><td></td><td class="error">{{ error }}</td><tr>
+{% for field in form %}
+<div class="control-group">
+	<label class="control-label" for="{{ field.label }}">{{ field.label }}</label>
+	<div class="controls">
+		{{ field }}
+	</div>
+</div>
 {% endfor %}
-
-{% for field in form %}    
-    <tr><th>{{ field.label_tag }}:</th><td>{{ field }}</td>
-    {% if field.errors %}
-    {% for error in field.errors%}
-    <td class="error">{{ error }}</td>
-    {% endfor %}
-    {% endif %}
-    </tr>
-{% endfor %}
-</table>

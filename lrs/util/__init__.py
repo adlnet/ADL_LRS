@@ -50,6 +50,11 @@ def get_user_from_auth(auth):
         user = Consumer.objects.get(key__exact=key).user
     return user
 
+def validate_uuid(uuid):
+    import re
+    id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
+    return id_regex.match(uuid)
+
 def autoregister(*app_list):
     for app_name in app_list:
         app_models = get_app(app_name)

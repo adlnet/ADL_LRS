@@ -4,7 +4,7 @@ from functools import wraps
 from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
-from lrs.util import uri, StatementValidator
+from lrs.util import uri, StatementValidator, validate_uuid
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
 from Authorization import auth
 
@@ -110,6 +110,9 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
 @auth
 @check_oauth
 def statements_post(r_dict):
+    if r_dict['params'].keys():
+        raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(r_dict['params'].keys()))
+
     payload_sha2s = r_dict.get('payload_sha2s', None)
 
     try:
@@ -143,6 +146,12 @@ def statements_more_get(r_dict):
 @auth
 @check_oauth
 def statements_get(r_dict):
+    rogueparams = set(r_dict['params']) - set(["statementId","voidedStatementId","agent", "verb", "activity", "registration", 
+                       "related_activities", "related_agents", "since",
+                       "until", "limit", "format", "attachments", "ascending"])
+    if rogueparams:
+        raise ParamError("The get statements request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     formats = ['exact', 'canonical', 'ids']
     if 'params' in r_dict and 'format' in r_dict['params']:
         if r_dict['params']['format'] not in formats:
@@ -178,6 +187,10 @@ def statements_get(r_dict):
 @auth
 @check_oauth
 def statements_put(r_dict):
+    rogueparams = set(r_dict['params']) - set(["statementId"])
+    if rogueparams:
+        raise ParamError("The put statements request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     # Statement id can must be supplied in query param. If in the body too, it must be the same
     if not 'statementId' in r_dict['params']:
         err_msg = "Error -- statements - method = %s, but no statementId parameter or ID given in statement" % r_dict['method']
@@ -235,6 +248,10 @@ def validate_attachments(attachment_data, payload_sha2s):
 @auth
 @check_oauth
 def activity_state_post(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "agent", "stateId", "registration"])
+    if rogueparams:
+        raise ParamError("The post activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -251,6 +268,10 @@ def activity_state_post(r_dict):
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
+
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
 
     if 'headers' not in r_dict or ('CONTENT_TYPE' not in r_dict['headers'] or r_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for activity state POSTs must be application/json"
@@ -272,6 +293,10 @@ def activity_state_post(r_dict):
 @auth
 @check_oauth
 def activity_state_put(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "agent", "stateId", "registration"])
+    if rogueparams:
+        raise ParamError("The put activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -288,6 +313,10 @@ def activity_state_put(r_dict):
     except KeyError:
         err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % r_dict['method']
         raise ParamError(err_msg)
+
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
     
     # Must have body included for state
     if 'body' not in r_dict:
@@ -305,6 +334,10 @@ def activity_state_put(r_dict):
 @auth
 @check_oauth
 def activity_state_get(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "agent", "stateId", "registration", "since"])
+    if rogueparams:
+        raise ParamError("The get activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -316,6 +349,10 @@ def activity_state_get(r_dict):
         except KeyError:
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
+
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
 
     # Extra validation if oauth
     if r_dict['auth']['type'] == 'oauth':
@@ -325,6 +362,10 @@ def activity_state_get(r_dict):
 @auth
 @check_oauth
 def activity_state_delete(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "agent", "stateId", "registration"])
+    if rogueparams:
+        raise ParamError("The delete activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -336,6 +377,10 @@ def activity_state_delete(r_dict):
         except KeyError:
             err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % r_dict['method']
             raise ParamError(err_msg)
+
+    if 'params' in r_dict and 'registration' in r_dict['params']:
+        if not validate_uuid(r_dict['params']['registration']):
+            raise ParamError("%s is not a valid uuid for the registration parameter")
     
     # Extra validation if oauth
     if r_dict['auth']['type'] == 'oauth':
@@ -345,6 +390,10 @@ def activity_state_delete(r_dict):
 @auth
 @check_oauth
 def activity_profile_post(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "profileId"])
+    if rogueparams:
+        raise ParamError("The post activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -370,6 +419,10 @@ def activity_profile_post(r_dict):
 @auth
 @check_oauth
 def activity_profile_put(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "profileId"])
+    if rogueparams:
+        raise ParamError("The put activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -393,6 +446,10 @@ def activity_profile_put(r_dict):
 @auth
 @check_oauth
 def activity_profile_get(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "profileId", "since"])
+    if rogueparams:
+        raise ParamError("The get activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -403,6 +460,10 @@ def activity_profile_get(r_dict):
 @auth
 @check_oauth
 def activity_profile_delete(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId", "profileId"])
+    if rogueparams:
+        raise ParamError("The delete activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -418,6 +479,10 @@ def activity_profile_delete(r_dict):
 @auth
 @check_oauth
 def activities_get(r_dict):
+    rogueparams = set(r_dict['params']) - set(["activityId"])
+    if rogueparams:
+        raise ParamError("The get activities request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try:
         r_dict['params']['activityId']
     except KeyError:
@@ -428,6 +493,10 @@ def activities_get(r_dict):
 @auth
 @check_oauth
 def agent_profile_post(r_dict):
+    rogueparams = set(r_dict['params']) - set(["agent", "profileId"])
+    if rogueparams:
+        raise ParamError("The post agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try: 
         r_dict['params']['agent']
     except KeyError:
@@ -459,6 +528,10 @@ def agent_profile_post(r_dict):
 @auth
 @check_oauth
 def agent_profile_put(r_dict):
+    rogueparams = set(r_dict['params']) - set(["agent", "profileId"])
+    if rogueparams:
+        raise ParamError("The put agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try: 
         r_dict['params']['agent']
     except KeyError:
@@ -483,6 +556,10 @@ def agent_profile_put(r_dict):
 @auth
 @check_oauth
 def agent_profile_get(r_dict):
+    rogueparams = set(r_dict['params']) - set(["agent", "profileId", "since"])
+    if rogueparams:
+        raise ParamError("The get agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try: 
         r_dict['params']['agent']
     except KeyError:
@@ -497,6 +574,10 @@ def agent_profile_get(r_dict):
 @auth
 @check_oauth
 def agent_profile_delete(r_dict):
+    rogueparams = set(r_dict['params']) - set(["agent", "profileId"])
+    if rogueparams:
+        raise ParamError("The delete agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try: 
         r_dict['params']['agent']
     except KeyError:
@@ -516,6 +597,10 @@ def agent_profile_delete(r_dict):
 @auth
 @check_oauth
 def agents_get(r_dict):
+    rogueparams = set(r_dict['params']) - set(["agent"])
+    if rogueparams:
+        raise ParamError("The get agent request contained unexpected parameters: %s" % ", ".join(rogueparams))
+
     try: 
         r_dict['params']['agent']
     except KeyError:

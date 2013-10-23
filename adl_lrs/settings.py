@@ -96,7 +96,7 @@ OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
 
 # Limit on number of statements the server will return
-SERVER_STMT_LIMIT = 100
+SERVER_STMT_LIMIT = 50
 
 #ActivityID resolve timeout
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2

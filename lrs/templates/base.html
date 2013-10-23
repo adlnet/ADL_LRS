@@ -1,30 +1,65 @@
-<html>
-    <head>
-        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/home.css" />
-        {% block extra_css %}{% endblock extra_css %}
-        <title>{% block title %}ADL LRS{% endblock title %}</title>
-    </head>
-    <body>
-        <ul id="menu">
-            <ul class="left">
-                <li><a href="{% url lrs.views.home %}">ADL Learning Record Store</a></li>
-            </ul>
-            <ul class="right">
-                {% if user.is_authenticated %}
-                <li><a href="{% url lrs.views.me %}">{{user.username}}</a></li>
-                <li><a href="{% url logout %}">logout</a></li>
-                {% else %}
-                <li><a href="{% url login %}">login</a></li>
-                {% endif %}    
-            </ul>
-        </ul>
-        <h1>{% block heading %}Welcome to the ADL LRS{% endblock heading %}</h1>
-        <div class="content">
-            {% block content %}{% endblock content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}bootstrap/css/bootstrap.min.css" />
+    {% block extra_css %}{% endblock extra_css %}
+    <style type="text/css">
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+    }
 
-            <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-            
-            {% block extra_js %}{% endblock extra_js %}
+    /* Wrapper for page content to push down footer */
+    #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+    }
+
+    #wrap > .container {
+        padding-top: 60px;
+    }
+</style>
+<title>{% block title %}ADL LRS{% endblock title %}</title>
+</head>
+<body>
+    <div id="wrap">
+        <div class="navbar navbar-fixed-top">
+            <div class="navbar-inner">
+              <div class="container">
+                <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                  <span class="icon-bar"></span>
+                  <span class="icon-bar"></span>
+                  <span class="icon-bar"></span>
+              </button>
+              <a class="brand" href="{% url lrs.views.home %}">ADL LRS</a>
+              <div class="nav-collapse collapse">
+                {% if user.is_authenticated %}
+                <ul class="nav pull-right">
+                    <li><a href="{% url lrs.views.me %}">{{user.username}}</a></li>
+                    <li><a href="{% url logout %}">logout</a></li>
+                </ul>
+                {% else %}
+                <form action="{% url django.contrib.auth.views.login %}" method="post" class="navbar-form pull-right">
+                    {% csrf_token %}
+                    <input class="span2" type="text" name="username" placeholder="Username">
+                    <input class="span2" type="password" name="password" placeholder="Password">
+                    <button type="submit" class="btn">Sign in</button>
+                </form>
+                {% endif %}
+            </div><!--/.nav-collapse -->
         </div>
-    </body>
-</html>    
+    </div>
+</div>
+<div class="container">
+    {% block content %}{% endblock content %}
+</div>
+</div>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+<script src="{{ STATIC_URL }}/bootstrap/js/bootstrap.min.js"></script>
+{% block extra_js %}{% endblock extra_js %}
+</body>
+</html> 

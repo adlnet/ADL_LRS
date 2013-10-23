@@ -6,7 +6,7 @@
 
 Software Installation
 
-    sudo apt-get install git fabric postgresql-9.1 python-setuptools postgresql-server-dev-9.1 python-dev
+    sudo apt-get install git fabric postgresql-9.1 python-setuptools postgresql-server-dev-9.1 python-dev libxml2-dev libxslt-dev
     sudo easy_install pip
     sudo pip install virtualenv
 
