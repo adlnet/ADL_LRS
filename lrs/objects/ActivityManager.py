@@ -117,11 +117,6 @@ class ActivityManager():
 
     #Populate definition either from JSON or validated XML
     def populate_definition(self, act_def, act_created):
-        # only update existing def stuff if request has authority to do so
-        if not act_created and (self.Activity.authoritative != '' and self.Activity.authoritative != self.auth):
-            err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-            raise exceptions.Forbidden(err_msg)
-
         # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
         # doesn't have a definition
         act_def_created = self.save_activity_definition_to_db(act_def.get('type', ''), act_def.get('interactionType', ''),
@@ -139,9 +134,6 @@ class ActivityManager():
                 if 'description' in act_def:
                     self.Activity.activity_definition_description = dict(self.Activity.activity_definition_description.items() + act_def['description'].items())
                     self.Activity.save()
-            else:
-                err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-                raise exceptions.Forbidden(err_msg)
 
         # If the activity definition was just created (can't update the CRP or extensions of a def if already existed)
         #If there is a correctResponsesPattern then save the pattern

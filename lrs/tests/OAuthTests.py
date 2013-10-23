@@ -884,6 +884,7 @@ class OAuthTests(TestCase):
         # Put statements
         get = self.client.get(path, content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+
         self.assertEqual(get.status_code, 200)
 
     def test_complex_stmt_get_mine_only(self):

@@ -442,61 +442,6 @@ class StatementsTests(TestCase):
         self.assertEqual(lang_map2.keys()[0], "en-GB")
         self.assertEqual(lang_map2.values()[0], "failed")
 
-    def test_nik_snafu(self):
-        stmt = {
-            "actor": {
-                "mbox": "mailto:tom@example.com"
-            },
-            "verb": {
-                "id": "http://adlnet.gov/expapi/verbs/answered",
-                "display": {
-                    "en-US": "answered"
-                }
-            },
-            "object": {
-                "id": "http://adlnet.gov/expapi/samples/ctipdemo/pretest/question/25",
-                "definition": {
-                    "name": {
-                        "en-US": "Question 25"
-                    },
-                    "description": {
-                        "en-US": "TIP must involve victims being physically restrained or locked up in order to compel them to perform labor or commercial sex."
-                    },
-                    "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
-                    "interactionType": "choice",
-                    "correctResponsesPattern": [
-                        "B"
-                    ],
-                    "choices": [
-                        {
-                            "id": "A",
-                            "description": {
-                                "en-US": "A) True"
-                            }
-                        },
-                        {
-                            "id": "B",
-                            "description": {
-                                "en-US": "B) False"
-                            }
-                        }
-                    ]
-                }
-            },
-            "result": {
-                "response": "A",
-                "completion": True,
-                "success": False
-            },
-            "id": "a5bd4c99-3502-4f39-bea6-2654fb86a958"
-        }        
-
-        param = {"statementId":"a5bd4c99-3502-4f39-bea6-2654fb86a958"}
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
-
-        putResponse = self.client.put(path, json.dumps(stmt), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        self.assertEqual(putResponse.status_code, 204)
-
     def test_put(self):
         guid = str(uuid.uuid1())
 

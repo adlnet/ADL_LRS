@@ -1155,35 +1155,3 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(1, len(models.Activity.objects.all()))
         act.delete()
         self.assertEqual(0, len(models.Activity.objects.all()))
-
-    def test_same_act_def_different_auth(self):
-        username = "otheruser"
-        email = "other@tester.com"
-        password = "test"
-        auth_new = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
-        form = {"username":username, "email":email,"password":password,"password2":password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
-
-        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': 'act:foob',
-            'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
-            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
-            'correctResponsesPattern': ['(35,-86)']}}})
-
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
-        self.assertEqual(response.status_code, 200)
-
-        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:l@l.com", "name":"lob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': 'act:foob',
-            'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
-            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
-            'correctResponsesPattern': ['(35,-86)']}}})
-
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
-            Authorization=auth_new, X_Experience_API_Version="1.0.0")
-        
-        self.assertEqual(response.status_code, 200)

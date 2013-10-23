@@ -271,13 +271,8 @@ class StatementManager():
 
     def build_authority_object(self):
         if 'authority' in self.data:
-            auth_data = self.data['authority']
-            if auth_data['objectType'] == 'Group':
-                self.data['authority'] = AgentManager(params=auth_data, create=False, 
-                    define=self.define).Agent
-            else:
-                self.data['authority'] = AgentManager(params=auth_data, create=True, 
-                    define=self.define).Agent
+            self.data['authority'] = AgentManager(params=self.data['authority'], create=True, 
+                define=self.define).Agent
         else:
             # Look at request from auth if not supplied in stmt_data.
             if self.auth:

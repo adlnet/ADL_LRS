@@ -381,7 +381,7 @@ class AgentManagerTests(TestCase):
     def test_group_oauth_authority(self):
         ot = "Group"
         name = "auth group"
-        account = json.dumps({"homePage":"http://www.adlnet.gov","name":"freakshow"})
+        account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
         members = [{"name":"the agent","account":account},
                     {"name":"the user","mbox":"mailto:user@example.com"}]
         kwargs = {"objectType":ot, "name":name, "member":members}

@@ -220,7 +220,6 @@ class AgentMgr(models.Manager):
         if not define:
             kwargs['global_representation'] = False
         ret_agent = Agent(**kwargs)
-        ret_agent.clean()
         ret_agent.save()
         return ret_agent, True
 
@@ -270,28 +269,38 @@ class AgentMgr(models.Manager):
         try:
             # If there are no IFPs but there are members (group with no IFPs)
             if not ifp_sent and members:
-                ret_agent, created = self.create_agent(kwargs, define)
+
+                # Could be oauth group (account is always listed first in oauth member list)
+                if len(members) == 2 and 'account' in members[0] and 'OAuth' in members[0]['account']['homePage']:
+                    created_oauth_identifier = "anongroup:%s-%s" % (members[0]['account']['name'], members[1]['mbox'])
+                    try:
+                        ret_agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                        created = False
+                    except Agent.DoesNotExist:
+                        ret_agent, created = self.create_agent(kwargs, define)
+                else:
+                    ret_agent, created = self.create_agent(kwargs, define)
             else:
                 ret_agent = Agent.objects.get(**ifp_dict)
                 created = False
                 ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
                 if need_to_create:
                     ret_agent, created = self.create_agent(kwargs, define)
-        # If agent/group does not exist, create it then clean and save it so if it's a group below
+        # If agent/group does not exist, create it then save it so if it's a group below
         # we can add members
         except Agent.DoesNotExist:
             # If no define permission then the created agent/group is non-global
             ret_agent, created = self.create_agent(kwargs, define)
 
         # If it is a group and has just been created, grab all of the members and send them through
-        # this process then clean and save
+        # this process then save
         if is_group and created:
             # Grabs args for each agent in members list and calls self
             ags = [self.gen(**a) for a in members]
             # Adds each created/retrieved agent object to the return object since ags is a list of tuples (agent, created)
             ret_agent.member.add(*(a for a, c in ags))
-            ret_agent.clean()
             ret_agent.save()
+
         return ret_agent, created
 
     def oauth_group(self, **kwargs):
@@ -317,16 +326,6 @@ class Agent(models.Model):
     class Meta:
         unique_together = (("mbox", "global_representation"), ("mbox_sha1sum", "global_representation"),
             ("openID", "global_representation"),("oauth_identifier", "global_representation"))
-
-    def clean(self):
-        from lrs.util import uri
-
-        if self.mbox and not uri.validate_email(self.mbox):
-            raise ValidationError('mbox value [%s] did not start with mailto:' % self.mbox)
-
-        if self.openID and not uri.validate_uri(self.openID):
-            raise ValidationError('openID value [%s] is not a valid URI' % self.openID)            
-
 
     def get_agent_json(self, format='exact', as_object=False):
         just_id = format == 'ids'
