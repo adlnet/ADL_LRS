@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<a href="https://github.com/adlnet/ADL_LRS"><img style="position: absolute; top: 40px; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
+<a href="https://github.com/adlnet/ADL_LRS" target="_blank"><img style="position: absolute; top: 40px; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
 <div class="hero-unit">
   <img src="{{ STATIC_URL }}/img/xAPI-transparent_300px.png" style="height:50px; width:auto;" class="pull-right" alt="experience api logo"/>
   <h2>Welcome to the ADL Learning Record Store</h2>
@@ -38,7 +38,7 @@
       <h4>Sign up</h2>
       <p>Sign up for HTTP Basic Credentials</p>
       <p>Create a username and supply an email address with it</p>
-      <p><a class="btn btn-primary" href="{% url lrs.views.register %}">register</a></p>
+      <a class="btn btn-primary" href="{% url lrs.views.register %}">register</a>
     </div>
   </li>
   <li class="span4">
@@ -46,7 +46,7 @@
       <h4>Github Examples</h2>
       <p>Visit our GitHub prototype page to find some of the updated 1.0.1 prototypes. These prototypes can be 
          configured to report to an LRS. See the <a href="https://github.com/adlnet/experienceapi_client_examples/tree/master/1.0/original_prototypes#original-prototypes" target="_blank">Readme</a> for more information.</p>
-      <p><a class="btn" href="https://github.com/adlnet/experienceapi_client_examples" target="_blank">GitHub Prototypes</a></p>
+      <p><a class="btn pull-left" href="https://github.com/adlnet/experienceapi_client_examples" target="_blank">GitHub Prototypes</a></p>
     </div>
   </li>
   <li class="span4">
