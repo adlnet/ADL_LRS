@@ -1,5 +1,3 @@
-import pytz
-import ast
 import json
 import urllib
 import urlparse
@@ -805,7 +803,7 @@ class Statement(models.Model):
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(blank=True)
-    stored = models.DateTimeField(auto_now_add=True,blank=True, db_index=True)
+    stored = models.DateTimeField(default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,

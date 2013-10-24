@@ -1,10 +1,13 @@
 import json
+import pytz
+import datetime
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from django.http import HttpResponse
 from django.conf import settings
+from django.utils.timezone import utc
 from lrs import models, exceptions
 from lrs.objects.ActivityProfileManager import ActivityProfileManager
 from lrs.objects.ActivityStateManager import ActivityStateManager 
@@ -27,6 +30,7 @@ def statements_post(req_dict):
             for st in req_dict['body']:
                 #Set voided to default false
                 st['voided'] = False
+                st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
                 if not 'version' in st:
                     st['version'] = "1.0.0"
     
@@ -47,7 +51,7 @@ def statements_post(req_dict):
     else:
         #Set voided to default false
         req_dict['body']['voided'] = False
-
+        req_dict['body']['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         if not 'version' in req_dict['body']:
             req_dict['body']['version'] = "1.0.0"
 
@@ -73,6 +77,7 @@ def statements_put(req_dict):
 
     #Set voided to default false
     req_dict['body']['voided'] = False
+    req_dict['body']['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
     if not 'version' in req_dict['body']:
         req_dict['body']['version'] = "1.0.0"
@@ -132,8 +137,6 @@ def statements_get(req_dict):
             raise exceptions.IDNotFoundError(err_msg)
 
         if mine_only and st.authority.id != req_dict['auth']['id'].id:
-            # import pdb
-            # pdb.set_trace()
             err_msg = "Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']['id'])
             raise exceptions.Forbidden(err_msg)
         

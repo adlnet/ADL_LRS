@@ -27,8 +27,6 @@ class ActivityStateManager():
         self.since = request_dict['params'].get('since', None)
 
     def __get_agent(self, create=False):
-        # import pdb
-        # pdb.set_trace()
         return AgentManager(self.agent, create).Agent
 
     @transaction.commit_on_success

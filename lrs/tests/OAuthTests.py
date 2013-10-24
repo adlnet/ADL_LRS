@@ -861,8 +861,7 @@ class OAuthTests(TestCase):
         oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
         oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
         guid = str(uuid.uuid1())
-        # import pdb
-        # pdb.set_trace()
+
         stmt = StatementManager({"statement_id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()})
@@ -882,9 +881,6 @@ class OAuthTests(TestCase):
         replace_sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % get_signature)
         new_oauth_headers = replace_sig.replace('oauth_nonce="accessresourcenonce"','oauth_nonce="getdiffernonce"')        
 
-
-        # pdb.set_trace()
-        # Put statements
         get = self.client.get(path, content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
 

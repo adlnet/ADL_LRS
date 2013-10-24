@@ -1,14 +1,16 @@
 import json
 import re
+# from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
+# from django.utils.timezone import utc
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 from lrs import models, exceptions
-from lrs.util import get_user_from_auth, uri
+from lrs.util import get_user_from_auth, uri, convert_to_utc
 from AgentManager import AgentManager
 from ActivityManager import ActivityManager
 
@@ -268,7 +270,7 @@ class StatementManager():
             # If non oauth group won't be sent with the authority key, so if it's a group it's a non
             # oauth group which isn't allowed to be the authority
             self.build_authority_object()
-        
+
         self.build_verb_object()
         self.build_statement_object()
 
