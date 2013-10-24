@@ -190,7 +190,6 @@ function getStmts(event){
             else {
                 $(this).append(uiData(data));
             }
-            // $(this).children('div').children('div').children('div').find('.stmt_link').click(stmtLink);
             $(this).children('div').click(stmtLink);
             $(this).children('div').children('ul').find('li.previous a').click(
                 {the_url: $(this).children('div').children('ul').find('li.previous a').attr("data-target")}, getStmts);
