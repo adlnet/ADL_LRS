@@ -497,9 +497,9 @@ def handle_request(request, more_id=None):
     except exceptions.PreconditionFail as pf:
         log_exception(request.path, pf)
         return HttpResponse(pf.message, status=412)
-    except Exception as err:
-        log_exception(request.path, err)
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     log_exception(request.path, err)
+    #     return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

@@ -269,14 +269,24 @@ class AgentMgr(models.Manager):
         try:
             # If there are no IFPs but there are members (group with no IFPs)
             if not ifp_sent and members:
-
-                # Could be oauth group (account is always listed first in oauth member list)
-                if len(members) == 2 and 'account' in members[0] and 'OAuth' in members[0]['account']['homePage']:
-                    created_oauth_identifier = "anongroup:%s-%s" % (members[0]['account']['name'], members[1]['mbox'])
-                    try:
-                        ret_agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
-                        created = False
-                    except Agent.DoesNotExist:
+                # Narrow oauth down to 2 members and one member having an account
+                if len(members) == 2 and ('account' in members[0] or 'account' in members[1]):
+                    if 'account' in members[0] and 'OAuth' in members[0]['account']['homePage']:
+                        created_oauth_identifier = "anongroup:%s-%s" % (members[0]['account']['name'], members[1]['mbox'])
+                        try:
+                            ret_agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                            created = False
+                        except Agent.DoesNotExist:
+                            ret_agent, created = self.create_agent(kwargs, define)
+                    elif 'account' in members[1] and 'OAuth' in members[1]['account']['homePage']:
+                        created_oauth_identifier = "anongroup:%s-%s" % (members[1]['account']['name'], members[0]['mbox'])
+                        try:
+                            ret_agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                            created = False
+                        except Agent.DoesNotExist:
+                            ret_agent, created = self.create_agent(kwargs, define)
+                    # Non-oauth group that has 2 members, one having an account
+                    else:
                         ret_agent, created = self.create_agent(kwargs, define)
                 else:
                     ret_agent, created = self.create_agent(kwargs, define)

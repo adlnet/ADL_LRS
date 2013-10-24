@@ -25,6 +25,18 @@ def statements_post(req_dict):
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
+                #Set voided to default false
+                st['voided'] = False
+                if not 'version' in st:
+                    st['version'] = "1.0.0"
+    
+                if not 'authority' in st:
+                    if auth_id:
+                        if auth_id.__class__.__name__ == 'Agent':
+                            st['authority'] = auth_id.get_agent_json()
+                        else:
+                            st['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email}
+
                 stmt = StatementManager(st, auth=auth_id, define=define).model_object
                 stmt_responses.append(str(stmt.statement_id))
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
@@ -33,6 +45,19 @@ def statements_post(req_dict):
                 models.Statement.objects.get(statement_id=stmt_id).delete()
             raise
     else:
+        #Set voided to default false
+        req_dict['body']['voided'] = False
+
+        if not 'version' in req_dict['body']:
+            req_dict['body']['version'] = "1.0.0"
+
+        if not 'authority' in req_dict['body']:
+            if auth_id:
+                if auth_id.__class__.__name__ == 'Agent':
+                    req_dict['body']['authority'] = auth_id.get_agent_json()
+                else:
+                    req_dict['body']['authority'] = {'name':auth_id.username, 'mbox': 'mailto:%s' % auth_id.email}            
+
         # Handle single POST
         stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
         stmt_responses.append(stmt.statement_id)
@@ -45,6 +70,19 @@ def statements_put(req_dict):
     auth_id = auth['id'] if auth and 'id' in auth else None
     if auth and 'oauth_define' in auth:
         define = auth['oauth_define']    
+
+    #Set voided to default false
+    req_dict['body']['voided'] = False
+
+    if not 'version' in req_dict['body']:
+        req_dict['body']['version'] = "1.0.0"
+
+    if not 'authority' in req_dict['body']:
+        if auth_id:
+            if auth_id.__class__.__name__ == 'Agent':
+                req_dict['body']['authority'] = auth_id.get_agent_json()
+            else:
+                req_dict['body']['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email}            
 
     stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
     
@@ -94,6 +132,8 @@ def statements_get(req_dict):
             raise exceptions.IDNotFoundError(err_msg)
 
         if mine_only and st.authority.id != req_dict['auth']['id'].id:
+            # import pdb
+            # pdb.set_trace()
             err_msg = "Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']['id'])
             raise exceptions.Forbidden(err_msg)
         

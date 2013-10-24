@@ -49,9 +49,9 @@ class AuthTests(TestCase):
         self.cguid8 = str(uuid.uuid1())
 
 
-        self.existStmt = StatementManager(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        self.existStmt = StatementManager({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}))            
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})        
         
         self.exist_stmt_id = self.existStmt.model_object.statement_id
 
@@ -397,9 +397,9 @@ class AuthTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        existStmt = StatementManager(json.dumps({"statement_id":guid,
+        existStmt = StatementManager({"statement_id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
+            "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        

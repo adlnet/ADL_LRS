@@ -142,6 +142,15 @@ def server_validate_statement_object(stmt_object, auth):
                     err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
                     raise Forbidden(err_msg)
 
+#Make sure initial data being received is JSON
+def parse(data):
+    try:
+        params = json.loads(data)
+    except Exception, e:
+        err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
+        raise ParamError(err_msg) 
+    return params
+
 def server_validation(stmt_set, auth, payload_sha2s):
     # Could be batch POST or single stmt POST
     if type(stmt_set) is list:
@@ -210,6 +219,11 @@ def statements_post(r_dict):
 
     payload_sha2s = r_dict.get('payload_sha2s', None)
 
+    # Might have to convert b/c of CORS
+    if isinstance(r_dict['body'], basestring):
+        from lrs.util import convert_to_dict
+        r_dict['body'] = convert_to_dict(r_dict['body'])
+
     try:
         validator = StatementValidator.StatementValidator(r_dict['body'])
         msg = validator.validate()
@@ -219,7 +233,7 @@ def statements_post(r_dict):
         raise ParamError(e.message)
 
     server_validation(r_dict['body'], r_dict.get('auth', None), r_dict.get('payload_sha2s', None))
-    
+
     return r_dict
 
 @auth
@@ -286,7 +300,7 @@ def statements_put(r_dict):
     else:
         statement_id = r_dict['params']['statementId']
 
-    # Might have to convert b/c of CORS
+    # Convert data so it can be parsed
     if isinstance(r_dict['body'], basestring):
         from lrs.util import convert_to_dict
         r_dict['body'] = convert_to_dict(r_dict['body'])
@@ -326,32 +340,7 @@ def statements_put(r_dict):
         raise ParamError(e.message)
 
     server_validation(r_dict['body'], r_dict.get('auth', None), r_dict.get('payload_sha2s', None))
-    # # If object is a StatementRef, make sure id exists
-    # if r_dict['body']['object']['objectType'] == 'StatementRef' and not check_for_existing_statementId(r_dict['body']['object']['id']):
-    #         err_msg = "No statement with ID %s was found" % r_dict['body']['object']['id']
-    #         raise IDNotFoundError(err_msg)
 
-    # # If voiding stmt, make sure id to void exists
-    # if r_dict['body']['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
-    #     validate_void_statement(r_dict['body']['object']['id'])
-
-    # if 'authority' in r_dict['body']:
-    #     # If they try using a non-oauth group that already exists-throw error
-    #     if r_dict['body']['authority']['objectType'] == 'Group' and not 'oauth_identifier' in r_dict['body']['authority']:
-    #         err_msg = "Statements cannot have a non-Oauth group as the authority"
-    #         raise ParamError(err_msg)
-    # else:
-    #     auth = r_dict['auth']
-    #     if auth.__class__.__name__ == 'Agent' and auth.oauth_identifier:
-    #         err_msg = "Statements cannot have a non-Oauth group as the authority"
-    #         raise ParamError(err_msg)
-
-    # # Need to validate sha2 payloads if there-validator can't do that
-    # if 'attachments' in r_dict['body']:
-    #     attachment_data = r_dict['body']['attachments']
-    #     payload_sha2s = r_dict.get('payload_sha2s', None)
-    #     validate_attachments(attachment_data, payload_sha2s)
-    
     return r_dict
 
 def validate_attachments(attachment_data, payload_sha2s):

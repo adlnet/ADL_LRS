@@ -30,21 +30,8 @@ class StatementManager():
     def __init__(self, data, auth=None, define=True):
         self.auth = auth
         self.define = define
-        if not isinstance(data, dict):
-            self.data = self.parse(data)
-        else:
-            self.data = data
+        self.data = data
         self.populate()
-
-    #Make sure initial data being received is JSON
-    def parse(self,data):
-        try:
-            params = json.loads(data)
-        except Exception, e:
-            err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data,
-                type(data))
-            raise exceptions.ParamError(err_msg) 
-        return params
 
     @transaction.commit_on_success
     def void_statement(self,stmt_id):
@@ -270,29 +257,14 @@ class StatementManager():
         del self.data['object']
 
     def build_authority_object(self):
+        # Could still have no authority in stmt if HTTP_AUTH and OAUTH are disabled
         if 'authority' in self.data:
             self.data['authority'] = AgentManager(params=self.data['authority'], create=True, 
                 define=self.define).Agent
-        else:
-            # Look at request from auth if not supplied in stmt_data.
-            if self.auth:
-                auth_args = {}
-                if self.auth.__class__.__name__ == 'Agent':
-                    self.data['authority'] = self.auth
-                else:    
-                    auth_args['name'] = self.auth.username
-                    if self.auth.email.startswith("mailto:"):
-                        auth_args['mbox'] = self.auth.email
-                    else:
-                        auth_args['mbox'] = "mailto:%s" % self.auth.email
-                    self.data['authority'] = AgentManager(params=auth_args, create=True, define=self.define).Agent
 
     #Once JSON is verified, populate the statement object
     def populate(self):
         if self.__class__.__name__ == 'StatementManager':
-            #Set voided to default false
-            self.data['voided'] = False
-
             # If non oauth group won't be sent with the authority key, so if it's a group it's a non
             # oauth group which isn't allowed to be the authority
             self.build_authority_object()

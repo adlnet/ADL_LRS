@@ -17,19 +17,7 @@ class ActivityManager():
         else:
             self.auth = None
         self.define = define
-        if not isinstance(data, dict):
-            data = self.parse(data)
         self.populate(data)
-
-    # Make sure initial data being received is can be transformed into a dict-should ALWAYS be
-    # incoming JSON because class is only called from Statement class
-    def parse(self,data):
-        try:
-            params = json.loads(data)
-        except Exception, e:
-            err_msg = "Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))
-            raise exceptions.ParamError(err_msg)
-        return params
 
     # Retrieve JSON data from ID
     def get_data_from_act_id(self,act_id):

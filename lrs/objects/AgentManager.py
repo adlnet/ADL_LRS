@@ -13,6 +13,7 @@ from lrs.util import etag, get_user_from_auth
 class AgentManager():
     def __init__(self, params=None, create=False, define=True):
         self.define = define
+        # This parsing is kept for profile/state/agents endpoints
         if not isinstance(params, dict):
             try:
                 params = json.loads(params)

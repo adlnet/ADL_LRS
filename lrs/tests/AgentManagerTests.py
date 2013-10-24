@@ -369,7 +369,7 @@ class AgentManagerTests(TestCase):
         mbox = "mailto:the.group@example.com"
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
-        kwargs = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+        kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
         g = AgentManager(params=kwargs, create=True).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
@@ -377,22 +377,6 @@ class AgentManagerTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn('agent1', mems)
         self.assertIn('agent2', mems)
-
-    def test_group_oauth_authority(self):
-        ot = "Group"
-        name = "auth group"
-        account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
-        members = [{"name":"the agent","account":account},
-                    {"name":"the user","mbox":"mailto:user@example.com"}]
-        kwargs = {"objectType":ot, "name":name, "member":members}
-        g = AgentManager(params=kwargs, create=True).Agent
-        self.assertEquals(g.name, name)
-        self.assertEquals(g.mbox, None)
-        mems = g.member.values_list('name', flat=True)
-        self.assertEquals(len(mems), 2)
-        self.assertIn('the agent', mems)
-        self.assertIn('the user', mems)
-
 
     def test_agent_del(self):
         ag = Agent(name="the agent", account_homePage="http://adlnet.gov/agent/1",
