@@ -133,11 +133,17 @@ class ActivityManager():
             if self.Activity.authoritative == '' or self.Activity.authoritative == self.auth:
                 # Update name and desc if needed
                 if 'name' in act_def:
-                    self.Activity.activity_definition_name = dict(self.Activity.activity_definition_name.items() + act_def['name'].items())
+                    if self.Activity.activity_definition_name:
+                        self.Activity.activity_definition_name = dict(self.Activity.activity_definition_name.items() + act_def['name'].items())
+                    else:
+                        self.Activity.activity_definition_name = act_def['name']
                     self.Activity.save()
 
                 if 'description' in act_def:
-                    self.Activity.activity_definition_description = dict(self.Activity.activity_definition_description.items() + act_def['description'].items())
+                    if self.Activity.activity_definition_description:
+                        self.Activity.activity_definition_description = dict(self.Activity.activity_definition_description.items() + act_def['description'].items())
+                    else:
+                        self.Activity.activity_definition_description = act_def['description']
                     self.Activity.save()
             else:
                 err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
