@@ -89,7 +89,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
     <script type="text/javascript">
         $(document).ready(function() {
             $('#showme').tab('show');
-            $(".stmt_link").click(stmtLink);
+            $(".stmt_link").parent().parent().click(stmtLink);
             $('.change_app_status').click(function(){
                 var appname = $(this).parent().siblings(".appname").text();
                 var status = "";
@@ -165,11 +165,11 @@ function stmtLink(event){
     if (event && event.currentTarget){
         ele = event.target;
     }
-    if(!$(ele).next('pre#stmts').length){
-        getStmt($(ele).text(), this);
+    if(!$(ele).children('pre#stmts').length){
+        getStmt($(ele).children('.stmt_link').text(), ele);
     }
     else{
-        $(ele).next('pre#stmts').toggle();
+        $(ele).children('pre#stmts').toggle();
     }
     return false;
 }
@@ -190,7 +190,7 @@ function getStmts(event){
             else {
                 $(this).append(uiData(data));
             }
-            $(this).children('div').children('div').children('div').find('.stmt_link').click(stmtLink);
+            $(this).children('div').click(stmtLink);
             $(this).children('div').children('ul').find('li.previous a').click(
                 {the_url: $(this).children('div').children('ul').find('li.previous a').attr("data-target")}, getStmts);
             $(this).children('div').children('ul').find('li.next a').click(
@@ -211,9 +211,9 @@ function uiData(data){
     for (var i = 0; i < data['stmts'].length; i++) {
         var stmt = data['stmts'][i];
         ret += "<div class='row'>";
-        ret += "<div class='span9 border'><span class='statement'>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</span><br>";
-        ret += "<span class='timestamp'>" + stmt['timestamp'] + "</span><br>";
-        ret += " <a href='#' class='stmt_link lpad'>" + stmt['statement_id'] + "</a> ";
+        ret += "<div class='span9 border'><span class='statement'><strong>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</strong></span><br>";
+        ret += "<span class='timestamp'><small>" + stmt['timestamp'] + "</small></span><br>";
+        ret += " <span class='stmt_link lpad'>" + stmt['statement_id'] + "</span> ";
         ret += "</div>";
         ret += "</div>";
     }
@@ -235,9 +235,9 @@ function getStmt(stmtid,ele){
         url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,
         type: "GET",
         success: function (data){
-            $(ele).after('<pre id="stmts"></pre>')
-            $(ele).siblings('pre#stmts').append(syntaxHighlight(data));
-            $("span.expandable a").click(function(){
+            $(ele).children('.stmt_link').after('<pre id="stmts"></pre>')
+            $(ele).children().siblings('pre#stmts').append(syntaxHighlight(data));
+            $(ele).children().siblings('pre#stmts').find("span.expandable a").click(function(){
                 $(this).next("span.obj").toggle();
                 return false;
             });
