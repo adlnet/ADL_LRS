@@ -2598,7 +2598,7 @@ fixpad = lambda s: s if len(s) % 4 == 0 else s + '=' * (4 - (len(s) % 4))
 
 exstmt = """{
     "version": "1.0.0",
-    "statement_id": "33cff416-e331-4c9d-969e-5373a1756120",
+    "id": "33cff416-e331-4c9d-969e-5373a1756120",
     "actor": {
         "mbox": "mailto:example@example.com",
         "name": "Example Learner",
