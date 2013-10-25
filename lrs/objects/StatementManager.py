@@ -29,10 +29,12 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
-    def __init__(self, data, auth=None, define=True):
+    def __init__(self, data, auth=None, define=True, stmt_json=''):
         self.auth = auth
         self.define = define
         self.data = data
+        if self.__class__.__name__ == 'StatementManager':
+            self.data['full_statement'] = stmt_json
         self.populate()
 
     @transaction.commit_on_success

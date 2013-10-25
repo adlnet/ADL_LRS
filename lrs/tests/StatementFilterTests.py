@@ -48,7 +48,8 @@ class StatementFilterTests(TestCase):
     def test_limit_filter(self):
         # Test limit
         for i in range(1,4):
-            StMan({"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}})
+            stmt = {"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}
+            StMan(stmt, stmt_json=json.dumps(stmt))
         limitGetResponse = self.client.post(reverse(views.statements),{"limit":2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(limitGetResponse.status_code, 200)
         rsp = limitGetResponse.content
@@ -57,7 +58,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 2)    
 
     def test_get_id(self):
-        StMan({
+        stmt = {
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
@@ -90,7 +91,8 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         sid = Statement.objects.get(verb__verb_id="http://adlnet.gov/xapi/verbs/passed(to_go_beyond)").statement_id
         param = {"statementId":sid}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -100,7 +102,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(obj['result']['score']['raw'], 1918560.0)
 
     def test_agent_filter(self):
-        StMan({
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -132,8 +134,9 @@ class StatementFilterTests(TestCase):
                 "name": "timmy", 
                 "objectType": "Agent"
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "timestamp": "2013-04-08 21:07:20.392000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI", 
@@ -162,7 +165,8 @@ class StatementFilterTests(TestCase):
                     "ext:time": "1128"
                 }
             }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -178,7 +182,7 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
     def test_group_as_agent_filter(self):
-        StMan({
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -207,8 +211,9 @@ class StatementFilterTests(TestCase):
                 "name": "adl lrs developers", 
                 "objectType": "Group"
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -249,7 +254,8 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         param = {"agent":{"mbox":"mailto:adllrsdevs@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -262,7 +268,7 @@ class StatementFilterTests(TestCase):
             self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
 
     def test_related_agents_filter(self):
-        StMan({
+        stmt = {
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -300,8 +306,9 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -327,8 +334,9 @@ class StatementFilterTests(TestCase):
                 "name": "adl lrs developers", 
                 "objectType": "Group"
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -357,7 +365,8 @@ class StatementFilterTests(TestCase):
                 "mbox": "mailto:timmy@example.com", 
                 "name": "timmy"
             }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         param = {"agent":{"mbox":"mailto:louo@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -462,7 +471,7 @@ class StatementFilterTests(TestCase):
         }]
 
         for s in batch:
-            StMan(s)
+            StMan(s, stmt_json=json.dumps(s))
         
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -538,7 +547,7 @@ class StatementFilterTests(TestCase):
         self.assertItemsEqual(slice_ids, same)
 
     def test_related_agents_filter_until(self):
-        StMan({
+        stmt = {
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -576,8 +585,9 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -603,8 +613,9 @@ class StatementFilterTests(TestCase):
                 "name": "adl lrs developers", 
                 "objectType": "Group"
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -633,7 +644,8 @@ class StatementFilterTests(TestCase):
                 "mbox": "mailto:timmy@example.com", 
                 "name": "timmy"
             }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -674,7 +686,7 @@ class StatementFilterTests(TestCase):
             self.assertTrue(convert_to_utc(s['stored']) < until)
 
     def test_related_agents_filter_since(self):
-        StMan({
+        stmt = {
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -712,8 +724,9 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -739,8 +752,9 @@ class StatementFilterTests(TestCase):
                 "name": "adl lrs developers", 
                 "objectType": "Group"
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -769,7 +783,8 @@ class StatementFilterTests(TestCase):
                 "mbox": "mailto:timmy@example.com", 
                 "name": "timmy"
             }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -859,8 +874,7 @@ class StatementFilterTests(TestCase):
 
     def test_verb_filter(self):
         theid = str(uuid.uuid1())
-        StMan(
-        {
+        stmt = {
         "statement_id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
         "object": {
@@ -897,9 +911,9 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        })
-        StMan(
-        {
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
         "verb": {
             "id": "http://special.adlnet.gov/xapi/verbs/frowned", 
             "display": {
@@ -933,7 +947,8 @@ class StatementFilterTests(TestCase):
             "name": "Managers", 
             "objectType": "Group"
         }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         param = {"verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -957,8 +972,7 @@ class StatementFilterTests(TestCase):
 
     def test_registration_filter(self):
         theid = str(uuid.uuid1())
-        StMan(
-        {
+        stmt = {
         "statement_id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
         "object": {
@@ -996,8 +1010,9 @@ class StatementFilterTests(TestCase):
             },
             "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a92"
         }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "timestamp": "2013-04-08 17:51:38.118000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI"
@@ -1013,9 +1028,9 @@ class StatementFilterTests(TestCase):
             "context": {
                 "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
             }
-        })
-        StMan(
-        {
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt =         {
         "timestamp": "2013-04-08 21:07:20.392000+00:00", 
         "object": { 
             "id": "act:adlnet.gov/JsTetris_TCAPI", 
@@ -1044,7 +1059,8 @@ class StatementFilterTests(TestCase):
         "context": {
             "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
         }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -1086,7 +1102,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 0)
 
     def test_activity_filter(self):
-        StMan({
+        stmt = {
         "timestamp": "2013-04-08 21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
@@ -1107,8 +1123,9 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
@@ -1134,8 +1151,9 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
         "timestamp": "2013-04-08 21:07:20.392000+00:00", 
         "object": {
             "definition": {
@@ -1176,7 +1194,8 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         param = {"activity":"act:adlnet.gov/JsTetris_TCAPI"}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -1209,7 +1228,7 @@ class StatementFilterTests(TestCase):
         self.assertTrue(len(stmts) > actcnt, "stmts(%s) was not greater than actcnt(%s)" % (len(stmts), actcnt))
 
     def test_no_activity_filter(self):
-        StMan({
+        stmt = {
         "timestamp": "2013-04-08 21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
@@ -1230,8 +1249,9 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        })
-        StMan({
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
+        stmt = {
             "timestamp": "2013-04-08 21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
@@ -1257,7 +1277,8 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        })
+        }
+        StMan(stmt, stmt_json=json.dumps(stmt))
         actorGetResponse = self.client.post(reverse(views.statements), 
             {"activity":"http://notarealactivity.com"},
              content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)

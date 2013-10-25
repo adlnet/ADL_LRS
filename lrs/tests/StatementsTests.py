@@ -74,14 +74,18 @@ class StatementsTests(TestCase):
         self.cguid8 = str(uuid.uuid1())
 
         if settings.HTTP_AUTH_ENABLED:
-            self.existStmt = StatementManager({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            stmt = {"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-                "authority":{"objectType":"Agent","name":"tester1","mbox":"mailto:test1@tester.com"}})
+                "authority":{"objectType":"Agent","name":"tester1","mbox":"mailto:test1@tester.com"}}
+
+            self.existStmt = StatementManager(stmt, stmt_json=json.dumps(stmt))
         else:
-            self.existStmt = StatementManager({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            stmt = {"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})         
+                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}
+
+            self.existStmt = StatementManager(stmt, stmt_json=json.dumps(stmt))
         
         self.exist_stmt_id = self.existStmt.model_object.statement_id
 
@@ -1196,6 +1200,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['object']['context']['revision'], 'Spelling error in target.')
         self.assertEqual(the_returned['object']['context']['statement']['id'], str(nested_sub_st_id))
         self.assertEqual(the_returned['object']['context']['statement']['objectType'], 'StatementRef')
+
         self.assertEqual(the_returned['object']['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey11'], 'contextVal11')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey22'], 'contextVal22')
@@ -1512,7 +1517,9 @@ class StatementsTests(TestCase):
 
         r = self.client.get(reverse(views.statements), Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
+
         obj = json.loads(r.content)
+
         self.assertEqual(len(obj['statements']), 1)
         obj = obj['statements'][0]
         self.assertEqual(obj['id'], stmt_guid)

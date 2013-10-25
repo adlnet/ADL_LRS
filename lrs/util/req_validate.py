@@ -151,6 +151,28 @@ def parse(data):
         raise ParamError(err_msg) 
     return params
 
+# Retrieve JSON data from ID
+def get_data_from_act_id(act_id):
+    resolves = True
+    act_json = {}
+
+    # See if id resolves
+    try:
+        req = urllib2.Request(act_id)
+        req.add_header('Accept', 'application/json, */*')
+        act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
+    except Exception, e:
+        # Doesn't resolve-hopefully data is in payload
+        resolves = False
+    else:
+        # If it resolves then try parsing JSON from it
+        try:
+            act_json = json.loads(act_resp.read())
+        except Exception, e:
+            # Resolves but no data to retrieve - this is OK
+            pass
+    return act_json
+
 def server_validation(stmt_set, auth, payload_sha2s):
     # Could be batch POST or single stmt POST
     if type(stmt_set) is list:
@@ -167,6 +189,18 @@ def server_validation(stmt_set, auth, payload_sha2s):
 
             if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
                 validate_void_statement(stmt['object']['id'])
+
+            if not 'objectType' in stmt['object'] or stmt['object']['objectType'] == 'Activity':
+                activity_data = get_data_from_act_id(stmt['object']['id'])
+                activity_data['id'] = stmt['object']['id']
+
+                try:
+                    validator = StatementValidator.StatementValidator(None)
+                    validator.validate_activity(activity_data)
+                except Exception, e:
+                    raise BadRequest(e.message)
+                except ParamError, e:
+                    raise ParamError(e.message)
 
             if 'authority' in stmt:
                 # If they try using a non-oauth group that already exists-throw error
@@ -196,6 +230,18 @@ def server_validation(stmt_set, auth, payload_sha2s):
         if stmt_set['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
             validate_void_statement(stmt_set['object']['id'])
 
+        if not 'objectType' in stmt_set['object'] or stmt_set['object']['objectType'] == 'Activity':
+            activity_data = get_data_from_act_id(stmt_set['object']['id'])
+            activity_data['id'] = stmt_set['object']['id']
+
+            try:
+                validator = StatementValidator.StatementValidator(None)
+                validator.validate_activity(activity_data)
+            except Exception, e:
+                raise BadRequest(e.message)
+            except ParamError, e:
+                raise ParamError(e.message)
+
         if 'authority' in stmt_set:
             # If they try using a non-oauth group that already exists-throw error
             if stmt_set['authority']['objectType'] == 'Group' and not 'oauth_identifier' in stmt_set['authority']:
@@ -219,7 +265,6 @@ def statements_post(r_dict):
 
     payload_sha2s = r_dict.get('payload_sha2s', None)
 
-    # Might have to convert b/c of CORS
     if isinstance(r_dict['body'], basestring):
         from lrs.util import convert_to_dict
         r_dict['body'] = convert_to_dict(r_dict['body'])

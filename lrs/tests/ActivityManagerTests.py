@@ -119,7 +119,7 @@ class ActivityManagerTests(TestCase):
             "object": {'objectType':'Activity', 'id': 'http://localhost:8000/XAPI/actexample/'}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
+
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = models.Statement.objects.get(statement_id=st_id[0])
@@ -859,7 +859,7 @@ class ActivityManagerTests(TestCase):
 
         response = self.client.post(reverse(views.statements), json.dumps(stmt_list), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
+
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])

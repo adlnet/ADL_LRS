@@ -110,11 +110,16 @@ def create_stmt_result(stmt_set, stored, language, format):
     # blows up if the idlist is empty... so i gotta check for that
     idlist = stmt_set.values_list('id', flat=True)
     if idlist > 0:
-        stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
-            Statement.objects.filter(id__in=idlist).order_by(stored)]
+        if format == 'exact':
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([stmt.full_statement for stmt in \
+                Statement.objects.filter(id__in=idlist).order_by(stored)])
+        else:
+            stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
+                Statement.objects.filter(id__in=idlist).order_by(stored)]
+            stmt_result['more'] = ''
     else:
         stmt_result['statements'] = []
-    stmt_result['more'] = ''
+        stmt_result['more'] = ''
     return stmt_result
 
 def findstmtrefs(stmtset, sinceq, untilq):

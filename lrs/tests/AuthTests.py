@@ -48,10 +48,10 @@ class AuthTests(TestCase):
         self.cguid7 = str(uuid.uuid1())
         self.cguid8 = str(uuid.uuid1())
 
-
-        self.existStmt = StatementManager({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = {"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})        
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}
+        self.existStmt = StatementManager(stmt, stmt_json=json.dumps(stmt))
         
         self.exist_stmt_id = self.existStmt.model_object.statement_id
 

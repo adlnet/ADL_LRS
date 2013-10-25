@@ -824,7 +824,11 @@ class Statement(models.Model):
     attachments = models.ManyToManyField(StatementAttachment)
     # Used in views
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
+    full_statement = JSONField()
     def object_return(self, lang=None, format='exact'):
+        if format == 'exact':
+            return self.full_statement
+
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.get_agent_json(format)

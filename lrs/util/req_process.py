@@ -15,6 +15,8 @@ from lrs.objects.AgentManager import AgentManager
 from lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
+
+
 def statements_post(req_dict):
     stmt_responses = []
 
@@ -31,17 +33,30 @@ def statements_post(req_dict):
                 #Set voided to default false
                 st['voided'] = False
                 st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+                
                 if not 'version' in st:
                     st['version'] = "1.0.0"
     
+                if 'context' in st and 'contextActivities' in st['context']:
+                    for k, v in st['context']['contextActivities'].items():
+                        if isinstance(v, dict):
+                            st['context']['contextActivities'][k] = [v]
+                
+                if 'objectType' in st['object'] and st['object']['objectType'] == 'SubStatement':
+                    if 'context' in st['object'] and 'contextActivities' in st['object']['context']:
+                        for k, v in st['object']['context']['contextActivities'].items():
+                            if isinstance(v, dict):
+                                st['object']['context']['contextActivities'][k] = [v]
+
                 if not 'authority' in st:
                     if auth_id:
                         if auth_id.__class__.__name__ == 'Agent':
                             st['authority'] = auth_id.get_agent_json()
                         else:
-                            st['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email}
-
-                stmt = StatementManager(st, auth=auth_id, define=define).model_object
+                            st['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email, 'objectType': 'Agent'}
+                
+                stmt_json = json.dumps(st)
+                stmt = StatementManager(st, auth_id, define, stmt_json).model_object
                 stmt_responses.append(str(stmt.statement_id))
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
         except Exception:
@@ -55,15 +70,27 @@ def statements_post(req_dict):
         if not 'version' in req_dict['body']:
             req_dict['body']['version'] = "1.0.0"
 
+        if 'context' in req_dict['body'] and 'contextActivities' in req_dict['body']['context']:
+            for k, v in req_dict['body']['context']['contextActivities'].items():
+                if isinstance(v, dict):
+                    req_dict['body']['context']['contextActivities'][k] = [v]
+
+        if 'objectType' in req_dict['body']['object'] and req_dict['body']['object']['objectType'] == 'SubStatement':
+            if 'context' in req_dict['body']['object'] and 'contextActivities' in req_dict['body']['object']['context']:
+                for k, v in req_dict['body']['object']['context']['contextActivities'].items():
+                    if isinstance(v, dict):
+                        req_dict['body']['object']['context']['contextActivities'][k] = [v]
+
         if not 'authority' in req_dict['body']:
             if auth_id:
                 if auth_id.__class__.__name__ == 'Agent':
                     req_dict['body']['authority'] = auth_id.get_agent_json()
                 else:
-                    req_dict['body']['authority'] = {'name':auth_id.username, 'mbox': 'mailto:%s' % auth_id.email}            
+                    req_dict['body']['authority'] = {'name':auth_id.username, 'mbox': 'mailto:%s' % auth_id.email, 'objectType': 'Agent'}            
 
         # Handle single POST
-        stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
+        stmt_json = json.dumps(req_dict['body'])
+        stmt = StatementManager(req_dict['body'], auth_id, define, stmt_json).model_object
         stmt_responses.append(stmt.statement_id)
 
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
@@ -82,20 +109,37 @@ def statements_put(req_dict):
     if not 'version' in req_dict['body']:
         req_dict['body']['version'] = "1.0.0"
 
+    if 'context' in req_dict['body'] and 'contextActivities' in req_dict['body']['context']:
+        for k, v in req_dict['body']['context']['contextActivities'].items():
+            if isinstance(v, dict):
+                req_dict['body']['context']['contextActivities'][k] = [v]
+
+    if 'objectType' in req_dict['body']['object'] and req_dict['body']['object']['objectType'] == 'SubStatement':
+        if 'context' in req_dict['body']['object'] and 'contextActivities' in req_dict['body']['object']['context']:
+            for k, v in req_dict['body']['object']['context']['contextActivities'].items():
+                if isinstance(v, dict):
+                    req_dict['body']['object']['context']['contextActivities'][k] = [v]
+
     if not 'authority' in req_dict['body']:
         if auth_id:
             if auth_id.__class__.__name__ == 'Agent':
                 req_dict['body']['authority'] = auth_id.get_agent_json()
             else:
-                req_dict['body']['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email}            
+                req_dict['body']['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email, 'objectType': 'Agent'}            
 
-    stmt = StatementManager(req_dict['body'], auth=auth_id, define=define).model_object
+    stmt_json = json.dumps(req_dict['body'])
+    stmt = StatementManager(req_dict['body'], auth_id, define, stmt_json).model_object
     
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
     stmt_result, attachments = retrieve_statement.get_more_statement_request(req_dict['more_id'])     
-    content_length = len(json.dumps(stmt_result))
+    
+    if isinstance(stmt_result, dict):
+        content_length = len(json.dumps(stmt_result))
+    else:
+        content_length = len(stmt_result)
+
     mime_type = "application/json"
 
     # If there are attachments, include them in the payload
@@ -147,8 +191,9 @@ def statements_get(req_dict):
                 err_msg = 'The requested statement (%s) is not voided. Use the "statementId" parameter to retrieve your statement.' % statementId
             raise exceptions.IDNotFoundError(err_msg)
         
-        # Once validated, return the object, dump to json, and set content length
-        stmt_result = json.dumps(st.object_return())
+        # Once validated, return the object, will already be json since format will be exact
+        stmt_result = st.object_return()
+        
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
         content_length = len(stmt_result)
     # Complex GET
@@ -191,7 +236,11 @@ def statements_get(req_dict):
 
         # Create returned stmt list from the req dict
         stmt_result = retrieve_statement.complex_get(param_dict, limit, language, format, attachments)
-        content_length = len(json.dumps(stmt_result))
+        
+        if format == 'exact':
+            content_length = len(stmt_result)    
+        else:
+            content_length = len(json.dumps(stmt_result))
 
         # If attachments=True in req_dict then include the attachment payload and return different mime type
         if attachments:
@@ -199,7 +248,10 @@ def statements_get(req_dict):
             resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
         # Else attachments are false for the complex get so just dump the stmt_result
         else:
-            result = json.dumps(stmt_result)
+            if format == 'exact':
+                result = stmt_result
+            else:
+                result = json.dumps(stmt_result)
             content_length = len(result)
             resp = HttpResponse(result, mimetype=mime_type, status=200)
     
@@ -215,7 +267,11 @@ def statements_get(req_dict):
 def build_response(stmt_result, content_length):
     sha2s = []
     mime_type = "application/json"
-    statements = stmt_result['statements']
+    if isinstance(stmt_result, dict):
+        statements = stmt_result['statements']
+    else:
+        statements = json.loads(stmt_result)['statements']
+
     # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
@@ -229,7 +285,10 @@ def build_response(stmt_result, content_length):
     if sha2s:
         # Create multipart message and attach json message to it
         full_message = MIMEMultipart(boundary="ADL_LRS---------")
-        stmt_message = MIMEApplication(json.dumps(stmt_result), _subtype="json", _encoder=json.JSONEncoder)
+        if isinstance(stmt_result, dict):
+            stmt_message = MIMEApplication(json.dumps(stmt_result), _subtype="json", _encoder=json.JSONEncoder)
+        else:
+            stmt_message = MIMEApplication(stmt_result, _subtype="json", _encoder=json.JSONEncoder)
         full_message.attach(stmt_message)
         # For each sha create a binary message, and attach to the multipart message
         for sha2 in sha2s:
@@ -250,7 +309,10 @@ def build_response(stmt_result, content_length):
         return full_message.as_string(), mime_type, content_length 
     # Has attachments but no payloads so just dump the stmt_result
     else:
-        return json.dumps(stmt_result), mime_type, content_length
+        if isinstance(stmt_result, dict):
+            return json.dumps(stmt_result), mime_type, content_length
+        else:
+            return stmt_result, mime_type, content_length
 
 def activity_state_post(req_dict):
     # test ETag for concurrency
