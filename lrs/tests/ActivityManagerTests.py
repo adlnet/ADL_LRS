@@ -288,7 +288,7 @@ class ActivityManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Cannot evaluate data into dictionary to parse -- Error:  in This string should throw exception since it's not JSON")
+        self.assertEqual(response.content, "Cannot evaluate data into dictionary to parse -- Error: This string should throw exception since it's not JSON")
 
     #Test activity where given URL isn't URI
     def test_activity_invalid_activity_id(self):
