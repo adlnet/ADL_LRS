@@ -652,3 +652,16 @@ class ActivityStateTests(TestCase):
         self.assertEqual(retstate['obj'], state2['obj'])
 
         self.client.delete(path, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+    def test_nonjson_put_state(self):
+        param = {"stateId": "thisisnotjson", "activityId": "act:test/non.json.accepted", "agent": '{"mbox":"mailto:test@example.com"}'}
+        path = '%s?%s' % (self.url, urllib.urlencode(param))
+        state = "this is not json"
+
+        r = self.client.put(path, state, content_type="text/plain", Authorization=self.auth, X_Experience_API_Version="1.0.1")
+        self.assertEqual(r.status_code, 204)
+
+        r = self.client.get(path, Authorization=self.auth, X_Experience_API_Version="1.0.1")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], "text/plain")
+        self.assertEqual(r.content, state)

@@ -195,7 +195,7 @@ class ActivityProfileTests(TestCase):
     def test_get_activity_since_tz(self):
         actid = "test:activity"
         profid = "test://test/tz"
-        act = ActivityManager(json.dumps({'objectType':'Activity', 'id': actid}))
+        act = ActivityManager({'objectType':'Activity', 'id': actid})
         params = {"profileId": profid, "activityId": actid}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         prof = {"test":"timezone since","obj":{"activity":"other"}}
@@ -235,7 +235,7 @@ class ActivityProfileTests(TestCase):
         params = "profileId=%s&activityId=%s&Authorization=%s&content=%s&X-Experience-API-Version=1.0" % (profileid, activityid,self.auth,content)
          
         path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
-        the_act = ActivityManager(json.dumps({'objectType':'Activity', 'id': activityid}))
+        the_act = ActivityManager({'objectType':'Activity', 'id': activityid})
         thedata = urllib.quote_plus(params)
         put1 = self.client.post(path, thedata, content_type="application/x-www-form-urlencoded")
         self.assertEqual(put1.status_code, 204)
@@ -251,7 +251,7 @@ class ActivityProfileTests(TestCase):
         pid = 'http://ie.cors.etag/test'
         aid = 'act:ie.cors.etag/test'
 
-        actaid = ActivityManager(json.dumps({'objectType':'Activity', 'id': aid}))
+        actaid = ActivityManager({'objectType':'Activity', 'id': aid})
         
         params = {"profileId": pid, "activityId": aid}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
@@ -278,7 +278,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "http://test.tetris/", "activityId": "act:tetris.snafu"}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"put profile 1","obj":{"activity":"test"}}
-        the_act = ActivityManager(json.dumps({'objectType':'Activity', 'id': "act:tetris.snafu"}))
+        the_act = ActivityManager({'objectType':'Activity', 'id': "act:tetris.snafu"})
         p_r = self.client.put(path, json.dumps(profile), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(p_r.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), {'activityId': "act:tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="1.0.0", Authorization=self.auth)

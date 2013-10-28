@@ -5,7 +5,7 @@ from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
 from lrs.util import uri, StatementValidator, validate_uuid
-from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest
+from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 from Authorization import auth
 
 att_cache = get_cache('attachment_cache')
@@ -107,6 +107,156 @@ def validate_oauth_state_or_profile_agent(r_dict, endpoint):
             err_msg = "Authorization doesn't match agent in %s" % endpoint
             raise Forbidden(err_msg)
 
+def validate_void_statement(void_id):
+    # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
+    # since you cannot unvoid a statement and should just reissue the statement under a new ID.
+    try:
+        stmt = models.Statement.objects.get(statement_id=void_id)
+    except models.Statement.DoesNotExist:
+        err_msg = "Statement with ID %s does not exist" % void_id
+        raise IDNotFoundError(err_msg)
+        
+    if stmt.voided:
+        err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
+        raise Forbidden(err_msg)
+
+def server_validate_statement_object(stmt_object, auth):
+    if stmt_object['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt_object['id']):
+            err_msg = "No statement with ID %s was found" % stmt_object['id']
+            raise IDNotFoundError(err_msg)
+    elif stmt_object['objectType'] == 'Activity' or 'objectType' not in stmt_object:
+        if 'definition' in stmt_object:
+            try:
+                activity = models.Activity.objects.get(activity_id=stmt_object['id'], global_representation=True)
+            except models.Activity.DoesNotExist:
+                pass
+            else:
+                if auth:
+                    if auth['id'].__class__.__name__ == 'Agent':
+                        auth_name = auth['id'].name
+                    else:
+                        auth_name = auth['id'].username
+                else:
+                    auth_name = None
+                if activity.authoritative != '' and activity.authoritative != auth_name:
+                    err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
+                    raise Forbidden(err_msg)
+
+#Make sure initial data being received is JSON
+def parse(data):
+    try:
+        params = json.loads(data)
+    except Exception, e:
+        err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
+        raise ParamError(err_msg) 
+    return params
+
+# Retrieve JSON data from ID
+def get_data_from_act_id(act_id):
+    resolves = True
+    act_json = {}
+
+    # See if id resolves
+    try:
+        req = urllib2.Request(act_id)
+        req.add_header('Accept', 'application/json, */*')
+        act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
+    except Exception, e:
+        # Doesn't resolve-hopefully data is in payload
+        resolves = False
+    else:
+        # If it resolves then try parsing JSON from it
+        try:
+            act_json = json.loads(act_resp.read())
+        except Exception, e:
+            # Resolves but no data to retrieve - this is OK
+            pass
+    return act_json
+
+def server_validation(stmt_set, auth, payload_sha2s):
+    # Could be batch POST or single stmt POST
+    if type(stmt_set) is list:
+        auth_validated = False
+        for stmt in stmt_set:
+            if 'id' in stmt:
+                # If statement with that ID already exists-raise conflict error
+                statement_id = stmt['id']
+                if check_for_existing_statementId(statement_id):
+                    err_msg = "A statement with ID %s already exists" % statement_id
+                    raise ParamConflict(err_msg)
+            
+            server_validate_statement_object(stmt['object'], auth)
+
+            if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+                validate_void_statement(stmt['object']['id'])
+
+            if not 'objectType' in stmt['object'] or stmt['object']['objectType'] == 'Activity':
+                activity_data = get_data_from_act_id(stmt['object']['id'])
+                activity_data['id'] = stmt['object']['id']
+
+                try:
+                    validator = StatementValidator.StatementValidator(None)
+                    validator.validate_activity(activity_data)
+                except Exception, e:
+                    raise BadRequest(e.message)
+                except ParamError, e:
+                    raise ParamError(e.message)
+
+            if 'authority' in stmt:
+                # If they try using a non-oauth group that already exists-throw error
+                if stmt['authority']['objectType'] == 'Group' and not 'oauth_identifier' in stmt['authority']:
+                    err_msg = "Statements cannot have a non-Oauth group as the authority"
+                    raise ParamError(err_msg)
+            else:
+                if not auth_validated:
+                    if auth:
+                        if auth['id'].__class__.__name__ == 'Agent' and not auth['id'].oauth_identifier:
+                            err_msg = "Statements cannot have a non-Oauth group as the authority"
+                            raise ParamError(err_msg)
+                        auth_validated = True
+
+            if 'attachments' in stmt:
+                attachment_data = stmt['attachments']
+                validate_attachments(attachment_data, payload_sha2s)
+    else:
+        if 'id' in stmt_set:
+            statement_id = stmt_set['id']
+            if check_for_existing_statementId(statement_id):
+                err_msg = "A statement with ID %s already exists" % statement_id
+                raise ParamConflict(err_msg)
+
+        server_validate_statement_object(stmt_set['object'], auth)
+
+        if stmt_set['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+            validate_void_statement(stmt_set['object']['id'])
+
+        if not 'objectType' in stmt_set['object'] or stmt_set['object']['objectType'] == 'Activity':
+            activity_data = get_data_from_act_id(stmt_set['object']['id'])
+            activity_data['id'] = stmt_set['object']['id']
+
+            try:
+                validator = StatementValidator.StatementValidator(None)
+                validator.validate_activity(activity_data)
+            except Exception, e:
+                raise BadRequest(e.message)
+            except ParamError, e:
+                raise ParamError(e.message)
+
+        if 'authority' in stmt_set:
+            # If they try using a non-oauth group that already exists-throw error
+            if stmt_set['authority']['objectType'] == 'Group' and not 'oauth_identifier' in stmt_set['authority']:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                raise ParamError(err_msg)
+        else:
+            if auth:
+                if auth['id'].__class__.__name__ == 'Agent' and not auth['id'].oauth_identifier:
+                    err_msg = "Statements cannot have a non-Oauth group as the authority"
+                    raise ParamError(err_msg)
+
+        if 'attachments' in stmt_set:
+            attachment_data = stmt_set['attachments']
+            validate_attachments(attachment_data, payload_sha2s)
+
 @auth
 @check_oauth
 def statements_post(r_dict):
@@ -114,6 +264,10 @@ def statements_post(r_dict):
         raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(r_dict['params'].keys()))
 
     payload_sha2s = r_dict.get('payload_sha2s', None)
+
+    if isinstance(r_dict['body'], basestring):
+        from lrs.util import convert_to_dict
+        r_dict['body'] = convert_to_dict(r_dict['body'])
 
     try:
         validator = StatementValidator.StatementValidator(r_dict['body'])
@@ -123,16 +277,8 @@ def statements_post(r_dict):
     except ParamError, e:
         raise ParamError(e.message)
 
-    # Could be batch POST or single stmt POST
-    if type(r_dict['body']) is list:
-        for stmt in r_dict['body']:
-            if 'attachments' in stmt:
-                attachment_data = stmt['attachments']
-                validate_attachments(attachment_data, payload_sha2s)
-    else:
-        if 'attachments' in r_dict['body']:
-            attachment_data = r_dict['body']['attachments']
-            validate_attachments(attachment_data, payload_sha2s)
+    server_validation(r_dict['body'], r_dict.get('auth', None), r_dict.get('payload_sha2s', None))
+
     return r_dict
 
 @auth
@@ -187,6 +333,7 @@ def statements_get(r_dict):
 @auth
 @check_oauth
 def statements_put(r_dict):
+    # Find any unexpected parameters
     rogueparams = set(r_dict['params']) - set(["statementId"])
     if rogueparams:
         raise ParamError("The put statements request contained unexpected parameters: %s" % ", ".join(rogueparams))
@@ -198,27 +345,37 @@ def statements_put(r_dict):
     else:
         statement_id = r_dict['params']['statementId']
 
+    # Convert data so it can be parsed
+    if isinstance(r_dict['body'], basestring):
+        from lrs.util import convert_to_dict
+        r_dict['body'] = convert_to_dict(r_dict['body'])
+
+    # Try to get id if in body
     try:
         statement_body_id = r_dict['body']['id']
     except Exception, e:
         statement_body_id = None
 
+    # If ids exist in both places, check if they are equal
     if statement_body_id and statement_id != statement_body_id:
         err_msg = "Error -- statements - method = %s, param and body ID both given, but do not match" % r_dict['method']
         raise ParamError(err_msg)
-    
+
     # If statement with that ID already exists-raise conflict error
     if check_for_existing_statementId(statement_id):
         err_msg = "A statement with ID %s already exists" % statement_id
         raise ParamConflict(err_msg)
-
-    r_dict['statementId'] = statement_id
+    
+    # Set id inside of statement with param id
+    if not statement_body_id:
+        r_dict['body']['id'] = statement_id
 
     # If there are no other params-raise param error since nothing else is supplied
     if not check_for_no_other_params_supplied(r_dict['body']):
         err_msg = "No other params are supplied with statementId."
         raise ParamError(err_msg)
 
+    # Validate statement in body
     try:
         validator = StatementValidator.StatementValidator(r_dict['body'])
         msg = validator.validate()
@@ -227,11 +384,8 @@ def statements_put(r_dict):
     except ParamError, e:
         raise ParamError(e.message)
 
-    # Need to validate sha2 payloads if there-validator can't do that
-    if 'attachments' in r_dict['body']:
-        attachment_data = r_dict['body']['attachments']
-        payload_sha2s = r_dict.get('payload_sha2s', None)
-        validate_attachments(attachment_data, payload_sha2s)
+    server_validation(r_dict['body'], r_dict.get('auth', None), r_dict.get('payload_sha2s', None))
+
     return r_dict
 
 def validate_attachments(attachment_data, payload_sha2s):

@@ -71,14 +71,18 @@ class StatementsTests(TestCase):
         self.cguid8 = str(uuid.uuid1())
 
         if settings.HTTP_AUTH_ENABLED:
-            self.existStmt = StatementManager(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            stmt = {"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-                "authority":{"objectType":"Agent","name":"tester1","mbox":"mailto:test1@tester.com"}}))
+                "authority":{"objectType":"Agent","name":"tester1","mbox":"mailto:test1@tester.com"}}
+
+            self.existStmt = StatementManager(stmt, stmt_json=json.dumps(stmt))
         else:
-            self.existStmt = StatementManager(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            stmt = {"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}))            
+                "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}
+
+            self.existStmt = StatementManager(stmt, stmt_json=json.dumps(stmt))
         
         self.exist_stmt_id = self.existStmt.model_object.statement_id
 
@@ -439,7 +443,6 @@ class StatementsTests(TestCase):
         self.assertEqual(lang_map2.keys()[0], "en-GB")
         self.assertEqual(lang_map2.values()[0], "failed")
 
-
     def test_put(self):
         guid = str(uuid.uuid1())
 
@@ -574,9 +577,9 @@ class StatementsTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        existStmt = StatementManager(json.dumps({"id":guid,
+        existStmt = StatementManager({"statement_id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
+            "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -884,8 +887,9 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        self.assertEqual(response.status_code, 404)
-        self.assertIn("did not match any agents on record", response.content)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Statements cannot have a non-Oauth group as the authority", response.content)
 
     def test_post_with_non_oauth_existing_group(self):
         ot = "Group"
@@ -1235,6 +1239,7 @@ class StatementsTests(TestCase):
         self.assertEqual(the_returned['object']['context']['revision'], 'Spelling error in target.')
         self.assertEqual(the_returned['object']['context']['statement']['id'], str(nested_sub_st_id))
         self.assertEqual(the_returned['object']['context']['statement']['objectType'], 'StatementRef')
+
         self.assertEqual(the_returned['object']['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey11'], 'contextVal11')
         self.assertEqual(the_returned['object']['context']['extensions']['ext:contextKey22'], 'contextVal22')
@@ -1551,7 +1556,9 @@ class StatementsTests(TestCase):
 
         r = self.client.get(reverse(views.statements), Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
+
         obj = json.loads(r.content)
+
         self.assertEqual(len(obj['statements']), 1)
         obj = obj['statements'][0]
         self.assertEqual(obj['id'], stmt_guid)

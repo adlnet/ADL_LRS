@@ -110,11 +110,16 @@ def create_stmt_result(stmt_set, stored, language, format):
     # blows up if the idlist is empty... so i gotta check for that
     idlist = stmt_set.values_list('id', flat=True)
     if idlist > 0:
-        stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
-            Statement.objects.filter(id__in=idlist).order_by(stored)]
+        if format == 'exact':
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([stmt.full_statement for stmt in \
+                Statement.objects.filter(id__in=idlist).order_by(stored)])
+        else:
+            stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
+                Statement.objects.filter(id__in=idlist).order_by(stored)]
+            stmt_result['more'] = ''
     else:
         stmt_result['statements'] = []
-    stmt_result['more'] = ''
+        stmt_result['more'] = ''
     return stmt_result
 
 def findstmtrefs(stmtset, sinceq, untilq):
@@ -173,12 +178,16 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
 
     # Save encoded_dict in cache
     cache.set(cache_key,encoded_info)
-    # Return first page of results
-    full_stmts = [stmt.object_return(language, format) for stmt in \
-                    Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
 
-    result['statements'] = full_stmts
-    result['more'] = MORE_ENDPOINT + cache_key        
+    # Return first page of results
+    if format == 'exact':
+        result = '{"statements": [%s], "more": "%s"}' % (",".join([stmt.full_statement for stmt in \
+                Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
+    else:
+        result['statements'] = [stmt.object_return(language, format) for stmt in \
+                        Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
+        result['more'] = MORE_ENDPOINT + cache_key    
+            
     return result
 
 def set_limit(req_limit):
@@ -206,7 +215,7 @@ def get_more_statement_request(req_id):
     language = decoded_info[5]
     format = decoded_info[6]
     stored = decoded_info[7]
-    
+
     # Build statementResult
     stmt_result = build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, stored, req_id)
     return stmt_result, attachments
@@ -220,9 +229,15 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
     # If that was the last page to display then just return the remaining stmts
     if current_page == total_pages:
         stmt_pager = Paginator(stmt_list, limit)
-        result['statements'] = [stmt.object_return(language, format) for stmt in \
-                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
-        result['more'] = ''
+        
+        # Return first page of results
+        if format == 'exact':
+            result = '{"statements": [%s], "more": ""}' % ",".join([stmt.object_return(language, format) for stmt in \
+                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)])
+        else:
+            result['statements'] = [stmt.object_return(language, format) for stmt in \
+                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
+            result['more'] = ""
 
         # Set current page back for when someone hits the URL again
         current_page -= 1
@@ -240,10 +255,17 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         stmt_pager = Paginator(stmt_list, limit)
         # Create cache key from hashed data (always 32 digits)
         cache_key = create_cache_key(stmt_list)
-        # Set result to have selected page of stmts and more endpoint
-        result['statements'] = [stmt.object_return(language, format) for stmt in \
-                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
-        result['more'] = MORE_ENDPOINT + cache_key
+        
+        # Return first page of results
+        if format == 'exact':
+            result = '{"statements": [%s], "more": "%s"}' % (",".join([stmt.object_return(language, format) for stmt in \
+                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
+        else:
+            # Set result to have selected page of stmts and more endpoint
+            result['statements'] = [stmt.object_return(language, format) for stmt in \
+                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
+            result['more'] = MORE_ENDPOINT + cache_key
+
         
         more_cache_list = []
         # Increment next page

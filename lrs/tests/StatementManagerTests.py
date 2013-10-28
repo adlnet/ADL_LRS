@@ -31,9 +31,9 @@ class StatementManagerTests(TestCase):
             response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
     def test_minimum_stmt(self):
-        stmt = StatementManager(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
+        stmt = StatementManager({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
-            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         verb = models.Verb.objects.get(id=stmt.model_object.verb.id)
@@ -46,10 +46,10 @@ class StatementManagerTests(TestCase):
 
     def test_given_stmtID_stmt(self):
         st_id = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({"id":st_id,
+        stmt = StatementManager({"statement_id":st_id,
             "actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
-            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
+            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         verb = models.Verb.objects.get(id=stmt.model_object.verb.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
@@ -69,58 +69,23 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.object_activity.id, activity.id)
         self.assertEqual(st.verb.id, verb.id)
 
-
-    def test_existing_stmtID_stmt(self):
-        st_id = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({"id":st_id,"verb":{"id":"verb:verb/url",
-            "display":{"en-US":"myverb"}}, "object": {"id":"act:activity"}, "actor":{"objectType":"Agent",
-            "mbox":"mailto:t@t.com"}}))
-        self.assertRaises(ParamConflict, StatementManager, json.dumps({"id":st_id,
-            "verb":{"id":"verb:verb/url","display":{"en-US":"myverb"}},"object": {'id':'act:activity2'},
-            "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
-
-    def test_voided_stmt(self):
-        stmt = StatementManager(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
-            "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}}))
-
-        st_id = stmt.model_object.statement_id
-        st_model = models.Statement.objects.get(statement_id=st_id)
-        self.assertEqual(st_model.voided, False)
-
-        stmt2 = StatementManager(json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
-            'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'StatementRef',
-            'id': str(st_id)}}))
-        
-        st_model = models.Statement.objects.get(statement_id=st_id)        
-        self.assertEqual(st_model.voided, True)
-
-        stmt_ref = models.StatementRef.objects.get(ref_id=str(st_id))
-        self.assertEqual(stmt_ref.object_type, 'StatementRef')
-
-
     def test_stmt_ref_as_object(self):
         st_id = str(uuid.uuid1())
 
-        stmt = StatementManager(json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
+        stmt = StatementManager({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"},
-            "id":st_id}))
+            "statement_id":st_id})
 
-        stmt2 = StatementManager(json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
+        stmt2 = StatementManager({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
-            'id': st_id}}))
+            'id': st_id}})
 
         stmts = models.Statement.objects.all()
         stmt_refs = models.StatementRef.objects.filter(ref_id=st_id)
         self.assertEqual(len(stmt_refs), 1)
         self.assertEqual(stmt_refs[0].ref_id, st_id)
         self.assertEqual(len(stmts), 2)
-
-    def test_stmt_ref_no_existing_stmt(self):
-        self.assertRaises(IDNotFoundError, StatementManager, json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
-            'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
-            'id': "12345678-1234-5678-1234-567812345678"}}))
 
     def test_voided_wrong_type(self):
         stmt = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
@@ -165,9 +130,9 @@ class StatementManagerTests(TestCase):
 
     def test_result_stmt(self):
         time = "P0Y0M0DT1H311M01S"
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
-            "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}}))
+            "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}})
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
 
         self.assertEqual(stmt.model_object.verb.verb_id, "verb:verb/url")
@@ -183,10 +148,10 @@ class StatementManagerTests(TestCase):
 
     def test_result_ext_stmt(self):
         time = "P0Y0M0DT1H311M01S"
-        stmt = StatementManager(json.dumps({"actor":{'name':'jon',
+        stmt = StatementManager({"actor":{'name':'jon',
             'mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
-            'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
+            'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}})
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
         extKeys = stmt.model_object.result_extensions.keys()
@@ -311,10 +276,10 @@ class StatementManagerTests(TestCase):
 
     def test_result_score_stmt(self):
         time = "P0Y0M0DT1H311M01S"
-        stmt = StatementManager(json.dumps({"actor":{'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
+        stmt = StatementManager({"actor":{'objectType':'Agent','name':'jon','mbox':'mailto:jon@example.com'},
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity14'}, "result": {'score':{'scaled':.95},
             'completion': True, 'success': True, 'response': 'yes', 'duration': time,
-            'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}}))
+            'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}})
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
@@ -349,8 +314,8 @@ class StatementManagerTests(TestCase):
 
     def test_no_registration_context_stmt(self):
         # expect the LRS to assign a context registration uuid
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'act:activity14'},
-                         'context': {'contextActivities': {'other': {'id': 'act:NewActivityID'}}}})).model_object
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'act:activity14'},
+                         'context': {'contextActivities': {'other': {'id': 'act:NewActivityID'}}}}).model_object
         self.assertIsNotNone(stmt.context_registration)   
 
     def test_wrong_statement_type_in_context(self):
@@ -379,10 +344,10 @@ class StatementManagerTests(TestCase):
 
     def test_context_stmt(self):
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'},
-                'grouping':{'id':'act:GroupID'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}}))
+                'grouping':{'id':'act:GroupID'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}})
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         context_activities = stmt.model_object.statementcontextactivity_set.all()
@@ -406,13 +371,13 @@ class StatementManagerTests(TestCase):
 
     def test_context_activity_list(self):
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
                 'context':{'registration': guid,
                 'contextActivities': {'other': [{'id': 'act:NewActivityID'},{'id':'act:anotherActID'}],
                 'grouping':{'id':'act:GroupID'}},
                 'revision': 'foo', 'platform':'bar',
-                'language': 'en-US'}}))
+                'language': 'en-US'}})
         
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
 
@@ -448,10 +413,10 @@ class StatementManagerTests(TestCase):
 
     def test_context_ext_stmt(self):
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
-                'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}))
+                'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}})
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         extKeys = stmt.model_object.context_extensions.keys()
@@ -480,15 +445,15 @@ class StatementManagerTests(TestCase):
     def test_stmtref_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
 
-        existing_stmt = StatementManager(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
-            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = StatementManager({'statement_id':stmt_guid, 'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+            'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
 
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US',
-                'statement': {'objectType': 'StatementRef','id': stmt_guid}}}))
+                'statement': {'objectType': 'StatementRef','id': stmt_guid}}})
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
@@ -522,16 +487,16 @@ class StatementManagerTests(TestCase):
 
     def test_instructor_in_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = StatementManager(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
-            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = StatementManager({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
 
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:jon@example.com', 
             'name':'jon'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity17'},
             'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon',
             'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
             'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,
-            'objectType':'StatementRef'}}}))
+            'objectType':'StatementRef'}}})
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
@@ -559,16 +524,16 @@ class StatementManagerTests(TestCase):
 
     def test_actor_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = StatementManager(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
-            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = StatementManager({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
 
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent', 'name': 'steve',
+        stmt = StatementManager({'actor':{'objectType':'Agent', 'name': 'steve',
             'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity18'},
             'context':{'registration': guid, 'instructor': {'objectType':'Agent','name':'jon',
             'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID1'}},
             'revision': 'foob', 'platform':'bard','language': 'en-US', 'statement': {'id':stmt_guid,
-            "objectType":"StatementRef"}}}))
+            "objectType":"StatementRef"}}})
 
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
@@ -596,12 +561,11 @@ class StatementManagerTests(TestCase):
 
     def test_agent_as_object_with_context_stmt(self):
         stmt_guid = str(uuid.uuid1())
-        existing_stmt = StatementManager(json.dumps({'id':stmt_guid, 'actor':{'objectType':'Agent',
-            'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}}))
+        existing_stmt = StatementManager({'statement_id':stmt_guid, 'actor':{'objectType':'Agent',
+            'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
 
         guid = str(uuid.uuid1())
         stmt = StatementManager(
-            json.dumps(
                 {'actor':{
                 'objectType':'Agent',
                 'mbox':'mailto:l@l.com',
@@ -632,7 +596,6 @@ class StatementManagerTests(TestCase):
                     }
                  }
                 }
-            )
         )
 
         stmt_ref = models.StatementRef(ref_id=stmt_guid)
@@ -659,8 +622,8 @@ class StatementManagerTests(TestCase):
 
     def test_agent_as_object(self):
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
-            'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}}))
+        stmt = StatementManager({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
+            'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
 
         st = models.Statement.objects.get(id=stmt.model_object.id)
         agent = models.Agent.objects.get(id=stmt.model_object.object_agent.id)
@@ -695,13 +658,13 @@ class StatementManagerTests(TestCase):
 
     def test_substatement_as_object(self):
         guid = str(uuid.uuid1())
-        stmt = StatementManager(json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
+        stmt = StatementManager({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url"}, 'object':{'objectType':'SubStatement',
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
             'object': {'objectType':'Activity', 'id':'act:testex.com'}, 'result':{'completion': True, 'success': True,
             'response': 'kicked'}, 'context':{'registration': guid,
             'contextActivities': {'other': {'id': 'act:NewActivityID'}},'revision': 'foo', 'platform':'bar',
-            'language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}}))
+            'language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}})
 
         outer_stmt = models.Statement.objects.get(id=stmt.model_object.id)
         sub_stmt = models.SubStatement.objects.get(id=outer_stmt.object_substatement.id)
@@ -723,10 +686,10 @@ class StatementManagerTests(TestCase):
         mbox = "mailto:the.groupSMT@example.com"
         members = [{"name":"agentA","mbox":"mailto:agentA@example.com"},
                     {"name":"agentB","mbox":"mailto:agentB@example.com"}]
-        testagent = json.dumps({"objectType":ot, "name":name, "mbox":mbox,"member":members})
+        testagent = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
         
-        stmt = StatementManager(json.dumps({"actor":testagent, 'verb': {"id":"verb:verb/url"},"object": {"id":"act:activity5",
-            "objectType": "Activity"}}))
+        stmt = StatementManager({"actor":testagent, 'verb': {"id":"verb:verb/url"},"object": {"id":"act:activity5",
+            "objectType": "Activity"}})
         activity = models.Activity.objects.get(id=stmt.model_object.object_activity.id)
         actor = models.Agent.objects.get(id=stmt.model_object.actor.id)
 
@@ -742,19 +705,19 @@ class StatementManagerTests(TestCase):
         self.assertEqual(actor.mbox, mbox)
 
     def test_activity_correctresponsepattern(self):
-        act1 = ActivityManager(json.dumps({
+        act1 = ActivityManager({
             'objectType': 'Activity', 'id':'act:foo',
             'definition': {'name': {'en-US':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'],
-                'extensions': {'ext:key1': 'value1'}}}))
+                'extensions': {'ext:key1': 'value1'}}})
 
-        act2 = ActivityManager(json.dumps({
+        act2 = ActivityManager({
             'objectType': 'Activity', 'id':'act:baz',
             'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'],
-                'extensions': {'ext2:key1': 'value1'}}}))
+                'extensions': {'ext2:key1': 'value1'}}})
 
 
         acts = len(models.Activity.objects.all())
@@ -766,13 +729,13 @@ class StatementManagerTests(TestCase):
     # same stmt, and if an act from context doesn't exist anywhere
     def test_context_statement_delete(self):
         guid = str(uuid.uuid1())
-        stmt1 = StatementManager(json.dumps({
+        stmt1 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity'}}))
+            "object": {'id':'act:activity'}})
         
         st1_id = str(stmt1.model_object.statement_id)
-        stmt2 = StatementManager(json.dumps({
+        stmt2 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'},
@@ -782,7 +745,7 @@ class StatementManagerTests(TestCase):
                 'contextActivities': {'other': [{'id': 'act:activity'},{'id':'act:activity1'}],
                 'grouping':{'id':'act:activity2'}},'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'extensions':{'ext:key1': 'value1'},
-                'statement':{'objectType': 'StatementRef','id':st1_id}}}))
+                'statement':{'objectType': 'StatementRef','id':st1_id}}})
 
         self.assertEqual(len(models.Statement.objects.all()), 2)
         # Team creates a group object and the agent inside of itself
@@ -799,7 +762,7 @@ class StatementManagerTests(TestCase):
         self.assertIn('act:activity', models.Activity.objects.values_list('activity_id', flat=True))
 
     def test_context_in_another_context_statement_delete(self):
-        stmt1 = StatementManager(json.dumps({
+        stmt1 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url1"},
             "object": {'id':'act:activity1'},
@@ -808,9 +771,9 @@ class StatementManagerTests(TestCase):
                     'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
                 'contextActivities': {'other': [{'id': 'act:activity1'},{'id':'act:activity2'}],
                 'grouping':{'id':'act:activity3'}},'revision': 'foo', 'platform':'bar','language': 'en-US',
-                'extensions':{'ext:key1': 'value1'}}}))
+                'extensions':{'ext:key1': 'value1'}}})
         
-        stmt2 = StatementManager(json.dumps({
+        stmt2 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url2"},
             "object": {'id':'act:activity4'},
@@ -818,9 +781,9 @@ class StatementManagerTests(TestCase):
                 'team':{'objectType': 'Group', 'name':'mygroup',
                     'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
                 'contextActivities': {'other': [{'id': 'act:activity2'},{'id':'act:activity3'}],
-                'grouping':{'id':'act:activity5'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}}))
+                'grouping':{'id':'act:activity5'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}})
 
-        stmt3 = StatementManager(json.dumps({
+        stmt3 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url3"},
             "object": {'id':'act:activity1'},
@@ -828,7 +791,7 @@ class StatementManagerTests(TestCase):
                 'team':{'objectType': 'Group', 'name':'mygroup',
                     'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
                 'contextActivities': {'other': [{'id': 'act:activity6'},{'id':'act:activity5'}],
-                'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}}))
+                'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}})
 
         self.assertEqual(len(models.Activity.objects.all()), 6)
         self.assertEqual(len(models.Agent.objects.all()), 7)
@@ -859,15 +822,15 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Statement.objects.all()), 0)
 
     def test_simple_statement_delete(self):
-        stmt1 = StatementManager(json.dumps({
+        stmt1 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity1'}}))
+            "object": {'id':'act:activity1'}})
         
-        stmt2 = StatementManager(json.dumps({
+        stmt2 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:b@b.com'},
             'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity1'}}))
+            "object": {'id':'act:activity1'}})
 
         self.assertEqual(len(models.Agent.objects.all()), 2)
         self.assertEqual(len(models.Activity.objects.all()), 1)
@@ -883,18 +846,18 @@ class StatementManagerTests(TestCase):
         self.assertEqual(models.Statement.objects.all()[0].id, stmt1.model_object.id)
 
     def test_more_conacts_delete(self):
-        stmt1 = StatementManager(json.dumps({
+        stmt1 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity1'}}))
+            "object": {'id':'act:activity1'}})
 
-        stmt2 = StatementManager(json.dumps({
+        stmt2 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity2'},
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
                 'contextActivities': {'other': {'id': 'act:activity1'}},'revision': 'foo', 'platform':'bar',
-                'language': 'en-US'}}))
+                'language': 'en-US'}})
 
         self.assertEqual(len(models.Agent.objects.all()), 2)
         self.assertEqual(len(models.Activity.objects.all()), 2)
@@ -909,18 +872,18 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(models.Statement.objects.all()), 1)
 
     def test_activity_also_in_conact(self):
-        stmt1 = StatementManager(json.dumps({
+        stmt1 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'},
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
                 'contextActivities': {'other': {'id': 'act:activity2'}},'revision': 'foo', 'platform':'bar',
-                'language': 'en-US'}}))
+                'language': 'en-US'}})
 
-        stmt2 = StatementManager(json.dumps({
+        stmt2 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
-            "object": {'id':'act:activity2'}}))
+            "object": {'id':'act:activity2'}})
 
         self.assertEqual(len(models.Agent.objects.all()), 2)
         self.assertEqual(len(models.Activity.objects.all()), 2)
@@ -946,7 +909,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(models.Statement.objects.all()[0].id, stmt1.model_object.id)
 
     def test_sub_delete(self):
-        stmt1 = StatementManager(json.dumps(
+        stmt1 = StatementManager(
             {"actor":{"objectType":"Agent","mbox":"mailto:out@out.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/1"},
             "object":{"objectType":"SubStatement",
@@ -957,26 +920,26 @@ class StatementManagerTests(TestCase):
                 "context":{"contextActivities": {"other": {"id": "act:subconactivity1"}},
                     'team':{'objectType': 'Group', 'name':'conteamgroup',
                     'member':[{"name":"agent_in_conteamgroup","mbox":"mailto:actg@actg.com"}]},"revision": "foo",
-                    "platform":"bar","language": "en-US","extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}}))
+                    "platform":"bar","language": "en-US","extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
 
-        stmt2 = StatementManager(json.dumps(
+        stmt2 = StatementManager(
             {"actor": {"objectType": "Agent", "mbox": "mailto:ref@ref.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/2"},
-            "object":{"objectType": "StatementRef", "id":str(stmt1.model_object.statement_id)}}))
+            "object":{"objectType": "StatementRef", "id":str(stmt1.model_object.statement_id)}})
 
-        stmt3 = StatementManager(json.dumps(
+        stmt3 = StatementManager(
             {"actor": {"objectType": "Agent", "mbox": "mailto:norm@norm.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/3"},
-            "object":{"objectType": "Activity", "id":"act:activity1"}}))
+            "object":{"objectType": "Activity", "id":"act:activity1"}})
 
-        stmt4 = StatementManager(json.dumps({
+        stmt4 = StatementManager({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/4"},
             "object": {'id':'act:activity2'},
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
                 'contextActivities': {'other': {'id': 'act:conactivity1'}},'revision': 'foo', 'platform':'bar',
                 'language': 'en-US', 'statement':{'objectType': 'StatementRef',
-                'id':str(stmt3.model_object.statement_id)}}}))
+                'id':str(stmt3.model_object.statement_id)}}})
 
 
         self.assertEqual(len(models.Statement.objects.all()), 4)

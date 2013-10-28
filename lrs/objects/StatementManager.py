@@ -1,14 +1,16 @@
 import json
 import re
+# from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
+# from django.utils.timezone import utc
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 from lrs import models, exceptions
-from lrs.util import get_user_from_auth, uri
+from lrs.util import get_user_from_auth, uri, convert_to_utc
 from AgentManager import AgentManager
 from ActivityManager import ActivityManager
 
@@ -27,45 +29,23 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
-    def __init__(self, data, auth=None, define=True):
+    def __init__(self, data, auth=None, define=True, stmt_json=''):
         self.auth = auth
         self.define = define
-        if not isinstance(data, dict):
-            self.data = self.parse(data)
-        else:
-            self.data = data
+        self.data = data
+        if self.__class__.__name__ == 'StatementManager':
+            self.data['full_statement'] = stmt_json
         self.populate()
-
-    #Make sure initial data being received is JSON
-    def parse(self,data):
-        try:
-            params = json.loads(data)
-        except Exception, e:
-            err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data,
-                type(data))
-            raise exceptions.ParamError(err_msg) 
-        return params
 
     @transaction.commit_on_success
     def void_statement(self,stmt_id):
-        # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
-        # since you cannot unvoid a statement and should just reissue the statement under a new ID.
-        try:
-            stmt = models.Statement.objects.get(statement_id=stmt_id)
-        except models.Statement.DoesNotExist:
-            err_msg = "Statement with ID %s does not exist" % stmt_id
-            raise exceptions.IDNotFoundError(err_msg)
-        
-        # Check if it is already voided 
-        if not stmt.voided:
-            stmt.voided = True
-            stmt.save()
-            # Create statement ref
-            stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
-            return stmt_ref
-        else:
-            err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % stmt_id
-            raise exceptions.Forbidden(err_msg)
+        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt.voided = True
+        stmt.save()
+
+        # Create statement ref
+        stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
+        return stmt_ref
 
     @transaction.commit_on_success
     # Save sub to DB
@@ -105,6 +85,12 @@ class StatementManager():
         con_act_data = self.data.pop('context_contextActivities',{})
 
         self.data['user'] = get_user_from_auth(self.auth)
+        # import pdb
+        # pdb.set_trace()
+        # Name of id field in models is statement_id
+        if 'id' in self.data:
+            self.data['statement_id'] = self.data['id']
+            del self.data['id']
 
         # Try to create statement
         stmt = models.Statement.objects.create(**self.data)
@@ -146,13 +132,9 @@ class StatementManager():
             attachment = models.StatementAttachment.objects.get(sha2=sha2)
             created = False
         except models.StatementAttachment.DoesNotExist:
-            try:
-                attachment = models.StatementAttachment.objects.create(**attach)
-            except TypeError, e:
-                err_msg = "Invalid field in attachments - %s" % e.message
-                raise exceptions.ParamError(err_msg)
-                
-            created = True                
+            attachment = models.StatementAttachment.objects.create(**attach)                
+            created = True
+
             # Since there is a sha2, there must be a payload cached
             # Decode payload from msg object saved in cache and create ContentFile from raw data
             msg = att_cache.get(sha2)
@@ -276,68 +258,22 @@ class StatementManager():
             elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
-                if not models.Statement.objects.filter(statement_id=statement_object_data['id']).exists():
-                    err_msg = "No statement with ID %s was found" % statement_object_data['id']
-                    raise exceptions.IDNotFoundError(err_msg)
-                else:
-                    self.data['object_statementref'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
+                self.data['object_statementref'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
         del self.data['object']
 
     def build_authority_object(self):
+        # Could still have no authority in stmt if HTTP_AUTH and OAUTH are disabled
         if 'authority' in self.data:
-            auth_data = self.data['authority']
-            if auth_data['objectType'] == 'Group':
-                self.data['authority'] = AgentManager(params=auth_data, create=False, 
-                    define=self.define).Agent
-            else:
-                self.data['authority'] = AgentManager(params=auth_data, create=True, 
-                    define=self.define).Agent
-
-            # If they try using a non-oauth group that already exists-throw error
-            if self.data['authority'].objectType == 'Group' and not self.data['authority'].oauth_identifier:
-                err_msg = "Statements cannot have a non-Oauth group as the authority"
-                raise exceptions.ParamError(err_msg)
-        else:
-            # Look at request from auth if not supplied in stmt_data.
-            if self.auth:
-                auth_args = {}
-                if self.auth.__class__.__name__ == 'Agent':
-                    if self.auth.oauth_identifier:
-                        self.data['authority'] = self.auth
-                    else:
-                        err_msg = "Statements cannot have a non-Oauth group as the authority"
-                        raise exceptions.ParamError(err_msg)
-                else:    
-                    auth_args['name'] = self.auth.username
-                    if self.auth.email.startswith("mailto:"):
-                        auth_args['mbox'] = self.auth.email
-                    else:
-                        auth_args['mbox'] = "mailto:%s" % self.auth.email
-                    self.data['authority'] = AgentManager(params=auth_args, create=True, define=self.define).Agent
-
-    def check_statement_id(self):
-        if 'id' in self.data:
-            stmt_id = self.data['id']
-            if not models.Statement.objects.filter(statement_id=stmt_id).exists():
-                self.data['statement_id'] = stmt_id
-                del self.data['id']
-            else:
-                err_msg = "The Statement ID %s already exists in the system" % stmt_id
-                raise exceptions.ParamConflict(err_msg)        
+            self.data['authority'] = AgentManager(params=self.data['authority'], create=True, 
+                define=self.define).Agent
 
     #Once JSON is verified, populate the statement object
     def populate(self):
         if self.__class__.__name__ == 'StatementManager':
-            #Set voided to default false
-            self.data['voided'] = False
-
             # If non oauth group won't be sent with the authority key, so if it's a group it's a non
             # oauth group which isn't allowed to be the authority
             self.build_authority_object()
-
-            # Check if statement_id already exists, throw exception if it does
-            # There will only be an ID when someone is performing a PUT
-            self.check_statement_id()
+            self.data['voided'] = False
         
         self.build_verb_object()
         self.build_statement_object()

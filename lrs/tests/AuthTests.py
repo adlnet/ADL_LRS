@@ -48,10 +48,10 @@ class AuthTests(TestCase):
         self.cguid7 = str(uuid.uuid1())
         self.cguid8 = str(uuid.uuid1())
 
-
-        self.existStmt = StatementManager(json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = {"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}))            
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}}
+        self.existStmt = StatementManager(stmt, stmt_json=json.dumps(stmt))
         
         self.exist_stmt_id = self.existStmt.model_object.statement_id
 
@@ -141,7 +141,6 @@ class AuthTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         stmt_payload = self.existStmt1
         self.putresponse1 = self.client.put(path, stmt_payload, content_type="application/json",  X_Experience_API_Version="1.0.0")
-    
         self.assertEqual(self.putresponse1.status_code, 204)
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
         stmt = models.Statement.objects.filter(statement_id=self.guid1).update(stored=time)
@@ -398,9 +397,9 @@ class AuthTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        existStmt = StatementManager(json.dumps({"id":guid,
+        existStmt = StatementManager({"statement_id":guid,
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}))
+            "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -845,7 +844,7 @@ class AuthTests(TestCase):
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
         cguid1 = str(uuid.uuid1())
-        # print cguid1
+
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},"object": {"id":"act:test_wrong_list_post2"},
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True, "response": "wrong",
             "extensions":{"ext:resultwrongkey1": "value1", "ext:resultwrongkey2":"value2"}}},
