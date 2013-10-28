@@ -67,7 +67,11 @@ class ActivityProfileManager():
                 #If it already exists delete it
                 etag.check_preconditions(request_dict,p, required=True)
                 if p.profile:
-                    p.profile.delete()
+                    try:
+                        p.profile.delete()
+                    except OSError:
+                        # probably was json before
+                        p.json_profile = {}
             
             self.save_profile(p, created, profile, request_dict)
         else:
