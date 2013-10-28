@@ -91,7 +91,11 @@ class AgentManager():
 
             if not created:
                 etag.check_preconditions(request_dict,p, required=True)
-                p.profile.delete()
+                try:
+                    p.profile.delete()
+                except OSError:
+                    # p was probably json before.. gotta clear that field
+                    p.json_profile = {}
             self.save_profile(p, created, profile, request_dict)
         else:
             if not created:
@@ -154,6 +158,8 @@ class AgentManager():
             pass #we don't want it anyway
         except IDNotFoundError:
             pass
+        except OSError:
+            pass # this is ok,too
 
     def get_agent_json(self):
         return json.dumps(self.Agent.get_agent_json(), sort_keys=True)
