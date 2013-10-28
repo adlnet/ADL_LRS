@@ -116,10 +116,10 @@ def create_stmt_result(stmt_set, stored, language, format):
         else:
             stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
                 Statement.objects.filter(id__in=idlist).order_by(stored)]
-            stmt_result['more'] = ''
+            stmt_result['more'] = ""
     else:
         stmt_result['statements'] = []
-        stmt_result['more'] = ''
+        stmt_result['more'] = ""
     return stmt_result
 
 def findstmtrefs(stmtset, sinceq, untilq):

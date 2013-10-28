@@ -957,8 +957,7 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         stmts = obj['statements']
         self.assertEqual(len(stmts), 2)
-        # import pdb
-        # pdb.set_trace()
+
         stmt_ref_stmt_ids = [k['object']['id'] for k in stmts if k['object']['objectType']=='StatementRef']
         stmt_ids = [k['id'] for k in stmts if k['object']['objectType']!='StatementRef']
         diffs = set(stmt_ref_stmt_ids) ^ set(stmt_ids)
@@ -1325,8 +1324,7 @@ class StatementFilterTests(TestCase):
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
-        # import pdb
-        # pdb.set_trace()
+
         stmts = obj['statements']
         # only expecting the one made at the beginning of this test
         stmt_r = stmts[0]
