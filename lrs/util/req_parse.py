@@ -72,6 +72,8 @@ def parse(request, more_id=None):
             if 'body' in r_dict:
                 # If body is a list, it's a post
                 if not isinstance(r_dict['body'], list):
+                    if not isinstance(r_dict['body'], dict):
+                        raise BadRequest("Cannot evaluate data into dictionary to parse -- Error: %s" % r_dict['body'])
                     # If actor verb and object not in body - means it's a GET or invalid POST
                     if not ('actor' in r_dict['body'] and 'verb' in r_dict['body'] and 'object' in r_dict['body']):
                         # If body keys are in get params - GET - else invalid request
