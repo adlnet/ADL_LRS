@@ -1,157 +1,175 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<style type="text/css">
+.border {
+  position: relative;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 19px 19px 14px;
+  *padding-top: 19px;
+  background-color: #f9f9ff;
+  border: 1px solid #ddd;
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+/* for json syntax highlighting */
+pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.string { color: green; }
+.number { color: blue; }
+.boolean { color: red; }
+.null { color: red; }
+.key { color: black; }
+/* end json syntax highlighting */
+</style>
+{% endblock extra_css %}
 {% block title %}{{user.username}} Home{% endblock title %}
 {% block heading %}{{user.username}} Home{% endblock heading %}
 {% block content %}
-</br>
-    
-<div id="tab-container" class="tab-container">
-  <ul class='etabs'>
-    <li class='tab default'><a href="#clientapps">Client Apps</a></li>
-    <li class='tab'><a href="#myaccesstokens">Access Tokens</a></li>
-    <li class='tab statements'><a href="#mystatements">Statements</a></li>
-  </ul>
-    <div id="mystatements">
-        <span class="heading">Statements:</span><span class="small-link"><a id="delstmts" href="#mystatements">delete all statements</a></span>
+<ul class='nav nav-tabs' id="mytabs">
+    <li class='statements default'><a href="#mystatements" id='showme' data-toggle="tab">Statements</a></li>
+    <li><a href="#clientapps" data-toggle="tab">Client Apps</a></li>
+    <li><a href="#myaccesstokens" data-toggle="tab">Access Tokens</a></li>
+</ul>
+<div id="mycontent" class="tab-content">
+    <div id="mystatements" class="tab-pane fade">
+        <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">delete all statements</a></small>
         <!-- content -->
     </div>
-    <div id="clientapps">
-        <span class="heading">Client Apps:</span><span class="small-link"><a href="{% url lrs.views.reg_client %}">add app</a></span>
+    <div id="clientapps" class="tab-pane fade">
+        <strong>Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">add app</a></small>
         {% if client_apps %}
+        <div class="row">
             {% for app in client_apps %}
-            <ul>
-                <li class="left field">{{ app.name }}</li>
-                <li class="left app_status" style="color:
-                    {% if app.status == 1 %}goldenrod
-                    {% elif app.status == 2 %}green
-                    {% elif app.status == 3 %}darkred
-                    {% elif app.status == 4 %}darkred
-                    {% endif %}">{{ app.get_status_display }}</li>
-                {% if app.status != 4 %}
-                <li class="left"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></li>{% endif %}
-                <ul>
-                    <li><span class="field">Key:</span> {{ app.key }}</li>
-                    <li><span class="field">Secret:</span> {{ app.secret }}</li>
-                </ul>
-            </ul>
+            <div class="span5 border">
+                <h4 class="appname">{{ app.name }}</h4>
+                <span class="{% if app.status == 1 %}label label-warning
+                            {% elif app.status == 2 %}label label-success
+                            {% elif app.status == 3 %}label label-important
+                            {% elif app.status == 4 %}label label-important
+                            {% endif %} app_status">{{ app.get_status_display}}</span>
+                <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
+                <table class="table">
+                    <tr><td><strong>key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
+                    <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
+                </table>
+            </div>
             {% endfor %}
+        </div>
         {% else %}
-        None
+        <p>None</p>
         {% endif %}
     </div>
-    <div id="myaccesstokens">
-        <span class="heading">Access Tokens:</span>
+    <div id="myaccesstokens" class="tab-pane fade">
+        <strong>Access Tokens:</strong>
         {% if access_tokens %}
+        <div class="row">
         {% for token in access_tokens %}
-        <ul>
-            <li class="left field"> {{ token.consumer.name }} </li>
-            <li class="left"><a class="delete_token" href='#myaccesstokens'>delete</a>
-                <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span></li>
-            <ul>
-                <li><span class="field">Date created:</span> {{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</li>
-                <li><span class="field">Scopes allowed:</span>
-                    <ul>
-                        {% for scope in token.scope_to_list %}
-                        <li>{{ scope }}</li>
-                        {% endfor %}
-                    </ul>
-            </ul>
-        </ul>
-        {% endfor %}
-        {% else %}
-        <p> no access tokens </p>
-        {% endif %}
+            <div class="span5 border">
+                <h4>{{ token.consumer.name }}</h4>
+                <a class="delete_token" href='#myaccesstokens'>delete</a>
+                <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
+                <table>
+                    <tr><td><strong>Date created</strong></td><td>{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</td></tr>
+                    <tr><td><strong>Scopes allowed</strong></td><td></td></tr>
+                    {% for scope in token.scope_to_list %}
+                    <tr><td></td><td>{{ scope }}</td></tr>
+                    {% endfor %}
+                </table>
+                {% endfor %}
+                {% else %}
+                <p> no access tokens </p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
-{% endblock content %}
-{% block extra_js %}
-<script src="{{ STATIC_URL }}scripts/jquery.easytabs.min.js" type="text/javascript"></script>
-<script src="{{ STATIC_URL }}scripts/jquery.hashchange.min.js" type="text/javascript"></script>
-<script type="text/javascript">
-$(document).ready(function() {
-    $(".stmt_link").click(stmtLink);
-    $('#tab-container').easytabs({
-        defaultTab: "li.default"
+    {% endblock content %}
+    {% block extra_js %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#showme').tab('show');
+            $(".stmt_link").parent().parent().click(stmtLink);
+            $('.change_app_status').click(function(){
+                var appname = $(this).parent().siblings(".appname").text();
+                var status = "";
+                cur_s = $(this).parent().siblings(".app_status").text();
+                if (cur_s == "Accepted") status = "Canceled";
+                else status = "Accepted";
+                $.ajax({
+                    url: "{% url lrs.views.my_app_status %}?app_name="+appname+"&status="+status,
+                    type: "POST",
+                    context: $(this),
+                    success: function (data){
+                        var link, status, theclass;
+                        if (data['status'] == "Canceled"){
+                            link = "Activate";
+                            status = data['status'];
+                            theclass = "label label-important app_status";
+                        }
+                        else {
+                            link = "Deactivate";
+                            status = data['status'];
+                            theclass = "label label-success app_status";
+                        }
+                        $(this).text(link);
+                        $(this).parent().siblings(".app_status").text(status);
+                        $(this).parent().siblings(".app_status").removeClass().addClass(theclass);
+                    },
+                    error: function(xhr, ajaxOptions, thrownError){
+                        alert(thrownError);
+                    },
+                    timeout : 15000
+                });
+});
+$('.delete_token').click(function(){
+    var id = $(this).next('span').text();
+    $.ajax({
+        url: "{% url lrs.views.delete_token %}?id="+id,
+        type: "DELETE",
+        context: $(this),
+        success: function(data){
+            $(this).parent().remove();
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout:5000
     });
-    $('.change_app_status').click(function(){
-        var appname = $(this).parent().siblings(".field").text();
-        var status = "";
-        cur_s = $(this).parent().siblings(".app_status").text();
-        if (cur_s == "Accepted") status = "Canceled";
-        else status = "Accepted";
-        $.ajax({
-            url: "{% url lrs.views.my_app_status %}?app_name="+appname+"&status="+status,
-            type: "POST",
-            context: $(this),
-            success: function (data){
-                var link, status, color;
-                if (data['status'] == "Canceled"){
-                    link = "Activate";
-                    status = data['status'];
-                    color = "darkred";
-                }
-                else {
-                    link = "Deactivate";
-                    status = data['status'];
-                    color = "green";
-                }
-                $(this).text(link);
-                $(this).parent().siblings(".app_status").text(status);
-                $(this).parent().siblings(".app_status").css("color", color);
-            },
-            error: function(xhr, ajaxOptions, thrownError){
-                alert(thrownError);
-            },
-            timeout : 15000
-        });
-    });
-    $('.delete_token').click(function(){
-        var id = $(this).next('span').text();
-        $.ajax({
-            url: "{% url lrs.views.delete_token %}?id="+id,
-            type: "DELETE",
-            context: $(this),
-            success: function(data){
-                $(this).parent().parent('ul').remove();
-            },
-            error: function(xhr, ajaxOptions, thrownError){
-                alert(thrownError);
-            },
-            timeout:5000
-        });
-    });
-    if ($('#mystatements').hasClass('active') && ! $('#mystatements ul').length){
+});
+if ($('#mystatements').hasClass('active') && ! $('#mystatements ul').length){
+    getStmts();
+}
+$('a[data-toggle="tab"]').on('shown', function (e) {
+    if (e.target.hash == "#mystatements"){
         getStmts();
     }
-    $('#tab-container').bind('easytabs:after', function(event, $clicked, $targetPanel, settings){
-        if ($targetPanel.attr("id") == "mystatements"){
+});
+$('#mystatements #delstmts').click(function(){
+    $.ajax({
+        url: "{% url lrs.views.my_statements %}",
+        type: "DELETE",
+        context: $(this),
+        success: function (data){
             getStmts();
-        }
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout : 15000
     });
-    $('#mystatements #delstmts').click(function(){
-        $.ajax({
-            url: "{% url lrs.views.my_statements %}",
-            type: "DELETE",
-            context: $(this),
-            success: function (data){
-                getStmts();
-            },
-            error: function(xhr, ajaxOptions, thrownError){
-                alert(thrownError);
-            },
-            timeout : 15000
-        });
-    });
+});
 });
 
 function stmtLink(event){
     if (event && event.currentTarget){
         ele = event.target;
     }
-    if(!$(ele).parent().next('pre#stmts').length){
-        getStmt($(ele).text(), this);
+    if(!$(ele).children('pre#stmts').length){
+        getStmt($(ele).children('.stmt_link').text(), ele);
     }
     else{
-        $(ele).parent().next('pre#stmts').toggle();
+        $(ele).children('pre#stmts').toggle();
     }
     return false;
 }
@@ -162,51 +180,53 @@ function getStmts(event){
         u = event.data.the_url;
     }
     $.ajax({
-            url: u,
-            type: "GET",
-            context: $('#mystatements'),
-            success: function (data){
-                if ($(this).children('ul').length){
-                    $(this).children('ul').replaceWith(uiData(data));
-                }
-                else {
-                    $(this).append(uiData(data));
-                }
-                $(this).children('ul').find('.stmt_link').click(stmtLink);
-                $(this).children('ul').find('li.prev-next a.previous').click(
-                        {the_url: $(this).children('ul').find('li.prev-next a.previous').attr("data-target")}, getStmts);
-                $(this).children('ul').find('li.prev-next a.next').click(
-                        {the_url: $(this).children('ul').find('li.prev-next a.next').attr("data-target")}, getStmts);
-            },
-            error: function(xhr, ajaxOptions, thrownError){
-                alert(thrownError);
-            },
-            timeout : 15000
-        });
+        url: u,
+        type: "GET",
+        context: $('#mystatements'),
+        success: function (data){
+            if ($(this).children('div').length){
+                $(this).children('div').replaceWith(uiData(data));
+            }
+            else {
+                $(this).append(uiData(data));
+            }
+            $(this).children('div').click(stmtLink);
+            $(this).children('div').children('ul').find('li.previous a').click(
+                {the_url: $(this).children('div').children('ul').find('li.previous a').attr("data-target")}, getStmts);
+            $(this).children('div').children('ul').find('li.next a').click(
+                {the_url: $(this).children('div').children('ul').find('li.next a').attr("data-target")}, getStmts);
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout : 15000
+    });
 }
 
 function uiData(data){
     if (data['stmts'].length == 0){
-        return "<ul><li>no statements</li></ul>"
+        return "<div>no statements</div>"
     }
-    var ret = "<ul>";
+    var ret = "<div>";
     for (var i = 0; i < data['stmts'].length; i++) {
         var stmt = data['stmts'][i];
-        ret += "<li><span class='statement field'>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</span>";
-        ret += "<span class='timestamp'>" + stmt['timestamp'] + "</span>";
-        ret += " <a href='#' class='stmt_link lpad'>" + stmt['statement_id'] + "</a> ";
-        ret += "</li>";
+        ret += "<div class='row'>";
+        ret += "<div class='span9 border'><span class='statement'><strong>" +stmt['actor_name'] + " " + stmt['verb'] + " " + stmt['object'] + "</strong></span><br>";
+        ret += "<span class='timestamp'><small>" + stmt['timestamp'] + "</small></span><br>";
+        ret += " <span class='stmt_link lpad'>" + stmt['statement_id'] + "</span> ";
+        ret += "</div>";
+        ret += "</div>";
     }
-    var prev = "<span class='previous'>previous</span>";
+    var prev = "<li class='previous disabled'><a>previous</a></li>";
     if (data['previous']) {
-        prev = "<a class='previous' href='#mystatements' data-target='" + data['previous'] + "'>previous</a>";
+        prev = "<li class='previous'><a href='#' data-target='" + data['previous'] + "'>previous</a></li>";
     }
-    var next = "<span class='next'>next</span>";
+    var next = "<li class='next disabled'><a>next</a></li>";
     if (data['next']) {
-        next = "<a class='next' href='#mystatements' data-target='" + data['next'] + "'>next</a>";
+        next = "<li class='next'><a href='#' data-target='" + data['next'] + "'>next</a></li>";
     }
-    ret += "<li class='prev-next'>" + prev + next + "</li>";
-    ret += "</ul>";
+    ret += "<ul class='pager'>" + prev + next + "</ul>";
+    ret += "</div>";
     return ret;
 }
 
@@ -215,9 +235,9 @@ function getStmt(stmtid,ele){
         url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,
         type: "GET",
         success: function (data){
-            $(ele).parent().after('<pre id="stmts"></pre>')
-            $(ele).parent().siblings('pre#stmts').append(syntaxHighlight(data));
-            $("span.expandable a").click(function(){
+            $(ele).children('.stmt_link').after('<pre id="stmts"></pre>')
+            $(ele).children().siblings('pre#stmts').append(syntaxHighlight(data));
+            $(ele).children().siblings('pre#stmts').find("span.expandable a").click(function(){
                 $(this).next("span.obj").toggle();
                 return false;
             });
@@ -230,26 +250,26 @@ function getStmt(stmtid,ele){
 }
 function syntaxHighlight(json) {
     if (typeof json != 'string') {
-         json = JSON.stringify(json, undefined, 4);
-    }
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        var cls = 'number';
-        if (/^"/.test(match)) {
-            if (/:$/.test(match)) {
-                cls = 'key';
-            } else {
-                cls = 'string';
-            }
-        } else if (/true|false/.test(match)) {
-            cls = 'boolean';
-        } else if (/null/.test(match)) {
-            cls = 'null';
+       json = JSON.stringify(json, undefined, 4);
+   }
+   json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+   json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+    var cls = 'number';
+    if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+            cls = 'key';
+        } else {
+            cls = 'string';
         }
-        return '<span class="' + cls + '">' + match + '</span>';
-    });
-    json = json.replace(/(\{|\[)/g, function(match){return '<span class="expandable"><a href="#">' + match +'</a><span class="obj">';});
-    return json.replace(/(\}|\])/g, function(match){return '</span>' + match + '</span>'});
+    } else if (/true|false/.test(match)) {
+        cls = 'boolean';
+    } else if (/null/.test(match)) {
+        cls = 'null';
+    }
+    return '<span class="' + cls + '">' + match + '</span>';
+});
+   json = json.replace(/(\{|\[)/g, function(match){return '<span class="expandable"><a href="#">' + match +'</a><span class="obj">';});
+   return json.replace(/(\}|\])/g, function(match){return '</span>' + match + '</span>'});
 }
 </script>
 {% endblock extra_js %}
