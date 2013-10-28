@@ -85,7 +85,8 @@ class StatementManager():
         con_act_data = self.data.pop('context_contextActivities',{})
 
         self.data['user'] = get_user_from_auth(self.auth)
-        
+        # import pdb
+        # pdb.set_trace()
         # Name of id field in models is statement_id
         if 'id' in self.data:
             self.data['statement_id'] = self.data['id']
@@ -272,7 +273,8 @@ class StatementManager():
             # If non oauth group won't be sent with the authority key, so if it's a group it's a non
             # oauth group which isn't allowed to be the authority
             self.build_authority_object()
-
+            self.data['voided'] = False
+        
         self.build_verb_object()
         self.build_statement_object()
 

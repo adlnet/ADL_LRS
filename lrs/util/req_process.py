@@ -1,6 +1,7 @@
 import json
 import pytz
 import datetime
+import uuid
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -15,8 +16,6 @@ from lrs.objects.AgentManager import AgentManager
 from lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
-
-
 def statements_post(req_dict):
     stmt_responses = []
 
@@ -24,16 +23,20 @@ def statements_post(req_dict):
     auth = req_dict.get('auth', None)
     auth_id = auth['id'] if auth and 'id' in auth else None
     if auth and 'oauth_define' in auth:
-        define = req_dict['auth']['oauth_define']    
+        define = req_dict['auth']['oauth_define']
 
     # Handle batch POST
     if type(req_dict['body']) is list:
         try:
             for st in req_dict['body']:
-                #Set voided to default false
-                st['voided'] = False
+                if not 'id' in st:
+                    st['id'] = str(uuid.uuid1())
+
                 st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
                 
+                if not 'timestamp' in st:
+                    st['timestamp'] = st['stored']
+
                 if not 'version' in st:
                     st['version'] = "1.0.0"
     
@@ -64,9 +67,16 @@ def statements_post(req_dict):
                 models.Statement.objects.get(statement_id=stmt_id).delete()
             raise
     else:
-        #Set voided to default false
-        req_dict['body']['voided'] = False
+        # import pdb
+        # pdb.set_trace()
+        if not 'id' in req_dict['body']:
+            req_dict['body']['id'] = str(uuid.uuid1())
+
         req_dict['body']['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+
+        if not 'timestamp' in req_dict['body']:
+            req_dict['body']['timestamp'] = req_dict['body']['stored']
+
         if not 'version' in req_dict['body']:
             req_dict['body']['version'] = "1.0.0"
 
@@ -102,9 +112,11 @@ def statements_put(req_dict):
     if auth and 'oauth_define' in auth:
         define = auth['oauth_define']    
 
-    #Set voided to default false
-    req_dict['body']['voided'] = False
     req_dict['body']['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+
+    if not 'timestamp' in req_dict['body']:
+        req_dict['body']['timestamp'] = req_dict['body']['stored']
+
 
     if not 'version' in req_dict['body']:
         req_dict['body']['version'] = "1.0.0"
@@ -134,7 +146,8 @@ def statements_put(req_dict):
 
 def statements_more_get(req_dict):
     stmt_result, attachments = retrieve_statement.get_more_statement_request(req_dict['more_id'])     
-    
+    # import pdb
+    # pdb.set_trace()
     if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))
     else:
@@ -148,7 +161,10 @@ def statements_more_get(req_dict):
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
     # If not, just dump the stmt_result
     else:
-        resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
+        if isinstance(stmt_result, basestring):
+            resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+        else:
+            resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
     
     # Add consistent header and set content-length
     try:
@@ -161,7 +177,8 @@ def statements_more_get(req_dict):
 def statements_get(req_dict):
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
-
+    # import pdb
+    # pdb.set_trace()
     stmt_result = {}
     mime_type = "application/json"
     # If statementId is in req_dict then it is a single get

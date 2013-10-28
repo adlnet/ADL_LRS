@@ -470,8 +470,8 @@ class StatementFilterTests(TestCase):
             }
         }]
 
-        for s in batch:
-            StMan(s, stmt_json=json.dumps(s))
+        response = self.client.post(reverse(views.statements), json.dumps(batch), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -686,7 +686,7 @@ class StatementFilterTests(TestCase):
             self.assertTrue(convert_to_utc(s['stored']) < until)
 
     def test_related_agents_filter_since(self):
-        stmt = {
+        stmts = [{
             "timestamp": "2013-04-10 21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
@@ -724,9 +724,8 @@ class StatementFilterTests(TestCase):
                     }
                 }
             }
-        }
-        StMan(stmt, stmt_json=json.dumps(stmt))
-        stmt = {
+        },
+        {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/started", 
                 "display": {
@@ -752,9 +751,8 @@ class StatementFilterTests(TestCase):
                 "name": "adl lrs developers", 
                 "objectType": "Group"
             }
-        }
-        StMan(stmt, stmt_json=json.dumps(stmt))
-        stmt = {
+        },
+        {
             "verb": {
                 "id": "http://special.adlnet.gov/xapi/verbs/stopped", 
                 "display": {
@@ -783,8 +781,10 @@ class StatementFilterTests(TestCase):
                 "mbox": "mailto:timmy@example.com", 
                 "name": "timmy"
             }
-        }
-        StMan(stmt, stmt_json=json.dumps(stmt))
+        }]
+        response = self.client.post(reverse(views.statements), json.dumps(stmts), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -875,7 +875,7 @@ class StatementFilterTests(TestCase):
     def test_verb_filter(self):
         theid = str(uuid.uuid1())
         stmt = {
-        "statement_id":theid,
+        "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
         "object": {
             "mbox": "mailto:louo@example.com", 
@@ -913,7 +913,8 @@ class StatementFilterTests(TestCase):
         }
         }
         StMan(stmt, stmt_json=json.dumps(stmt))
-        stmt = {
+        stman_id = str(uuid.uuid1())
+        stmt = {"id": stman_id,
         "verb": {
             "id": "http://special.adlnet.gov/xapi/verbs/frowned", 
             "display": {
@@ -956,7 +957,8 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         stmts = obj['statements']
         self.assertEqual(len(stmts), 2)
-
+        # import pdb
+        # pdb.set_trace()
         stmt_ref_stmt_ids = [k['object']['id'] for k in stmts if k['object']['objectType']=='StatementRef']
         stmt_ids = [k['id'] for k in stmts if k['object']['objectType']!='StatementRef']
         diffs = set(stmt_ref_stmt_ids) ^ set(stmt_ids)
@@ -973,7 +975,7 @@ class StatementFilterTests(TestCase):
     def test_registration_filter(self):
         theid = str(uuid.uuid1())
         stmt = {
-        "statement_id":theid,
+        "id":theid,
         "timestamp": "2013-04-10 21:27:15.613000+00:00", 
         "object": {
             "mbox": "mailto:louo@example.com", 
@@ -1323,6 +1325,8 @@ class StatementFilterTests(TestCase):
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
+        # import pdb
+        # pdb.set_trace()
         stmts = obj['statements']
         # only expecting the one made at the beginning of this test
         stmt_r = stmts[0]

@@ -804,8 +804,7 @@ class Statement(models.Model):
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(blank=True)
     stored = models.DateTimeField(default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
-    timestamp = models.DateTimeField(blank=True,null=True,
-        default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
+    timestamp = models.DateTimeField(default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
         on_delete=models.SET_NULL)
     voided = models.NullBooleanField(default=False)
