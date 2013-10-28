@@ -352,7 +352,7 @@ def activity_state_get(req_dict):
     if stateId: # state id means we want only 1 item
         resource = actstate.get()
         if resource.state:
-            response = HttpResponse(resource.state.read())
+            response = HttpResponse(resource.state.read(), content_type=resource.content_type)
         else:
             response = HttpResponse(resource.json_state, content_type=resource.content_type)
         response['ETag'] = '"%s"' %resource.etag

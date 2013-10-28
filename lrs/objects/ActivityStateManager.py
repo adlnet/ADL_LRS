@@ -78,6 +78,7 @@ class ActivityStateManager():
             if not created:
                 etag.check_preconditions(self.req_dict,p)
                 p.state.delete() # remove old state file
+            p.content_type = self.content_type
             self.save_state(p, created, state)
         else:
             if not created:
