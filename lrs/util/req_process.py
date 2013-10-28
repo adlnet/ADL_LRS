@@ -114,35 +114,7 @@ def statements_put(req_dict):
     if auth and 'oauth_define' in auth:
         define = auth['oauth_define']    
 
-    req_dict['body']['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-
-    if not 'timestamp' in req_dict['body']:
-        req_dict['body']['timestamp'] = req_dict['body']['stored']
-
-
-    if not 'version' in req_dict['body']:
-        req_dict['body']['version'] = "1.0.0"
-
-    if 'context' in req_dict['body'] and 'contextActivities' in req_dict['body']['context']:
-        for k, v in req_dict['body']['context']['contextActivities'].items():
-            if isinstance(v, dict):
-                req_dict['body']['context']['contextActivities'][k] = [v]
-
-    if 'objectType' in req_dict['body']['object'] and req_dict['body']['object']['objectType'] == 'SubStatement':
-        if 'context' in req_dict['body']['object'] and 'contextActivities' in req_dict['body']['object']['context']:
-            for k, v in req_dict['body']['object']['context']['contextActivities'].items():
-                if isinstance(v, dict):
-                    req_dict['body']['object']['context']['contextActivities'][k] = [v]
-
-    if not 'authority' in req_dict['body']:
-        if auth_id:
-            if auth_id.__class__.__name__ == 'Agent':
-                req_dict['body']['authority'] = auth_id.get_agent_json()
-            else:
-                req_dict['body']['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email, 'objectType': 'Agent'}            
-
-    stmt_json = json.dumps(req_dict['body'])
-    stmt = StatementManager(req_dict['body'], auth_id, define, stmt_json).model_object
+    stmt_responses = process_statements(req_dict['body'], auth_id, define)
     
     return HttpResponse("No Content", status=204)
 

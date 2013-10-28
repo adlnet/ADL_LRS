@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.conf import settings
 from django.views.decorators.http import require_http_methods, require_GET
+from django.core.context_processors import csrf
 from django.views.decorators.csrf import csrf_protect
 from django.template import RequestContext
 from django.contrib.auth import authenticate, logout
@@ -23,9 +24,6 @@ logger = logging.getLogger(__name__)
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 @csrf_protect
 def home(request):
-    from django.core.context_processors import csrf
-    # import pdb
-    # pdb.set_trace()
     context = RequestContext(request)
     context.update(csrf(request))
     stats = {}
@@ -257,7 +255,7 @@ def my_statements(request):
         stmt_id = request.GET.get("stmt_id", None)
         if stmt_id:
             s = models.Statement.objects.get(statement_id=stmt_id, user=request.user)
-            return HttpResponse(json.dumps(s.object_return()),mimetype="application/json",status=200)
+            return HttpResponse(s.object_return(),mimetype="application/json",status=200)
         else:
             s = {}
             paginator = Paginator(models.Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 

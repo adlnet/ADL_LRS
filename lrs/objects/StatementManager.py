@@ -85,8 +85,7 @@ class StatementManager():
         con_act_data = self.data.pop('context_contextActivities',{})
 
         self.data['user'] = get_user_from_auth(self.auth)
-        # import pdb
-        # pdb.set_trace()
+
         # Name of id field in models is statement_id
         if 'id' in self.data:
             self.data['statement_id'] = self.data['id']
