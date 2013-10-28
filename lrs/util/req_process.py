@@ -16,19 +16,12 @@ from lrs.objects.AgentManager import AgentManager
 from lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
-def statements_post(req_dict):
+def process_statements(stmts, auth_id, define):
     stmt_responses = []
-
-    define = True
-    auth = req_dict.get('auth', None)
-    auth_id = auth['id'] if auth and 'id' in auth else None
-    if auth and 'oauth_define' in auth:
-        define = req_dict['auth']['oauth_define']
-
-    # Handle batch POST
-    if type(req_dict['body']) is list:
+   # Handle batch POST
+    if type(stmts) is list:
         try:
-            for st in req_dict['body']:
+            for st in stmts:
                 if not 'id' in st:
                     st['id'] = str(uuid.uuid1())
 
@@ -67,42 +60,51 @@ def statements_post(req_dict):
                 models.Statement.objects.get(statement_id=stmt_id).delete()
             raise
     else:
-        # import pdb
-        # pdb.set_trace()
-        if not 'id' in req_dict['body']:
-            req_dict['body']['id'] = str(uuid.uuid1())
+        if not 'id' in stmts:
+            stmts['id'] = str(uuid.uuid1())
 
-        req_dict['body']['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+        stmts['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
-        if not 'timestamp' in req_dict['body']:
-            req_dict['body']['timestamp'] = req_dict['body']['stored']
+        if not 'timestamp' in stmts:
+            stmts['timestamp'] = stmts['stored']
 
-        if not 'version' in req_dict['body']:
-            req_dict['body']['version'] = "1.0.0"
+        if not 'version' in stmts:
+            stmts['version'] = "1.0.0"
 
-        if 'context' in req_dict['body'] and 'contextActivities' in req_dict['body']['context']:
-            for k, v in req_dict['body']['context']['contextActivities'].items():
+        if 'context' in stmts and 'contextActivities' in stmts['context']:
+            for k, v in stmts['context']['contextActivities'].items():
                 if isinstance(v, dict):
-                    req_dict['body']['context']['contextActivities'][k] = [v]
+                    stmts['context']['contextActivities'][k] = [v]
 
-        if 'objectType' in req_dict['body']['object'] and req_dict['body']['object']['objectType'] == 'SubStatement':
-            if 'context' in req_dict['body']['object'] and 'contextActivities' in req_dict['body']['object']['context']:
-                for k, v in req_dict['body']['object']['context']['contextActivities'].items():
+        if 'objectType' in stmts['object'] and stmts['object']['objectType'] == 'SubStatement':
+            if 'context' in stmts['object'] and 'contextActivities' in stmts['object']['context']:
+                for k, v in stmts['object']['context']['contextActivities'].items():
                     if isinstance(v, dict):
-                        req_dict['body']['object']['context']['contextActivities'][k] = [v]
+                        stmts['object']['context']['contextActivities'][k] = [v]
 
-        if not 'authority' in req_dict['body']:
+        if not 'authority' in stmts:
             if auth_id:
                 if auth_id.__class__.__name__ == 'Agent':
-                    req_dict['body']['authority'] = auth_id.get_agent_json()
+                    stmts['authority'] = auth_id.get_agent_json()
                 else:
-                    req_dict['body']['authority'] = {'name':auth_id.username, 'mbox': 'mailto:%s' % auth_id.email, 'objectType': 'Agent'}            
-
+                    stmts['authority'] = {'name':auth_id.username, 'mbox': 'mailto:%s' % auth_id.email, 'objectType': 'Agent'}            
+        
         # Handle single POST
-        stmt_json = json.dumps(req_dict['body'])
-        stmt = StatementManager(req_dict['body'], auth_id, define, stmt_json).model_object
+        stmt_json = json.dumps(stmts)
+        stmt = StatementManager(stmts, auth_id, define, stmt_json).model_object
         stmt_responses.append(stmt.statement_id)
 
+    return stmt_responses
+
+def statements_post(req_dict):
+    define = True
+    auth = req_dict.get('auth', None)
+    auth_id = auth['id'] if auth and 'id' in auth else None
+    if auth and 'oauth_define' in auth:
+        define = req_dict['auth']['oauth_define']
+
+    stmt_responses = process_statements(req_dict['body'], auth_id, define)
+ 
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
@@ -146,8 +148,7 @@ def statements_put(req_dict):
 
 def statements_more_get(req_dict):
     stmt_result, attachments = retrieve_statement.get_more_statement_request(req_dict['more_id'])     
-    # import pdb
-    # pdb.set_trace()
+
     if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))
     else:
@@ -177,8 +178,7 @@ def statements_more_get(req_dict):
 def statements_get(req_dict):
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
-    # import pdb
-    # pdb.set_trace()
+
     stmt_result = {}
     mime_type = "application/json"
     # If statementId is in req_dict then it is a single get
