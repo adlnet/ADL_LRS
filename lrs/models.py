@@ -785,6 +785,7 @@ class StatementAttachment(models.Model):
         return ret
 
 class Statement(models.Model):
+    # If no statement_id is given, will create one automatically
     statement_id = UUIDField(version=1, db_index=True)
     object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
@@ -803,6 +804,7 @@ class Statement(models.Model):
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(blank=True)
+    # If no stored or timestamp given - will create automatically (only happens if using StatementManager directly)
     stored = models.DateTimeField(default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
     timestamp = models.DateTimeField(default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,

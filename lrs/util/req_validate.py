@@ -4,7 +4,7 @@ from functools import wraps
 from django.utils.timezone import utc
 from django.core.cache import get_cache
 from lrs import models
-from lrs.util import uri, StatementValidator, validate_uuid
+from lrs.util import uri, StatementValidator, validate_uuid, convert_to_dict
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 from Authorization import auth
 
@@ -142,15 +142,6 @@ def server_validate_statement_object(stmt_object, auth):
                     err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
                     raise Forbidden(err_msg)
 
-#Make sure initial data being received is JSON
-def parse(data):
-    try:
-        params = json.loads(data)
-    except Exception, e:
-        err_msg = "Error parsing the Statement object. Expecting json. Received: %s which is %s" % (data, type(data))
-        raise ParamError(err_msg) 
-    return params
-
 # Retrieve JSON data from ID
 def get_data_from_act_id(act_id):
     resolves = True
@@ -266,7 +257,6 @@ def statements_post(r_dict):
     payload_sha2s = r_dict.get('payload_sha2s', None)
 
     if isinstance(r_dict['body'], basestring):
-        from lrs.util import convert_to_dict
         r_dict['body'] = convert_to_dict(r_dict['body'])
 
     try:
@@ -347,7 +337,6 @@ def statements_put(r_dict):
 
     # Convert data so it can be parsed
     if isinstance(r_dict['body'], basestring):
-        from lrs.util import convert_to_dict
         r_dict['body'] = convert_to_dict(r_dict['body'])
 
     # Try to get id if in body
