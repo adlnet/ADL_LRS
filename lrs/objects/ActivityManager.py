@@ -17,19 +17,7 @@ class ActivityManager():
         else:
             self.auth = None
         self.define = define
-        if not isinstance(data, dict):
-            data = self.parse(data)
         self.populate(data)
-
-    # Make sure initial data being received is can be transformed into a dict-should ALWAYS be
-    # incoming JSON because class is only called from Statement class
-    def parse(self,data):
-        try:
-            params = json.loads(data)
-        except Exception, e:
-            err_msg = "Error parsing the Activity object. Expecting json. Received: %s which is %s" % (data, type(data))
-            raise exceptions.ParamError(err_msg)
-        return params
 
     # Retrieve JSON data from ID
     def get_data_from_act_id(self,act_id):
@@ -117,11 +105,6 @@ class ActivityManager():
 
     #Populate definition either from JSON or validated XML
     def populate_definition(self, act_def, act_created):
-        # only update existing def stuff if request has authority to do so
-        if not act_created and (self.Activity.authoritative != '' and self.Activity.authoritative != self.auth):
-            err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-            raise exceptions.Forbidden(err_msg)
-
         # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
         # doesn't have a definition
         act_def_created = self.save_activity_definition_to_db(act_def.get('type', ''), act_def.get('interactionType', ''),
@@ -145,9 +128,6 @@ class ActivityManager():
                     else:
                         self.Activity.activity_definition_description = act_def['description']
                     self.Activity.save()
-            else:
-                err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-                raise exceptions.Forbidden(err_msg)
 
         # If the activity definition was just created (can't update the CRP or extensions of a def if already existed)
         #If there is a correctResponsesPattern then save the pattern
