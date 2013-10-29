@@ -1,5 +1,4 @@
 import json
-import pytz
 import datetime
 import uuid
 from datetime import datetime
