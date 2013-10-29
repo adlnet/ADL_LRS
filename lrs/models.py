@@ -805,8 +805,8 @@ class Statement(models.Model):
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(blank=True)
     # If no stored or timestamp given - will create automatically (only happens if using StatementManager directly)
-    stored = models.DateTimeField(default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
-    timestamp = models.DateTimeField(default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
+    stored = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
+    timestamp = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
         on_delete=models.SET_NULL)
     voided = models.NullBooleanField(default=False)
@@ -912,9 +912,9 @@ class Statement(models.Model):
 
         if not ret['context']:
             del ret['context']
-        
-        ret['timestamp'] = str(self.timestamp)
-        ret['stored'] = str(self.stored)
+
+        ret['timestamp'] = self.timestamp.isoformat()
+        ret['stored'] = self.stored.isoformat()
         
         if not self.authority is None:
             ret['authority'] = self.authority.get_agent_json(format)
