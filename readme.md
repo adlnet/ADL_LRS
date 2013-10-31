@@ -64,8 +64,8 @@ To verify it's running
 You should see a task named web running. This will host the application using gunicorn with 2 worker processes.
 If you open a browser and visit http://localhost:8000/xapi you will hit the LRS. Gunicorn does not serve static files
 so no CSS will be present. This is fine if you're doing testing/development but if you want to host a production-ready
-LRS, Nginx needs to be setup to work with Gunicorn to serve static files. Please read [these](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production) instructions for including
-Nginx. For a more detailed description of the tools being used in general, visit [here](https://github.com/adlnet/ADL_LRS/wiki/Putting-the-Pieces-Together).
+LRS, Nginx needs to be setup to serve static files. For more production-like environments, we also recommend using uWSGI instead of Gunicorn. Please read [these](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production) instructions for including
+Nginx and using uWSGI intead of Gunicorn. For a more detailed description of the tools being used in general, visit [here](https://github.com/adlnet/ADL_LRS/wiki/Putting-the-Pieces-Together).
 
 ## Test LRS
     
