@@ -73,7 +73,6 @@ Nginx. For a more detailed description of the tools being used in general, visit
 
 ## Helpful Information
     
-* [Data Migrations with South](https://github.com/adlnet/ADL_LRS/wiki/DB-Migration-with-South)
 * [Test Coverage](https://github.com/adlnet/ADL_LRS/wiki/Code-Coverage)
 * [Code Profiling](https://github.com/adlnet/ADL_LRS/wiki/Code-Profiling-with-cProfile)
 * [Sending Attachments](https://github.com/adlnet/ADL_LRS/wiki/Sending-Statements-with-Attachments)
