@@ -5,15 +5,15 @@ from django.http import (
     HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
 from django.utils.translation import ugettext as _
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import get_callable
+from django.core.urlresolvers import get_callable, reverse
+from django.utils.decorators import decorator_from_middleware
+from django.shortcuts import render_to_response
 
 from django.template import RequestContext
 from utils import initialize_server_request, send_oauth_error
 from decorators import oauth_required
 from stores import check_valid_callback
 from consts import OUT_OF_BAND
-from django.utils.decorators import decorator_from_middleware
-from django.shortcuts import render_to_response
 from lrs.forms import AuthClientForm
 from lrs.models import Token
 
@@ -23,9 +23,7 @@ INVALID_PARAMS_RESPONSE = send_oauth_error(OAuthError(
                                             _('Invalid request parameters.')))
 
 def oauth_home(request):
-    rsp = """
-    <html><head></head><body><h1>Oauth Authorize</h1></body></html>"""
-    return HttpResponse(rsp)
+    return HttpResponseRedirect(reverse('lrs.views.reg_client'))
 
 def request_token(request):
     """

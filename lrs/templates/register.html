@@ -7,9 +7,10 @@
     Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register a user, you can use the HTTP_AUTHORIZATION header with your encoded username and password.
     </p>
 {% if error_message %}
-<p class="error">
-    <strong>{{ error_message }}</strong>
-</p>
+  <div class="alert">
+  <button type="button" class="close" data-dismiss="alert">&times;</button>
+  {{ error_message }}
+  </div>
 {% endif %}
 
 {% for error in form.non_field_errors %}
@@ -19,8 +20,16 @@
 	</div>
 {% endfor %}
 
+{% for error, message in form.errors.items %}
+    <div class="alert">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    {{ message }}
+    </div>
+{% endfor %}
+
 <form class="form-horizontal" action="{% url lrs.views.register %}" method="post">
-	{% include 'table_form.html' %}
+	{% csrf_token %}
+  {% include 'table_form.html' %}
   <div class="control-group">
     <div class="controls">
       <button type="submit" class="btn">Register</button>

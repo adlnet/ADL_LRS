@@ -32,7 +32,7 @@ class ActivityStateTests(TestCase):
 
     def setUp(self):
         self.username = "test"
-        self.email = "mailto:test@example.com"        
+        self.email = "test@example.com"        
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username,'email': self.email,'password':self.password,'password2':self.password}
@@ -223,7 +223,7 @@ class ActivityStateTests(TestCase):
     # Also tests 403 forbidden status
     def test_get(self):
         username = "other"
-        email = "mailto:other@example.com"
+        email = "other@example.com"
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
@@ -552,7 +552,7 @@ class ActivityStateTests(TestCase):
 
     def test_ie_cors_put_delete(self):
         username = "another test"
-        email = "mailto:anothertest@example.com"
+        email = "anothertest@example.com"
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
@@ -585,7 +585,7 @@ class ActivityStateTests(TestCase):
 
     def test_agent_is_group(self):
         username = "the group"
-        email = "mailto:the.group@example.com"
+        email = "the.group@example.com"
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}

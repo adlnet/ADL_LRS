@@ -1,23 +1,22 @@
 import json
-from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+import logging
 from django.conf import settings
-from django.views.decorators.http import require_http_methods, require_GET
-from django.core.context_processors import csrf
-from django.views.decorators.csrf import csrf_protect
-from django.template import RequestContext
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
+from django.core.context_processors import csrf
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.urlresolvers import reverse
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response
+from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_http_methods
 from lrs import forms, models, exceptions
+from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
-import logging
 
 logger = logging.getLogger(__name__)
  
@@ -29,16 +28,20 @@ def home(request):
     stats = {}
     stats['usercnt'] = User.objects.all().count()
     stats['stmtcnt'] = models.Statement.objects.all().count()
-    stats['agentcnt'] = models.Agent.objects.all().count()
     stats['verbcnt'] = models.Verb.objects.all().count()
-    stats['activitycnt'] = models.Activity.objects.all().count()
+    stats['agentcnt'] = models.Agent.objects.filter(global_representation=True).count()
+    stats['activitycnt'] = models.Activity.objects.filter(global_representation=True).count()
+
     return render_to_response('home.html', {'stats':stats}, context_instance=context)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
+@csrf_protect
 def stmt_validator(request):
+    context = RequestContext(request)
+    context.update(csrf(request))
     if request.method == 'GET':
         form = forms.ValidatorForm()
-        return render_to_response('validator.html', {"form": form}, context_instance=RequestContext(request))
+        return render_to_response('validator.html', {"form": form}, context_instance=context)
     elif request.method == 'POST':
         form = forms.ValidatorForm(request.POST)
         if form.is_valid():
@@ -47,26 +50,26 @@ def stmt_validator(request):
                 validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
             except SyntaxError, se:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
-                context_instance=RequestContext(request))
+                context_instance=context)
             except ValueError, ve:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
-                context_instance=RequestContext(request))                
+                context_instance=context)                
             except Exception, e:
                 return render_to_response('validator.html', {"form": form, "error_message": e.message},
-                context_instance=RequestContext(request))
+                context_instance=context)
 
             # Once know it's valid JSON, validate keys and fields
             try:
                 valid = validator.validate()
             except exceptions.ParamError, e:
                 return render_to_response('validator.html', {"form": form,"error_message": e.message},
-                    context_instance=RequestContext(request))
+                    context_instance=context)
             else:
                 return render_to_response('validator.html', {"form": form,"valid_message": valid},
-                    context_instance=RequestContext(request))
+                    context_instance=context)
         else:
             return render_to_response('validator.html', {"form": form},
-                context_instance=RequestContext(request))
+                context_instance=context)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
@@ -184,10 +187,13 @@ def actexample3(request):
 def actexample4(request):
     return render_to_response('actexample4.json', mimetype="application/json")
 
+@csrf_protect
 def register(request):
+    context = RequestContext(request)
+    context.update(csrf(request))
     if request.method == 'GET':
         form = forms.RegisterForm()
-        return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
+        return render_to_response('register.html', {"form": form}, context_instance=context)
     elif request.method == 'POST':
         form = forms.RegisterForm(request.POST)
         if form.is_valid():
@@ -196,16 +202,15 @@ def register(request):
             email = form.cleaned_data['email']
             try:
                 user = User.objects.get(username__exact=name)
-                user = authenticate(username=name, password=pword)
-                if user is None:
-                    return render_to_response('register.html', {"form": form, "error_message": "%s's password was incorrect." % name},
-                        context_instance=RequestContext(request))
             except User.DoesNotExist:
                 user = User.objects.create_user(name, email, pword)
+            else:
+                return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
+                    context_instance=context)                
             d = {"info_message": "Thanks for registering %s" % user.username}
-            return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
+            return render_to_response('reg_success.html', d, context_instance=context)
         else:
-            return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
+            return render_to_response('register.html', {"form": form}, context_instance=context)
     else:
         return Http404
 
@@ -372,12 +377,6 @@ def agent_profile(request):
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agents(request):
     return handle_request(request)
-
-# THIS VIEW IS BEING USED
-def oauth_authorize(request, request_token, callback_url, params):
-    rsp = """
-    <html><head></head><body><h1>Oauth Authorize</h1><h2>%s</h2></body></html>""" % params
-    return HttpResponse(rsp)    
 
 @login_required
 def user_profile(request):

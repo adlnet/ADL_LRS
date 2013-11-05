@@ -39,6 +39,13 @@ class StatementsTests(TestCase):
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
+        self.username2 = "tester2"
+        self.email2 = "test2@tester.com"
+        self.password2 = "test2"
+        self.auth2 = "Basic %s" % base64.b64encode("%s:%s" % (self.username2, self.password2))
+        form2 = {"username":self.username2, "email":self.email2,"password":self.password2,"password2":self.password2}
+        response = self.client.post(reverse(views.register),form2, X_Experience_API_Version="1.0.0")
+
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         self.guid1 = str(uuid.uuid1())
        
@@ -1512,6 +1519,30 @@ class StatementsTests(TestCase):
         self.assertEqual(len(wrong_activities), 0)
         self.assertEqual(len(foogie_activities), 1)
       
+
+    def test_unique_actor_authority(self):
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:timmay@timmay.com", "name":"timmay"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_post")
+        self.assertEqual(act.activity_id, "act:test_post")
+        agent = models.Agent.objects.get(mbox="mailto:timmay@timmay.com")
+        self.assertEqual(agent.name, "timmay")
+
+        response2 = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth2, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(response2.status_code, 200)
+        act2 = models.Activity.objects.get(activity_id="act:test_post")
+        self.assertEqual(act2.activity_id, "act:test_post")
+        agent2 = models.Agent.objects.get(mbox="mailto:timmay@timmay.com")
+        self.assertEqual(agent2.name, "timmay")
+
     def test_stmts_w_same_regid(self):
         stmt1_guid = str(uuid.uuid1())
         stmt2_guid = str(uuid.uuid1())
