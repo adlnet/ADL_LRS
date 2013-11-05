@@ -28,11 +28,8 @@ def home(request):
     stats = {}
     stats['usercnt'] = User.objects.all().count()
     stats['stmtcnt'] = models.Statement.objects.all().count()
-    # stats['agentcnt'] = models.Agent.objects.all().count()
     stats['verbcnt'] = models.Verb.objects.all().count()
-    # stats['activitycnt'] = models.Activity.objects.all().count()
     stats['agentcnt'] = models.Agent.objects.filter(global_representation=True).count()
-    # stats['verbcnt'] = models.Verb.objects.filter(global_representation=True).count()
     stats['activitycnt'] = models.Activity.objects.filter(global_representation=True).count()
 
     return render_to_response('home.html', {'stats':stats}, context_instance=context)
@@ -380,12 +377,6 @@ def agent_profile(request):
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agents(request):
     return handle_request(request)
-
-# # THIS VIEW IS BEING USED
-# def oauth_authorize(request, request_token, callback_url, params):
-#     rsp = """
-#     <html><head></head><body><h1>Oauth Authorize</h1><h2>%s</h2></body></html>""" % params
-#     return HttpResponse(rsp)    
 
 @login_required
 def user_profile(request):
