@@ -679,6 +679,104 @@ class StatementsTests(TestCase):
         acts = len(models.Activity.objects.all())
         self.assertEqual(9, acts)
 
+    def test_timeout_snafu(self):
+        stmt = json.dumps({
+            "timestamp": "2013-11-05T07:33:49.512119+00:00",
+            "object": {
+                "definition": {
+                    "name": {
+                        "en-US": "news.google.com",
+                        "ja": "news.google.com"
+                    },
+                    "description": {
+                        "en-US": "",
+                        "ja": ""
+                    }
+                },
+                "id": "http://garewelswe.com/",
+                "objectType": "Activity"
+            },
+            "authority": {
+                "mbox": "mailto:kazutaka_kamiya@test.local",
+                "name": "adllrs",
+                "objectType": "Agent"
+            },
+            "verb": {
+                "id": "http://adlnet.gov/expapi/verbs/experienced",
+                "display": {
+                    "en-us": "experienced"
+                }
+            },
+            "actor": {
+                "openID": "http://test.local/PEab76617d1d21d725d358a7ad5231bd6e",
+                "name": "dev2-001",
+                "objectType": "Agent"
+            },
+            "id": "9cb78e42-45ec-11e3-b8dc-0af904863508"
+            })
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)    
+
+        stmt = json.dumps({
+            "timestamp": "2013-11-08T08:41:55.985064+00:00",
+            "object": {
+                "definition": {
+                    "interactionType": "fill-in",
+                    "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+                    "name": {
+                        "ja": "SCORM20110721_12"
+                    },
+                    "description": {
+                        "ja": ""
+                    }
+                },
+                "id": "http://garewelswe.com/",
+                "objectType": "Activity"
+            },
+            "actor": {
+                "openID": "http://test.local/EAGLE/PEab76617d1d21d725d358a7ad5231bd6e",
+                "name": "dev2-001",
+                "objectType": "Agent"
+            },
+            "verb": {
+                "id": "http://adlnet.gov/expapi/verbs/answered",
+                "display": {
+                    "en-us": "answered"
+                }
+            },
+            "result": {
+                "response": "TEST0",
+                "success": True
+            },
+            "context": {
+                "contextActivities": {
+                    "parent": [
+                        {
+                            "id": "http://garewelswe.com/"
+                        }
+                    ],
+                    "grouping": [
+                        {
+                            "id": "http://garewelswe.com/"
+                        }
+                    ]
+                }
+            },
+            "id": "9faf143c-4851-11e3-b1a1-000c29bfba11",
+            "authority": {
+                "mbox": "mailto:kazutaka_kamiya@test.local",
+                "name": "adllrs",
+                "objectType": "Agent"
+            }
+            })
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)    
 
     def test_amsterdam_snafu(self):
         stmt = json.dumps({
@@ -903,7 +1001,7 @@ class StatementsTests(TestCase):
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
         group = {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}
-        gr_object = models.Agent.objects.gen(**group)
+        gr_object = models.Agent.objects.retrieve_or_create(**group)
 
         stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
             "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})

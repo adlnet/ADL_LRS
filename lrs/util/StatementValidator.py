@@ -211,7 +211,6 @@ class StatementValidator():
 		# Ensure incoming agent is a dict and check allowed fields
 		self.check_if_dict(agent, "Agent in %s" % placement)
 		self.check_allowed_fields(agent_allowed_fields, agent, "Agent/Group")
-
 		# If the agent is the object of a stmt, the objectType must be present
 		if placement == 'object' and not 'objectType' in agent:
 			self.return_error("objectType must be set when using an Agent as the object of a statement")
@@ -222,7 +221,6 @@ class StatementValidator():
 		# If the agent is not the object of a stmt and objectType is not given, set it to Agent 
 		elif placement != 'object' and not 'objectType' in agent:
 			agent['objectType'] = 'Agent'
-
 		# Agent must have only one inverse functionlal identifier (Group may be Anonymous Group where no IFI is
 		# required)
 		ifis = [a for a in agent_ifis_can_only_be_one if agent.get(a, None) != None]
@@ -251,13 +249,11 @@ class StatementValidator():
 			if 'member' in agent:
 				# Ensure member list is array
 				members = agent['member']
-				self.check_if_list(members, "Members")
-				
+				self.check_if_list(members, "Members")				
 				# Make sure no member of group is another group
 				object_types = [t['objectType'] for t in members if 'objectType' in t]
 				if 'Group' in object_types:
 					self.return_error('Group member value cannot be other groups')
-
 				# Validate each member in group
 				for agent in members:
 					self.validate_agent(agent, 'member')
@@ -388,7 +384,13 @@ class StatementValidator():
 				# For each answer, ensure it is a string
 				if not isinstance(answer, basestring):
 					self.return_error("Activity definition correctResponsesPattern answer's must all be strings")
+		self.validate_interaction_types(interactionType, definition)
 
+		# If extensions, validate it
+		if 'extensions' in definition:
+			self.validate_extensions(definition['extensions'], 'activity definition')		
+
+	def validate_interaction_types(self, interactionType, definition):
 		if interactionType == "choice" or interactionType == "sequencing":
 			# If choices included, ensure it is an array and validate it
 			if 'choices' in definition:
@@ -427,10 +429,7 @@ class StatementValidator():
 				self.check_if_list(steps, "Activity definition steps")
 				self.validate_interaction_activities(steps, 'steps')
 			else:
-				self.return_error("Activity definition is missing steps")
-		# If extensions, validate it
-		if 'extensions' in definition:
-			self.validate_extensions(definition['extensions'], 'activity definition')		
+				self.return_error("Activity definition is missing steps")		
 
 	def validate_interaction_activities(self, activities, field):
 		for act in activities:

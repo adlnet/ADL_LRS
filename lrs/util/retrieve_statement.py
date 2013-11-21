@@ -224,12 +224,10 @@ def get_more_statement_request(req_id):
 # more_id is used so list will be serialized
 def build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, stored, more_id):
     result = {}
-    
     current_page = start_page + 1
     # If that was the last page to display then just return the remaining stmts
     if current_page == total_pages:
-        stmt_pager = Paginator(stmt_list, limit)
-        
+        stmt_pager = Paginator(stmt_list, limit)       
         # Return first page of results
         if format == 'exact':
             result = '{"statements": [%s], "more": ""}' % ",".join([stmt.object_return(language, format) for stmt in \
@@ -238,13 +236,10 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
             result['statements'] = [stmt.object_return(language, format) for stmt in \
                     Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
             result['more'] = ""
-
         # Set current page back for when someone hits the URL again
         current_page -= 1
-
         # Retrieve list stored in cache
         encoded_list = cache.get(more_id)
-    
         # Decode info to set the current page back then encode again
         decoded_list = json.loads(encoded_list)
         decoded_list[1] = current_page
@@ -255,7 +250,6 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         stmt_pager = Paginator(stmt_list, limit)
         # Create cache key from hashed data (always 32 digits)
         cache_key = create_cache_key(stmt_list)
-        
         # Return first page of results
         if format == 'exact':
             result = '{"statements": [%s], "more": "%s"}' % (",".join([stmt.object_return(language, format) for stmt in \
@@ -265,12 +259,9 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
             result['statements'] = [stmt.object_return(language, format) for stmt in \
                     Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
             result['more'] = MORE_ENDPOINT + cache_key
-
-        
         more_cache_list = []
         # Increment next page
         start_page = current_page
-        
         more_cache_list.append(stmt_list)
         more_cache_list.append(start_page)
         more_cache_list.append(total_pages)

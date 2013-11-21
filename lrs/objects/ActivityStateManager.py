@@ -7,7 +7,7 @@ from django.utils.timezone import utc
 from lrs import models
 from .AgentManager import AgentManager
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, uri
+from lrs.util import etag, get_user_from_auth, uri, get_agent_ifp
 
 class ActivityStateManager():
     def __init__(self, request_dict, log_dict=None):        
@@ -26,13 +26,14 @@ class ActivityStateManager():
         self.etag = request_dict.get('ETAG', None)
         self.since = request_dict['params'].get('since', None)
 
-    def __get_agent(self, create=False):
-        return AgentManager(self.agent, create).Agent
+    def __get_agent(self):
+        return AgentManager(self.agent).Agent
 
     @transaction.commit_on_success
     def post(self):
-        agent = self.__get_agent(create=True)
+        agent = self.__get_agent()
         post_state = self.state
+
         if self.registration:
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registration)
         else:
@@ -60,7 +61,7 @@ class ActivityStateManager():
         
     @transaction.commit_on_success
     def put(self):
-        agent = self.__get_agent(create=True)
+        agent = self.__get_agent()
         if self.registration:
             p,created = models.ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registration)
         else:
@@ -108,7 +109,9 @@ class ActivityStateManager():
         p.state.save(fn, state)
 
     def get(self):
-        agent = self.__get_agent()
+        ifp = get_agent_ifp(json.loads(self.agent))
+        agent = models.Agent.objects.get(**ifp)
+
         try:
             if self.registration:
                 return models.ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id, registration_id=self.registration)
@@ -118,13 +121,14 @@ class ActivityStateManager():
             raise IDNotFoundError(err_msg)
 
     def get_set(self,**kwargs):
-        agent = self.__get_agent()
+        ifp = get_agent_ifp(json.loads(self.agent))
+        agent = models.Agent.objects.get(**ifp)
+
         if self.registration:
             state_set = models.ActivityState.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registration)
         else:
             state_set = models.ActivityState.objects.filter(agent=agent, activity_id=self.activity_id)
         return state_set
-
 
     def get_ids(self):
         try:

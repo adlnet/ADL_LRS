@@ -29,6 +29,12 @@ class ActivityTests(TestCase):
         self.assertIn('objectType', rsp)        
         self.assertIn('content-length', response._headers)
 
+    def test_get_not_exist(self):
+        activity_id = "this:does_not_exist"
+        response = self.client.get(reverse(views.activities), {'activityId':activity_id}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.content, 'No activity found with ID this:does_not_exist')
+
     def test_get_not_array(self):
         act = ActivityManager({'objectType':'Activity', 'id':'act:foobar'})
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")

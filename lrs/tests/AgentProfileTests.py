@@ -337,6 +337,16 @@ class AgentProfileTests(TestCase):
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
         self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
 
+    def test_post_blank_profile(self):
+        params = {"profileId": "prof:test_post_new_profile", "agent": self.testagent}
+        path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
+        prof = ""
+        
+        post = self.client.post(path, prof, content_type="application/json", Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(post.status_code, 400)
+        self.assertEqual(post.content, 'No body in request')
+
     def test_post_update_profile(self):
         params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))

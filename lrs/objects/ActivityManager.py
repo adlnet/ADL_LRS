@@ -71,10 +71,10 @@ class ActivityManager():
         # If allowed to define activities-create or get the global version
         if self.define:
             self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
-                global_representation=True)
+                canonical_version=True)
         else:
             # Not allowed to create global version b/c don't have define permissions
-            self.Activity = models.Activity.objects.create(activity_id=activity_id, global_representation=False)
+            self.Activity = models.Activity.objects.create(activity_id=activity_id, canonical_version=False)
             act_created = False
 
         if act_created:

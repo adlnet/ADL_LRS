@@ -177,146 +177,120 @@ class Verb(models.Model):
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 class AgentMgr(models.Manager):
-    # Have to return ret_agent since we may re-bind it after update
-    def update_agent_name_and_members(self, kwargs, ret_agent, members, define):
-        need_to_create = False
-        # Update the name if not the same
-        if 'name' in kwargs and kwargs['name'] != ret_agent.name:
-            # If name is different and has define then update-if not then need to create new agent
-            if define:
-                ret_agent.name = kwargs['name']
-                ret_agent.save()
-            else:
-                need_to_create = True
-        # Get or create members in list
-        if members:
-            ags = [self.gen(**a) for a in members]
-            # If any of the members are not in the current member list of ret_agent, add them
-            for ag in ags:
-                member_agent = ag[0]
-                if not member_agent in ret_agent.member.all():
-                    if define:
-                        ret_agent.member.add(member_agent)
-                        ret_agent.save()
-                    else:
-                        need_to_create = True
-                        break
-        return ret_agent, need_to_create
-
-    def create_agent(self, kwargs, define): 
-        # If account is supplied, rename the kwargs keys to match the model field names for account then delete the old keys, values
-        if 'account' in kwargs:
-            account = kwargs['account']
-            if 'homePage' in account:
-                kwargs['account_homePage'] = kwargs['account']['homePage']
-
-            if 'name' in account:
-                kwargs['account_name'] = kwargs['account']['name']
-            del kwargs['account']
-
-        # Set define and create agent
-        if not define:
-            kwargs['global_representation'] = False
-        ret_agent = Agent(**kwargs)
-        ret_agent.save()
-        return ret_agent, True
-
+ 
     @transaction.commit_on_success
-    def gen(self, **kwargs):
-        # Check if group or not 
+    def retrieve_or_create(self, **kwargs):
+        ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]        
         is_group = kwargs.get('objectType', None) == "Group"
-        # Find the IFP
-        ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]
-        # If there is an IFP (could be blank if group) make a dict with the IFP key and value
+        
+        if is_group:
+            member = kwargs.pop('member')
+            if isinstance(member, basestring):
+                member = json.loads(member)
+
         if ifp_sent:
+            # Canonical is defaulted to true
+            canonical_version = kwargs.get('canonical_version', True)
+
             ifp = ifp_sent[0]
+            ifp_dict = {'canonical_version': canonical_version}
+
             if not 'account' == ifp:
-                ifp_dict = {ifp:kwargs[ifp]}
+                ifp_dict[ifp] = kwargs[ifp]
             else:
                 if not isinstance(kwargs['account'], dict):
-                    kwargs['account'] = json.loads(kwargs['account'])
-                account = kwargs['account']
-
-                if 'homePage' in account:
-                    ifp_dict = {'account_homePage': account['homePage']}
-
-                if 'name' in account:
-                    ifp_dict = {'account_name': account['name']}
-
-        # Gen will only get called from AgentManager or Authorization. Since global is true by default and
-        # AgentManager always sets the define key based off of the oauth scope, default this to True if the
-        # define key is not true
-        define = kwargs.pop('define', True)
-        
-        # Agents won't have members 
-        members = None
-        # If there is no account, check to see if it a group and has members
-        if is_group and 'member' in kwargs:
-            mem = kwargs.pop('member')
-            try:
-                members = json.loads(mem)
-            except:
-                members = mem
-            # If it does not have define permissions, each member in the non-global group must also be
-            # non-global
-            if not define:
-                for a in members:
-                    a['global_representation'] = False    
-        
-        # Try to get the agent/group
-        try:
-            # If there are no IFPs but there are members (group with no IFPs)
-            if not ifp_sent and members:
-                # Narrow oauth down to 2 members and one member having an account
-                if len(members) == 2 and ('account' in members[0] or 'account' in members[1]):
-                    if 'account' in members[0] and 'OAuth' in members[0]['account']['homePage']:
-                        created_oauth_identifier = "anongroup:%s-%s" % (members[0]['account']['name'], members[1]['mbox'])
-                        try:
-                            ret_agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
-                            created = False
-                        except Agent.DoesNotExist:
-                            ret_agent, created = self.create_agent(kwargs, define)
-                    elif 'account' in members[1] and 'OAuth' in members[1]['account']['homePage']:
-                        created_oauth_identifier = "anongroup:%s-%s" % (members[1]['account']['name'], members[0]['mbox'])
-                        try:
-                            ret_agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
-                            created = False
-                        except Agent.DoesNotExist:
-                            ret_agent, created = self.create_agent(kwargs, define)
-                    # Non-oauth group that has 2 members, one having an account
-                    else:
-                        ret_agent, created = self.create_agent(kwargs, define)
+                    account = json.loads(kwargs['account'])
                 else:
-                    ret_agent, created = self.create_agent(kwargs, define)
-            else:
-                ret_agent = Agent.objects.get(**ifp_dict)
+                    account = kwargs['account']
+
+                ifp_dict['account_homePage'] = account['homePage']
+                kwargs['account_homePage'] = account['homePage']
+
+                ifp_dict['account_name'] = account['name']
+                kwargs['account_name'] = account['name']
+
+                del kwargs['account']
+
+            try:
+                if not 'account' == ifp:
+                    agent = Agent.objects.filter(**ifp_dict)[0]
+                else:
+                    agent = Agent.objects.filter(**ifp_dict)[0]
                 created = False
-                ret_agent, need_to_create = self.update_agent_name_and_members(kwargs, ret_agent, members, define)
-                if need_to_create:
-                    ret_agent, created = self.create_agent(kwargs, define)
-        # If agent/group does not exist, create it then save it so if it's a group below
-        # we can add members
-        except Agent.DoesNotExist:
-            # If no define permission then the created agent/group is non-global
-            ret_agent, created = self.create_agent(kwargs, define)
+            except IndexError:
+                agent = Agent.objects.create(**kwargs)
+                created = True
 
-        # If it is a group and has just been created, grab all of the members and send them through
-        # this process then save
-        if is_group and created:
-            # Grabs args for each agent in members list and calls self
-            ags = [self.gen(**a) for a in members]
-            # Adds each created/retrieved agent object to the return object since ags is a list of tuples (agent, created)
-            ret_agent.member.add(*(a for a, c in ags))
-            ret_agent.save()
+            # For identified groups
+            if is_group:
+                members = [self.retrieve_or_create(**a) for a in member]
 
-        return ret_agent, created
+                # If newly created identified group add all of the incoming members
+                if created:
+                    agent.member.add(*(a for a, c in members))
+
+                # If retrieving existing canonical identified group, update members if necessary
+                if not created and canonical_version:
+                    for mem in members:
+                        member_agent = mem[0]
+                        if not member_agent in agent.member.all():
+                            agent.member.add(member_agent)
+                            agent.save()
+
+            # If retreived agent or identified group is canonical version and name is different then update the name
+            if 'name' in kwargs and kwargs['name'] != agent.name and canonical_version and not created:
+                agent.name = kwargs['name']
+                agent.save()
+
+        # Only way it doesn't have IFP is if anonymous group
+        else:
+            agent, created = self.retrieve_or_create_anonymous_group(member, kwargs)
+        return agent, created
+
+    def retrieve_or_create_anonymous_group(self, member, kwargs):
+        canonical_version = False
+        # Narrow oauth down to 2 members and one member having an account
+        if len(member) == 2 and ('account' in member[0] or 'account' in member[1]):
+            # If oauth account is in first member
+            if 'account' in member[0] and 'OAuth' in member[0]['account']['homePage']:
+                created_oauth_identifier = "anongroup:%s-%s" % (member[0]['account']['name'], member[1]['mbox'])
+                try:
+                    agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                    created = False
+                except Agent.DoesNotExist:
+                    agent = Agent.objects.create(**kwargs)
+                    created = True
+            # If oauth account is in second member
+            elif 'account' in member[1] and 'OAuth' in member[1]['account']['homePage']:
+                created_oauth_identifier = "anongroup:%s-%s" % (member[1]['account']['name'], member[0]['mbox'])
+                try:
+                    agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                    created = False
+                except Agent.DoesNotExist:
+                    agent = Agent.objects.create(**kwargs)
+                    created = True
+            # Non-oauth anonymous group that has 2 members, one having an account
+            else:
+                agent = Agent.objects.create(**kwargs)
+                created = True
+        # Normal non-oauth anonymous group
+        else:
+            agent = Agent.objects.create(**kwargs)
+            created = True
+
+        # If it is a newly created anonymous group, add the members
+        if created:
+            members = [self.retrieve_or_create(**a) for a in member]
+            agent.member.add(*(a for a, c in members))        
+        return agent, created
 
     def oauth_group(self, **kwargs):
         try:
             g = Agent.objects.get(oauth_identifier=kwargs['oauth_identifier'])
             return g, False
-        except:
-            return Agent.objects.gen(**kwargs)
+        except Agent.DoesNotExist:
+            return Agent.objects.retrieve_or_create(**kwargs)
+
 
 class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
@@ -326,14 +300,14 @@ class Agent(models.Model):
     openID = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True)
     oauth_identifier = models.CharField(max_length=192, db_index=True, null=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
-    global_representation = models.BooleanField(default=True)
-    account_homePage = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    account_name = models.CharField(max_length=50, blank=True)    
+    canonical_version = models.BooleanField(default=True)
+    account_homePage = models.CharField(max_length=MAX_URL_LENGTH, null=True)
+    account_name = models.CharField(max_length=50, null=True)
     objects = AgentMgr()
 
     class Meta:
-        unique_together = (("mbox", "global_representation"), ("mbox_sha1sum", "global_representation"),
-            ("openID", "global_representation"),("oauth_identifier", "global_representation"))
+        unique_together = (("mbox", "canonical_version"), ("mbox_sha1sum", "canonical_version"),
+            ("openID", "canonical_version"),("oauth_identifier", "canonical_version"), ("account_homePage", "account_name", "canonical_version"))
 
     def get_agent_json(self, format='exact', as_object=False):
         just_id = format == 'ids'
@@ -373,7 +347,7 @@ class Agent(models.Model):
     # Used only for /agent GET endpoint (check spec)
     def get_person_json(self):
         ret = {}
-        ret['objectType'] = self.objectType
+        ret['objectType'] = "Person"
         if self.name:
             ret['name'] = [self.name]
         if self.mbox:
@@ -446,10 +420,10 @@ class Activity(models.Model):
     activity_definition_targets = JSONField(blank=True)
     activity_definition_steps = JSONField(blank=True)            
     authoritative = models.CharField(max_length=100, blank=True)
-    global_representation = models.BooleanField(default=True)
+    canonical_version = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ("activity_id", "global_representation")
+        unique_together = ("activity_id", "canonical_version")
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
@@ -829,7 +803,6 @@ class Statement(models.Model):
     def object_return(self, lang=None, format='exact'):
         if format == 'exact':
             return self.full_statement
-
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.get_agent_json(format)

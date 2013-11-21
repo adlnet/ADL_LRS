@@ -5,6 +5,15 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from lrs.models import Token
 
+SCOPES = (('all', 'all'),
+          ('all/read', 'all/read'),
+          ('statements/write', 'statements/write'),
+          ('statements/read', 'statements/read'),
+          ('statements/read/mine', 'statements/read/mine'),
+          ('state', 'state'),
+          ('define', 'define'),
+          ('profile', 'profile'))
+
 class ValidatorForm(forms.Form):
     jsondata = forms.CharField(label='Data', required=True, 
         widget=forms.Textarea(attrs={'cols':100, 'rows':20}))
@@ -26,15 +35,6 @@ class RegisterForm(forms.Form):
                 return cleaned
 
         raise forms.ValidationError("Passwords did not match")
-
-SCOPES = (('all', 'all'),
-          ('all/read', 'all/read'),
-          ('statements/write', 'statements/write'),
-          ('statements/read', 'statements/read'),
-          ('statements/read/mine', 'statements/read/mine'),
-          ('state', 'state'),
-          ('define', 'define'),
-          ('profile', 'profile'))
 
 class RegClientForm(forms.Form):
     name = forms.CharField(max_length=200, label='Name')
