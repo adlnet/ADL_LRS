@@ -628,6 +628,15 @@ class ActivityStateTests(TestCase):
 
         self.client.delete(path, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
+    def test_post_blank_state(self):
+        param = {"stateId": "test:postnewblankstate", "activityId": "act:test/post.new.blank.state", "agent": '{"mbox":"mailto:testagent@example.com"}'}
+        path = '%s?%s' % (self.url, urllib.urlencode(param))
+        state = ""
+
+        r = self.client.post(path, state, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, 'No body in request')
+
     def test_post_update_state(self):
         param = {"stateId": "test:postupdatestate", "activityId": "act:test/post.update.state", "agent": '{"mbox":"mailto:test@example.com"}'}
         path = '%s?%s' % (self.url, urllib.urlencode(param))
