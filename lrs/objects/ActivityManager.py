@@ -1,7 +1,5 @@
 import json
-import urllib2
 from StringIO import StringIO
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from lrs import models, exceptions
