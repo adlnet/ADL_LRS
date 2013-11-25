@@ -39,6 +39,13 @@ class StatementsTests(TestCase):
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
+        self.username2 = "tester2"
+        self.email2 = "test2@tester.com"
+        self.password2 = "test2"
+        self.auth2 = "Basic %s" % base64.b64encode("%s:%s" % (self.username2, self.password2))
+        form2 = {"username":self.username2, "email":self.email2,"password":self.password2,"password2":self.password2}
+        response = self.client.post(reverse(views.register),form2, X_Experience_API_Version="1.0.0")
+
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         self.guid1 = str(uuid.uuid1())
        
@@ -672,6 +679,104 @@ class StatementsTests(TestCase):
         acts = len(models.Activity.objects.all())
         self.assertEqual(9, acts)
 
+    def test_timeout_snafu(self):
+        stmt = json.dumps({
+            "timestamp": "2013-11-05T07:33:49.512119+00:00",
+            "object": {
+                "definition": {
+                    "name": {
+                        "en-US": "news.google.com",
+                        "ja": "news.google.com"
+                    },
+                    "description": {
+                        "en-US": "",
+                        "ja": ""
+                    }
+                },
+                "id": "http://garewelswe.com/",
+                "objectType": "Activity"
+            },
+            "authority": {
+                "mbox": "mailto:kazutaka_kamiya@test.local",
+                "name": "adllrs",
+                "objectType": "Agent"
+            },
+            "verb": {
+                "id": "http://adlnet.gov/expapi/verbs/experienced",
+                "display": {
+                    "en-us": "experienced"
+                }
+            },
+            "actor": {
+                "openID": "http://test.local/PEab76617d1d21d725d358a7ad5231bd6e",
+                "name": "dev2-001",
+                "objectType": "Agent"
+            },
+            "id": "9cb78e42-45ec-11e3-b8dc-0af904863508"
+            })
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)    
+
+        stmt = json.dumps({
+            "timestamp": "2013-11-08T08:41:55.985064+00:00",
+            "object": {
+                "definition": {
+                    "interactionType": "fill-in",
+                    "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
+                    "name": {
+                        "ja": "SCORM20110721_12"
+                    },
+                    "description": {
+                        "ja": ""
+                    }
+                },
+                "id": "http://garewelswe.com/",
+                "objectType": "Activity"
+            },
+            "actor": {
+                "openID": "http://test.local/EAGLE/PEab76617d1d21d725d358a7ad5231bd6e",
+                "name": "dev2-001",
+                "objectType": "Agent"
+            },
+            "verb": {
+                "id": "http://adlnet.gov/expapi/verbs/answered",
+                "display": {
+                    "en-us": "answered"
+                }
+            },
+            "result": {
+                "response": "TEST0",
+                "success": True
+            },
+            "context": {
+                "contextActivities": {
+                    "parent": [
+                        {
+                            "id": "http://garewelswe.com/"
+                        }
+                    ],
+                    "grouping": [
+                        {
+                            "id": "http://garewelswe.com/"
+                        }
+                    ]
+                }
+            },
+            "id": "9faf143c-4851-11e3-b1a1-000c29bfba11",
+            "authority": {
+                "mbox": "mailto:kazutaka_kamiya@test.local",
+                "name": "adllrs",
+                "objectType": "Agent"
+            }
+            })
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)    
 
     def test_amsterdam_snafu(self):
         stmt = json.dumps({
@@ -896,7 +1001,7 @@ class StatementsTests(TestCase):
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
         group = {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}
-        gr_object = models.Agent.objects.gen(**group)
+        gr_object = models.Agent.objects.retrieve_or_create(**group)
 
         stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
             "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
@@ -1512,6 +1617,30 @@ class StatementsTests(TestCase):
         self.assertEqual(len(wrong_activities), 0)
         self.assertEqual(len(foogie_activities), 1)
       
+
+    def test_unique_actor_authority(self):
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:timmay@timmay.com", "name":"timmay"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_post")
+        self.assertEqual(act.activity_id, "act:test_post")
+        agent = models.Agent.objects.get(mbox="mailto:timmay@timmay.com")
+        self.assertEqual(agent.name, "timmay")
+
+        response2 = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth2, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(response2.status_code, 200)
+        act2 = models.Activity.objects.get(activity_id="act:test_post")
+        self.assertEqual(act2.activity_id, "act:test_post")
+        agent2 = models.Agent.objects.get(mbox="mailto:timmay@timmay.com")
+        self.assertEqual(agent2.name, "timmay")
+
     def test_stmts_w_same_regid(self):
         stmt1_guid = str(uuid.uuid1())
         stmt2_guid = str(uuid.uuid1())

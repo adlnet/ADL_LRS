@@ -7,10 +7,8 @@ class ParamError(BadRequest):
 class Unauthorized(Exception):
     pass
 
-
 class Forbidden(Exception):
     pass
-
 
 class NotFound(Exception):
     pass
@@ -24,7 +22,6 @@ class Conflict(Exception):
 
 class ParamConflict(Conflict):
     pass
-
 
 class PreconditionFail(Exception):
     pass

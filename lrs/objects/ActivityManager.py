@@ -1,7 +1,5 @@
 import json
-import urllib2
 from StringIO import StringIO
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from lrs import models, exceptions
@@ -18,28 +16,6 @@ class ActivityManager():
             self.auth = None
         self.define = define
         self.populate(data)
-
-    # Retrieve JSON data from ID
-    def get_data_from_act_id(self,act_id):
-        resolves = True
-        act_json = {}
-
-        # See if id resolves
-        try:
-            req = urllib2.Request(act_id)
-            req.add_header('Accept', 'application/json, */*')
-            act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
-        except Exception, e:
-            # Doesn't resolve-hopefully data is in payload
-            resolves = False
-        else:
-            # If it resolves then try parsing JSON from it
-            try:
-                act_json = json.loads(act_resp.read())
-            except Exception, e:
-                # Resolves but no data to retrieve - this is OK
-                pass
-        return act_json
 
     #Save activity definition to DB
     def save_activity_definition_to_db(self, act_def_type, int_type, more_info, name, desc, crp, ext):
@@ -71,10 +47,10 @@ class ActivityManager():
         # If allowed to define activities-create or get the global version
         if self.define:
             self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
-                global_representation=True)
+                canonical_version=True)
         else:
             # Not allowed to create global version b/c don't have define permissions
-            self.Activity = models.Activity.objects.create(activity_id=activity_id, global_representation=False)
+            self.Activity = models.Activity.objects.create(activity_id=activity_id, canonical_version=False)
             act_created = False
 
         if act_created:
@@ -82,14 +58,7 @@ class ActivityManager():
                 self.Activity.authoritative = self.auth
                 self.Activity.save()
 
-        # Try grabbing any activity data from the activity ID
-        activity_definition = self.get_data_from_act_id(activity_id)
-
-        # If there is a definition in the payload, grab it and merge with any data from activity ID
-        # (payload data overrides ID data)
-        if 'definition' in the_object:
-            data_from_payload = the_object['definition']
-            activity_definition = dict(activity_definition.items() + data_from_payload.items())
+        activity_definition = the_object.get('definition', None)
 
         # If there is a definition-populate the definition
         if activity_definition and (act_created or self.act_def_changed(activity_definition)):

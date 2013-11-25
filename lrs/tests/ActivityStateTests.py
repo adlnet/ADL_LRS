@@ -32,7 +32,7 @@ class ActivityStateTests(TestCase):
 
     def setUp(self):
         self.username = "test"
-        self.email = "mailto:test@example.com"        
+        self.email = "test@example.com"        
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username,'email': self.email,'password':self.password,'password2':self.password}
@@ -223,7 +223,7 @@ class ActivityStateTests(TestCase):
     # Also tests 403 forbidden status
     def test_get(self):
         username = "other"
-        email = "mailto:other@example.com"
+        email = "other@example.com"
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
@@ -552,7 +552,7 @@ class ActivityStateTests(TestCase):
 
     def test_ie_cors_put_delete(self):
         username = "another test"
-        email = "mailto:anothertest@example.com"
+        email = "anothertest@example.com"
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
@@ -585,7 +585,7 @@ class ActivityStateTests(TestCase):
 
     def test_agent_is_group(self):
         username = "the group"
-        email = "mailto:the.group@example.com"
+        email = "the.group@example.com"
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
@@ -627,6 +627,15 @@ class ActivityStateTests(TestCase):
         self.assertEqual(ast.literal_eval(r.content), state)
 
         self.client.delete(path, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
+    def test_post_blank_state(self):
+        param = {"stateId": "test:postnewblankstate", "activityId": "act:test/post.new.blank.state", "agent": '{"mbox":"mailto:testagent@example.com"}'}
+        path = '%s?%s' % (self.url, urllib.urlencode(param))
+        state = ""
+
+        r = self.client.post(path, state, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, 'No body in request')
 
     def test_post_update_state(self):
         param = {"stateId": "test:postupdatestate", "activityId": "act:test/post.update.state", "agent": '{"mbox":"mailto:test@example.com"}'}

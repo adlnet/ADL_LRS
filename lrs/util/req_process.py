@@ -8,10 +8,12 @@ from email.mime.base import MIMEBase
 from django.http import HttpResponse
 from django.conf import settings
 from django.utils.timezone import utc
-from lrs import models, exceptions
+from lrs import models
+from lrs.exceptions import IDNotFoundError
 from lrs.objects.ActivityProfileManager import ActivityProfileManager
 from lrs.objects.ActivityStateManager import ActivityStateManager 
 from lrs.objects.AgentManager import AgentManager
+from lrs.objects.AgentProfileManager import AgentProfileManager
 from lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
@@ -23,14 +25,9 @@ def process_statements(stmts, auth_id, define):
             for st in stmts:
                 if not 'id' in st:
                     st['id'] = str(uuid.uuid1())
-
-                st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
                 
-                if not 'timestamp' in st:
-                    st['timestamp'] = st['stored']
-
                 if not 'version' in st:
-                    st['version'] = "1.0.0"
+                    st['version'] = "1.0.1"
     
                 if 'context' in st and 'contextActivities' in st['context']:
                     for k, v in st['context']['contextActivities'].items():
@@ -49,7 +46,12 @@ def process_statements(stmts, auth_id, define):
                             st['authority'] = auth_id.get_agent_json()
                         else:
                             st['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email, 'objectType': 'Agent'}
-                
+
+                st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+
+                if not 'timestamp' in st:
+                    st['timestamp'] = st['stored']
+
                 stmt_json = json.dumps(st)
                 stmt = StatementManager(st, auth_id, define, stmt_json).model_object
                 stmt_responses.append(str(stmt.statement_id))
@@ -61,11 +63,6 @@ def process_statements(stmts, auth_id, define):
     else:
         if not 'id' in stmts:
             stmts['id'] = str(uuid.uuid1())
-
-        stmts['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
-
-        if not 'timestamp' in stmts:
-            stmts['timestamp'] = stmts['stored']
 
         if not 'version' in stmts:
             stmts['version'] = "1.0.0"
@@ -89,32 +86,91 @@ def process_statements(stmts, auth_id, define):
                     stmts['authority'] = {'name':auth_id.username, 'mbox': 'mailto:%s' % auth_id.email, 'objectType': 'Agent'}            
         
         # Handle single POST
+        stmts['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+
+        if not 'timestamp' in stmts:
+            stmts['timestamp'] = stmts['stored']
+
         stmt_json = json.dumps(stmts)
         stmt = StatementManager(stmts, auth_id, define, stmt_json).model_object
         stmt_responses.append(stmt.statement_id)
-
     return stmt_responses
 
-def statements_post(req_dict):
+def get_auth(auth):
     define = True
-    auth = req_dict.get('auth', None)
     auth_id = auth['id'] if auth and 'id' in auth else None
     if auth and 'oauth_define' in auth:
-        define = req_dict['auth']['oauth_define']
+        define = auth['oauth_define']
+    return auth_id, define
 
+def process_complex_get(req_dict):
+    mime_type = "application/json"
+    # Parse out params into single dict-GET data not in body
+    param_dict = {}
+    try:
+        param_dict = req_dict['body']
+        if not isinstance(param_dict, dict):
+            param_dict = convert_to_dict(param_dict)
+    except KeyError:
+        pass # no params in the body    
+    param_dict.update(req_dict['params'])
+    format = param_dict['format']
+    
+    # Set language if one pull from req_dict since language is from a header, not an arg 
+    language = None
+    if 'headers' in req_dict and ('format' in param_dict and param_dict['format'] == "canonical"):
+        if 'language' in req_dict['headers']:
+            language = req_dict['headers']['language']
+        else:
+            language = settings.LANGUAGE_CODE
+
+    # If auth is in req dict, add it to param dict
+    if 'auth' in req_dict:
+        param_dict['auth'] = req_dict['auth']
+
+    # Get limit if one
+    limit = None
+    if 'params' in req_dict and 'limit' in req_dict['params']:
+        limit = int(req_dict['params']['limit'])
+    elif 'body' in req_dict and 'limit' in req_dict['body']:
+        limit = int(req_dict['body']['limit'])
+
+    # See if attachments should be included
+    try:
+        attachments = req_dict['params']['attachments']
+    except Exception, e:
+        attachments = False
+
+    # Create returned stmt list from the req dict
+    stmt_result = retrieve_statement.complex_get(param_dict, limit, language, format, attachments)
+    
+    if format == 'exact':
+        content_length = len(stmt_result)    
+    else:
+        content_length = len(json.dumps(stmt_result))
+
+    # If attachments=True in req_dict then include the attachment payload and return different mime type
+    if attachments:
+        stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
+        resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+    # Else attachments are false for the complex get so just dump the stmt_result
+    else:
+        if format == 'exact':
+            result = stmt_result
+        else:
+            result = json.dumps(stmt_result)
+        content_length = len(result)
+        resp = HttpResponse(result, mimetype=mime_type, status=200)    
+    return resp, content_length
+
+def statements_post(req_dict):
+    auth_id, define = get_auth(req_dict.get('auth', None))
     stmt_responses = process_statements(req_dict['body'], auth_id, define)
- 
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
-    define = True
-    auth = req_dict.get('auth', None)
-    auth_id = auth['id'] if auth and 'id' in auth else None
-    if auth and 'oauth_define' in auth:
-        define = auth['oauth_define']    
-
+    auth_id, define = get_auth(req_dict.get('auth', None))
     stmt_responses = process_statements(req_dict['body'], auth_id, define)
-    
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
@@ -124,7 +180,6 @@ def statements_more_get(req_dict):
         content_length = len(json.dumps(stmt_result))
     else:
         content_length = len(stmt_result)
-
     mime_type = "application/json"
 
     # If there are attachments, include them in the payload
@@ -147,102 +202,21 @@ def statements_more_get(req_dict):
     return resp
 
 def statements_get(req_dict):
-    auth = req_dict.get('auth', None)
-    mine_only = auth and 'statements_mine_only' in auth
-
     stmt_result = {}
     mime_type = "application/json"
+
     # If statementId is in req_dict then it is a single get
-    if 'params' in req_dict and ('statementId' in req_dict['params'] or 'voidedStatementId' in req_dict['params']):
-        if 'statementId' in req_dict['params']:
-            statementId = req_dict['params']['statementId']
-            voided = False
-        else:
-            statementId = req_dict['params']['voidedStatementId']
-            voided = True
-
-        # Try to retrieve stmt, if DNE then return empty else return stmt info                
-        try:
-            st = models.Statement.objects.get(statement_id=statementId)
-        except models.Statement.DoesNotExist:
-            err_msg = 'There is no statement associated with the id: %s' % statementId
-            raise exceptions.IDNotFoundError(err_msg)
-
-        if mine_only and st.authority.id != req_dict['auth']['id'].id:
-            err_msg = "Incorrect permissions to view statements that do not have auth %s" % str(req_dict['auth']['id'])
-            raise exceptions.Forbidden(err_msg)
+    if 'statementId' in req_dict:     
+        st = models.Statement.objects.get(statement_id=req_dict['statementId'])        
         
-        if st.voided != voided:
-            if st.voided:
-                err_msg = 'The requested statement (%s) is voided. Use the "voidedStatementId" parameter to retrieve your statement.' % statementId
-            else:
-                err_msg = 'The requested statement (%s) is not voided. Use the "statementId" parameter to retrieve your statement.' % statementId
-            raise exceptions.IDNotFoundError(err_msg)
-        
-        # Once validated, return the object, will already be json since format will be exact
+        # return the object, will already be json since format will be exact
         stmt_result = st.object_return()
-        
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
         content_length = len(stmt_result)
     # Complex GET
     else:
-        # Parse out params into single dict-GET data not in body
-        param_dict = {}
-        try:
-            param_dict = req_dict['body']
-            if not isinstance(param_dict, dict):
-                param_dict = convert_to_dict(param_dict)
-        except KeyError:
-            pass # no params in the body    
-        param_dict.update(req_dict['params'])
-        format = param_dict['format']
+        resp, content_length = process_complex_get(req_dict)
         
-        # Set language if one pull from req_dict since language is from a header, not an arg 
-        language = None
-        if 'headers' in req_dict and ('format' in param_dict and param_dict['format'] == "canonical"):
-            if 'language' in req_dict['headers']:
-                language = req_dict['headers']['language']
-            else:
-                language = settings.LANGUAGE_CODE
-
-        # If auth is in req dict, add it to param dict
-        if 'auth' in req_dict:
-            param_dict['auth'] = req_dict['auth']
-
-        # Get limit if one
-        limit = None
-        if 'params' in req_dict and 'limit' in req_dict['params']:
-            limit = int(req_dict['params']['limit'])
-        elif 'body' in req_dict and 'limit' in req_dict['body']:
-            limit = int(req_dict['body']['limit'])
-
-        # See if attachments should be included
-        try:
-            attachments = req_dict['params']['attachments']
-        except Exception, e:
-            attachments = False
-
-        # Create returned stmt list from the req dict
-        stmt_result = retrieve_statement.complex_get(param_dict, limit, language, format, attachments)
-        
-        if format == 'exact':
-            content_length = len(stmt_result)    
-        else:
-            content_length = len(json.dumps(stmt_result))
-
-        # If attachments=True in req_dict then include the attachment payload and return different mime type
-        if attachments:
-            stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
-            resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
-        # Else attachments are false for the complex get so just dump the stmt_result
-        else:
-            if format == 'exact':
-                result = stmt_result
-            else:
-                result = json.dumps(stmt_result)
-            content_length = len(result)
-            resp = HttpResponse(result, mimetype=mime_type, status=200)
-    
     # Set consistent through and content length headers for all responses
     try:
         resp['X-Experience-API-Consistent-Through'] = str(models.Statement.objects.latest('stored').stored)
@@ -386,13 +360,7 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
-    # Try to retrieve activity, if DNE then return empty else return activity info
-    try:
-        act = models.Activity.objects.get(activity_id=activityId, global_representation=True)
-    except models.Activity.DoesNotExist:    
-        err_msg = "No activity found with ID %s" % activityId
-        raise exceptions.IDNotFoundError(err_msg)
-    
+    act = models.Activity.objects.get(activity_id=activityId, canonical_version=True)    
     return_act = json.dumps(act.object_return())    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
@@ -401,27 +369,30 @@ def activities_get(req_dict):
 def agent_profile_post(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
-    a = AgentManager(agent, create=True)
-    a.post_profile(req_dict)
+    a = AgentManager(agent).Agent
+    ap = AgentProfileManager(a)
+    ap.post_profile(req_dict)
 
     return HttpResponse("", status=204)
 
 def agent_profile_put(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
-    a = AgentManager(agent, create=True)
-    a.put_profile(req_dict)
+    a = AgentManager(agent).Agent
+    ap = AgentProfileManager(a)
+    ap.put_profile(req_dict)
 
     return HttpResponse("", status=204)
 
 def agent_profile_get(req_dict):
     # add ETag for concurrency
     agent = req_dict['params']['agent']
-    a = AgentManager(agent)
-    
+    a = AgentManager(agent).Agent
+    ap = AgentProfileManager(a)
+
     profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
     if profileId:
-        resource = a.get_profile(profileId)
+        resource = ap.get_profile(profileId)
         if resource.profile:
             response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
         else:
@@ -430,56 +401,22 @@ def agent_profile_get(req_dict):
         return response
 
     since = req_dict['params'].get('since', None) if 'params' in req_dict else None
-    resource = a.get_profile_ids(since)
+    resource = ap.get_profile_ids(since)
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     return response
 
 def agent_profile_delete(req_dict):
     agent = req_dict['params']['agent']
-    a = AgentManager(agent)
+    a = AgentManager(agent).Agent
     profileId = req_dict['params']['profileId']
-    a.delete_profile(profileId)
+    ap = AgentProfileManager(a)
+    ap.delete_profile(profileId)
 
     return HttpResponse('', status=204)
 
 def agents_get(req_dict):
-    agent = req_dict['params']['agent']
-    a = AgentManager(agent)
-    agent_data = a.get_person_json()
+    a = models.Agent.objects.get(**req_dict['agent_ifp'])    
+    agent_data = json.dumps(a.get_person_json())
     resp = HttpResponse(agent_data, mimetype="application/json")
     resp['Content-Length'] = str(len(agent_data))
     return resp
-
-#Generate JSON
-def stream_response_generator(data):
-    first = True
-    yield "{"
-    for k,v in data.items():
-        if not first:
-            yield ", "
-        else:
-            first = False
-        #Catch nested dictionaries
-        if type(v) is dict:
-            stream_response_generator(v)
-        #Catch lists as dictionary values
-        if type(v) is list:
-            lfirst = True
-            yield json.dumps(k)
-            yield ": "
-            yield "["
-            for item in v:
-                if not lfirst:
-                    yield ", "
-                else:
-                    lfirst = False
-                #Catch dictionaries as items in a list
-                if type(item) is dict:
-                    stream_response_generator(item)
-                yield json.dumps(item)
-            yield "]"
-        else:
-            yield json.dumps(k)
-            yield ": "
-            yield json.dumps(v)
-    yield "}"

@@ -192,7 +192,7 @@ def parse_body(r, request):
                 # Body will be some type of string, not necessarily JSON
                 r['body'] = convert_to_dict(request.body)
             else:
-                raise Exception("No body in request")
+                raise BadRequest("No body in request")
     return r
 
 def get_headers(headers):

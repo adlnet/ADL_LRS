@@ -1087,7 +1087,7 @@ class OAuthTests(TestCase):
         signature = signature_method.build_signature(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
         # Put statements - does not have define scope, therefore it creates another activity with 
-        # global_representation as false
+        # canonical_version as false
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
 
@@ -1159,7 +1159,7 @@ class OAuthTests(TestCase):
         acts = models.Activity.objects.all()
         self.assertEqual(len(acts), 2)
 
-        global_act = models.Activity.objects.get(global_representation=True)        
+        global_act = models.Activity.objects.get(canonical_version=True)        
         global_name_list = global_act.activity_definition_name.values()
         self.assertIn('definename', global_name_list)
         self.assertIn('definealtname', global_name_list)
@@ -1167,7 +1167,7 @@ class OAuthTests(TestCase):
         self.assertIn('definedesc', global_desc_list)
         self.assertIn('definealtdesc', global_desc_list)
 
-        non_global_act = models.Activity.objects.get(global_representation=False)        
+        non_global_act = models.Activity.objects.get(canonical_version=False)        
         non_global_name_list = non_global_act.activity_definition_name.values()
         self.assertIn('testname', non_global_name_list)
         self.assertIn('altname', non_global_name_list)
@@ -1227,9 +1227,9 @@ class OAuthTests(TestCase):
         self.assertIn('tim', agents)
         self.assertIn('tim timson', agents)
         tim = models.Agent.objects.get(name='tim timson')
-        self.assertFalse(tim.global_representation)
+        self.assertFalse(tim.canonical_version)
         tim = models.Agent.objects.get(name='tim')
-        self.assertTrue(tim.global_representation)
+        self.assertTrue(tim.canonical_version)
 
         # START GET STMT
         get_params = {"agent":{"objectType": "Agent", "mbox":"mailto:tim@tim.com"}, "related_agents":True}
@@ -1257,12 +1257,14 @@ class OAuthTests(TestCase):
         self.client.logout()
         
         # START OF POST WITH ANOTHER HANDSHAKE
+        # Anonymous group that will make 2 canonical agents
         ot = "Group"
         members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
                     {"name":"jan doe","mbox":"mailto:jandoe@example.com"}]
         kwargs = {"objectType":ot, "member": members, "name": "doe group"}
-        global_group, created = models.Agent.objects.gen(**kwargs)
+        global_group, created = models.Agent.objects.retrieve_or_create(**kwargs)
 
+        # Anonymous group that will retrieve two agents and create one more canonical agents
         members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
                     {"name":"jan doe","mbox":"mailto:jandoe@example.com"},
                     {"name":"dave doe", "mbox":"mailto:dd@example.com"}]
@@ -1301,23 +1303,24 @@ class OAuthTests(TestCase):
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 200)
         agents = models.Agent.objects.all()
-        
+
         # These 5 agents are all non-global since created w/o define scope
-        non_globals = models.Agent.objects.filter(global_representation=False).values_list('name', flat=True)
-        self.assertEqual(len(non_globals), 5)
+        non_globals = models.Agent.objects.filter(canonical_version=False).values_list('name', flat=True)
+
+        self.assertEqual(len(non_globals), 4)
         self.assertIn('bill', non_globals)
         self.assertIn('tim timson', non_globals)
-        self.assertIn('dave doe', non_globals)
         self.assertIn('dom', non_globals)
         self.assertIn('doe group', non_globals)
         # 2 oauth group objects, all of these agents since created with member or manually and 2 anon
         # account agents for the accounts in the oauth groups
-        global_agents = models.Agent.objects.filter(global_representation=True).values_list('name', flat=True)
-        self.assertEqual(len(global_agents), 11)
+        global_agents = models.Agent.objects.filter(canonical_version=True).values_list('name', flat=True)
+        self.assertEqual(len(global_agents), 12)
         self.assertIn('bob', global_agents)
         self.assertIn('tim', global_agents)
         self.assertIn('jan doe', global_agents)
         self.assertIn('john doe', global_agents)
+        self.assertIn('dave doe', global_agents)        
         self.assertIn('jane', global_agents)
         self.assertIn('dick', global_agents)
         self.assertIn('doe group', global_agents)

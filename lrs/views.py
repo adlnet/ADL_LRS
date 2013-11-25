@@ -1,23 +1,22 @@
 import json
-from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+import logging
 from django.conf import settings
-from django.views.decorators.http import require_http_methods, require_GET
-from django.core.context_processors import csrf
-from django.views.decorators.csrf import csrf_protect
-from django.template import RequestContext
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
+from django.core.context_processors import csrf
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.urlresolvers import reverse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response
+from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
-from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_http_methods
 from lrs import forms, models, exceptions
+from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
-import logging
 
 logger = logging.getLogger(__name__)
  
@@ -26,19 +25,24 @@ logger = logging.getLogger(__name__)
 def home(request):
     context = RequestContext(request)
     context.update(csrf(request))
+
     stats = {}
     stats['usercnt'] = User.objects.all().count()
     stats['stmtcnt'] = models.Statement.objects.all().count()
-    stats['agentcnt'] = models.Agent.objects.all().count()
     stats['verbcnt'] = models.Verb.objects.all().count()
-    stats['activitycnt'] = models.Activity.objects.all().count()
+    stats['agentcnt'] = models.Agent.objects.filter().count()
+    stats['activitycnt'] = models.Activity.objects.filter().count()
     return render_to_response('home.html', {'stats':stats}, context_instance=context)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
+@csrf_protect
 def stmt_validator(request):
+    context = RequestContext(request)
+    context.update(csrf(request))
+
     if request.method == 'GET':
         form = forms.ValidatorForm()
-        return render_to_response('validator.html', {"form": form}, context_instance=RequestContext(request))
+        return render_to_response('validator.html', {"form": form}, context_instance=context)
     elif request.method == 'POST':
         form = forms.ValidatorForm(request.POST)
         if form.is_valid():
@@ -47,26 +51,26 @@ def stmt_validator(request):
                 validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
             except SyntaxError, se:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
-                context_instance=RequestContext(request))
+                context_instance=context)
             except ValueError, ve:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
-                context_instance=RequestContext(request))                
+                context_instance=context)                
             except Exception, e:
                 return render_to_response('validator.html', {"form": form, "error_message": e.message},
-                context_instance=RequestContext(request))
+                context_instance=context)
 
             # Once know it's valid JSON, validate keys and fields
             try:
                 valid = validator.validate()
             except exceptions.ParamError, e:
                 return render_to_response('validator.html', {"form": form,"error_message": e.message},
-                    context_instance=RequestContext(request))
+                    context_instance=context)
             else:
                 return render_to_response('validator.html', {"form": form,"valid_message": valid},
-                    context_instance=RequestContext(request))
+                    context_instance=context)
         else:
             return render_to_response('validator.html', {"form": form},
-                context_instance=RequestContext(request))
+                context_instance=context)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
@@ -80,7 +84,6 @@ def about(request):
                     "methods": ["GET", "POST", "PUT", "HEAD"],
                     "endpoint": reverse('lrs.views.statements'),
                     "description": "Endpoint to submit and retrieve XAPI statments.",
-                    "content-types": []
                 },
                 "activities":
                 {
@@ -88,7 +91,6 @@ def about(request):
                     "methods": ["GET", "HEAD"],
                     "endpoint": reverse('lrs.views.activities'),
                     "description": "Endpoint to retrieve a complete activity object.",
-                    "content-types": []
                 },
                 "activities_state":
                 {
@@ -96,7 +98,6 @@ def about(request):
                     "methods": ["PUT","POST","GET","DELETE", "HEAD"],
                     "endpoint": reverse('lrs.views.activity_state'),
                     "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
-                    "content-types": []
                 },
                 "activities_profile":
                 {
@@ -104,7 +105,6 @@ def about(request):
                     "methods": ["PUT","POST","GET","DELETE", "HEAD"],
                     "endpoint": reverse('lrs.views.activity_profile'),
                     "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
-                    "content-types": []
                 },
                 "agents":
                 {
@@ -112,7 +112,6 @@ def about(request):
                     "methods": ["GET", "HEAD"],
                     "endpoint": reverse('lrs.views.agents'),
                     "description": "Returns a special, Person object for a specified agent.",
-                    "content-types": []
                 },
                 "agents_profile":
                 {
@@ -120,7 +119,6 @@ def about(request):
                     "methods": ["PUT","POST","GET","DELETE", "HEAD"],
                     "endpoint": reverse('lrs.views.agent_profile'),
                     "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
-                    "content-types": []
                 }
             },
             "lrs":{
@@ -130,7 +128,6 @@ def about(request):
                     "methods": ["POST"],
                     "endpoint": reverse('lrs.views.register'),
                     "description": "Registers a user within the LRS.",
-                    "content-types": ["application/x-www-form-urlencoded"]
                 },
                 "client_register":
                 {
@@ -138,7 +135,6 @@ def about(request):
                     "methods": ["POST"],
                     "endpoint": reverse('lrs.views.reg_client'),
                     "description": "Registers a client applicaton with the LRS.",
-                    "content-types": ["application/x-www-form-urlencoded"]
                 }
             },
             "oauth":
@@ -149,7 +145,6 @@ def about(request):
                     "methods": ["POST"],
                     "endpoint": reverse('oauth_provider.views.request_token'),
                     "description": "Authorize a client and return temporary credentials.",
-                    "content-types": ["application/x-www-form-urlencoded"]
                 },
                 "authorize":
                 {
@@ -157,7 +152,6 @@ def about(request):
                     "methods": ["GET"],
                     "endpoint": reverse('oauth_provider.views.user_authorization'),
                     "description": "Authorize a user.",
-                    "content-types": []
                 },
                 "token":
                 {
@@ -165,12 +159,11 @@ def about(request):
                     "methods": ["POST"],
                     "endpoint": reverse('oauth_provider.views.access_token'),
                     "description": "Provides Oauth token to the client.",
-                    "content-types": ["application/x-www-form-urlencoded"]
                 }
             }
         }
     }    
-    return HttpResponse(req_process.stream_response_generator(lrs_data), mimetype="application/json", status=200)
+    return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)
 
 def actexample(request):
     return render_to_response('actexample.json', mimetype="application/json")
@@ -184,32 +177,37 @@ def actexample3(request):
 def actexample4(request):
     return render_to_response('actexample4.json', mimetype="application/json")
 
+@csrf_protect
+@require_http_methods(["POST", "GET"])
 def register(request):
+    context = RequestContext(request)
+    context.update(csrf(request))
+    
     if request.method == 'GET':
         form = forms.RegisterForm()
-        return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
+        return render_to_response('register.html', {"form": form}, context_instance=context)
     elif request.method == 'POST':
         form = forms.RegisterForm(request.POST)
         if form.is_valid():
             name = form.cleaned_data['username']
             pword = form.cleaned_data['password']
             email = form.cleaned_data['email']
+            
             try:
                 user = User.objects.get(username__exact=name)
-                user = authenticate(username=name, password=pword)
-                if user is None:
-                    return render_to_response('register.html', {"form": form, "error_message": "%s's password was incorrect." % name},
-                        context_instance=RequestContext(request))
             except User.DoesNotExist:
                 user = User.objects.create_user(name, email, pword)
+            else:
+                return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
+                    context_instance=context)                
+            
             d = {"info_message": "Thanks for registering %s" % user.username}
-            return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
+            return render_to_response('reg_success.html', d, context_instance=context)
         else:
-            return render_to_response('register.html', {"form": form}, context_instance=RequestContext(request))
-    else:
-        return Http404
+            return render_to_response('register.html', {"form": form}, context_instance=context)
 
 @login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["POST", "GET"])
 def reg_client(request):
     if request.method == 'GET':
         form = forms.RegClientForm()
@@ -220,6 +218,7 @@ def reg_client(request):
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
             scopes = form.cleaned_data['scopes']
+            
             try:
                 client = models.Consumer.objects.get(name__exact=name)
             except models.Consumer.DoesNotExist:
@@ -227,13 +226,11 @@ def reg_client(request):
                     status=ACCEPTED, default_scopes=",".join(scopes))
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
+            
             d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
-
         else:
-            return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))        
-    else:
-        return Http404
+            return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
@@ -244,58 +241,56 @@ def me(request):
 
 @login_required(login_url="/XAPI/accounts/login")
 def my_statements(request):
-    try:
-        if request.method == "DELETE":
-            models.Statement.objects.filter(user=request.user).delete()
-            stmts = models.Statement.objects.filter(user=request.user)
-            if not stmts:
-                return HttpResponse(status=204)
-            else:
-                raise Exception("unable to delete statements")
-        stmt_id = request.GET.get("stmt_id", None)
-        if stmt_id:
-            s = models.Statement.objects.get(statement_id=stmt_id, user=request.user)
-            return HttpResponse(s.object_return(),mimetype="application/json",status=200)
+    if request.method == "DELETE":
+        models.Statement.objects.filter(user=request.user).delete()
+        stmts = models.Statement.objects.filter(user=request.user)
+        if not stmts:
+            return HttpResponse(status=204)
         else:
-            s = {}
-            paginator = Paginator(models.Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
-                settings.STMTS_PER_PAGE)
+            raise Exception("unable to delete statements")
 
-            page_no = request.GET.get('page', 1)
-            try:
-                page = paginator.page(page_no)
-            except PageNotAnInteger:
-                # If page is not an integer, deliver first page.
-                page = paginator.page(1)
-            except EmptyPage:
-                # If page is out of range (e.g. 9999), deliver last page of results.
-                page = paginator.page(paginator.num_pages)
+    stmt_id = request.GET.get("stmt_id", None)
+    if stmt_id:
+        s = models.Statement.objects.get(statement_id=stmt_id, user=request.user)
+        return HttpResponse(s.object_return(),mimetype="application/json",status=200)
+    else:
+        s = {}
+        paginator = Paginator(models.Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
+            settings.STMTS_PER_PAGE)
 
-            idlist = page.object_list
-            if idlist.count() > 0:
-                stmtobjs = [stmt for stmt in models.Statement.objects.filter(id__in=(idlist)).order_by('-timestamp')]
-            else: 
-                stmtobjs = []
+        page_no = request.GET.get('page', 1)
+        try:
+            page = paginator.page(page_no)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            page = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            page = paginator.page(paginator.num_pages)
 
-            slist = []
-            for stmt in stmtobjs:
-                d = {}
-                d['timestamp'] = stmt.timestamp.isoformat()
-                d['statement_id'] = stmt.statement_id
-                d['actor_name'] = stmt.actor.get_a_name()
-                d['verb'] = stmt.verb.get_display()
-                d['object'] = stmt.get_object().get_a_name()
-                slist.append(d)
+        idlist = page.object_list
+        if idlist.count() > 0:
+            stmt_objs = [stmt for stmt in models.Statement.objects.filter(id__in=(idlist)).order_by('-timestamp')]
+        else: 
+            stmt_objs = []
 
-            s['stmts'] = slist
-            if page.has_previous():
-                s['previous'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.previous_page_number())
-            if page.has_next():
-                s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
+        slist = []
+        for stmt in stmt_objs:
+            d = {}
+            d['timestamp'] = stmt.timestamp.isoformat()
+            d['statement_id'] = stmt.statement_id
+            d['actor_name'] = stmt.actor.get_a_name()
+            d['verb'] = stmt.verb.get_display()
+            d['object'] = stmt.get_object().get_a_name()
+            slist.append(d)
 
-            return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
-    except Exception as e:
-        return HttpResponse(e, status=400)
+        s['stmts'] = slist
+        if page.has_previous():
+            s['previous'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.previous_page_number())
+        if page.has_next():
+            s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
+
+        return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
 
 @login_required(login_url="/XAPI/accounts/login")
 def my_app_status(request):
@@ -312,25 +307,25 @@ def my_app_status(request):
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
 @login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["DELETE"])
 def delete_token(request):
-    if request.method == "DELETE":
-        try:
-            ids = request.GET['id'].split("-")
-            token_key = ids[0]
-            consumer_id = ids[1]
-            ts = ids[2]
-            token = models.Token.objects.get(user=request.user,
-                                             key__startswith=token_key,
-                                             consumer__id=consumer_id,
-                                             timestamp=ts,
-                                             token_type=models.Token.ACCESS,
-                                             is_approved=True)
-            token.is_approved = False
-            token.save()
-            return HttpResponse("", status=204)
-        except:
-            return HttpResponse("Unknown token", status=400)
-    return Http404("Unknown Request")
+    try:
+        ids = request.GET['id'].split("-")
+        token_key = ids[0]
+        consumer_id = ids[1]
+        ts = ids[2]
+        token = models.Token.objects.get(user=request.user,
+                                         key__startswith=token_key,
+                                         consumer__id=consumer_id,
+                                         timestamp=ts,
+                                         token_type=models.Token.ACCESS,
+                                         is_approved=True)
+        token.is_approved = False
+        token.save()
+        return HttpResponse("", status=204)
+    except:
+        return HttpResponse("Unknown token", status=400)
+
 def logout_view(request):
     logout(request)
     # Redirect to a success page.
@@ -373,12 +368,6 @@ def agent_profile(request):
 def agents(request):
     return handle_request(request)
 
-# THIS VIEW IS BEING USED
-def oauth_authorize(request, request_token, callback_url, params):
-    rsp = """
-    <html><head></head><body><h1>Oauth Authorize</h1><h2>%s</h2></body></html>""" % params
-    return HttpResponse(rsp)    
-
 @login_required
 def user_profile(request):
     return render_to_response('registration/profile.html')
@@ -408,7 +397,7 @@ validators = {
         "GET" : req_validate.activities_get,
         "HEAD" : req_validate.activities_get
     },
-    reverse(agent_profile) : {
+    reverse(agent_profile).lower() : {
         "POST": req_validate.agent_profile_post,
         "PUT" : req_validate.agent_profile_put,
         "GET" : req_validate.agent_profile_get,
@@ -514,29 +503,4 @@ def handle_request(request, more_id=None):
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)
-    logger.exception(ex)    
-
-def print_req_details(request):
-    print '=====================details==============='
-    print 'upload handlers: %s' % request.upload_handlers
-    print 'content disposition: %s' % request.META.get("Content-Disposition", None)
-    print 'method: %s' % request.method
-    print 'raw %s' % request.raw_post_data
-    print 'full path: %s' % request.get_full_path()
-    print 'REQUEST keys %s' % request.REQUEST.keys()
-    #print 'DEL keys %s' % request.DELETE.keys()
-    #print 'PUT keys %s' % request.PUT.keys()
-    print 'GET keys %s' % request.GET.keys()
-    print 'GET: %s' % request.GET
-    print 'POST keys %s' % request.POST.keys()
-    print 'POST: %s' % request.POST
-    try:
-        body = request.body
-        print 'body: %s' % body
-    except:
-        print 'busy body' 
-
-    print 'META: %s' % request.META
-    print 'META content type: %s' % request.META['CONTENT_TYPE']
-    print '==========================================='
-
+    logger.exception(ex)

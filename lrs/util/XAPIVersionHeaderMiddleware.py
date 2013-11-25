@@ -27,5 +27,5 @@ class XAPIVersionHeader(object):
 
 
     def process_response(self, request, response):
-        response['X-Experience-API-Version'] = "1.0.0"
+        response['X-Experience-API-Version'] = "1.0.1"
         return response

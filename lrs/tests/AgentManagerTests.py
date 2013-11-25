@@ -105,20 +105,20 @@ class AgentManagerTests(TestCase):
         name = "bob bobson"
         mbox = "mailto:bobbobson@example.com"
         kwargs = {"objectType":ot,"name":name,"mbox":mbox}
-        bob, created = Agent.objects.gen(**kwargs)
+        bob, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
         bob.save()
         self.assertEquals(bob.objectType, ot)
         self.assertEquals(bob.name, name)
         self.assertEquals(bob.mbox, mbox)
 
-        bob2, created = Agent.objects.gen(**kwargs)
+        bob2, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertFalse(created)
         self.assertEquals(bob.pk, bob2.pk)
         self.assertEquals(bob, bob2)
 
         kwargs['mbox'] = "mailto:bob.secret@example.com"
-        bob3, created = Agent.objects.gen(**kwargs)
+        bob3, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
         bob3.save()
         self.assertNotEqual(bob.pk, bob3.pk)
@@ -128,7 +128,7 @@ class AgentManagerTests(TestCase):
         name = "bob bobson"
         account = json.dumps({"homePage":"http://www.adlnet.gov","name":"freakshow"})
         kwargs = {"objectType":ot,"name":name,"account":account}
-        bob, created = Agent.objects.gen(**kwargs)
+        bob, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
         self.assertEquals(bob.objectType, ot)
         self.assertEquals(bob.name, name)
@@ -139,24 +139,24 @@ class AgentManagerTests(TestCase):
         ot = "Agent"
         name = "bob bobson"
         kwargs = {"objectType":ot,"name":name, "mbox": "mailto:bob@example.com"}
-        bob, created = Agent.objects.gen(**kwargs)
+        bob, created = Agent.objects.retrieve_or_create(**kwargs)
 
         ot = "Agent"
         name = "john johnson"
         kwargs = {"objectType":ot,"name":name, "mbox": "mailto:john@example.com"}
-        john, created = Agent.objects.gen(**kwargs)
+        john, created = Agent.objects.retrieve_or_create(**kwargs)
         
         ot = "Group"
         members = [{"name":"bob bobson","mbox":"mailto:bob@example.com"},
                     {"name":"john johnson","mbox":"mailto:john@example.com"}]
         
         kwargs = {"objectType":ot, "member": members}
-        gr, created = Agent.objects.gen(**kwargs)
+        gr, created = Agent.objects.retrieve_or_create(**kwargs)
         # Already created from above
         self.assertTrue(created)
 
         kwargs1 = {"objectType":ot, "member": members, "name": "my group"}
-        gr1, created = Agent.objects.gen(**kwargs1)
+        gr1, created = Agent.objects.retrieve_or_create(**kwargs1)
         # creates another one b/c of adding a name
         self.assertTrue(created)
         self.assertEquals(gr1.name, "my group")
@@ -170,11 +170,11 @@ class AgentManagerTests(TestCase):
         ot = "Agent"
         name = "bill billson"
         kwargs = {"objectType":ot, "mbox": "mailto:bill@example.com"}
-        bill, created = Agent.objects.gen(**kwargs)
+        bill, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
 
         kwargs1 = {"objectType":ot, "mbox": "mailto:bill@example.com", "name": name}
-        bill2, created = Agent.objects.gen(**kwargs1)
+        bill2, created = Agent.objects.retrieve_or_create(**kwargs1)
         
         self.assertFalse(created)
         self.assertEquals(bill2.name, name)
@@ -187,11 +187,11 @@ class AgentManagerTests(TestCase):
         account = json.dumps({"homePage":"http://www.adlnet.gov","name":"freakshow"})
         kwargs = {"objectType":ot,"account":account}
         
-        bill, created = Agent.objects.gen(**kwargs)
+        bill, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
 
         kwargs1 = {"objectType":ot, "name": name, "account":account}
-        bill2, created = Agent.objects.gen(**kwargs1)
+        bill2, created = Agent.objects.retrieve_or_create(**kwargs1)
         
         self.assertFalse(created)
         self.assertEquals(bill2.name, name)
@@ -207,11 +207,11 @@ class AgentManagerTests(TestCase):
 
         kwargs = {"objectType":ot,"member":members, "account":account}
         
-        g, created = Agent.objects.gen(**kwargs)
+        g, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
 
         kwargs1 = {"objectType":ot,"member":members, "name": name, "account":account}
-        g1, created = Agent.objects.gen(**kwargs1)
+        g1, created = Agent.objects.retrieve_or_create(**kwargs1)
         
         self.assertFalse(created)
         self.assertEquals(g1.name, name)
@@ -229,11 +229,11 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "mbox":mbox,"member":members}
-        g, created = Agent.objects.gen(**kwargs)
+        g, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
 
         kwargs1 = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g1, created = Agent.objects.gen(**kwargs1)
+        g1, created = Agent.objects.retrieve_or_create(**kwargs1)
         self.assertFalse(created)
 
         self.assertEquals(g1.name, name)
@@ -248,7 +248,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "mbox":mbox,"member":members}
-        g, created = Agent.objects.gen(**kwargs)
+        g, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
 
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
@@ -256,7 +256,7 @@ class AgentManagerTests(TestCase):
                     {"name":"agent3","mbox":"mailto:agent3@example.com"}]
 
         kwargs1 = {"objectType":ot, "mbox":mbox,"member":members}
-        g1, created = Agent.objects.gen(**kwargs1)
+        g1, created = Agent.objects.retrieve_or_create(**kwargs1)
         self.assertFalse(created)
 
         ags = Agent.objects.filter(objectType='Agent')
@@ -275,7 +275,7 @@ class AgentManagerTests(TestCase):
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
 
         kwargs = {"objectType":ot,"member":members,"name":name ,"account":account}
-        g, created = Agent.objects.gen(**kwargs)
+        g, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
 
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
@@ -283,7 +283,7 @@ class AgentManagerTests(TestCase):
                     {"name":"agent3","mbox":"mailto:agent3@example.com"}]
 
         kwargs1 = {"objectType":ot, "account":account,"name":name,"member":members}
-        g1, created = Agent.objects.gen(**kwargs1)
+        g1, created = Agent.objects.retrieve_or_create(**kwargs1)
         self.assertFalse(created)
 
         ags = Agent.objects.filter(objectType='Agent')
@@ -330,7 +330,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g, created = Agent.objects.gen(**kwargs)
+        g, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
@@ -355,7 +355,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g = AgentManager(params=kwargs, create=True).Agent
+        g = AgentManager(params=kwargs).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -370,7 +370,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g = AgentManager(params=kwargs, create=True).Agent
+        g = AgentManager(params=kwargs).Agent
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -397,7 +397,7 @@ class AgentManagerTests(TestCase):
         name_s = "superman"
         mbox_s = "mailto:superman@example.com"
         kwargs_s = {"objectType":ot_s,"name":name_s,"mbox":mbox_s}
-        clark, created = Agent.objects.gen(**kwargs_s)
+        clark, created = Agent.objects.retrieve_or_create(**kwargs_s)
         self.assertTrue(created)
         clark.save()
         self.assertEquals(clark.objectType, ot_s)
@@ -418,7 +418,7 @@ class AgentManagerTests(TestCase):
         name_ww = "wonder woman"
         mbox_sha1sum_ww = hashlib.sha1("mailto:wonderwoman@example.com").hexdigest()
         kwargs_ww = {"objectType":ot_ww,"name":name_ww,"mbox_sha1sum":mbox_sha1sum_ww}
-        diana, created = Agent.objects.gen(**kwargs_ww)
+        diana, created = Agent.objects.retrieve_or_create(**kwargs_ww)
         self.assertTrue(created)
         diana.save()
         self.assertEquals(diana.objectType, ot_ww)
@@ -440,7 +440,7 @@ class AgentManagerTests(TestCase):
         name_b = "batman"
         openID_b = "id:batman"
         kwargs_b = {"objectType":ot_b,"name":name_b,"openID":openID_b}
-        bruce, created = Agent.objects.gen(**kwargs_b)
+        bruce, created = Agent.objects.retrieve_or_create(**kwargs_b)
         self.assertTrue(created)
         bruce.save()
         self.assertEquals(bruce.objectType, ot_b)
@@ -463,7 +463,7 @@ class AgentManagerTests(TestCase):
         name_f = "the flash"
         account_f = {"homePage":"http://ultrasecret.justiceleague.com/accounts/", "name":"theflash"}
         kwargs_f = {"objectType":ot_f,"name":name_f,"account":account_f}
-        barry, created = Agent.objects.gen(**kwargs_f)
+        barry, created = Agent.objects.retrieve_or_create(**kwargs_f)
         self.assertTrue(created)
         barry.save()
         self.assertEquals(barry.objectType, ot_f)
@@ -490,7 +490,7 @@ class AgentManagerTests(TestCase):
         name_j = "Justice League"
         mbox_j = "mailto:justiceleague@example.com"
         kwargs_j = {"objectType":ot_j,"name":name_j,"mbox":mbox_j, "member":[kwargs_s,kwargs_ww,kwargs_f,kwargs_b]}
-        justiceleague, created = Agent.objects.gen(**kwargs_j)
+        justiceleague, created = Agent.objects.retrieve_or_create(**kwargs_j)
         self.assertTrue(created)
         justiceleague.save()
         self.assertEquals(justiceleague.objectType, ot_j)
@@ -513,7 +513,7 @@ class AgentManagerTests(TestCase):
         ot_bg = "Group"
         members_bg = [badguy_ds, badguy_m]
         kwargs_bg = {"objectType":ot_bg,"member":members_bg}
-        badguys, created = Agent.objects.gen(**kwargs_bg)
+        badguys, created = Agent.objects.retrieve_or_create(**kwargs_bg)
         self.assertTrue(created)
         badguys.save()
         self.assertEquals(badguys.objectType, ot_bg)

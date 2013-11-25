@@ -2,7 +2,8 @@
 from unipath import Path
 
 # Root of LRS
-PROJECT_ROOT = Path(__file__).ancestor(3)
+SETTINGS_PATH = Path(__file__)
+PROJECT_ROOT = SETTINGS_PATH.ancestor(3)
 
 # If you want to debug
 DEBUG = False
@@ -15,12 +16,12 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'lrs',                      # Or path to database file if using sqlite3.
-        'USER': 'root',                      # Not used with sqlite3.
-        'PASSWORD': 'password',                  # Not used with sqlite3.
-        'HOST': '10.100.10.73',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '6432',                      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'lrs',
+        'USER': 'root',
+        'PASSWORD': 'password',
+        'HOST': '10.100.10.73',
+        'PORT': '6432',
     }    
 }
 
@@ -98,7 +99,7 @@ OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 50
 
-#ActivityID resolve timeout
+# ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
 
 # Caches for /more endpoint and attachments
@@ -119,7 +120,6 @@ CACHES = {
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -129,7 +129,6 @@ SECRET_KEY = 'v+m%^r0x)$_x8i3trn*duc6vd-yju0kx2b#9lk0sn2k^7cgyp5'
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
-#     'django.template.loaders.eggs.Loader',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -176,8 +175,10 @@ INSTALLED_APPS = (
     'gunicorn',
     'oauth_provider',
     'django.contrib.admin',
-    #'south',
 )
+
+REQUEST_HANDLER_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/lrs.log'
+DEFAULT_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/django_request.log'
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
@@ -199,7 +200,7 @@ LOGGING = {
         'default': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
-            'filename': '../logs/lrs.log',
+            'filename': DEFAULT_LOG_DIR,
             'maxBytes': 1024*1024*5, # 5 MB
             'backupCount': 5,
             'formatter':'standard',
@@ -207,7 +208,7 @@ LOGGING = {
         'request_handler': {
                 'level':'DEBUG',
                 'class':'logging.handlers.RotatingFileHandler',
-                'filename': '../logs/django_request.log',
+                'filename': REQUEST_HANDLER_LOG_DIR,
                 'maxBytes': 1024*1024*5, # 5 MB
                 'backupCount': 5,
                 'formatter':'standard',

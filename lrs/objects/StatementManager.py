@@ -1,11 +1,9 @@
 import json
 import re
-# from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
-# from django.utils.timezone import utc
 from functools import wraps
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
@@ -203,11 +201,11 @@ class StatementManager():
 
             if 'context_instructor' in self.data:
                 self.data['context_instructor'] = AgentManager(params=self.data['context_instructor'],
-                    create=True, define=self.define).Agent
+                    define=self.define).Agent
                 
             if 'context_team' in self.data:
                 self.data['context_team'] = AgentManager(params=self.data['context_team'],
-                    create=True, define=self.define).Agent
+                    define=self.define).Agent
 
             if 'context_statement' in self.data:
                 self.data['context_statement'] = self.data['context_statement']['id']
@@ -253,7 +251,7 @@ class StatementManager():
             if statement_object_data['objectType'] == 'Activity':
                 self.data['object_activity'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
             elif statement_object_data['objectType'] in valid_agent_objects:
-                self.data['object_agent'] = AgentManager(params=statement_object_data, create=True, define=self.define).Agent
+                self.data['object_agent'] = AgentManager(params=statement_object_data, define=self.define).Agent
             elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
@@ -263,8 +261,7 @@ class StatementManager():
     def build_authority_object(self):
         # Could still have no authority in stmt if HTTP_AUTH and OAUTH are disabled
         if 'authority' in self.data:
-            self.data['authority'] = AgentManager(params=self.data['authority'], create=True, 
-                define=self.define).Agent
+            self.data['authority'] = AgentManager(params=self.data['authority'], define=self.define).Agent
 
     #Once JSON is verified, populate the statement object
     def populate(self):
@@ -277,7 +274,7 @@ class StatementManager():
         self.build_verb_object()
         self.build_statement_object()
 
-        self.data['actor'] = AgentManager(params=self.data['actor'], create=True, define=self.define).Agent
+        self.data['actor'] = AgentManager(params=self.data['actor'], define=self.define).Agent
 
         self.populate_context()
         self.populate_result()

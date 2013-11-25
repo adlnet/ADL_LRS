@@ -15,10 +15,11 @@
 </p>
 {% endif %}
 <form action="{% url lrs.views.stmt_validator %}" method="post">
+	{% csrf_token %}
 	<div class="control-group">
 	    <label class="control-label" for="Data">Data</label>
 	    <div class="controls">
-	      <textarea class="input-block-level" id="id_jsondata" rows="20" cols="100" name="jsondata"></textarea>
+	      <textarea class="input-block-level" id="id_jsondata" rows="20" cols="100" name="jsondata">{{ form.jsondata.value|default_if_none:"" }}</textarea>
 	    </div>
 	  </div>
 	<div class="control-group">

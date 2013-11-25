@@ -101,6 +101,14 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         self.assertEqual(obj['result']['score']['raw'], 1918560.0)
 
+    def test_agent_filter_does_not_exist(self):
+        param = {"agent":{"mbox":"mailto:fail@faile.com"}}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.1", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        obj = json.loads(r.content)
+        self.assertEqual(len(obj['statements']), 0)
+
     def test_agent_filter(self):
         stmt = {
             "verb": {
