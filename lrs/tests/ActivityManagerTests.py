@@ -138,7 +138,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set.values()[1], 'Alt Desc')
 
         self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample/', 'Activity')        
-        self.do_activity_definition_model(act, 'type:module','course')
+        self.do_activity_definition_model(act, 'type:module','other')
 
     # Test that passing in the same info gets the same activity
     def test_activity_no_def_not_link_schema_conform1(self):
@@ -190,7 +190,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set.values()[0], 'Example Desc')
 
         self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample2/', 'Activity')        
-        self.do_activity_definition_model(act, 'type:module','course')
+        self.do_activity_definition_model(act, 'type:module','other')
 
         self.do_activity_definition_extensions_model(act, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
             'second value', 'third value')

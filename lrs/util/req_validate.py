@@ -1,7 +1,9 @@
 import json
+import urllib2
 from datetime import datetime
 from functools import wraps
 from django.utils.timezone import utc
+from django.conf import settings
 from django.core.cache import get_cache
 from lrs import models
 from lrs.util import uri, StatementValidator, validate_uuid, convert_to_dict, get_agent_ifp
@@ -142,28 +144,6 @@ def server_validate_statement_object(stmt_object, auth):
                     err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
                     raise Forbidden(err_msg)
 
-# Retrieve JSON data from ID
-def get_data_from_act_id(act_id):
-    resolves = True
-    act_json = {}
-
-    # See if id resolves
-    try:
-        req = urllib2.Request(act_id)
-        req.add_header('Accept', 'application/json, */*')
-        act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
-    except Exception, e:
-        # Doesn't resolve-hopefully data is in payload
-        resolves = False
-    else:
-        # If it resolves then try parsing JSON from it
-        try:
-            act_json = json.loads(act_resp.read())
-        except Exception, e:
-            # Resolves but no data to retrieve - this is OK
-            pass
-    return act_json
-
 def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
         # If they try using a non-oauth group that already exists-throw error
@@ -183,6 +163,33 @@ def validate_stmt_authority(stmt, auth, auth_validated):
             else:
                 return True
 
+# Retrieve JSON data from ID
+def get_act_def_data(act_data):
+    resolves = True
+    act_url = {}
+    # See if id resolves
+    try:
+        req = urllib2.Request(act_data['id'])
+        req.add_header('Accept', 'application/json, */*')
+        act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
+    except Exception, e:
+        # Doesn't resolve-hopefully data is in payload
+        resolves = False
+    else:
+        # If it resolves then try parsing JSON from it
+        try:
+            act_url = json.loads(act_resp.read())
+        except Exception, e:
+            # Resolves but no data to retrieve - this is OK
+            pass
+
+        # If there was data from the URL and a defintion in received JSON already
+        if act_url and 'definition' in act_data:
+            act_data['definition'] = dict(act_url.items() + act_data['definition'].items())
+        # If there was data from the URL and no definition in the JSON
+        elif act_url and not 'definition' in act_data:
+            act_data['definition'] = act_url
+
 def server_validation(stmt_set, auth, payload_sha2s):
     auth_validated = False    
     if type(stmt_set) is list:
@@ -201,12 +208,11 @@ def server_validation(stmt_set, auth, payload_sha2s):
             validate_void_statement(stmt_set['object']['id'])
 
         if not 'objectType' in stmt_set['object'] or stmt_set['object']['objectType'] == 'Activity':
-            activity_data = get_data_from_act_id(stmt_set['object']['id'])
-            activity_data['id'] = stmt_set['object']['id']
-
+            get_act_def_data(stmt_set['object'])
+            
             try:
                 validator = StatementValidator.StatementValidator(None)
-                validator.validate_activity(activity_data)
+                validator.validate_activity(stmt_set['object'])
             except Exception, e:
                 raise BadRequest(e.message)
             except ParamError, e:

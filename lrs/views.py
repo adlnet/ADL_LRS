@@ -397,7 +397,7 @@ validators = {
         "GET" : req_validate.activities_get,
         "HEAD" : req_validate.activities_get
     },
-    reverse(agent_profile) : {
+    reverse(agent_profile).lower() : {
         "POST": req_validate.agent_profile_post,
         "PUT" : req_validate.agent_profile_put,
         "GET" : req_validate.agent_profile_get,
