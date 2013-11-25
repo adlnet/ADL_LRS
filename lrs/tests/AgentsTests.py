@@ -39,6 +39,12 @@ class AgentsTests(TestCase):
         self.assertEqual(r_data['objectType'], 'Person')
         self.assertIn('content-length', response._headers)
 
+    def test_get_no_existing_agent(self):
+        a = json.dumps({"mbox":"mailto:fail@fail.com"})
+        response = self.client.get(reverse(views.agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.content, 'Error with Agent. The agent partial did not match any agents on record')
+        self.assertEqual(response.status_code, 404)
+
     def test_head(self):
         a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
         me = Agent.objects.retrieve_or_create(**json.loads(a))
