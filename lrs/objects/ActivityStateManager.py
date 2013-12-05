@@ -13,7 +13,7 @@ class ActivityStateManager():
     def __init__(self, request_dict, log_dict=None):        
         if not uri.validate_uri(request_dict['params']['activityId']):
             err_msg = 'Activity ID %s is not a valid URI' % request_dict['params']['activityId']       
-            raise exceptions.ParamError(err_msg)
+            raise ParamError(err_msg)
 
         self.req_dict = request_dict
         self.agent = request_dict['params']['agent']
