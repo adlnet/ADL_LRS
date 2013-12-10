@@ -760,7 +760,7 @@ class StatementAttachment(models.Model):
 
 class Statement(models.Model):
     # If no statement_id is given, will create one automatically
-    statement_id = UUIDField(version=1, db_index=True)
+    statement_id = UUIDField(version=1, db_index=True, unique=True)
     object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
