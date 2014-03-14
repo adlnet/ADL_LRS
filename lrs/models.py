@@ -397,7 +397,6 @@ class AgentProfile(models.Model):
     json_profile = models.TextField(blank=True)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
-    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         if self.profile:
@@ -566,7 +565,6 @@ class ActivityState(models.Model):
     registration_id = models.CharField(max_length=40)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
-    user = models.ForeignKey(User, null=True, blank=True)
 
     def delete(self, *args, **kwargs):
         if self.state:
