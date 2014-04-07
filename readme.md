@@ -47,9 +47,8 @@ Setup the environment
 
     fab setup_env
     source ../env/bin/activate
-(To exit the virtual environment, just type `deactivate`)
     
-Setup the LRS (creates media directories and cache tables, then syncs database)
+Setup the LRS - while still in the activated virtual environment (creates media directories and cache tables, then syncs database)
 
     fab setup_lrs (when prompted make adllrs a Django superuser)
 
@@ -61,6 +60,9 @@ While still in the ADL_LRS directory, run
 To verify it's running
 
     supervisorctl
+
+
+Whenever you want to exit the virtual environment, just type `deactivate`
 
 You should see a task named web running. This will host the application using gunicorn with 2 worker processes.
 If you open a browser and visit http://localhost:8000/xapi you will hit the LRS. Gunicorn does not serve static files
