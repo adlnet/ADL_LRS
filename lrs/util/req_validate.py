@@ -247,7 +247,7 @@ def statements_post(req_dict):
 
     return req_dict
 
-@auth
+#@auth
 @check_oauth
 def statements_more_get(req_dict):
     if not 'more_id' in req_dict:
@@ -298,7 +298,7 @@ def validate_statementId(req_dict):
 
     return statementId
 
-@auth
+#@auth
 @check_oauth
 def statements_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["statementId","voidedStatementId","agent", "verb", "activity", "registration", 
