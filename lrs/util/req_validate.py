@@ -126,23 +126,23 @@ def server_validate_statement_object(stmt_object, auth):
     if stmt_object['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt_object['id']):
             err_msg = "No statement with ID %s was found" % stmt_object['id']
             raise IDNotFoundError(err_msg)
-    elif stmt_object['objectType'] == 'Activity' or 'objectType' not in stmt_object:
-        if 'definition' in stmt_object:
-            try:
-                activity = models.Activity.objects.get(activity_id=stmt_object['id'], canonical_version=True)
-            except models.Activity.DoesNotExist:
-                pass
-            else:
-                if auth:
-                    if auth['id'].__class__.__name__ == 'Agent':
-                        auth_name = auth['id'].name
-                    else:
-                        auth_name = auth['id'].username
-                else:
-                    auth_name = None
-                if activity.authoritative != '' and activity.authoritative != auth_name:
-                    err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-                    raise Forbidden(err_msg)
+    # elif stmt_object['objectType'] == 'Activity' or 'objectType' not in stmt_object:
+    #     if 'definition' in stmt_object:
+    #         try:
+    #             activity = models.Activity.objects.get(activity_id=stmt_object['id'], canonical_version=True)
+    #         except models.Activity.DoesNotExist:
+    #             pass
+    #         else:
+    #             if auth:
+    #                 if auth['id'].__class__.__name__ == 'Agent':
+    #                     auth_name = auth['id'].name
+    #                 else:
+    #                     auth_name = auth['id'].username
+    #             else:
+    #                 auth_name = None
+    #             if activity.authoritative != '' and activity.authoritative != auth_name:
+    #                 err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
+    #                 raise Forbidden(err_msg)
 
 def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
@@ -283,8 +283,7 @@ def validate_statementId(req_dict):
 
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
-
-    if auth:
+    if auth.get('id', False):
         if mine_only and st.authority.id != auth['id'].id:
             err_msg = "Incorrect permissions to view statements that do not have auth %s" % str(auth['id'])
             raise Forbidden(err_msg)

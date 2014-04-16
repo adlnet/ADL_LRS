@@ -332,7 +332,7 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('lrs.views.home'))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
-@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+#@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 @require_http_methods(["GET", "HEAD"])
 def statements_more(request, more_id):
     return handle_request(request, more_id)
