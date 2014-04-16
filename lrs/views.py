@@ -201,7 +201,7 @@ def register(request):
                 return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
                     context_instance=context)                
             
-            d = {"info_message": "Thanks for registering %s" % user.username}
+            d = {"info_message": "Thanks for registering. You can now use your name [%s] and password to sign in." % user.username}
             return render_to_response('reg_success.html', d, context_instance=context)
         else:
             return render_to_response('register.html', {"form": form}, context_instance=context)
