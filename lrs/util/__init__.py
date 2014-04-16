@@ -9,8 +9,19 @@ from django.db.models import get_models, get_app
 from django.contrib import admin
 from django.contrib.admin.sites import AlreadyRegistered
 from dateutil import parser
-from lrs.models import Consumer
+
 from lrs.exceptions import ParamError, BadRequest
+
+def get_lang(d, lang):
+    if isinstance(d, dict):
+        try:
+            # try to return the lang version from dict.. {'en-US': 'I am American'}
+            return {lang: d[lang]}
+        except KeyError:
+            # get the first element from the dict and return it... {'fr':'Je suis American'}
+            return dict([next(d.iteritems())])
+    # er... if it's not a dict, just return it
+    return d
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 def get_agent_ifp(data):
@@ -67,6 +78,7 @@ def get_user_from_auth(auth):
         for member in auth.member.all():
             if member.account_name: 
                 key = member.account_name
+        from lrs.models import Consumer
         user = Consumer.objects.get(key__exact=key).user
     return user
 

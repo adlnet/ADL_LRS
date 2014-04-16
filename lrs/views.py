@@ -332,15 +332,24 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('lrs.views.home'))
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
-@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+#@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 @require_http_methods(["GET", "HEAD"])
 def statements_more(request, more_id):
     return handle_request(request, more_id)
 
 @require_http_methods(["PUT","GET","POST", "HEAD"])
-@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
+    if request.method in ['GET', 'HEAD']:
+        return doget(request)
+    else:
+        return doputpost(request)
+
+def doget(request):
     return handle_request(request)   
+
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+def doputpost(request):
+    return handle_request(request)
 
 @require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
@@ -497,9 +506,9 @@ def handle_request(request, more_id=None):
     except exceptions.PreconditionFail as pf:
         log_exception(request.path, pf)
         return HttpResponse(pf.message, status=412)
-    except Exception as err:
-        log_exception(request.path, err)
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     log_exception(request.path, err)
+    #     return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

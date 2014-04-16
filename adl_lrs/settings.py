@@ -175,6 +175,7 @@ INSTALLED_APPS = (
     'gunicorn',
     'oauth_provider',
     'django.contrib.admin',
+    'django_extensions'
 )
 
 REQUEST_HANDLER_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/lrs.log'
