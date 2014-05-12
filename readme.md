@@ -53,6 +53,11 @@ Setup the LRS (creates media directories and cache tables, then syncs database)
 
     fab setup_lrs (when prompted make adllrs a Django superuser)
 
+There is an existing .png file that displays the database schema at the root level. If you want to generate one, run
+
+    python manage.py graph_models -a -o <filename>.png
+
+
 ## Starting
 While still in the ADL_LRS directory, run
 

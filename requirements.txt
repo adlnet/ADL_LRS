@@ -13,3 +13,4 @@ lxml==2.3.4
 django-extensions==1.1.1
 jsonfield==0.9.19
 uwsgi==1.9.17.1
+pygraphviz==1.2
