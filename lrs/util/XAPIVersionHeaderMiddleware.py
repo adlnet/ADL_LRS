@@ -1,6 +1,6 @@
 import re
 from django.http import HttpResponseBadRequest
-                    
+
 class XAPIVersionHeader(object):
     def process_request(self, request):
         try:
