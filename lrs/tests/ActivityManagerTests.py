@@ -127,7 +127,12 @@ class ActivityManagerTests(TestCase):
         name_set = act.activity_definition_name
         desc_set = act.activity_definition_description
 
-        self.assertEqual(name_set.keys()[0], 'en-FR')
+        # wrap first assertion around try to see if LRS is started
+        try:
+            self.assertEqual(name_set.keys()[0], 'en-FR')
+        except Exception, e:
+            raise Exception("Be sure to have the LRS started for this test " + e.message)
+    
         self.assertEqual(name_set.values()[0], 'Example Name')
         self.assertEqual(name_set.keys()[1], 'en-CH')
         self.assertEqual(name_set.values()[1], 'Alt Name')
@@ -183,7 +188,12 @@ class ActivityManagerTests(TestCase):
         name_set = act.activity_definition_name
         desc_set = act.activity_definition_description
         
-        self.assertEqual(name_set.keys()[0], 'en-US')
+        # wrap first assertion around try to see if LRS is started
+        try:
+            self.assertEqual(name_set.keys()[0], 'en-US')
+        except Exception, e:
+            raise Exception("Be sure to have the LRS started for this test " + e.message)
+
         self.assertEqual(name_set.values()[0], 'Example Name')
 
         self.assertEqual(desc_set.keys()[0], 'en-US')
