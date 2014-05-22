@@ -205,6 +205,10 @@ def get_headers(headers):
     r['CONTENT_TYPE'] = headers.get('CONTENT_TYPE', '')
     if r['CONTENT_TYPE'] == '' and 'Content-Type' in headers:
         r['CONTENT_TYPE'] = headers['Content-Type']
+    import pdb
+    pdb.set_trace()
+    if ';' in r['CONTENT_TYPE']:
+        r['CONTENT_TYPE'] = r['CONTENT_TYPE'].split(';')[0]
 
     r['ETAG'] = etag.get_etag_info(headers, required=False)
     if 'HTTP_AUTHORIZATION' in headers:
