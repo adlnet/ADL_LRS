@@ -205,8 +205,7 @@ def get_headers(headers):
     r['CONTENT_TYPE'] = headers.get('CONTENT_TYPE', '')
     if r['CONTENT_TYPE'] == '' and 'Content-Type' in headers:
         r['CONTENT_TYPE'] = headers['Content-Type']
-    import pdb
-    pdb.set_trace()
+    # FireFox automatically adds ;charset=foo to the end of headers. This will strip it out
     if ';' in r['CONTENT_TYPE']:
         r['CONTENT_TYPE'] = r['CONTENT_TYPE'].split(';')[0]
 
