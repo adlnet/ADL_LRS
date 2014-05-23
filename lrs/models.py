@@ -601,8 +601,7 @@ class SubStatement(models.Model):
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(blank=True)
-    timestamp = models.DateTimeField(blank=True,null=True,
-        default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
+    timestamp = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat())
     context_registration = models.CharField(max_length=40, blank=True, db_index=True)
     context_instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
         db_index=True, related_name='substatement_context_instructor')

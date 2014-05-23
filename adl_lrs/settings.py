@@ -96,6 +96,29 @@ OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
 
+
+
+# THIS IS OAUTH2 STUFF
+STATE = 1
+PROFILE = 2
+DEFINE = 4
+STATEMENTS_READ_MINE = 8
+STATEMENTS_READ = 16
+STATEMENTS_WRITE = 32
+ALL_READ = 64
+ALL = 128
+
+OAUTH_SCOPES = (
+        (STATEMENTS_WRITE,'statements/write'),
+        (STATEMENTS_READ_MINE,'statements/read/mine'),
+        (STATEMENTS_READ,'statements/read'),
+        (STATE,'state'),
+        (DEFINE,'define'),
+        (PROFILE,'profile'),
+        (ALL_READ,'all/read'),
+        (ALL,'all')
+    )
+
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
 
@@ -174,6 +197,8 @@ INSTALLED_APPS = (
     'lrs',
     'gunicorn',
     'oauth_provider',
+    'provider',
+    'provider.oauth2',
     'django.contrib.admin',
     'django_extensions'
 )

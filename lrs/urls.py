@@ -16,10 +16,12 @@ urlpatterns = patterns('lrs.views',
     url(r'^register/$', 'register'),
     url(r'^regclient/$', 'reg_client'),    
     url(r'^OAuth/', include('oauth_provider.urls')),
+    url(r'^oauth2/', include('provider.oauth2.urls', namespace = 'oauth2')),
     # just urls for some user interface... not part of xapi
     url(r'^me/statements/', 'my_statements'),
     url(r'^me/apps/', 'my_app_status'),
     url(r'^me/tokens/', 'delete_token'),
+    url(r'^me/clients/', 'delete_client'),
     url(r'^me/', 'me'),
     url(r'^about', 'about'),
     url(r'^statementvalidator', 'stmt_validator')

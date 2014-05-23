@@ -17,6 +17,9 @@ from django.views.decorators.http import require_http_methods
 from lrs import forms, models, exceptions
 from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
+from provider.scope import to_names
+from provider.oauth2.forms import ClientForm
+from provider.oauth2.models import Client, AccessToken
 
 logger = logging.getLogger(__name__)
  
@@ -210,33 +213,32 @@ def register(request):
 @require_http_methods(["POST", "GET"])
 def reg_client(request):
     if request.method == 'GET':
-        form = forms.RegClientForm()
+        form = ClientForm()
         return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
     elif request.method == 'POST':
-        form = forms.RegClientForm(request.POST)
-        if form.is_valid():
-            name = form.cleaned_data['name']
-            description = form.cleaned_data['description']
-            scopes = form.cleaned_data['scopes']
-            
-            try:
-                client = models.Consumer.objects.get(name__exact=name)
-            except models.Consumer.DoesNotExist:
-                client = models.Consumer.objects.create(name=name, description=description, user=request.user,
-                    status=ACCEPTED, default_scopes=",".join(scopes))
-            else:
-                return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
-            
-            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
+        form = ClientForm(request.POST)
+        if form.is_valid(): 
+            client = form.save(commit=False)
+            client.user = request.user
+            client.save()
+            d = {"name":client.name,"app_id":client.client_id, "secret":client.client_secret, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
-    client_apps = models.Consumer.objects.filter(user=request.user)
-    access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
-    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens},
+    # client_apps = models.Consumer.objects.filter(user=request.user)
+    # access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
+    client_apps = Client.objects.filter(user=request.user)
+    access_tokens = AccessToken.objects.filter(user=request.user)
+    access_token_scopes = []
+
+    for token in access_tokens:
+        scopes = to_names(token.scope)
+        access_token_scopes.append((token, scopes))
+
+    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_token_scopes},
         context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
@@ -311,20 +313,37 @@ def my_app_status(request):
 def delete_token(request):
     try:
         ids = request.GET['id'].split("-")
-        token_key = ids[0]
-        consumer_id = ids[1]
-        ts = ids[2]
-        token = models.Token.objects.get(user=request.user,
-                                         key__startswith=token_key,
-                                         consumer__id=consumer_id,
-                                         timestamp=ts,
-                                         token_type=models.Token.ACCESS,
-                                         is_approved=True)
-        token.is_approved = False
-        token.save()
-        return HttpResponse("", status=204)
+        client_id = ids[0]
+        token_key = ids[1]
+        try:
+            client = Client.objects.get(user=request.user, id=client_id)
+        except Exception, e:
+            return HttpResponse("Unknown client", status=400)
+
+        token = AccessToken.objects.get(user=request.user,
+                                         client=client,
+                                         token=token_key)
     except:
         return HttpResponse("Unknown token", status=400)
+    try:
+        token.delete()
+    except Exception, e:
+        return HttpResponse(e.message, status=400)
+    return HttpResponse("", status=204)
+
+@login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["DELETE"])
+def delete_client(request):
+    try:
+        client_id = request.GET['id']
+        client = Client.objects.get(user=request.user,client_id=client_id)
+    except:
+        return HttpResponse("Unknown client", status=400)
+    try:
+        client.delete()
+    except Exception, e:
+        return HttpResponse(e.message, status=400)
+    return HttpResponse("", status=204)
 
 def logout_view(request):
     logout(request)

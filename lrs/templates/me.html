@@ -43,15 +43,14 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
             {% for app in client_apps %}
             <div class="span5 border">
                 <h4 class="appname">{{ app.name }}</h4>
-                <span class="{% if app.status == 1 %}label label-warning
-                            {% elif app.status == 2 %}label label-success
-                            {% elif app.status == 3 %}label label-important
-                            {% elif app.status == 4 %}label label-important
-                            {% endif %} app_status">{{ app.get_status_display}}</span>
-                <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
+                <a class="delete_client" href='#'>Delete</a>
+                <span style="visibility:hidden">{{ app.client_id }}</span>
                 <table class="table">
-                    <tr><td><strong>key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
-                    <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
+                    <tr><td><strong>key</strong></td><td><span style="margin-left: 5px">{{ app.client_id }}</span></td></tr>
+                    <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">{{ app.client_secret }}</span></td></tr>
+                    <tr><td><strong>URL</strong></td><td><span style="margin-left: 5px">{{ app.url }}</span></td></tr>
+                    <tr><td><strong>Redirect URL</strong></td><td><span style="margin-left: 5px">{{ app.redirect_uri }}</span></td></tr>
+                    <tr><td><strong>Type</strong></td><td><span style="margin-left: 5px">{% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}</span></td></tr>
                 </table>
             </div>
             {% endfor %}
@@ -60,27 +59,28 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
         <p>None</p>
         {% endif %}
     </div>
+
     <div id="myaccesstokens" class="tab-pane fade">
         <strong>Access Tokens:</strong>
         {% if access_tokens %}
         <div class="row">
-        {% for token in access_tokens %}
-            <div class="span5 border">
-                <h4>{{ token.consumer.name }}</h4>
-                <a class="delete_token" href='#myaccesstokens'>delete</a>
-                <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
-                <table>
-                    <tr><td><strong>Date created</strong></td><td>{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</td></tr>
-                    <tr><td><strong>Scopes allowed</strong></td><td></td></tr>
-                    {% for scope in token.scope_to_list %}
-                    <tr><td></td><td>{{ scope }}</td></tr>
-                    {% endfor %}
-                </table>
+        {% for pair in access_tokens %}  
+        <div class="span5 border">
+            <h4>{{ pair.0.client.name }}</h4>
+            <a class="delete_token" href='#'>Delete</a>
+            <span style="visibility:hidden">{{ pair.0.client.id }}-{{ pair.0.token }}</span>
+            <table>
+                <tr><td><strong>Date Expires</strong></td><td>{{ pair.0.expires_asdatetime|date:"j M Y H:i:s" }}</td></tr>
+                <tr><td><strong>Scopes allowed</strong></td><td></td></tr>
+                {% for scope in pair.1 %}
+                <tr><td></td><td>{{ scope }}</td></tr>
                 {% endfor %}
-                {% else %}
-                <p> no access tokens </p>
-                {% endif %}
-            </div>
+            </table>
+            {% endfor %}
+            {% else %}
+            <p> no access tokens </p>
+            {% endif %}
+        </div>
         </div>
     </div>
 </div>
@@ -126,6 +126,21 @@ $('.delete_token').click(function(){
     var id = $(this).next('span').text();
     $.ajax({
         url: "{% url lrs.views.delete_token %}?id="+id,
+        type: "DELETE",
+        context: $(this),
+        success: function(data){
+            $(this).parent().remove();
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout:5000
+    });
+});
+$('.delete_client').click(function(){
+    var id = $(this).next('span').text();
+    $.ajax({
+        url: "{% url lrs.views.delete_client %}?id="+id,
         type: "DELETE",
         context: $(this),
         success: function(data){
