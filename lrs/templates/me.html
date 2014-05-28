@@ -1,4 +1,28 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<style type="text/css">
+.border {
+  position: relative;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 19px 19px 14px;
+  *padding-top: 19px;
+  background-color: #f9f9ff;
+  border: 1px solid #ddd;
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+/* for json syntax highlighting */
+pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.string { color: green; }
+.number { color: blue; }
+.boolean { color: red; }
+.null { color: red; }
+.key { color: black; }
+/* end json syntax highlighting */
+</style>
+{% endblock extra_css %}
 {% block title %}{{user.username}} Home{% endblock title %}
 {% block heading %}{{user.username}} Home{% endblock heading %}
 {% block content %}
@@ -8,7 +32,7 @@
     <li><a href="#myaccesstokens" data-toggle="tab">Access Tokens</a></li>
 </ul>
 <div id="mycontent" class="tab-content">
-    <div id="mystatements" class="tab-pane fade in active ">
+    <div id="mystatements" class="tab-pane fade">
         <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">delete all statements</a></small>
         <!-- content -->
     </div>
@@ -60,8 +84,8 @@
         </div>
     </div>
 </div>
-    {% endblock content %}
-    {% block extra_js %}
+{% endblock content %}
+{% block extra_js %}
     <script type="text/javascript">
         $(document).ready(function() {
             $('#showme').tab('show');
@@ -249,27 +273,3 @@ function syntaxHighlight(json) {
 }
 </script>
 {% endblock extra_js %}
-{% block extra_css %}
-<style type="text/css">
-.border {
-  position: relative;
-  margin-top: 15px;
-  margin-bottom: 15px;
-  padding: 19px 19px 14px;
-  *padding-top: 19px;
-  background-color: #f9f9ff;
-  border: 1px solid #ddd;
-  -webkit-border-radius: 4px;
-     -moz-border-radius: 4px;
-          border-radius: 4px;
-}
-/* for json syntax highlighting */
-pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
-.string { color: green; }
-.number { color: blue; }
-.boolean { color: red; }
-.null { color: red; }
-.key { color: black; }
-/* end json syntax highlighting */
-</style>
-{% endblock extra_css %}
