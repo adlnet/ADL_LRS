@@ -2,29 +2,6 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="width=940px, initial-scale=1, user-scalable=yes">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}bootstrap/css/bootstrap.min.css" />
-    {% block extra_css %}{% endblock extra_css %}
-    <style type="text/css">
-      html,
-      body {
-        height: 100%;
-        /* The html and body elements cannot have any padding or margin. */
-    }
-
-    /* Wrapper for page content to push down footer */
-    #wrap {
-        min-height: 100%;
-        height: auto !important;
-        height: 100%;
-        /* Negative indent footer by it's height */
-        margin: 0 auto -60px;
-    }
-
-    #wrap > .container {
-        padding-top: 60px;
-    }
-</style>
-{% block extra_js %}{% endblock extra_js %}
 <title>{% block title %}ADL LRS{% endblock title %}</title>
 </head>
 <body>
@@ -61,6 +38,7 @@
     {% block content %}{% endblock content %}
 </div>
 </div>
+{% block extra_js %}{% endblock extra_js %}
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
 <!-- <script src="{{ STATIC_URL }}/bootstrap/js/bootstrap.min.js"></script> -->
 <script type="text/javascript">
@@ -75,6 +53,27 @@ else if (window.attachEvent)
 window.attachEvent("onload", downloadJSAtOnload);
 else window.onload = downloadJSAtOnload;
 </script>
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}bootstrap/css/bootstrap.min.css" />
+    {% block extra_css %}{% endblock extra_css %}
+    <style type="text/css">
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+    }
 
+    /* Wrapper for page content to push down footer */
+    #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+    }
+
+    #wrap > .container {
+        padding-top: 60px;
+    }
+</style>
 </body>
 </html> 
