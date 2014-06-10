@@ -794,7 +794,7 @@ class Statement(models.Model):
     context_extensions = JSONField(blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
-    version = models.CharField(max_length=7, default="1.0.1")
+    version = models.CharField(max_length=7, default="1.0.0")
     attachments = models.ManyToManyField(StatementAttachment)
     # Used in views
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
