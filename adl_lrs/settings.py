@@ -42,6 +42,7 @@ LANGUAGE_CODE = 'en-US'
 # This is used so that application data can hook into specific sites and a single database can manage
 # content for multiple sites.
 SITE_ID = 1
+SITE_SCHEME = 'http'
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
