@@ -179,11 +179,13 @@ INSTALLED_APPS = (
     'django_extensions'
 )
 
-REQUEST_HANDLER_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/lrs.log'
-DEFAULT_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/django_request.log'
+REQUEST_HANDLER_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/django_request.log'
+DEFAULT_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/lrs.log'
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+# lrs logger is used in views.py for LRS specific logging
+# django.request logger logs warning and error server requests
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -224,7 +226,7 @@ LOGGING = {
         },
         'django.request': {
             'handlers': ['request_handler'],
-            'level': 'DEBUG',
+            'level': 'WARNING',
             'propagate': False
         },
     }
