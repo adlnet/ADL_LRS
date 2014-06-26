@@ -978,3 +978,146 @@ class AuthTests(TestCase):
         self.assertEqual(len(subs), 1)
         self.assertEqual(len(wrong_verb), 0)
         self.assertEqual(len(activities), 0)
+
+
+    def test_activity_definition_change(self):
+        # Need http auth for this test
+        if not settings.HTTP_AUTH_ENABLED:
+            settings.HTTP_AUTH_ENABLED = True
+
+        username_1 = "tester1"
+        email_1 = "test1@tester.com"
+        password_1 = "test"
+        auth_1 = "Basic %s" % base64.b64encode("%s:%s" % (username_1, password_1))
+        form_1 = {"username":username_1, "email":email_1,"password":password_1,"password2":password_1}
+        response_1 = self.client.post(reverse(views.register),form_1, X_Experience_API_Version="1.0.0")
+
+        username_2 = "tester2"
+        email_2 = "test2@tester.com"
+        password_2 = "test2"
+        auth_2 = "Basic %s" % base64.b64encode("%s:%s" % (username_2, password_2))
+        form_2 = {"username":username_2, "email":email_2,"password":password_2,"password2":password_2}
+        response_2 = self.client.post(reverse(views.register),form_2, X_Experience_API_Version="1.0.0")
+
+        # Should have no definition
+        stmt_1 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
+                            "object":{"id": "act:test_activity_change"},
+                            "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
+
+        response_1 = self.client.post(reverse(views.statements), stmt_1, content_type="application/json",
+            Authorization=auth_1, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_1.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        with self.assertRaises(KeyError) as ke:
+            act["definition"]
+
+
+        # Should give 403 error and still have no definition
+        stmt_2 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
+                            "object":{"id": "act:test_activity_change", "definition":{"name":{"en-US": "fail_test"}}},
+                            "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
+
+        response_2 = self.client.post(reverse(views.statements), stmt_2, content_type="application/json",
+            Authorization=auth_2, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response_2.status_code, 403)
+        self.assertEqual(response_2.content, "This ActivityID already exists, and you do not have the correct authority to create or update it.")
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        with self.assertRaises(KeyError) as ke:
+            act["definition"]
+
+
+        # Should have no definition - user can use activity since it's not changing what currently exists
+        response_3 = self.client.post(reverse(views.statements), stmt_1, content_type="application/json",
+            Authorization=auth_2, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_1.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        with self.assertRaises(KeyError) as ke:
+            act["definition"]
+
+
+        # Should have new definition since user is owner
+        stmt_3 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
+                            "object":{"id": "act:test_activity_change", "definition":{"name":{"en-US": "foo"}}},
+                            "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
+
+        response_4 = self.client.post(reverse(views.statements), stmt_3, content_type="application/json",
+            Authorization=auth_1, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_4.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
+
+
+        # Should have same definition since submitted same definition even though not owner
+        response_5 = self.client.post(reverse(views.statements), stmt_3, content_type="application/json",
+            Authorization=auth_2, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_5.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
+
+
+        # Should have same definition and return 403 since different user tried changing definition (name value)
+        stmt_4 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
+                            "object":{"id": "act:test_activity_change", "definition":{"name":{"en-US": "bar"}}},
+                            "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
+
+        response_6 = self.client.post(reverse(views.statements), stmt_4, content_type="application/json",
+            Authorization=auth_2, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_6.status_code, 403)
+        self.assertEqual(response_6.content, "This ActivityID already exists, and you do not have the correct authority to create or update it.")        
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
+
+
+        # Should have same definition and return 403 since different user tried changing definition (name key)
+        stmt_5 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
+                            "object":{"id": "act:test_activity_change", "definition":{"name":{"fr": "bar"}}},
+                            "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
+
+        response_7 = self.client.post(reverse(views.statements), stmt_5, content_type="application/json",
+            Authorization=auth_2, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_7.status_code, 403)
+        self.assertEqual(response_7.content, "This ActivityID already exists, and you do not have the correct authority to create or update it.")        
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
+
+
+        # Should have same definition since submitted no definition even though not owner
+        response_8 = self.client.post(reverse(views.statements), stmt_1, content_type="application/json",
+            Authorization=auth_2, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_8.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
+
+        # Check exact of first stmt returned from query to make sure it doesn't have the definition
+        param = {"agent":{"mbox":"mailto:max@max.com"}, "format":"exact", "activity":"act:test_activity_change"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=auth_1)
+        self.assertEqual(r.status_code, 200)
+        first_stmt = json.loads(r.content)["statements"][0]
+        with self.assertRaises(KeyError) as ke:
+            first_stmt["object"]["definition"]
+
+
+        # Should have same definition since submitted no definition even though owner (can't do that even if owner)
+        response_9 = self.client.post(reverse(views.statements), stmt_1, content_type="application/json",
+            Authorization=auth_1, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(response_9.status_code, 200)
+        act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
+        self.assertEqual(act["id"], "act:test_activity_change")
+        self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
+
+        # Check canonical of last stmt returned from query to make sure it contains the definition
+        param = {"agent":{"mbox":"mailto:max@max.com"}, "format":"canonical", "activity":"act:test_activity_change"}
+        path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=auth_1)
+        self.assertEqual(r.status_code, 200)
+        first_stmt = json.loads(r.content)["statements"][0]
+        self.assertEqual(first_stmt["object"]["definition"], {"name":{"en-US": "foo"}})
