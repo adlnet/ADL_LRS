@@ -43,6 +43,10 @@ Clone the LRS repository
 Note: Under ADL_LRS/adl_lrs/settings.py, make sure the database USER and PASSWORD are the same as the db_owner created
 earlier. Also, be sure to replace the current SECRET_KEY flag with a secret string of your own, and be sure not to share it.
 
+Set Site Scheme
+
+  Inside of ADL_LRS/adl_lrs/settings.py there is a SITE_SCHEME value you should set (defaults to http but if you're using https set it here)
+
 Setup the environment
 
     fab setup_env
@@ -65,6 +69,13 @@ While still in the ADL_LRS directory, run
 To verify it's running
 
     supervisorctl
+
+Set your site domain
+
+  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Sync your database again to apply the change
+
+    python manage.py syncdb
+
 
 
 Whenever you want to exit the virtual environment, just type `deactivate`
