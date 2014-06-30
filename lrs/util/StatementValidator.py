@@ -76,18 +76,27 @@ class StatementValidator():
 		raise ParamError(err_msg)
 
 	def validate_email(self, email):
-		res = uri_re.match(email)
-		if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None or res.group(0) != email:
-			self.return_error("mbox value [%s] did not start with mailto:" % email)
+		if isinstance(email, basestring):
+			res = uri_re.match(email)
+			if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None or res.group(0) != email:
+				self.return_error("mbox value [%s] did not start with mailto:" % email)
+		else:
+			self.return_error("mbox value must be a string type")
 
 	def validate_uri(self, uri_value, field):
-		 if not uri_re.match(uri_value).group(SCHEME):
-		 	self.return_error("%s with value %s was not a valid URI" % (field, uri_value))
+		if isinstance(uri_value, basestring):
+			if not uri_re.match(uri_value).group(SCHEME):
+				self.return_error("%s with value %s was not a valid URI" % (field, uri_value))
+		else:
+			self.return_error("%s must be a string type" % field)
 		
 	def validate_uuid(self, uuid, field):
-		id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
-		if not id_regex.match(uuid):
-			self.return_error("%s - %s is not a valid UUID" % (field, uuid))
+		if isinstance(uuid, basestring):
+			id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
+			if not id_regex.match(uuid):
+				self.return_error("%s - %s is not a valid UUID" % (field, uuid))
+		else:
+			self.return_error("%s must be a string type" % field)
 
 	def check_if_dict(self, obj, field):
 		if not isinstance(obj, dict):
@@ -116,9 +125,12 @@ class StatementValidator():
 
 		# If version included in stmt (usually in header instead) make sure it is 1.0.0 +
 		if 'version' in stmt:
-			version_regex = re.compile("^1\.0(\.\d+)?$")
-			if not version_regex.match(stmt['version']):
-				self.return_error("%s is not a supported version" % stmt['version'])
+			if isinstance(stmt['version'], basestring):
+				version_regex = re.compile("^1\.0(\.\d+)?$")
+				if not version_regex.match(stmt['version']):
+					self.return_error("%s is not a supported version" % stmt['version'])
+			else:
+				self.return_error("Version must be a string")
 
 		# If id included, make sure it is a valid UUID
 		if 'id' in stmt:
@@ -200,7 +212,7 @@ class StatementValidator():
 				self.check_if_dict(attach['description'], "Attachment description")
 
 	def validate_extensions(self, extensions, field):
-		# Ensure incomgin extensions is a dict
+		# Ensure incoming extensions is a dict
 		self.check_if_dict(extensions, "%s extensions" % field)
 		
 		# Ensure each key in extensions is a valid URI
@@ -249,7 +261,7 @@ class StatementValidator():
 			if 'member' in agent:
 				# Ensure member list is array
 				members = agent['member']
-				self.check_if_list(members, "Members")				
+				self.check_if_list(members, "Members")
 				# Make sure no member of group is another group
 				object_types = [t['objectType'] for t in members if 'objectType' in t]
 				if 'Group' in object_types:
@@ -612,7 +624,7 @@ class StatementValidator():
 		for conact in conacts.items():
 			# Check if conact is a valid type
 			if not conact[0] in context_activity_types:
-				self.return_error("Context Activity type is not valid")
+				self.return_error("Context activity type is not valid - %s - must be %s" % (conact[0], ', '.join(context_activity_types)))
 			# Ensure conact is a list or dict
 			if isinstance(conact[1], list):
 				for act in conact[1]:
