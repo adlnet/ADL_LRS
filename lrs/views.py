@@ -18,6 +18,7 @@ from lrs import forms, models, exceptions
 from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 
+# This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
  
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)

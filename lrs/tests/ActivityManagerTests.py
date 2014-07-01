@@ -4,11 +4,15 @@ from django.test import TestCase
 from lrs import models, views
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.contrib.sites.models import Site
 
-class ActivityManagerTests(TestCase):
+CURRENT_SITE = settings.SITE_SCHEME + '://' + Site.objects.get_current().domain
+
+class ActivityManagerTests(TestCase):    
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
+
 
     def setUp(self):
         if not settings.HTTP_AUTH_ENABLED:
@@ -116,7 +120,7 @@ class ActivityManagerTests(TestCase):
     def test_activity_no_def_json_conform(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': 'http://localhost:8000/XAPI/actexample/'}})
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse('lrs.views.actexample')}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
@@ -142,7 +146,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set.keys()[1], 'en-CH')
         self.assertEqual(desc_set.values()[1], 'Alt Desc')
 
-        self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample/', 'Activity')        
+        self.do_activity_model(act.id, CURRENT_SITE + reverse('lrs.views.actexample'), 'Activity')        
         self.do_activity_definition_model(act, 'type:module','other')
 
     # Test that passing in the same info gets the same activity
@@ -151,11 +155,11 @@ class ActivityManagerTests(TestCase):
 
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': 'http://localhost:8000/XAPI/actexample/'}}
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse('lrs.views.actexample')}}
         
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': 'http://localhost:8000/XAPI/actexample/'}}
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse('lrs.views.actexample')}}
 
         st_list.append(stmt1)
         st_list.append(stmt2)
@@ -175,7 +179,7 @@ class ActivityManagerTests(TestCase):
     def test_activity_no_def_schema_conform_extensions(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': 'http://localhost:8000/XAPI/actexample2/'}})
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse('lrs.views.actexample2')}})
 
         response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -199,7 +203,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set.keys()[0], 'en-US')
         self.assertEqual(desc_set.values()[0], 'Example Desc')
 
-        self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample2/', 'Activity')        
+        self.do_activity_model(act.id, CURRENT_SITE + reverse('lrs.views.actexample2'), 'Activity')        
         self.do_activity_definition_model(act, 'type:module','other')
 
         self.do_activity_definition_extensions_model(act, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
@@ -239,7 +243,7 @@ class ActivityManagerTests(TestCase):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity',
-                'id':'http://localhost:8000/XAPI/actexample4/','definition': {'name': {'en-FR': 'name'},
+                'id':CURRENT_SITE + reverse('lrs.views.actexample4'),'definition': {'name': {'en-FR': 'name'},
                 'description': {'en-FR':'desc'}, 'type': 'type:course','interactionType': 'other'}}})
 
         response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
@@ -259,14 +263,14 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set.keys()[0], 'en-FR')
         self.assertEqual(desc_set.values()[0], 'desc')
 
-        self.do_activity_model(act.id, 'http://localhost:8000/XAPI/actexample4/', 'Activity')        
+        self.do_activity_model(act.id, CURRENT_SITE + reverse('lrs.views.actexample4'), 'Activity')        
         self.do_activity_definition_model(act, 'type:course','other')
 
     # Test an activity that has a def and the ID resolves (should use values from payload)
     def test_activity_id_resolve(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType': 'Activity', 'id': 'http://localhost:8000/XAPI/',
+            "object": {'objectType': 'Activity', 'id': CURRENT_SITE + reverse('lrs.views.home'),
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-GB':'testdesc1'},
                 'type': 'type:link','interactionType': 'other'}}})
 
@@ -287,7 +291,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set.keys()[0], 'en-GB')
         self.assertEqual(desc_set.values()[0], 'testdesc1')
 
-        self.do_activity_model(act.id, 'http://localhost:8000/XAPI/', 'Activity')        
+        self.do_activity_model(act.id, CURRENT_SITE + reverse('lrs.views.home'), 'Activity')        
         self.do_activity_definition_model(act, 'type:link', 'other')
 
     # Throws exception because incoming data is not JSON
