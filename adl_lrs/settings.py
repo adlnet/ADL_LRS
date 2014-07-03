@@ -88,9 +88,9 @@ STMTS_PER_PAGE = 10
 
 # Whether HTTP auth or OAuth is enabled
 HTTP_AUTH_ENABLED = True
-OAUTH_ENABLED = False
+OAUTH_ENABLED = True
 
-# OAuth callback views
+# OAuth1 callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
@@ -108,6 +108,7 @@ STATEMENTS_WRITE = 32
 ALL_READ = 64
 ALL = 128
 
+# OAuth 2 stuff
 OAUTH_SCOPES = (
         (STATEMENTS_WRITE,'statements/write'),
         (STATEMENTS_READ_MINE,'statements/read/mine'),

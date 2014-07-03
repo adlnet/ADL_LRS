@@ -134,11 +134,18 @@ def about(request):
                 },
                 "client_register":
                 {
-                    "name": "Client Registration",
+                    "name": "OAuth1 Client Registration",
                     "methods": ["POST"],
                     "endpoint": reverse('lrs.views.reg_client'),
-                    "description": "Registers a client applicaton with the LRS.",
-                }
+                    "description": "Registers an OAuth client applicaton with the LRS.",
+                },
+                "client_register2":
+                {
+                    "name": "OAuth2 Client Registration",
+                    "methods": ["POST"],
+                    "endpoint": reverse('lrs.views.reg_client2'),
+                    "description": "Registers an OAuth2 client applicaton with the LRS.",
+                }                
             },
             "oauth":
             {
@@ -163,7 +170,24 @@ def about(request):
                     "endpoint": reverse('oauth_provider.views.access_token'),
                     "description": "Provides Oauth token to the client.",
                 }
-            }
+            },
+            "oauth2":
+            {
+                "authorize":
+                {
+                    "name": "Oauth2 Authorize",
+                    "methods": ["GET"],
+                    "endpoint": reverse('provider.oauth2.views.authorize'),
+                    "description": "Authorize a user for Ouath2.",
+                },
+                "access_token":
+                {
+                    "name": "Oauth2 Token",
+                    "methods": ["POST"],
+                    "endpoint": reverse('provider.oauth2.views.access_token'),
+                    "description": "Provides Oauth2 token to the client.",
+                }
+            }            
         }
     }    
     return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)
@@ -213,8 +237,35 @@ def register(request):
 @require_http_methods(["POST", "GET"])
 def reg_client(request):
     if request.method == 'GET':
-        form = ClientForm()
+        form = forms.RegClientForm()
         return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
+    elif request.method == 'POST':
+        form = forms.RegClientForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data['name']
+            description = form.cleaned_data['description']
+            scopes = form.cleaned_data['scopes']
+            
+            try:
+                client = models.Consumer.objects.get(name__exact=name)
+            except models.Consumer.DoesNotExist:
+                client = models.Consumer.objects.create(name=name, description=description, user=request.user,
+                    status=ACCEPTED, default_scopes=",".join(scopes))
+            else:
+                return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
+            
+            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
+            return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
+        else:
+            return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
+
+
+@login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["POST", "GET"])
+def reg_client2(request):
+    if request.method == 'GET':
+        form = ClientForm()
+        return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
     elif request.method == 'POST':
         form = ClientForm(request.POST)
         if form.is_valid(): 
@@ -224,21 +275,21 @@ def reg_client(request):
             d = {"name":client.name,"app_id":client.client_id, "secret":client.client_secret, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
-            return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
+            return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
-    # client_apps = models.Consumer.objects.filter(user=request.user)
-    # access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
-    client_apps = Client.objects.filter(user=request.user)
-    access_tokens = AccessToken.objects.filter(user=request.user)
+    client_apps = models.Consumer.objects.filter(user=request.user)
+    access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
+    client_apps2 = Client.objects.filter(user=request.user)
+    access_tokens2 = AccessToken.objects.filter(user=request.user)
     access_token_scopes = []
 
-    for token in access_tokens:
+    for token in access_tokens2:
         scopes = to_names(token.scope)
         access_token_scopes.append((token, scopes))
 
-    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_token_scopes},
+    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2, 'access_tokens2':access_token_scopes},
         context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
@@ -311,6 +362,26 @@ def my_app_status(request):
 @login_required(login_url="/XAPI/accounts/login")
 @require_http_methods(["DELETE"])
 def delete_token(request):
+    try:
+        ids = request.GET['id'].split("-")
+        token_key = ids[0]
+        consumer_id = ids[1]
+        ts = ids[2]
+        token = models.Token.objects.get(user=request.user,
+                                         key__startswith=token_key,
+                                         consumer__id=consumer_id,
+                                         timestamp=ts,
+                                         token_type=models.Token.ACCESS,
+                                         is_approved=True)
+        token.is_approved = False
+        token.save()
+        return HttpResponse("", status=204)
+    except:
+        return HttpResponse("Unknown token", status=400)
+
+@login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["DELETE"])
+def delete_token2(request):
     try:
         ids = request.GET['id'].split("-")
         client_id = ids[0]
