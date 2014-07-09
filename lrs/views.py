@@ -17,9 +17,9 @@ from django.views.decorators.http import require_http_methods
 from lrs import forms, models, exceptions
 from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
-from provider.scope import to_names
-from provider.oauth2.forms import ClientForm
-from provider.oauth2.models import Client, AccessToken
+from oauth2_provider.provider.scope import to_names
+from oauth2_provider.provider.oauth2.forms import ClientForm
+from oauth2_provider.provider.oauth2.models import Client, AccessToken
 
 logger = logging.getLogger(__name__)
  
@@ -383,17 +383,8 @@ def delete_token(request):
 @require_http_methods(["DELETE"])
 def delete_token2(request):
     try:
-        ids = request.GET['id'].split("-")
-        client_id = ids[0]
-        token_key = ids[1]
-        try:
-            client = Client.objects.get(user=request.user, id=client_id)
-        except Exception, e:
-            return HttpResponse("Unknown client", status=400)
-
-        token = AccessToken.objects.get(user=request.user,
-                                         client=client,
-                                         token=token_key)
+        token_key = request.GET['id']
+        token = AccessToken.objects.get(token=token_key)
     except:
         return HttpResponse("Unknown token", status=400)
     try:

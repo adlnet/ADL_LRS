@@ -175,6 +175,8 @@ def access_token(request):
         response = send_oauth_error(err)
     return response
 
+# tom c added login_url
+@login_required(login_url="/XAPI/accounts/login")
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
         form = AuthClientForm(initial={'scopes': token.scope_to_list(),
@@ -186,6 +188,8 @@ def authorize_client(request, token=None, callback=None, params=None, form=None)
     d['params'] = params
     return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
+# tom c added login_url
+@login_required(login_url="/XAPI/accounts/login")
 def callback_view(request, **args):
     d = {}
     if 'error' in args:

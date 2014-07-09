@@ -100,15 +100,16 @@ OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
 
 # THIS IS OAUTH2 STUFF
 STATE = 1
-PROFILE = 2
-DEFINE = 4
-STATEMENTS_READ_MINE = 8
-STATEMENTS_READ = 16
-STATEMENTS_WRITE = 32
-ALL_READ = 64
-ALL = 128
+PROFILE = 1 << 1
+DEFINE = 1 << 2
+STATEMENTS_READ_MINE = 1 << 3
+STATEMENTS_READ = 1 << 4
+STATEMENTS_WRITE = 1 << 5
+ALL_READ = 1 << 6
+ALL = 1 << 7
 
 # OAuth 2 stuff
+# List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get defaulted in oauth2/forms.py
 OAUTH_SCOPES = (
         (STATEMENTS_WRITE,'statements/write'),
         (STATEMENTS_READ_MINE,'statements/read/mine'),
@@ -119,6 +120,7 @@ OAUTH_SCOPES = (
         (ALL_READ,'all/read'),
         (ALL,'all')
     )
+SESSION_KEY = 'oauth2'
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
@@ -198,8 +200,8 @@ INSTALLED_APPS = (
     'lrs',
     'gunicorn',
     'oauth_provider',
-    'provider',
-    'provider.oauth2',
+    'oauth2_provider.provider',
+    'oauth2_provider.provider.oauth2',
     'django.contrib.admin',
     'django_extensions'
 )

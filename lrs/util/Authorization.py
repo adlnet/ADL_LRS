@@ -21,10 +21,10 @@ def auth(func):
         elif auth_type == 'http' and not settings.HTTP_AUTH_ENABLED:
             raise BadRequest("HTTP authorization is not enabled. To enable, set the HTTP_AUTH_ENABLED flag to true in settings")
         # There is an oauth auth_type request and oauth is enabled
-        elif auth_type == 'oauth' and settings.OAUTH_ENABLED: 
+        elif (auth_type == 'oauth' or auth_type == 'oauth2') and settings.OAUTH_ENABLED: 
             oauth_helper(request)
         # There is an oauth auth_type request and oauth is not enabled
-        elif auth_type == 'oauth' and not settings.OAUTH_ENABLED: 
+        elif (auth_type == 'oauth' or auth_type == 'oauth2') and not settings.OAUTH_ENABLED: 
             raise BadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
         # There is no auth_type request and there is some sort of auth enabled
         elif auth_type == 'none' and (settings.HTTP_AUTH_ENABLED or settings.OAUTH_ENABLED):
@@ -53,6 +53,7 @@ def http_auth_helper(request):
         # The username/password combo was incorrect, or not provided.
         raise Unauthorized("Authorization header missing")
 
+# TODO - adjust for oauth2
 def oauth_helper(request):
     consumer = request['auth']['oauth_consumer']
     token = request['auth']['oauth_token']

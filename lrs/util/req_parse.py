@@ -118,6 +118,9 @@ def set_authorization(r_dict, request):
         if endpoint.endswith("/"):
             endpoint = endpoint[:-1]
         r_dict['auth']['endpoint'] = endpoint
+    elif auth_params[:6] == 'OAuth2 ':
+        # TODO - set oauth_consumer, oauth_token fields in dict
+        r_dict['auth']['type'] = 'oauth2'
     else:
         r_dict['auth']['type'] = 'http'    
 

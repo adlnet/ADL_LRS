@@ -98,7 +98,9 @@ def process_statements(stmts, auth_id, define):
 
 def get_auth(auth):
     define = True
+    # If auth exists and id is in auth-set id
     auth_id = auth['id'] if auth and 'id' in auth else None
+    # If auth exists and oauth_define is in auth-set define
     if auth and 'oauth_define' in auth:
         define = auth['oauth_define']
     return auth_id, define

@@ -26,11 +26,12 @@ def check_oauth(func):
     def inner(req_dict, *args, **kwargs):
         auth = req_dict.get('auth', None)
         auth_type = req_dict['auth'].get('type', None) if auth else None
-        if auth_type and auth_type == 'oauth':
+        if auth_type and (auth_type == 'oauth' or auth_type == 'oauth2'):
             validate_oauth_scope(req_dict)    
         return func(req_dict, *args, **kwargs)
     return inner    
 
+# TODO - adjust for oauth2 as well
 def validate_oauth_scope(req_dict):
     method = req_dict['method']
     endpoint = req_dict['auth']['endpoint']
@@ -92,6 +93,7 @@ def validate_oauth_scope(req_dict):
         req_dict['auth']['oauth_define'] = False
 
 # Extra agent validation for state and profile
+# TODO - adjust for oauth2 as well
 def validate_oauth_state_or_profile_agent(req_dict, endpoint):    
     ag = req_dict['params']['agent']
     token = req_dict['auth']['oauth_token']
@@ -144,6 +146,7 @@ def server_validate_statement_object(stmt_object, auth):
                     err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
                     raise Forbidden(err_msg)
 
+# TODO - adjust for oauth2
 def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
         # If they try using a non-oauth group that already exists-throw error
