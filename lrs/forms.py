@@ -3,7 +3,7 @@ from django import forms
 from django.utils.html import conditional_escape
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
-from lrs.models import Token
+from oauth_provider.models import Token
 
 SCOPES = (('all', 'all'),
           ('all/read', 'all/read'),
@@ -73,7 +73,7 @@ class AuthClientForm(forms.Form):
         widget=MyCheckboxSelectMultiple(), choices=SCOPES)
     authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)        
     obj_id = forms.IntegerField(widget=forms.HiddenInput, initial=0)        
-    
+    oauth_token = forms.CharField(widget=forms.HiddenInput)
 
     def clean(self):
         cleaned = super(AuthClientForm, self).clean()

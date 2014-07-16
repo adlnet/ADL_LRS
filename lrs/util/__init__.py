@@ -9,8 +9,8 @@ from django.db.models import get_models, get_app
 from django.contrib import admin
 from django.contrib.admin.sites import AlreadyRegistered
 from dateutil import parser
-from lrs.models import Consumer
 from lrs.exceptions import ParamError, BadRequest
+from oauth_provider.models import Consumer
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 def get_agent_ifp(data):

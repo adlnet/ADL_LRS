@@ -3,7 +3,8 @@ from functools import wraps
 from django.conf import settings
 from django.contrib.auth import authenticate
 from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest
-from lrs.models import Token, Agent
+from lrs.models import Agent
+from oauth_provider.models import Token
 from oauth_provider.utils import send_oauth_error
 from oauth_provider.consts import  ACCEPTED
 
