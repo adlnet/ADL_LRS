@@ -1,3 +1,4 @@
+import ast
 import oauth2 as oauth
 from urlparse import urlparse, urlunparse
 
@@ -56,19 +57,15 @@ def get_oauth_request(request):
     # 'application/x-www-form-urlencoded' and request
     # see: http://tools.ietf.org/html/rfc5849#section-3.4.1.3.1
     parameters = {}
-    # TODO - CHECK OLD LRS CODE - MIGHT HAVE TO CHANGE WHAT IS GETTING PARSED AND ADD SCOPE AND CONSUMER_NAME
-    if request.method == "POST" and request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded":
-        parameters = dict((k, v.encode('utf-8')) for (k, v) in request.POST.iteritems())
-    # if request.method == "POST" and request.META.get('CONTENT_TYPE') != "application/json" \
-    #     and (request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded" \
-    #         or request.META.get('SERVER_NAME') == 'testserver'):
+    # if request.method == "POST" and request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded":
+    #     parameters = dict((k, v.encode('utf-8')) for (k, v) in request.POST.iteritems())
 
-    #     p = dict(request.REQUEST.items()) 
-    #     if p.values()[0] == '':
-    #         # literal eval is putting them in differnt order
-    #         parameters = ast.literal_eval(p.keys()[0])
-    #     else:
-    #         parameters = p
+    if request.method == "POST" and request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded":
+        # LRS CHANGE - DJANGO TEST CLIENT SENDS PARAMS FUNKY-NEED SPECIAL CASE
+        if request.META.get('SERVER_NAME') == 'testserver':
+            parameters = ast.literal_eval(request.POST.items()[0][0])
+        else:
+            parameters = dict((k, v.encode('utf-8')) for (k, v) in request.POST.iteritems())
 
     absolute_uri = request.build_absolute_uri(request.path)
 

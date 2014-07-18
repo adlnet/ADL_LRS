@@ -374,6 +374,7 @@ class NewOAuthTests(TestCase):
         # passing scope as form param instead of in query string in this instance
         form_data = {
             'scope':'all',
+            'consumer_name':"new_client"
         }
 
         # Header params we're passing in
@@ -396,15 +397,17 @@ class NewOAuthTests(TestCase):
         del oauth_header_request_token_params_dict['OAuth realm']
 
         # add scope to the existing params
-        oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
+        oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='POST',
             http_url=request_token_path, parameters=dict(oauth_header_request_token_params_dict.items()+form_data.items()))
-        
         # create signature and add it to the header params
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
+
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, data=form_data, X_Experience_API_Version="1.0.0")
+        # By default django's test client POSTs as multipart. We want form
+        request_resp = self.client.post(request_token_path, Authorization=oauth_header_request_token_params, data=form_data,
+            X_Experience_API_Version="1.0.0", content_type="application/x-www-form-urlencoded")
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
