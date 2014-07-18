@@ -45,8 +45,6 @@ def get_oauth_request(request):
     """ Converts a Django request object into an `oauth2.Request` object. """
     # Django converts Authorization header in HTTP_AUTHORIZATION
     # Warning: it doesn't happen in tests but it's useful, do not remove!
-    import pdb
-    pdb.set_trace()
     auth_header = {}
     if 'Authorization' in request.META:
         auth_header = {'Authorization': request.META['Authorization']}
@@ -104,8 +102,6 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         if token is not None:
             token = oauth.Token(token.key.encode('ascii', 'ignore'), token.secret.encode('ascii', 'ignore'))
 
-        import pdb
-        pdb.set_trace()
         oauth_server.verify_request(oauth_request, consumer, token)
     except oauth.Error, err:
         return False

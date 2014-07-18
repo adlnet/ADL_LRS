@@ -48,7 +48,7 @@ class Consumer(models.Model):
     description = models.TextField(blank=True)
     
     # LRS CHANGE - ADDED DEFAULT SCOPES FOR CONSUMER WHEN FIRST REGISTERED
-    default_scopes = models.CharField(max_length=100, default="statements/write,statements/read/mine")
+    # default_scopes = models.CharField(max_length=100, default="statements/write statements/read/mine")
 
     key = models.CharField(max_length=CONSUMER_KEY_SIZE)
     secret = models.CharField(max_length=SECRET_SIZE, blank=True)
@@ -85,7 +85,7 @@ class Token(models.Model):
     consumer = models.ForeignKey(Consumer)
     # LRS CHANGE - LRS SCOPES AREN'T RESOURCES
     # scope = models.ForeignKey(Scope, null=True, blank=True)
-    scope = models.CharField(max_length=100, default="statements/write,statements/read/mine")
+    scope = models.CharField(max_length=100, default="statements/write statements/read/mine")
     
     @property
     def resource(self):
@@ -164,7 +164,7 @@ class Token(models.Model):
         
     # LRS CHANGE - ADDED HELPER FUNCTIONS
     def scope_to_list(self):
-        return self.scope.split(",")
+        return self.scope.split(" ")
 
     def timestamp_asdatetime(self):
         return datetime.fromtimestamp(self.timestamp)

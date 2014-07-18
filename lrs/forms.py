@@ -1,18 +1,10 @@
 from itertools import chain
 from django import forms
+from django.conf import settings
 from django.utils.html import conditional_escape
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from oauth_provider.models import Token
-
-SCOPES = (('all', 'all'),
-          ('all/read', 'all/read'),
-          ('statements/write', 'statements/write'),
-          ('statements/read', 'statements/read'),
-          ('statements/read/mine', 'statements/read/mine'),
-          ('state', 'state'),
-          ('define', 'define'),
-          ('profile', 'profile'))
 
 class ValidatorForm(forms.Form):
     jsondata = forms.CharField(label='Data', required=True, 
@@ -40,8 +32,6 @@ class RegClientForm(forms.Form):
     name = forms.CharField(max_length=200, label='Name')
     description = forms.CharField(label='Description', required=False, 
         widget=forms.Textarea())
-    scopes = forms.MultipleChoiceField(required=False, initial=[SCOPES[2][0],SCOPES[4][0]],
-        widget=forms.CheckboxSelectMultiple, choices=SCOPES)
 
 class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     def render(self, name, value, attrs=None, choices=()):
@@ -69,8 +59,8 @@ class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
         return mark_safe(u'\n'.join(output))
 
 class AuthClientForm(forms.Form):
-    scopes = forms.MultipleChoiceField(required=False, initial=SCOPES[0],
-        widget=MyCheckboxSelectMultiple(), choices=SCOPES)
+    scopes = forms.MultipleChoiceField(required=False, initial=settings.SCOPES[0],
+        widget=MyCheckboxSelectMultiple(), choices=settings.SCOPES)
     authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)        
     obj_id = forms.IntegerField(widget=forms.HiddenInput, initial=0)        
     oauth_token = forms.CharField(widget=forms.HiddenInput)
@@ -78,7 +68,7 @@ class AuthClientForm(forms.Form):
     def clean(self):
         cleaned = super(AuthClientForm, self).clean()
         t = Token.objects.get(id=cleaned.get('obj_id'))
-        default_scopes = t.consumer.default_scopes.split(',')
+        default_scopes = t.scope.split(' ')
         scopes = cleaned.get('scopes')
         if not scopes:
             raise forms.ValidationError("you need to select permissions for the client")

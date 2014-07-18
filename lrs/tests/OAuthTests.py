@@ -461,8 +461,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add put data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -498,8 +496,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add put data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -565,18 +561,14 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add get data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
 
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
-
-        import pdb
-        pdb.set_trace()
 
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
@@ -602,8 +594,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add get data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -636,8 +626,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add get data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -687,6 +675,8 @@ class OAuthTests(TestCase):
         teststate = {"test":"put activity state 1"}
         path = '%s?%s' % (url, urllib.urlencode(testparams))
 
+        import pdb
+        pdb.set_trace()
         oauth_header_resource_params, access_token = self.perform_oauth_handshake(scope_type='state',
             request_nonce='stateforbiddenrequestnonce', access_nonce='stateforbiddenaccessnonce',
             resource_nonce='stateforbiddenresourcenonce')
@@ -699,8 +689,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add put data
-        oauth_header_resource_params_dict.update(testparams)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -727,8 +715,6 @@ class OAuthTests(TestCase):
         del oauth_header_resource_params_dict['stateId']
         del oauth_header_resource_params_dict['activityId']
         del oauth_header_resource_params_dict['agent']                
-        # update dict with stmt data
-        oauth_header_resource_params_dict.update(param)
 
         # create another oauth request
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
@@ -767,8 +753,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add get data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -788,7 +772,6 @@ class OAuthTests(TestCase):
 
         oauth_header_resource_params_dict['oauth_nonce'] = 'differnonce'
         del oauth_header_resource_params_dict['statementId']
-        oauth_header_resource_params_dict.update(params)
         # create another oauth request
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -823,7 +806,7 @@ class OAuthTests(TestCase):
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
         # add get data
-        oauth_header_resource_params_dict.update(param)
+        # oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -836,7 +819,7 @@ class OAuthTests(TestCase):
         consumer.save()
         resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")        
         self.assertEqual(resp.status_code, 401)
-        self.assertEqual(resp.content, 'Could not verify OAuth request.')
+        self.assertEqual(resp.content, 'test client has not been authorized')
 
     def test_simple_stmt_get_mine_only(self):
         guid = str(uuid.uuid1())
@@ -870,8 +853,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add get data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -945,8 +926,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add get data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -1013,8 +992,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add put data
-        oauth_header_resource_params_dict.update(testparams)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -1048,8 +1025,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add put data
-        oauth_header_resource_params_dict.update(testparams)
         
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -1097,8 +1072,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add put data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -1122,7 +1095,6 @@ class OAuthTests(TestCase):
         path = "%s?%s" % (url, urllib.urlencode(get_params)) 
 
         del oauth_header_resource_params_dict['statementId']
-        oauth_header_resource_params_dict.update(get_params)
         oauth_header_resource_params_dict['oauth_nonce'] = 'getdiffernonce'
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
@@ -1227,8 +1199,6 @@ class OAuthTests(TestCase):
             oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_resource_params_dict['OAuth realm']
-        # add put data
-        oauth_header_resource_params_dict.update(param)
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
             http_url=path, parameters=oauth_header_resource_params_dict)
@@ -1257,7 +1227,6 @@ class OAuthTests(TestCase):
         path = "%s?%s" % (url, urllib.urlencode(get_params)) 
 
         del oauth_header_resource_params_dict['statementId']
-        oauth_header_resource_params_dict.update(get_params)
         oauth_header_resource_params_dict['oauth_nonce'] = 'getdiffernonce'
 
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',

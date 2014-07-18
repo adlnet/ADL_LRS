@@ -8,6 +8,15 @@ from oauth_provider.models import Nonce, Token, Consumer, VERIFIER_SIZE
 
 NONCE_VALID_PERIOD = getattr(settings, "OAUTH_NONCE_VALID_PERIOD", None)
 
+SCOPES = ['all',
+          'all/read',
+          'statements/write',
+          'statements/read',
+          'statements/read/mine',
+          'state',
+          'define',
+          'profile']
+
 class ModelStore(Store):
     """
     Store implementation using the Django models defined in `piston.models`.
@@ -47,13 +56,11 @@ class ModelStore(Store):
         try:
             scope = oauth_request.get_parameter('scope')
         except oauth.Error:
-            scope = None
+            scope = "statements/write statements/read/mine"
 
-        if scope:
-            if scope != consumer.default_scopes:
-                raise oauth.Error('Given scope does not match Consumer scope')
-        else:
-            scope = consumer.default_scopes
+        scope_list = scope.split(' ')
+        if not set(scope_list).issubset(set(SCOPES)):
+            raise oauth.Error('Scope does not exist.')
 
         token = Token.objects.create_token(
             token_type=Token.REQUEST,

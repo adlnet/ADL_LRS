@@ -96,6 +96,14 @@ OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
+SCOPES = (('all', 'all'),
+          ('all/read', 'all/read'),
+          ('statements/write', 'statements/write'),
+          ('statements/read', 'statements/read'),
+          ('statements/read/mine', 'statements/read/mine'),
+          ('state', 'state'),
+          ('define', 'define'),
+          ('profile', 'profile'))
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100

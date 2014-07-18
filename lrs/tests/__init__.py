@@ -8,6 +8,7 @@ from AgentManagerTests import *
 from ActivityTests import *
 from StatementManagerTests import *
 from StatementsMoreTests import *
-from OAuthTests import *
+# from OAuthTests import *
 from AuthTests import *
 from StatementFilterTests import *
+from NewOAuthTests import *

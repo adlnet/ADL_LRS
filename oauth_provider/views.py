@@ -36,7 +36,6 @@ def request_token(request):
     if oauth_request is None:
         return INVALID_PARAMS_RESPONSE
 
-    # TODO - DO I HAVE TO INCLUDE SCOPE, CONSUMER_NAME HERE?
     missing_params = require_params(oauth_request, ('oauth_callback',))
     if missing_params is not None:
         return missing_params
