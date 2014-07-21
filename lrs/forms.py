@@ -71,7 +71,7 @@ class AuthClientForm(forms.Form):
         default_scopes = t.scope.split(' ')
         scopes = cleaned.get('scopes')
         if not scopes:
-            raise forms.ValidationError("you need to select permissions for the client")
+            raise forms.ValidationError("You need to select permissions for the client")
 
         if "statements/read/mine" in scopes and "statements/read" in scopes:
             raise forms.ValidationError("'statements/read/mine' and 'statements/read' are conflicting scope values. choose one.")

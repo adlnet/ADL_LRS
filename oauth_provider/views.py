@@ -3,7 +3,7 @@ from urllib import urlencode
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext as _
 from django.core.urlresolvers import get_callable
@@ -13,7 +13,7 @@ from django.template import RequestContext
 import oauth2 as oauth
 
 from decorators import oauth_required
-from forms import AuthorizeRequestTokenForm
+from lrs.forms import AuthClientForm
 from oauth_provider.compat import UnsafeRedirect
 from responses import INVALID_PARAMS_RESPONSE, INVALID_CONSUMER_RESPONSE, COULD_NOT_VERIFY_OAUTH_REQUEST_RESPONSE
 from store import store, InvalidConsumerError, InvalidTokenError
@@ -63,9 +63,9 @@ def request_token(request):
     })
     return HttpResponse(ret, content_type='application/x-www-form-urlencoded')
 
-
+# LRS CHANGE - CHANGED FORM_CLASS TO OUR CUSTOM FORM
 @login_required(login_url="/XAPI/accounts/login")
-def user_authorization(request, form_class=AuthorizeRequestTokenForm):
+def user_authorization(request, form_class=AuthClientForm):
     if 'oauth_token' not in request.REQUEST:
         return HttpResponseBadRequest('No request token specified.')
 
@@ -77,6 +77,10 @@ def user_authorization(request, form_class=AuthorizeRequestTokenForm):
         return HttpResponseBadRequest('Invalid request token.')
 
     consumer = store.get_consumer_for_request_token(request, oauth_request, request_token)
+
+    # LRS CHANGE - MAKE SURE LOGGED IN USER OWNS THIS CONSUMER
+    if request.user != consumer.user:
+        return HttpResponseForbidden('Invalid user for this client.')
 
     if request.method == 'POST':
         form = form_class(request.POST)
@@ -112,7 +116,7 @@ def user_authorization(request, form_class=AuthorizeRequestTokenForm):
                 response = callback_view(request, **args)
         else:
             response = send_oauth_error(oauth.Error(_('Action not allowed.')))
-    else:
+    else:       
         # try to get custom authorize view
         authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW, 
                                     'oauth_provider.views.fake_authorize_view')
@@ -252,6 +256,7 @@ def authorize_client(request, token=None, callback=None, params=None, form=None)
     d['oauth_token'] = token.key
     return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
+@login_required(login_url="/XAPI/accounts/login")
 def callback_view(request, **args):
     d = {}
     if 'error' in args:

@@ -98,6 +98,7 @@ class ModelStore(Store):
             # AFTER TOKEN VALIDATION IN THE ACCESS_TOKEN VIEW
             is_approved=request_token.is_approved
         )
+
         request_token.delete()
         return access_token
 
