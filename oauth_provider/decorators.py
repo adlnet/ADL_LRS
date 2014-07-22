@@ -89,6 +89,8 @@ class CheckOauth(object):
             raise oauth.Error(_('Invalid access token: %s') % oauth_request.get_parameter('oauth_token'))
 
         if not verify_oauth_request(request, oauth_request, consumer, token):
+            import pdb
+            pdb.set_trace()
             raise oauth.Error(_('Could not verify OAuth request.'))
 
         # LRS CHANGE - SCOPE IS JUST A CHARFIELD NOW - JUST COMPARE THE VALUES
