@@ -116,7 +116,6 @@ class OAuthTests(TestCase):
         self.assertIn(token.key, auth_post['Location'])
         self.assertEqual(token.is_approved, True)
 
-
         # Test ACCESS TOKEN
         oauth_header_access_params = "OAuth realm=\"test\","\
             "oauth_consumer_key=\"%s\","\
@@ -135,7 +134,7 @@ class OAuthTests(TestCase):
         access_token = Token.objects.filter(token_type=Token.ACCESS, consumer=self.consumer)[0]
         self.assertIn(access_token.key, access_resp.content)
         self.assertEqual(access_token.user.username, u'jane')
-
+        
         # Test ACCESS RESOURCE
         oauth_header_resource_params = "OAuth realm=\"test\", "\
             "oauth_consumer_key=\"%s\","\
