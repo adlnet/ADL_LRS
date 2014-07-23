@@ -5,11 +5,14 @@ import os
 import base64
 import re
 import time
+
 import oauth2 as oauth
-from django.contrib.auth.models import User
+
 from django.conf import settings
-from django.test import TestCase
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.test import TestCase
+
 from lrs import views, models, forms
 from lrs.objects.StatementManager import StatementManager
 from oauth_provider.models import Consumer, Token, Nonce
@@ -67,15 +70,20 @@ class NewOAuthTests(TestCase):
             except Exception, e:
                 raise e
 
-    def oauth_handshake(self, scope=True, scope_type=None, parameters=None, param_type='qs', change_scope=[]):
+    def oauth_handshake(self, scope=True, scope_type=None, parameters=None, param_type='qs', change_scope=[],
+        request_nonce='', access_nonce='', resource_nonce=''):
+
         # ============= INITIATE =============
+        if not request_nonce:
+            request_nonce = "request_nonce"
+
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
                "oauth_signature_method=\"HMAC-SHA1\","\
                "oauth_timestamp=\"%s\","\
-               "oauth_nonce=\"12345678\","\
+               "oauth_nonce=\"%s\","\
                "oauth_version=\"1.0\","\
-               "oauth_callback=\"http://example.com/access_token_ready\"" % (self.consumer.key,str(int(time.time())))
+               "oauth_callback=\"http://example.com/access_token_ready\"" % (self.consumer.key,str(int(time.time())), request_nonce)
 
         # Add non oauth parameters appropriately
         request_token_params = {}
@@ -117,10 +125,10 @@ class NewOAuthTests(TestCase):
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
         if param_type == 'qs':
-            request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+            request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         else:
             request_resp = self.client.post(request_token_path, Authorization=oauth_header_request_token_params, data=request_token_params,
-                X_Experience_API_Version="1.0.0", content_type="application/x-www-form-urlencoded")
+                content_type="application/x-www-form-urlencoded")
 
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
@@ -135,14 +143,14 @@ class NewOAuthTests(TestCase):
         authorize_param = {'oauth_token': request_token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(authorize_param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(request_token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -154,7 +162,7 @@ class NewOAuthTests(TestCase):
         if change_scope:
             data['scope'] = change_scope
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -167,14 +175,17 @@ class NewOAuthTests(TestCase):
 
         # ============= ACCESS TOKEN =============
         access_token_path = TEST_SERVER + "/XAPI/OAuth/token/"
+        if not access_nonce:
+            access_nonce = "access_nonce"
+
         oauth_header_access_token_params = "OAuth realm=\"test\","\
             "oauth_consumer_key=\"%s\","\
             "oauth_token=\"%s\","\
             "oauth_signature_method=\"HMAC-SHA1\","\
             "oauth_timestamp=\"%s\","\
-            "oauth_nonce=\"87654321\","\
+            "oauth_nonce=\"%s\","\
             "oauth_version=\"1.0\","\
-            "oauth_verifier=\"%s\"" % (self.consumer.key, request_token_after_auth.key, str(int(time.time())), request_token_after_auth.verifier)
+            "oauth_verifier=\"%s\"" % (self.consumer.key, request_token_after_auth.key, str(int(time.time())), access_nonce, request_token_after_auth.verifier)
 
         # from_token_and_callback takes a dictionary        
         param_list = oauth_header_access_token_params.split(",")
@@ -193,8 +204,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, request_token_after_auth)
         oauth_header_access_token_params += ',oauth_signature="%s"' % signature
 
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_token_params,
-            X_Experience_API_Version="1.0.0")
+        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_token_params)
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
@@ -202,25 +212,33 @@ class NewOAuthTests(TestCase):
         access_token = Token.objects.get(secret=access_token_secret, key=access_token_key)
         #  ============= END ACCESS TOKEN =============
 
+        if not resource_nonce:
+            resource_nonce = "resource_nonce"
+
         oauth_header_resource_params = "OAuth realm=\"test\", "\
             "oauth_consumer_key=\"%s\","\
             "oauth_token=\"%s\","\
             "oauth_signature_method=\"HMAC-SHA1\","\
             "oauth_timestamp=\"%s\","\
-            "oauth_nonce=\"accessresourcenonce\","\
-            "oauth_version=\"1.0\"" % (self.consumer.key, access_token.key, str(int(time.time())))
+            "oauth_nonce=\"%s\","\
+            "oauth_version=\"1.0\"" % (self.consumer.key, access_token.key, str(int(time.time())), resource_nonce)
 
         return oauth_header_resource_params, access_token
 
-    def oauth_handshake2(self, scope=True, scope_type=None, parameters=None, param_type='qs', change_scope=[]):
+    def oauth_handshake2(self, scope=True, scope_type=None, parameters=None, param_type='qs', change_scope=[],
+        request_nonce='', access_nonce='', resource_nonce=''):
+
         # ============= INITIATE =============
+        if not request_nonce:
+            request_nonce = "request_nonce2"
+
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
                "oauth_signature_method=\"HMAC-SHA1\","\
                "oauth_timestamp=\"%s\","\
-               "oauth_nonce=\"123456782\","\
+               "oauth_nonce=\"%s\","\
                "oauth_version=\"1.0\","\
-               "oauth_callback=\"http://example.com/access_token_ready\"" % (self.consumer2.key,str(int(time.time())))
+               "oauth_callback=\"http://example.com/access_token_ready\"" % (self.consumer2.key,str(int(time.time())), request_nonce)
 
         # Add non oauth parameters appropriately
         request_token_params = {}
@@ -262,10 +280,10 @@ class NewOAuthTests(TestCase):
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
         if param_type == 'qs':
-            request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+            request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         else:
             request_resp = self.client.post(request_token_path, Authorization=oauth_header_request_token_params, data=request_token_params,
-                X_Experience_API_Version="1.0.0", content_type="application/x-www-form-urlencoded")
+                content_type="application/x-www-form-urlencoded")
 
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
@@ -280,14 +298,14 @@ class NewOAuthTests(TestCase):
         authorize_param = {'oauth_token': request_token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(authorize_param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='dick', password='lassie')
         self.assertEqual(request_token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -299,7 +317,7 @@ class NewOAuthTests(TestCase):
         if change_scope:
             data['scope'] = change_scope
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -312,14 +330,18 @@ class NewOAuthTests(TestCase):
 
         # ============= ACCESS TOKEN =============
         access_token_path = TEST_SERVER + "/XAPI/OAuth/token/"
+
+        if not access_nonce:
+            access_nonce = "access_nonce2"
+
         oauth_header_access_token_params = "OAuth realm=\"test\","\
             "oauth_consumer_key=\"%s\","\
             "oauth_token=\"%s\","\
             "oauth_signature_method=\"HMAC-SHA1\","\
             "oauth_timestamp=\"%s\","\
-            "oauth_nonce=\"876543212\","\
+            "oauth_nonce=\"%s\","\
             "oauth_version=\"1.0\","\
-            "oauth_verifier=\"%s\"" % (self.consumer2.key, request_token_after_auth.key, str(int(time.time())), request_token_after_auth.verifier)
+            "oauth_verifier=\"%s\"" % (self.consumer2.key, request_token_after_auth.key, str(int(time.time())), access_nonce, request_token_after_auth.verifier)
 
         # from_token_and_callback takes a dictionary        
         param_list = oauth_header_access_token_params.split(",")
@@ -338,8 +360,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer2, request_token_after_auth)
         oauth_header_access_token_params += ',oauth_signature="%s"' % signature
 
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_token_params,
-            X_Experience_API_Version="1.0.0")
+        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_token_params)
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
@@ -347,13 +368,16 @@ class NewOAuthTests(TestCase):
         access_token = Token.objects.get(secret=access_token_secret, key=access_token_key)
         #  ============= END ACCESS TOKEN =============
 
+        if not resource_nonce:
+            resource_nonce = "resource_nonce2"
+
         oauth_header_resource_params = "OAuth realm=\"test\", "\
             "oauth_consumer_key=\"%s\","\
             "oauth_token=\"%s\","\
             "oauth_signature_method=\"HMAC-SHA1\","\
             "oauth_timestamp=\"%s\","\
-            "oauth_nonce=\"accessresourcenonce2\","\
-            "oauth_version=\"1.0\"" % (self.consumer2.key, access_token.key, str(int(time.time())))
+            "oauth_nonce=\"%s\","\
+            "oauth_version=\"1.0\"" % (self.consumer2.key, access_token.key, str(int(time.time())), resource_nonce)
 
         return oauth_header_resource_params, access_token
 
@@ -385,7 +409,7 @@ class NewOAuthTests(TestCase):
         # Append signature to string headers
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(request_token_path)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
@@ -413,7 +437,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(request_token_path)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
@@ -441,7 +465,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(request_token_path)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
@@ -468,7 +492,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(request_token_path)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
@@ -495,7 +519,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(request_token_path)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
@@ -528,7 +552,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, data=form_data, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, data=form_data)
 
         self.assertEqual(request_resp.status_code, 401)
         self.assertEqual(request_resp.content, 'Could not verify OAuth request.')
@@ -562,7 +586,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, data=form_data, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, data=form_data)
 
         self.assertEqual(request_resp.status_code, 401)
         self.assertEqual(request_resp.content, 'Could not verify OAuth request.')
@@ -597,7 +621,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
 
 
@@ -629,7 +653,7 @@ class NewOAuthTests(TestCase):
         signature2 = signature_method.sign(oauth_request2, self.consumer, None)
         oauth_header_request_token_params2 = oauth_header_request_token_params2 + ",oauth_signature=%s" % signature2
         
-        request_resp2 = self.client.get(request_token_path, Authorization=oauth_header_request_token_params2, X_Experience_API_Version="1.0.0")
+        request_resp2 = self.client.get(request_token_path, Authorization=oauth_header_request_token_params2)
         self.assertEqual(request_resp2.status_code, 401)
 
     def test_request_token_no_scope(self):
@@ -662,7 +686,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -706,7 +730,7 @@ class NewOAuthTests(TestCase):
         
         # By default django's test client POSTs as multipart. We want form
         request_resp = self.client.post(request_token_path, Authorization=oauth_header_request_token_params, data=form_data,
-            X_Experience_API_Version="1.0.0", content_type="application/x-www-form-urlencoded")
+            content_type="application/x-www-form-urlencoded")
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -748,7 +772,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -790,7 +814,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -832,7 +856,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -874,7 +898,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 401)
 
     def test_request_token_wrong_signature(self):
@@ -913,7 +937,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % "wrongsignature"
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 401)
 
 
@@ -952,7 +976,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -964,14 +988,14 @@ class NewOAuthTests(TestCase):
         param = {'oauth_token': token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -979,7 +1003,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1023,7 +1047,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -1035,14 +1059,14 @@ class NewOAuthTests(TestCase):
         param = {'oauth_token': token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -1051,7 +1075,7 @@ class NewOAuthTests(TestCase):
         data['oauth_token'] = token.key
         data['scopes'] = ['all']
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 401)
         self.assertEqual(auth_post.content, 'Action not allowed.')
 
@@ -1090,7 +1114,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -1102,14 +1126,14 @@ class NewOAuthTests(TestCase):
         param = {'oauth_token': token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='dick', password='lassie')
         self.assertEqual(token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 403) # Show return/display OAuth authorized view
         self.assertEqual(auth_resp.content, 'Invalid user for this client.')
 
@@ -1148,7 +1172,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -1160,14 +1184,14 @@ class NewOAuthTests(TestCase):
         param = {'oauth_token': token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -1176,7 +1200,7 @@ class NewOAuthTests(TestCase):
         data['oauth_token'] = token.key
         data['scopes'] = []
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 401)
         self.assertEqual(auth_post.content, 'Action not allowed.')
 
@@ -1215,7 +1239,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -1227,14 +1251,14 @@ class NewOAuthTests(TestCase):
         param = {'oauth_token': token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -1242,7 +1266,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1265,8 +1289,7 @@ class NewOAuthTests(TestCase):
             "oauth_version=\"1.0\","\
             "oauth_verifier=\"%s\"" % (self.consumer.key,token.key,self.consumer.secret,token.secret,str(int(time.time())),token.verifier)
 
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_params,
-            X_Experience_API_Version="1.0.0")
+        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_params)
         self.assertEqual(access_resp.status_code, 400)
         self.assertEqual(access_resp.content, "Request Token not approved by the user.")
     
@@ -1305,7 +1328,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -1317,14 +1340,14 @@ class NewOAuthTests(TestCase):
         param = {'oauth_token': token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -1332,7 +1355,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1353,8 +1376,7 @@ class NewOAuthTests(TestCase):
             "oauth_version=\"1.0\","\
             "oauth_verifier=\"%s\"" % (self.consumer.key,token.key,self.consumer.secret,request_token.secret,str(int(time.time())),request_token.verifier)
 
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_params,
-            X_Experience_API_Version="1.0.0")
+        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_params)
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
@@ -1428,7 +1450,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=unicode(oauth_header_request_token_params), X_Experience_API_Version="1.0.0")
+        request_resp = self.client.get(request_token_path, Authorization=unicode(oauth_header_request_token_params))
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
@@ -1441,14 +1463,14 @@ class NewOAuthTests(TestCase):
         param = {'oauth_token': token.key}
         authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
 
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
         self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
         # After being redirected to login and logging in again, try get again
-        auth_resp = self.client.get(authorize_path, X_Experience_API_Version="1.0.0")
+        auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
         
         auth_form = auth_resp.context['form']
@@ -1456,7 +1478,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data, X_Experience_API_Version="1.0.0")
+        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1494,8 +1516,7 @@ class NewOAuthTests(TestCase):
         signature = signature_method.sign(oauth_request, self.consumer, request_token)
         oauth_header_access_params += ',oauth_signature="%s"' % signature
 
-        access_resp = self.client.get(access_token_path, Authorization=unicode(oauth_header_access_params),
-            X_Experience_API_Version="1.0.0")
+        access_resp = self.client.get(access_token_path, Authorization=unicode(oauth_header_access_params))
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
@@ -1570,3 +1591,818 @@ class NewOAuthTests(TestCase):
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.content, "OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
+
+    def test_stmt_put(self):
+        # build stmt data and path
+        put_guid = str(uuid.uuid1())
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"act:test_put"}})
+        param = {"statementId":put_guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+        
+        oauth_header_resource_params, access_token = self.oauth_handshake()
+        
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        # Put statements
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 204)
+
+    def test_stmt_post_no_scope(self):
+        stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}}
+        stmt_json = json.dumps(stmt)
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope=False)
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='POST',
+            http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature  
+
+        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 200)
+
+    def test_stmt_simple_get(self):
+        guid = str(uuid.uuid1())
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_simple_get"}}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        param = {"statementId":guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake()
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 200)
+        rsp = resp.content
+        self.assertIn(guid, rsp)
+
+    def test_stmt_complex_get(self):
+        stmt_data = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_complex_get"}}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        param = {"activity":"act:test_complex_get"}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake()
+
+        # from_token_and_callback takes a dictionary 
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(resp.status_code, 200)
+
+    def test_stmt_get_then_wrong_scope(self):
+        guid = str(uuid.uuid1())
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_simple_get"}}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        param = {"statementId":guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type="statements/read profile")
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 200)
+        rsp = resp.content
+        self.assertIn(guid, rsp)
+
+        # Test POST (not allowed)
+        post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}}
+        post_stmt_json = json.dumps(post_stmt)
+
+        # change nonce
+        oauth_header_resource_params_dict['oauth_nonce'] = 'another_nonce'
+
+        # create another oauth request
+        oauth_request2 = oauth.Request.from_token_and_callback(access_token, http_method='POST',
+            http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params_dict)
+        signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
+        signature2 = signature_method2.sign(oauth_request2, self.consumer, access_token)
+
+        # Replace old signature and add the new one
+        oauth_header_resource_params = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % signature2) 
+        # replace headers with the nonce you added in dict
+        oauth_header_resource_params = oauth_header_resource_params.replace('oauth_nonce="resource_nonce"','oauth_nonce="another_nonce"')        
+
+        post = self.client.post('/XAPI/statements/', data=post_stmt_json, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 403)
+        self.assertEqual(post.content, 'Incorrect permissions to POST at /statements')
+
+    def test_activity_state_put_then_wrong_scope(self):
+        url = TEST_SERVER + '/XAPI/activities/state'
+        testagent = '{"name":"jane","mbox":"mailto:jane@example.com"}'
+        activityId = "http://www.iana.org/domains/example/"
+        stateId = "id:the_state_id"
+        activity = models.Activity(activity_id=activityId)
+        activity.save()
+        testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
+        teststate = {"test":"put activity state 1"}
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='state')
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        put = self.client.put(path, data=teststate, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(put.status_code, 204)
+        
+        # Set up for Get
+        guid = str(uuid.uuid1())
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_simple_get"}}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        param = {"statementId":guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        # change nonce
+        oauth_header_resource_params_dict['oauth_nonce'] = 'differ_nonce'
+
+        # create another oauth request
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature2 = signature_method.sign(oauth_request, self.consumer, access_token)
+        # Replace old signature with the new one
+        oauth_header_resource_params_new = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % signature2) 
+        # replace headers with the nonce you added in dict
+        new_oauth_headers = oauth_header_resource_params_new.replace('oauth_nonce="resource_nonce"','oauth_nonce="differ_nonce"')        
+        get = self.client.get(path, content_type="application/json",
+            Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(get.status_code, 403)
+        self.assertEqual(get.content, 'Incorrect permissions to GET at /statements')
+
+    def stmt_get_then_wrong_profile_scope(self):
+        guid = str(uuid.uuid1())
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_simple_get"}}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        param = {"statementId":guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type="statements/read")
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 200)
+        rsp = resp.content
+        self.assertIn(guid, rsp)
+
+        url = 'http://testserver/XAPI/agents/profile'
+        params = {"agent": {"mbox":"mailto:test@example.com"}}
+        path = "%s?%s" %(url, urllib.urlencode(params))
+
+        oauth_header_resource_params_dict['oauth_nonce'] = 'differ_nonce'
+
+        # create another oauth request
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
+        signature2 = signature_method2.sign(oauth_request, self.consumer, access_token)
+        # Replace signature with new one
+        new_sig_params = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % signature2 )
+        # replace headers with the nonce you added in dict
+        new_oauth_headers = new_sig_params.replace('oauth_nonce="resource_nonce"','oauth_nonce="differ_nonce"')        
+        r = self.client.get(path, Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 403)
+
+    def test_consumer_state(self):
+        stmt_data = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_complex_get"}}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        param = {"object":{"objectType": "Activity", "id":"act:test_complex_get"}}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake()
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        consumer = access_token.consumer
+        consumer.status = 4
+        consumer.save()
+
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.content, 'test jane client has not been authorized')
+
+    def test_simple_stmt_get_mine_only(self):
+        guid = str(uuid.uuid1())
+
+        username = "tester1"
+        email = "test1@tester.com"
+        password = "test"
+        auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
+        form = {"username":username, "email":email,"password":password,"password2":password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+
+        put_resp = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(put_resp.status_code, 204)
+        
+        param = {"statementId":guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type="statements/read/mine")
+
+        # From_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 403)
+
+        # build stmt data and path
+        oauth_agent1 = models.Agent.objects.get(account_name=self.consumer.key)
+        oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
+        oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
+        guid = str(uuid.uuid1())
+
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        param = {"statementId":guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+        
+        oauth_header_resource_params_dict['oauth_nonce'] = 'get_differ_nonce'
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
+        get_signature = signature_method2.sign(oauth_request, self.consumer, access_token)
+        replace_sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % get_signature)
+        new_oauth_headers = replace_sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="get_differ_nonce"')        
+
+        get = self.client.get(path, content_type="application/json",
+            Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+        self.assertEqual(get.status_code, 200)
+
+    def test_complex_stmt_get_mine_only(self):
+        guid = str(uuid.uuid1())
+        username = "tester1"
+        email = "test1@tester.com"
+        password = "test"
+        auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
+        form = {"username":username, "email":email,"password":password,"password2":password}
+        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+
+        put_response = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(put_response.status_code, 204)
+
+        param = {"statementId":guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type="statements/read/mine")
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 403)
+        # ====================================================
+
+        oauth_header_resource_params_dict['oauth_nonce'] = 'differ_nonce'
+        oauth_request2 = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url='http://testserver/XAPI/statements', parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
+        signature2 = signature_method2.sign(oauth_request2, self.consumer, access_token)
+        sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % signature2)
+        new_oauth_headers = sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="differ_nonce"')        
+
+        # Get statements
+        get = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
+            Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+        get_content = json.loads(get.content)
+
+        self.assertEqual(get.status_code, 200)
+        self.assertEqual(len(get_content['statements']), 0)
+
+        # ====================================================
+        # build stmt data and path
+        oauth_agent1 = models.Agent.objects.get(account_name=self.consumer.key)
+        oauth_agent2 = models.Agent.objects.get(mbox="mailto:test1@tester.com")
+        oauth_group = models.Agent.objects.get(member__in=[oauth_agent1, oauth_agent2])
+        guid = str(uuid.uuid1())
+
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"act:test_put"}, "authority":oauth_group.get_agent_json()}
+        stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+        
+        oauth_header_resource_params_dict['oauth_nonce'] = 'get_differ_nonce'
+        oauth_request3 = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url='http://testserver/XAPI/statements', parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method3 = oauth.SignatureMethod_HMAC_SHA1()
+        get_signature = signature_method3.sign(oauth_request3, self.consumer, access_token)
+        replace_sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % get_signature)
+        new_oauth_headers2 = replace_sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="get_differ_nonce"')        
+
+        # Get statements
+        get2 = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
+            Authorization=new_oauth_headers2, X_Experience_API_Version="1.0.0")
+        get_content2 = json.loads(get2.content)
+
+        self.assertEqual(get2.status_code, 200)
+        self.assertEqual(get_content2['statements'][0]['actor']['name'], 'bill')
+        self.assertEqual(len(get_content2['statements']), 1)
+
+    def test_state_wrong_auth(self):
+        url = 'http://testserver/XAPI/activities/state'
+        testagent = '{"name":"joe","mbox":"mailto:joe@example.com"}'
+        activityId = "http://www.iana.org/domains/example/"
+        stateId = "id:the_state_id"
+        activity = models.Activity(activity_id=activityId)
+        activity.save()
+        testparams = {"stateId": stateId, "activityId": activityId, "agent": testagent}
+        teststate = {"test":"put activity state 1"}
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='state')
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        put = self.client.put(path, data=teststate, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(put.status_code, 404)        
+        self.assertEqual(put.content, "Agent in state cannot be found to match user in authorization")
+
+    def test_profile_wrong_auth(self):
+        agent = models.Agent(name="joe", mbox="mailto:joe@example.com")
+        agent.save()
+
+        url = 'http://testserver/XAPI/agents/profile'
+        testparams = {"agent": '{"name":"joe","mbox":"mailto:joe@example.com"}'}
+        path = '%s?%s' % (url, urllib.urlencode(testparams))
+
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='profile')
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+        
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        get = self.client.get(path, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(get.status_code, 403)
+        self.assertEqual(get.content, "Authorization doesn't match agent in profile")
+
+    def test_define_scope_activity(self):
+        url = 'http://testserver/XAPI/statements'
+        guid = str(uuid.uuid1())
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
+        existing_stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+
+        # build stmt data and path
+        put_guid = str(uuid.uuid1())
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"test://test/define/scope",
+            'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
+            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
+            'interactionType': 'other'}}})
+
+        param = {"statementId":put_guid}
+        path = "%s?%s" % (url, urllib.urlencode(param))
+        
+        # START PUT STMT
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='statements/write statements/read')
+        
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+        # Put statements - does not have define scope, therefore it creates another activity with 
+        # canonical_version as false
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+
+        self.assertEqual(resp.status_code, 204)
+        acts = models.Activity.objects.all()
+        self.assertEqual(len(acts), 2)
+        self.assertEqual(acts[0].activity_id, acts[1].activity_id)
+
+        # START GET STMT
+        get_params = {"activity":"test://test/define/scope"}
+        path = "%s?%s" % (url, urllib.urlencode(get_params)) 
+
+        oauth_header_resource_params_dict['oauth_nonce'] = 'get_differ_nonce'
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        get_signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        replace_sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % get_signature)
+        new_oauth_headers = replace_sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="get_differ_nonce"')        
+
+        get_resp = self.client.get(path, X_Experience_API_Version="1.0.0",
+            Authorization=new_oauth_headers)
+        self.assertEqual(get_resp.status_code, 200)
+        content = json.loads(get_resp.content)
+        self.assertEqual(len(content['statements']), 2)
+        self.client.logout()
+
+        # START OF POST WITH ANOTHER HANDSHAKE
+        post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:dom@dom.com", "name":"dom"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/tested","display": {"en-US":"tested"}},
+            "object": {"id":"test://test/define/scope",
+            'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
+            'description': {'en-US':'definedesc', 'en-GB': 'definealtdesc'},'type': 'type:course',
+            'interactionType': 'other'}}}
+        stmt_json = json.dumps(post_stmt)
+
+        post_oauth_header_resource_params, post_access_token = self.oauth_handshake2(scope_type='define statements/write')
+
+        # from_token_and_callback takes a dictionary        
+        post_param_list = post_oauth_header_resource_params.split(",")
+        post_oauth_header_resource_params_dict = {}
+        for p in post_param_list:
+            item = p.split("=")
+            post_oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del post_oauth_header_resource_params_dict['OAuth realm']
+        
+        post_oauth_request = oauth.Request.from_token_and_callback(post_access_token, http_method='POST',
+            http_url='http://testserver/XAPI/statements/',
+            parameters=post_oauth_header_resource_params_dict)
+
+        post_signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        post_signature = signature_method.sign(post_oauth_request, self.consumer2,
+            post_access_token)
+
+        post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
+        # This adds the act_def to the very first activity created in this test sine this has define scope
+        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+            Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 200)
+        acts = models.Activity.objects.all()
+        self.assertEqual(len(acts), 2)
+
+        global_act = models.Activity.objects.get(canonical_version=True)        
+        global_name_list = global_act.activity_definition_name.values()
+        self.assertIn('definename', global_name_list)
+        self.assertIn('definealtname', global_name_list)
+        global_desc_list = global_act.activity_definition_description.values()
+        self.assertIn('definedesc', global_desc_list)
+        self.assertIn('definealtdesc', global_desc_list)
+
+        non_global_act = models.Activity.objects.get(canonical_version=False)        
+        non_global_name_list = non_global_act.activity_definition_name.values()
+        self.assertIn('testname', non_global_name_list)
+        self.assertIn('altname', non_global_name_list)
+        non_global_desc_list = non_global_act.activity_definition_description.values()
+        self.assertIn('testdesc', non_global_desc_list)
+        self.assertIn('altdesc', non_global_desc_list)
+
+    def test_define_scope_agent(self):
+        url = 'http://testserver/XAPI/statements'
+        guid = str(uuid.uuid1())
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/helped",
+            "display": {"en-US":"helped"}},"object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com",
+            "name":"tim"}}
+        existing_stmt = StatementManager(stmt_data, stmt_json=json.dumps(stmt_data))
+
+        # build stmt data and path
+        put_guid = str(uuid.uuid1())
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/talked","display": {"en-US":"talked"}},
+            "object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com","name":"tim timson"}})
+
+        param = {"statementId":put_guid}
+        path = "%s?%s" % (url, urllib.urlencode(param))
+        
+        # START PUT STMT
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='statements/write statements/read')
+        
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        # Put statements
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 204)
+        agents = models.Agent.objects.all().values_list('name', flat=True)
+        # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim, tim timson
+        self.assertEqual(len(agents), 7)
+        self.assertIn('tim', agents)
+        self.assertIn('tim timson', agents)
+        tim = models.Agent.objects.get(name='tim timson')
+        self.assertFalse(tim.canonical_version)
+        tim = models.Agent.objects.get(name='tim')
+        self.assertTrue(tim.canonical_version)
+
+        # START GET STMT
+        get_params = {"agent":{"objectType": "Agent", "mbox":"mailto:tim@tim.com"}, "related_agents":True}
+        path = "%s?%s" % (url, urllib.urlencode(get_params)) 
+
+        oauth_header_resource_params_dict['oauth_nonce'] = 'get_differ_nonce'
+
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        
+        # build signature and add to the params
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        get_signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        replace_sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % get_signature)
+        new_oauth_headers = replace_sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="get_differ_nonce"')        
+
+        get_resp = self.client.get(path, X_Experience_API_Version="1.0.0",
+            Authorization=new_oauth_headers)
+        self.assertEqual(get_resp.status_code, 200)
+        content = json.loads(get_resp.content)
+        # Should only be one since querying by tim email. Will only pick up global tim object
+        self.assertEqual(len(content['statements']), 1)
+        self.client.logout()
+        
+        # START OF POST WITH ANOTHER HANDSHAKE
+        # Anonymous group that will make 2 canonical agents
+        ot = "Group"
+        members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
+                    {"name":"jan doe","mbox":"mailto:jandoe@example.com"}]
+        kwargs = {"objectType":ot, "member": members, "name": "doe group"}
+        global_group, created = models.Agent.objects.retrieve_or_create(**kwargs)
+
+        # Anonymous group that will retrieve two agents and create one more canonical agents
+        members = [{"name":"john doe","mbox":"mailto:jd@example.com"},
+                    {"name":"jan doe","mbox":"mailto:jandoe@example.com"},
+                    {"name":"dave doe", "mbox":"mailto:dd@example.com"}]
+        kwargs1 = {"objectType":ot, "member": members, "name": "doe group"}
+
+        post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:dom@dom.com", "name":"dom"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assisted","display": {"en-US":"assisted"}},
+            "object": kwargs1}
+        stmt_json = json.dumps(post_stmt)
+
+        post_oauth_header_resource_params, post_access_token = self.oauth_handshake2(scope_type='statements/write statements/read')
+
+        # from_token_and_callback takes a dictionary        
+        post_param_list = post_oauth_header_resource_params.split(",")
+        post_oauth_header_resource_params_dict = {}
+        for p in post_param_list:
+            item = p.split("=")
+            post_oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del post_oauth_header_resource_params_dict['OAuth realm']
+        
+        post_oauth_request = oauth.Request.from_token_and_callback(post_access_token, http_method='POST',
+            http_url='http://testserver/XAPI/statements/',
+            parameters=post_oauth_header_resource_params_dict)
+
+        post_signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        post_signature = signature_method.sign(post_oauth_request, self.consumer2,
+            post_access_token)
+
+        post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
+        
+        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+            Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 200)
+        agents = models.Agent.objects.all()
+
+        # These 5 agents are all non-global since created w/o define scope
+        non_globals = models.Agent.objects.filter(canonical_version=False).values_list('name', flat=True)
+
+        self.assertEqual(len(non_globals), 4)
+        self.assertIn('bill', non_globals)
+        self.assertIn('tim timson', non_globals)
+        self.assertIn('dom', non_globals)
+        self.assertIn('doe group', non_globals)
+        # 2 oauth group objects, all of these agents since created with member or manually and 2 anon
+        # account agents for the accounts in the oauth groups
+        global_agents = models.Agent.objects.filter(canonical_version=True).values_list('name', flat=True)
+        self.assertEqual(len(global_agents), 12)
+        self.assertIn('bob', global_agents)
+        self.assertIn('tim', global_agents)
+        self.assertIn('jan doe', global_agents)
+        self.assertIn('john doe', global_agents)
+        self.assertIn('dave doe', global_agents)        
+        self.assertIn('jane', global_agents)
+        self.assertIn('dick', global_agents)
+        self.assertIn('doe group', global_agents)
