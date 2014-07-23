@@ -19,6 +19,9 @@ from oauth_provider.models import Consumer, Token, Nonce
 
 # Django client uses testserver
 TEST_SERVER = 'http://testserver'
+INITIATE_ENDPOINT = TEST_SERVER + "/XAPI/OAuth/initiate"
+AUTHORIZATION_ENDPOINT = TEST_SERVER + "/XAPI/OAuth/authorize"
+TOKEN_ENDPOINT = TEST_SERVER + "/XAPI/OAuth/token"
 
 class NewOAuthTests(TestCase):
     @classmethod
@@ -99,9 +102,9 @@ class NewOAuthTests(TestCase):
 
         # Add non oauth params in query string or form
         if param_type == 'qs':
-            request_token_path = "%s?%s" % (TEST_SERVER + "/XAPI/OAuth/initiate", urllib.urlencode(request_token_params))
+            request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(request_token_params))
         else:
-            request_token_path = TEST_SERVER + "/XAPI/OAuth/initiate"
+            request_token_path = INITIATE_ENDPOINT
 
         # Make the params into a dict to pass into from_consumer_and_token
         oauth_header_request_token_params_list = oauth_header_request_token_params.split(",")
@@ -144,14 +147,13 @@ class NewOAuthTests(TestCase):
 
         # ============= AUTHORIZE =============
         # Create authorize path, must have oauth_token param
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         authorize_param = {'oauth_token': request_token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(authorize_param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(authorize_param)) 
 
         # Try to hit auth path, made to login
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(request_token.is_approved, False)
@@ -170,7 +172,7 @@ class NewOAuthTests(TestCase):
             data['scope'] = change_scope
 
         # Post data back to auth endpoint - should redirect to callback_url we set in oauth headers with request token
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -183,7 +185,6 @@ class NewOAuthTests(TestCase):
 
 
         # ============= ACCESS TOKEN =============
-        access_token_path = TEST_SERVER + "/XAPI/OAuth/token/"
         if not access_nonce:
             access_nonce = "access_nonce"
 
@@ -207,7 +208,7 @@ class NewOAuthTests(TestCase):
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_access_params_dict['OAuth realm']
         oauth_request = oauth.Request.from_token_and_callback(request_token_after_auth, http_method='GET',
-            http_url=access_token_path, parameters=oauth_header_access_params_dict)
+            http_url=TOKEN_ENDPOINT, parameters=oauth_header_access_params_dict)
 
         # Create signature and add it to the headers
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
@@ -215,7 +216,7 @@ class NewOAuthTests(TestCase):
         oauth_header_access_token_params += ',oauth_signature="%s"' % signature
 
         # Get access token
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_token_params)
+        access_resp = self.client.get(TOKEN_ENDPOINT, Authorization=oauth_header_access_token_params)
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
@@ -263,9 +264,9 @@ class NewOAuthTests(TestCase):
                 request_token_params['scope'] = "all"
 
         if param_type == 'qs':
-            request_token_path = "%s?%s" % (TEST_SERVER + "/XAPI/OAuth/initiate", urllib.urlencode(request_token_params))
+            request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(request_token_params))
         else:
-            request_token_path = TEST_SERVER + "/XAPI/OAuth/initiate"
+            request_token_path = INITIATE_ENDPOINT
 
         # Make the params into a dict to pass into from_consumer_and_token
         oauth_header_request_token_params_list = oauth_header_request_token_params.split(",")
@@ -305,13 +306,12 @@ class NewOAuthTests(TestCase):
 
 
         # ============= AUTHORIZE =============
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         authorize_param = {'oauth_token': request_token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(authorize_param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(authorize_param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='dick', password='lassie')
         self.assertEqual(request_token.is_approved, False)
@@ -328,7 +328,7 @@ class NewOAuthTests(TestCase):
         if change_scope:
             data['scope'] = change_scope
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -340,8 +340,6 @@ class NewOAuthTests(TestCase):
 
 
         # ============= ACCESS TOKEN =============
-        access_token_path = TEST_SERVER + "/XAPI/OAuth/token/"
-
         if not access_nonce:
             access_nonce = "access_nonce2"
 
@@ -364,14 +362,14 @@ class NewOAuthTests(TestCase):
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_access_params_dict['OAuth realm']
         oauth_request = oauth.Request.from_token_and_callback(request_token_after_auth, http_method='GET',
-            http_url=access_token_path, parameters=oauth_header_access_params_dict)
+            http_url=TOKEN_ENDPOINT, parameters=oauth_header_access_params_dict)
 
         # Create signature and add it to the headers
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer2, request_token_after_auth)
         oauth_header_access_token_params += ',oauth_signature="%s"' % signature
 
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_token_params)
+        access_resp = self.client.get(TOKEN_ENDPOINT, Authorization=oauth_header_access_token_params)
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
@@ -393,7 +391,6 @@ class NewOAuthTests(TestCase):
         return oauth_header_resource_params, access_token
 
     def test_request_token_missing_headers(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # Missing signature method
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -411,19 +408,18 @@ class NewOAuthTests(TestCase):
 
         # Create OAuth request and signature
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict)
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
         
         # Append signature to string headers
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path)
+        resp = self.client.get(INITIATE_ENDPOINT)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
     def test_request_token_unsupported_headers(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # Rogue oauth param added
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -443,19 +439,18 @@ class NewOAuthTests(TestCase):
 
         # Create oauth request and signature
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict)
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
        
        # Append signature
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path)
+        resp = self.client.get(INITIATE_ENDPOINT)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
     def test_request_token_duplicated_headers(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # Duplicate signature_method
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -474,19 +469,18 @@ class NewOAuthTests(TestCase):
             oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
 
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict)
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
         
         # Append signature
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path)
+        resp = self.client.get(INITIATE_ENDPOINT)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
     def test_request_token_unsupported_signature_method(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # Add unsupported signature method
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -504,19 +498,18 @@ class NewOAuthTests(TestCase):
             oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
 
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict)
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
         
         # Append signature
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path)
+        resp = self.client.get(INITIATE_ENDPOINT)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
     def test_request_token_invalid_consumer_credentials(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # Non existent consumer key
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -534,20 +527,18 @@ class NewOAuthTests(TestCase):
             oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
 
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict)
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
         
         # Append signature
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        resp = self.client.get(request_token_path)
+        resp = self.client.get(INITIATE_ENDPOINT)
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid request parameters.')
 
     def test_request_token_unknown_scope(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
-
         # passing scope as form param instead of in query string in this instance - scope DNE
         form_data = {
             'scope':'DNE',
@@ -569,21 +560,19 @@ class NewOAuthTests(TestCase):
             oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
 
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=dict(oauth_header_request_token_params_dict.items()+form_data.items()))
+            http_url=INITIATE_ENDPOINT, parameters=dict(oauth_header_request_token_params_dict.items()+form_data.items()))
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
 
         # Add signature
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, data=form_data,
+        request_resp = self.client.get(INITIATE_ENDPOINT, Authorization=oauth_header_request_token_params, data=form_data,
             content_type="x-www-form-urlencoded")
         self.assertEqual(request_resp.status_code, 401)
         self.assertEqual(request_resp.content, 'Could not verify OAuth request.')
 
     def test_request_token_wrong_scope(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
-
         # passing scope as form param instead of in query string in this instance
         form_data = {
             'scope':'all',
@@ -608,7 +597,7 @@ class NewOAuthTests(TestCase):
         del oauth_header_request_token_params_dict['OAuth realm']
 
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=dict(oauth_header_request_token_params_dict.items()+form_data.items()))
+            http_url=INITIATE_ENDPOINT, parameters=dict(oauth_header_request_token_params_dict.items()+form_data.items()))
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
 
@@ -618,21 +607,22 @@ class NewOAuthTests(TestCase):
         #Change form scope from what oauth_request was made with
         form_data['scope'] = 'profile'
 
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params, data=form_data,
+        request_resp = self.client.get(INITIATE_ENDPOINT, Authorization=oauth_header_request_token_params, data=form_data,
             content_type="x-www-form-urlencoded")
         self.assertEqual(request_resp.status_code, 401)
         self.assertEqual(request_resp.content, 'Could not verify OAuth request.')
 
-    def test_request_token_same_nonce(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
+    def test_request_token_same_nonce_and_time(self):
+        # Nonce/timestamp/token combo should always be unique
         # Header params we're passing in
+        now_time = str(int(time.time()))
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
                "oauth_signature_method=\"HMAC-SHA1\","\
                "oauth_timestamp=\"%s\","\
                "oauth_nonce=\"requestnonce\","\
                "oauth_version=\"1.0\","\
-               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key,str(int(time.time())))
+               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key, now_time)
 
         # Make string params into dictionary for from_consumer_and_token function
         request_token_param_list = oauth_header_request_token_params.split(",")
@@ -646,14 +636,14 @@ class NewOAuthTests(TestCase):
 
         # add scope to the existing params
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict)
         
         # create signature and add it to the header params
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
+        request_resp = self.client.get(INITIATE_ENDPOINT, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         # ========================================
 
@@ -665,7 +655,7 @@ class NewOAuthTests(TestCase):
                "oauth_timestamp=\"%s\","\
                "oauth_nonce=\"requestnonce\","\
                "oauth_version=\"1.0\","\
-               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key,str(int(time.time())))
+               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key, now_time)
 
         # Make string params into dictionary for from_consumer_and_token function
         request_token_param_list2 = oauth_header_request_token_params2.split(",")
@@ -679,18 +669,17 @@ class NewOAuthTests(TestCase):
 
         # add scope to the existing params
         oauth_request2 = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict2)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict2)
         
         # create signature and add it to the header params
         signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
         signature2 = signature_method.sign(oauth_request2, self.consumer, None)
         oauth_header_request_token_params2 = oauth_header_request_token_params2 + ",oauth_signature=%s" % signature2
         
-        request_resp2 = self.client.get(request_token_path, Authorization=oauth_header_request_token_params2)
+        request_resp2 = self.client.get(INITIATE_ENDPOINT, Authorization=oauth_header_request_token_params2)
         self.assertEqual(request_resp2.status_code, 401)
 
     def test_request_token_no_scope(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -712,7 +701,7 @@ class NewOAuthTests(TestCase):
 
         # add scope to the existing params
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+            http_url=INITIATE_ENDPOINT, parameters=oauth_header_request_token_params_dict)
         
         # create signature and add it to the header params
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
@@ -720,14 +709,13 @@ class NewOAuthTests(TestCase):
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
         # Should still give request_token even w/o scope sent
-        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
+        request_resp = self.client.get(INITIATE_ENDPOINT, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
         self.assertIn('oauth_callback_confirmed', request_resp.content)
 
     def test_request_token_scope_in_form(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # passing scope as form param instead of in query string in this instance
         form_data = {
             'scope':'all',
@@ -755,14 +743,14 @@ class NewOAuthTests(TestCase):
 
         # add scope to the existing params
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='POST',
-            http_url=request_token_path, parameters=dict(oauth_header_request_token_params_dict.items()+form_data.items()))
+            http_url=INITIATE_ENDPOINT, parameters=dict(oauth_header_request_token_params_dict.items()+form_data.items()))
         # create signature and add it to the header params
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
         # By default django's test client POSTs as multipart. We want form
-        request_resp = self.client.post(request_token_path, Authorization=oauth_header_request_token_params, data=form_data,
+        request_resp = self.client.post(INITIATE_ENDPOINT, Authorization=oauth_header_request_token_params, data=form_data,
             content_type="application/x-www-form-urlencoded")
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
@@ -770,13 +758,12 @@ class NewOAuthTests(TestCase):
         self.assertIn('oauth_callback_confirmed', request_resp.content)
 
     def test_request_token_scope_in_qs(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         # Set scope and consumer_name in param
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -812,13 +799,11 @@ class NewOAuthTests(TestCase):
         self.assertIn('oauth_callback_confirmed', request_resp.content)
 
     def test_request_token_plaintext(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
-
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -854,13 +839,11 @@ class NewOAuthTests(TestCase):
         self.assertIn('oauth_callback_confirmed', request_resp.content)
 
     def test_request_token_rsa_sha1(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
-
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -896,13 +879,11 @@ class NewOAuthTests(TestCase):
         self.assertIn('oauth_callback_confirmed', request_resp.content)
 
     def test_request_token_wrong_oauth_version(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
-
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in - wrong oauth_version
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -935,13 +916,11 @@ class NewOAuthTests(TestCase):
         self.assertEqual(request_resp.status_code, 401)
 
     def test_request_token_wrong_signature(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
-
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -974,12 +953,11 @@ class NewOAuthTests(TestCase):
         self.assertEqual(request_resp.status_code, 401)
 
     def test_auth_correct(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -1017,13 +995,12 @@ class NewOAuthTests(TestCase):
         # ===================================================
 
         # Test AUTHORIZE
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         param = {'oauth_token': token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1036,7 +1013,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1046,12 +1023,11 @@ class NewOAuthTests(TestCase):
         self.assertEqual(access_token.is_approved, True)      
 
     def test_auth_scope_up(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         param = {
                     'scope':'statements/read',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -1089,13 +1065,12 @@ class NewOAuthTests(TestCase):
         # =================================================
 
         # Test AUTHORIZE
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         param = {'oauth_token': token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1110,17 +1085,16 @@ class NewOAuthTests(TestCase):
         data['oauth_token'] = token.key
         data['scopes'] = ['all']
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 401)
         self.assertEqual(auth_post.content, 'Action not allowed.')
 
     def test_auth_wrong_auth(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         param = {
                     'scope':'statements/read',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -1158,13 +1132,12 @@ class NewOAuthTests(TestCase):
         # =================================================
 
         # Test AUTHORIZE
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         param = {'oauth_token': token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])
         # Login with wrong user the client is associated with 
         self.client.login(username='dick', password='lassie')
@@ -1175,12 +1148,11 @@ class NewOAuthTests(TestCase):
         self.assertEqual(auth_resp.content, 'Invalid user for this client.')
 
     def test_auth_no_scope_chosen(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         param = {
                     'scope':'statements/read',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -1218,13 +1190,12 @@ class NewOAuthTests(TestCase):
         # =================================================
 
         # Test AUTHORIZE
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         param = {'oauth_token': token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1239,17 +1210,16 @@ class NewOAuthTests(TestCase):
         data['oauth_token'] = token.key
         data['scopes'] = []
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 401)
         self.assertEqual(auth_post.content, 'Action not allowed.')
 
     def test_access_token_invalid_token(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -1287,13 +1257,12 @@ class NewOAuthTests(TestCase):
         # ==================================================
 
         # Test AUTHORIZE
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         param = {'oauth_token': token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1306,7 +1275,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1319,7 +1288,6 @@ class NewOAuthTests(TestCase):
         access_token.save()
 
         # Test ACCESS TOKEN
-        access_token_path = TEST_SERVER + "/XAPI/OAuth/token/"
         oauth_header_access_params = "OAuth realm=\"test\","\
             "oauth_consumer_key=\"%s\","\
             "oauth_token=\"%s\","\
@@ -1330,17 +1298,16 @@ class NewOAuthTests(TestCase):
             "oauth_version=\"1.0\","\
             "oauth_verifier=\"%s\"" % (self.consumer.key,token.key,self.consumer.secret,token.secret,str(int(time.time())),token.verifier)
 
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_params)
+        access_resp = self.client.get(TOKEN_ENDPOINT, Authorization=oauth_header_access_params)
         self.assertEqual(access_resp.status_code, 400)
         self.assertEqual(access_resp.content, "Request Token not approved by the user.")
     
     def test_access_token_access_resources(self):
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -1378,13 +1345,12 @@ class NewOAuthTests(TestCase):
         # =========================================================
 
         # Test AUTHORIZE
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         param = {'oauth_token': token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1397,7 +1363,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1408,7 +1374,6 @@ class NewOAuthTests(TestCase):
         # ===========================================================
 
         # Test ACCESS TOKEN
-        access_token_path = TEST_SERVER + "/XAPI/OAuth/token/"
         oauth_header_access_params = "OAuth realm=\"test\","\
             "oauth_consumer_key=\"%s\","\
             "oauth_token=\"%s\","\
@@ -1419,7 +1384,7 @@ class NewOAuthTests(TestCase):
             "oauth_version=\"1.0\","\
             "oauth_verifier=\"%s\"" % (self.consumer.key,token.key,self.consumer.secret,request_token.secret,str(int(time.time())),request_token.verifier)
 
-        access_resp = self.client.get(access_token_path, Authorization=oauth_header_access_params)
+        access_resp = self.client.get(TOKEN_ENDPOINT, Authorization=oauth_header_access_params)
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
@@ -1461,12 +1426,11 @@ class NewOAuthTests(TestCase):
     def test_unicode(self):
         # All client requests have the auth as unicode
         # ============= INITIATE =============
-        request_token_path = TEST_SERVER +"/XAPI/OAuth/initiate/"
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (request_token_path, urllib.urlencode(param)) 
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -1504,13 +1468,12 @@ class NewOAuthTests(TestCase):
         # ============= END INITIATE =============
 
         # ============= AUTHORIZE =============
-        authorize_path = TEST_SERVER +"/XAPI/OAuth/authorize/"
         param = {'oauth_token': token.key}
-        authorize_path = "%s?%s" % (authorize_path, urllib.urlencode(param)) 
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(param)) 
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize/%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1523,7 +1486,7 @@ class NewOAuthTests(TestCase):
         data['authorize_access'] = 1
         data['oauth_token'] = token.key
 
-        auth_post = self.client.post("/XAPI/OAuth/authorize/", data)
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 302)
         # Check if oauth_verifier and oauth_token are returned
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
@@ -1534,7 +1497,6 @@ class NewOAuthTests(TestCase):
         #  ============= END AUTHORIZE =============
 
         # ============= ACCESS TOKEN =============
-        access_token_path = TEST_SERVER + "/XAPI/OAuth/token/"
         oauth_header_access_params = "OAuth realm=\"test\","\
             "oauth_consumer_key=\"%s\","\
             "oauth_token=\"%s\","\
@@ -1554,14 +1516,14 @@ class NewOAuthTests(TestCase):
         # from_request ignores realm, must remove so not input to from_token_and_callback
         del oauth_header_access_params_dict['OAuth realm']
         oauth_request = oauth.Request.from_token_and_callback(request_token, http_method='GET',
-            http_url=access_token_path, parameters=oauth_header_access_params_dict)
+            http_url=TOKEN_ENDPOINT, parameters=oauth_header_access_params_dict)
 
         # Create signature and add it to the headers
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, request_token)
         oauth_header_access_params += ',oauth_signature="%s"' % signature
 
-        access_resp = self.client.get(access_token_path, Authorization=unicode(oauth_header_access_params))
+        access_resp = self.client.get(TOKEN_ENDPOINT, Authorization=unicode(oauth_header_access_params))
         self.assertEqual(access_resp.status_code, 200)
         content = access_resp.content.split('&')
         access_token_secret = content[0].split('=')[1]
