@@ -30,11 +30,12 @@ def send_oauth_error(err=None):
     """Shortcut for sending an error."""
     # send a 401 error
     # LRS CHANGE - BE ABLE TO SEND PLAIN TEXT ERROR MESSAGES
+    # LRS CHANGE - DECIDE IF 400 OR 401 ERROR
     if isinstance(err, basestring):
         response = HttpResponse(err, mimetype="text/plain")
     else:
         response = HttpResponse(err.message.encode('utf-8'), mimetype="text/plain")
-    # response = HttpResponse(err.message.encode('utf-8'), mimetype="text/plain")
+    
     response.status_code = 401
     # return the authenticate header
     header = oauth.build_authenticate_header(realm=OAUTH_REALM_KEY_NAME)

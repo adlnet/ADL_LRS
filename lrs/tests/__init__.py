@@ -10,4 +10,4 @@ from StatementManagerTests import *
 from StatementsMoreTests import *
 from AuthTests import *
 from StatementFilterTests import *
-from NewOAuthTests import *
+from OAuthTests import *

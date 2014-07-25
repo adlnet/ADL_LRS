@@ -56,14 +56,9 @@ class CheckOauth(object):
             if not verify_oauth_request(request, oauth_request, consumer, token):
                 return COULD_NOT_VERIFY_OAUTH_REQUEST_RESPONSE
 
-            # LRS CHANGE - SCOPE IS JUST A CHARFIELD NOW - JUST COMPARE THE VALUES
             if self.scope_name and (not token.scope
-                                    or token.scope != self.scope_name):
+                                    or token.scope.name != self.scope_name):
                 return INVALID_SCOPE_RESPONSE
-
-            # if self.scope_name and (not token.scope
-            #                         or token.scope.name != self.scope_name):
-            #     return INVALID_SCOPE_RESPONSE
 
             if token.user:
                 request.user = token.user
@@ -76,31 +71,28 @@ class CheckOauth(object):
     def check_access_token(self, request):
         oauth_request = get_oauth_request(request)
         if oauth_request is None:
-            return oauth.Error(_('Invalid request parameters.'))
+            return ('params', 'Invalid request parameters.')
 
         try:
             consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
         except InvalidConsumerError:
-            raise INVALID_CONSUMER_RESPONSE
+            return ('auth', 'Invalid Consumer.')
 
         try:
             token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
         except InvalidTokenError:
-            raise oauth.Error(_('Invalid access token: %s') % oauth_request.get_parameter('oauth_token'))
-
+            return ('auth', 'Invalid access token: %s' % oauth_request.get_parameter('oauth_token'))
+        # LRS CHANGE - RETURN BETTER ERROR MESSAGE
         if not verify_oauth_request(request, oauth_request, consumer, token):
-            raise oauth.Error(_('Could not verify OAuth request.'))
+            return ('params', 'Could not verify OAuth request.')
 
         # LRS CHANGE - SCOPE IS JUST A CHARFIELD NOW - JUST COMPARE THE VALUES
         if self.scope_name and (not token.scope
                                 or token.scope != self.scope_name):
-            raise oauth.Error(_('You are not allowed to access this resource.'))
-
-        # if self.scope_name and (not token.scope
-        #                         or token.scope.name != self.scope_name):
-        #     return INVALID_SCOPE_RESPONSE
+            return ('params', 'You are not allowed to access this resource.')
 
         if token.user:
             request.user = token.user      
 
+        return (None, None)
 oauth_required = CheckOauth

@@ -9,8 +9,8 @@ from django.utils.translation import ugettext as _
 from django.core.cache import get_cache
 from lrs.util import etag, convert_to_dict, convert_post_body_to_dict
 from lrs.util.jws import JWS, JWSException
-from lrs.exceptions import OauthUnauthorized, ParamError, BadRequest
-from oauth_provider.utils import send_oauth_error, get_oauth_request, require_params
+from lrs.exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
+from oauth_provider.utils import get_oauth_request, require_params
 from oauth_provider.decorators import CheckOauth
 from oauth_provider.store import store
 from oauth_provider.responses import INVALID_CONSUMER_RESPONSE
@@ -102,25 +102,25 @@ def parse(request, more_id=None):
 def set_authorization(r_dict, request):
     auth_params = r_dict['headers']['Authorization']
     if auth_params[:6] == 'OAuth ':
-        # Parse oauth params out of request and check required params (throws HTTPResponseBadRequest if bad)
         oauth_request = get_oauth_request(request)
-        require_params(oauth_request)
+        
+        # Returns HttpBadRequest if missing any params
+        missing = require_params(oauth_request)            
+        if missing:
+            raise missing
 
-        # CheckOauth will throw Oauth errors if bad
         check = CheckOauth()
+        e_type, error = check.check_access_token(request)
 
-        try:
-            check.check_access_token(request)
-        except (HttpResponseBadRequest, oauth.Error) as e:
-            raise OauthUnauthorized(send_oauth_error(e))
+        if e_type and error:
+            if e_type == 'auth':
+                raise OauthUnauthorized(error)
+            else:
+                raise OauthBadRequest(error)
 
+        # Consumer and token should be clean by now
         consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
         token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
-
-        # try:
-        #     consumer, token, parameters = CheckOauth(request)    
-        # except (InvalidConsumerError, InvalidTokenError) as e:
-        #     raise OauthUnauthorized(send_oauth_error(e))
         
         # Set consumer and token for authentication piece
         r_dict['auth']['oauth_consumer'] = consumer

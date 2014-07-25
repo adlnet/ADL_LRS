@@ -34,7 +34,7 @@ UNSAFE_REDIRECTS = getattr(settings, "OAUTH_UNSAFE_REDIRECTS", False)
 def request_token(request):
     oauth_request = get_oauth_request(request)
     if oauth_request is None:
-        return INVALID_PARAMS_RESPONSE
+        return HttpResponseBadRequest('Invalid request parameters.')
 
     missing_params = require_params(oauth_request, ('oauth_callback',))
     if missing_params is not None:
@@ -46,15 +46,15 @@ def request_token(request):
     try:
         consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
     except InvalidConsumerError:
-        return INVALID_CONSUMER_RESPONSE
+        return HttpResponse('Invalid consumer.', status=401)
 
     if not verify_oauth_request(request, oauth_request, consumer):
-        return COULD_NOT_VERIFY_OAUTH_REQUEST_RESPONSE
+        return HttpResponseBadRequest('Could not verify OAuth request.')
 
     try:
         request_token = store.create_request_token(request, oauth_request, consumer, oauth_request['oauth_callback'])
     except oauth.Error, err:
-        return send_oauth_error(err)
+        return HttpResponse('Invalid request token: %s' % oauth_request.get_parameter('oauth_token'), status=401)
 
     ret = urlencode({
         'oauth_token': request_token.key,
@@ -74,7 +74,7 @@ def user_authorization(request, form_class=AuthClientForm):
     try:
         request_token = store.get_request_token(request, oauth_request, request.REQUEST['oauth_token'])
     except InvalidTokenError:
-        return HttpResponseBadRequest('Invalid request token.')
+        return HttpResponse('Invalid request token: %s' % request.REQUEST['oauth_token'], status=401)
 
     consumer = store.get_consumer_for_request_token(request, oauth_request, request_token)
 
@@ -143,7 +143,7 @@ def user_authorization(request, form_class=AuthClientForm):
 def access_token(request):
     oauth_request = get_oauth_request(request)
     if oauth_request is None:
-        return INVALID_PARAMS_RESPONSE
+        return HttpResponseBadRequest('Invalid request parameters.')
 
     # Consumer
     try:
@@ -164,9 +164,9 @@ def access_token(request):
         try:
             request_token = store.get_request_token(request, oauth_request, oauth_request['oauth_token'])
         except InvalidTokenError:
-            return HttpResponseBadRequest('Invalid request token.')
+            return HttpResponse('Invalid request token: %s' % oauth_request['oauth_token'], status=401)
         if not request_token.is_approved:
-            return HttpResponseBadRequest('Request Token not approved by the user.')
+            return HttpResponse('Request Token not approved by the user.', status=401)
 
         # Verify Signature
         if not verify_oauth_request(request, oauth_request, consumer, request_token):

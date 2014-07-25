@@ -8,7 +8,7 @@ from django.core.context_processors import csrf
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
@@ -484,9 +484,12 @@ def handle_request(request, more_id=None):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except exceptions.OauthBadRequest as oauth_err:
+        log_exception(request.path, oauth_err)
+        return HttpResponse(oauth_err.message, status=400)
     except exceptions.OauthUnauthorized as oauth_err:
         log_exception(request.path, oauth_err)
-        return oauth_err.response
+        return HttpResponse(oauth_err.message, status=401)
     except exceptions.Forbidden as forb:
         log_exception(request.path, forb)
         return HttpResponse(forb.message, status=403)
@@ -499,9 +502,12 @@ def handle_request(request, more_id=None):
     except exceptions.PreconditionFail as pf:
         log_exception(request.path, pf)
         return HttpResponse(pf.message, status=412)
-    # except Exception as err:
-    #     log_exception(request.path, err)
-    #     return HttpResponse(err.message, status=500)
+    except HttpResponseBadRequest as br:
+        log_exception(request.path, br)
+        return br
+    except Exception as err:
+        log_exception(request.path, err)
+        return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

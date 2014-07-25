@@ -23,7 +23,8 @@ class ModelStore(Store):
     """
     def get_consumer(self, request, oauth_request, consumer_key):
         try:
-            return Consumer.objects.get(key=consumer_key)
+            # LRS CHANGE - ADDED STATUS OF CONSUMER TO BE ACCEPTED
+            return Consumer.objects.get(key=consumer_key, status=2)
         except Consumer.DoesNotExist:
             raise InvalidConsumerError()
 
@@ -36,21 +37,7 @@ class ModelStore(Store):
     def create_request_token(self, request, oauth_request, consumer, callback):
         # LRS CHANGED - SCOPE NO LONGER A MODEL - JUST USE INITIAL SCOPE DEFAULT FROM WHEN CONSUMER
         # WAS CREATED
-        # try:
-        #     scope = Scope.objects.get(name=oauth_request.get_parameter('scope'))
-        # except oauth.Error:
-        #     # oauth.Error means that scope wasn't specified
-        #     scope = None
-        # except Scope.DoesNotExist:
-        #     # Scope.DoesNotExist means that specified scope doesn't exist in db
-        #     raise oauth.Error('Scope does not exist.')
 
-        # token = Token.objects.create_token(
-        #     token_type=Token.REQUEST,
-        #     consumer=Consumer.objects.get(key=oauth_request['oauth_consumer_key']),
-        #     timestamp=oauth_request['oauth_timestamp'],
-        #     scope=scope,
-        # )
         # LRS CHANGED - IF SPEC GIVEN, UTILS SHOULD PLACE SCOPE IN OAUTH_REQUEST
         # CHECK IF THERE AND EQUALS THE CONSUMER SCOPES - IF NOT THROW ERROR
         try:
@@ -104,7 +91,8 @@ class ModelStore(Store):
 
     def get_access_token(self, request, oauth_request, consumer, access_token_key):
         try:
-            return Token.objects.get(key=access_token_key, token_type=Token.ACCESS)
+            # LRS CHANGE - ADDED IS_APPROVED PARAM TO BE SURE
+            return Token.objects.get(key=access_token_key, token_type=Token.ACCESS, is_approved=True)
         except Token.DoesNotExist:
             raise InvalidTokenError()
 
