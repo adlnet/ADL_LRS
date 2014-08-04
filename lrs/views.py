@@ -502,6 +502,7 @@ def handle_request(request, more_id=None):
     except exceptions.PreconditionFail as pf:
         log_exception(request.path, pf)
         return HttpResponse(pf.message, status=412)
+    # Added BadResponse for OAuth validation
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br

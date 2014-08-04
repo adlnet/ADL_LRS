@@ -293,9 +293,6 @@ class Activity(models.Model):
     authoritative = models.CharField(max_length=100, blank=True)
     canonical_version = models.BooleanField(default=True)
 
-    class Meta:
-        unique_together = ("activity_id", "canonical_version")
-
     def object_return(self, lang=None, format='exact'):
         ret = {}
         ret['id'] = self.activity_id

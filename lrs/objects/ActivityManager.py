@@ -44,19 +44,15 @@ class ActivityManager():
     def populate(self, the_object):        
         activity_id = the_object['id']
 
-        # If allowed to define activities-create or get the global version
-        if self.define:
-            self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
-                canonical_version=True)
+        # If allowed to define activities and the activity doesn't exist already
+        if self.define and not models.Activity.objects.filter(activity_id=activity_id).exists():
+            self.Activity = models.Activity.objects.create(activity_id=activity_id,
+                canonical_version=True, authoritative=self.auth)
+            act_created = True
         else:
-            # Not allowed to create global version b/c don't have define permissions
-            self.Activity = models.Activity.objects.create(activity_id=activity_id, canonical_version=False)
-            act_created = False
-
-        if act_created:
-            if self.auth:
-                self.Activity.authoritative = self.auth
-                self.Activity.save()
+            # Not allowed to create global version b/c don't have define permissions or the activity already exists
+            self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
+                canonical_version=False, authoritative=self.auth)
 
         activity_definition = the_object.get('definition', None)
 

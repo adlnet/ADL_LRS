@@ -130,30 +130,27 @@ def server_validate_statement_object(stmt_object, auth):
         # Check if object has definition first
         # If it doesn't have definition, it doesn't matter if the user is owner or not because can't remove definition if exists
         if 'definition' in stmt_object:
+            # Get authority from request
+            if auth:
+                if auth['id'].__class__.__name__ == 'Agent':
+                    auth_name = auth['id'].name
+                else:
+                    auth_name = auth['id'].username
+            else:
+                auth_name = ''
+
             try:
-                activity = models.Activity.objects.get(activity_id=stmt_object['id'], canonical_version=True)
+                activity = models.Activity.objects.get(activity_id=stmt_object['id'], authoritative=auth_name)
             except models.Activity.DoesNotExist:
                 pass
             else:
-                # Get authority from request
-                if auth:
-                    if auth['id'].__class__.__name__ == 'Agent':
-                        auth_name = auth['id'].name
-                    else:
-                        auth_name = auth['id'].username
-                else:
-                    auth_name = None
-
-                # Get definition for canonical activity (if exists)
-                try:
+                if activity.canonical_version:
+                    # Get definition for canonical activity
                     activity_def = activity.object_return()['definition']
-                except KeyError, e:
-                    activity_def = {}
-
-                # If definitions are different and the auths are different
-                if (stmt_object['definition'] != activity_def) and (activity.authoritative != '' and activity.authoritative != auth_name):
-                    err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-                    raise Forbidden(err_msg)
+                    # If definitions are different and the auths are different
+                    if (stmt_object['definition'] != activity_def) and (activity.authoritative != auth_name):
+                        err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
+                        raise Forbidden(err_msg)
 
 def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
