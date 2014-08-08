@@ -13,7 +13,7 @@ class ActivityManager():
             else:
                 self.auth = auth.username
         else:
-            self.auth = None
+            self.auth = ''
         self.define = define
         self.populate(data)
 
@@ -43,14 +43,26 @@ class ActivityManager():
     #Once JSON is verified, populate the activity objects
     def populate(self, the_object):        
         activity_id = the_object['id']
-
-        # If allowed to define activities and the activity doesn't exist already
-        if self.define and not models.Activity.objects.filter(activity_id=activity_id).exists():
-            self.Activity = models.Activity.objects.create(activity_id=activity_id,
-                canonical_version=True, authoritative=self.auth)
-            act_created = True
+        # If allowed to define activities
+        if self.define:
+            # If DNE - create canonical version since first one being created
+            try:
+                act = models.Activity.objects.get(activity_id=activity_id, canonical_version=True)
+            except models.Activity.DoesNotExist:
+                self.Activity = models.Activity.objects.create(activity_id=activity_id,
+                    canonical_version=True, authoritative=self.auth)
+                act_created = True
+            else:
+                # Act exists - if it has same auth set it, else create non-canonical version
+                if act.authoritative == self.auth:
+                    self.Activity = act
+                    act_created = False
+                else:
+                    # Not allowed to create global version b/c the activity already exists (could also already have created a non-global act)
+                    self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
+                        canonical_version=False, authoritative=self.auth)
+        # Not allowed to create global version b/c don't have define permissions
         else:
-            # Not allowed to create global version b/c don't have define permissions or the activity already exists
             self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
                 canonical_version=False, authoritative=self.auth)
 

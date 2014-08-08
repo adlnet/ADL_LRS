@@ -1108,9 +1108,11 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])
-        st2 = models.Statement.objects.get(statement_id=st_ids[1])        
+        st2 = models.Statement.objects.get(statement_id=st_ids[1])
+
         act1 = models.Activity.objects.get(id=st1.object_activity.id)
         act2 = models.Activity.objects.get(id=st2.object_activity.id)
+        self.assertEqual(act1, act2)
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
@@ -1129,26 +1131,6 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'other')
-
-        self.do_activity_model(act2.id, 'act:foob', 'Activity')
-
-        name_set2 = act2.activity_definition_name
-        desc_set2 = act2.activity_definition_description
-
-        self.assertEqual(name_set2.keys()[1], 'en-CH')
-        self.assertEqual(name_set2.values()[1], 'actname2')
-        self.assertEqual(name_set2.keys()[0], 'en-US')
-        self.assertEqual(name_set2.values()[0], 'altname')
-
-        self.assertEqual(desc_set2.keys()[1], 'en-FR')
-        self.assertEqual(desc_set2.values()[1], 'actdesc2')
-        self.assertEqual(desc_set2.keys()[0], 'en-GB')
-        self.assertEqual(desc_set2.values()[0], 'altdesc')
-
-        self.do_activity_definition_model(act2,'http://adlnet.gov/expapi/activities/cmi.interaction',
-            'other')
-
-        self.assertEqual(act1, act2)
         
     def test_del_act(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},

@@ -14,24 +14,14 @@ def auth(func):
         # Note: The cases involving OAUTH_ENABLED are here if OAUTH_ENABLED is switched from true to false
         # after a client has performed the handshake. (Not likely to happen, but could) 
         auth_type = request['auth']['type']
-        # There is an http auth_type request and http auth is enabled
-        if auth_type == 'http' and settings.HTTP_AUTH_ENABLED:
+        # There is an http auth_type request
+        if auth_type == 'http':
             http_auth_helper(request)
-        # There is an http auth_type request and http auth is not enabled
-        elif auth_type == 'http' and not settings.HTTP_AUTH_ENABLED:
-            raise BadRequest("HTTP authorization is not enabled. To enable, set the HTTP_AUTH_ENABLED flag to true in settings")
-        # There is an oauth auth_type request and oauth is enabled
         elif auth_type == 'oauth' and settings.OAUTH_ENABLED: 
             oauth_helper(request)
         # There is an oauth auth_type request and oauth is not enabled
         elif auth_type == 'oauth' and not settings.OAUTH_ENABLED: 
             raise BadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
-        # There is no auth_type request and there is some sort of auth enabled
-        elif auth_type == 'none' and (settings.HTTP_AUTH_ENABLED or settings.OAUTH_ENABLED):
-            raise Unauthorized("Auth is enabled but no authentication was sent with the request.")
-        # There is no auth_type request and no auth is enabled
-        elif auth_type == 'none' and not (settings.HTTP_AUTH_ENABLED or settings.OAUTH_ENABLED):
-            request['auth'] = None
         return func(request, *args, **kwargs)
     return inner
 
@@ -42,13 +32,20 @@ def http_auth_helper(request):
             if auth[0].lower() == 'basic':
                 # Currently, only basic http auth is used.
                 uname, passwd = base64.b64decode(auth[1]).split(':')
-                user = authenticate(username=uname, password=passwd)
-                if user:
-                    # If the user successfully logged in, then add/overwrite
-                    # the user object of this request.
-                    request['auth']['id'] = user
-                else:
-                    raise Unauthorized("Authorization failed, please verify your username and password")
+
+                # Sent in empty auth - now allowed when not allowing empty auth in settings
+                if not uname and not passwd and not settings.ALLOW_EMPTY_HTTP_AUTH:
+                    raise BadRequest('Must supply auth credentials')
+                elif not uname and not passwd and settings.ALLOW_EMPTY_HTTP_AUTH:
+                    request['auth']['id'] = ''
+                elif uname or passwd:
+                    user = authenticate(username=uname, password=passwd)
+                    if user:
+                        # If the user successfully logged in, then add/overwrite
+                        # the user object of this request.
+                        request['auth']['id'] = user
+                    else:
+                        raise Unauthorized("Authorization failed, please verify your username and password")
     else:
         # The username/password combo was incorrect, or not provided.
         raise Unauthorized("Authorization header missing")

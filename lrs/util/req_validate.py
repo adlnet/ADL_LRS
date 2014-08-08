@@ -134,8 +134,11 @@ def server_validate_statement_object(stmt_object, auth):
             if auth:
                 if auth['id'].__class__.__name__ == 'Agent':
                     auth_name = auth['id'].name
-                else:
+                elif auth['id'].__class__.__name__ == 'User':
                     auth_name = auth['id'].username
+                # http blank credentials
+                else:
+                    auth_name = ''
             else:
                 auth_name = ''
 
@@ -146,11 +149,13 @@ def server_validate_statement_object(stmt_object, auth):
             else:
                 if activity.canonical_version:
                     # Get definition for canonical activity
-                    activity_def = activity.object_return()['definition']
-                    # If definitions are different and the auths are different
-                    if (stmt_object['definition'] != activity_def) and (activity.authoritative != auth_name):
-                        err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-                        raise Forbidden(err_msg)
+                    act_data = activity.object_return()
+                    if 'definition' in act_data: 
+                        activity_def = act_data['definition']
+                        # If definitions are different and the auths are different
+                        if (stmt_object['definition'] != activity_def) and (activity.authoritative != auth_name):
+                            err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
+                            raise Forbidden(err_msg)
 
 def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
