@@ -15,8 +15,8 @@ class AgentManagerTests(TestCase):
         print "\n%s" % __name__
 
     def setUp(self):
-        if not settings.HTTP_AUTH_ENABLED:
-            settings.HTTP_AUTH_ENABLED = True
+        if not settings.ALLOW_EMPTY_HTTP_AUTH:
+            settings.ALLOW_EMPTY_HTTP_AUTH = True
         
         self.username = "tester1"
         self.email = "test1@tester.com"
@@ -25,7 +25,7 @@ class AgentManagerTests(TestCase):
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
         response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
-        if settings.HTTP_AUTH_ENABLED:
+        if settings.ALLOW_EMPTY_HTTP_AUTH:
             response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
 
     def test_agent_mbox_create(self):

@@ -152,7 +152,10 @@ class Verb(models.Model):
             ret['display'] = {}
             if lang:
                 # Return display where key = lang
-                ret['display'] = {lang:self.display[lang]}
+                try:
+                    ret['display'] = {lang:self.display[lang]}
+                except KeyError:
+                    ret['display'] = self.display             
             else:
                 ret['display'] = self.display             
         return ret
@@ -418,11 +421,8 @@ class Activity(models.Model):
     activity_definition_sources = JSONField(blank=True)
     activity_definition_targets = JSONField(blank=True)
     activity_definition_steps = JSONField(blank=True)            
-    authoritative = models.CharField(max_length=100, blank=True)
+    authority = models.ForeignKey(Agent, null=True)
     canonical_version = models.BooleanField(default=True)
-
-    class Meta:
-        unique_together = ("activity_id", "canonical_version")
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
@@ -433,13 +433,19 @@ class Activity(models.Model):
             ret['definition'] = {}
             if self.activity_definition_name:
                 if lang:
-                    ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
+                    try:
+                        ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
+                    except KeyError:
+                        ret['definition']['name'] = self.activity_definition_name
                 else:
                     ret['definition']['name'] = self.activity_definition_name
 
             if self.activity_definition_description:
                 if lang:
-                    ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
+                    try:
+                        ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
+                    except KeyError:
+                        ret['definition']['description'] = self.activity_definition_description
                 else:
                     ret['definition']['description'] = self.activity_definition_description
 
@@ -624,7 +630,10 @@ class SubStatement(models.Model):
         if self.object_agent:
             ret['object'] = self.object_agent.get_agent_json(format, as_object=True)
         elif self.object_activity:
-            ret['object'] = self.object_activity.object_return(lang, format)
+            if not self.object_activity.canonical_version:
+                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).object_return(lang, format)
+            else:
+                ret['object'] = self.object_activity.object_return(lang, format)
         else:
             ret['object'] = self.object_statementref.object_return()
 
@@ -809,7 +818,10 @@ class Statement(models.Model):
         if self.object_agent:
             ret['object'] = self.object_agent.get_agent_json(format, as_object=True)            
         elif self.object_activity:
-            ret['object'] = self.object_activity.object_return(lang, format)
+            if not self.object_activity.canonical_version:
+                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).object_return(lang, format)
+            else:
+                ret['object'] = self.object_activity.object_return(lang, format)
         elif self.object_substatement:
             ret['object'] = self.object_substatement.object_return(lang, format)
         else:

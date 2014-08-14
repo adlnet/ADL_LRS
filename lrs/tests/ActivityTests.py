@@ -20,7 +20,11 @@ class ActivityTests(TestCase):
         response = self.client.post(reverse(views.register),form, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_get(self):
-        act = ActivityManager({'objectType':'Activity', 'id':'act:foobar'})
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id':'act:foobar'}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -36,7 +40,11 @@ class ActivityTests(TestCase):
         self.assertEqual(response.content, 'No activity found with ID this:does_not_exist')
 
     def test_get_not_array(self):
-        act = ActivityManager({'objectType':'Activity', 'id':'act:foobar'})
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id':'act:foobar'}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
@@ -46,23 +54,31 @@ class ActivityTests(TestCase):
         self.assertEqual('act:foobar', rsp_obj['id'])
 
     def test_head(self):
-        act = ActivityManager({'objectType':'Activity', 'id':'act:foobar'})
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id':'act:foobar'}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
         response = self.client.head(reverse(views.activities), {'activityId':'act:foobar'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, '')
         self.assertIn('content-length', response._headers)
 
     def test_get_def(self):
-        act = ActivityManager({'objectType': 'Activity', 'id':'act:foobar1',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar1',
                 'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},
-                'type': 'type:course','interactionType': 'intType'}})
+                'type': 'type:course','interactionType': 'other'}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar1'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar1', rsp)
         self.assertIn('type:course', rsp)
-        self.assertIn('intType', rsp)
+        self.assertIn('other', rsp)
         self.assertIn('en-US', rsp)
         self.assertIn('testname', rsp)
         self.assertIn('testdesc', rsp)
@@ -71,17 +87,20 @@ class ActivityTests(TestCase):
         self.assertIn('altname', rsp)
         
     def test_get_ext(self):
-        act = ActivityManager({'objectType': 'Activity', 'id':'act:foobar2',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar2',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
-                'type': 'type:course','interactionType': 'intType2', 
-                'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2'}}})
+                'type': 'type:course','interactionType': 'other', 
+                'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2'}}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar2'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         rsp = response.content
         self.assertEqual(response.status_code, 200)
         self.assertIn('act:foobar2', rsp)
         self.assertIn('type:course', rsp)
-        self.assertIn('intType2', rsp)
+        self.assertIn('other', rsp)
         self.assertIn('en-FR', rsp)
         self.assertIn('testname2', rsp)
         self.assertIn('testdesc2', rsp)
@@ -91,7 +110,9 @@ class ActivityTests(TestCase):
         self.assertIn('value2', rsp)
 
     def test_get_crp_multiple_choice(self):
-        act = ActivityManager({'objectType': 'Activity', 'id':'act:foobar3',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar3',
                 'definition': {'name': {'en-FR':'testname2'},
                 'description': {'en-FR':'testdesc2', 'en-CH': 'altdesc'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'choice',
@@ -99,7 +120,8 @@ class ActivityTests(TestCase):
                 'description': {'en-US':'Golf Example', 'en-GB':'alt golf'}},{'id': 'tetris',
                 'description':{'en-US': 'Tetris Example'}}, {'id':'facebook',
                 'description':{'en-US':'Facebook App'}},{'id':'scrabble', 
-                'description': {'en-US': 'Scrabble Example'}}]}})
+                'description': {'en-US': 'Scrabble Example'}}]}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         response = self.client.get(reverse(views.activities), {'activityId':'act:foobar3'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
@@ -125,9 +147,12 @@ class ActivityTests(TestCase):
         self.assertIn('altdesc', rsp)
 
     def test_get_crp_true_false(self):
-        act = ActivityManager({'objectType': 'Activity', 'id':'act:foobar4',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar4',
         'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
-        'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'true-false','correctResponsesPattern': ['true']}})
+        'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'true-false','correctResponsesPattern': ['true']}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar4'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
@@ -143,10 +168,13 @@ class ActivityTests(TestCase):
         self.assertIn('true', rsp)
 
     def test_get_crp_fill_in(self):
-        act = ActivityManager({'objectType': 'Activity', 'id':'act:foobar5',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar5',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
-                'correctResponsesPattern': ['Fill in answer']}})
+                'correctResponsesPattern': ['Fill in answer']}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar5'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
@@ -162,10 +190,13 @@ class ActivityTests(TestCase):
         self.assertIn('Fill in answer', rsp)
 
     def test_get_crp_long_fill_in(self):
-        act = ActivityManager({'objectType': 'Activity', 'id':'act:foobar6',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar6',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
-                'correctResponsesPattern': ['Long fill in answer']}})       
+                'correctResponsesPattern': ['Long fill in answer']}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar6'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
@@ -182,13 +213,16 @@ class ActivityTests(TestCase):
         self.assertIn('Long fill in answer', rsp)
 
     def test_get_crp_likert(self):
-        act = ActivityManager({'objectType': 'Still gonna be activity', 'id':'act:foobar7',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar7',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
                 'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},{'id': 'likert_1',
                 'description':{'en-US': 'Its Pretty Cool'}}, {'id':'likert_2',
                 'description':{'en-US':'Its Cool Cool'}},{'id':'likert_3',
-                'description': {'en-US': 'Its Gonna Change the World'}}]}})
+                'description': {'en-US': 'Its Gonna Change the World'}}]}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar7'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
 
@@ -206,14 +240,17 @@ class ActivityTests(TestCase):
         self.assertIn('likert_1', rsp)
 
     def test_get_crp_matching(self):
-        act = ActivityManager({'objectType': 'Still gonna be activity', 'id':'act:foobar8',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar8',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'matching',
                 'correctResponsesPattern': ['lou.3,tom.2,andy.1'],'source':[{'id': 'lou',
                 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
                 {'id':'andy', 'description':{'en-US':'Andy'}}],'target':[{'id':'1',
                 'description':{'en-US': 'SCORM Engine'}},{'id':'2','description':{'en-US': 'Pure-sewage'}},
-                {'id':'3', 'description':{'en-US': 'SCORM Cloud'}}]}})    
+                {'id':'3', 'description':{'en-US': 'SCORM Cloud'}}]}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar8'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
@@ -231,7 +268,9 @@ class ActivityTests(TestCase):
         self.assertIn('target', rsp)
 
     def test_get_crp_performance(self):
-        act = ActivityManager({'objectType': 'activity', 'id':'act:foobar9',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar9',
                 'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc2'},'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'performance',
@@ -239,7 +278,8 @@ class ActivityTests(TestCase):
                 'description': {'en-US':'Net pong matches won'}},{'id': 'dg',
                 'description':{'en-US': 'Strokes over par in disc golf at Liberty'}},
                 {'id':'lunch', 'description':{'en-US':'Lunch having been eaten', 
-                'en-FR': 'altlunch'}}]}})
+                'en-FR': 'altlunch'}}]}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar9'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
@@ -260,13 +300,16 @@ class ActivityTests(TestCase):
         self.assertIn('altlunch', rsp)
 
     def test_get_crp_sequencing(self):
-        act = ActivityManager({'objectType': 'activity', 'id':'act:foobar10',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar10',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'sequencing',
                 'correctResponsesPattern': ['lou,tom,andy,aaron'],'choices':[{'id': 'lou',
                 'description': {'en-US':'Lou'}},{'id': 'tom','description':{'en-US': 'Tom'}},
-                {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron', 'description':{'en-US':'Aaron'}}]}})        
-        
+                {'id':'andy', 'description':{'en-US':'Andy'}},{'id':'aaron', 'description':{'en-US':'Aaron'}}]}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar10'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
 
@@ -282,10 +325,13 @@ class ActivityTests(TestCase):
         self.assertIn('lou,tom,andy,aaron', rsp)
 
     def test_get_crp_numeric(self):
-        act = ActivityManager({'objectType': 'Activity', 'id':'act:foobar11',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id':'act:foobar11',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
-                'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}})    
+                'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar11'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content
@@ -308,10 +354,13 @@ class ActivityTests(TestCase):
         self.assertIn('value3', rsp)                                
 
     def test_get_crp_other(self):
-        act = ActivityManager({'objectType': 'Activity', 'id': 'act:foobar12',
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType': 'Activity', 'id': 'act:foobar12',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
-                'correctResponsesPattern': ['(35.937432,-86.868896)']}})     
+                'correctResponsesPattern': ['(35.937432,-86.868896)']}}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         response = self.client.get(reverse(views.activities), {'activityId': 'act:foobar12'}, Authorization=self.auth, X_Experience_API_Version="1.0.0")       
         rsp = response.content

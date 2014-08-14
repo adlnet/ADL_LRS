@@ -30,7 +30,7 @@ def parse(request, more_id=None):
         # Authorization could be passed into body if cross origin request
         r_dict['auth']['type'] = 'http'
     else:
-        r_dict['auth']['type'] = 'none'
+        raise BadRequest("Request has no authorization")
 
     r_dict['params'] = {}
     # lookin for weird IE CORS stuff.. it'll be a post with a 'method' url param

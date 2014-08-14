@@ -125,13 +125,12 @@ class ActivityStateTests(TestCase):
         self.assertEqual(del_r.status_code, 204)
 
     def test_put_without_auth(self):
-        # Will return 200 if HTTP_AUTH is not enabled
         testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, X_Experience_API_Version="1.0.0")
 
-        self.assertEqual(put1.status_code, 401)
+        self.assertEqual(put1.status_code, 400)
 
     def test_put_etag_conflict_if_none_match(self):
         teststateetaginm = {"test":"etag conflict - if none match *","obj":{"agent":"test"}}

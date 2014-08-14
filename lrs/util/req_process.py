@@ -17,7 +17,7 @@ from lrs.objects.AgentProfileManager import AgentProfileManager
 from lrs.objects.StatementManager import StatementManager
 import retrieve_statement
 
-def process_statements(stmts, auth_id, define):
+def process_statements(stmts, auth):
     stmt_responses = []
    # Handle batch POST
     if type(stmts) is list:
@@ -41,11 +41,9 @@ def process_statements(stmts, auth_id, define):
                                 st['object']['context']['contextActivities'][k] = [v]
 
                 if not 'authority' in st:
-                    if auth_id:
-                        if auth_id.__class__.__name__ == 'Agent':
-                            st['authority'] = auth_id.get_agent_json()
-                        else:
-                            st['authority'] = {'name':auth_id.username, 'mbox':'mailto:%s' % auth_id.email, 'objectType': 'Agent'}
+                    # Can still have no auth with blank creds
+                    if auth['authority']:
+                        st['authority'] = auth['authority'].get_agent_json()
 
                 st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
@@ -53,7 +51,7 @@ def process_statements(stmts, auth_id, define):
                     st['timestamp'] = st['stored']
 
                 stmt_json = json.dumps(st)
-                stmt = StatementManager(st, auth_id, define, stmt_json).model_object
+                stmt = StatementManager(st, auth, stmt_json).model_object
                 stmt_responses.append(str(stmt.statement_id))
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
         except Exception:
@@ -79,11 +77,9 @@ def process_statements(stmts, auth_id, define):
                         stmts['object']['context']['contextActivities'][k] = [v]
 
         if not 'authority' in stmts:
-            if auth_id:
-                if auth_id.__class__.__name__ == 'Agent':
-                    stmts['authority'] = auth_id.get_agent_json()
-                else:
-                    stmts['authority'] = {'name':auth_id.username, 'mbox': 'mailto:%s' % auth_id.email, 'objectType': 'Agent'}            
+            # Can still have no auth with blank creds
+            if auth['authority']:
+                stmts['authority'] = auth['authority'].get_agent_json()
         
         # Handle single POST
         stmts['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
@@ -92,16 +88,9 @@ def process_statements(stmts, auth_id, define):
             stmts['timestamp'] = stmts['stored']
 
         stmt_json = json.dumps(stmts)
-        stmt = StatementManager(stmts, auth_id, define, stmt_json).model_object
+        stmt = StatementManager(stmts, auth, stmt_json).model_object
         stmt_responses.append(stmt.statement_id)
     return stmt_responses
-
-def get_auth(auth):
-    define = True
-    auth_id = auth['id'] if auth and 'id' in auth else None
-    if auth and 'oauth_define' in auth:
-        define = auth['oauth_define']
-    return auth_id, define
 
 def process_complex_get(req_dict):
     mime_type = "application/json"
@@ -164,13 +153,13 @@ def process_complex_get(req_dict):
     return resp, content_length
 
 def statements_post(req_dict):
-    auth_id, define = get_auth(req_dict.get('auth', None))
-    stmt_responses = process_statements(req_dict['body'], auth_id, define)
+    auth = req_dict['auth']
+    stmt_responses = process_statements(req_dict['body'], auth)
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
-    auth_id, define = get_auth(req_dict.get('auth', None))
-    stmt_responses = process_statements(req_dict['body'], auth_id, define)
+    auth = req_dict['auth']
+    stmt_responses = process_statements(req_dict['body'], auth)
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):

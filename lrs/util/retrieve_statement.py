@@ -31,7 +31,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     # For statements/read/mine oauth scope
     authq = Q()
     if 'auth' in param_dict and (param_dict['auth'] and 'statements_mine_only' in param_dict['auth']):
-        authq = Q(authority=param_dict['auth']['id'])
+        authq = Q(authority=param_dict['auth']['authority'])
 
     agentQ = Q()
     if 'agent' in param_dict:

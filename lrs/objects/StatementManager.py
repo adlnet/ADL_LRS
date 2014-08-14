@@ -27,9 +27,9 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
-    def __init__(self, data, auth=None, define=True, stmt_json=''):
+    def __init__(self, data, auth=None, stmt_json=''):
         self.auth = auth
-        self.define = define
+        self.define = self.auth['define']
         self.data = data
         if self.__class__.__name__ == 'StatementManager':
             self.data['full_statement'] = stmt_json
@@ -65,10 +65,10 @@ class StatementManager():
             # Incoming contextActivities can either be a list or dict
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
-                    act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
+                    act = ActivityManager(con_act, auth=self.auth['authority'], define=self.define).Activity
                     ca.context_activity.add(act)
             else:
-                act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
+                act = ActivityManager(con_act_group[1], auth=self.auth['authority'], define=self.define).Activity
                 ca.context_activity.add(act)
             ca.save()
 
@@ -82,7 +82,7 @@ class StatementManager():
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
-        self.data['user'] = get_user_from_auth(self.auth)
+        self.data['user'] = self.auth['user']
 
         # Name of id field in models is statement_id
         if 'id' in self.data:
@@ -99,10 +99,10 @@ class StatementManager():
             # Incoming contextActivities can either be a list or dict
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
-                    act = ActivityManager(con_act, auth=self.auth, define=self.define).Activity
+                    act = ActivityManager(con_act, auth=self.auth['authority'], define=self.define).Activity
                     ca.context_activity.add(act)
             else:
-                act = ActivityManager(con_act_group[1], auth=self.auth, define=self.define).Activity
+                act = ActivityManager(con_act_group[1], auth=self.auth['authority'], define=self.define).Activity
                 ca.context_activity.add(act)
             ca.save()
         
@@ -249,7 +249,7 @@ class StatementManager():
         else:
             # Check objectType, get object based on type
             if statement_object_data['objectType'] == 'Activity':
-                self.data['object_activity'] = ActivityManager(statement_object_data,auth=self.auth, define=self.define).Activity
+                self.data['object_activity'] = ActivityManager(statement_object_data, auth=self.auth['authority'], define=self.define).Activity
             elif statement_object_data['objectType'] in valid_agent_objects:
                 self.data['object_agent'] = AgentManager(params=statement_object_data, define=self.define).Agent
             elif statement_object_data['objectType'] == 'SubStatement':

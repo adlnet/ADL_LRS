@@ -88,8 +88,9 @@ LOGIN_REDIRECT_URL = '/XAPI/me'
 STMTS_PER_PAGE = 10
 
 # Whether HTTP auth or OAuth is enabled
-HTTP_AUTH_ENABLED = True
-OAUTH_ENABLED = False
+ALLOW_EMPTY_HTTP_AUTH = False
+OAUTH_ENABLED = True
+
 
 # OAuth callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'

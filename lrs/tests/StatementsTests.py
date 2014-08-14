@@ -29,8 +29,8 @@ class StatementsTests(TestCase):
         print "\n%s" % __name__
 
     def setUp(self):
-        if not settings.HTTP_AUTH_ENABLED:
-            settings.HTTP_AUTH_ENABLED = True
+        if not settings.ALLOW_EMPTY_HTTP_AUTH:
+            settings.ALLOW_EMPTY_HTTP_AUTH = True
         
         self.username = "tester1"
         self.email = "test1@tester.com"
@@ -77,7 +77,7 @@ class StatementsTests(TestCase):
         self.cguid7 = str(uuid.uuid1())
         self.cguid8 = str(uuid.uuid1())
 
-        if settings.HTTP_AUTH_ENABLED:
+        if settings.ALLOW_EMPTY_HTTP_AUTH:
             stmt = {"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
