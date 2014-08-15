@@ -61,11 +61,12 @@ def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
         # If they try using a non-oauth group that already exists-throw error
         if stmt['authority']['objectType'] == 'Group':
-            contains_account = False
-            member_keys = [m.keys() for m in stmt['authority']['member']]
-            for x in member_keys:
-                if 'account' in x:
-                    contains_account = True
+            # contains_account = False
+            # member_keys = [m.keys() for m in stmt['authority']['member']]
+            # for x in member_keys:
+            #     if 'account' in x:
+            #         contains_account = True
+            contains_account = len([x for m in stmt['authority']['member'] for x in m.keys() if 'account' in x]) > 0
             if contains_account:
                 for agent in stmt['authority']['member']:
                     if 'account' in agent:
