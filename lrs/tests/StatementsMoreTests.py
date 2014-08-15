@@ -18,9 +18,7 @@ class StatementsMoreTests(TestCase):
         print "\n%s" % __name__
 
     def setUp(self):
-        settings.SERVER_STMT_LIMIT=10
-        if not settings.HTTP_AUTH_ENABLED:
-            settings.HTTP_AUTH_ENABLED = True        
+        settings.SERVER_STMT_LIMIT=10    
         
         self.username = "auth1"
         self.email = "auth1@example.com"

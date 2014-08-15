@@ -4,7 +4,6 @@ from lrs import views, models
 from oauth_provider.oauth.oauth import OAuthRequest, OAuthSignatureMethod_HMAC_SHA1
 from django.test.utils import setup_test_environment
 from django.contrib.auth.models import User
-from lrs.objects.StatementManager import StatementManager
 import time
 from django.conf import settings
 import uuid

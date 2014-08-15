@@ -61,17 +61,27 @@ def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
         # If they try using a non-oauth group that already exists-throw error
         if stmt['authority']['objectType'] == 'Group':
-            for agent in stmt['authority']['member']:
-                if 'account' in agent:
-                    if not 'oauth' in agent['account']['homePage'].lower():
-                        err_msg = "Statements cannot have a non-Oauth group as the authority"
-                        raise ParamError(err_msg)
+            contains_account = False
+            member_keys = [m.keys() for m in stmt['authority']['member']]
+            for x in member_keys:
+                if 'account' in x:
+                    contains_account = True
+            if contains_account:
+                for agent in stmt['authority']['member']:
+                    if 'account' in agent:
+                        if not 'oauth' in agent['account']['homePage'].lower():
+                            err_msg = "Statements cannot have a non-Oauth group as the authority"
+                            raise ParamError(err_msg)
+            # No members contain an account so that means it's not an Oauth group
+            else:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                raise ParamError(err_msg)
         else:
             return True
     else:
         if not auth_validated:
             if auth['authority']:
-                if auth['authority'].member.exists() and not auth['authority'].oauth_identifier:
+                if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
                     err_msg = "Statements cannot have a non-Oauth group as the authority"
                     raise ParamError(err_msg)
                 else:
