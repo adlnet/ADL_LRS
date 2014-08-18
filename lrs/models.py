@@ -13,133 +13,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils.timezone import utc
 from .exceptions import IDNotFoundError, ParamError
-from oauth_provider.managers import TokenManager, ConsumerManager
-from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
-                   PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
-
-ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
-
-gen_pwd = User.objects.make_random_password
-generate_random = User.objects.make_random_password
-
-class Nonce(models.Model):
-    token_key = models.CharField(max_length=KEY_SIZE)
-    consumer_key = models.CharField(max_length=CONSUMER_KEY_SIZE)
-    key = models.CharField(max_length=50)
-    
-    def __unicode__(self):
-        return u"Nonce %s for %s" % (self.key, self.consumer_key)
-
-class Consumer(models.Model):
-    name = models.CharField(max_length=50)
-    description = models.TextField()
-
-    default_scopes = models.CharField(max_length=100, default="statements/write,statements/read/mine")
-    
-    key = UUIDField(version=1)
-    secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
-
-    status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
-    user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user", db_index=True)
-
-    objects = ConsumerManager()
-        
-    def __unicode__(self):
-        return u"Consumer %s with key %s" % (self.name, self.key)
-
-    def generate_random_codes(self):
-        """
-        Used to generate random key/secret pairings.
-        Use this after you've added the other data in place of save().
-        """
-        key = generate_random(length=KEY_SIZE)
-        secret = generate_random(length=SECRET_SIZE)
-        while Consumer.objects.filter(models.Q(key__exact=key) | models.Q(secret__exact=secret)).count():
-            key = generate_random(length=KEY_SIZE)
-            secret = generate_random(length=SECRET_SIZE)
-        self.key = key
-        self.secret = secret
-        self.save()
-
-
-class Token(models.Model):
-    REQUEST = 1
-    ACCESS = 2
-    TOKEN_TYPES = ((REQUEST, u'Request'), (ACCESS, u'Access'))
-    
-    key = models.CharField(max_length=KEY_SIZE, null=True, blank=True)
-    secret = models.CharField(max_length=SECRET_SIZE, null=True, blank=True)
-    token_type = models.SmallIntegerField(choices=TOKEN_TYPES, db_index=True)
-    timestamp = models.IntegerField(default=long(time()))
-    is_approved = models.BooleanField(default=False)
-    lrs_auth_id = models.CharField(max_length=50, null=True)
-
-    user = models.ForeignKey(User, null=True, blank=True, related_name='tokens', db_index=True)
-    consumer = models.ForeignKey(Consumer)
-    scope = models.CharField(max_length=100, default="statements/write,statements/read/mine")
-    
-    ## OAuth 1.0a stuff
-    verifier = models.CharField(max_length=VERIFIER_SIZE)
-    callback = models.CharField(max_length=MAX_URL_LENGTH, null=True, blank=True)
-    callback_confirmed = models.BooleanField(default=False)
-    
-    objects = TokenManager()
-    
-    def __unicode__(self):
-        return u"%s Token %s for %s" % (self.get_token_type_display(), self.key, self.consumer)
-
-    def scope_to_list(self):
-        return self.scope.split(",")
-
-    def timestamp_asdatetime(self):
-        return datetime.fromtimestamp(self.timestamp)
-
-    def key_partial(self):
-        return self.key[:10]
-
-    def to_string(self, only_key=False):
-        token_dict = {
-            'oauth_token': self.key, 
-            'oauth_token_secret': self.secret,
-            'oauth_callback_confirmed': self.callback_confirmed and 'true' or 'error'
-        }
-        if self.verifier:
-            token_dict['oauth_verifier'] = self.verifier
-
-        if only_key:
-            del token_dict['oauth_token_secret']
-            del token_dict['oauth_callback_confirmed']
-
-        return urllib.urlencode(token_dict)
-
-    def generate_random_codes(self):
-        """
-        Used to generate random key/secret pairings. 
-        Use this after you've added the other data in place of save(). 
-        """
-        key = generate_random(length=KEY_SIZE)
-        secret = generate_random(length=SECRET_SIZE)
-        while Token.objects.filter(models.Q(key__exact=key) | models.Q(secret__exact=secret)).count():
-            key = generate_random(length=KEY_SIZE)
-            secret = generate_random(length=SECRET_SIZE)
-        self.key = key
-        self.secret = secret
-        self.save()
-
-    def get_callback_url(self):
-        """
-        OAuth 1.0a, append the oauth_verifier.
-        """
-        if self.callback and self.verifier:
-            parts = urlparse.urlparse(self.callback)
-            scheme, netloc, path, params, query, fragment = parts[:6]
-            if query:
-                query = '%s&oauth_verifier=%s' % (query, self.verifier)
-            else:
-                query = 'oauth_verifier=%s' % self.verifier
-            return urlparse.urlunparse((scheme, netloc, path, params,
-                query, fragment))
-        return self.callback
+from oauth_provider.consts import MAX_URL_LENGTH
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
@@ -179,8 +53,7 @@ class Verb(models.Model):
         return json.dumps(self.object_return())
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
-class AgentMgr(models.Manager):
- 
+class AgentManager(models.Manager):
     @transaction.commit_on_success
     def retrieve_or_create(self, **kwargs):
         ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]        
@@ -294,7 +167,6 @@ class AgentMgr(models.Manager):
         except Agent.DoesNotExist:
             return Agent.objects.retrieve_or_create(**kwargs)
 
-
 class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
@@ -306,7 +178,7 @@ class Agent(models.Model):
     canonical_version = models.BooleanField(default=True)
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, null=True)
     account_name = models.CharField(max_length=50, null=True)
-    objects = AgentMgr()
+    objects = AgentManager()
 
     class Meta:
         unique_together = (("mbox", "canonical_version"), ("mbox_sha1sum", "canonical_version"),

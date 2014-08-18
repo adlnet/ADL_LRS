@@ -403,6 +403,7 @@ class AuthTests(TestCase):
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object":{"id":"act:test_existing_put"}, "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
+
         putResponse = self.client.put(path, stmt, content_type="application/json",  Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(putResponse.status_code, 409)
 
@@ -1061,7 +1062,6 @@ class AuthTests(TestCase):
         stmt_4 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
                             "object":{"id": "act:test_activity_change", "definition":{"name":{"en-US": "bar"}}},
                             "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
-
         response_6 = self.client.post(reverse(views.statements), stmt_4, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version="1.0.0")        
         self.assertEqual(response_6.status_code, 200)

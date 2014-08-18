@@ -23,6 +23,7 @@
                 {% for scope in form.scopes %}
                 {{ scope }}        
                 {% endfor %}
+            <input type='hidden' name="oauth_token" value="{{ oauth_token }}" />
             </p>
             <input type="submit" value="Register" />
         </form>

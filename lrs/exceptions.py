@@ -27,5 +27,7 @@ class PreconditionFail(Exception):
     pass
 
 class OauthUnauthorized(Exception):
-    def __init__(self, response):
-        self.response = response
+    pass
+
+class OauthBadRequest(Exception):
+    pass

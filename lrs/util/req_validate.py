@@ -56,7 +56,7 @@ def server_validate_statement_object(stmt_object, auth):
     if stmt_object['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt_object['id']):
             err_msg = "No statement with ID %s was found" % stmt_object['id']
             raise IDNotFoundError(err_msg)
-
+            
 def validate_stmt_authority(stmt, auth, auth_validated):
     if 'authority' in stmt:
         # If they try using a non-oauth group that already exists-throw error

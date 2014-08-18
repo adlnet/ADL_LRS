@@ -51,7 +51,7 @@ class ActivityManager():
             else:
                 # If canonical DNE and cannot define - try to get local version for that user
                 try:
-                    act = models.Activity.objects.get(activity_id=activity_id, canonical_version=False, authority=self.auth)
+                    self.Activity = models.Activity.objects.get(activity_id=activity_id, canonical_version=False, authority=self.auth)
                     act_created = False
                 except models.Activity.DoesNotExist:            
                     # If local DNE - create local for that user
@@ -89,11 +89,6 @@ class ActivityManager():
         # If there is a definition-populate the definition
         if activity_definition and (act_created or self.act_def_changed(activity_definition)):
             self.populate_definition(activity_definition, act_created, can_update)
-
-    def validate_cmi_interaction(self, act_def, act_created):
-        interaction_flag = None
-
-        return interaction_flag
 
     def act_def_changed(self, act_def):
         return act_def != self.Activity.object_return().get('definition', {})

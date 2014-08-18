@@ -4,10 +4,11 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from lrs.exceptions import Unauthorized, OauthUnauthorized, BadRequest, Forbidden
 from lrs.objects.AgentManager import AgentManager
-from lrs.models import Token, Agent
 from lrs.util import get_user_from_auth
 from oauth_provider.utils import send_oauth_error
-from oauth_provider.consts import  ACCEPTED
+from lrs.models import Agent
+from oauth_provider.models import Token
+from oauth_provider.consts import ACCEPTED
 
 # A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
@@ -118,14 +119,6 @@ def http_auth_helper(request):
 def oauth_helper(request):
     consumer = request['auth']['oauth_consumer']
     token = request['auth']['oauth_token']
-    
-    # Make sure consumer has been accepted by system
-    if consumer.status != ACCEPTED:
-        raise OauthUnauthorized(send_oauth_error("%s has not been authorized" % str(consumer.name)))
-
-    # make sure the token is an approved access token
-    if token.token_type != Token.ACCESS or not token.is_approved:
-        raise OauthUnauthorized(send_oauth_error("The access token is not valid"))
     
     user = token.user
     user_name = user.username
