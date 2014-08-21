@@ -1,6 +1,12 @@
 import ast
+import binascii
+import urllib
 import oauth2 as oauth
 from urlparse import urlparse, urlunparse
+
+from Crypto.PublicKey import RSA
+from Crypto.Util.number import long_to_bytes, bytes_to_long
+from hashlib import sha1 as sha
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -9,7 +15,7 @@ from django.contrib.auth import authenticate
 from consts import MAX_URL_LENGTH
 
 OAUTH_REALM_KEY_NAME = getattr(settings, 'OAUTH_REALM_KEY_NAME', '')
-OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', ['plaintext', 'hmac-sha1'])
+OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', ['plaintext', 'hmac-sha1','rsa-sha1'])
 OAUTH_BLACKLISTED_HOSTNAMES = getattr(settings, 'OAUTH_BLACKLISTED_HOSTNAMES', [])
 
 def initialize_server_request(request):
@@ -22,6 +28,8 @@ def initialize_server_request(request):
             oauth_server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
         if 'hmac-sha1' in OAUTH_SIGNATURE_METHODS:
             oauth_server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+        if 'rsa-sha1' in OAUTH_SIGNATURE_METHODS:
+            oauth_server.add_signature_method(SignatureMethod_RSA_SHA1())
     else:
         oauth_server = None
     return oauth_server, oauth_request
@@ -94,6 +102,7 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         oauth_server = oauth.Server()
         oauth_server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
         oauth_server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
+        oauth_server.add_signature_method(SignatureMethod_RSA_SHA1())
 
         # Ensure the passed keys and secrets are ascii, or HMAC will complain.
         consumer = oauth.Consumer(consumer.key.encode('ascii', 'ignore'), consumer.secret.encode('ascii', 'ignore'))
@@ -143,7 +152,6 @@ def require_params(oauth_request, parameters=None):
 
     return None
 
-
 def check_valid_callback(callback):
     """
     Checks the size and nature of the callback.
@@ -152,3 +160,66 @@ def check_valid_callback(callback):
     return (callback_url.scheme
             and callback_url.hostname not in OAUTH_BLACKLISTED_HOSTNAMES
             and len(callback) < MAX_URL_LENGTH)
+
+# LRS CHANGE - ADDED ESCAPE FUNCTION AND RSA_SHA1 CLASS (MISSING BEFORE)
+def escape(s):
+    """Escape a URL including any /."""
+    return urllib.quote(s, safe='~')
+
+class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):
+    name = 'RSA-SHA1'
+
+    def signing_base(self, request, consumer, token):
+        if request.normalized_url is None:
+            raise ValueError("Base URL for request is not set.")
+
+        sig = (
+            escape(request.method),
+            escape(request.normalized_url),
+            escape(request.get_normalized_parameters()),
+            )
+
+        # If incoming consumer is Consumer model
+        if hasattr(consumer, 'id'):
+            key = consumer.generate_rsa_key()
+        # If incoming consumer is consumer object from verify
+        else:
+            key = RSA.importKey(consumer.secret)
+        
+        raw = '&'.join(sig)
+        return key, raw
+
+    def sign(self, request, consumer, token):
+        """Builds the base signature string."""
+        key, raw = self.signing_base(request, consumer, token)
+
+        digest = sha(raw).digest()
+        # key = consumer.generate_rsa_key()
+        sig = key.sign(self._pkcs1imify(key, digest), '')[0]
+        sig_bytes = long_to_bytes(sig)
+        # Calculate the digest base 64.
+        return binascii.b2a_base64(sig_bytes)[:-1]
+
+    def check(self, request, consumer, token, signature):
+        """Return whether the given signature is the correct signature for
+        the given consumer and token signing the given request."""
+        key, raw = self.signing_base(request, consumer, token)
+
+        digest = sha(raw).digest()
+        sig = bytes_to_long(binascii.a2b_base64(signature))
+        data = self._pkcs1imify(key, digest)
+
+        pubkey = key.publickey()
+        return pubkey.verify(data, (sig,))
+
+    @staticmethod
+    def _pkcs1imify(key, data):
+        """Adapted from paramiko
+
+        turn a 20-bte SHA1 hash into a blob of data as large as the key's N,
+        using PKCS1's \"emsa-pkcs-v1_5\" encoding.
+        """
+        SHA1_DIGESTINFO = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
+        size = len(long_to_bytes(key.n))
+        filler = '\xff' * (size - len(SHA1_DIGESTINFO) - len(data) - 3)
+        return '\x00\x01' + filler + '\x00' + SHA1_DIGESTINFO + data

@@ -5,6 +5,7 @@ from datetime import datetime
 from time import time
 import warnings
 import oauth2 as oauth
+from Crypto.PublicKey import RSA
 from django.db import models
 
 from oauth_provider.compat import AUTH_USER_MODEL, get_random_string
@@ -66,9 +67,15 @@ class Consumer(models.Model):
         Use this after you've added the other data in place of save().
         """
         self.key = uuid.uuid4().hex
-        self.secret = get_random_string(length=SECRET_SIZE)
+        # LRS CHANGE - KEPT THE SECRET KEY AT 16 LIKE BEFORE (WHEN NOT USING RSA)
+        if not self.secret:
+            self.secret = get_random_string(length=16)
         self.save()
 
+    def generate_rsa_key(self):
+        if not self.secret or len(self.secret) == 16:
+            return None
+        return RSA.importKey(self.secret)
 
 class Token(models.Model):
     REQUEST = 1

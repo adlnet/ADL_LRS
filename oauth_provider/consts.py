@@ -2,7 +2,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
 KEY_SIZE = getattr(settings, 'OAUTH_PROVIDER_KEY_SIZE', 32)
-SECRET_SIZE = getattr(settings, 'OAUTH_PROVIDER_SECRET_SIZE', 16)
+# LRS CHANGE - CHANGED SIZE OF SECRET FOR RSA PUBLIC KEY
+SECRET_SIZE = getattr(settings, 'OAUTH_PROVIDER_SECRET_SIZE', 2048)
 VERIFIER_SIZE = getattr(settings, 'OAUTH_PROVIDER_VERIFIER_SIZE', 10)
 CONSUMER_KEY_SIZE = getattr(settings, 'OAUTH_PROVIDER_CONSUMER_KEY_SIZE', 256)
 MAX_URL_LENGTH = 2083 # http://www.boutell.com/newfaq/misc/urllength.html

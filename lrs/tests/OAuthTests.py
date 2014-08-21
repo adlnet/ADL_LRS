@@ -1,4 +1,3 @@
-import time
 import uuid
 import json
 import urllib
@@ -6,18 +5,17 @@ import os
 import base64
 import re
 import time
-
 import oauth2 as oauth
+from Crypto.PublicKey import RSA
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.test.utils import setup_test_environment
 from django.test import TestCase
 
 from lrs import views, models, forms
 from oauth_provider.models import Consumer, Token, Nonce
-from oauth_provider.oauth.oauth import OAuthRequest, OAuthSignatureMethod_HMAC_SHA1
+from oauth_provider.utils import SignatureMethod_RSA_SHA1
 
 # Django client uses testserver
 TEST_SERVER = 'http://testserver'
@@ -843,11 +841,31 @@ class OAuthTests(TestCase):
         self.assertIn('oauth_callback_confirmed', request_resp.content)
 
     def test_request_token_rsa_sha1(self):
+        rsa_key = RSA.importKey("""-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBALRiMLAh9iimur8V
+A7qVvdqxevEuUkW4K+2KdMXmnQbG9Aa7k7eBjK1S+0LYmVjPKlJGNXHDGuy5Fw/d
+7rjVJ0BLB+ubPK8iA/Tw3hLQgXMRRGRXXCn8ikfuQfjUS1uZSatdLB81mydBETlJ
+hI6GH4twrbDJCR2Bwy/XWXgqgGRzAgMBAAECgYBYWVtleUzavkbrPjy0T5FMou8H
+X9u2AC2ry8vD/l7cqedtwMPp9k7TubgNFo+NGvKsl2ynyprOZR1xjQ7WgrgVB+mm
+uScOM/5HVceFuGRDhYTCObE+y1kxRloNYXnx3ei1zbeYLPCHdhxRYW7T0qcynNmw
+rn05/KO2RLjgQNalsQJBANeA3Q4Nugqy4QBUCEC09SqylT2K9FrrItqL2QKc9v0Z
+zO2uwllCbg0dwpVuYPYXYvikNHHg+aCWF+VXsb9rpPsCQQDWR9TT4ORdzoj+Nccn
+qkMsDmzt0EfNaAOwHOmVJ2RVBspPcxt5iN4HI7HNeG6U5YsFBb+/GZbgfBT3kpNG
+WPTpAkBI+gFhjfJvRw38n3g/+UeAkwMI2TJQS4n8+hid0uus3/zOjDySH3XHCUno
+cn1xOJAyZODBo47E+67R4jV1/gzbAkEAklJaspRPXP877NssM5nAZMU0/O/NGCZ+
+3jPgDUno6WbJn5cqm8MqWhW1xGkImgRk+fkDBquiq4gPiT898jusgQJAd5Zrr6Q8
+AO/0isr/3aa6O6NLQxISLKcPDk2NOccAfS/xOtfOz4sJYM3+Bs4Io9+dZGSDCA54
+Lw03eHTNQghS0A==
+-----END PRIVATE KEY-----""")
+        self.consumer.secret = rsa_key.exportKey()
+        self.consumer.save()
+
         param = {
                     'scope':'all',
                     'consumer_name':'new_client'
                 }
-        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param)) 
+
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param))
         # Header params we're passing in
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -872,15 +890,72 @@ class OAuthTests(TestCase):
             http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
         
         # create signature and add it to the header params
-        signature_method = oauth.SignatureMethod_RSA_SHA1()
+        signature_method = SignatureMethod_RSA_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
-        
+
         request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
         self.assertEqual(request_resp.status_code, 200)
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
         self.assertIn('oauth_callback_confirmed', request_resp.content)
+
+    def test_request_token_rsa_sha1_wrong_key(self):
+        rsa_key = RSA.importKey("""-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBALRiMLAh9iimur8V
+A7qVvdqxevEuUkW4K+2KdMXmnQbG9Aa7k7eBjK1S+0LYmVjPKlJGNXHDGuy5Fw/d
+7rjVJ0BLB+ubPK8iA/Tw3hLQgXMRRGRXXCn8ikfuQfjUS1uZSatdLB81mydBETlJ
+hI6GH4twrbDJCR2Bwy/XWXgqgGRzAgMBAAECgYBYWVtleUzavkbrPjy0T5FMou8H
+X9u2AC2ry8vD/l7cqedtwMPp9k7TubgNFo+NGvKsl2ynyprOZR1xjQ7WgrgVB+mm
+uScOM/5HVceFuGRDhYTCObE+y1kxRloNYXnx3ei1zbeYLPCHdhxRYW7T0qcynNmw
+rn05/KO2RLjgQNalsQJBANeA3Q4Nugqy4QBUCEC09SqylT2K9FrrItqL2QKc9v0Z
+zO2uwllCbg0dwpVuYPYXYvikNHHg+aCWF+VXsb9rpPsCQQDWR9TT4ORdzoj+Nccn
+qkMsDmzt0EfNaAOwHOmVJ2RVBspPcxt5iN4HI7HNeG6U5YsFBb+/GZbgfBT3kpNG
+WPTpAkBI+gFhjfJvRw38n3g/+UeAkwMI2TJQS4n8+hid0uus3/zOjDySH3XHCUno
+cn1xOJAyZODBo47E+67R4jV1/gzbAkEAklJaspRPXP877NssM5nAZMU0/O/NGCZ+
+3jPgDUno6WbJn5cqm8MqWhW1xGkImgRk+fkDBquiq4gPiT898jusgQJAd5Zrr6Q8
+AO/0isr/3aa6O6NLQxISLKcPDk2NOccAfS/xOtfOz4sJYM3+Bs4Io9+dZGSDCA54
+Lw03eHTNQghS0A==
+-----END PRIVATE KEY-----""")
+        self.consumer.secret = rsa_key.exportKey()
+        self.consumer.save()
+
+        param = {
+                    'scope':'all',
+                    'consumer_name':'new_client'
+                }
+
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param))
+        # Header params we're passing in
+        oauth_header_request_token_params = "OAuth realm=\"test\","\
+               "oauth_consumer_key=\"%s\","\
+               "oauth_signature_method=\"RSA-SHA1\","\
+               "oauth_timestamp=\"%s\","\
+               "oauth_nonce=\"requestnonce\","\
+               "oauth_version=\"1.0\","\
+               "oauth_callback=\"http://example.com/request_token_ready\"" % (self.consumer.key,str(int(time.time())))
+
+        # Make the params into a dict to pass into from_consumer_and_token
+        request_token_param_list = oauth_header_request_token_params.split(",")
+        oauth_header_request_token_params_dict = {}
+        for p in request_token_param_list:
+            item = p.split("=")
+            oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        
+        # get_oauth_request in views ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_request_token_params_dict['OAuth realm']
+
+        # add scope to the existing params
+        oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
+            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+        
+        # create signature and add it to the header params
+        signature_method = SignatureMethod_RSA_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, None)
+        oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % "badsignature"
+
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
+        self.assertEqual(request_resp.status_code, 400)
 
     def test_request_token_wrong_oauth_version(self):
         param = {
@@ -2520,3 +2595,107 @@ class OAuthTests(TestCase):
         resp = self.client.post(TEST_SERVER + '/XAPI/statements/', data=stmt2, content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
+
+    def test_update_activity_with_oauth_containing_user(self):
+        url = 'http://testserver/XAPI/statements'
+        guid = str(uuid.uuid1())
+        stmt_data = {"id":guid,"actor":{"objectType": "Agent",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
+        stmt_post = self.client.post(reverse(views.statements), json.dumps(stmt_data), content_type="application/json",
+            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post.status_code, 200)
+
+        # build stmt data and path
+        put_guid = str(uuid.uuid1())
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"test://test/define/scope",
+            'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
+            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
+            'interactionType': 'other'}}})
+
+        param = {"statementId":put_guid}
+        path = "%s?%s" % (url, urllib.urlencode(param))
+        
+        # START PUT STMT
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='statements/write statements/read define')
+        
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        # Create oauth request and add signature
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+        
+        # Put statements - should update existing activity since jane is in oauth group
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 204)
+        acts = models.Activity.objects.all()
+        self.assertEqual(len(acts), 1)
+        act = acts[0].object_return()
+        self.assertEqual(act['id'], 'test://test/define/scope')
+        self.assertIn('definition', act)
+
+    def test_update_activity_created_with_oauth(self):
+        url = 'http://testserver/XAPI/statements'
+
+        # build stmt data and path
+        put_guid = str(uuid.uuid1())
+        stmt = {"actor":{"objectType": "Agent",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
+        param = {"statementId":put_guid}
+        path = "%s?%s" % (url, urllib.urlencode(param))
+        
+        # START PUT STMT
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='statements/write statements/read define')
+        
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        # Create oauth request and add signature
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+        
+        # Put statements - should update existing activity since jane is in oauth group
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 204)
+        # ==================================================================
+
+        guid = str(uuid.uuid1())
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"test://test/define/scope",
+            'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
+            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
+            'interactionType': 'other'}}})
+        stmt_post = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post.status_code, 200)
+
+        acts = models.Activity.objects.all()
+        self.assertEqual(len(acts), 1)
+        act = acts[0].object_return()
+        self.assertEqual(act['id'], 'test://test/define/scope')
+        self.assertIn('definition', act) 

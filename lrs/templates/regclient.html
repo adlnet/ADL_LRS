@@ -10,6 +10,7 @@
 	<strong>{{ error_message }}</strong>
 </p>
 {% endif %}
+<p>Note: If you plan on using RSA-SHA1 as your signature method, please list it as it will be set as your client secret key. Else you can leave the field blank.</p>
 <form action="{% url lrs.views.reg_client %}" method="post">
 	{% include 'table_form.html' %}
 	<input type="submit" value="Register" />

@@ -31,7 +31,9 @@ class RegisterForm(forms.Form):
 class RegClientForm(forms.Form):
     name = forms.CharField(max_length=200, label='Name')
     description = forms.CharField(label='Description', required=False, 
-        widget=forms.Textarea())
+        widget=forms.Textarea(attrs={'cols':50, 'rows':10}))
+    secret = forms.CharField(max_length=1024, label='Public RSA Key', required=False,
+        widget=forms.Textarea(attrs={'cols':50, 'rows':10}))
 
 class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     def render(self, name, value, attrs=None, choices=()):
