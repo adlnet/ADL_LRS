@@ -23,10 +23,7 @@ class ActivityManagerTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
-
-        if settings.ALLOW_EMPTY_HTTP_AUTH:
-            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
 
     #Called on all activity django models to see if they were created with the correct fields    
     def do_activity_model(self,realid,act_id, objType):

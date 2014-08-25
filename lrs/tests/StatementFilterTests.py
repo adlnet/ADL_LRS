@@ -32,7 +32,7 @@ class StatementFilterTests(TestCase):
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
 
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0")
     
     def tearDown(self):
         settings.SERVER_STMT_LIMIT = 100
@@ -488,7 +488,8 @@ class StatementFilterTests(TestCase):
 
         response = self.client.post(reverse(views.statements), json.dumps(batch), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
+        self.assertEqual(response.status_code, 200)
+
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -803,6 +804,7 @@ class StatementFilterTests(TestCase):
         }]
         response = self.client.post(reverse(views.statements), json.dumps(stmts), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
 
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
         path = "%s?%s" % (reverse(views.statements),urllib.urlencode(param))
@@ -858,7 +860,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
         time = "2013-02-02T12:00:32-05:00"
-        stmt = Statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
+        Statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
 
         stmt2_guid = str(uuid.uuid1())
         stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
@@ -871,7 +873,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
         time = "2013-02-02T10:00:32-05:00"
-        stmt = Statement.objects.filter(statement_id=stmt2_guid).update(stored=time)
+        Statement.objects.filter(statement_id=stmt2_guid).update(stored=time)
 
         param = {"since": "2013-02-02T14:00Z"}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))      

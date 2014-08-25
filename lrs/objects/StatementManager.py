@@ -1,14 +1,8 @@
-import json
-import re
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
 from functools import wraps
-from isodate.isoduration import parse_duration
-from isodate.isoerror import ISO8601Error
-from lrs import models, exceptions
-from lrs.util import get_user_from_auth, uri, convert_to_utc
+from lrs import models
 from AgentManager import AgentManager
 from ActivityManager import ActivityManager
 
@@ -48,8 +42,6 @@ class StatementManager():
     @transaction.commit_on_success
     # Save sub to DB
     def save_substatement_to_db(self):
-        context_activity_types = ['parent', 'grouping', 'category', 'other']
-
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
@@ -77,8 +69,6 @@ class StatementManager():
     @transaction.commit_on_success
     # Save statement to DB
     def save_statement_to_db(self):
-        context_activity_types = ['parent', 'grouping', 'category', 'other']
-
         # Pop off any context activities
         con_act_data = self.data.pop('context_contextActivities',{})
 
@@ -160,7 +150,7 @@ class StatementManager():
                     try:
                         attachment = models.StatementAttachment.objects.get(fileUrl=attach['fileUrl'])
                         created = False
-                    except Exception, e:
+                    except Exception:
                         attachment = models.StatementAttachment.objects.create(**attach)
                         created = True
 

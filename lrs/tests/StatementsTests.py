@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
+import json
+import base64
+import uuid
+import urllib
+import hashlib
+import os
 from email import message_from_string
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.conf import settings
 from lrs import views, models
 from lrs.util import retrieve_statement
-from lrs.util.jws import JWS, JWSException
-import os
+from lrs.util.jws import JWS
 from datetime import datetime, timedelta
-import sys
-import json
-import base64
-import uuid
-import time
-import urllib
-import hashlib
 
 class StatementsTests(TestCase):
     @classmethod
@@ -33,14 +30,14 @@ class StatementsTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
         self.username2 = "tester2"
         self.email2 = "test2@tester.com"
         self.password2 = "test2"
         self.auth2 = "Basic %s" % base64.b64encode("%s:%s" % (self.username2, self.password2))
         form2 = {"username":self.username2, "email":self.email2,"password":self.password2,"password2":self.password2}
-        response = self.client.post(reverse(views.register),form2, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form2, X_Experience_API_Version="1.0.0")
 
         self.firstTime = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
         self.guid1 = str(uuid.uuid1())
@@ -337,7 +334,6 @@ class StatementsTests(TestCase):
         self.assertEqual(response.content, 'Activity definition choices is not a properly formatted array')
 
     def test_openid(self):
-        guid = str(uuid.uuid1())
         stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
 
@@ -412,7 +408,7 @@ class StatementsTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
-        agent = models.Agent.objects.get(mbox="mailto:mr.t@example.com")
+        models.Agent.objects.get(mbox="mailto:mr.t@example.com")
 
     def test_list_post(self):
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -845,14 +841,15 @@ class StatementsTests(TestCase):
         param = {"statementId":self.guid1}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         putresponse1 = self.client.put(path, existStmt1, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
+        self.assertEqual(putresponse1.status_code, 204)
+
         wrong_username = "tester2"
         wrong_email = "test2@tester.com"
         wrong_password = "test2"
         wrong_auth = "Basic %s" % base64.b64encode("%s:%s" % (wrong_username, wrong_password))
         form = {"username":wrong_username, "email":wrong_email,"password":wrong_password,
             "password2":wrong_password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
         stmt = json.dumps({"verb":{"id":"verb:verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"mailto:r@r.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
@@ -891,7 +888,8 @@ class StatementsTests(TestCase):
 
         post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
+        self.assertEqual(post_response.status_code, 200)
+
         act = models.Activity.objects.get(activity_id="act:foogie")
 
         name_set = act.activity_definition_name
@@ -1060,7 +1058,6 @@ class StatementsTests(TestCase):
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
-        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         
         the_returned = json.loads(get_response.content)
@@ -1164,7 +1161,6 @@ class StatementsTests(TestCase):
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
-        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         
         the_returned = json.loads(get_response.content)
@@ -1235,7 +1231,6 @@ class StatementsTests(TestCase):
         sub_context_id= str(uuid.uuid1())        
         param = {"statementId":stmt_id} 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
-        msha = hashlib.sha1("mailto:tom@example.com").hexdigest()        
         
         stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
@@ -1269,7 +1264,6 @@ class StatementsTests(TestCase):
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
         param = {"statementId":stmt_id}
-        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         
         the_returned = json.loads(get_response.content)
@@ -1769,8 +1763,6 @@ class StatementsTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
         
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-
         r = self.client.post(reverse(views.statements), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
@@ -2050,8 +2042,6 @@ class StatementsTests(TestCase):
         textdata.add_header('X-Experience-API-Hash', txtsha)
         message.attach(stmtdata)
         message.attach(textdata)
-        
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
 
         r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -2095,13 +2085,11 @@ class StatementsTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
 
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-
         r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
 
-    def test_multiple_multipart(self):
+    def test_multiple_multipart_wrong(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
             "verb":{"id":"http://tom.com/verb/butted"},
             "object":{"id":"act:tom.com/objs/heads"},
@@ -2138,8 +2126,6 @@ class StatementsTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
         message.attach(textdata2)
-
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
 
         r = self.client.post(reverse(views.statements), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -2284,8 +2270,6 @@ class StatementsTests(TestCase):
         textdata.add_header('X-Experience-API-Hash', txtsha)
         message.attach(stmtdata)
         message.attach(textdata)
-        
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
 
         param = {"statementId":stmt_id}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -2320,8 +2304,6 @@ class StatementsTests(TestCase):
         textdata.add_header('X-Experience-API-Hash', txtsha)
         message.attach(stmtdata)
         message.attach(textdata)
-        
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
 
         param = {"statementId":stmt_id}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -2369,15 +2351,13 @@ class StatementsTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
 
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
-
         param = {"statementId":stmt_id}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type="multipart/mixed" , Authorization=self.auth,
             X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 204)
 
-    def test_multiple_multipart_put(self):
+    def test_multiple_multipart_put_wrong_attachment(self):
         stmt_id = str(uuid.uuid1())
         stmt = {"id":stmt_id,
             "actor":{"mbox":"mailto:tom@example.com"},
@@ -2416,8 +2396,6 @@ class StatementsTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
         message.attach(textdata2)
-
-        auth = "Basic %s" % base64.b64encode("%s:%s" % ('tester1', 'test'))
 
         param = {"statementId":stmt_id}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -2612,8 +2590,6 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)[0]
-        st = models.Statement.objects.get(statement_id=st_id)
         attach_objs = models.StatementAttachment.objects.all()
         self.assertEqual(len(attach_objs), 1)
 

@@ -15,7 +15,6 @@ def profile_func(filename):
         def profiled_func(*args, **kwargs):
             import cProfile
             import logging
-            import pstats
 
             (base, ext) = os.path.splitext(filename)
             base = base + "-" + datetime.datetime.now().strftime("%Y%m%dT%HH%MM%SS%f")
@@ -26,10 +25,10 @@ def profile_func(filename):
             try:
                 profiler = cProfile.Profile()
                 retval = profiler.runcall(f, *args, **kwargs)
-                stats = profiler.getstats()
+                profiler.getstats()
                 profiler.dump_stats(final_log_file)
             except IOError:
-                logging.exception(_("Could not open profile file '%(filename)s'") % {"filename": final_log_file})
+                logging.exception("Could not open profile file '%(filename)s'" % {"filename": final_log_file})
 
             return retval
 

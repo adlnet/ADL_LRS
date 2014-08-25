@@ -1,11 +1,7 @@
 import StringIO
 import email
-import json
 import urllib
-import oauth2 as oauth
-from collections import defaultdict
-from django.http import MultiPartParser, HttpResponseBadRequest
-from django.utils.translation import ugettext as _
+from django.http import MultiPartParser
 from django.core.cache import get_cache
 from lrs.util import etag, convert_to_dict, convert_post_body_to_dict
 from lrs.util.jws import JWS, JWSException
@@ -13,8 +9,6 @@ from lrs.exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRe
 from oauth_provider.utils import get_oauth_request, require_params
 from oauth_provider.decorators import CheckOauth
 from oauth_provider.store import store
-from oauth_provider.responses import INVALID_CONSUMER_RESPONSE
-
 
 att_cache = get_cache('attachment_cache')
 
@@ -161,7 +155,6 @@ def parse_attachment(r, request):
                 thehash = a.get("X-Experience-API-Hash")
                 if not thehash:
                     raise BadRequest("X-Experience-API-Hash header was missing from attachment")
-                headers = defaultdict(str)
                 r['payload_sha2s'].append(thehash)
                 # Save msg object to cache
                 att_cache.set(thehash, a)

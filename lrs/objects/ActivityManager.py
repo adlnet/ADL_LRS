@@ -1,9 +1,4 @@
-import json
-from StringIO import StringIO
-from django.core.exceptions import ValidationError
-from django.core.validators import URLValidator
-from lrs import models, exceptions
-from lrs.util import uri
+from lrs import models
 
 class ActivityManager():
     def __init__(self, data, auth=None, define=True):

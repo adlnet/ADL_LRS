@@ -1,18 +1,11 @@
 import json
-import urllib
-import urlparse
-import datetime as dt
 from datetime import datetime
-from time import time
 from jsonfield import JSONField
 from django_extensions.db.fields import UUIDField
 from django.db import models
 from django.db import transaction
-from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.utils.timezone import utc
-from .exceptions import IDNotFoundError, ParamError
 from oauth_provider.consts import MAX_URL_LENGTH
 
 class Verb(models.Model):
@@ -126,7 +119,6 @@ class AgentManager(models.Manager):
         return agent, created
 
     def retrieve_or_create_anonymous_group(self, member, kwargs):
-        canonical_version = False
         # Narrow oauth down to 2 members and one member having an account
         if len(member) == 2 and ('account' in member[0] or 'account' in member[1]):
             # If oauth account is in first member
@@ -524,7 +516,6 @@ class SubStatement(models.Model):
     context_statement = models.CharField(max_length=40, blank=True)
     
     def object_return(self, lang=None, format='exact'):
-        activity_object = True
         ret = {}
         ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return()

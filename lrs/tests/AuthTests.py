@@ -1,16 +1,12 @@
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import views, models
-from os import path
 from django.conf import settings
-import sys
 import json
 import base64
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import utc
-import time
 import urllib
 from lrs.util import retrieve_statement
 import hashlib
@@ -269,7 +265,7 @@ class AuthTests(TestCase):
         
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",  Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
-        agent = models.Agent.objects.get(mbox="mailto:mr.t@example.com")
+        models.Agent.objects.get(mbox="mailto:mr.t@example.com")
 
     def test_list_post(self):
         stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -386,6 +382,7 @@ class AuthTests(TestCase):
         exist_stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
         first_put = self.client.put(path, exist_stmt, content_type="application/json",  Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(first_put.status_code, 204)
 
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object":{"id":"act:test_existing_put"}, "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
@@ -398,6 +395,7 @@ class AuthTests(TestCase):
         exist_stmt = json.dumps({"id": guid, "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
         post = self.client.post(reverse(views.statements), exist_stmt, content_type="application/json",  Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 200)
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
@@ -454,7 +452,8 @@ class AuthTests(TestCase):
 
         post_response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
              Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
+        self.assertEqual(post_response.status_code, 200)
+
         act = models.Activity.objects.get(activity_id="act:foogie")
 
         name_set = act.activity_definition_name
@@ -582,8 +581,6 @@ class AuthTests(TestCase):
 
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
-        param = {"statementId":stmt_id}
-        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         
         the_returned = json.loads(get_response.content)
@@ -648,8 +645,6 @@ class AuthTests(TestCase):
         
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
-        param = {"statementId":stmt_id}
-        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         
         the_returned = json.loads(get_response.content)
@@ -712,7 +707,6 @@ class AuthTests(TestCase):
         sub_context_id= str(uuid.uuid1())        
         param = {"statementId":stmt_id} 
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
-        msha = hashlib.sha1("tom@example.com").hexdigest()        
         
         stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
@@ -744,8 +738,6 @@ class AuthTests(TestCase):
             "timestamp":self.firstTime})
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(put_stmt.status_code, 204)
-        param = {"statementId":stmt_id}
-        get_path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))        
         get_response = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         
         the_returned = json.loads(get_response.content)
@@ -919,6 +911,7 @@ class AuthTests(TestCase):
         self.assertEqual(len(wrong_agent), 0)
         self.assertEqual(len(john_agent), 1)
         self.assertEqual(len(s_agent), 1)
+        self.assertEqual(len(auth_agent), 0)
 
     def test_post_list_rollback_with_void(self):
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"mailto:only-s@s.com"},
@@ -1003,7 +996,7 @@ class AuthTests(TestCase):
         user1_agent = models.Agent.objects.get(mbox="mailto:test1@tester.com")
         act = models.Activity.objects.get(activity_id="act:test_activity_change").object_return()
         self.assertEqual(act["id"], "act:test_activity_change")
-        with self.assertRaises(KeyError) as ke:
+        with self.assertRaises(KeyError):
             act["definition"]
         acts = models.Activity.objects.filter(activity_id="act:test_activity_change").count()
         self.assertEqual(acts, 1)
@@ -1027,7 +1020,7 @@ class AuthTests(TestCase):
         # Should update local version of activity with definition for that user
         response_3 = self.client.post(reverse(views.statements), stmt_1, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version="1.0.0")        
-        self.assertEqual(response_1.status_code, 200)
+        self.assertEqual(response_3.status_code, 200)
         act = models.Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).object_return()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertIn('definition', act)
@@ -1122,7 +1115,7 @@ class AuthTests(TestCase):
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
         group = {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}
-        gr_object = models.Agent.objects.retrieve_or_create(**group)
+        models.Agent.objects.retrieve_or_create(**group)
 
         stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
             "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})

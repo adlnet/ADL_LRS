@@ -3,17 +3,14 @@ import json
 import urllib
 import os
 import base64
-import re
 import time
 import oauth2 as oauth
 from Crypto.PublicKey import RSA
-
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
-
-from lrs import views, models, forms
+from lrs import views, models
 from oauth_provider.models import Consumer, Token, Nonce
 from oauth_provider.utils import SignatureMethod_RSA_SHA1
 
@@ -34,26 +31,26 @@ class OAuthTests(TestCase):
 
         # Create a user
         self.user = User.objects.create_user('jane', 'jane@example.com', 'toto')
-        user = self.client.login(username='jane', password='toto')
+        self.client.login(username='jane', password='toto')
 
         #Register a consumer
         self.name = "test jane client"
         self.desc = "test jane client desc"
         form = {"name":self.name, "description":self.desc, "scopes":"all"}
-        response = self.client.post(reverse(views.reg_client),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.reg_client),form, X_Experience_API_Version="1.0.0")
         self.consumer = Consumer.objects.get(name=self.name)
         self.client.logout()
         self.jane_auth = "Basic %s" % base64.b64encode("%s:%s" % ('jane','toto'))
 
         # Create a user
         self.user2 = User.objects.create_user('dick', 'dick@example.com', 'lassie')
-        user2 = self.client.login(username='dick', password='lassie')
+        self.client.login(username='dick', password='lassie')
 
         #Register a client
         self.name2 = "test client2"
         self.desc2 = "test desc2"
         form2 = {"name":self.name2, "description":self.desc2, "scopes":"all"}
-        response2 = self.client.post(reverse(views.reg_client),form2, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.reg_client),form2, X_Experience_API_Version="1.0.0")
         self.consumer2 = Consumer.objects.get(name=self.name2)
         self.client.logout()
         self.dick_auth = "Basic %s" % base64.b64encode("%s:%s" % ('dick','lassie'))
@@ -675,7 +672,7 @@ class OAuthTests(TestCase):
         
         # create signature and add it to the header params
         signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
-        signature2 = signature_method.sign(oauth_request2, self.consumer, None)
+        signature2 = signature_method2.sign(oauth_request2, self.consumer, None)
         oauth_header_request_token_params2 = oauth_header_request_token_params2 + ",oauth_signature=%s" % signature2
         
         request_resp2 = self.client.get(INITIATE_ENDPOINT, Authorization=oauth_header_request_token_params2)
@@ -941,17 +938,8 @@ Lw03eHTNQghS0A==
         for p in request_token_param_list:
             item = p.split("=")
             oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
-        
-        # get_oauth_request in views ignores realm, must remove so not input to from_token_and_callback
-        del oauth_header_request_token_params_dict['OAuth realm']
-
-        # add scope to the existing params
-        oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
-        
+                
         # create signature and add it to the header params
-        signature_method = SignatureMethod_RSA_SHA1()
-        signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % "badsignature"
 
         request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
@@ -1015,17 +1003,8 @@ Lw03eHTNQghS0A==
         for p in request_token_param_list:
             item = p.split("=")
             oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
-        
-        # get_oauth_request in views ignores realm, must remove so not input to from_token_and_callback
-        del oauth_header_request_token_params_dict['OAuth realm']
-
-        # add scope to the existing params
-        oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
-            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
-        
+                
         # create signature and add it to the header params - adding wrong signature
-        signature_method = oauth.SignatureMethod_PLAINTEXT()
-        signature = signature_method.sign(oauth_request, self.consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % "wrongsignature"
         
         request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
@@ -2036,7 +2015,7 @@ Lw03eHTNQghS0A==
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {"username":username, "email":email,"password":password,"password2":password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(views.statements), urllib.urlencode(param))
@@ -2110,7 +2089,7 @@ Lw03eHTNQghS0A==
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {"username":username, "email":email,"password":password,"password2":password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
         # Put statement
         param = {"statementId":guid}
@@ -2370,7 +2349,7 @@ Lw03eHTNQghS0A==
             http_url='http://testserver/XAPI/statements/',
             parameters=post_oauth_header_resource_params_dict)
         post_signature_method = oauth.SignatureMethod_HMAC_SHA1()
-        post_signature = signature_method.sign(post_oauth_request, self.consumer2, post_access_token)
+        post_signature = post_signature_method.sign(post_oauth_request, self.consumer2, post_access_token)
         post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
 
         # This adds the act_def to the very first activity created in this test since this has define scope
@@ -2523,7 +2502,7 @@ Lw03eHTNQghS0A==
             http_url='http://testserver/XAPI/statements/',
             parameters=post_oauth_header_resource_params_dict)
         post_signature_method = oauth.SignatureMethod_HMAC_SHA1()
-        post_signature = signature_method.sign(post_oauth_request, self.consumer2,
+        post_signature = post_signature_method.sign(post_oauth_request, self.consumer2,
             post_access_token)
         post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
         
@@ -2683,7 +2662,6 @@ Lw03eHTNQghS0A==
         self.assertEqual(resp.status_code, 204)
         # ==================================================================
 
-        guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",

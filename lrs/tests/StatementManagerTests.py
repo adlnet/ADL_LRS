@@ -1,14 +1,11 @@
 import uuid
 import json
 import urllib
-from datetime import datetime
+import base64
 from django.test import TestCase
 from lrs import models, views
-from lrs.exceptions import ParamError, Forbidden, ParamConflict, IDNotFoundError
 from lrs.objects.ActivityManager import ActivityManager
 from django.core.urlresolvers import reverse
-from django.conf import settings
-import base64
 
 class StatementManagerTests(TestCase):
     
@@ -22,7 +19,7 @@ class StatementManagerTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
     def test_minimum_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
@@ -704,7 +701,6 @@ class StatementManagerTests(TestCase):
 
 
     def test_agent_as_object(self):
-        guid = str(uuid.uuid1())
         stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
@@ -713,7 +709,6 @@ class StatementManagerTests(TestCase):
         stmt_id = json.loads(response.content)[0]
         stmt = models.Statement.objects.get(statement_id=stmt_id)
 
-        st = models.Statement.objects.get(id=stmt.id)
         agent = models.Agent.objects.get(id=stmt.object_agent.id)
 
         self.assertEqual(agent.name, 'lulu')

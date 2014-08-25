@@ -1,12 +1,9 @@
 import json
 import urllib2
-from datetime import datetime
-from functools import wraps
-from django.utils.timezone import utc
 from django.conf import settings
 from django.core.cache import get_cache
 from lrs import models
-from lrs.util import uri, StatementValidator, validate_uuid, convert_to_dict, get_agent_ifp
+from lrs.util import StatementValidator, validate_uuid, convert_to_dict, get_agent_ifp
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 from Authorization import auth
 
@@ -89,30 +86,29 @@ def validate_stmt_authority(stmt, auth, auth_validated):
 
 # Retrieve JSON data from ID
 def get_act_def_data(act_data):
-    resolves = True
-    act_url = {}
+    act_url_data = {}
     # See if id resolves
     try:
         req = urllib2.Request(act_data['id'])
         req.add_header('Accept', 'application/json, */*')
         act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
-    except Exception, e:
+    except Exception:
         # Doesn't resolve-hopefully data is in payload
-        resolves = False
+        pass
     else:
         # If it resolves then try parsing JSON from it
         try:
-            act_url = json.loads(act_resp.read())
-        except Exception, e:
+            act_url_data = json.loads(act_resp.read())
+        except Exception:
             # Resolves but no data to retrieve - this is OK
             pass
 
         # If there was data from the URL and a defintion in received JSON already
-        if act_url and 'definition' in act_data:
-            act_data['definition'] = dict(act_url.items() + act_data['definition'].items())
+        if act_url_data and 'definition' in act_data:
+            act_data['definition'] = dict(act_url_data.items() + act_data['definition'].items())
         # If there was data from the URL and no definition in the JSON
-        elif act_url and not 'definition' in act_data:
-            act_data['definition'] = act_url
+        elif act_url_data and not 'definition' in act_data:
+            act_data['definition'] = act_url_data
 
 def server_validation(stmt_set, auth, payload_sha2s):
     auth_validated = False    
@@ -153,14 +149,12 @@ def statements_post(req_dict):
     if req_dict['params'].keys():
         raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(req_dict['params'].keys()))
 
-    payload_sha2s = req_dict.get('payload_sha2s', None)
-
     if isinstance(req_dict['body'], basestring):
         req_dict['body'] = convert_to_dict(req_dict['body'])
 
     try:
         validator = StatementValidator.StatementValidator(req_dict['body'])
-        msg = validator.validate()
+        validator.validate()
     except Exception, e:
         raise BadRequest(e.message)
     except ParamError, e:
@@ -293,7 +287,7 @@ def statements_put(req_dict):
     # Validate statement in body
     try:
         validator = StatementValidator.StatementValidator(req_dict['body'])
-        msg = validator.validate()
+        validator.validate()
     except Exception, e:
         raise BadRequest(e.message)
     except ParamError, e:
@@ -549,7 +543,7 @@ def activities_get(req_dict):
 
     # Try to retrieve activity, if DNE then return empty else return activity info
     try:
-        act = models.Activity.objects.get(activity_id=activityId)
+        models.Activity.objects.get(activity_id=activityId)
     except models.Activity.DoesNotExist:    
         err_msg = "No activity found with ID %s" % activityId
         raise IDNotFoundError(err_msg)
@@ -571,7 +565,7 @@ def agent_profile_post(req_dict):
         req_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(msg)
+        raise ParamError(err_msg)
 
     if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for agent profile POSTs must be application/json"

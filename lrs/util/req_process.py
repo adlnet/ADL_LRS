@@ -1,5 +1,4 @@
 import json
-import datetime
 import uuid
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -9,12 +8,12 @@ from django.http import HttpResponse
 from django.conf import settings
 from django.utils.timezone import utc
 from lrs import models
-from lrs.exceptions import IDNotFoundError
 from lrs.objects.ActivityProfileManager import ActivityProfileManager
 from lrs.objects.ActivityStateManager import ActivityStateManager 
 from lrs.objects.AgentManager import AgentManager
 from lrs.objects.AgentProfileManager import AgentProfileManager
 from lrs.objects.StatementManager import StatementManager
+from lrs.util import convert_to_dict
 import retrieve_statement
 
 def process_statements(stmts, auth):
@@ -125,7 +124,7 @@ def process_complex_get(req_dict):
     # See if attachments should be included
     try:
         attachments = req_dict['params']['attachments']
-    except Exception, e:
+    except Exception:
         attachments = False
 
     # Create returned stmt list from the req dict
@@ -157,7 +156,7 @@ def statements_post(req_dict):
 
 def statements_put(req_dict):
     auth = req_dict['auth']
-    stmt_responses = process_statements(req_dict['body'], auth)
+    process_statements(req_dict['body'], auth)
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):

@@ -1,7 +1,7 @@
 import json
 import logging
 from django.conf import settings
-from django.contrib.auth import authenticate, logout
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.context_processors import csrf
@@ -51,10 +51,10 @@ def stmt_validator(request):
             # Initialize validator (validates incoming data structure)
             try:
                 validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
-            except SyntaxError, se:
+            except SyntaxError:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
                 context_instance=context)
-            except ValueError, ve:
+            except ValueError:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
                 context_instance=context)                
             except Exception, e:

@@ -1,5 +1,3 @@
-import sys
-import argparse
 import re
 from dateutil import parser as timeparser
 from isodate.isoduration import parse_duration
@@ -48,7 +46,7 @@ class StatementValidator():
 		if isinstance(data, basestring):
 			try:
 				self.stmt = ast.literal_eval(data)
-			except Exception, e:
+			except Exception:
 				self.stmt = json.loads(data)
 		# If incoming data is already a list 
 		elif isinstance(data, list):

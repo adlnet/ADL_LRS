@@ -7,10 +7,10 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from itertools import chain
-from lrs.models import Statement, IDNotFoundError
+from lrs.models import Statement
 from lrs.objects.AgentManager import AgentManager
 from lrs.util import convert_to_utc, convert_to_dict
-from lrs.exceptions import NotFound
+from lrs.exceptions import NotFound, IDNotFoundError
 
 MORE_ENDPOINT = '/xapi/statements/more/'
 
