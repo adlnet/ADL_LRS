@@ -29,9 +29,11 @@ class Verb(models.Model):
                 try:
                     ret['display'] = {lang:self.display[lang]}
                 except KeyError:
-                    ret['display'] = self.display             
+                    first = self.display.iteritems().next()      
+                    ret['display'] = {first[0]:first[1]}                        
             else:
-                ret['display'] = self.display             
+                first = self.display.iteritems().next()      
+                ret['display'] = {first[0]:first[1]}                        
         return ret
 
     # Just return one value for human-readable
@@ -308,18 +310,22 @@ class Activity(models.Model):
                     try:
                         ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
                     except KeyError:
-                        ret['definition']['name'] = self.activity_definition_name
+                        first = self.activity_definition_name.iteritems().next()      
+                        ret['definition']['name'] = {first[0]:first[1]}                        
                 else:
-                    ret['definition']['name'] = self.activity_definition_name
+                    first = self.activity_definition_name.iteritems().next()      
+                    ret['definition']['name'] = {first[0]:first[1]}
 
             if self.activity_definition_description:
                 if lang:
                     try:
                         ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
                     except KeyError:
-                        ret['definition']['description'] = self.activity_definition_description
+                        first = self.activity_definition_description.iteritems().next()      
+                        ret['definition']['description'] = {first[0]:first[1]}                        
                 else:
-                    ret['definition']['description'] = self.activity_definition_description
+                    first = self.activity_definition_description.iteritems().next()      
+                    ret['definition']['description'] = {first[0]:first[1]}                        
 
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
@@ -336,49 +342,73 @@ class Activity(models.Model):
             
             if self.activity_definition_scales:
                 ret['definition']['scale'] = []
-                if lang:
-                    for s in self.activity_definition_scales:
-                        holder = {'id': s['id']}
-                        holder.update({lang:self.activity_definition_scales[lang]})
-                        ret['definition']['scale'].append(holder)
-                else:
-                    ret['definition']['scale'] = self.activity_definition_scales
+                for s in self.activity_definition_scales:
+                    if lang:
+                        try:
+                            s['description'] = {lang:s['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_scales.iteritems().next()
+                            s['description'] = {first[0]:first[1]}
+                    else:
+                        first = s['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['scale'].append(s)
 
             if self.activity_definition_choices:
-                if lang:
-                    for c in self.activity_definition_choices:
-                        holder = {'id': c['id']}
-                        holder.update({lang:self.activity_definition_choices[lang]})
-                        ret['definition']['choices'].append(holder)
-                else:
-                    ret['definition']['choices'] = self.activity_definition_choices
+                ret['definition']['choices'] = []
+                for c in self.activity_definition_choices:
+                    if lang:
+                        try:
+                            c['description'] = {lang:c['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_choices.iteritems().next()
+                            c['description'] = {first[0]:first[1]}
+                    else:
+                        first = c['description'].iteritems().next()
+                        c['description'] = {first[0]:first[1]}
+                    ret['definition']['choices'].append(c)
 
             if self.activity_definition_steps:
-                if lang:
-                    for s in self.activity_definition_steps:
-                        holder = {'id': s['id']}
-                        holder.update({lang:self.activity_definition_steps[lang]})
-                        ret['definition']['steps'].append(holder)
-                else:
-                    ret['definition']['steps'] = self.activity_definition_steps
+                ret['definition']['steps'] = []
+                for s in self.activity_definition_steps:
+                    if lang:
+                        try:
+                            s['description'] = {lang:s['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_steps.iteritems().next()
+                            s['description'] = {first[0]:first[1]}
+                    else:
+                        first = s['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['steps'].append(s)
 
             if self.activity_definition_sources:
-                if lang:
-                    for s in self.activity_definition_sources:
-                        holder = {'id': s['id']}
-                        holder.update({lang:self.activity_definition_sources[lang]})
-                        ret['definition']['source'].append(holder)
-                else:
-                    ret['definition']['source'] = self.activity_definition_sources
+                ret['definition']['source'] = []
+                for s in self.activity_definition_sources:
+                    if lang:
+                        try:
+                            s['description'] = {lang:s['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_sources.iteritems().next()
+                            s['description'] = {first[0]:first[1]}
+                    else:
+                        first = s['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['source'].append(s)
 
             if self.activity_definition_targets:
-                if lang:
-                    for t in self.activity_definition_target:
-                        holder = {'id': t['id']}
-                        holder.update({lang:self.activity_definition_targets[lang]})
-                        ret['definition']['target'].append(holder)
-                else:
-                    ret['definition']['target'] = self.activity_definition_targets
+                ret['definition']['target'] = []
+                for t in self.activity_definition_targets:
+                    if lang:
+                        try:
+                            t['description'] = {lang:t['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_targets.iteritems().next()
+                            t['description'] = {first[0]:first[1]}
+                    else:
+                        first = t['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['target'].append(t)
 
             if self.activity_definition_extensions:
                 ret['definition']['extensions'] = self.activity_definition_extensions
@@ -619,13 +649,15 @@ class StatementAttachment(models.Model):
             if lang:
                 ret['display'] = {lang:self.display[lang]}
             else:
-                ret['display'] = self.display
+                first = self.display.iteritems().next()
+                ret['display'] = {first[0]:first[1]}
 
         if self.description:
             if lang:
                 ret['description'] = {lang:self.description[lang]}
             else:
-                ret['description'] = self.description
+                first = self.description.iteritems().next()
+                ret['description'] = {first[0]:first[1]}
 
         ret['contentType'] = self.contentType
         ret['length'] = self.length

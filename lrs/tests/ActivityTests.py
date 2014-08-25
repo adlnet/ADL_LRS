@@ -79,13 +79,10 @@ class ActivityTests(TestCase):
         self.assertIn('act:foobar1', rsp)
         self.assertIn('type:course', rsp)
         self.assertIn('other', rsp)
-        self.assertIn('en-US', rsp)
-        self.assertIn('testname', rsp)
-        self.assertIn('testdesc', rsp)
-        self.assertIn('en-GB', rsp)
-        self.assertIn('altdesc', rsp)
-        self.assertIn('altname', rsp)
-        
+        rsp_dict = json.loads(rsp)
+        self.assertEqual(len(rsp_dict['definition']['name'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['description'].keys()), 1)
+
     def test_get_ext(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
@@ -135,16 +132,12 @@ class ActivityTests(TestCase):
         self.assertIn('testdesc2', rsp)
         self.assertIn('golf', rsp)
         self.assertIn('tetris', rsp)
-        self.assertIn('Golf Example', rsp)
-        self.assertIn('Tetris Example', rsp)
-        self.assertIn('Facebook App', rsp)
-        self.assertIn('Scrabble Example', rsp)
-        self.assertIn('scrabble', rsp)
-        self.assertIn('facebook', rsp)
-        self.assertIn('en-GB', rsp)
-        self.assertIn('alt golf', rsp)
-        self.assertIn('en-CH', rsp)
-        self.assertIn('altdesc', rsp)
+        rsp_dict = json.loads(rsp)
+        self.assertEqual(len(rsp_dict['definition']['description'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['choices'][0]['description'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['choices'][1]['description'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['choices'][2]['description'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['choices'][3]['description'].keys()), 1)
 
     def test_get_crp_true_false(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
@@ -288,16 +281,16 @@ class ActivityTests(TestCase):
         self.assertIn('http://adlnet.gov/expapi/activities/cmi.interaction', rsp)
         self.assertIn('performance', rsp)
         self.assertIn('steps', rsp)
-        self.assertIn('en-US', rsp)        
-        self.assertIn('testname2', rsp)
-        self.assertIn('testdesc2', rsp)
         self.assertIn('correctResponsesPattern', rsp)
         self.assertIn('pong.1,dg.10,lunch.4', rsp)
+        self.assertIn('Net pong matches won', rsp)
         self.assertIn('Strokes over par in disc golf at Liberty', rsp)
-        self.assertIn('Lunch having been eaten', rsp)
-        self.assertIn('en-GB', rsp)
-        self.assertIn('en-FR', rsp)
-        self.assertIn('altlunch', rsp)
+        rsp_dict = json.loads(rsp)
+        self.assertEqual(len(rsp_dict['definition']['name'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['description'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['steps'][0]['description'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['steps'][1]['description'].keys()), 1)
+        self.assertEqual(len(rsp_dict['definition']['steps'][2]['description'].keys()), 1)
 
     def test_get_crp_sequencing(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
