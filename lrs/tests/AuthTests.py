@@ -1104,3 +1104,29 @@ class AuthTests(TestCase):
         self.assertEqual(r.status_code, 200)
         first_stmt = json.loads(r.content)["statements"][0]
         self.assertEqual(first_stmt["object"]["definition"], {"name":{"en-US": "foo"}})
+
+    def test_post_with_non_oauth_not_existing_group(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+            "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
+
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Statements cannot have a non-Oauth group as the authority", response.content)
+
+    def test_post_with_non_oauth_existing_group(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        group = {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}
+        gr_object = models.Agent.objects.retrieve_or_create(**group)
+
+        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+            "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
+        
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Statements cannot have a non-Oauth group as the authority")

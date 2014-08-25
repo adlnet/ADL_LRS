@@ -50,14 +50,8 @@ class ActivityManager():
                 act_created = True
             else:
                 # If canonical DNE and cannot define - try to get local version for that user
-                try:
-                    self.Activity = models.Activity.objects.get(activity_id=activity_id, canonical_version=False, authority=self.auth)
-                    act_created = False
-                except models.Activity.DoesNotExist:            
-                    # If local DNE - create local for that user
-                    self.Activity = models.Activity.objects.create(activity_id=activity_id,
-                        canonical_version=False, authority=self.auth)
-                    act_created = True
+                self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id, canonical_version=False,
+                    authority=self.auth)
         # Canonical version already exists
         else:
             # If canonical already exists and have define

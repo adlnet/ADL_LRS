@@ -40,10 +40,8 @@ def process_statements(stmts, auth):
                             if isinstance(v, dict):
                                 st['object']['context']['contextActivities'][k] = [v]
 
-                if not 'authority' in st:
-                    # Can still have no auth with blank creds
-                    if auth['authority']:
-                        st['authority'] = auth['authority'].get_agent_json()
+                if auth['authority']:
+                    st['authority'] = auth['authority'].get_agent_json()
 
                 st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
