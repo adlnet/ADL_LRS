@@ -2363,9 +2363,9 @@ Lw03eHTNQghS0A==
 
         global_act = models.Activity.objects.get(canonical_version=True)   
         global_name_list = global_act.activity_definition_name
-        self.assertEqual(global_name_list, '')
+        self.assertEqual(global_name_list, {})
         global_desc_list = global_act.activity_definition_description
-        self.assertEqual(global_desc_list, '')
+        self.assertEqual(global_desc_list, {})
 
         jane_agent = models.Agent.objects.get(mbox="mailto:jane@example.com")
         jane_oauth_group = models.Agent.objects.get(objectType='Group', member__in=[jane_agent])

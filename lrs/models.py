@@ -10,7 +10,7 @@ from oauth_provider.consts import MAX_URL_LENGTH
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
-    display = JSONField(blank=True)
+    display = JSONField(default={}, blank=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -275,18 +275,18 @@ class AgentProfile(models.Model):
 class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity")
-    activity_definition_name = JSONField(blank=True)
-    activity_definition_description = JSONField(blank=True)
+    activity_definition_name = JSONField(default={}, blank=True)
+    activity_definition_description = JSONField(default={}, blank=True)
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_interactionType = models.CharField(max_length=25, blank=True)    
-    activity_definition_extensions = JSONField(blank=True)
-    activity_definition_crpanswers = JSONField(blank=True)
-    activity_definition_choices = JSONField(blank=True)
-    activity_definition_scales = JSONField(blank=True)
-    activity_definition_sources = JSONField(blank=True)
-    activity_definition_targets = JSONField(blank=True)
-    activity_definition_steps = JSONField(blank=True)            
+    activity_definition_extensions = JSONField(default={}, blank=True)
+    activity_definition_crpanswers = JSONField(default={}, blank=True)
+    activity_definition_choices = JSONField(default={}, blank=True)
+    activity_definition_scales = JSONField(default={}, blank=True)
+    activity_definition_sources = JSONField(default={}, blank=True)
+    activity_definition_targets = JSONField(default={}, blank=True)
+    activity_definition_steps = JSONField(default={}, blank=True)
     authority = models.ForeignKey(Agent, null=True)
     canonical_version = models.BooleanField(default=True)
 
@@ -433,6 +433,7 @@ class StatementRef(models.Model):
         s = Statement.objects.get(statement_id=self.ref_id)
         o, f = s.get_object()
         return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
+        
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
     context_activity = models.ManyToManyField(Activity)
@@ -500,7 +501,7 @@ class SubStatement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
-    result_extensions = JSONField(blank=True)
+    result_extensions = JSONField(default={}, blank=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context_registration = models.CharField(max_length=40, blank=True, db_index=True)
@@ -511,7 +512,7 @@ class SubStatement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
-    context_extensions = JSONField(blank=True)
+    context_extensions = JSONField(default={}, blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     
@@ -629,8 +630,8 @@ class StatementAttachment(models.Model):
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     payload = models.FileField(upload_to="attachment_payloads", null=True)
-    display = JSONField(blank=True)
-    description = JSONField(blank=True)
+    display = JSONField(default={}, blank=True)
+    description = JSONField(default={}, blank=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -679,7 +680,7 @@ class Statement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
-    result_extensions = JSONField(blank=True)
+    result_extensions = JSONField(default={}, blank=True)
     # If no stored or timestamp given - will create automatically (only happens if using StatementManager directly)
     stored = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
     timestamp = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
@@ -694,7 +695,7 @@ class Statement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
-    context_extensions = JSONField(blank=True)
+    context_extensions = JSONField(default={}, blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7, default="1.0.0")
@@ -702,6 +703,7 @@ class Statement(models.Model):
     # Used in views
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     full_statement = JSONField()
+    
     def object_return(self, lang=None, format='exact'):
         if format == 'exact':
             return self.full_statement

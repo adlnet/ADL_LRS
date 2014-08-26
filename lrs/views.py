@@ -255,7 +255,7 @@ def my_statements(request):
     stmt_id = request.GET.get("stmt_id", None)
     if stmt_id:
         s = models.Statement.objects.get(statement_id=stmt_id, user=request.user)
-        return HttpResponse(s.object_return(),mimetype="application/json",status=200)
+        return HttpResponse(s.object_return(), mimetype="application/json",status=200)
     else:
         s = {}
         paginator = Paginator(models.Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
