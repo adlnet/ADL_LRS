@@ -194,7 +194,6 @@ class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):
         key, raw = self.signing_base(request, consumer, token)
 
         digest = sha(raw).digest()
-        # key = consumer.generate_rsa_key()
         sig = key.sign(self._pkcs1imify(key, digest), '')[0]
         sig_bytes = long_to_bytes(sig)
         # Calculate the digest base 64.

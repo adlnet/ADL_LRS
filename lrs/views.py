@@ -219,18 +219,19 @@ def reg_client(request):
         if form.is_valid():
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
+            rsa_signature = form.cleaned_data['rsa']
             secret = form.cleaned_data['secret']
 
             try:
                 client = Consumer.objects.get(name__exact=name)
             except Consumer.DoesNotExist:
                 client = Consumer.objects.create(name=name, description=description, user=request.user,
-                    status=ACCEPTED, secret=secret)
+                    status=ACCEPTED, secret=secret, rsa_signature=rsa_signature)
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
             
             client.generate_random_codes()
-            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
+            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "rsa":client.rsa_signature, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))

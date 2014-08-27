@@ -15,5 +15,9 @@ class TokenManager(models.Manager):
                                             callback=callback,
                                             callback_confirmed=callback_confirmed)
         if created:
+            # LRS CHANGE - KEEP SECRET IN TOKEN
+            if consumer.rsa_signature:
+                token.secret = consumer.secret
+                token.save()
             token.generate_random_codes()
         return token

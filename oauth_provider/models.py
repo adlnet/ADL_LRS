@@ -10,8 +10,8 @@ from django.db import models
 
 from oauth_provider.compat import AUTH_USER_MODEL, get_random_string
 from oauth_provider.managers import TokenManager
-from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
-    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH, OUT_OF_BAND
+from oauth_provider.consts import KEY_SIZE, RSA_SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
+    PENDING, VERIFIER_SIZE, MAX_URL_LENGTH, OUT_OF_BAND, REGULAR_SECRET_SIZE
 from oauth_provider.utils import check_valid_callback
 
 
@@ -52,7 +52,8 @@ class Consumer(models.Model):
     # default_scopes = models.CharField(max_length=100, default="statements/write statements/read/mine")
 
     key = models.CharField(max_length=CONSUMER_KEY_SIZE)
-    secret = models.CharField(max_length=SECRET_SIZE, blank=True)
+    secret = models.CharField(max_length=RSA_SECRET_SIZE, blank=True)
+    rsa_signature = models.BooleanField(default=False)
 
     status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
     user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True)
@@ -68,12 +69,12 @@ class Consumer(models.Model):
         """
         self.key = uuid.uuid4().hex
         # LRS CHANGE - KEPT THE SECRET KEY AT 16 LIKE BEFORE (WHEN NOT USING RSA)
-        if not self.secret:
-            self.secret = get_random_string(length=16)
+        if not self.rsa_signature:
+            self.secret = get_random_string(length=REGULAR_SECRET_SIZE)
         self.save()
 
     def generate_rsa_key(self):
-        if not self.secret or len(self.secret) == 16:
+        if not self.secret or len(self.secret) == REGULAR_SECRET_SIZE:
             return None
         return RSA.importKey(self.secret)
 
@@ -83,7 +84,7 @@ class Token(models.Model):
     TOKEN_TYPES = ((REQUEST, u'Request'), (ACCESS, u'Access'))
     
     key = models.CharField(max_length=KEY_SIZE, null=True, blank=True)
-    secret = models.CharField(max_length=SECRET_SIZE, null=True, blank=True)
+    secret = models.CharField(max_length=RSA_SECRET_SIZE, null=True, blank=True)
     token_type = models.SmallIntegerField(choices=TOKEN_TYPES)
     timestamp = models.IntegerField(default=long(time()))
     is_approved = models.BooleanField(default=False)
@@ -133,7 +134,8 @@ class Token(models.Model):
         Use this after you've added the other data in place of save(). 
         """
         self.key = uuid.uuid4().hex
-        self.secret = get_random_string(length=SECRET_SIZE)
+        if not self.consumer.rsa_signature:
+            self.secret = get_random_string(length=REGULAR_SECRET_SIZE)
         self.save()
 
     def get_callback_url(self, args=None):

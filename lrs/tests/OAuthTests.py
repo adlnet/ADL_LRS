@@ -36,8 +36,8 @@ class OAuthTests(TestCase):
         #Register a consumer
         self.name = "test jane client"
         self.desc = "test jane client desc"
-        form = {"name":self.name, "description":self.desc, "scopes":"all"}
-        self.client.post(reverse(views.reg_client),form, X_Experience_API_Version="1.0.0")
+        form = {"name":self.name, "description":self.desc}
+        self.client.post(reverse(views.reg_client),form)
         self.consumer = Consumer.objects.get(name=self.name)
         self.client.logout()
         self.jane_auth = "Basic %s" % base64.b64encode("%s:%s" % ('jane','toto'))
@@ -49,8 +49,8 @@ class OAuthTests(TestCase):
         #Register a client
         self.name2 = "test client2"
         self.desc2 = "test desc2"
-        form2 = {"name":self.name2, "description":self.desc2, "scopes":"all"}
-        self.client.post(reverse(views.reg_client),form2, X_Experience_API_Version="1.0.0")
+        form2 = {"name":self.name2, "description":self.desc2}
+        self.client.post(reverse(views.reg_client),form2)
         self.consumer2 = Consumer.objects.get(name=self.name2)
         self.client.logout()
         self.dick_auth = "Basic %s" % base64.b64encode("%s:%s" % ('dick','lassie'))
@@ -896,6 +896,181 @@ Lw03eHTNQghS0A==
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
         self.assertIn('oauth_callback_confirmed', request_resp.content)
+
+    def test_request_token_rsa_sha1_full_workflow(self):
+        # Create a user
+        user = User.objects.create_user('mike', 'mike@example.com', 'dino')
+        self.client.login(username='mike', password='dino')
+
+        # Register a consumer with rsa
+        name = "test mike client"
+        desc = "test mike client desc"
+        rsa_key = """-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBALRiMLAh9iimur8V
+A7qVvdqxevEuUkW4K+2KdMXmnQbG9Aa7k7eBjK1S+0LYmVjPKlJGNXHDGuy5Fw/d
+7rjVJ0BLB+ubPK8iA/Tw3hLQgXMRRGRXXCn8ikfuQfjUS1uZSatdLB81mydBETlJ
+hI6GH4twrbDJCR2Bwy/XWXgqgGRzAgMBAAECgYBYWVtleUzavkbrPjy0T5FMou8H
+X9u2AC2ry8vD/l7cqedtwMPp9k7TubgNFo+NGvKsl2ynyprOZR1xjQ7WgrgVB+mm
+uScOM/5HVceFuGRDhYTCObE+y1kxRloNYXnx3ei1zbeYLPCHdhxRYW7T0qcynNmw
+rn05/KO2RLjgQNalsQJBANeA3Q4Nugqy4QBUCEC09SqylT2K9FrrItqL2QKc9v0Z
+zO2uwllCbg0dwpVuYPYXYvikNHHg+aCWF+VXsb9rpPsCQQDWR9TT4ORdzoj+Nccn
+qkMsDmzt0EfNaAOwHOmVJ2RVBspPcxt5iN4HI7HNeG6U5YsFBb+/GZbgfBT3kpNG
+WPTpAkBI+gFhjfJvRw38n3g/+UeAkwMI2TJQS4n8+hid0uus3/zOjDySH3XHCUno
+cn1xOJAyZODBo47E+67R4jV1/gzbAkEAklJaspRPXP877NssM5nAZMU0/O/NGCZ+
+3jPgDUno6WbJn5cqm8MqWhW1xGkImgRk+fkDBquiq4gPiT898jusgQJAd5Zrr6Q8
+AO/0isr/3aa6O6NLQxISLKcPDk2NOccAfS/xOtfOz4sJYM3+Bs4Io9+dZGSDCA54
+Lw03eHTNQghS0A==
+-----END PRIVATE KEY-----"""
+
+        form = {"name":name, "description":desc, "rsa": True, "secret":rsa_key}
+        reg_client = self.client.post(reverse(views.reg_client),form)
+        self.assertEqual(reg_client.status_code, 200)
+        consumer = Consumer.objects.get(name=name)
+        self.client.logout()
+
+        param = {
+                    'scope':'all',
+                    'consumer_name': name
+                }
+
+        request_token_path = "%s?%s" % (INITIATE_ENDPOINT, urllib.urlencode(param))
+        # Header params we're passing in
+        oauth_header_request_token_params = "OAuth realm=\"test\","\
+               "oauth_consumer_key=\"%s\","\
+               "oauth_signature_method=\"RSA-SHA1\","\
+               "oauth_timestamp=\"%s\","\
+               "oauth_nonce=\"requestnonce\","\
+               "oauth_version=\"1.0\","\
+               "oauth_callback=\"http://example.com/token_ready\"" % (consumer.key,str(int(time.time())))
+
+        # Make the params into a dict to pass into from_consumer_and_token
+        request_token_param_list = oauth_header_request_token_params.split(",")
+        oauth_header_request_token_params_dict = {}
+        for p in request_token_param_list:
+            item = p.split("=")
+            oauth_header_request_token_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        
+        # get_oauth_request in views ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_request_token_params_dict['OAuth realm']
+
+        # add scope to the existing params
+        oauth_request = oauth.Request.from_consumer_and_token(consumer, token=None, http_method='GET',
+            http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
+        
+        # create signature and add it to the header params
+        signature_method = SignatureMethod_RSA_SHA1()
+        signature = signature_method.sign(oauth_request, consumer, None)
+        oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
+
+        request_resp = self.client.get(request_token_path, Authorization=oauth_header_request_token_params)
+        self.assertEqual(request_resp.status_code, 200)
+        self.assertIn('oauth_token_secret', request_resp.content)
+        self.assertIn('oauth_token', request_resp.content)
+        self.assertIn('oauth_callback_confirmed', request_resp.content)
+        request_token = Token.objects.get(consumer=consumer)
+        # ============= END INITIATE =============
+
+        # ============= AUTHORIZE =============
+        # Create authorize path, must have oauth_token param
+        authorize_param = {'oauth_token': request_token.key}
+        authorize_path = "%s?%s" % (AUTHORIZATION_ENDPOINT, urllib.urlencode(authorize_param)) 
+
+        # Try to hit auth path, made to login
+        auth_resp = self.client.get(authorize_path)
+        self.assertEqual(auth_resp.status_code, 302)
+        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn(request_token.key, auth_resp['Location'])    
+        self.client.login(username='mike', password='dino')
+        self.assertEqual(request_token.is_approved, False)
+        # After being redirected to login and logging in again, try get again
+        auth_resp = self.client.get(authorize_path)
+        self.assertEqual(auth_resp.status_code, 200) # Show return/display OAuth authorized view
+        
+        # Get the form, set required fields
+        auth_form = auth_resp.context['form']
+        data = auth_form.initial
+        data['authorize_access'] = 1
+        data['oauth_token'] = request_token.key
+
+        # Post data back to auth endpoint - should redirect to callback_url we set in oauth headers with request token
+        auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
+        self.assertEqual(auth_post.status_code, 302)
+        # Check if oauth_verifier and oauth_token are returned
+        self.assertIn('http://example.com/token_ready?oauth_verifier=', auth_post['Location'])
+        self.assertIn('oauth_token=', auth_post['Location'])
+        # Get token again just to make sure
+        request_token_after_auth = Token.objects.get(consumer=consumer)
+        self.assertIn(request_token_after_auth.key, auth_post['Location'])
+        self.assertEqual(request_token_after_auth.is_approved, True)
+        #  ============= END AUTHORIZE =============
+
+        # ============= ACCESS TOKEN =============
+        # Set verifier in access_token params and create new oauth request
+        oauth_header_access_token_params = "OAuth realm=\"test\","\
+            "oauth_consumer_key=\"%s\","\
+            "oauth_token=\"%s\","\
+            "oauth_signature_method=\"RSA-SHA1\","\
+            "oauth_timestamp=\"%s\","\
+            "oauth_nonce=\"%s\","\
+            "oauth_version=\"1.0\","\
+            "oauth_verifier=\"%s\"" % (consumer.key, request_token_after_auth.key, str(int(time.time())), "access_nonce", request_token_after_auth.verifier)
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_access_token_params.split(",")
+        oauth_header_access_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_access_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_access_params_dict['OAuth realm']
+        oauth_request = oauth.Request.from_token_and_callback(request_token_after_auth, http_method='GET',
+            http_url=TOKEN_ENDPOINT, parameters=oauth_header_access_params_dict)
+
+        # Create signature and add it to the headers
+        signature_method = SignatureMethod_RSA_SHA1()
+        signature = signature_method.sign(oauth_request, consumer, request_token_after_auth)
+        oauth_header_access_token_params += ',oauth_signature="%s"' % signature
+
+        # Get access token
+        access_resp = self.client.get(TOKEN_ENDPOINT, Authorization=oauth_header_access_token_params)
+        self.assertEqual(access_resp.status_code, 200)
+        content = access_resp.content.split('&')
+        access_token_secret = content[0].split('=')[1]
+        access_token_key = content[1].split('=')[1]
+        access_token = Token.objects.get(secret=urllib.unquote_plus(access_token_secret), key=access_token_key)
+        #  ============= END ACCESS TOKEN =============
+
+        # Set oauth headers user will use when hitting xapi endpoing and access token
+        oauth_header_resource_params = "OAuth realm=\"test\", "\
+            "oauth_consumer_key=\"%s\","\
+            "oauth_token=\"%s\","\
+            "oauth_signature_method=\"RSA-SHA1\","\
+            "oauth_timestamp=\"%s\","\
+            "oauth_nonce=\"%s\","\
+            "oauth_version=\"1.0\"" % (consumer.key, access_token.key, str(int(time.time())), "resource_nonce")
+
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        path = TEST_SERVER + "/XAPI/statements"
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='GET',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+
+        # Create signature and add it to the headers
+        signature_method = SignatureMethod_RSA_SHA1()
+        signature = signature_method.sign(oauth_request, consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+
+        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 200)
 
     def test_request_token_rsa_sha1_wrong_key(self):
         rsa_key = RSA.importKey("""-----BEGIN PRIVATE KEY-----

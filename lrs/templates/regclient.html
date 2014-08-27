@@ -16,3 +16,12 @@
 	<input type="submit" value="Register" />
 </form>
 {% endblock content %}
+{% block extra_js %}
+<script type="text/javascript">
+	$(function (){
+		$('#id_rsa').change(function (){
+			$('#id_secret_group').toggle(this.checked);
+		}).change();
+	});
+</script>
+{% endblock extra_js %}

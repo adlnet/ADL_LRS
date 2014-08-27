@@ -3,7 +3,8 @@ from django.conf import settings
 
 KEY_SIZE = getattr(settings, 'OAUTH_PROVIDER_KEY_SIZE', 32)
 # LRS CHANGE - CHANGED SIZE OF SECRET FOR RSA PUBLIC KEY
-SECRET_SIZE = getattr(settings, 'OAUTH_PROVIDER_SECRET_SIZE', 2048)
+RSA_SECRET_SIZE = getattr(settings, 'OAUTH_PROVIDER_RSA_SECRET_SIZE', 2048)
+REGULAR_SECRET_SIZE = getattr(settings, 'OAUTH_PROVIDER_REGULAR_SECRET_SIZE', 16)
 VERIFIER_SIZE = getattr(settings, 'OAUTH_PROVIDER_VERIFIER_SIZE', 10)
 CONSUMER_KEY_SIZE = getattr(settings, 'OAUTH_PROVIDER_CONSUMER_KEY_SIZE', 256)
 MAX_URL_LENGTH = 2083 # http://www.boutell.com/newfaq/misc/urllength.html
