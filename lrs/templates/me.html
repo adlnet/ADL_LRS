@@ -51,7 +51,11 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                 <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
                 <table class="table">
                     <tr><td><strong>key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
+                    {% if not app.rsa_signature %}
                     <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
+                    {% else %}
+                    <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">Your RSA key pair</span></td></tr>
+                    {% endif %}
                 </table>
             </div>
             {% endfor %}

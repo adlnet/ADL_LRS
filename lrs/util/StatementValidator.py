@@ -1,5 +1,3 @@
-import sys
-import argparse
 import re
 from dateutil import parser as timeparser
 from isodate.isoduration import parse_duration
@@ -48,7 +46,7 @@ class StatementValidator():
 		if isinstance(data, basestring):
 			try:
 				self.stmt = ast.literal_eval(data)
-			except Exception, e:
+			except Exception:
 				self.stmt = json.loads(data)
 		# If incoming data is already a list 
 		elif isinstance(data, list):
@@ -586,7 +584,7 @@ class StatementValidator():
 		object_type = stmt_object['objectType']
 		if 'revision' in context:
 			if object_type == 'Agent' or object_type == 'Group':
-				self.return_error("Revision is not allowed in context if statment object is an Agent or Group")		
+				self.return_error("Revision is not allowed in context if statement object is an Agent or Group")		
 
 			# Check revision is string
 			if not isinstance(context['revision'], basestring):
@@ -594,7 +592,7 @@ class StatementValidator():
 
 		if 'platform' in context:
 			if object_type == 'Agent' or object_type == 'Group':
-				self.return_error("Platform is not allowed in context if statment object is an Agent or Group")		
+				self.return_error("Platform is not allowed in context if statement object is an Agent or Group")		
 
 			# Check platform is string
 			if not isinstance(context['platform'], basestring):

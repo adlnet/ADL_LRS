@@ -3,13 +3,10 @@ import json
 import time
 import hashlib
 import urllib
-from os import path
 import base64
 from django.test import TestCase
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from lrs import models, views
-from lrs.objects.ActivityManager import ActivityManager
 
 class ActivityProfileTests(TestCase):
     test_activityId1 = 'act:act-1'
@@ -32,7 +29,7 @@ class ActivityProfileTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email': self.email,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
         self.testparams1 = {"profileId": self.testprofileId1, "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
@@ -184,9 +181,8 @@ class ActivityProfileTests(TestCase):
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
     
     def test_get_activity_profileId_no_auth(self):
-        # Will return 200 if HTTP_AUTH is not enabled
         response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="1.0.0")
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 400)
 
     def test_get_activity_profileId_activity_dne(self):
         response = self.client.get(reverse(views.activity_profile), {'activityId':'http://actID','profileId':self.testprofileId1}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
@@ -195,7 +191,12 @@ class ActivityProfileTests(TestCase):
     def test_get_activity_since_tz(self):
         actid = "test:activity"
         profid = "test://test/tz"
-        act = ActivityManager({'objectType':'Activity', 'id': actid})
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id': actid}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(st_post.status_code, 200)
+
         params = {"profileId": profid, "activityId": actid}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         prof = {"test":"timezone since","obj":{"activity":"other"}}
@@ -235,7 +236,13 @@ class ActivityProfileTests(TestCase):
         params = "profileId=%s&activityId=%s&Authorization=%s&content=%s&X-Experience-API-Version=1.0" % (profileid, activityid,self.auth,content)
          
         path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
-        the_act = ActivityManager({'objectType':'Activity', 'id': activityid})
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id': activityid}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(st_post.status_code, 200)
+
         thedata = urllib.quote_plus(params)
         put1 = self.client.post(path, thedata, content_type="application/x-www-form-urlencoded")
         self.assertEqual(put1.status_code, 204)
@@ -251,12 +258,17 @@ class ActivityProfileTests(TestCase):
         pid = 'http://ie.cors.etag/test'
         aid = 'act:ie.cors.etag/test'
 
-        actaid = ActivityManager({'objectType':'Activity', 'id': aid})
-        
-        params = {"profileId": pid, "activityId": aid}
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id': aid}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(st_post.status_code, 200)
+
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))
         tp = {"test":"put example profile for test_cors_put_etag","obj":{"activity":"this should be replaced -- ie cors post/put"}}
-        put1 = self.client.put(path, tp, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        thehash = '"%s"' % hashlib.sha1(json.dumps(self.testprofile1)).hexdigest()
+        put1 = self.client.put(path, tp, content_type=self.content_type, If_Match=thehash, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(put1.status_code, 204)
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
         
         content = {"test":"good - trying to put new profile w/ etag header - IE cors","obj":{"activity":"test IE cors etag"}}
@@ -278,7 +290,13 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "http://test.tetris/", "activityId": "act:tetris.snafu"}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         profile = {"test":"put profile 1","obj":{"activity":"test"}}
-        the_act = ActivityManager({'objectType':'Activity', 'id': "act:tetris.snafu"})
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id': "act:tetris.snafu"}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(st_post.status_code, 200)
+
         p_r = self.client.put(path, json.dumps(profile), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(p_r.status_code, 204)
         r = self.client.get(reverse(views.activity_profile), {'activityId': "act:tetris.snafu", 'profileId': "http://test.tetris/"}, X_Experience_API_Version="1.0.0", Authorization=self.auth)

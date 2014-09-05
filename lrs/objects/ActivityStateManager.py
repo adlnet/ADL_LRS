@@ -1,13 +1,13 @@
-import ast
 import datetime
 import json
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.timezone import utc
+from django.core.exceptions import ValidationError
 from lrs import models
 from .AgentManager import AgentManager
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth, uri, get_agent_ifp
+from lrs.util import etag, uri, get_agent_ifp
 
 class ActivityStateManager():
     def __init__(self, request_dict, log_dict=None):        
