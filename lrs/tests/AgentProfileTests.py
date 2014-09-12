@@ -28,7 +28,7 @@ class AgentProfileTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email': self.email,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
         
         self.testparams1 = {"profileId": self.testprofileId1, "agent": self.testagent}
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(self.testparams1))
@@ -201,7 +201,8 @@ class AgentProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.agent_profile), urllib.urlencode(params))
         profile = {"test":"delete profile","obj":{"agent":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
+        self.assertEqual(response.status_code, 204)
+
         r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
         robj = ast.literal_eval(r.content)
@@ -223,6 +224,7 @@ class AgentProfileTests(TestCase):
 
         profile = {"test1":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
         response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 204)
 
         r = self.client.get(reverse(views.agent_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
@@ -261,6 +263,7 @@ class AgentProfileTests(TestCase):
 
         profile2 = {"test3":"agent profile since time: %s" % updated2,"obj":{"agent":"test"}}
         response = self.client.put(path2, profile2, content_type=self.content_type, updated=updated2, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 204)
 
         r2 = self.client.get(reverse(views.agent_profile), params2, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r2.status_code, 200)

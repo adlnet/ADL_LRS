@@ -1,150 +1,16 @@
 import json
-import urllib
-import urlparse
-import datetime as dt
 from datetime import datetime
-from time import time
 from jsonfield import JSONField
 from django_extensions.db.fields import UUIDField
 from django.db import models
 from django.db import transaction
-from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.utils.timezone import utc
-from lrs import util
-from .exceptions import IDNotFoundError, ParamError
-from oauth_provider.managers import TokenManager, ConsumerManager
-from oauth_provider.consts import KEY_SIZE, SECRET_SIZE, CONSUMER_KEY_SIZE, CONSUMER_STATES,\
-                   PENDING, VERIFIER_SIZE, MAX_URL_LENGTH
-
-ADL_LRS_STRING_KEY = 'ADL_LRS_STRING_KEY'
-
-gen_pwd = User.objects.make_random_password
-generate_random = User.objects.make_random_password
-
-class Nonce(models.Model):
-    token_key = models.CharField(max_length=KEY_SIZE)
-    consumer_key = models.CharField(max_length=CONSUMER_KEY_SIZE)
-    key = models.CharField(max_length=50)
-    
-    def __unicode__(self):
-        return u"Nonce %s for %s" % (self.key, self.consumer_key)
-
-class Consumer(models.Model):
-    name = models.CharField(max_length=50)
-    description = models.TextField()
-
-    default_scopes = models.CharField(max_length=100, default="statements/write,statements/read/mine")
-    
-    key = UUIDField(version=1)
-    secret = models.CharField(max_length=SECRET_SIZE, default=gen_pwd)
-
-    status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
-    user = models.ForeignKey(User, null=True, blank=True, related_name="consumer_user", db_index=True)
-
-    objects = ConsumerManager()
-        
-    def __unicode__(self):
-        return u"Consumer %s with key %s" % (self.name, self.key)
-
-    def generate_random_codes(self):
-        """
-        Used to generate random key/secret pairings.
-        Use this after you've added the other data in place of save().
-        """
-        key = generate_random(length=KEY_SIZE)
-        secret = generate_random(length=SECRET_SIZE)
-        while Consumer.objects.filter(models.Q(key__exact=key) | models.Q(secret__exact=secret)).count():
-            key = generate_random(length=KEY_SIZE)
-            secret = generate_random(length=SECRET_SIZE)
-        self.key = key
-        self.secret = secret
-        self.save()
-
-
-class Token(models.Model):
-    REQUEST = 1
-    ACCESS = 2
-    TOKEN_TYPES = ((REQUEST, u'Request'), (ACCESS, u'Access'))
-    
-    key = models.CharField(max_length=KEY_SIZE, null=True, blank=True)
-    secret = models.CharField(max_length=SECRET_SIZE, null=True, blank=True)
-    token_type = models.SmallIntegerField(choices=TOKEN_TYPES, db_index=True)
-    timestamp = models.IntegerField(default=long(time()))
-    is_approved = models.BooleanField(default=False)
-    lrs_auth_id = models.CharField(max_length=50, null=True)
-
-    user = models.ForeignKey(User, null=True, blank=True, related_name='tokens', db_index=True)
-    consumer = models.ForeignKey(Consumer)
-    scope = models.CharField(max_length=100, default="statements/write,statements/read/mine")
-    
-    ## OAuth 1.0a stuff
-    verifier = models.CharField(max_length=VERIFIER_SIZE)
-    callback = models.CharField(max_length=MAX_URL_LENGTH, null=True, blank=True)
-    callback_confirmed = models.BooleanField(default=False)
-    
-    objects = TokenManager()
-    
-    def __unicode__(self):
-        return u"%s Token %s for %s" % (self.get_token_type_display(), self.key, self.consumer)
-
-    def scope_to_list(self):
-        return self.scope.split(",")
-
-    def timestamp_asdatetime(self):
-        return datetime.fromtimestamp(self.timestamp)
-
-    def key_partial(self):
-        return self.key[:10]
-
-    def to_string(self, only_key=False):
-        token_dict = {
-            'oauth_token': self.key, 
-            'oauth_token_secret': self.secret,
-            'oauth_callback_confirmed': self.callback_confirmed and 'true' or 'error'
-        }
-        if self.verifier:
-            token_dict['oauth_verifier'] = self.verifier
-
-        if only_key:
-            del token_dict['oauth_token_secret']
-            del token_dict['oauth_callback_confirmed']
-
-        return urllib.urlencode(token_dict)
-
-    def generate_random_codes(self):
-        """
-        Used to generate random key/secret pairings. 
-        Use this after you've added the other data in place of save(). 
-        """
-        key = generate_random(length=KEY_SIZE)
-        secret = generate_random(length=SECRET_SIZE)
-        while Token.objects.filter(models.Q(key__exact=key) | models.Q(secret__exact=secret)).count():
-            key = generate_random(length=KEY_SIZE)
-            secret = generate_random(length=SECRET_SIZE)
-        self.key = key
-        self.secret = secret
-        self.save()
-
-    def get_callback_url(self):
-        """
-        OAuth 1.0a, append the oauth_verifier.
-        """
-        if self.callback and self.verifier:
-            parts = urlparse.urlparse(self.callback)
-            scheme, netloc, path, params, query, fragment = parts[:6]
-            if query:
-                query = '%s&oauth_verifier=%s' % (query, self.verifier)
-            else:
-                query = 'oauth_verifier=%s' % self.verifier
-            return urlparse.urlunparse((scheme, netloc, path, params,
-                query, fragment))
-        return self.callback
+from oauth_provider.consts import MAX_URL_LENGTH
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
-    display = JSONField(blank=True)
+    display = JSONField(default={}, blank=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -153,9 +19,14 @@ class Verb(models.Model):
             ret['display'] = {}
             if lang:
                 # Return display where key = lang
-                ret['display'] = util.get_lang(self.display, lang)
+                try:
+                    ret['display'] = {lang:self.display[lang]}
+                except KeyError:
+                    first = self.display.iteritems().next()      
+                    ret['display'] = {first[0]:first[1]}                        
             else:
-                ret['display'] = self.display             
+                first = self.display.iteritems().next()      
+                ret['display'] = {first[0]:first[1]}                        
         return ret
 
     # Just return one value for human-readable
@@ -177,8 +48,7 @@ class Verb(models.Model):
         return json.dumps(self.object_return())
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
-class AgentMgr(models.Manager):
- 
+class AgentManager(models.Manager):
     @transaction.commit_on_success
     def retrieve_or_create(self, **kwargs):
         ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]        
@@ -249,7 +119,6 @@ class AgentMgr(models.Manager):
         return agent, created
 
     def retrieve_or_create_anonymous_group(self, member, kwargs):
-        canonical_version = False
         # Narrow oauth down to 2 members and one member having an account
         if len(member) == 2 and ('account' in member[0] or 'account' in member[1]):
             # If oauth account is in first member
@@ -292,7 +161,6 @@ class AgentMgr(models.Manager):
         except Agent.DoesNotExist:
             return Agent.objects.retrieve_or_create(**kwargs)
 
-
 class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
@@ -304,7 +172,7 @@ class Agent(models.Model):
     canonical_version = models.BooleanField(default=True)
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, null=True)
     account_name = models.CharField(max_length=50, null=True)
-    objects = AgentMgr()
+    objects = AgentManager()
 
     class Meta:
         unique_together = (("mbox", "canonical_version"), ("mbox_sha1sum", "canonical_version"),
@@ -407,23 +275,20 @@ class AgentProfile(models.Model):
 class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity")
-    activity_definition_name = JSONField(blank=True)
-    activity_definition_description = JSONField(blank=True)
+    activity_definition_name = JSONField(default={}, blank=True)
+    activity_definition_description = JSONField(default={}, blank=True)
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_interactionType = models.CharField(max_length=25, blank=True)    
-    activity_definition_extensions = JSONField(blank=True)
-    activity_definition_crpanswers = JSONField(blank=True)
-    activity_definition_choices = JSONField(blank=True)
-    activity_definition_scales = JSONField(blank=True)
-    activity_definition_sources = JSONField(blank=True)
-    activity_definition_targets = JSONField(blank=True)
-    activity_definition_steps = JSONField(blank=True)            
-    authoritative = models.CharField(max_length=100, blank=True)
+    activity_definition_extensions = JSONField(default={}, blank=True)
+    activity_definition_crpanswers = JSONField(default={}, blank=True)
+    activity_definition_choices = JSONField(default={}, blank=True)
+    activity_definition_scales = JSONField(default={}, blank=True)
+    activity_definition_sources = JSONField(default={}, blank=True)
+    activity_definition_targets = JSONField(default={}, blank=True)
+    activity_definition_steps = JSONField(default={}, blank=True)
+    authority = models.ForeignKey(Agent, null=True)
     canonical_version = models.BooleanField(default=True)
-
-    class Meta:
-        unique_together = ("activity_id", "canonical_version")
 
     def object_return(self, lang=None, format='exact'):
         ret = {}
@@ -434,15 +299,25 @@ class Activity(models.Model):
             ret['definition'] = {}
             if self.activity_definition_name:
                 if lang:
-                    ret['definition']['name'] = util.get_lang(self.activity_definition_name, lang)
+                    try:
+                        ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
+                    except KeyError:
+                        first = self.activity_definition_name.iteritems().next()      
+                        ret['definition']['name'] = {first[0]:first[1]}                        
                 else:
-                    ret['definition']['name'] = self.activity_definition_name
+                    first = self.activity_definition_name.iteritems().next()      
+                    ret['definition']['name'] = {first[0]:first[1]}
 
             if self.activity_definition_description:
                 if lang:
-                    ret['definition']['description'] = util.get_lang(self.activity_definition_description, lang)
+                    try:
+                        ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
+                    except KeyError:
+                        first = self.activity_definition_description.iteritems().next()      
+                        ret['definition']['description'] = {first[0]:first[1]}                        
                 else:
-                    ret['definition']['description'] = self.activity_definition_description
+                    first = self.activity_definition_description.iteritems().next()      
+                    ret['definition']['description'] = {first[0]:first[1]}                        
 
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
@@ -459,49 +334,73 @@ class Activity(models.Model):
             
             if self.activity_definition_scales:
                 ret['definition']['scale'] = []
-                if lang:
-                    for s in self.activity_definition_scales:
-                        holder = {'id': s['id']}
-                        holder.update(util.get_lang(self.activity_definition_scales, lang))
-                        ret['definition']['scale'].append(holder)
-                else:
-                    ret['definition']['scale'] = self.activity_definition_scales
+                for s in self.activity_definition_scales:
+                    if lang:
+                        try:
+                            s['description'] = {lang:s['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_scales.iteritems().next()
+                            s['description'] = {first[0]:first[1]}
+                    else:
+                        first = s['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['scale'].append(s)
 
             if self.activity_definition_choices:
-                if lang:
-                    for c in self.activity_definition_choices:
-                        holder = {'id': c['id']}
-                        holder.update(util.get_lang(self.activity_definition_choices, lang))
-                        ret['definition']['choices'].append(holder)
-                else:
-                    ret['definition']['choices'] = self.activity_definition_choices
+                ret['definition']['choices'] = []
+                for c in self.activity_definition_choices:
+                    if lang:
+                        try:
+                            c['description'] = {lang:c['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_choices.iteritems().next()
+                            c['description'] = {first[0]:first[1]}
+                    else:
+                        first = c['description'].iteritems().next()
+                        c['description'] = {first[0]:first[1]}
+                    ret['definition']['choices'].append(c)
 
             if self.activity_definition_steps:
-                if lang:
-                    for s in self.activity_definition_steps:
-                        holder = {'id': s['id']}
-                        holder.update(util.get_lang(self.activity_definition_steps, lang))
-                        ret['definition']['steps'].append(holder)
-                else:
-                    ret['definition']['steps'] = self.activity_definition_steps
+                ret['definition']['steps'] = []
+                for s in self.activity_definition_steps:
+                    if lang:
+                        try:
+                            s['description'] = {lang:s['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_steps.iteritems().next()
+                            s['description'] = {first[0]:first[1]}
+                    else:
+                        first = s['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['steps'].append(s)
 
             if self.activity_definition_sources:
-                if lang:
-                    for s in self.activity_definition_sources:
-                        holder = {'id': s['id']}
-                        holder.update(util.get_lang(self.activity_definition_sources, lang))
-                        ret['definition']['source'].append(holder)
-                else:
-                    ret['definition']['source'] = self.activity_definition_sources
+                ret['definition']['source'] = []
+                for s in self.activity_definition_sources:
+                    if lang:
+                        try:
+                            s['description'] = {lang:s['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_sources.iteritems().next()
+                            s['description'] = {first[0]:first[1]}
+                    else:
+                        first = s['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['source'].append(s)
 
             if self.activity_definition_targets:
-                if lang:
-                    for t in self.activity_definition_target:
-                        holder = {'id': t['id']}
-                        holder.update(util.get_lang(self.activity_definition_targets, lang))
-                        ret['definition']['target'].append(holder)
-                else:
-                    ret['definition']['target'] = self.activity_definition_targets
+                ret['definition']['target'] = []
+                for t in self.activity_definition_targets:
+                    if lang:
+                        try:
+                            t['description'] = {lang:t['description']['lang']}
+                        except KeyError:
+                            first = self.activity_definition_targets.iteritems().next()
+                            t['description'] = {first[0]:first[1]}
+                    else:
+                        first = t['description'].iteritems().next()
+                        s['description'] = {first[0]:first[1]}
+                    ret['definition']['target'].append(t)
 
             if self.activity_definition_extensions:
                 ret['definition']['extensions'] = self.activity_definition_extensions
@@ -534,6 +433,7 @@ class StatementRef(models.Model):
         s = Statement.objects.get(statement_id=self.ref_id)
         o, f = s.get_object()
         return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
+        
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
     context_activity = models.ManyToManyField(Activity)
@@ -601,7 +501,7 @@ class SubStatement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
-    result_extensions = JSONField(blank=True)
+    result_extensions = JSONField(default={}, blank=True)
     timestamp = models.DateTimeField(blank=True,null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context_registration = models.CharField(max_length=40, blank=True, db_index=True)
@@ -612,12 +512,11 @@ class SubStatement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
-    context_extensions = JSONField(blank=True)
+    context_extensions = JSONField(default={}, blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     
     def object_return(self, lang=None, format='exact'):
-        activity_object = True
         ret = {}
         ret['actor'] = self.actor.get_agent_json(format)
         ret['verb'] = self.verb.object_return()
@@ -625,7 +524,10 @@ class SubStatement(models.Model):
         if self.object_agent:
             ret['object'] = self.object_agent.get_agent_json(format, as_object=True)
         elif self.object_activity:
-            ret['object'] = self.object_activity.object_return(lang, format)
+            if not self.object_activity.canonical_version:
+                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).object_return(lang, format)
+            else:
+                ret['object'] = self.object_activity.object_return(lang, format)
         else:
             ret['object'] = self.object_statementref.object_return()
 
@@ -728,8 +630,8 @@ class StatementAttachment(models.Model):
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     payload = models.FileField(upload_to="attachment_payloads", null=True)
-    display = JSONField(blank=True)
-    description = JSONField(blank=True)
+    display = JSONField(default={}, blank=True)
+    description = JSONField(default={}, blank=True)
 
     def object_return(self, lang=None):
         ret = {}
@@ -739,13 +641,15 @@ class StatementAttachment(models.Model):
             if lang:
                 ret['display'] = util.get_lang(self.display, lang)
             else:
-                ret['display'] = self.display
+                first = self.display.iteritems().next()
+                ret['display'] = {first[0]:first[1]}
 
         if self.description:
             if lang:
                 ret['description'] = util.get_lang(self.description, lang)
             else:
-                ret['description'] = self.description
+                first = self.description.iteritems().next()
+                ret['description'] = {first[0]:first[1]}
 
         ret['contentType'] = self.contentType
         ret['length'] = self.length
@@ -776,7 +680,7 @@ class Statement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
-    result_extensions = JSONField(blank=True)
+    result_extensions = JSONField(default={}, blank=True)
     # If no stored or timestamp given - will create automatically (only happens if using StatementManager directly)
     stored = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
     timestamp = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
@@ -791,7 +695,7 @@ class Statement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
-    context_extensions = JSONField(blank=True)
+    context_extensions = JSONField(default={}, blank=True)
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7, default="1.0.0")
@@ -799,6 +703,7 @@ class Statement(models.Model):
     # Used in views
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     full_statement = JSONField()
+    
     def object_return(self, lang=None, format='exact'):
         if format == 'exact':
             return self.full_statement
@@ -810,7 +715,10 @@ class Statement(models.Model):
         if self.object_agent:
             ret['object'] = self.object_agent.get_agent_json(format, as_object=True)            
         elif self.object_activity:
-            ret['object'] = self.object_activity.object_return(lang, format)
+            if not self.object_activity.canonical_version:
+                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).object_return(lang, format)
+            else:
+                ret['object'] = self.object_activity.object_return(lang, format)
         elif self.object_substatement:
             ret['object'] = self.object_substatement.object_return(lang, format)
         else:

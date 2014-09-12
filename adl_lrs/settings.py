@@ -9,6 +9,8 @@ PROJECT_ROOT = SETTINGS_PATH.ancestor(3)
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
+SOUTH_TESTS_MIGRATE = False
+
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
@@ -88,14 +90,22 @@ LOGIN_REDIRECT_URL = '/XAPI/me'
 STMTS_PER_PAGE = 10
 
 # Whether HTTP auth or OAuth is enabled
-HTTP_AUTH_ENABLED = True
-OAUTH_ENABLED = False
+ALLOW_EMPTY_HTTP_AUTH = False
+OAUTH_ENABLED = True
 
 # OAuth callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
+SCOPES = (('all', 'all'),
+          ('all/read', 'all/read'),
+          ('statements/write', 'statements/write'),
+          ('statements/read', 'statements/read'),
+          ('statements/read/mine', 'statements/read/mine'),
+          ('state', 'state'),
+          ('define', 'define'),
+          ('profile', 'profile'))
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 50

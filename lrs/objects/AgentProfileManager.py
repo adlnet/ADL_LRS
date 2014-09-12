@@ -1,14 +1,12 @@
-import ast
 import json
 import datetime
-import copy
 from django.core.files.base import ContentFile
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.timezone import utc
 from lrs.models import AgentProfile
-from lrs.models import Agent as ag
 from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag, get_user_from_auth
+from lrs.util import etag
 
 class AgentProfileManager():
     def __init__(self, agent):
@@ -95,11 +93,11 @@ class AgentProfileManager():
         fn = "%s_%s" % (p.agent_id,request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
     
-    def get_profile(self, profileId):
+    def get_profile(self, profile_id):
         try:
-            return self.Agent.agentprofile_set.get(profileId=profileId)
+            return self.Agent.agentprofile_set.get(profileId=profile_id)
         except:
-            err_msg = 'There is no profile associated with the id: %s' % profileId
+            err_msg = 'There is no profile associated with the id: %s' % profile_id
             raise IDNotFoundError(err_msg)
 
     def get_profile_ids(self, since=None):
@@ -112,7 +110,7 @@ class AgentProfileManager():
                 err_msg = 'Since field is not in correct format for retrieval of agent profiles'
                 raise ParamError(err_msg) 
             except:
-                err_msg = 'There are no profiles associated with the id: %s' % profileId
+                err_msg = 'There are no profiles associated with the id'
                 raise IDNotFoundError(err_msg) 
 
             ids = [p.profileId for p in profs]

@@ -4,13 +4,12 @@ import re
 import urllib
 import urlparse
 from django.contrib.auth.models import User
-from django.core.cache import get_cache
 from django.db.models import get_models, get_app
 from django.contrib import admin
 from django.contrib.admin.sites import AlreadyRegistered
 from dateutil import parser
-
-from lrs.exceptions import ParamError, BadRequest
+from lrs.exceptions import ParamError
+from oauth_provider.models import Consumer
 
 def get_lang(d, lang):
     if isinstance(d, dict):
@@ -57,10 +56,10 @@ def convert_to_dict(incoming_data):
         return incoming_data
     try:
         data = json.loads(incoming_data)
-    except Exception, e:
+    except Exception:
         try:
             data = ast.literal_eval(incoming_data)
-        except Exception, e:
+        except Exception:
             data = incoming_data
     return data
 
@@ -78,7 +77,6 @@ def get_user_from_auth(auth):
         for member in auth.member.all():
             if member.account_name: 
                 key = member.account_name
-        from lrs.models import Consumer
         user = Consumer.objects.get(key__exact=key).user
     return user
 

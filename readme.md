@@ -1,6 +1,8 @@
 # ADL LRS 
 
-#### Installation tested on Ubuntu 12.10 machine with Python 2.7.3. Should be good with Ubuntu 10.04 LTS - 13.04 releases. This is still in the development stage and NOT ready for production
+#### Installation tested on Ubuntu 12.10 machine with Python 2.7.3. Should be good with Ubuntu 10.04 LTS - 13.04 releases. Updated to be compliant with the 1.0.1 xAPI spec.
+
+This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
 
 ## Installation
 
@@ -55,11 +57,6 @@ Setup the environment
 Setup the LRS - while still in the activated virtual environment (creates media directories and cache tables, then syncs database)
 
     fab setup_lrs (when prompted make adllrs a Django superuser)
-
-There is an existing .png file that displays the database schema at the root level. If you want to generate one, run
-
-    python manage.py graph_models -a -o <filename>.png
-
 
 ## Starting
 While still in the ADL_LRS directory, run

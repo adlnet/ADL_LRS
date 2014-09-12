@@ -1,14 +1,14 @@
 import json
 import logging
 from django.conf import settings
-from django.contrib.auth import authenticate, logout
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.context_processors import csrf
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
@@ -17,6 +17,7 @@ from django.views.decorators.http import require_http_methods
 from lrs import forms, models, exceptions
 from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
+from oauth_provider.models import Consumer, Token
 
 # This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
@@ -50,10 +51,10 @@ def stmt_validator(request):
             # Initialize validator (validates incoming data structure)
             try:
                 validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
-            except SyntaxError, se:
+            except SyntaxError:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
                 context_instance=context)
-            except ValueError, ve:
+            except ValueError:
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
                 context_instance=context)                
             except Exception, e:
@@ -84,7 +85,7 @@ def about(request):
                     "name": "Statements",
                     "methods": ["GET", "POST", "PUT", "HEAD"],
                     "endpoint": reverse('lrs.views.statements'),
-                    "description": "Endpoint to submit and retrieve XAPI statments.",
+                    "description": "Endpoint to submit and retrieve XAPI statements.",
                 },
                 "activities":
                 {
@@ -218,25 +219,27 @@ def reg_client(request):
         if form.is_valid():
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
-            scopes = form.cleaned_data['scopes']
-            
+            rsa_signature = form.cleaned_data['rsa']
+            secret = form.cleaned_data['secret']
+
             try:
-                client = models.Consumer.objects.get(name__exact=name)
-            except models.Consumer.DoesNotExist:
-                client = models.Consumer.objects.create(name=name, description=description, user=request.user,
-                    status=ACCEPTED, default_scopes=",".join(scopes))
+                client = Consumer.objects.get(name__exact=name)
+            except Consumer.DoesNotExist:
+                client = Consumer.objects.create(name=name, description=description, user=request.user,
+                    status=ACCEPTED, secret=secret, rsa_signature=rsa_signature)
             else:
                 return render_to_response('regclient.html', {"form": form, "error_message": "%s alreay exists." % name}, context_instance=RequestContext(request))         
             
-            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "info_message": "Your Client Credentials"}
+            client.generate_random_codes()
+            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "rsa":client.rsa_signature, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
 def me(request):
-    client_apps = models.Consumer.objects.filter(user=request.user)
-    access_tokens = models.Token.objects.filter(user=request.user, token_type=models.Token.ACCESS, is_approved=True)
+    client_apps = Consumer.objects.filter(user=request.user)
+    access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
     return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens},
         context_instance=RequestContext(request))
 
@@ -253,7 +256,7 @@ def my_statements(request):
     stmt_id = request.GET.get("stmt_id", None)
     if stmt_id:
         s = models.Statement.objects.get(statement_id=stmt_id, user=request.user)
-        return HttpResponse(s.object_return(),mimetype="application/json",status=200)
+        return HttpResponse(s.object_return(), mimetype="application/json",status=200)
     else:
         s = {}
         paginator = Paginator(models.Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
@@ -299,7 +302,7 @@ def my_app_status(request):
         name = request.GET['app_name']
         status = request.GET['status']
         new_status = [s[0] for s in CONSUMER_STATES if s[1] == status][0] #should only be 1
-        client = models.Consumer.objects.get(name__exact=name, user=request.user)
+        client = Consumer.objects.get(name__exact=name, user=request.user)
         client.status = new_status
         client.save()
         ret = {"app_name":client.name, "status":client.get_status_display()}
@@ -315,11 +318,11 @@ def delete_token(request):
         token_key = ids[0]
         consumer_id = ids[1]
         ts = ids[2]
-        token = models.Token.objects.get(user=request.user,
+        token = Token.objects.get(user=request.user,
                                          key__startswith=token_key,
                                          consumer__id=consumer_id,
                                          timestamp=ts,
-                                         token_type=models.Token.ACCESS,
+                                         token_type=Token.ACCESS,
                                          is_approved=True)
         token.is_approved = False
         token.save()
@@ -492,9 +495,12 @@ def handle_request(request, more_id=None):
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
+    except exceptions.OauthBadRequest as oauth_err:
+        log_exception(request.path, oauth_err)
+        return HttpResponse(oauth_err.message, status=400)
     except exceptions.OauthUnauthorized as oauth_err:
         log_exception(request.path, oauth_err)
-        return oauth_err.response
+        return HttpResponse(oauth_err.message, status=401)
     except exceptions.Forbidden as forb:
         log_exception(request.path, forb)
         return HttpResponse(forb.message, status=403)
@@ -507,9 +513,13 @@ def handle_request(request, more_id=None):
     except exceptions.PreconditionFail as pf:
         log_exception(request.path, pf)
         return HttpResponse(pf.message, status=412)
-    # except Exception as err:
-    #     log_exception(request.path, err)
-    #     return HttpResponse(err.message, status=500)
+    # Added BadResponse for OAuth validation
+    except HttpResponseBadRequest as br:
+        log_exception(request.path, br)
+        return br
+    except Exception as err:
+        log_exception(request.path, err)
+        return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

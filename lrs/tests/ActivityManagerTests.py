@@ -15,18 +15,15 @@ class ActivityManagerTests(TestCase):
 
 
     def setUp(self):
-        if not settings.HTTP_AUTH_ENABLED:
-            settings.HTTP_AUTH_ENABLED = True
+        if not settings.ALLOW_EMPTY_HTTP_AUTH:
+            settings.ALLOW_EMPTY_HTTP_AUTH = True
         
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
-
-        if settings.HTTP_AUTH_ENABLED:
-            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
 
     #Called on all activity django models to see if they were created with the correct fields    
     def do_activity_model(self,realid,act_id, objType):
@@ -1108,9 +1105,11 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
         st1 = models.Statement.objects.get(statement_id=st_ids[0])
-        st2 = models.Statement.objects.get(statement_id=st_ids[1])        
+        st2 = models.Statement.objects.get(statement_id=st_ids[1])
+
         act1 = models.Activity.objects.get(id=st1.object_activity.id)
         act2 = models.Activity.objects.get(id=st2.object_activity.id)
+        self.assertEqual(act1, act2)
 
         self.do_activity_model(act1.id, 'act:foob', 'Activity')
 
@@ -1129,26 +1128,6 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'other')
-
-        self.do_activity_model(act2.id, 'act:foob', 'Activity')
-
-        name_set2 = act2.activity_definition_name
-        desc_set2 = act2.activity_definition_description
-
-        self.assertEqual(name_set2.keys()[1], 'en-CH')
-        self.assertEqual(name_set2.values()[1], 'actname2')
-        self.assertEqual(name_set2.keys()[0], 'en-US')
-        self.assertEqual(name_set2.values()[0], 'altname')
-
-        self.assertEqual(desc_set2.keys()[1], 'en-FR')
-        self.assertEqual(desc_set2.values()[1], 'actdesc2')
-        self.assertEqual(desc_set2.keys()[0], 'en-GB')
-        self.assertEqual(desc_set2.values()[0], 'altdesc')
-
-        self.do_activity_definition_model(act2,'http://adlnet.gov/expapi/activities/cmi.interaction',
-            'other')
-
-        self.assertEqual(act1, act2)
         
     def test_del_act(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
