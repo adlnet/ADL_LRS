@@ -10,7 +10,6 @@ from .forms import AuthorizationCodeGrantForm
 from .models import Client, RefreshToken, AccessToken
 from .backends import BasicClientBackend, RequestParamsClientBackend, PublicPasswordBackend
 
-
 class Capture(Capture):
     """
     Implementation of :class:`provider.views.Capture`.
@@ -39,7 +38,6 @@ class Authorize(Authorize):
         return reverse('oauth2:redirect')
 
     def save_authorization(self, request, client, form, client_data):
-
         grant = form.save(commit=False)
 
         if grant is None:

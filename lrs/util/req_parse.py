@@ -1,17 +1,14 @@
 import StringIO
 import email
-import json
 import urllib
-from collections import defaultdict
 from django.http import MultiPartParser
-from django.utils.translation import ugettext as _
 from django.core.cache import get_cache
 from lrs.util import etag, convert_to_dict, convert_post_body_to_dict
 from lrs.util.jws import JWS, JWSException
-from lrs.exceptions import OauthUnauthorized, ParamError, BadRequest
-from oauth_provider.oauth.oauth import OAuthError
-from oauth_provider.utils import send_oauth_error
-from oauth_provider.decorators import CheckOAuth
+from lrs.exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
+from oauth_provider.utils import get_oauth_request, require_params
+from oauth_provider.decorators import CheckOauth
+from oauth_provider.store import store
 
 att_cache = get_cache('attachment_cache')
 
@@ -30,7 +27,7 @@ def parse(request, more_id=None):
         # Authorization could be passed into body if cross origin request
         r_dict['auth']['type'] = 'http'
     else:
-        r_dict['auth']['type'] = 'none'
+        raise BadRequest("Request has no authorization")
 
     r_dict['params'] = {}
     # lookin for weird IE CORS stuff.. it'll be a post with a 'method' url param
@@ -99,18 +96,30 @@ def parse(request, more_id=None):
 def set_authorization(r_dict, request):
     auth_params = r_dict['headers']['Authorization']
     if auth_params[:6] == 'OAuth ':
-        # Make sure it has the required/valid oauth headers
-        if CheckOAuth.is_valid_request(request):
-            try:
-                consumer, token, parameters = CheckOAuth.validate_token(request)
-            except OAuthError, e:
-                raise OauthUnauthorized(send_oauth_error(e))
-            # Set consumer and token for authentication piece
-            r_dict['auth']['oauth_consumer'] = consumer
-            r_dict['auth']['oauth_token'] = token
-            r_dict['auth']['type'] = 'oauth'
-        else:
-            raise OauthUnauthorized(send_oauth_error(OAuthError(_('Invalid OAuth request parameters.'))))
+        oauth_request = get_oauth_request(request)
+        
+        # Returns HttpBadRequest if missing any params
+        missing = require_params(oauth_request)            
+        if missing:
+            raise missing
+
+        check = CheckOauth()
+        e_type, error = check.check_access_token(request)
+
+        if e_type and error:
+            if e_type == 'auth':
+                raise OauthUnauthorized(error)
+            else:
+                raise OauthBadRequest(error)
+
+        # Consumer and token should be clean by now
+        consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
+        token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
+        
+        # Set consumer and token for authentication piece
+        r_dict['auth']['oauth_consumer'] = consumer
+        r_dict['auth']['oauth_token'] = token
+        r_dict['auth']['type'] = 'oauth'
 
         # Used for OAuth scope
         endpoint = request.path[5:]
@@ -149,7 +158,6 @@ def parse_attachment(r, request):
                 thehash = a.get("X-Experience-API-Hash")
                 if not thehash:
                     raise BadRequest("X-Experience-API-Hash header was missing from attachment")
-                headers = defaultdict(str)
                 r['payload_sha2s'].append(thehash)
                 # Save msg object to cache
                 att_cache.set(thehash, a)

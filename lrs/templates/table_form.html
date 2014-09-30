@@ -1,5 +1,5 @@
 {% for field in form %}
-<div class="control-group">
+<div class="control-group" id="{{field.auto_id}}_group">
 	<label class="control-label" for="{{ field.label }}">{{ field.label }}</label>
 	<div class="controls">
 		{{ field }}

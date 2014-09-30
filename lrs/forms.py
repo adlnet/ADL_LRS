@@ -1,18 +1,15 @@
 from itertools import chain
 from django import forms
+from django.conf import settings
 from django.utils.html import conditional_escape
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
-from lrs.models import Token
+from oauth_provider.models import Token
 
-SCOPES = (('all', 'all'),
-          ('all/read', 'all/read'),
-          ('statements/write', 'statements/write'),
-          ('statements/read', 'statements/read'),
-          ('statements/read/mine', 'statements/read/mine'),
-          ('state', 'state'),
-          ('define', 'define'),
-          ('profile', 'profile'))
+SCOPES_LIST = []
+for p in settings.OAUTH_SCOPES:
+    SCOPES_LIST.append((p[1], p[1]))
+FORM_SCOPES = tuple(SCOPES_LIST)
 
 class ValidatorForm(forms.Form):
     jsondata = forms.CharField(label='Data', required=True, 
@@ -39,9 +36,10 @@ class RegisterForm(forms.Form):
 class RegClientForm(forms.Form):
     name = forms.CharField(max_length=200, label='Name')
     description = forms.CharField(label='Description', required=False, 
-        widget=forms.Textarea())
-    scopes = forms.MultipleChoiceField(required=False, initial=[SCOPES[2][0],SCOPES[4][0]],
-        widget=forms.CheckboxSelectMultiple, choices=SCOPES)
+        widget=forms.Textarea(attrs={'cols':50, 'rows':10}))
+    rsa = forms.BooleanField(label='RSA Signature Method', required=False)
+    secret = forms.CharField(max_length=1024, label='Public RSA Key', required=False,
+        widget=forms.Textarea(attrs={'cols':50, 'rows':10}))
 
 class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     def render(self, name, value, attrs=None, choices=()):
@@ -69,19 +67,19 @@ class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
         return mark_safe(u'\n'.join(output))
 
 class AuthClientForm(forms.Form):
-    scopes = forms.MultipleChoiceField(required=False, initial=SCOPES[0],
-        widget=MyCheckboxSelectMultiple(), choices=SCOPES)
+    scopes = forms.MultipleChoiceField(required=False, initial=FORM_SCOPES[0],
+        widget=MyCheckboxSelectMultiple(), choices=FORM_SCOPES)
     authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)        
     obj_id = forms.IntegerField(widget=forms.HiddenInput, initial=0)        
-    
+    oauth_token = forms.CharField(widget=forms.HiddenInput)
 
     def clean(self):
         cleaned = super(AuthClientForm, self).clean()
         t = Token.objects.get(id=cleaned.get('obj_id'))
-        default_scopes = t.consumer.default_scopes.split(',')
+        default_scopes = t.scope.split(' ')
         scopes = cleaned.get('scopes')
         if not scopes:
-            raise forms.ValidationError("you need to select permissions for the client")
+            raise forms.ValidationError("You need to select permissions for the client")
 
         if "statements/read/mine" in scopes and "statements/read" in scopes:
             raise forms.ValidationError("'statements/read/mine' and 'statements/read' are conflicting scope values. choose one.")

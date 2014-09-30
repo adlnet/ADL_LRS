@@ -1,11 +1,8 @@
+import json
+import base64
 from django.test import TestCase
-from django.test.utils import setup_test_environment
 from django.core.urlresolvers import reverse
 from lrs import views
-import json
-from os import path
-import sys
-import base64
 from lrs.models import Agent
 
 class AgentsTests(TestCase):
@@ -19,7 +16,7 @@ class AgentsTests(TestCase):
         self.email = "test@example.com"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username,'password':self.password,'password2':self.password, 'email':self.email}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
 
     def test_get_no_agents(self):
         agent = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
@@ -29,7 +26,7 @@ class AgentsTests(TestCase):
 
     def test_get(self):
         a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
-        me = Agent.objects.retrieve_or_create(**json.loads(a))
+        Agent.objects.retrieve_or_create(**json.loads(a))
         response = self.client.get(reverse(views.agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         r_data = json.loads(response.content)
         self.assertTrue(isinstance(r_data['mbox'], list))
@@ -47,7 +44,7 @@ class AgentsTests(TestCase):
 
     def test_head(self):
         a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
-        me = Agent.objects.retrieve_or_create(**json.loads(a))
+        Agent.objects.retrieve_or_create(**json.loads(a))
         response = self.client.head(reverse(views.agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.content, '')
         self.assertIn('content-length', response._headers)

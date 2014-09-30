@@ -35,13 +35,13 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
 </ul>
 <div id="mycontent" class="tab-content">
     <div id="mystatements" class="tab-pane fade">
-        <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">elete all statements</a></small>
+        <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">Delete all statements</a></small>
         <!-- content -->
     </div>
     <div id="clientapps" class="tab-pane fade">
-        <strong>OAuth Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">add app</a></small>
-        <div class="row">
+        <strong>OAuth Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">Add</a></small><br>
         {% if client_apps %}
+        <div class="row">
             {% for app in client_apps %}
             <div class="span5 border">
                 <h4 class="appname">{{ app.name }}</h4>
@@ -53,14 +53,18 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                 <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
                 <table class="table">
                     <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
+                    {% if not app.rsa_signature %}
                     <tr><td><strong>Secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
+                    {% else %}
+                    <tr><td><strong>Secret</strong></td><td><span style="margin-left: 5px">Your RSA key pair</span></td></tr>
+                    {% endif %}
                 </table>
             </div>
             {% endfor %}
-        {% else %}
-            <div class="span5">No OAuth1 apps</div>
-        {% endif %}
         </div>
+        {% else %}
+            <div>No OAuth1 apps</div>
+        {% endif %}
     </div>
     <div id="myaccesstokens" class="tab-pane fade">
         <strong>OAuth1 Access Tokens:</strong>
@@ -72,7 +76,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                 <span class="pull-right"><a class="delete_token" href='#myaccesstokens'>Delete</a></span>
                 <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
                 <table class="table" style="table-layout:fixed;">
-                    <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px">{{ token.key }}</span></td></tr>
+                    <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px;word-wrap: break-word">{{ token.key }}</span></td></tr>
                     <tr><td><strong>Secret</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ token.secret }}</span></td></tr>                    
                     <tr><td><strong>Date Created</strong></td><td><span style="margin-left: 5px">{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</span></td></tr>
                     <tr><td><strong>Scopes Allowed</strong></td><td></td></tr>
@@ -88,7 +92,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
         </div>
     </div>        
     <div id="clientapps2" class="tab-pane fade">
-        <strong>OAuth2 Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client2 %}">add app</a></small>
+        <strong>OAuth2 Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client2 %}">Add</a></small>
         <div class="row">
         {% if client_apps2 %}
             {% for app in client_apps2 %}

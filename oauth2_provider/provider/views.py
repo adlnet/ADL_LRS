@@ -8,7 +8,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from oauth2.models import Client
 from . import constants, scope
 
-
 class OAuthError(Exception):
     """
     Exception to throw inside any views defined in :attr:`provider.views`.
@@ -113,7 +112,7 @@ class Capture(OAuthView, Mixin):
         """
         raise NotImplementedError
 
-    def handle(self, request, data):
+    def handle(self, request, data):      
         self.cache_data(request, data)
 
         if constants.ENFORCE_SECURE and not request.is_secure():
@@ -124,7 +123,7 @@ class Capture(OAuthView, Mixin):
 
         return HttpResponseRedirect(self.get_redirect_url(request))
 
-    def get(self, request):
+    def get(self, request):      
         return self.handle(request, request.GET)
 
     def post(self, request):
@@ -158,7 +157,7 @@ class Authorize(OAuthView, Mixin):
         """
         :return: ``str`` - The client URL to display in the template after
             authorization succeeded or failed.
-        """
+        """   
         raise NotImplementedError
 
     def get_request_form(self, client, data):
@@ -245,7 +244,7 @@ class Authorize(OAuthView, Mixin):
 
         return self.render_to_response(ctx, **kwargs)
 
-    def handle(self, request, post_data=None):
+    def handle(self, request, post_data=None):      
         data = self.get_data(request)
 
         if data is None:

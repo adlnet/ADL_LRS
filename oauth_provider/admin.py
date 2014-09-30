@@ -1,13 +1,21 @@
 from django.contrib import admin
 
-# lou w - removed any references to Resource and registering Consumer, Nonce, and Token since that is done
-# in lrs/admin.py
+# from models import Scope, Consumer, Token
+from models import Consumer, Token
+
+# LRS CHANGE - REMOVED SCOPE REFERENCES
+# class ScopeAdmin(admin.ModelAdmin):
+#     pass
+
 
 class ConsumerAdmin(admin.ModelAdmin):
-	pass
+    raw_id_fields = ['user']
+
 
 class TokenAdmin(admin.ModelAdmin):
-	pass
+    raw_id_fields = ['user', 'consumer']
 
-class NonceAdmin(admin.ModelAdmin):
-	pass
+
+# admin.site.register(Scope, ScopeAdmin)
+admin.site.register(Consumer, ConsumerAdmin)
+admin.site.register(Token, TokenAdmin)

@@ -3,4 +3,5 @@
 env
 build
 migrations
+runtests
 .coverage

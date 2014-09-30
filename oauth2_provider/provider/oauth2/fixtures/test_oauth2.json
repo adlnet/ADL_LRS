@@ -25,14 +25,14 @@
     }, 
     {
         "fields": {
-            "date_joined": "2012-01-23 05:44:17", 
+            "date_joined": "2012-01-23 05:44:17+00:00", 
             "email": "test-1@example.com", 
             "first_name": "", 
             "groups": [], 
             "is_active": true, 
             "is_staff": true, 
             "is_superuser": true, 
-            "last_login": "2012-01-23 05:52:32", 
+            "last_login": "2012-01-23 05:52:32+00:00", 
             "last_name": "", 
             "password": "sha1$da29e$498b9faab2d002183bc1d874689634b0e15ad6d7", 
             "user_permissions": [], 
@@ -43,14 +43,14 @@
     }, 
     {
         "fields": {
-            "date_joined": "2012-01-23 05:53:31", 
+            "date_joined": "2012-01-23 05:53:31+00:00", 
             "email": "", 
             "first_name": "", 
             "groups": [], 
             "is_active": true, 
             "is_staff": false, 
             "is_superuser": false, 
-            "last_login": "2012-01-23 05:53:31", 
+            "last_login": "2012-01-23 05:53:31+00:00", 
             "last_name": "", 
             "password": "sha1$0cf1b$d66589690edd96b410170fcae5cc2bdfb68821e7", 
             "user_permissions": [], 

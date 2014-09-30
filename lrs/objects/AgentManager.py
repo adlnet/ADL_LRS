@@ -1,5 +1,6 @@
 import json
 from lrs.models import Agent
+from lrs.exceptions import ParamError
 
 class AgentManager():
     def __init__(self, params, define=True):
@@ -7,7 +8,7 @@ class AgentManager():
         if not isinstance(params, dict):
             try:
                 params = json.loads(params)
-            except Exception, e:
+            except Exception:
                 err_msg = "Error parsing the Agent object. Expecting json. Received: %s which is %s" % (params,
                     type(params))
                 raise ParamError(err_msg) 

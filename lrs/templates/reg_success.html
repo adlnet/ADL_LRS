@@ -13,7 +13,11 @@
         <br/>Client Identifier: {{app_id}}
     {% endif %}
     {% if secret %}
+        {% if not rsa %}
         <br/>Client Shared-Secret: {{secret}}
+        {% else %}
+        <br/>RSA key pair: Your RSA key pair
+        {% endif %}    
     {% endif %}
 </div>
 <br/>

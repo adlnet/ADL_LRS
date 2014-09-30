@@ -6,7 +6,7 @@ from django.utils.timezone import utc
 from django.conf import settings
 from django.core.cache import get_cache
 from lrs import models
-from lrs.util import uri, StatementValidator, validate_uuid, convert_to_dict, get_agent_ifp
+from lrs.util import StatementValidator, validate_uuid, convert_to_dict, get_agent_ifp
 from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 from Authorization import auth
 
@@ -21,79 +21,7 @@ def check_for_no_other_params_supplied(query_dict):
         supplied = False
     return supplied
 
-def check_oauth(func):
-    @wraps(func)
-    def inner(req_dict, *args, **kwargs):
-        auth = req_dict.get('auth', None)
-        auth_type = req_dict['auth'].get('type', None) if auth else None
-        if auth_type and (auth_type == 'oauth' or auth_type == 'oauth2'):
-            validate_oauth_scope(req_dict)    
-        return func(req_dict, *args, **kwargs)
-    return inner    
-
-# TODO - adjust for oauth2 as well
-def validate_oauth_scope(req_dict):
-    method = req_dict['method']
-    endpoint = req_dict['auth']['endpoint']
-    token = req_dict['auth']['oauth_token']
-    scopes = token.scope_to_list()
-    err_msg = "Incorrect permissions to %s at %s" % (str(method), str(endpoint))
-
-    validator = {'GET':{"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                    "/statements/more": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                    "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
-                    "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
-                    "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
-                    "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
-                    "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
-                },
-             'HEAD':{"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                    "/statements/more": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                    "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
-                    "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
-                    "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
-                    "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
-                    "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
-                },   
-             'PUT':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
-                    "/activities": True if 'all' in scopes or 'define' in scopes else False,
-                    "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
-                    "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
-                    "/agents": True if 'all' in scopes or 'define' in scopes else False,
-                    "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
-                },
-             'POST':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
-                    "/activities": True if 'all' in scopes or 'define' in scopes else False,
-                    "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
-                    "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
-                    "/agents": True if 'all' in scopes or 'define' in scopes else False,
-                    "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
-                },
-             'DELETE':{"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
-                    "/activities": True if 'all' in scopes or 'define' in scopes else False,
-                    "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
-                    "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
-                    "/agents": True if 'all' in scopes or 'define' in scopes else False,
-                    "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
-                }
-             }
-
-    # Raise forbidden if requesting wrong endpoint or with wrong method than what's in scope
-    if not validator[method][endpoint]:
-        raise Forbidden(err_msg)
-
-    # Set flag to read only statements owned by user
-    if 'statements/read/mine' in scopes:
-        req_dict['auth']['statements_mine_only'] = True
-
-    # Set flag for define - allowed to update global representation of activities/agents
-    if 'define' in scopes or 'all' in scopes:
-        req_dict['auth']['oauth_define'] = True
-    else:
-        req_dict['auth']['oauth_define'] = False
-
 # Extra agent validation for state and profile
-# TODO - adjust for oauth2 as well
 def validate_oauth_state_or_profile_agent(req_dict, endpoint):    
     ag = req_dict['params']['agent']
     token = req_dict['auth']['oauth_token']
@@ -107,7 +35,7 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
             err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
             raise NotFound(err_msg)
 
-        if not agent in req_dict['auth']['id'].member.all():
+        if not agent in req_dict['auth']['authority'].member.all():
             err_msg = "Authorization doesn't match agent in %s" % endpoint
             raise Forbidden(err_msg)
 
@@ -128,39 +56,32 @@ def server_validate_statement_object(stmt_object, auth):
     if stmt_object['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt_object['id']):
             err_msg = "No statement with ID %s was found" % stmt_object['id']
             raise IDNotFoundError(err_msg)
-    elif stmt_object['objectType'] == 'Activity' or 'objectType' not in stmt_object:
-        if 'definition' in stmt_object:
-            try:
-                activity = models.Activity.objects.get(activity_id=stmt_object['id'], canonical_version=True)
-            except models.Activity.DoesNotExist:
-                pass
-            else:
-                if auth:
-                    if auth['id'].__class__.__name__ == 'Agent':
-                        auth_name = auth['id'].name
-                    else:
-                        auth_name = auth['id'].username
-                else:
-                    auth_name = None
-                if activity.authoritative != '' and activity.authoritative != auth_name:
-                    err_msg = "This ActivityID already exists, and you do not have the correct authority to create or update it."
-                    raise Forbidden(err_msg)
-
-# TODO - adjust for oauth2
+            
 def validate_stmt_authority(stmt, auth, auth_validated):
-    if 'authority' in stmt:
-        # If they try using a non-oauth group that already exists-throw error
-        if stmt['authority']['objectType'] == 'Group' and not 'oauth_identifier' in stmt['authority']:
-            err_msg = "Statements cannot have a non-Oauth group as the authority"
-            raise ParamError(err_msg)
+    # If not validated yet - validate auth first since it supercedes any auth in stmt
+    if not auth_validated:
+        if auth['authority']:
+            if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
+                err_msg = "Statements cannot have a non-Oauth group as the authority"
+                raise ParamError(err_msg)
+            else:
+                return True
+        # If no auth then validate authority in stmt if there is one
         else:
-            return True
-    else:
-        if not auth_validated:
-            if auth:
-                if auth['id'].__class__.__name__ == 'Agent' and not auth['id'].oauth_identifier:
-                    err_msg = "Statements cannot have a non-Oauth group as the authority"
-                    raise ParamError(err_msg)
+            if 'authority' in stmt:
+                # If they try using a non-oauth group that already exists-throw error
+                if stmt['authority']['objectType'] == 'Group':
+                    contains_account = len([x for m in stmt['authority']['member'] for x in m.keys() if 'account' in x]) > 0
+                    if contains_account:
+                        for agent in stmt['authority']['member']:
+                            if 'account' in agent:
+                                if not 'oauth' in agent['account']['homePage'].lower():
+                                    err_msg = "Statements cannot have a non-Oauth group as the authority"
+                                    raise ParamError(err_msg)
+                    # No members contain an account so that means it's not an Oauth group
+                    else:
+                        err_msg = "Statements cannot have a non-Oauth group as the authority"
+                        raise ParamError(err_msg)
                 else:
                     return True
             else:
@@ -168,30 +89,29 @@ def validate_stmt_authority(stmt, auth, auth_validated):
 
 # Retrieve JSON data from ID
 def get_act_def_data(act_data):
-    resolves = True
-    act_url = {}
+    act_url_data = {}
     # See if id resolves
     try:
         req = urllib2.Request(act_data['id'])
         req.add_header('Accept', 'application/json, */*')
         act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
-    except Exception, e:
+    except Exception:
         # Doesn't resolve-hopefully data is in payload
-        resolves = False
+        pass
     else:
         # If it resolves then try parsing JSON from it
         try:
-            act_url = json.loads(act_resp.read())
-        except Exception, e:
+            act_url_data = json.loads(act_resp.read())
+        except Exception:
             # Resolves but no data to retrieve - this is OK
             pass
 
         # If there was data from the URL and a defintion in received JSON already
-        if act_url and 'definition' in act_data:
-            act_data['definition'] = dict(act_url.items() + act_data['definition'].items())
+        if act_url_data and 'definition' in act_data:
+            act_data['definition'] = dict(act_url_data.items() + act_data['definition'].items())
         # If there was data from the URL and no definition in the JSON
-        elif act_url and not 'definition' in act_data:
-            act_data['definition'] = act_url
+        elif act_url_data and not 'definition' in act_data:
+            act_data['definition'] = act_url_data
 
 def server_validation(stmt_set, auth, payload_sha2s):
     auth_validated = False    
@@ -228,30 +148,26 @@ def server_validation(stmt_set, auth, payload_sha2s):
             validate_attachments(attachment_data, payload_sha2s)
 
 @auth
-@check_oauth
 def statements_post(req_dict):
     if req_dict['params'].keys():
         raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(req_dict['params'].keys()))
-
-    payload_sha2s = req_dict.get('payload_sha2s', None)
 
     if isinstance(req_dict['body'], basestring):
         req_dict['body'] = convert_to_dict(req_dict['body'])
 
     try:
         validator = StatementValidator.StatementValidator(req_dict['body'])
-        msg = validator.validate()
+        validator.validate()
     except Exception, e:
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
 
-    server_validation(req_dict['body'], req_dict.get('auth', None), req_dict.get('payload_sha2s', None))
+    server_validation(req_dict['body'], req_dict['auth'], req_dict.get('payload_sha2s', None))
 
     return req_dict
 
 @auth
-@check_oauth
 def statements_more_get(req_dict):
     if not 'more_id' in req_dict:
         err_msg = "Missing more_id while trying to hit /more endpoint"
@@ -287,9 +203,9 @@ def validate_statementId(req_dict):
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
 
-    if auth:
-        if mine_only and st.authority.id != auth['id'].id:
-            err_msg = "Incorrect permissions to view statements that do not have auth %s" % str(auth['id'])
+    if auth['authority']:
+        if mine_only and st.authority.id != auth['authority'].id:
+            err_msg = "Incorrect permissions to view statements"
             raise Forbidden(err_msg)
     
     if st.voided != voided:
@@ -302,7 +218,6 @@ def validate_statementId(req_dict):
     return statementId
 
 @auth
-@check_oauth
 def statements_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["statementId","voidedStatementId","agent", "verb", "activity", "registration", 
                        "related_activities", "related_agents", "since",
@@ -334,7 +249,6 @@ def statements_get(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def statements_put(req_dict):
     # Find any unexpected parameters
     rogueparams = set(req_dict['params']) - set(["statementId"])
@@ -376,12 +290,12 @@ def statements_put(req_dict):
     # Validate statement in body
     try:
         validator = StatementValidator.StatementValidator(req_dict['body'])
-        msg = validator.validate()
+        validator.validate()
     except Exception, e:
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
-    server_validation(req_dict['body'], req_dict.get('auth', None), req_dict.get('payload_sha2s', None))
+    server_validation(req_dict['body'], req_dict['auth'], req_dict.get('payload_sha2s', None))
     return req_dict
 
 def validate_attachments(attachment_data, payload_sha2s):
@@ -396,7 +310,6 @@ def validate_attachments(attachment_data, payload_sha2s):
                 raise ParamError(err_msg)
 
 @auth
-@check_oauth
 def activity_state_post(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "agent", "stateId", "registration"])
     if rogueparams:
@@ -441,7 +354,6 @@ def activity_state_post(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activity_state_put(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "agent", "stateId", "registration"])
     if rogueparams:
@@ -482,7 +394,6 @@ def activity_state_put(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activity_state_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "agent", "stateId", "registration", "since"])
     if rogueparams:
@@ -510,7 +421,6 @@ def activity_state_get(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activity_state_delete(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "agent", "stateId", "registration"])
     if rogueparams:
@@ -538,7 +448,6 @@ def activity_state_delete(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activity_profile_post(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "profileId"])
     if rogueparams:
@@ -567,7 +476,6 @@ def activity_profile_post(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activity_profile_put(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "profileId"])
     if rogueparams:
@@ -594,7 +502,6 @@ def activity_profile_put(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activity_profile_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "profileId", "since"])
     if rogueparams:
@@ -608,7 +515,6 @@ def activity_profile_get(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activity_profile_delete(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "profileId"])
     if rogueparams:
@@ -627,7 +533,6 @@ def activity_profile_delete(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def activities_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId"])
     if rogueparams:
@@ -641,7 +546,7 @@ def activities_get(req_dict):
 
     # Try to retrieve activity, if DNE then return empty else return activity info
     try:
-        act = models.Activity.objects.get(activity_id=activityId)
+        models.Activity.objects.get(activity_id=activityId)
     except models.Activity.DoesNotExist:    
         err_msg = "No activity found with ID %s" % activityId
         raise IDNotFoundError(err_msg)
@@ -649,7 +554,6 @@ def activities_get(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def agent_profile_post(req_dict):
     rogueparams = set(req_dict['params']) - set(["agent", "profileId"])
     if rogueparams:
@@ -664,7 +568,7 @@ def agent_profile_post(req_dict):
         req_dict['params']['profileId']
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(msg)
+        raise ParamError(err_msg)
 
     if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for agent profile POSTs must be application/json"
@@ -684,7 +588,6 @@ def agent_profile_post(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def agent_profile_put(req_dict):
     rogueparams = set(req_dict['params']) - set(["agent", "profileId"])
     if rogueparams:
@@ -712,7 +615,6 @@ def agent_profile_put(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def agent_profile_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["agent", "profileId", "since"])
     if rogueparams:
@@ -730,7 +632,6 @@ def agent_profile_get(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def agent_profile_delete(req_dict):
     rogueparams = set(req_dict['params']) - set(["agent", "profileId"])
     if rogueparams:
@@ -753,7 +654,6 @@ def agent_profile_delete(req_dict):
     return req_dict
 
 @auth
-@check_oauth
 def agents_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["agent"])
     if rogueparams:

@@ -1,5 +1,4 @@
 from django.test import TestCase
-from lrs.exceptions import ParamError
 from lrs.models import Agent
 import hashlib
 import json
@@ -15,18 +14,15 @@ class AgentManagerTests(TestCase):
         print "\n%s" % __name__
 
     def setUp(self):
-        if not settings.HTTP_AUTH_ENABLED:
-            settings.HTTP_AUTH_ENABLED = True
+        if not settings.ALLOW_EMPTY_HTTP_AUTH:
+            settings.ALLOW_EMPTY_HTTP_AUTH = True
         
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
-
-        if settings.HTTP_AUTH_ENABLED:
-            response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
+        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
 
     def test_agent_mbox_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com"},
@@ -162,7 +158,6 @@ class AgentManagerTests(TestCase):
         self.assertEquals(gr1.name, "my group")
         agents = Agent.objects.all()
         self.assertEquals(len(agents), 4)
-        obj_types = agents.values_list('objectType', flat=True)
         self.assertEquals(len(agents.filter(objectType='Group')), 2)
         self.assertEquals(len(agents.filter(objectType='Agent')), 2)
 
@@ -243,7 +238,6 @@ class AgentManagerTests(TestCase):
 
     def test_group_update_members(self):
         ot = "Group"
-        name = "the group"
         mbox = "mailto:the.group@example.com"
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]

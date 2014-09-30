@@ -15,23 +15,16 @@ from oauth2_provider.provider.oauth2.forms import ClientForm
 from oauth2_provider.provider.oauth2.models import Client, Grant, AccessToken, RefreshToken
 from oauth2_provider.provider.oauth2.backends import BasicClientBackend, RequestParamsClientBackend, AccessTokenBackend
 
-@skipIfCustomUser
 class OAuth2Tests(TestCase):
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
-
-
+        print "\n%s-%s" % (__name__, cls.__name__)
 
     def login(self):
-        # self.client.login(username='test-user-1', password='test')
         if not settings.OAUTH_ENABLED:
             settings.OAUTH_ENABLED = True
 
-        # Create a user
-        self.user = User.objects.create_user('eddie', 'eddie@example.com', 'test')
-        user = self.client.login(username='eddit', password='test')
-
+        self.client.login(username='test-user-1', password='test')
 
     def auth_url(self):
         return reverse('oauth2:capture')
@@ -52,8 +45,7 @@ class OAuth2Tests(TestCase):
         return Grant.objects.all()[0]
 
     def get_user(self):
-        # return User.objects.get(id=1)
-        return self.user
+        return User.objects.get(username='test-user-1')
 
     def get_password(self):
         return 'test'
@@ -88,7 +80,6 @@ class AuthorizationTest(OAuth2Tests):
         self.assertEqual('/login/', urlparse.urlparse(response['Location']).path)
 
         self.login()
-
         response = self.client.get(self.auth_url())
 
         self.assertEqual(302, response.status_code)
@@ -264,6 +255,7 @@ class AccessTokenTest(OAuth2Tests):
             'grant_type': 'authorization_code',
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
+            'scope': 'statements/write',
             'code': code})
 
         self.assertEqual(200, response.status_code, response.content)
@@ -318,6 +310,7 @@ class AccessTokenTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
+            'scope': 'statements/write'
         })
 
         new_token = self._login_authorize_get_token()
@@ -348,7 +341,7 @@ class AccessTokenTest(OAuth2Tests):
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
             'code': code,
-            'scope': 'read write'})
+            'scope': 'all'})
 
         self.assertEqual(400, response.status_code)
         self.assertEqual('invalid_scope', json.loads(response.content)['error'])
@@ -361,6 +354,7 @@ class AccessTokenTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
+            'scope': 'statements/write'
         })
 
         self.assertEqual(200, response.status_code)
@@ -516,7 +510,6 @@ class EnforceSecureTest(OAuth2Tests):
         self.assertEqual(400, response.status_code)
         self.assertTrue("A secure connection is required." in response.content)
 
-
 class ClientFormTest(TestCase):
     def test_client_form(self):
         form = ClientForm({'name': 'TestName', 'url': 'http://127.0.0.1:8000',
@@ -532,45 +525,10 @@ class ClientFormTest(TestCase):
         self.assertTrue(form.is_valid())
         form.save()
 
-
-class ScopeTest(TestCase):
-    def setUp(self):
-        self._scopes = constants.SCOPES
-        constants.SCOPES = constants.DEFAULT_SCOPES
-
-    def tearDown(self):
-        constants.SCOPES = self._scopes
-
-    def test_get_scope_names(self):
-        names = scope.to_names(constants.READ)
-        self.assertEqual('read', ' '.join(names))
-
-        names = scope.names(constants.READ_WRITE)
-        names.sort()
-
-        self.assertEqual('read read+write write', ' '.join(names))
-
-    def test_get_scope_ints(self):
-        self.assertEqual(constants.READ, scope.to_int('read'))
-        self.assertEqual(constants.WRITE, scope.to_int('write'))
-        self.assertEqual(constants.READ_WRITE, scope.to_int('read', 'write'))
-        self.assertEqual(0, scope.to_int('invalid'))
-        self.assertEqual(1, scope.to_int('invalid', default=1))
-
-    def test_template_filter(self):
-        names = scopes(constants.READ)
-        self.assertEqual('read', ' '.join(names))
-
-        names = scope.names(constants.READ_WRITE)
-        names.sort()
-
-        self.assertEqual('read read+write write', ' '.join(names))
-
-
 class DeleteExpiredTest(OAuth2Tests):
     fixtures = ['test_oauth2']
 
-    def setUp(self):
+    def setUp(self):     
         self._delete_expired = constants.DELETE_EXPIRED
         constants.DELETE_EXPIRED = True
 
@@ -598,7 +556,9 @@ class DeleteExpiredTest(OAuth2Tests):
             'grant_type': 'authorization_code',
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
+            'scope': 'statements/write',
             'code': code})
+
         self.assertEquals(200, response.status_code)
         token = json.loads(response.content)
         self.assertTrue('access_token' in token)
@@ -620,6 +580,7 @@ class DeleteExpiredTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
+            'scope': 'statements/write'            
         })
         self.assertEqual(200, response.status_code)
         token = json.loads(response.content)
