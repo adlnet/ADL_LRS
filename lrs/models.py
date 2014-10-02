@@ -706,7 +706,7 @@ class Statement(models.Model):
     
     def object_return(self, lang=None, format='exact'):
         if format == 'exact':
-            return self.full_statement
+            return json.dumps(self.full_statement)
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.get_agent_json(format)

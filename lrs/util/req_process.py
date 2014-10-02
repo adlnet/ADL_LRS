@@ -1,6 +1,6 @@
 import json
-import datetime
 import uuid
+import copy
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -9,7 +9,6 @@ from django.http import HttpResponse
 from django.conf import settings
 from django.utils.timezone import utc
 from lrs import models
-from lrs.exceptions import IDNotFoundError
 from lrs.objects.ActivityProfileManager import ActivityProfileManager
 from lrs.objects.ActivityStateManager import ActivityStateManager 
 from lrs.objects.AgentManager import AgentManager
@@ -49,8 +48,8 @@ def process_statements(stmts, auth):
                 if not 'timestamp' in st:
                     st['timestamp'] = st['stored']
 
-                stmt_json = json.dumps(st)
-                stmt = StatementManager(st, auth, stmt_json).model_object
+                full_stmt = copy.deepcopy(st)
+                stmt = StatementManager(st, auth, full_stmt).model_object
                 stmt_responses.append(str(stmt.statement_id))
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
         except Exception:
@@ -86,8 +85,8 @@ def process_statements(stmts, auth):
         if not 'timestamp' in stmts:
             stmts['timestamp'] = stmts['stored']
 
-        stmt_json = json.dumps(stmts)
-        stmt = StatementManager(stmts, auth, stmt_json).model_object
+        full_stmt = copy.deepcopy(stmts)
+        stmt = StatementManager(stmts, auth, full_stmt).model_object
         stmt_responses.append(stmt.statement_id)
     return stmt_responses
 

@@ -1,5 +1,6 @@
-from urllib import urlencode
+import oauth2 as oauth
 
+from urllib import urlencode
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate
@@ -9,9 +10,6 @@ from django.utils.translation import ugettext as _
 from django.core.urlresolvers import get_callable
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-
-import oauth2 as oauth
-
 from decorators import oauth_required
 from lrs.forms import AuthClientForm
 from oauth_provider.compat import UnsafeRedirect
@@ -215,14 +213,7 @@ def access_token(request):
     })
     return HttpResponse(ret, content_type='application/x-www-form-urlencoded')
 
-@oauth_required
-def protected_resource_example(request):
-    """
-    Test view for accessing a Protected Resource.
-    """
-    return HttpResponse('Protected Resource access!')
-
-# tom c added login url
+# LRS CHANGE - ADDED OUR REAL VIEWS
 @login_required(login_url="/XAPI/accounts/login")
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
@@ -237,7 +228,6 @@ def authorize_client(request, token=None, callback=None, params=None, form=None)
     d['oauth_token'] = token.key
     return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
-# tom c added login_url
 @login_required(login_url="/XAPI/accounts/login")
 def callback_view(request, **args):
     d = {}

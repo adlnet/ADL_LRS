@@ -1,8 +1,5 @@
 import json
 import urllib2
-from datetime import datetime
-from functools import wraps
-from django.utils.timezone import utc
 from django.conf import settings
 from django.core.cache import get_cache
 from lrs import models
@@ -85,7 +82,7 @@ def validate_stmt_authority(stmt, auth, auth_validated):
                 else:
                     return True
             else:
-                return True
+                return True            
 
 # Retrieve JSON data from ID
 def get_act_def_data(act_data):

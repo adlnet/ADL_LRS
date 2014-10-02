@@ -88,7 +88,7 @@ def about(request):
                     "name": "Statements",
                     "methods": ["GET", "POST", "PUT", "HEAD"],
                     "endpoint": reverse('lrs.views.statements'),
-                    "description": "Endpoint to submit and retrieve XAPI statments.",
+                    "description": "Endpoint to submit and retrieve XAPI statements.",
                 },
                 "activities":
                 {

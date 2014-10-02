@@ -169,6 +169,7 @@ class OAuthTests(TestCase):
         # Change scope if wanted
         if change_scope:
             data['scope'] = change_scope
+
         # Post data back to auth endpoint - should redirect to callback_url we set in oauth headers with request token
         auth_post = self.client.post(AUTHORIZATION_ENDPOINT, data)
         self.assertEqual(auth_post.status_code, 302)
