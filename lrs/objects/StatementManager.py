@@ -21,12 +21,12 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
-    def __init__(self, data, auth=None, stmt_json=''):
+    def __init__(self, data, auth=None, full_stmt={}):
         self.auth = auth
         self.define = self.auth['define']
         self.data = data
         if self.__class__.__name__ == 'StatementManager':
-            self.data['full_statement'] = stmt_json
+            self.data['full_statement'] = full_stmt
         self.populate()
 
     @transaction.commit_on_success
@@ -95,7 +95,7 @@ class StatementManager():
                 act = ActivityManager(con_act_group[1], auth=self.auth['authority'], define=self.define).Activity
                 ca.context_activity.add(act)
             ca.save()
-        
+
         return stmt
 
     def populate_result(self):
