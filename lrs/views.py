@@ -163,7 +163,7 @@ def about(request):
                     "name": "Oauth Authorize",
                     "methods": ["GET"],
                     "endpoint": reverse('oauth_provider.views.user_authorization'),
-                    "description": "Authorize a user.",
+                    "description": "Authorize a user for Oauth1.",
                 },
                 "token":
                 {
@@ -180,7 +180,7 @@ def about(request):
                     "name": "Oauth2 Authorize",
                     "methods": ["GET"],
                     "endpoint": reverse('provider.oauth2.views.authorize'),
-                    "description": "Authorize a user for Ouath2.",
+                    "description": "Authorize a user for Oauth2.",
                 },
                 "access_token":
                 {
