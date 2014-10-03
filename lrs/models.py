@@ -8,6 +8,11 @@ from django.contrib.auth.models import User
 from django.utils.timezone import utc
 from oauth_provider.consts import MAX_URL_LENGTH
 
+AGENT_PROFILE_UPLOAD_TO = "agent_profile"
+ACTIVITY_STATE_UPLOAD_TO = "activity_state"
+ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
+STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
+
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     display = JSONField(default={}, blank=True)
@@ -262,7 +267,7 @@ class AgentProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True)
     agent = models.ForeignKey(Agent)
-    profile = models.FileField(upload_to="agent_profile", null=True)
+    profile = models.FileField(upload_to=AGENT_PROFILE_UPLOAD_TO, null=True)
     json_profile = models.TextField(blank=True)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
@@ -459,7 +464,7 @@ class StatementContextActivity(models.Model):
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
-    state = models.FileField(upload_to="activity_state", null=True)
+    state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
     json_state = models.TextField(blank=True)
     agent = models.ForeignKey(Agent, db_index=True)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
@@ -476,7 +481,7 @@ class ActivityProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     activityId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    profile = models.FileField(upload_to="activity_profile", null=True)
+    profile = models.FileField(upload_to=ACTIVITY_PROFILE_UPLOAD_TO, null=True)
     json_profile = models.TextField(blank=True)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
@@ -629,7 +634,7 @@ class StatementAttachment(models.Model):
     length = models.PositiveIntegerField()
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    payload = models.FileField(upload_to="attachment_payloads", null=True)
+    payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, null=True)
     display = JSONField(default={}, blank=True)
     description = JSONField(default={}, blank=True)
 
