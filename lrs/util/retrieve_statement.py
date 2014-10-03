@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from itertools import chain
-from lrs.models import Statement
+from lrs.models import Statement, Agent
 from lrs.objects.AgentManager import AgentManager
 from lrs.util import convert_to_utc, convert_to_dict
 from lrs.exceptions import NotFound, IDNotFoundError
@@ -31,7 +31,17 @@ def complex_get(param_dict, limit, language, format, attachments):
     # For statements/read/mine oauth scope
     authq = Q()
     if 'auth' in param_dict and (param_dict['auth'] and 'statements_mine_only' in param_dict['auth']):
-        authq = Q(authority=param_dict['auth']['authority'])
+        q_auth = param_dict['auth']['authority']
+
+        # If oauth - set authority to look for as the user
+        if q_auth.oauth_identifier:
+            authq = Q(authority=q_auth) | Q(authority=q_auth.get_user_from_oauth_group())
+        # Chain all of user's oauth clients as well
+        else:
+            oauth_clients = Agent.objects.filter(member__in=[q_auth])
+            authq = Q(authority=q_auth)
+            for client in oauth_clients:
+                authq = authq | Q(authority=client.get_user_from_oauth_group())
 
     agentQ = Q()
     if 'agent' in param_dict:

@@ -260,6 +260,14 @@ class Agent(models.Model):
             else:
                 return "anonymous group"
 
+    def get_user_from_oauth_group(self):
+        if self.oauth_identifier:
+            if self.member.all()[0].account_homePage:
+                return self.member.all()[1]
+            else:
+                return self.member.all()[0]
+        return None
+
     def __unicode__(self):
         return json.dumps(self.get_agent_json())
 

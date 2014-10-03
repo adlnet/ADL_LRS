@@ -82,7 +82,7 @@ STATICFILES_DIRS = (
 )
 
 # Where to be redirected after logging in
-LOGIN_URL = '/XAPI/me'
+LOGIN_REDIRECT_URL = '/XAPI/me'
 
 # Me view has a tab of user's statements
 STMTS_PER_PAGE = 10
