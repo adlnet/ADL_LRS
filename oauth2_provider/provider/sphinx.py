@@ -1,7 +1,7 @@
 """
 Custom Sphinx documentation module to link to parts of the OAuth2 draft.
 """
-from docutils import nodes, utils
+from docutils import nodes
 
 base_url = "http://tools.ietf.org/html/rfc6749"
 

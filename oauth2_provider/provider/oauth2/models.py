@@ -11,6 +11,7 @@ from ..constants import CLIENT_TYPES
 from ..utils import now, short_token, long_token, get_code_expiry
 from ..utils import get_token_expiry, serialize_instance, deserialize_instance
 from .managers import AccessTokenManager
+from ..scope import to_names
 
 try:
     from django.utils import timezone
@@ -166,6 +167,8 @@ class AccessToken(models.Model):
         timedelta = expiration - reference
         return timedelta.days*86400 + timedelta.seconds
 
+    def scope_to_list(self):
+        return to_names(self.scope)
 
 class RefreshToken(models.Model):
     """

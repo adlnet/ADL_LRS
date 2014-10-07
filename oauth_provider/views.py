@@ -10,10 +10,8 @@ from django.utils.translation import ugettext as _
 from django.core.urlresolvers import get_callable
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from decorators import oauth_required
 from lrs.forms import AuthClientForm
 from oauth_provider.compat import UnsafeRedirect
-from responses import INVALID_PARAMS_RESPONSE, INVALID_CONSUMER_RESPONSE, COULD_NOT_VERIFY_OAUTH_REQUEST_RESPONSE
 from store import store, InvalidConsumerError, InvalidTokenError
 from utils import verify_oauth_request, get_oauth_request, require_params, send_oauth_error
 from utils import is_xauth_request
@@ -48,7 +46,7 @@ def request_token(request):
 
     try:
         request_token = store.create_request_token(request, oauth_request, consumer, oauth_request['oauth_callback'])
-    except oauth.Error, err:
+    except oauth.Error:
         return HttpResponse('Invalid request token: %s' % oauth_request.get_parameter('oauth_token'), status=401)
 
     ret = urlencode({
@@ -239,6 +237,6 @@ def callback_view(request, **args):
     except AttributeError, e:
         send_oauth_error(e)
     except Token.DoesNotExist, e:
-        send_oauth_error(err)
+        send_oauth_error(e)
     d['verifier'] = oauth_token.verifier
     return render_to_response('oauth_verifier_pin.html', d, context_instance=RequestContext(request))

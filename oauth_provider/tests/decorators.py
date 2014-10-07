@@ -1,5 +1,4 @@
 ## -*- coding: utf-8 -*-
-from pprint import pprint
 import time
 import urllib
 from oauth_provider.models import Scope

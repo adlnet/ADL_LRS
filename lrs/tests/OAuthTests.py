@@ -916,7 +916,7 @@ Lw03eHTNQghS0A==
 
     def test_request_token_rsa_sha1_full_workflow(self):
         # Create a user
-        user = User.objects.create_user('mike', 'mike@example.com', 'dino')
+        User.objects.create_user('mike', 'mike@example.com', 'dino')
         self.client.login(username='mike', password='dino')
 
         # Register a consumer with rsa

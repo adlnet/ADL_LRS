@@ -1,19 +1,23 @@
 import json
 import urlparse
 import datetime
+import base64
+import uuid
+import urllib
 from django.http import QueryDict
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.test import TestCase
 from django.contrib.auth.models import User
-from oauth2_provider.provider import constants, scope
-from oauth2_provider.provider.compat import skipIfCustomUser
-from oauth2_provider.provider.templatetags.scope import scopes
+from lrs import views, models
+from oauth2_provider.provider import constants
 from oauth2_provider.provider.utils import now as date_now
 from oauth2_provider.provider.oauth2.forms import ClientForm
 from oauth2_provider.provider.oauth2.models import Client, Grant, AccessToken, RefreshToken
 from oauth2_provider.provider.oauth2.backends import BasicClientBackend, RequestParamsClientBackend, AccessTokenBackend
+
+DEFAULT_SCOPE = [constants.SCOPES[0][1], constants.SCOPES[1][1]]
 
 class OAuth2Tests(TestCase):
     @classmethod
@@ -38,8 +42,8 @@ class OAuth2Tests(TestCase):
     def access_token_url(self):
         return reverse('oauth2:access_token')
 
-    def get_client(self):
-        return Client.objects.get(id=2)
+    def get_client(self, cid=2):
+        return Client.objects.get(id=cid)
 
     def get_grant(self):
         return Grant.objects.all()[0]
@@ -50,17 +54,18 @@ class OAuth2Tests(TestCase):
     def get_password(self):
         return 'test'
 
-    def _login_and_authorize(self, url_func=None):
+    def _login_and_authorize(self, url_func=None, scope=None, cid=2):
         if url_func is None:
-            url_func = lambda: self.auth_url() + '?client_id=%s&response_type=code&state=abc' % self.get_client().client_id
+            url_func = lambda: self.auth_url() + '?client_id=%s&response_type=code&state=abc' % self.get_client(cid).client_id
 
         response = self.client.get(url_func())
         response = self.client.get(self.auth_url2())
 
         # LRS CHANGE - DON'T HAVE TO SUPPLY SCOPE HERE - SHOULD GET DEFAULTED
-        # scope = '%s %s' % (constants.SCOPES[0][1], constants.SCOPES[1][1])
-        # response = self.client.post(self.auth_url2(), {'authorize': True, 'scope': [scope]})
-        response = self.client.post(self.auth_url2(), {'authorize': True})
+        if scope:
+            response = self.client.post(self.auth_url2(), {'authorize': True, 'scope': scope})
+        else:
+            response = self.client.post(self.auth_url2(), {'authorize': True})
         self.assertEqual(302, response.status_code, response.content)
         self.assertTrue(self.redirect_url() in response['Location'])
 
@@ -210,6 +215,9 @@ class AuthorizationTest(OAuth2Tests):
 class AccessTokenTest(OAuth2Tests):
     fixtures = ['test_oauth2.json']
 
+    def get_user_auth(self):
+        return  "Basic %s" % base64.b64encode("%s:%s" % ("test-user-1", "test"))
+
     def test_access_token_get_expire_delta_value(self):
         user = self.get_user()
         client = self.get_client()
@@ -244,11 +252,12 @@ class AccessTokenTest(OAuth2Tests):
         self.assertEqual(400, response.status_code, response.content)
         self.assertEqual('invalid_grant', json.loads(response.content)['error'])
 
-    def _login_authorize_get_token(self):
+
+    def _login_authorize_get_token(self, scope=DEFAULT_SCOPE, cid=2):
         required_props = ['access_token', 'token_type']
 
         self.login()
-        self._login_and_authorize()
+        self._login_and_authorize(url_func=None, scope=scope, cid=cid)
 
         response = self.client.get(self.redirect_url())
         query = QueryDict(urlparse.urlparse(response['Location']).query)
@@ -256,9 +265,9 @@ class AccessTokenTest(OAuth2Tests):
 
         response = self.client.post(self.access_token_url(), {
             'grant_type': 'authorization_code',
-            'client_id': self.get_client().client_id,
-            'client_secret': self.get_client().client_secret,
-            'scope': [constants.SCOPES[0][1], constants.SCOPES[1][1]],
+            'client_id': self.get_client(cid).client_id,
+            'client_secret': self.get_client(cid).client_secret,
+            'scope': scope,
             'code': code})
 
         self.assertEqual(200, response.status_code, response.content)
@@ -270,6 +279,211 @@ class AccessTokenTest(OAuth2Tests):
                     "required property: %s" % prop)
 
         return token
+
+    def test_get_statements_user_submitted(self):
+        token = self._login_authorize_get_token()
+
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=token, content_type="application/json")
+        self.assertEqual(stmt_get.status_code, 200)
+        stmts = json.loads(stmt_get.content)['statements']
+        self.assertEqual(len(stmts), 1)
+
+    def test_get_statements_oauth_submitted(self):
+        token = self._login_authorize_get_token()
+
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=token, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=token, content_type="application/json")
+        self.assertEqual(stmt_get.status_code, 200)
+        stmts = json.loads(stmt_get.content)['statements']
+        self.assertEqual(len(stmts), 1)
+
+    def test_get_statements_mix_submitted(self):
+        token = self._login_authorize_get_token()
+
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=token, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
+            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=token, content_type="application/json")
+        self.assertEqual(stmt_get.status_code, 200)
+        stmts = json.loads(stmt_get.content)['statements']
+        self.assertEqual(len(stmts), 2)
+
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=self.get_user_auth(), content_type="application/json")
+        self.assertEqual(stmt_get.status_code, 200)
+        stmts = json.loads(stmt_get.content)['statements']
+        self.assertEqual(len(stmts), 2)
+
+    def test_put_statements(self):
+        token = self._login_authorize_get_token(scope=[constants.SCOPES[0][1]])
+
+        put_guid = str(uuid.uuid1())
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"act:test_put"}})
+        param = {"statementId":put_guid}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+        
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=token, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 204)        
+
+    def test_post_statements(self):
+        token = self._login_authorize_get_token()
+
+        stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}}
+        stmt_json = json.dumps(stmt)
+        
+        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+            Authorization=token, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 200)
+
+    def test_write_statements_wrong_scope(self):
+        token = self._login_authorize_get_token(scope=[constants.SCOPES[2][1]])
+
+        stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}}
+        stmt_json = json.dumps(stmt)
+        
+        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+            Authorization=token, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post.status_code, 403)
+
+    def test_complex_statement_get(self):
+        token = self._login_authorize_get_token()
+
+        stmt_data = [{"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}},
+            {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {"id":"act:test_post"}}]
+        stmt_post = self.client.post(reverse(views.statements), json.dumps(stmt_data), content_type="application/json",
+            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post.status_code, 200)
+
+        param = {"activity":"act:test_complex_get"}
+        path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
+
+        resp = self.client.get(path,Authorization=token, X_Experience_API_Version="1.0.0")        
+        self.assertEqual(resp.status_code, 200)
+        stmts = json.loads(resp.content)['statements']
+        self.assertEqual(len(stmts), 1)
+
+    def test_define(self):
+        stmt = {
+                "actor":{
+                    "objectType": "Agent",
+                    "mbox":"mailto:t@t.com",
+                    "name":"bob"
+                },
+                "verb":{
+                    "id": "http://adlnet.gov/expapi/verbs/passed",
+                    "display": {"en-US":"passed"}
+                },
+                "object":{
+                    "id":"act:test_define",
+                    'definition': {
+                        'name': {'en-US':'testname'},
+                        'description': {'en-US':'testdesc'},
+                        'type': 'type:course'
+                    }
+                }
+            }
+        stmt_post = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post.status_code, 200)
+
+        token = self._login_authorize_get_token()
+
+        stmt2 = {
+                "actor":{
+                    "objectType": "Agent",
+                    "mbox":"mailto:t@t.com",
+                    "name":"bob"
+                },
+                "verb":{
+                    "id": "http://adlnet.gov/expapi/verbs/passed",
+                    "display": {"en-US":"passed"}
+                },
+                "object":{
+                    "id":"act:test_define",
+                    'definition': {
+                        'name': {'en-US':'testname differ'},
+                        'description': {'en-US':'testdesc differ'},
+                        'type': 'type:course'
+                    }
+                }
+            }
+        # Doesn't have define permission - should create another activity with that ID that isn't canonical
+        stmt_post2 = self.client.post(reverse(views.statements), json.dumps(stmt2), content_type="application/json",
+            Authorization=token, X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post2.status_code, 200)
+        acts = models.Activity.objects.filter(activity_id="act:test_define")
+        self.assertEqual(len(acts), 2)
+
+        stmt_post = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post.status_code, 200)
+
+        token2 = self._login_authorize_get_token(scope=[constants.SCOPES[0][1], constants.SCOPES[4][1]], cid=1)
+
+        stmt3 = {
+                "actor":{
+                    "objectType": "Agent",
+                    "mbox":"mailto:t@t.com",
+                    "name":"bob"
+                },
+                "verb":{
+                    "id": "http://adlnet.gov/expapi/verbs/passed",
+                    "display": {"en-US":"passed"}
+                },
+                "object":{
+                    "id":"act:test_define",
+                    'definition': {
+                        'name': {'en-US':'testname i define!'},
+                        'description': {'en-US':'testdesc i define!'},
+                        'type': 'type:course'
+                    }
+                }
+            }
+        # Doesn't have define permission - should create another activity with that ID that isn't canonical
+        stmt_post3 = self.client.post(reverse(views.statements), json.dumps(stmt3), content_type="application/json",
+            Authorization=token2, X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post3.status_code, 200)
+        act_names = models.Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_name', flat=True)
+        act_descs = models.Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
+        self.assertEqual(len(act_names), 2)
+        self.assertEqual(len(act_descs), 2)
+        self.assertIn('{"en-US":"testname i define!"}', act_names)
+        self.assertIn('{"en-US":"testdesc i define!"}', act_descs)
 
     def test_fetching_access_token_with_valid_grant(self):
         self._login_authorize_get_token()

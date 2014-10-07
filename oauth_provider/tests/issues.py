@@ -20,7 +20,7 @@ class OAuthTestsBug10(BaseOAuthTestCase):
     See https://code.welldev.org/django-oauth-plus/issue/10/malformed-callback-url-when-user-denies
     """
     def test_Request_token_request_succeeds_with_valid_request_token_parameters(self):
-        response = self._request_token()
+        self._request_token()
         token = self.request_token
 
         self.assertEqual(token.callback,
