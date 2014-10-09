@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}ADL LRS Client Registration{% endblock title %}
+{% block heading %}ADL LRS Client Registration{% endblock heading %}
+{% block content %}
+<p>
+	Registration is used to enable OAuth Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register your client and follow the OAuth process, you will be able to send data back and forth from the LRS to your client.
+</p>
+{% for key,err in form.errors.items %}
+<span class="label label-warning">
+	<strong>{{ key }}</strong>:{{ err }}
+</span>
+{% endfor %}
+<form action="{% url lrs.views.reg_client2 %}" method="post">
+	{% include 'table_form.html' %}
+	<input type="submit" value="Register" />
+</form>
+{% endblock content %}

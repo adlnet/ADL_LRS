@@ -1,5 +1,6 @@
-from urllib import urlencode
+import oauth2 as oauth
 
+from urllib import urlencode
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate
@@ -9,21 +10,13 @@ from django.utils.translation import ugettext as _
 from django.core.urlresolvers import get_callable
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-
-import oauth2 as oauth
-
-from decorators import oauth_required
 from lrs.forms import AuthClientForm
 from oauth_provider.compat import UnsafeRedirect
-from responses import INVALID_PARAMS_RESPONSE, INVALID_CONSUMER_RESPONSE, COULD_NOT_VERIFY_OAUTH_REQUEST_RESPONSE
 from store import store, InvalidConsumerError, InvalidTokenError
 from utils import verify_oauth_request, get_oauth_request, require_params, send_oauth_error
 from utils import is_xauth_request
 from consts import OUT_OF_BAND
 from models import Token
-
-# ADL CHANGE - ADDED LRS FORM
-from lrs.forms import AuthClientForm
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
@@ -53,7 +46,7 @@ def request_token(request):
 
     try:
         request_token = store.create_request_token(request, oauth_request, consumer, oauth_request['oauth_callback'])
-    except oauth.Error, err:
+    except oauth.Error:
         return HttpResponse('Invalid request token: %s' % oauth_request.get_parameter('oauth_token'), status=401)
 
     ret = urlencode({
@@ -218,36 +211,13 @@ def access_token(request):
     })
     return HttpResponse(ret, content_type='application/x-www-form-urlencoded')
 
-@oauth_required
-def protected_resource_example(request):
-    """
-    Test view for accessing a Protected Resource.
-    """
-    return HttpResponse('Protected Resource access!')
-
-# @login_required
-# def fake_authorize_view(request, token, callback, params):
-#     """
-#     Fake view for tests. It must return an ``HttpResponse``.
-    
-#     You need to define your own in ``settings.OAUTH_AUTHORIZE_VIEW``.
-#     """
-#     return HttpResponse('Fake authorize view for %s with params: %s.' % (token.consumer.name, params))
-
-# def fake_callback_view(request, **args):
-#     """
-#     Fake view for tests. It must return an ``HttpResponse``.
-    
-#     You can define your own in ``settings.OAUTH_CALLBACK_VIEW``.
-#     """
-#     return HttpResponse('Fake callback view.')
-
 # LRS CHANGE - ADDED OUR REAL VIEWS
 @login_required(login_url="/XAPI/accounts/login")
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
         form = AuthClientForm(initial={'scopes': token.scope_to_list(),
                                       'obj_id': token.pk})
+
     d = {}
     d['form'] = form
     d['name'] = token.consumer.name
@@ -267,6 +237,6 @@ def callback_view(request, **args):
     except AttributeError, e:
         send_oauth_error(e)
     except Token.DoesNotExist, e:
-        send_oauth_error(err)
+        send_oauth_error(e)
     d['verifier'] = oauth_token.verifier
     return render_to_response('oauth_verifier_pin.html', d, context_instance=RequestContext(request))

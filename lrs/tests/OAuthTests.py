@@ -4,6 +4,8 @@ import urllib
 import os
 import base64
 import time
+import string
+import random
 import oauth2 as oauth
 from Crypto.PublicKey import RSA
 from django.conf import settings
@@ -39,6 +41,14 @@ class OAuthTests(TestCase):
         form = {"name":self.name, "description":self.desc}
         self.client.post(reverse(views.reg_client),form)
         self.consumer = Consumer.objects.get(name=self.name)
+
+        self.name2jane = "test jane client2"
+        self.desc2jane = "test jane client desc2"
+        form2jane = {"name":self.name2jane, "description":self.desc2jane}
+        self.client.post(reverse(views.reg_client),form2jane)
+        self.consumer2jane = Consumer.objects.get(name=self.name2jane)
+
+
         self.client.logout()
         self.jane_auth = "Basic %s" % base64.b64encode("%s:%s" % ('jane','toto'))
 
@@ -73,11 +83,14 @@ class OAuthTests(TestCase):
                 raise e
 
     def oauth_handshake(self, scope=True, scope_type=None, parameters=None, param_type='qs', change_scope=[],
-        request_nonce='', access_nonce='', resource_nonce=''):
+        request_nonce='', access_nonce='', resource_nonce='', consumer=None):
 
         # ============= INITIATE =============
         if not request_nonce:
-            request_nonce = "request_nonce"
+            request_nonce = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+
+        if not consumer:
+            consumer = self.consumer
 
         oauth_header_request_token_params = "OAuth realm=\"test\","\
                "oauth_consumer_key=\"%s\","\
@@ -85,7 +98,7 @@ class OAuthTests(TestCase):
                "oauth_timestamp=\"%s\","\
                "oauth_nonce=\"%s\","\
                "oauth_version=\"1.0\","\
-               "oauth_callback=\"http://example.com/access_token_ready\"" % (self.consumer.key,str(int(time.time())), request_nonce)
+               "oauth_callback=\"http://example.com/access_token_ready\"" % (consumer.key,str(int(time.time())), request_nonce)
 
         # Add non oauth parameters appropriately
         request_token_params = {}
@@ -117,15 +130,15 @@ class OAuthTests(TestCase):
 
         # Make oauth request depending on where the parameters are
         if param_type == 'qs':
-            oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='GET',
+            oauth_request = oauth.Request.from_consumer_and_token(consumer, token=None, http_method='GET',
                 http_url=request_token_path, parameters=oauth_header_request_token_params_dict)
         else:
-            oauth_request = oauth.Request.from_consumer_and_token(self.consumer, token=None, http_method='POST',
+            oauth_request = oauth.Request.from_consumer_and_token(consumer, token=None, http_method='POST',
                 http_url=request_token_path, parameters=dict(oauth_header_request_token_params_dict.items()+request_token_params.items()))
 
         # create signature and add it to the header params
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
-        signature = signature_method.sign(oauth_request, self.consumer, None)
+        signature = signature_method.sign(oauth_request, consumer, None)
         oauth_header_request_token_params = oauth_header_request_token_params + ",oauth_signature=%s" % signature
         
         # Send request depending on the parameters
@@ -140,7 +153,8 @@ class OAuthTests(TestCase):
         self.assertIn('oauth_token_secret', request_resp.content)
         self.assertIn('oauth_token', request_resp.content)
         self.assertIn('oauth_callback_confirmed', request_resp.content)
-        request_token = Token.objects.get(consumer=self.consumer)
+        token_secret = request_resp.content.split('&')[0].split('=')[1]
+        request_token = Token.objects.get(secret=token_secret)
         # ============= END INITIATE =============
 
 
@@ -177,7 +191,8 @@ class OAuthTests(TestCase):
         self.assertIn('http://example.com/access_token_ready?oauth_verifier=', auth_post['Location'])
         self.assertIn('oauth_token=', auth_post['Location'])
         # Get token again just to make sure
-        request_token_after_auth = Token.objects.get(consumer=self.consumer)
+        token_key = auth_post['Location'].split('?')[1].split('&')[1].split('=')[1]
+        request_token_after_auth = Token.objects.get(key=token_key)
         self.assertIn(request_token_after_auth.key, auth_post['Location'])
         self.assertEqual(request_token_after_auth.is_approved, True)
         #  ============= END AUTHORIZE =============
@@ -195,7 +210,7 @@ class OAuthTests(TestCase):
             "oauth_timestamp=\"%s\","\
             "oauth_nonce=\"%s\","\
             "oauth_version=\"1.0\","\
-            "oauth_verifier=\"%s\"" % (self.consumer.key, request_token_after_auth.key, str(int(time.time())), access_nonce, request_token_after_auth.verifier)
+            "oauth_verifier=\"%s\"" % (consumer.key, request_token_after_auth.key, str(int(time.time())), access_nonce, request_token_after_auth.verifier)
 
         # from_token_and_callback takes a dictionary        
         param_list = oauth_header_access_token_params.split(",")
@@ -211,7 +226,7 @@ class OAuthTests(TestCase):
 
         # Create signature and add it to the headers
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
-        signature = signature_method.sign(oauth_request, self.consumer, request_token_after_auth)
+        signature = signature_method.sign(oauth_request, consumer, request_token_after_auth)
         oauth_header_access_token_params += ',oauth_signature="%s"' % signature
 
         # Get access token
@@ -232,8 +247,9 @@ class OAuthTests(TestCase):
             "oauth_signature_method=\"HMAC-SHA1\","\
             "oauth_timestamp=\"%s\","\
             "oauth_nonce=\"%s\","\
-            "oauth_version=\"1.0\"" % (self.consumer.key, access_token.key, str(int(time.time())), resource_nonce)
+            "oauth_version=\"1.0\"" % (consumer.key, access_token.key, str(int(time.time())), resource_nonce)
 
+        self.client.logout()
         return oauth_header_resource_params, access_token
 
     def oauth_handshake2(self, scope=True, scope_type=None, parameters=None, param_type='qs', change_scope=[],
@@ -387,6 +403,7 @@ class OAuthTests(TestCase):
             "oauth_nonce=\"%s\","\
             "oauth_version=\"1.0\"" % (self.consumer2.key, access_token.key, str(int(time.time())), resource_nonce)
 
+        self.client.logout()
         return oauth_header_resource_params, access_token
 
     def test_request_token_missing_headers(self):
@@ -899,7 +916,7 @@ Lw03eHTNQghS0A==
 
     def test_request_token_rsa_sha1_full_workflow(self):
         # Create a user
-        user = User.objects.create_user('mike', 'mike@example.com', 'dino')
+        User.objects.create_user('mike', 'mike@example.com', 'dino')
         self.client.login(username='mike', password='dino')
 
         # Register a consumer with rsa
@@ -2353,6 +2370,7 @@ Lw03eHTNQghS0A==
             Authorization=new_oauth_headers2, X_Experience_API_Version="1.0.0")
         get_content2 = json.loads(get2.content)
         self.assertEqual(get2.status_code, 200)
+
         self.assertEqual(get_content2['statements'][0]['actor']['name'], 'bill')
         self.assertEqual(len(get_content2['statements']), 1)
 
@@ -2852,3 +2870,93 @@ Lw03eHTNQghS0A==
         act = acts[0].object_return()
         self.assertEqual(act['id'], 'test://test/define/scope')
         self.assertIn('definition', act) 
+
+    def test_multiple_client_get(self):
+        url = 'http://testserver/XAPI/statements'
+
+        # build stmt data and path
+        put_guid = str(uuid.uuid1())
+        stmt = {"actor":{"objectType": "Agent",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
+        param = {"statementId":put_guid}
+        path = "%s?%s" % (url, urllib.urlencode(param))
+        
+        # START PUT STMT
+        oauth_header_resource_params, access_token = self.oauth_handshake(scope_type='statements/write statements/read define')
+        
+        # from_token_and_callback takes a dictionary        
+        param_list = oauth_header_resource_params.split(",")
+        oauth_header_resource_params_dict = {}
+        for p in param_list:
+            item = p.split("=")
+            oauth_header_resource_params_dict[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict['OAuth realm']
+
+        # Create oauth request and add signature
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='PUT',
+            http_url=path, parameters=oauth_header_resource_params_dict)
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        signature = signature_method.sign(oauth_request, self.consumer, access_token)
+        oauth_header_resource_params += ',oauth_signature="%s"' % signature
+        
+        # Put statements - should update existing activity since jane is in oauth group
+        resp = self.client.put(path, data=stmt, content_type="application/json",
+            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp.status_code, 204)
+        # ==================================================================
+
+        # build stmt data and path
+        put_guid2 = str(uuid.uuid1())
+        stmt2 = {"actor":{"objectType": "Agent",
+            "mbox":"mailto:billbob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "display": {"en-US":"passed"}},"object": {"id":"test://mult-test"}}
+        param2 = {"statementId":put_guid2}
+        path2 = "%s?%s" % (url, urllib.urlencode(param2))
+        
+        # START PUT STMT
+        oauth_header_resource_params2, access_token2 = self.oauth_handshake(scope_type='statements/write define', consumer=self.consumer2jane)
+        
+        # from_token_and_callback takes a dictionary        
+        param_list2 = oauth_header_resource_params2.split(",")
+        oauth_header_resource_params_dict2 = {}
+        for p in param_list2:
+            item = p.split("=")
+            oauth_header_resource_params_dict2[str(item[0]).strip()] = str(item[1]).strip('"')
+        # from_request ignores realm, must remove so not input to from_token_and_callback
+        del oauth_header_resource_params_dict2['OAuth realm']
+
+        # Create oauth request and add signature
+        oauth_request2 = oauth.Request.from_token_and_callback(access_token2, http_method='PUT',
+            http_url=path2, parameters=oauth_header_resource_params_dict2)
+        signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
+        signature2 = signature_method2.sign(oauth_request2, self.consumer2jane, access_token2)
+        oauth_header_resource_params2 += ',oauth_signature="%s"' % signature2
+        
+        # Put statements - should update existing activity since jane is in oauth group
+        resp2 = self.client.put(path2, data=stmt2, content_type="application/json",
+            Authorization=oauth_header_resource_params2, X_Experience_API_Version="1.0.0")
+        self.assertEqual(resp2.status_code, 204)
+        # ==================================================================
+
+
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "object": {"id":"test://test/define/scope",
+            'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
+            'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
+            'interactionType': 'other'}}})
+        stmt_post = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(stmt_post.status_code, 200)
+        # ==================================================================
+
+
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=self.jane_auth)
+        self.assertEqual(stmt_get.status_code, 200)
+        content = json.loads(stmt_get.content)
+        self.assertEqual(len(content['statements']), 3)
+
+        jane_clients = Consumer.objects.filter(user=self.user)
+        self.assertEqual(len(jane_clients), 2)

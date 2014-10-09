@@ -6,7 +6,7 @@ import oauth2 as oauth
 from django.test import Client
 
 from oauth_provider.tests.auth import BaseOAuthTestCase
-from oauth_provider.models import Token, Consumer, Resource, Scope
+from oauth_provider.models import Token, Consumer, Scope
 from oauth_provider.compat import get_user_model
 
 User = get_user_model()
@@ -179,7 +179,7 @@ class ProtocolExample(BaseOAuthTestCase):
         self.c.login(username='jane', password='toto')
         response = self.c.get("/oauth/authorize/", parameters)
         parameters['authorize_access'] = 1
-        response = self.c.post("/oauth/authorize/", parameters)
+        self.c.post("/oauth/authorize/", parameters)
 
         request_token = self._update_token_from_db(request_token)
         self.assertTrue(request_token.is_approved)

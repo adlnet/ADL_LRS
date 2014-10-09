@@ -18,6 +18,9 @@ from lrs import forms, models, exceptions
 from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
+from oauth2_provider.provider.scope import to_names
+from oauth2_provider.provider.oauth2.forms import ClientForm
+from oauth2_provider.provider.oauth2.models import Client, AccessToken
 
 # This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
@@ -133,11 +136,18 @@ def about(request):
                 },
                 "client_register":
                 {
-                    "name": "Client Registration",
+                    "name": "OAuth1 Client Registration",
                     "methods": ["POST"],
                     "endpoint": reverse('lrs.views.reg_client'),
-                    "description": "Registers a client applicaton with the LRS.",
-                }
+                    "description": "Registers an OAuth client applicaton with the LRS.",
+                },
+                "client_register2":
+                {
+                    "name": "OAuth2 Client Registration",
+                    "methods": ["POST"],
+                    "endpoint": reverse('lrs.views.reg_client2'),
+                    "description": "Registers an OAuth2 client applicaton with the LRS.",
+                }                
             },
             "oauth":
             {
@@ -153,7 +163,7 @@ def about(request):
                     "name": "Oauth Authorize",
                     "methods": ["GET"],
                     "endpoint": reverse('oauth_provider.views.user_authorization'),
-                    "description": "Authorize a user.",
+                    "description": "Authorize a user for Oauth1.",
                 },
                 "token":
                 {
@@ -162,10 +172,28 @@ def about(request):
                     "endpoint": reverse('oauth_provider.views.access_token'),
                     "description": "Provides Oauth token to the client.",
                 }
-            }
+            },
+            "oauth2":
+            {
+                "authorize":
+                {
+                    "name": "Oauth2 Authorize",
+                    "methods": ["GET"],
+                    "endpoint": reverse('provider.oauth2.views.authorize'),
+                    "description": "Authorize a user for Oauth2.",
+                },
+                "access_token":
+                {
+                    "name": "Oauth2 Token",
+                    "methods": ["POST"],
+                    "endpoint": reverse('provider.oauth2.views.access_token'),
+                    "description": "Provides Oauth2 token to the client.",
+                }
+            }            
         }
     }    
     return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)
+
 
 def actexample(request):
     return render_to_response('actexample.json', mimetype="application/json")
@@ -237,10 +265,35 @@ def reg_client(request):
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["POST", "GET"])
+def reg_client2(request):
+    if request.method == 'GET':
+        form = ClientForm()
+        return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
+    elif request.method == 'POST':
+        form = ClientForm(request.POST)
+        if form.is_valid(): 
+            client = form.save(commit=False)
+            client.user = request.user
+            client.save()
+            d = {"name":client.name,"app_id":client.client_id, "secret":client.client_secret, "info_message": "Your Client Credentials"}
+            return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
+        else:
+            return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
+
+@login_required(login_url="/XAPI/accounts/login")
 def me(request):
     client_apps = Consumer.objects.filter(user=request.user)
     access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
-    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens},
+    client_apps2 = Client.objects.filter(user=request.user)
+    access_tokens2 = AccessToken.objects.filter(user=request.user)
+    access_token_scopes = []
+
+    for token in access_tokens2:
+        scopes = to_names(token.scope)
+        access_token_scopes.append((token, scopes))
+
+    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2, 'access_tokens2':access_token_scopes},
         context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
@@ -329,6 +382,34 @@ def delete_token(request):
         return HttpResponse("", status=204)
     except:
         return HttpResponse("Unknown token", status=400)
+
+@login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["DELETE"])
+def delete_token2(request):
+    try:
+        token_key = request.GET['id']
+        token = AccessToken.objects.get(token=token_key)
+    except:
+        return HttpResponse("Unknown token", status=400)
+    try:
+        token.delete()
+    except Exception, e:
+        return HttpResponse(e.message, status=400)
+    return HttpResponse("", status=204)
+
+@login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["DELETE"])
+def delete_client(request):
+    try:
+        client_id = request.GET['id']
+        client = Client.objects.get(user=request.user,client_id=client_id)
+    except:
+        return HttpResponse("Unknown client", status=400)
+    try:
+        client.delete()
+    except Exception, e:
+        return HttpResponse(e.message, status=400)
+    return HttpResponse("", status=204)
 
 def logout_view(request):
     logout(request)

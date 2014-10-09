@@ -3,7 +3,6 @@ import time
 import urllib
 from urlparse import parse_qs
 
-from oauth_provider.models import Scope
 from oauth_provider.tests.auth import BaseOAuthTestCase, METHOD_URL_QUERY, METHOD_AUTHORIZATION_HEADER, METHOD_POST_REQUEST_BODY
 
 

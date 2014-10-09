@@ -19,8 +19,10 @@ def auth(func):
             http_auth_helper(request)
         elif auth_type == 'oauth' and settings.OAUTH_ENABLED: 
             oauth_helper(request)
+        elif auth_type == 'oauth2' and settings.OAUTH_ENABLED:
+            oauth2_helper(request)
         # There is an oauth auth_type request and oauth is not enabled
-        elif auth_type == 'oauth' and not settings.OAUTH_ENABLED: 
+        elif (auth_type == 'oauth' or auth_type == 'oauth2') and not settings.OAUTH_ENABLED: 
             raise BadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
         return func(request, *args, **kwargs)
     return inner
@@ -30,6 +32,7 @@ def validate_oauth_scope(req_dict):
     endpoint = req_dict['auth']['endpoint']
     token = req_dict['auth']['oauth_token']
     scopes = token.scope_to_list()
+
     err_msg = "Incorrect permissions to %s at %s" % (str(method), str(endpoint))
 
     validator = {'GET':{"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
@@ -114,7 +117,6 @@ def http_auth_helper(request):
         raise Unauthorized("Authorization header missing")
 
 def oauth_helper(request):
-    consumer = request['auth']['oauth_consumer']
     token = request['auth']['oauth_token']
     
     user = token.user
@@ -140,6 +142,38 @@ def oauth_helper(request):
                 }
     ]
     kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.key, user_email)}
+    # create/get oauth group and set in dictionary
+    oauth_group, created = Agent.objects.oauth_group(**kwargs)
+    request['auth']['authority'] = oauth_group
+    request['auth']['user'] = get_user_from_auth(oauth_group)
+    validate_oauth_scope(request)
+
+def oauth2_helper(request):
+    token = request['auth']['oauth_token']
+
+    user = token.user
+    user_name = user.username
+    if user.email.startswith('mailto:'):
+        user_email = user.email
+    else:
+        user_email = 'mailto:%s' % user.email
+    consumer = token.client
+    members = [
+                {
+                    "account":{
+                                "name":consumer.client_id,
+                                "homePage":"lrs://XAPI/OAuth2/access_token/"
+                    },
+                    "objectType": "Agent",
+                    "oauth_identifier": "anonoauth:%s" % (consumer.client_id)
+                },
+                {
+                    "name":user_name,
+                    "mbox":user_email,
+                    "objectType": "Agent"
+                }
+    ]
+    kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.client_id, user_email)}
     # create/get oauth group and set in dictionary
     oauth_group, created = Agent.objects.oauth_group(**kwargs)
     request['auth']['authority'] = oauth_group

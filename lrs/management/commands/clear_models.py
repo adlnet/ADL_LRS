@@ -1,7 +1,6 @@
 from django.core.cache import cache
 from django.core.management.base import BaseCommand
 from django.db.models import get_app, get_models
-from lrs import models
 
 class Command(BaseCommand):
 

@@ -1,4 +1,4 @@
-from oauth_provider.compat import url, patterns, include
+from oauth_provider.compat import url, patterns
 
 from views import request_token, user_authorization, access_token
 

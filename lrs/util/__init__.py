@@ -10,6 +10,7 @@ from django.contrib.admin.sites import AlreadyRegistered
 from dateutil import parser
 from lrs.exceptions import ParamError
 from oauth_provider.models import Consumer
+from oauth2_provider.provider.oauth2.models import Client
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 def get_agent_ifp(data):
@@ -62,11 +63,19 @@ def get_user_from_auth(auth):
     if type(auth) ==  User:
         return auth #it is a User already
     else:
+        oauth = 1
         # it's a group.. gotta find out which of the 2 members is the client
         for member in auth.member.all():
             if member.account_name: 
                 key = member.account_name
-        user = Consumer.objects.get(key__exact=key).user
+                if 'oauth2' in member.account_homePage.lower():
+                    oauth = 2
+                break
+        # get consumer/client based on oauth version
+        if oauth == 1:
+            user = Consumer.objects.get(key__exact=key).user
+        else:
+            user = Client.objects.get(client_id__exact=key).user
     return user
 
 def validate_uuid(uuid):
