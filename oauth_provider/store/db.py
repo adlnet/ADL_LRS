@@ -7,15 +7,7 @@ from oauth_provider.store import InvalidConsumerError, InvalidTokenError, Store
 from oauth_provider.models import Nonce, Token, Consumer, VERIFIER_SIZE
 
 NONCE_VALID_PERIOD = getattr(settings, "OAUTH_NONCE_VALID_PERIOD", None)
-
-SCOPES = ['all',
-          'all/read',
-          'statements/write',
-          'statements/read',
-          'statements/read/mine',
-          'state',
-          'define',
-          'profile']
+SCOPES = [x[1] for x in settings.OAUTH_SCOPES]
 
 class ModelStore(Store):
     """

@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from itertools import chain
-from lrs.models import Statement
+from lrs.models import Statement, Agent
 from lrs.objects.AgentManager import AgentManager
 from lrs.util import convert_to_utc, convert_to_dict
 from lrs.exceptions import NotFound, IDNotFoundError
@@ -16,22 +16,32 @@ MORE_ENDPOINT = '/xapi/statements/more/'
 
 def complex_get(param_dict, limit, language, format, attachments):
     # Tests if value is True or "true"
-    vq = Q(voided=False)
+    voidQ = Q(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
 
-    sinceq = Q()
+    sinceQ = Q()
     if 'since' in param_dict:
-        sinceq = Q(stored__gt=convert_to_utc(param_dict['since']))
+        sinceQ = Q(stored__gt=convert_to_utc(param_dict['since']))
 
-    untilq = Q()
+    untilQ = Q()
     if 'until' in param_dict:
-        untilq = Q(stored__lte=convert_to_utc(param_dict['until']))
+        untilQ = Q(stored__lte=convert_to_utc(param_dict['until']))
 
     # For statements/read/mine oauth scope
-    authq = Q()
+    authQ = Q()
     if 'auth' in param_dict and (param_dict['auth'] and 'statements_mine_only' in param_dict['auth']):
-        authq = Q(authority=param_dict['auth']['authority'])
+        q_auth = param_dict['auth']['authority']
+
+        # If oauth - set authority to look for as the user
+        if q_auth.oauth_identifier:
+            authQ = Q(authority=q_auth) | Q(authority=q_auth.get_user_from_oauth_group())
+        # Chain all of user's oauth clients as well
+        else:
+            oauth_clients = Agent.objects.filter(member__in=[q_auth])
+            authQ = Q(authority=q_auth)
+            for client in oauth_clients:
+                authQ = authQ | Q(authority=client.get_user_from_oauth_group())
 
     agentQ = Q()
     if 'agent' in param_dict:
@@ -89,12 +99,12 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = Statement.objects.filter(vq & untilq & sinceq & authq & agentQ & verbQ & activityQ & registrationQ)
+    stmtset = Statement.objects.filter(voidQ & untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ)
     
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
-        stmtset = findstmtrefs(stmtset.distinct(), sinceq, untilq)
+        stmtset = findstmtrefs(stmtset.distinct(), sinceQ, untilQ)
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
@@ -111,7 +121,7 @@ def create_stmt_result(stmt_set, stored, language, format):
     idlist = stmt_set.values_list('id', flat=True)
     if idlist > 0:
         if format == 'exact':
-            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([stmt.full_statement for stmt in \
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in \
                 Statement.objects.filter(id__in=idlist).order_by(stored)])
         else:
             stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
@@ -122,22 +132,22 @@ def create_stmt_result(stmt_set, stored, language, format):
         stmt_result['more'] = ""
     return stmt_result
 
-def findstmtrefs(stmtset, sinceq, untilq):
+def findstmtrefs(stmtset, sinceQ, untilQ):
     if stmtset.count() == 0:
         return stmtset
     q = Q()
     for s in stmtset:
         q = q | Q(object_statementref__ref_id=s.statement_id)
 
-    if sinceq and untilq:
-        q = q & Q(sinceq, untilq)
-    elif sinceq:
-        q = q & sinceq
-    elif untilq:
-        q = q & untilq
+    if sinceQ and untilQ:
+        q = q & Q(sinceQ, untilQ)
+    elif sinceQ:
+        q = q & sinceQ
+    elif untilQ:
+        q = q & untilQ
     # finally weed out voided statements in this lookup
     q = q & Q(voided=False)
-    return findstmtrefs(Statement.objects.filter(q).distinct(), sinceq, untilq) | stmtset
+    return findstmtrefs(Statement.objects.filter(q).distinct(), sinceQ, untilQ) | stmtset
 
 def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key
@@ -181,7 +191,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
 
     # Return first page of results
     if format == 'exact':
-        result = '{"statements": [%s], "more": "%s"}' % (",".join([stmt.full_statement for stmt in \
+        result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
     else:
         result['statements'] = [stmt.object_return(language, format) for stmt in \

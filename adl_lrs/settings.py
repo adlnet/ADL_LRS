@@ -93,19 +93,36 @@ STMTS_PER_PAGE = 10
 ALLOW_EMPTY_HTTP_AUTH = False
 OAUTH_ENABLED = True
 
-# OAuth callback views
+# OAuth1 callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
-SCOPES = (('all', 'all'),
-          ('all/read', 'all/read'),
-          ('statements/write', 'statements/write'),
-          ('statements/read', 'statements/read'),
-          ('statements/read/mine', 'statements/read/mine'),
-          ('state', 'state'),
-          ('define', 'define'),
-          ('profile', 'profile'))
+
+
+# THIS IS OAUTH2 STUFF
+STATE = 1
+PROFILE = 1 << 1
+DEFINE = 1 << 2
+STATEMENTS_READ_MINE = 1 << 3
+STATEMENTS_READ = 1 << 4
+STATEMENTS_WRITE = 1 << 5
+ALL_READ = 1 << 6
+ALL = 1 << 7
+
+# OAuth 2 stuff
+# List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get defaulted in oauth2/forms.py
+OAUTH_SCOPES = (
+        (STATEMENTS_WRITE,'statements/write'),
+        (STATEMENTS_READ_MINE,'statements/read/mine'),
+        (STATEMENTS_READ,'statements/read'),
+        (STATE,'state'),
+        (DEFINE,'define'),
+        (PROFILE,'profile'),
+        (ALL_READ,'all/read'),
+        (ALL,'all')
+    )
+SESSION_KEY = 'oauth2'
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 50
@@ -185,6 +202,8 @@ INSTALLED_APPS = (
     'lrs',
     'gunicorn',
     'oauth_provider',
+    'oauth2_provider.provider',
+    'oauth2_provider.provider.oauth2',
     'django.contrib.admin',
     'django_extensions',
     'south'

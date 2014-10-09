@@ -3,7 +3,6 @@ import urllib
 import urlparse
 from datetime import datetime
 from time import time
-import warnings
 import oauth2 as oauth
 from Crypto.PublicKey import RSA
 from django.db import models

@@ -6,6 +6,11 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from oauth_provider.models import Token
 
+SCOPES_LIST = []
+for p in settings.OAUTH_SCOPES:
+    SCOPES_LIST.append((p[1], p[1]))
+FORM_SCOPES = tuple(SCOPES_LIST)
+
 class ValidatorForm(forms.Form):
     jsondata = forms.CharField(label='Data', required=True, 
         widget=forms.Textarea(attrs={'cols':100, 'rows':20}))
@@ -62,8 +67,8 @@ class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
         return mark_safe(u'\n'.join(output))
 
 class AuthClientForm(forms.Form):
-    scopes = forms.MultipleChoiceField(required=False, initial=settings.SCOPES[0],
-        widget=MyCheckboxSelectMultiple(), choices=settings.SCOPES)
+    scopes = forms.MultipleChoiceField(required=False, initial=FORM_SCOPES[0],
+        widget=MyCheckboxSelectMultiple(), choices=FORM_SCOPES)
     authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)        
     obj_id = forms.IntegerField(widget=forms.HiddenInput, initial=0)        
     oauth_token = forms.CharField(widget=forms.HiddenInput)

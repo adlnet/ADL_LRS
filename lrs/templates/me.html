@@ -28,16 +28,18 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
 {% block content %}
 <ul class='nav nav-tabs' id="mytabs">
     <li class='statements default'><a href="#mystatements" id='showme' data-toggle="tab">Statements</a></li>
-    <li><a href="#clientapps" data-toggle="tab">Client Apps</a></li>
-    <li><a href="#myaccesstokens" data-toggle="tab">Access Tokens</a></li>
+    <li><a href="#clientapps" data-toggle="tab">OAuth Client Apps</a></li>
+    <li><a href="#myaccesstokens" data-toggle="tab">OAuth Access Tokens</a></li>
+    <li><a href="#clientapps2" data-toggle="tab">OAuth2 Client Apps</a></li>
+    <li><a href="#myaccesstokens2" data-toggle="tab">OAuth2 Access Tokens</a></li>
 </ul>
 <div id="mycontent" class="tab-content">
     <div id="mystatements" class="tab-pane fade">
-        <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">delete all statements</a></small>
+        <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">Delete all statements</a></small>
         <!-- content -->
     </div>
     <div id="clientapps" class="tab-pane fade">
-        <strong>Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">add app</a></small>
+        <strong>OAuth Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">Add</a></small><br>
         {% if client_apps %}
         <div class="row">
             {% for app in client_apps %}
@@ -50,42 +52,92 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                             {% endif %} app_status">{{ app.get_status_display}}</span>
                 <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
                 <table class="table">
-                    <tr><td><strong>key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
+                    <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
                     {% if not app.rsa_signature %}
-                    <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
+                    <tr><td><strong>Secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
                     {% else %}
-                    <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">Your RSA key pair</span></td></tr>
+                    <tr><td><strong>Secret</strong></td><td><span style="margin-left: 5px">Your RSA key pair</span></td></tr>
                     {% endif %}
                 </table>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <p>None</p>
+            <div>No OAuth1 apps</div>
         {% endif %}
     </div>
     <div id="myaccesstokens" class="tab-pane fade">
-        <strong>Access Tokens:</strong>
-        {% if access_tokens %}
+        <strong>OAuth1 Access Tokens:</strong>
         <div class="row">
-        {% for token in access_tokens %}
+        {% if access_tokens %}
+            {% for token in access_tokens %}
             <div class="span5 border">
                 <h4>{{ token.consumer.name }}</h4>
-                <a class="delete_token" href='#myaccesstokens'>delete</a>
+                <span class="pull-right"><a class="delete_token" href='#myaccesstokens'>Delete</a></span>
                 <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
-                <table>
-                    <tr><td><strong>Date created</strong></td><td>{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</td></tr>
-                    <tr><td><strong>Scopes allowed</strong></td><td></td></tr>
+                <table class="table" style="table-layout:fixed;">
+                    <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px;word-wrap: break-word">{{ token.key }}</span></td></tr>
+                    <tr><td><strong>Secret</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ token.secret }}</span></td></tr>                    
+                    <tr><td><strong>Date Created</strong></td><td><span style="margin-left: 5px">{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</span></td></tr>
+                    <tr><td><strong>Scopes Allowed</strong></td><td></td></tr>
                     {% for scope in token.scope_to_list %}
-                    <tr><td></td><td>{{ scope }}</td></tr>
+                    <tr><td></td><td><span style="margin-left: 5px">{{ scope }}</span></td></tr>
                     {% endfor %}
                 </table>
-                {% endfor %}
-                {% else %}
-                <p> no access tokens </p>
-                {% endif %}
             </div>
+            {% endfor %}
+        {% else %}
+            <div class="span5">No OAuth1 access tokens</div>
+        {% endif %}
         </div>
+    </div>        
+    <div id="clientapps2" class="tab-pane fade">
+        <strong>OAuth2 Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client2 %}">Add</a></small>
+        <div class="row">
+        {% if client_apps2 %}
+            {% for app in client_apps2 %}
+            <div class="span5 border">
+                <h4 class="appname">{{ app.name }}</h4>
+                <span class="pull-right"><a class="delete_client" href='#clientapps2'>Delete</a></span>
+                <span style="visibility:hidden">{{ app.client_id }}</span>
+                <table class="table" style="table-layout:fixed;">
+                    <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px">{{ app.client_id }}</span></td></tr>
+                    <tr><td><strong>Secret</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ app.client_secret }}</span></td></tr>
+                    <tr><td><strong>URL</strong></td><td><span style="margin-left: 5px">{{ app.url }}</span></td></tr>
+                    <tr><td><strong>Redirect URL</strong></td><td><span style="margin-left: 5px">{{ app.redirect_uri }}</span></td></tr>
+                    <tr><td><strong>Type</strong></td><td><span style="margin-left: 5px">{% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}</span></td></tr>
+                </table>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="span5">No OAuth2 apps</div>
+        {% endif %}
+        </div>    
+    </div>  
+    <div id="myaccesstokens2" class="tab-pane fade">
+        <strong>OAuth2 Access Tokens:</strong>
+        <div class="row">
+        {% if access_tokens2 %}
+            {% for pair in access_tokens2 %}  
+            <div class="span5 border">
+                <h4>{{ pair.0.client.name }}</h4>
+                <span class="pull-right"><a class="delete_token2" href='#myaccesstokens2'>Delete</a></span>
+                <span style="visibility:hidden">{{ pair.0.token }}</span>
+                <table class="table" style="table-layout:fixed;">
+                    <tr><td><strong>Access Token</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ pair.0.token }}</span></td></tr>
+                    <tr><td><strong>Refresh Token</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ pair.0.refresh_token }}</span></td></tr>
+                    <tr><td><strong>Date Expires</strong></td><td>{{ pair.0.expires }}</td></tr>
+                    <tr><td><strong>Scopes Allowed</strong></td><td></td></tr>
+                    {% for scope in pair.1 %}
+                    <tr><td></td><td><span style="margin-left: 5px">{{ scope }}</span></td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+            {% endfor %}    
+        {% else %}
+            <div class="span5">No OAuth2 access tokens</div>
+        {% endif %}
+        </div>    
     </div>
 </div>
 {% endblock content %}
@@ -127,13 +179,43 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                 });
 });
 $('.delete_token').click(function(){
-    var id = $(this).next('span').text();
+    var id = $(this).parent().next('span').text();
     $.ajax({
         url: "{% url lrs.views.delete_token %}?id="+id,
         type: "DELETE",
         context: $(this),
         success: function(data){
-            $(this).parent().remove();
+            $(this).parent().parent().remove();
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout:5000
+    });
+});
+$('.delete_token2').click(function(){
+    var id = $(this).parent().next('span').text();
+    $.ajax({
+        url: "{% url lrs.views.delete_token2 %}?id="+id,
+        type: "DELETE",
+        context: $(this),
+        success: function(data){
+            $(this).parent().parent().remove();
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout:5000
+    });
+});
+$('.delete_client').click(function(){
+    var id = $(this).parent().next('span').text();
+    $.ajax({
+        url: "{% url lrs.views.delete_client %}?id="+id,
+        type: "DELETE",
+        context: $(this),
+        success: function(data){
+            $(this).parent().parent().remove();
         },
         error: function(xhr, ajaxOptions, thrownError){
             alert(thrownError);
@@ -209,7 +291,7 @@ function getStmts(event){
 
 function uiData(data){
     if (data['stmts'].length == 0){
-        return "<div>no statements</div>"
+        return "<div>No statements</div>"
     }
     var ret = "<div>";
     for (var i = 0; i < data['stmts'].length; i++) {
