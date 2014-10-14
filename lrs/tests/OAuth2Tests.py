@@ -17,7 +17,7 @@ from oauth2_provider.provider.oauth2.forms import ClientForm
 from oauth2_provider.provider.oauth2.models import Client, Grant, AccessToken, RefreshToken
 from oauth2_provider.provider.oauth2.backends import BasicClientBackend, RequestParamsClientBackend, AccessTokenBackend
 
-DEFAULT_SCOPE = [constants.SCOPES[0][1], constants.SCOPES[1][1]]
+DEFAULT_SCOPE = "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])
 
 class OAuth2Tests(TestCase):
     @classmethod
@@ -339,7 +339,7 @@ class AccessTokenTest(OAuth2Tests):
         self.assertEqual(len(stmts), 2)
 
     def test_put_statements(self):
-        token = self._login_authorize_get_token(scope=[constants.SCOPES[0][1]])
+        token = self._login_authorize_get_token(scope=constants.SCOPES[0][1])
 
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
@@ -365,7 +365,7 @@ class AccessTokenTest(OAuth2Tests):
         self.assertEqual(post.status_code, 200)
 
     def test_write_statements_wrong_scope(self):
-        token = self._login_authorize_get_token(scope=[constants.SCOPES[2][1]])
+        token = self._login_authorize_get_token(scope=constants.SCOPES[2][1])
 
         stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -453,7 +453,7 @@ class AccessTokenTest(OAuth2Tests):
             Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post.status_code, 200)
 
-        token2 = self._login_authorize_get_token(scope=[constants.SCOPES[0][1], constants.SCOPES[4][1]], cid=1)
+        token2 = self._login_authorize_get_token(scope="%s %s" % (constants.SCOPES[0][1], constants.SCOPES[4][1]), cid=1)
 
         stmt3 = {
                 "actor":{
@@ -527,7 +527,7 @@ class AccessTokenTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
-            'scope': [constants.SCOPES[0][1], constants.SCOPES[1][1]]
+            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])
         })
 
         new_token = self._login_authorize_get_token()
@@ -558,7 +558,7 @@ class AccessTokenTest(OAuth2Tests):
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
             'code': code,
-            'scope': [constants.SCOPES[6][1]]})
+            'scope': constants.SCOPES[6][1]})
 
         self.assertEqual(400, response.status_code)
         self.assertEqual('invalid_scope', json.loads(response.content)['error'])
@@ -571,7 +571,7 @@ class AccessTokenTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
-            'scope': [constants.SCOPES[0][1], constants.SCOPES[1][1]]
+            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])
         })
 
         self.assertEqual(200, response.status_code)
@@ -773,7 +773,7 @@ class DeleteExpiredTest(OAuth2Tests):
             'grant_type': 'authorization_code',
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
-            'scope': [constants.SCOPES[0][1], constants.SCOPES[1][1]],
+            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1]),
             'code': code})
 
         self.assertEquals(200, response.status_code)
@@ -797,7 +797,7 @@ class DeleteExpiredTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
-            'scope': [constants.SCOPES[0][1], constants.SCOPES[1][1]]            
+            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])            
         })
         self.assertEqual(200, response.status_code)
         token = json.loads(response.content)
