@@ -297,6 +297,16 @@ def me(request):
         context_instance=RequestContext(request))
 
 @login_required(login_url="/XAPI/accounts/login")
+@require_http_methods(["GET", "HEAD"])
+def download_statements(request):
+    stmts = models.Statement.objects.filter(user=request.user).order_by('-stored')
+    result = "[%s]" % ",".join([stmt.object_return() for stmt in stmts])
+
+    response = HttpResponse(result, mimetype='application/json', status=200)
+    response['Content-Length'] = len(result)
+    return response
+
+@login_required(login_url="/XAPI/accounts/login")
 def my_statements(request):
     if request.method == "DELETE":
         models.Statement.objects.filter(user=request.user).delete()

@@ -719,7 +719,11 @@ class Statement(models.Model):
     
     def object_return(self, lang=None, format='exact'):
         if format == 'exact':
-            return json.dumps(self.full_statement)
+	    # Temp fix - should just be json.dumps(self.full_statement)    
+	    if isinstance(self.full_statement, dict):
+	        return json.dumps(self.full_statement)
+	    else:
+		return self.full_statement
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.get_agent_json(format)

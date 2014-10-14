@@ -117,11 +117,13 @@ def complex_get(param_dict, limit, language, format, attachments):
 
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
+
     # blows up if the idlist is empty... so i gotta check for that
     idlist = stmt_set.values_list('id', flat=True)
     if idlist > 0:
         if format == 'exact':
-            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in \
+	    # Temp fix - should just be json.dumps(stmt.full_statement)
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([stmt.object_return() for stmt in \
                 Statement.objects.filter(id__in=idlist).order_by(stored)])
         else:
             stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
@@ -191,7 +193,8 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
 
     # Return first page of results
     if format == 'exact':
-        result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement) for stmt in \
+        # Temp fix - should just be json.dumps(stmt.full_statement)
+        result = '{"statements": [%s], "more": "%s"}' % (",".join([stmt.object_return() for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
     else:
         result['statements'] = [stmt.object_return(language, format) for stmt in \

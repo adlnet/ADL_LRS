@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="alert alert-danger" role="alert">ATTENTION: Because of the upcoming Plugfest, all current statement data will be removed from the LRS on October 31, 2014. If you want to preserve your data please make sure to visit your home page to download your statements.</div>
 <a href="https://github.com/adlnet/ADL_LRS" target="_blank"><img style="position: absolute; top: 40px; right: 0; border: 0;" src="{{ STATIC_URL }}/img/forkme.png" alt="Fork me on GitHub"></a>
 <div class="hero-unit">
   <img src="{{ STATIC_URL }}/img/xAPI-transparent_300px.png" style="height:50px; width:auto;" class="pull-right" alt="experience api logo"/>
@@ -15,7 +16,7 @@
     <h4>{{ stats.usercnt }}</h4>
     </div>
     <div class="span2 text-center">
-    <h4>Statements</h4>
+    <h4>Statements</h4>,.
     <h4>{{ stats.stmtcnt }}</h4>
     </div>
     <div class="span2 text-center">
