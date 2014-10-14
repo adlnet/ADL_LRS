@@ -291,7 +291,7 @@ class AccessTokenTest(OAuth2Tests):
         self.assertEqual(response.status_code, 200)
 
 
-        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=token, content_type="application/json")
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -303,10 +303,10 @@ class AccessTokenTest(OAuth2Tests):
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-            Authorization=token, X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
-        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=token, content_type="application/json")
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -318,7 +318,7 @@ class AccessTokenTest(OAuth2Tests):
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
-            Authorization=token, X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
@@ -328,7 +328,7 @@ class AccessTokenTest(OAuth2Tests):
             Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
-        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=token, content_type="application/json")
+        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 2)
@@ -347,9 +347,9 @@ class AccessTokenTest(OAuth2Tests):
             "object": {"id":"act:test_put"}})
         param = {"statementId":put_guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
-        
+
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=token, X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 204)        
 
     def test_post_statements(self):
@@ -361,7 +361,7 @@ class AccessTokenTest(OAuth2Tests):
         stmt_json = json.dumps(stmt)
         
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization=token, X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 200)
 
     def test_write_statements_wrong_scope(self):
@@ -373,7 +373,7 @@ class AccessTokenTest(OAuth2Tests):
         stmt_json = json.dumps(stmt)
         
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization=token, X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(post.status_code, 403)
 
     def test_complex_statement_get(self):
@@ -392,7 +392,7 @@ class AccessTokenTest(OAuth2Tests):
         param = {"activity":"act:test_complex_get"}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
-        resp = self.client.get(path,Authorization=token, X_Experience_API_Version="1.0.0")        
+        resp = self.client.get(path,Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")        
         self.assertEqual(resp.status_code, 200)
         stmts = json.loads(resp.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -444,7 +444,7 @@ class AccessTokenTest(OAuth2Tests):
             }
         # Doesn't have define permission - should create another activity with that ID that isn't canonical
         stmt_post2 = self.client.post(reverse(views.statements), json.dumps(stmt2), content_type="application/json",
-            Authorization=token, X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post2.status_code, 200)
         acts = models.Activity.objects.filter(activity_id="act:test_define")
         self.assertEqual(len(acts), 2)
@@ -476,7 +476,7 @@ class AccessTokenTest(OAuth2Tests):
             }
         # Doesn't have define permission - should create another activity with that ID that isn't canonical
         stmt_post3 = self.client.post(reverse(views.statements), json.dumps(stmt3), content_type="application/json",
-            Authorization=token2, X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token2['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post3.status_code, 200)
         act_names = models.Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_name', flat=True)
         act_descs = models.Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
