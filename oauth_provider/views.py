@@ -57,7 +57,7 @@ def request_token(request):
     return HttpResponse(ret, content_type='application/x-www-form-urlencoded')
 
 # LRS CHANGE - CHANGED FORM_CLASS TO OUR CUSTOM FORM
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 def user_authorization(request, form_class=AuthClientForm):
     if 'oauth_token' not in request.REQUEST:
         return HttpResponseBadRequest('No request token specified.')
@@ -212,7 +212,7 @@ def access_token(request):
     return HttpResponse(ret, content_type='application/x-www-form-urlencoded')
 
 # LRS CHANGE - ADDED OUR REAL VIEWS
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
         form = AuthClientForm(initial={'scopes': token.scope_to_list(),
@@ -226,7 +226,7 @@ def authorize_client(request, token=None, callback=None, params=None, form=None)
     d['oauth_token'] = token.key
     return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 def callback_view(request, **args):
     d = {}
     if 'error' in args:
