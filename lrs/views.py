@@ -236,7 +236,7 @@ def register(request):
         else:
             return render_to_response('register.html', {"form": form}, context_instance=context)
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 @require_http_methods(["POST", "GET"])
 def reg_client(request):
     if request.method == 'GET':
@@ -264,7 +264,7 @@ def reg_client(request):
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 @require_http_methods(["POST", "GET"])
 def reg_client2(request):
     if request.method == 'GET':
@@ -281,7 +281,7 @@ def reg_client2(request):
         else:
             return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 def me(request):
     client_apps = Consumer.objects.filter(user=request.user)
     access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
@@ -296,7 +296,7 @@ def me(request):
     return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2, 'access_tokens2':access_token_scopes},
         context_instance=RequestContext(request))
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 @require_http_methods(["GET", "HEAD"])
 def download_statements(request):
     stmts = models.Statement.objects.filter(user=request.user).order_by('-stored')
@@ -306,7 +306,7 @@ def download_statements(request):
     response['Content-Length'] = len(result)
     return response
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 def my_statements(request):
     if request.method == "DELETE":
         models.Statement.objects.filter(user=request.user).delete()
@@ -359,7 +359,7 @@ def my_statements(request):
 
         return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 def my_app_status(request):
     try:
         name = request.GET['app_name']
@@ -373,7 +373,7 @@ def my_app_status(request):
     except:
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 @require_http_methods(["DELETE"])
 def delete_token(request):
     try:
@@ -393,7 +393,7 @@ def delete_token(request):
     except:
         return HttpResponse("Unknown token", status=400)
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 @require_http_methods(["DELETE"])
 def delete_token2(request):
     try:
@@ -407,7 +407,7 @@ def delete_token2(request):
         return HttpResponse(e.message, status=400)
     return HttpResponse("", status=204)
 
-@login_required(login_url="/XAPI/accounts/login")
+@login_required(login_url="/accounts/login")
 @require_http_methods(["DELETE"])
 def delete_client(request):
     try:

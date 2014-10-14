@@ -166,7 +166,7 @@ class OAuthTests(TestCase):
         # Try to hit auth path, made to login
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(request_token.is_approved, False)
@@ -326,7 +326,7 @@ class OAuthTests(TestCase):
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='dick', password='lassie')
         self.assertEqual(request_token.is_approved, False)
@@ -995,7 +995,7 @@ Lw03eHTNQghS0A==
         # Try to hit auth path, made to login
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='mike', password='dino')
         self.assertEqual(request_token.is_approved, False)
@@ -1251,7 +1251,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1321,7 +1321,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1388,7 +1388,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])
         # Login with wrong user the client is associated with 
         self.client.login(username='dick', password='lassie')
@@ -1446,7 +1446,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1513,7 +1513,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1601,7 +1601,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1724,7 +1724,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/XAPI/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)

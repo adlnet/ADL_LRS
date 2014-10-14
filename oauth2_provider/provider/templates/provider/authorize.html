@@ -6,11 +6,7 @@
         <ul>
             {% for permission in oauth_data.scope|scopes %}
                 <li>
-                    {% if permission == "read" %}
-                    Read your data
-                    {% else %}
-                    Write your data
-                    {% endif %}
+                    {{ permission }}
                 </li>
             {% endfor %}
         </ul>

@@ -29,7 +29,3 @@ urlpatterns = patterns('lrs.views',
     url(r'^about', 'about'),
     url(r'^statementvalidator', 'stmt_validator')
 )
-urlpatterns += patterns('',
-  url(r'^accounts/login/$', 'django.contrib.auth.views.login', name="login"),
-  url(r'^accounts/logout/$', 'lrs.views.logout_view', name="logout"),
-)
