@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from oauth2.models import Client
 from . import constants, scope
 
+
 class OAuthError(Exception):
     """
     Exception to throw inside any views defined in :attr:`provider.views`.
@@ -244,7 +245,7 @@ class Authorize(OAuthView, Mixin):
 
         return self.render_to_response(ctx, **kwargs)
 
-    def handle(self, request, post_data=None):      
+    def handle(self, request, post_data=None):
         data = self.get_data(request)
 
         if data is None:

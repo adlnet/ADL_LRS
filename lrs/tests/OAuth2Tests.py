@@ -267,7 +267,6 @@ class AccessTokenTest(OAuth2Tests):
             'grant_type': 'authorization_code',
             'client_id': self.get_client(cid).client_id,
             'client_secret': self.get_client(cid).client_secret,
-            'scope': scope,
             'code': code})
 
         self.assertEqual(200, response.status_code, response.content)
@@ -527,7 +526,6 @@ class AccessTokenTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
-            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])
         })
 
         new_token = self._login_authorize_get_token()
@@ -548,20 +546,22 @@ class AccessTokenTest(OAuth2Tests):
         self.assertEqual(400, response.status_code)
         self.assertEqual('invalid_grant', json.loads(response.content)['error'])
 
-    def test_escalating_the_scope(self):
-        self.login()
-        self._login_and_authorize()
-        code = self.get_grant().code
+    # LRS CHANGE - ACCORDING TO OAUTH2 SPEC, SHOULDN'T BE ABLE TO ESCALATE
+    # THE SCOPE SINCE YOU CAN'T PASS IN SCOPE PARAM TO ACCESS TOKEN ENDPOINT
+    # def test_escalating_the_scope(self):
+    #     self.login()
+    #     self._login_and_authorize()
+    #     code = self.get_grant().code
 
-        response = self.client.post(self.access_token_url(), {
-            'grant_type': 'authorization_code',
-            'client_id': self.get_client().client_id,
-            'client_secret': self.get_client().client_secret,
-            'code': code,
-            'scope': constants.SCOPES[6][1]})
+    #     response = self.client.post(self.access_token_url(), {
+    #         'grant_type': 'authorization_code',
+    #         'client_id': self.get_client().client_id,
+    #         'client_secret': self.get_client().client_secret,
+    #         'code': code,
+    #         'scope': constants.SCOPES[6][1]})
 
-        self.assertEqual(400, response.status_code)
-        self.assertEqual('invalid_scope', json.loads(response.content)['error'])
+    #     self.assertEqual(400, response.status_code)
+    #     self.assertEqual('invalid_scope', json.loads(response.content)['error'])
 
     def test_refreshing_an_access_token(self):
         token = self._login_authorize_get_token()
@@ -571,7 +571,6 @@ class AccessTokenTest(OAuth2Tests):
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
-            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])
         })
 
         self.assertEqual(200, response.status_code)
@@ -773,7 +772,6 @@ class DeleteExpiredTest(OAuth2Tests):
             'grant_type': 'authorization_code',
             'client_id': self.get_client().client_id,
             'client_secret': self.get_client().client_secret,
-            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1]),
             'code': code})
 
         self.assertEquals(200, response.status_code)
@@ -796,8 +794,7 @@ class DeleteExpiredTest(OAuth2Tests):
             'grant_type': 'refresh_token',
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
-            'client_secret': self.get_client().client_secret,
-            'scope': "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])            
+            'client_secret': self.get_client().client_secret,      
         })
         self.assertEqual(200, response.status_code)
         token = json.loads(response.content)
