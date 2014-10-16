@@ -96,14 +96,12 @@ class ScopeMixin(object):
         defined scope in :attr:`provider.constants.SCOPES`.
 
         """
-        # LRS CHANGE - IF THERE IS A REQUESTED SCOPE SET DEFAULT AS THOSE SCOPE(S) - IF NO SCOPE THEN.. 
-        # LRS CHANGE - DEFAULT TO FIRST TWO VALUES IN SCOPES WHICH SHOULD BE SET AS STATEMENTS_WRITE AND STATEMENTS_READ_MINE IN settings.py
-        flags = self.cleaned_data.get('scope', [])
+        # LRS CHANGE - DON'T DEFAULT ANYTHING HERE, IF NOTHING SELECTED
+        # THE GRANT GETS DEFAULTED WHEN CREATED
+        # default = SCOPES[0][0] | SCOPES[1][0]
 
-        if not flags:
-            default = SCOPES[0][0] | SCOPES[1][0]
-        else:
-            default = scope.to_int(*flags)
+        default = 0
+        flags = self.cleaned_data.get('scope', [])
 
         return scope.to_int(default=default, *flags)
 
