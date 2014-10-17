@@ -2,6 +2,7 @@ import base64
 from functools import wraps
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.contrib.sites.models import Site
 from lrs.exceptions import Unauthorized, BadRequest, Forbidden
 from lrs.objects.AgentManager import AgentManager
 from lrs.util import get_user_from_auth
@@ -130,7 +131,7 @@ def oauth_helper(request):
                 {
                     "account":{
                                 "name":consumer.key,
-                                "homePage":"lrs://XAPI/OAuth/token/"
+                                "homePage":"%s://%s/XAPI/OAuth/token/" % (settings.SITE_SCHEME, str(Site.objects.get_current().domain))
                     },
                     "objectType": "Agent",
                     "oauth_identifier": "anonoauth:%s" % (consumer.key)
@@ -162,7 +163,7 @@ def oauth2_helper(request):
                 {
                     "account":{
                                 "name":consumer.client_id,
-                                "homePage":"lrs://XAPI/OAuth2/access_token/"
+                                "homePage":"%s://%s/XAPI/OAuth2/access_token/" % (settings.SITE_SCHEME, str(Site.objects.get_current().domain))
                     },
                     "objectType": "Agent",
                     "oauth_identifier": "anonoauth:%s" % (consumer.client_id)
