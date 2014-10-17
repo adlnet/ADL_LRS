@@ -424,10 +424,7 @@ class Activity(models.Model):
         return ret
 
     def get_a_name(self):
-        try:
-            return self.activity_definition_name.get('en-US')
-        except:
-            return self.activity_id
+        return self.activity_definition_name.get('en-US', self.activity_id)
 
     def __unicode__(self):
         return json.dumps(self.object_return())
