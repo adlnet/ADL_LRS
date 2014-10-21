@@ -1,6 +1,7 @@
 import json
-from lrs.models import Agent
-from lrs.exceptions import ParamError
+
+from ..models import Agent
+from ..exceptions import ParamError
 
 class AgentManager():
     def __init__(self, params, define=True):

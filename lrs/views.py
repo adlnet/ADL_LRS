@@ -40,10 +40,10 @@ def home(request):
 
     stats = {}
     stats['usercnt'] = User.objects.all().count()
-    stats['stmtcnt'] = models.Statement.objects.all().count()
-    stats['verbcnt'] = models.Verb.objects.all().count()
-    stats['agentcnt'] = models.Agent.objects.filter().count()
-    stats['activitycnt'] = models.Activity.objects.filter().count()
+    stats['stmtcnt'] = Statement.objects.all().count()
+    stats['verbcnt'] = Verb.objects.all().count()
+    stats['agentcnt'] = Agent.objects.filter().count()
+    stats['activitycnt'] = Activity.objects.filter().count()
     return render_to_response('home.html', {'stats':stats}, context_instance=context)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
@@ -172,21 +172,21 @@ def about(request):
                 {
                     "name": "Oauth Initiate",
                     "methods": ["POST"],
-                    "endpoint": reverse('oauth_provider.views.request_token'),
+                    "endpoint": reverse('oauth:oauth_provider.views.request_token'),
                     "description": "Authorize a client and return temporary credentials.",
                 },
                 "authorize":
                 {
                     "name": "Oauth Authorize",
                     "methods": ["GET"],
-                    "endpoint": reverse('oauth_provider.views.user_authorization'),
+                    "endpoint": reverse('oauth:oauth_provider.views.user_authorization'),
                     "description": "Authorize a user for Oauth1.",
                 },
                 "token":
                 {
                     "name": "Oauth Token",
                     "methods": ["POST"],
-                    "endpoint": reverse('oauth_provider.views.access_token'),
+                    "endpoint": reverse('oauth:oauth_provider.views.access_token'),
                     "description": "Provides Oauth token to the client.",
                 }
             },
@@ -196,14 +196,14 @@ def about(request):
                 {
                     "name": "Oauth2 Authorize",
                     "methods": ["GET"],
-                    "endpoint": reverse('provider.oauth2.views.authorize'),
+                    "endpoint": reverse('oauth2:authorize'),
                     "description": "Authorize a user for Oauth2.",
                 },
                 "access_token":
                 {
                     "name": "Oauth2 Token",
                     "methods": ["POST"],
-                    "endpoint": reverse('provider.oauth2.views.access_token'),
+                    "endpoint": reverse('oauth2:access_token'),
                     "description": "Provides Oauth2 token to the client.",
                 }
             }            
@@ -303,8 +303,8 @@ def me(request):
 @login_required(login_url=LOGIN_URL)
 def my_statements(request):
     if request.method == "DELETE":
-        models.Statement.objects.filter(user=request.user).delete()
-        stmts = models.Statement.objects.filter(user=request.user)
+        Statement.objects.filter(user=request.user).delete()
+        stmts = Statement.objects.filter(user=request.user)
         if not stmts:
             return HttpResponse(status=204)
         else:
@@ -312,11 +312,11 @@ def my_statements(request):
 
     stmt_id = request.GET.get("stmt_id", None)
     if stmt_id:
-        s = models.Statement.objects.get(statement_id=stmt_id, user=request.user)
-        return HttpResponse(s.object_return(), mimetype="application/json",status=200)
+        s = Statement.objects.get(statement_id=stmt_id, user=request.user)
+        return HttpResponse(s.to_dict(), mimetype="application/json",status=200)
     else:
         s = {}
-        paginator = Paginator(models.Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
+        paginator = Paginator(Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
             settings.STMTS_PER_PAGE)
 
         page_no = request.GET.get('page', 1)
@@ -331,7 +331,7 @@ def my_statements(request):
 
         idlist = page.object_list
         if idlist.count() > 0:
-            stmt_objs = [stmt for stmt in models.Statement.objects.filter(id__in=(idlist)).order_by('-timestamp')]
+            stmt_objs = [stmt for stmt in Statement.objects.filter(id__in=(idlist)).order_by('-timestamp')]
         else: 
             stmt_objs = []
 

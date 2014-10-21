@@ -1,11 +1,13 @@
 import json
 from datetime import datetime
 from jsonfield import JSONField
+
 from django_extensions.db.fields import UUIDField
 from django.db import models
 from django.db import transaction
 from django.contrib.auth.models import User
 from django.utils.timezone import utc
+
 from oauth_provider.consts import MAX_URL_LENGTH
 
 AGENT_PROFILE_UPLOAD_TO = "agent_profile"
@@ -17,7 +19,7 @@ class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     display = JSONField(default={}, blank=True)
 
-    def object_return(self, lang=None):
+    def to_dict(self, lang=None):
         ret = {}
         ret['id'] = self.verb_id
         if self.display:
@@ -50,7 +52,7 @@ class Verb(models.Model):
         return self.display.values()[0]
 
     def __unicode__(self):
-        return json.dumps(self.object_return())
+        return json.dumps(self.to_dict())
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
 class AgentManager(models.Manager):
@@ -183,13 +185,13 @@ class Agent(models.Model):
         unique_together = (("mbox", "canonical_version"), ("mbox_sha1sum", "canonical_version"),
             ("openID", "canonical_version"),("oauth_identifier", "canonical_version"), ("account_homePage", "account_name", "canonical_version"))
 
-    def get_agent_json(self, format='exact', as_object=False):
+    def to_dict(self, format='exact', just_objectType=False):
         just_id = format == 'ids'
         ret = {}
         # add object type if format isn't id,
         # or if it is a group,
         # or if it's an object
-        if not just_id or self.objectType == 'Group' or as_object:
+        if not just_id or self.objectType == 'Group' or just_objectType:
             ret['objectType'] = self.objectType
         if self.name and not just_id:
             ret['name'] = self.name
@@ -215,11 +217,11 @@ class Agent(models.Model):
             # show members for groups if format isn't 'ids'
             # show members' ids for anon groups if format is 'ids'
             if not just_id or not (set(['mbox','mbox_sha1sum','openID','account']) & set(ret.keys())):
-                ret['member'] = [a.get_agent_json(format) for a in self.member.all()]
+                ret['member'] = [a.to_dict(format) for a in self.member.all()]
         return ret
 
     # Used only for /agent GET endpoint (check spec)
-    def get_person_json(self):
+    def to_dict_person(self):
         ret = {}
         ret['objectType'] = "Person"
         if self.name:
@@ -269,7 +271,7 @@ class Agent(models.Model):
         return None
 
     def __unicode__(self):
-        return json.dumps(self.get_agent_json())
+        return json.dumps(self.to_dict())
 
 class AgentProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
@@ -303,7 +305,31 @@ class Activity(models.Model):
     authority = models.ForeignKey(Agent, null=True)
     canonical_version = models.BooleanField(default=True)
 
-    def object_return(self, lang=None, format='exact'):
+    def add_interaction_type(self, i_type, ret, lang):
+        if i_type == 'scale':
+            interactions = self.activity_definition_scales
+        elif i_type == 'choices':
+            interactions = self.activity_definition_choices
+        elif i_type == 'steps':
+            interactions = self.activity_definition_steps
+        elif i_type == 'source':
+            interactions = self.activity_definition_sources
+        elif i_type == 'target':
+            interactions = self.activity_definition_targets
+
+        for i in interactions:
+            if lang:
+                try:
+                    i['description'] = {lang:i['description']['lang']}
+                except KeyError:
+                    first = interactions.iteritems().next()
+                    i['description'] = {first[0]:first[1]}
+            else:
+                first = i['description'].iteritems().next()
+                i['description'] = {first[0]:first[1]}
+            ret['definition'][i_type].append(i)        
+
+    def to_dict(self, lang=None, format='exact'):
         ret = {}
         ret['id'] = self.activity_id
         if format != 'ids':
@@ -347,73 +373,23 @@ class Activity(models.Model):
             
             if self.activity_definition_scales:
                 ret['definition']['scale'] = []
-                for s in self.activity_definition_scales:
-                    if lang:
-                        try:
-                            s['description'] = {lang:s['description']['lang']}
-                        except KeyError:
-                            first = self.activity_definition_scales.iteritems().next()
-                            s['description'] = {first[0]:first[1]}
-                    else:
-                        first = s['description'].iteritems().next()
-                        s['description'] = {first[0]:first[1]}
-                    ret['definition']['scale'].append(s)
+                self.add_interaction_type('scale', ret, lang)
 
             if self.activity_definition_choices:
                 ret['definition']['choices'] = []
-                for c in self.activity_definition_choices:
-                    if lang:
-                        try:
-                            c['description'] = {lang:c['description']['lang']}
-                        except KeyError:
-                            first = self.activity_definition_choices.iteritems().next()
-                            c['description'] = {first[0]:first[1]}
-                    else:
-                        first = c['description'].iteritems().next()
-                        c['description'] = {first[0]:first[1]}
-                    ret['definition']['choices'].append(c)
+                self.add_interaction_type('choices', ret, lang)
 
             if self.activity_definition_steps:
                 ret['definition']['steps'] = []
-                for s in self.activity_definition_steps:
-                    if lang:
-                        try:
-                            s['description'] = {lang:s['description']['lang']}
-                        except KeyError:
-                            first = self.activity_definition_steps.iteritems().next()
-                            s['description'] = {first[0]:first[1]}
-                    else:
-                        first = s['description'].iteritems().next()
-                        s['description'] = {first[0]:first[1]}
-                    ret['definition']['steps'].append(s)
+                self.add_interaction_type('steps', ret, lang)
 
             if self.activity_definition_sources:
                 ret['definition']['source'] = []
-                for s in self.activity_definition_sources:
-                    if lang:
-                        try:
-                            s['description'] = {lang:s['description']['lang']}
-                        except KeyError:
-                            first = self.activity_definition_sources.iteritems().next()
-                            s['description'] = {first[0]:first[1]}
-                    else:
-                        first = s['description'].iteritems().next()
-                        s['description'] = {first[0]:first[1]}
-                    ret['definition']['source'].append(s)
+                self.add_interaction_type('source', ret, lang)
 
             if self.activity_definition_targets:
                 ret['definition']['target'] = []
-                for t in self.activity_definition_targets:
-                    if lang:
-                        try:
-                            t['description'] = {lang:t['description']['lang']}
-                        except KeyError:
-                            first = self.activity_definition_targets.iteritems().next()
-                            t['description'] = {first[0]:first[1]}
-                    else:
-                        first = t['description'].iteritems().next()
-                        s['description'] = {first[0]:first[1]}
-                    ret['definition']['target'].append(t)
+                self.add_interaction_type('target', ret, lang)
 
             if self.activity_definition_extensions:
                 ret['definition']['extensions'] = self.activity_definition_extensions
@@ -427,13 +403,13 @@ class Activity(models.Model):
         return self.activity_definition_name.get('en-US', self.activity_id)
 
     def __unicode__(self):
-        return json.dumps(self.object_return())
+        return json.dumps(self.to_dict())
 
 class StatementRef(models.Model):
     object_type = models.CharField(max_length=12, default="StatementRef")
     ref_id = models.CharField(max_length=40)
 
-    def object_return(self):
+    def to_dict(self):
         ret = {}
         ret['objectType'] = "StatementRef"
         ret['id'] = self.ref_id
@@ -449,10 +425,10 @@ class SubStatementContextActivity(models.Model):
     context_activity = models.ManyToManyField(Activity)
     substatement = models.ForeignKey('SubStatement')
 
-    def object_return(self, lang=None, format='exact'):
+    def to_dict(self, lang=None, format='exact'):
         ret = {}
         ret[self.key] = {}
-        ret[self.key] = [a.object_return(lang, format) for a in self.context_activity.all()]
+        ret[self.key] = [a.to_dict(lang, format) for a in self.context_activity.all()]
         return ret
 
 class StatementContextActivity(models.Model):
@@ -460,10 +436,10 @@ class StatementContextActivity(models.Model):
     context_activity = models.ManyToManyField(Activity)
     statement = models.ForeignKey('Statement')
 
-    def object_return(self, lang=None, format='exact'):
+    def to_dict(self, lang=None, format='exact'):
         ret = {}
         ret[self.key] = {}
-        ret[self.key] = [a.object_return(lang, format) for a in self.context_activity.all()]
+        ret[self.key] = [a.to_dict(lang, format) for a in self.context_activity.all()]
         return ret
 
 class ActivityState(models.Model):
@@ -526,20 +502,20 @@ class SubStatement(models.Model):
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     
-    def object_return(self, lang=None, format='exact'):
+    def to_dict(self, lang=None, format='exact'):
         ret = {}
-        ret['actor'] = self.actor.get_agent_json(format)
-        ret['verb'] = self.verb.object_return()
+        ret['actor'] = self.actor.to_dict(format)
+        ret['verb'] = self.verb.to_dict()
 
         if self.object_agent:
-            ret['object'] = self.object_agent.get_agent_json(format, as_object=True)
+            ret['object'] = self.object_agent.to_dict(format, just_objectType=True)
         elif self.object_activity:
             if not self.object_activity.canonical_version:
-                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).object_return(lang, format)
+                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).to_dict(lang, format)
             else:
-                ret['object'] = self.object_activity.object_return(lang, format)
+                ret['object'] = self.object_activity.to_dict(lang, format)
         else:
-            ret['object'] = self.object_statementref.object_return()
+            ret['object'] = self.object_statementref.to_dict()
 
         ret['result'] = {}
         if self.result_success != None:
@@ -583,10 +559,10 @@ class SubStatement(models.Model):
             ret['context']['registration'] = self.context_registration
 
         if self.context_instructor:
-            ret['context']['instructor'] = self.context_instructor.get_agent_json(format)
+            ret['context']['instructor'] = self.context_instructor.to_dict(format)
 
         if self.context_team:
-            ret['context']['team'] = self.context_team.get_agent_json(format)
+            ret['context']['team'] = self.context_team.to_dict(format)
 
         if self.context_revision:
             ret['context']['revision'] = self.context_revision
@@ -603,7 +579,7 @@ class SubStatement(models.Model):
         if self.substatementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.substatementcontextactivity_set.all():
-                ret['context']['contextActivities'].update(con_act.object_return(lang, format))
+                ret['context']['contextActivities'].update(con_act.to_dict(lang, format))
 
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
@@ -643,7 +619,7 @@ class StatementAttachment(models.Model):
     display = JSONField(default={}, blank=True)
     description = JSONField(default={}, blank=True)
 
-    def object_return(self, lang=None):
+    def to_dict(self, lang=None):
         ret = {}
         ret['usageType'] = self.usageType
 
@@ -714,25 +690,25 @@ class Statement(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     full_statement = JSONField()
     
-    def object_return(self, lang=None, format='exact'):
+    def to_dict(self, lang=None, format='exact'):
         if format == 'exact':
             return json.dumps(self.full_statement)
         ret = {}
         ret['id'] = self.statement_id
-        ret['actor'] = self.actor.get_agent_json(format)
-        ret['verb'] = self.verb.object_return()
+        ret['actor'] = self.actor.to_dict(format)
+        ret['verb'] = self.verb.to_dict()
 
         if self.object_agent:
-            ret['object'] = self.object_agent.get_agent_json(format, as_object=True)            
+            ret['object'] = self.object_agent.to_dict(format, just_objectType=True)            
         elif self.object_activity:
             if not self.object_activity.canonical_version:
-                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).object_return(lang, format)
+                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).to_dict(lang, format)
             else:
-                ret['object'] = self.object_activity.object_return(lang, format)
+                ret['object'] = self.object_activity.to_dict(lang, format)
         elif self.object_substatement:
-            ret['object'] = self.object_substatement.object_return(lang, format)
+            ret['object'] = self.object_substatement.to_dict(lang, format)
         else:
-            ret['object'] = self.object_statementref.object_return()
+            ret['object'] = self.object_statementref.to_dict()
 
         ret['result'] = {}
         if self.result_success != None:
@@ -775,10 +751,10 @@ class Statement(models.Model):
             ret['context']['registration'] = self.context_registration
 
         if self.context_instructor:
-            ret['context']['instructor'] = self.context_instructor.get_agent_json(format)
+            ret['context']['instructor'] = self.context_instructor.to_dict(format)
 
         if self.context_team:
-            ret['context']['team'] = self.context_team.get_agent_json(format)
+            ret['context']['team'] = self.context_team.to_dict(format)
 
         if self.context_revision:
             ret['context']['revision'] = self.context_revision
@@ -795,7 +771,7 @@ class Statement(models.Model):
         if self.statementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.statementcontextactivity_set.all():
-                ret['context']['contextActivities'].update(con_act.object_return(lang, format))
+                ret['context']['contextActivities'].update(con_act.to_dict(lang, format))
 
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
@@ -807,12 +783,12 @@ class Statement(models.Model):
         ret['stored'] = self.stored.isoformat()
         
         if not self.authority is None:
-            ret['authority'] = self.authority.get_agent_json(format)
+            ret['authority'] = self.authority.to_dict(format)
         
         ret['version'] = self.version
 
         if self.attachments.all():
-            ret['attachments'] = [a.object_return(lang) for a in self.attachments.all()]
+            ret['attachments'] = [a.to_dict(lang) for a in self.attachments.all()]
         return ret
 
     def unvoid_statement(self):

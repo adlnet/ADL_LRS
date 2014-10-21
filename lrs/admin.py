@@ -1,3 +1,3 @@
-from lrs.util import autoregister
+from util.util import autoregister
 
 autoregister('lrs')

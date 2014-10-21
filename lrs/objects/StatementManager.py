@@ -1,10 +1,12 @@
+from functools import wraps
+
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
-from functools import wraps
-from lrs import models
-from AgentManager import AgentManager
-from ActivityManager import ActivityManager
+
+from .AgentManager import AgentManager
+from .ActivityManager import ActivityManager
+from ..models import Verb, Statement, StatementRef, StatementAttachment, StatementContextActivity, SubStatement, SubStatementContextActivity 
 
 att_cache = get_cache('attachment_cache')
 
@@ -31,12 +33,12 @@ class StatementManager():
 
     @transaction.commit_on_success
     def void_statement(self,stmt_id):
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
         stmt.voided = True
         stmt.save()
 
         # Create statement ref
-        stmt_ref = models.StatementRef.objects.create(ref_id=stmt_id)
+        stmt_ref = StatementRef.objects.create(ref_id=stmt_id)
         return stmt_ref
 
     @transaction.commit_on_success
@@ -48,12 +50,12 @@ class StatementManager():
         # Try to create SubStatement            
         # Delete objectType since it is not a field in the model
         del self.data['objectType']
-        sub = models.SubStatement.objects.create(**self.data)
+        sub = SubStatement.objects.create(**self.data)
         
         # Save context activities
         # Can have multiple groupings
         for con_act_group in con_act_data.items():
-            ca = models.SubStatementContextActivity.objects.create(key=con_act_group[0], substatement=sub)
+            ca = SubStatementContextActivity.objects.create(key=con_act_group[0], substatement=sub)
             # Incoming contextActivities can either be a list or dict
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
@@ -80,12 +82,12 @@ class StatementManager():
             del self.data['id']
 
         # Try to create statement
-        stmt = models.Statement.objects.create(**self.data)
+        stmt = Statement.objects.create(**self.data)
     
         # Save context activities
         # Can have multiple groupings
         for con_act_group in con_act_data.items():
-            ca = models.StatementContextActivity.objects.create(key=con_act_group[0], statement=stmt)
+            ca = StatementContextActivity.objects.create(key=con_act_group[0], statement=stmt)
             # Incoming contextActivities can either be a list or dict
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
@@ -116,10 +118,10 @@ class StatementManager():
     def save_attachment(self, attach):
         sha2 = attach['sha2']
         try:
-            attachment = models.StatementAttachment.objects.get(sha2=sha2)
+            attachment = StatementAttachment.objects.get(sha2=sha2)
             created = False
-        except models.StatementAttachment.DoesNotExist:
-            attachment = models.StatementAttachment.objects.create(**attach)                
+        except StatementAttachment.DoesNotExist:
+            attachment = StatementAttachment.objects.create(**attach)                
             created = True
 
             # Since there is a sha2, there must be a payload cached
@@ -148,10 +150,10 @@ class StatementManager():
                 # If no sha2 there must be a fileUrl which is unique
                 else:
                     try:
-                        attachment = models.StatementAttachment.objects.get(fileUrl=attach['fileUrl'])
+                        attachment = StatementAttachment.objects.get(fileUrl=attach['fileUrl'])
                         created = False
                     except Exception:
-                        attachment = models.StatementAttachment.objects.create(**attach)
+                        attachment = StatementAttachment.objects.create(**attach)
                         created = True
 
                 # If have define permission and attachment already has existed
@@ -208,7 +210,7 @@ class StatementManager():
         verb_id = incoming_verb['id']
 
         # Get or create the verb
-        verb_object, created = models.Verb.objects.get_or_create(verb_id=verb_id)
+        verb_object, created = Verb.objects.get_or_create(verb_id=verb_id)
 
         # If existing, get existing keys
         if not created:
@@ -245,7 +247,7 @@ class StatementManager():
             elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
-                self.data['object_statementref'] = models.StatementRef.objects.create(ref_id=statement_object_data['id'])
+                self.data['object_statementref'] = StatementRef.objects.create(ref_id=statement_object_data['id'])
         del self.data['object']
 
     def build_authority_object(self):

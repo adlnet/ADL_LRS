@@ -1,12 +1,17 @@
 import base64
 from functools import wraps
+
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.sites.models import Site
-from lrs.exceptions import Unauthorized, BadRequest, Forbidden
-from lrs.objects.AgentManager import AgentManager
-from lrs.util import get_user_from_auth
-from lrs.models import Agent
+from django.contrib.auth.models import User
+
+from ..exceptions import Unauthorized, BadRequest, Forbidden
+from ..objects.AgentManager import AgentManager
+from ..models import Agent
+
+from oauth_provider.models import Consumer
+from oauth2_provider.provider.oauth2.models import Client
 
 # A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
@@ -27,6 +32,27 @@ def auth(func):
             raise BadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
         return func(request, *args, **kwargs)
     return inner
+
+def get_user_from_auth(auth):
+    if not auth:
+        return None
+    if type(auth) ==  User:
+        return auth #it is a User already
+    else:
+        oauth = 1
+        # it's a group.. gotta find out which of the 2 members is the client
+        for member in auth.member.all():
+            if member.account_name: 
+                key = member.account_name
+                if 'oauth2' in member.account_homePage.lower():
+                    oauth = 2
+                break
+        # get consumer/client based on oauth version
+        if oauth == 1:
+            user = Consumer.objects.get(key__exact=key).user
+        else:
+            user = Client.objects.get(client_id__exact=key).user
+    return user
 
 def validate_oauth_scope(req_dict):
     method = req_dict['method']
