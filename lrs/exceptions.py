@@ -16,7 +16,6 @@ class NotFound(Exception):
 class IDNotFoundError(NotFound):
     pass
 
-
 class Conflict(Exception):
     pass
 
@@ -29,5 +28,5 @@ class PreconditionFail(Exception):
 class OauthUnauthorized(Exception):
     pass
 
-class OauthBadRequest(Exception):
+class OauthBadRequest(BadRequest):
     pass

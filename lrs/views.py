@@ -1,5 +1,6 @@
 import json
 import logging
+
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
@@ -14,8 +15,12 @@ from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
-from lrs import forms, models, exceptions
-from lrs.util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
+
+from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
+from .forms import ValidatorForm, RegisterForm, RegClientForm
+from .models import Statement, Verb, Agent, Activity
+from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
+
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
 from oauth2_provider.provider.scope import to_names
@@ -25,6 +30,8 @@ from oauth2_provider.provider.oauth2.models import Client, AccessToken
 # This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
  
+LOGIN_URL = "/accounts/login"
+
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 @csrf_protect
 def home(request):
@@ -46,20 +53,17 @@ def stmt_validator(request):
     context.update(csrf(request))
 
     if request.method == 'GET':
-        form = forms.ValidatorForm()
+        form = ValidatorForm()
         return render_to_response('validator.html', {"form": form}, context_instance=context)
     elif request.method == 'POST':
-        form = forms.ValidatorForm(request.POST)
+        form = ValidatorForm(request.POST)
         if form.is_valid():
             # Initialize validator (validates incoming data structure)
             try:
                 validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
-            except SyntaxError:
+            except (SyntaxError, ValueError):
                 return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
-                context_instance=context)
-            except ValueError:
-                return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
-                context_instance=context)                
+                context_instance=context)             
             except Exception, e:
                 return render_to_response('validator.html', {"form": form, "error_message": e.message},
                 context_instance=context)
@@ -67,7 +71,7 @@ def stmt_validator(request):
             # Once know it's valid JSON, validate keys and fields
             try:
                 valid = validator.validate()
-            except exceptions.ParamError, e:
+            except ParamError, e:
                 return render_to_response('validator.html', {"form": form,"error_message": e.message},
                     context_instance=context)
             else:
@@ -77,10 +81,23 @@ def stmt_validator(request):
             return render_to_response('validator.html', {"form": form},
                 context_instance=context)
 
+# Hosted example activites for the tests
+def actexample(request):
+    return render_to_response('actexample.json', mimetype="application/json")
+
+def actexample2(request):
+    return render_to_response('actexample2.json', mimetype="application/json")
+
+def actexample3(request):
+    return render_to_response('actexample3.json', mimetype="application/json")
+
+def actexample4(request):
+    return render_to_response('actexample4.json', mimetype="application/json")
+
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 
-        "version": ["1.0.1"],
+        "version": [settings.XAPI_VERSION],
         "Extensions":{
             "xapi": {
                 "statements":
@@ -194,19 +211,6 @@ def about(request):
     }    
     return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)
 
-
-def actexample(request):
-    return render_to_response('actexample.json', mimetype="application/json")
-
-def actexample2(request):
-    return render_to_response('actexample2.json', mimetype="application/json")
-
-def actexample3(request):
-    return render_to_response('actexample3.json', mimetype="application/json")
-
-def actexample4(request):
-    return render_to_response('actexample4.json', mimetype="application/json")
-
 @csrf_protect
 @require_http_methods(["POST", "GET"])
 def register(request):
@@ -214,10 +218,10 @@ def register(request):
     context.update(csrf(request))
     
     if request.method == 'GET':
-        form = forms.RegisterForm()
+        form = RegisterForm()
         return render_to_response('register.html', {"form": form}, context_instance=context)
     elif request.method == 'POST':
-        form = forms.RegisterForm(request.POST)
+        form = RegisterForm(request.POST)
         if form.is_valid():
             name = form.cleaned_data['username']
             pword = form.cleaned_data['password']
@@ -236,14 +240,14 @@ def register(request):
         else:
             return render_to_response('register.html', {"form": form}, context_instance=context)
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["POST", "GET"])
 def reg_client(request):
     if request.method == 'GET':
-        form = forms.RegClientForm()
+        form = RegClientForm()
         return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
     elif request.method == 'POST':
-        form = forms.RegClientForm(request.POST)
+        form = RegClientForm(request.POST)
         if form.is_valid():
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
@@ -264,7 +268,7 @@ def reg_client(request):
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["POST", "GET"])
 def reg_client2(request):
     if request.method == 'GET':
@@ -281,7 +285,7 @@ def reg_client2(request):
         else:
             return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 def me(request):
     client_apps = Consumer.objects.filter(user=request.user)
     access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
@@ -296,7 +300,7 @@ def me(request):
     return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2, 'access_tokens2':access_token_scopes},
         context_instance=RequestContext(request))
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 def my_statements(request):
     if request.method == "DELETE":
         models.Statement.objects.filter(user=request.user).delete()
@@ -349,7 +353,7 @@ def my_statements(request):
 
         return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 def my_app_status(request):
     try:
         name = request.GET['app_name']
@@ -363,7 +367,7 @@ def my_app_status(request):
     except:
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["DELETE"])
 def delete_token(request):
     try:
@@ -383,7 +387,7 @@ def delete_token(request):
     except:
         return HttpResponse("Unknown token", status=400)
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["DELETE"])
 def delete_token2(request):
     try:
@@ -397,7 +401,7 @@ def delete_token2(request):
         return HttpResponse(e.message, status=400)
     return HttpResponse("", status=204)
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["DELETE"])
 def delete_client(request):
     try:
@@ -556,33 +560,33 @@ def handle_request(request, more_id=None):
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
 
-    except exceptions.BadRequest as err:
+    except BadRequest as err:
         log_exception(request.path, err)
         return HttpResponse(err.message, status=400)
     except ValidationError as ve:
         log_exception(request.path, ve)
         return HttpResponse(ve.messages[0], status=400)
-    except exceptions.Unauthorized as autherr:
+    except Unauthorized as autherr:
         log_exception(request.path, autherr)
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except exceptions.OauthBadRequest as oauth_err:
+    except OauthBadRequest as oauth_err:
         log_exception(request.path, oauth_err)
         return HttpResponse(oauth_err.message, status=400)
-    except exceptions.OauthUnauthorized as oauth_err:
+    except OauthUnauthorized as oauth_err:
         log_exception(request.path, oauth_err)
         return HttpResponse(oauth_err.message, status=401)
-    except exceptions.Forbidden as forb:
+    except Forbidden as forb:
         log_exception(request.path, forb)
         return HttpResponse(forb.message, status=403)
-    except exceptions.NotFound as nf:
+    except NotFound as nf:
         log_exception(request.path, nf)
         return HttpResponse(nf.message, status=404)
-    except exceptions.Conflict as c:
+    except Conflict as c:
         log_exception(request.path, c)
         return HttpResponse(c.message, status=409)
-    except exceptions.PreconditionFail as pf:
+    except PreconditionFail as pf:
         log_exception(request.path, pf)
         return HttpResponse(pf.message, status=412)
     # Added BadResponse for OAuth validation
