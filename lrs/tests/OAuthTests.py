@@ -2256,8 +2256,11 @@ Lw03eHTNQghS0A==
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.to_dict()}
+        
+        settings.ALLOW_EMPTY_HTTP_AUTH = True
+
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization="Basic %s" % base64.b64encode("%s:%s" % ('','')), X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"statementId":guid}
@@ -2277,6 +2280,7 @@ Lw03eHTNQghS0A==
         get = self.client.get(path, content_type="application/json",
             Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
         self.assertEqual(get.status_code, 200)
+        settings.ALLOW_EMPTY_HTTP_AUTH = False
 
     def test_complex_stmt_get_mine_only(self):
         guid = str(uuid.uuid1())

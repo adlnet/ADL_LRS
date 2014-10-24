@@ -1,5 +1,4 @@
 from django import forms
-from django.utils.encoding import force_unicode
 
 class ValidatorForm(forms.Form):
     jsondata = forms.CharField(label='Data', required=True, 

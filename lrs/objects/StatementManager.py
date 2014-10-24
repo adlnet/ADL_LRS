@@ -23,12 +23,16 @@ class default_on_exception(object):
         return closure
 
 class StatementManager():
-    def __init__(self, data, auth=None, full_stmt={}):
-        self.auth = auth
-        self.define = self.auth['define']
+    def __init__(self, data, auth, full_stmt={}):
         self.data = data
+        # Auth contains define, endpoint, user, and request authority
+        self.auth = auth
+        
         if self.__class__.__name__ == 'StatementManager':
+            # Full statement is for a statement only, same with authority
             self.data['full_statement'] = full_stmt
+            self.build_authority_object(auth)
+        
         self.populate()
 
     @transaction.commit_on_success
@@ -59,10 +63,10 @@ class StatementManager():
             # Incoming contextActivities can either be a list or dict
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
-                    act = ActivityManager(con_act, auth=self.auth['authority'], define=self.define).Activity
+                    act = ActivityManager(con_act, auth=self.auth['authority'], define=self.auth['define']).Activity
                     ca.context_activity.add(act)
             else:
-                act = ActivityManager(con_act_group[1], auth=self.auth['authority'], define=self.define).Activity
+                act = ActivityManager(con_act_group[1], auth=self.auth['authority'], define=self.auth['define']).Activity
                 ca.context_activity.add(act)
             ca.save()
 
@@ -83,7 +87,7 @@ class StatementManager():
 
         # Try to create statement
         stmt = Statement.objects.create(**self.data)
-    
+
         # Save context activities
         # Can have multiple groupings
         for con_act_group in con_act_data.items():
@@ -91,10 +95,10 @@ class StatementManager():
             # Incoming contextActivities can either be a list or dict
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
-                    act = ActivityManager(con_act, auth=self.auth['authority'], define=self.define).Activity
+                    act = ActivityManager(con_act, auth=self.auth['authority'], define=self.auth['define']).Activity
                     ca.context_activity.add(act)
             else:
-                act = ActivityManager(con_act_group[1], auth=self.auth['authority'], define=self.define).Activity
+                act = ActivityManager(con_act_group[1], auth=self.auth['authority'], define=self.auth['define']).Activity
                 ca.context_activity.add(act)
             ca.save()
 
@@ -157,7 +161,7 @@ class StatementManager():
                         created = True
 
                 # If have define permission and attachment already has existed
-                if self.define and not created:
+                if self.auth['define'] and not created:
                     if attachment.display:
                         existing_displays = attachment.display
                     else:
@@ -193,11 +197,11 @@ class StatementManager():
 
             if 'context_instructor' in self.data:
                 self.data['context_instructor'] = AgentManager(params=self.data['context_instructor'],
-                    define=self.define).Agent
+                    define=self.auth['define']).Agent
                 
             if 'context_team' in self.data:
                 self.data['context_team'] = AgentManager(params=self.data['context_team'],
-                    define=self.define).Agent
+                    define=self.auth['define']).Agent
 
             if 'context_statement' in self.data:
                 self.data['context_statement'] = self.data['context_statement']['id']
@@ -241,32 +245,50 @@ class StatementManager():
         else:
             # Check objectType, get object based on type
             if statement_object_data['objectType'] == 'Activity':
-                self.data['object_activity'] = ActivityManager(statement_object_data, auth=self.auth['authority'], define=self.define).Activity
+                self.data['object_activity'] = ActivityManager(statement_object_data, auth=self.auth['authority'],
+                    define=self.auth['define']).Activity
             elif statement_object_data['objectType'] in valid_agent_objects:
-                self.data['object_agent'] = AgentManager(params=statement_object_data, define=self.define).Agent
+                self.data['object_agent'] = AgentManager(params=statement_object_data, define=self.auth['define']).Agent
             elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
                 self.data['object_statementref'] = StatementRef.objects.create(ref_id=statement_object_data['id'])
         del self.data['object']
 
-    def build_authority_object(self):
+    def build_authority_object(self, auth):
         # Could still have no authority in stmt if HTTP_AUTH and OAUTH are disabled
-        if 'authority' in self.data:
-            self.data['authority'] = AgentManager(params=self.data['authority'], define=self.define).Agent
+        # Have to set auth in kwarg dict for Agent auth object to be saved in statement
+        # Also have to save auth in full_statement kwargs for when returning exact statements
+        # Set object auth as well for when creating other objects in a substatement
+        if auth['authority']:
+            self.data['authority'] = auth['authority']
+            self.data['full_statement']['authority'] = auth['authority'].to_dict()
+        # If no auth in request, look in statement
+        else:
+            # If authority is given in statement
+            if 'authority' in self.data:
+                self.data['authority'] = AgentManager(params=self.data['full_statement']['authority']).Agent
+                self.auth['authority'] = self.data['authority']
+                
+                # TODO - what to do with authority field in statement here?
+                # Since no data about auth sent in with request, have to set it with the authority agent
+                # If authorty is just an agent, won't necessarily be a user and will have define scope
+                # if self.auth['authority'].objectType == 'Group':
+                #     self.auth['user'] = self.auth['authority'].get_user_from_oauth_group()
+                #     self.auth['define'] = 
+            # No auth in request or statement
+            else:
+                self.auth['authority'] = None
 
     #Once JSON is verified, populate the statement object
     def populate(self):
         if self.__class__.__name__ == 'StatementManager':
-            # If non oauth group won't be sent with the authority key, so if it's a group it's a non
-            # oauth group which isn't allowed to be the authority
-            self.build_authority_object()
             self.data['voided'] = False
         
         self.build_verb_object()
         self.build_statement_object()
 
-        self.data['actor'] = AgentManager(params=self.data['actor'], define=self.define).Agent
+        self.data['actor'] = AgentManager(params=self.data['actor'], define=self.auth['define']).Agent
 
         self.populate_context()
         self.populate_result()

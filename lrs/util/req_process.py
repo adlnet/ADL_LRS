@@ -43,9 +43,6 @@ def process_statements(stmts, auth):
                             if isinstance(v, dict):
                                 st['object']['context']['contextActivities'][k] = [v]
 
-                if auth['authority']:
-                    st['authority'] = auth['authority'].to_dict()
-
                 st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
                 if not 'timestamp' in st:
@@ -77,11 +74,6 @@ def process_statements(stmts, auth):
                     if isinstance(v, dict):
                         stmts['object']['context']['contextActivities'][k] = [v]
 
-        if not 'authority' in stmts:
-            # Can still have no auth with blank creds
-            if auth['authority']:
-                stmts['authority'] = auth['authority'].to_dict()
-        
         # Handle single POST
         stmts['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
