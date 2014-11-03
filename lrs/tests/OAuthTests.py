@@ -2856,7 +2856,7 @@ Lw03eHTNQghS0A==
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
-        
+
         # Put statements - should update existing activity since jane is in oauth group
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")

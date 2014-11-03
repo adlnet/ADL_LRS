@@ -24,8 +24,8 @@ class default_on_exception(object):
 
 class StatementManager():
     def __init__(self, data, auth, full_stmt={}):
-        self.data = data
         # Auth contains define, endpoint, user, and request authority
+        self.data = data
         self.auth = auth
         
         if self.__class__.__name__ == 'StatementManager':
@@ -276,7 +276,7 @@ class StatementManager():
                 # if self.auth['authority'].objectType == 'Group':
                 #     self.auth['user'] = self.auth['authority'].get_user_from_oauth_group()
                 #     self.auth['define'] = 
-            # No auth in request or statement
+            # Empty auth in request or statement
             else:
                 self.auth['authority'] = None
 

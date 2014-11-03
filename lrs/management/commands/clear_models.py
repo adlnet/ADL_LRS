@@ -10,7 +10,7 @@ class Command(BaseCommand):
 		apps = []
 		apps.append(get_app('lrs'))
 		apps.append(get_app('oauth_provider'))
-		apps.append(get_app('oauth2_provider.provider.oauth2'))
+		# apps.append(get_app('oauth2_provider.provider.oauth2'))
 
 		for app in apps:
 			for model in get_models(app):
