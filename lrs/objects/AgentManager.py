@@ -1,6 +1,7 @@
 import json
-from lrs.models import Agent
-from lrs.exceptions import ParamError
+
+from ..models import Agent
+from ..exceptions import ParamError
 
 class AgentManager():
     def __init__(self, params, define=True):
@@ -15,5 +16,7 @@ class AgentManager():
         
         # Define determines if the user submitting the statement with the agent in it has the ability
         # to make canonical agents and/or update canonical agents
+        # TODO - this falls in line with the todo in statementmanager...if come across a stmt with auth field
+        # but no auth in request, we try to get the auth agent - if it's oauth we don't know what define permission they have
         params['canonical_version'] = define
         self.Agent, self.created = Agent.objects.retrieve_or_create(**params)

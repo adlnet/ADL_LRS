@@ -10,7 +10,7 @@ from django.utils.translation import ugettext as _
 from django.core.urlresolvers import get_callable
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from lrs.forms import AuthClientForm
+from oauth_provider.forms import AuthorizeRequestTokenForm
 from oauth_provider.compat import UnsafeRedirect
 from store import store, InvalidConsumerError, InvalidTokenError
 from utils import verify_oauth_request, get_oauth_request, require_params, send_oauth_error
@@ -58,7 +58,7 @@ def request_token(request):
 
 # LRS CHANGE - CHANGED FORM_CLASS TO OUR CUSTOM FORM
 @login_required(login_url="/accounts/login")
-def user_authorization(request, form_class=AuthClientForm):
+def user_authorization(request, form_class=AuthorizeRequestTokenForm):
     if 'oauth_token' not in request.REQUEST:
         return HttpResponseBadRequest('No request token specified.')
 
@@ -215,7 +215,7 @@ def access_token(request):
 @login_required(login_url="/accounts/login")
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
-        form = AuthClientForm(initial={'scopes': token.scope_to_list(),
+        form = AuthorizeRequestTokenForm(initial={'scopes': token.scope_to_list(),
                                       'obj_id': token.pk})
 
     d = {}

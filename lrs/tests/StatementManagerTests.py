@@ -2,10 +2,13 @@ import uuid
 import json
 import urllib
 import base64
+
 from django.test import TestCase
-from lrs import models, views
-from lrs.objects.ActivityManager import ActivityManager
 from django.core.urlresolvers import reverse
+
+from ..models import *
+from ..views import register, statements
+from ..objects.ActivityManager import ActivityManager
 
 class StatementManagerTests(TestCase):
     
@@ -19,21 +22,21 @@ class StatementManagerTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")
 
     def test_minimum_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        verb = models.Verb.objects.get(id=stmt.verb.id)
-        actor = models.Agent.objects.get(id=stmt.actor.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        verb = Verb.objects.get(id=stmt.verb.id)
+        actor = Agent.objects.get(id=stmt.actor.id)
 
         self.assertEqual(activity.activity_id, "http://example.adlnet.gov/tincan/example/simplestatement")
         self.assertEqual(actor.mbox, "mailto:tincan@adlnet.gov")
@@ -45,15 +48,15 @@ class StatementManagerTests(TestCase):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":st_id}))
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
-        stmt = models.Statement.objects.get(statement_id=st_id)
+        stmt = Statement.objects.get(statement_id=st_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        verb = models.Verb.objects.get(id=stmt.verb.id)
-        actor = models.Agent.objects.get(id=stmt.actor.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        verb = Verb.objects.get(id=stmt.verb.id)
+        actor = Agent.objects.get(id=stmt.actor.id)
         lang_maps = verb.display
 
         for k, v in lang_maps.iteritems():
@@ -66,7 +69,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(actor.mbox, "mailto:tincan@adlnet.gov")
         self.assertEqual(verb.verb_id, "http://adlnet.gov/expapi/verbs/created")
         
-        st = models.Statement.objects.get(statement_id=st_id)
+        st = Statement.objects.get(statement_id=st_id)
         self.assertEqual(st.object_activity.id, activity.id)
         self.assertEqual(st.verb.id, verb.id)
 
@@ -76,7 +79,7 @@ class StatementManagerTests(TestCase):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":st_id}))
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
@@ -84,12 +87,12 @@ class StatementManagerTests(TestCase):
         stmt2 = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
             'id': st_id}})
-        response = self.client.post(reverse(views.statements), stmt2, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
-        stmts = models.Statement.objects.all()
-        stmt_refs = models.StatementRef.objects.filter(ref_id=st_id)
+        stmts = Statement.objects.all()
+        stmt_refs = StatementRef.objects.filter(ref_id=st_id)
         self.assertEqual(len(stmt_refs), 1)
         self.assertEqual(stmt_refs[0].ref_id, st_id)
         self.assertEqual(len(stmts), 2)
@@ -97,7 +100,7 @@ class StatementManagerTests(TestCase):
     def test_voided_wrong_type(self):
         stmt = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement', 'id': "12345678-1234-5678-1234-567812345678"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -105,7 +108,7 @@ class StatementManagerTests(TestCase):
 
     def test_no_verb_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "object": {'id':'act:activity2'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -113,7 +116,7 @@ class StatementManagerTests(TestCase):
 
     def test_no_object_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "verb": {"id":"verb:verb/url"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -121,7 +124,7 @@ class StatementManagerTests(TestCase):
 
     def test_no_actor_stmt(self):
         stmt = json.dumps({"object":{"id":"act:activity_test"}, "verb": {"id":"verb:verb/url"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -129,7 +132,7 @@ class StatementManagerTests(TestCase):
 
     def test_voided_true_stmt(self):
         stmt = json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'}, 'verb': {"id":'verb:verb/url/kicked'},'voided': True, 'object': {'id':'act:activity3'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -140,18 +143,18 @@ class StatementManagerTests(TestCase):
         stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'}, 
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
         
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
 
         self.assertEqual(st.result_completion, True)
@@ -165,14 +168,14 @@ class StatementManagerTests(TestCase):
             'mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity13'}, 
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
         
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        actor = models.Agent.objects.get(id=stmt.actor.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        actor = Agent.objects.get(id=stmt.actor.id)
         extKeys = stmt.result_extensions.keys()
         extVals = stmt.result_extensions.values()
 
@@ -180,7 +183,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(stmt.object_activity.id, activity.id)
         self.assertEqual(stmt.actor.id, actor.id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
@@ -203,7 +206,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.0},'completion': True,
             'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
@@ -213,7 +216,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':00.000},'completion': True,
             'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
@@ -223,7 +226,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.01},'completion': True,
             'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
                 
         self.assertEqual(response.status_code, 400)
@@ -234,7 +237,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':-1.00001},'completion': True,
             'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
                 
         self.assertEqual(response.status_code, 400)
@@ -245,7 +248,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.01,'min':-2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
@@ -255,7 +258,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':-20.0,'min':-20.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
@@ -265,7 +268,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.02,'min':-2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
                 
         self.assertEqual(response.status_code, 400)
@@ -276,7 +279,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':-2.00001,'min':-2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
                
         self.assertEqual(response.status_code, 400)
@@ -287,7 +290,7 @@ class StatementManagerTests(TestCase):
             'name':'jon','mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.5,'min':2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
                
         self.assertEqual(response.status_code, 400)
@@ -299,15 +302,15 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity14'}, "result": {'score':{'scaled':.95},
             'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        actor = models.Agent.objects.get(id=stmt.actor.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        actor = Agent.objects.get(id=stmt.actor.id)
         extKeys = stmt.result_extensions.keys()
         extVals = stmt.result_extensions.values()
 
@@ -315,7 +318,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(stmt.object_activity.id, activity.id)
         self.assertEqual(stmt.actor.id, actor.id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
@@ -341,11 +344,11 @@ class StatementManagerTests(TestCase):
         # expect the LRS to assign a context registration uuid
         stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'act:activity14'},
                          'context': {'contextActivities': {'other': {'id': 'act:NewActivityID'}}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
         
         self.assertIsNotNone(stmt.context_registration)   
 
@@ -355,7 +358,7 @@ class StatementManagerTests(TestCase):
             'context':{'contextActivities': {'other': {'id': 'act:NewActivityID'}},
             'revision': 'foo', 'platform':'bar','language': 'en-US',
             'statement': {'objectType': 'Activity','id': "act:some/act"}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
                 
         self.assertEqual(response.status_code, 400)
@@ -367,7 +370,7 @@ class StatementManagerTests(TestCase):
                 'context':{'registration': "bbb", 'contextActivities': {'other': {'id': 'act:NewActivityID'}, 'grouping':{'id':'act:GroupID'}},
                 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
                 
         self.assertEqual(response.status_code, 400)
@@ -379,19 +382,19 @@ class StatementManagerTests(TestCase):
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity15'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'},
                 'grouping':{'id':'act:GroupID'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
         context_activities = stmt.statementcontextactivity_set.all()
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
         
         for ca in context_activities:
@@ -414,15 +417,15 @@ class StatementManagerTests(TestCase):
                 'grouping':{'id':'act:GroupID'}},
                 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
 
-        context_activities = models.StatementContextActivity.objects.filter(statement=stmt)
+        context_activities = StatementContextActivity.objects.filter(statement=stmt)
         self.assertEqual(len(context_activities), 2)
         
         context_activity_keys = [ca.key for ca in context_activities]
@@ -444,7 +447,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
 
         self.assertEqual(st.context_registration, guid)        
@@ -458,13 +461,13 @@ class StatementManagerTests(TestCase):
                 'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity16'},
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
         extKeys = stmt.context_extensions.keys()
         extVals = stmt.context_extensions.values()
         context_activities = stmt.statementcontextactivity_set.all()
@@ -472,7 +475,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
 
         self.assertEqual(st.context_registration, guid)
@@ -493,7 +496,7 @@ class StatementManagerTests(TestCase):
 
         existing_stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_guid}))
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
@@ -504,17 +507,17 @@ class StatementManagerTests(TestCase):
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'statement': {'objectType': 'StatementRef','id': stmt_guid}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        stmt_ref = models.StatementRef(ref_id=stmt_guid)
-        neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        stmt_ref = StatementRef(ref_id=stmt_guid)
+        neststmt = Statement.objects.get(statement_id=stmt_ref.ref_id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
 
         self.assertEqual(st.object_activity.id, activity.id)
 
@@ -534,7 +537,7 @@ class StatementManagerTests(TestCase):
                 'statement': {'objectType':'SubStatement', 'actor':{'objectType':'Agent',
                 'mbox':'mailto:sss@sss.com'},'verb':{'id':'verb:verb/url/nest/nest'},
                 'object':{'id':'act://activity/url'}}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -544,7 +547,7 @@ class StatementManagerTests(TestCase):
         stmt_guid = str(uuid.uuid1())
         existing_stmt = json.dumps({'actor':{'objectType':'Agent',
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_guid}))
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
@@ -556,18 +559,18 @@ class StatementManagerTests(TestCase):
             'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID'}},
             'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,
             'objectType':'StatementRef'}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        stmt_ref = models.StatementRef(ref_id=stmt_guid)
-        neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        stmt_ref = StatementRef(ref_id=stmt_guid)
+        neststmt = Statement.objects.get(statement_id=stmt_ref.ref_id)
         context_activities = stmt.statementcontextactivity_set.all()
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
 
         self.assertEqual(st.object_activity.id, activity.id)
 
@@ -590,7 +593,7 @@ class StatementManagerTests(TestCase):
         stmt_guid = str(uuid.uuid1())
         existing_stmt = json.dumps({'actor':{'objectType':'Agent',
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_guid}))
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
@@ -602,16 +605,16 @@ class StatementManagerTests(TestCase):
             'mbox':'mailto:jon@example.com'},'contextActivities': {'other': {'id': 'act:NewActivityID1'}},
             'revision': 'foob', 'platform':'bard','language': 'en-US', 'statement': {'id':stmt_guid,
             "objectType":"StatementRef"}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        stmt_ref = models.StatementRef(ref_id=stmt_guid)
-        neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
-        st = models.Statement.objects.get(id=stmt.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        stmt_ref = StatementRef(ref_id=stmt_guid)
+        neststmt = Statement.objects.get(statement_id=stmt_ref.ref_id)
+        st = Statement.objects.get(id=stmt.id)
         context_activities = stmt.statementcontextactivity_set.all()
 
         self.assertEqual(st.object_activity.id, activity.id)
@@ -636,7 +639,7 @@ class StatementManagerTests(TestCase):
         stmt_guid = str(uuid.uuid1())
         existing_stmt = json.dumps({'actor':{'objectType':'Agent',
             'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
-        path = "%s?%s" % (reverse(views.statements), urllib.urlencode({"statementId":stmt_guid}))
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
@@ -672,17 +675,17 @@ class StatementManagerTests(TestCase):
                  }
                 }
         )
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        stmt_ref = models.StatementRef(ref_id=stmt_guid)
-        neststmt = models.Statement.objects.get(statement_id=stmt_ref.ref_id)
+        stmt_ref = StatementRef(ref_id=stmt_guid)
+        neststmt = Statement.objects.get(statement_id=stmt_ref.ref_id)
         context_activities = stmt.statementcontextactivity_set.all()
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
 
         self.assertEqual(st.verb.verb_id, "verb:verb/url")
 
@@ -703,13 +706,13 @@ class StatementManagerTests(TestCase):
     def test_agent_as_object(self):
         stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        agent = models.Agent.objects.get(id=stmt.object_agent.id)
+        agent = Agent.objects.get(id=stmt.object_agent.id)
 
         self.assertEqual(agent.name, 'lulu')
         self.assertEqual(agent.openID, 'id:luluid')
@@ -721,7 +724,7 @@ class StatementManagerTests(TestCase):
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
             'object': {'objectType':'activity', 'id':'act:testex.com'},
             'authority':{'objectType':'Agent','mbox':'mailto:s@s.com'}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -733,7 +736,7 @@ class StatementManagerTests(TestCase):
             'actor':{'objectType':'Agent','mbox':'mailto:ss@ss.com'},'verb': {"id":"verb:verb/url/nest"},
             'object': {'objectType':'SubStatement', 'actor':{'objectType':'Agent','mbox':'mailto:sss@sss.com'},
             'verb':{'id':'verb:verb/url/nest/nest'}, 'object':{'id':'act://activity/url'}}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -748,16 +751,16 @@ class StatementManagerTests(TestCase):
             'response': 'kicked'}, 'context':{'registration': guid,
             'contextActivities': {'other': {'id': 'act:NewActivityID'}},'revision': 'foo', 'platform':'bar',
             'language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        outer_stmt = models.Statement.objects.get(id=stmt.id)
-        sub_stmt = models.SubStatement.objects.get(id=outer_stmt.object_substatement.id)
-        sub_obj = models.Activity.objects.get(id=sub_stmt.object_activity.id)
-        sub_act = models.Agent.objects.get(id=sub_stmt.actor.id)
+        outer_stmt = Statement.objects.get(id=stmt.id)
+        sub_stmt = SubStatement.objects.get(id=outer_stmt.object_substatement.id)
+        sub_obj = Activity.objects.get(id=sub_stmt.object_activity.id)
+        sub_act = Agent.objects.get(id=sub_stmt.actor.id)
 
         self.assertEqual(outer_stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(outer_stmt.actor.mbox, 'mailto:s@s.com')        
@@ -778,20 +781,20 @@ class StatementManagerTests(TestCase):
         
         stmt = json.dumps({"actor":testagent, 'verb': {"id":"verb:verb/url"},"object": {"id":"act:activity5",
             "objectType": "Activity"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt = models.Statement.objects.get(statement_id=stmt_id)
+        stmt = Statement.objects.get(statement_id=stmt_id)
 
-        activity = models.Activity.objects.get(id=stmt.object_activity.id)
-        actor = models.Agent.objects.get(id=stmt.actor.id)
+        activity = Activity.objects.get(id=stmt.object_activity.id)
+        actor = Agent.objects.get(id=stmt.actor.id)
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
         self.assertEqual(stmt.actor.id, actor.id)
 
-        st = models.Statement.objects.get(id=stmt.id)
+        st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
         self.assertEqual(st.actor.id, actor.id)
 
@@ -814,7 +817,7 @@ class StatementManagerTests(TestCase):
                 'extensions': {'ext2:key1': 'value1'}}})
 
 
-        acts = len(models.Activity.objects.all())
+        acts = len(Activity.objects.all())
         self.assertEqual(acts, 2)
         self.assertIn('true', act1.Activity.activity_definition_crpanswers)
         self.assertIn('true', act2.Activity.activity_definition_crpanswers)
@@ -827,11 +830,11 @@ class StatementManagerTests(TestCase):
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity'}})
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt1 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt1 = Statement.objects.get(statement_id=stmt_id)
         
         st1_id = str(stmt1.statement_id)
         stmt2 = json.dumps({
@@ -845,25 +848,25 @@ class StatementManagerTests(TestCase):
                 'grouping':{'id':'act:activity2'}},'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'extensions':{'ext:key1': 'value1'},
                 'statement':{'objectType': 'StatementRef','id':st1_id}}})
-        response = self.client.post(reverse(views.statements), stmt2, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt2 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt2 = Statement.objects.get(statement_id=stmt_id)
 
-        self.assertEqual(len(models.Statement.objects.all()), 2)
+        self.assertEqual(len(Statement.objects.all()), 2)
         # Team creates a group object and the agent inside of itself, plus self.auth
-        self.assertEqual(len(models.Agent.objects.all()), 5)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Activity.objects.all()), 3)
+        self.assertEqual(len(Agent.objects.all()), 5)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Activity.objects.all()), 3)
 
-        models.Statement.objects.get(id=stmt2.id).delete()
-        self.assertEqual(len(models.Statement.objects.all()), 1)
+        Statement.objects.get(id=stmt2.id).delete()
+        self.assertEqual(len(Statement.objects.all()), 1)
         # Agents/activities/verbs are not deleted
-        self.assertEqual(len(models.Agent.objects.all()), 5)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Activity.objects.all()), 3)
-        self.assertIn('act:activity', models.Activity.objects.values_list('activity_id', flat=True))
+        self.assertEqual(len(Agent.objects.all()), 5)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Activity.objects.all()), 3)
+        self.assertIn('act:activity', Activity.objects.values_list('activity_id', flat=True))
 
     def test_context_in_another_context_statement_delete(self):
         stmt1 = json.dumps({
@@ -876,11 +879,11 @@ class StatementManagerTests(TestCase):
                 'contextActivities': {'other': [{'id': 'act:activity1'},{'id':'act:activity2'}],
                 'grouping':{'id':'act:activity3'}},'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'extensions':{'ext:key1': 'value1'}}})
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt1 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt1 = Statement.objects.get(statement_id=stmt_id)
 
         stmt2 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
@@ -891,11 +894,11 @@ class StatementManagerTests(TestCase):
                     'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
                 'contextActivities': {'other': [{'id': 'act:activity2'},{'id':'act:activity3'}],
                 'grouping':{'id':'act:activity5'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}})
-        response = self.client.post(reverse(views.statements), stmt2, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt2 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt2 = Statement.objects.get(statement_id=stmt_id)
 
         stmt3 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
@@ -906,84 +909,84 @@ class StatementManagerTests(TestCase):
                     'member':[{"name":"agent_in_group","mbox":"mailto:agentingroup@example.com"}]},
                 'contextActivities': {'other': [{'id': 'act:activity6'},{'id':'act:activity5'}],
                 'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}})
-        response = self.client.post(reverse(views.statements), stmt3, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt3, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt3 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt3 = Statement.objects.get(statement_id=stmt_id)
 
-        self.assertEqual(len(models.Activity.objects.all()), 6)
-        self.assertEqual(len(models.Agent.objects.all()), 8)
-        self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 6)
-        self.assertEqual(len(models.Statement.objects.all()), 3)
+        self.assertEqual(len(Activity.objects.all()), 6)
+        self.assertEqual(len(Agent.objects.all()), 8)
+        self.assertEqual(len(Verb.objects.all()), 3)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 6)
+        self.assertEqual(len(Statement.objects.all()), 3)
 
-        models.Statement.objects.get(id=stmt3.id).delete()
+        Statement.objects.get(id=stmt3.id).delete()
         # Agents/activities/verbs are not deleted
-        self.assertEqual(len(models.Activity.objects.all()), 6)
-        self.assertEqual(len(models.Agent.objects.all()), 8)        
-        self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 4)
-        self.assertEqual(len(models.Statement.objects.all()), 2)
+        self.assertEqual(len(Activity.objects.all()), 6)
+        self.assertEqual(len(Agent.objects.all()), 8)        
+        self.assertEqual(len(Verb.objects.all()), 3)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 4)
+        self.assertEqual(len(Statement.objects.all()), 2)
 
-        models.Statement.objects.get(id=stmt2.id).delete()
-        self.assertEqual(len(models.Activity.objects.all()), 6)
-        self.assertEqual(len(models.Agent.objects.all()), 8)        
-        self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 2)
-        self.assertEqual(len(models.Statement.objects.all()), 1)
+        Statement.objects.get(id=stmt2.id).delete()
+        self.assertEqual(len(Activity.objects.all()), 6)
+        self.assertEqual(len(Agent.objects.all()), 8)        
+        self.assertEqual(len(Verb.objects.all()), 3)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 2)
+        self.assertEqual(len(Statement.objects.all()), 1)
 
-        models.Statement.objects.get(id=stmt1.id).delete()
-        self.assertEqual(len(models.Activity.objects.all()), 6)
-        self.assertEqual(len(models.Agent.objects.all()), 8)        
-        self.assertEqual(len(models.Verb.objects.all()), 3)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.Statement.objects.all()), 0)
+        Statement.objects.get(id=stmt1.id).delete()
+        self.assertEqual(len(Activity.objects.all()), 6)
+        self.assertEqual(len(Agent.objects.all()), 8)        
+        self.assertEqual(len(Verb.objects.all()), 3)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(Statement.objects.all()), 0)
 
     def test_simple_statement_delete(self):
         stmt1 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'}})
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt1 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt1 = Statement.objects.get(statement_id=stmt_id)
 
         stmt2 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:b@b.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'}})
-        response = self.client.post(reverse(views.statements), stmt2, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt2 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt2 = Statement.objects.get(statement_id=stmt_id)
 
-        self.assertEqual(len(models.Agent.objects.all()), 3)
-        self.assertEqual(len(models.Activity.objects.all()), 1)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Statement.objects.all()), 2)
+        self.assertEqual(len(Agent.objects.all()), 3)
+        self.assertEqual(len(Activity.objects.all()), 1)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Statement.objects.all()), 2)
 
-        models.Statement.objects.get(id=stmt2.id).delete()
+        Statement.objects.get(id=stmt2.id).delete()
 
-        self.assertEqual(len(models.Agent.objects.all()), 3)
-        self.assertEqual(len(models.Activity.objects.all()), 1)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Statement.objects.all()), 1)
-        self.assertEqual(models.Statement.objects.all()[0].id, stmt1.id)
+        self.assertEqual(len(Agent.objects.all()), 3)
+        self.assertEqual(len(Activity.objects.all()), 1)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Statement.objects.all()), 1)
+        self.assertEqual(Statement.objects.all()[0].id, stmt1.id)
 
     def test_more_conacts_delete(self):
         stmt1 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'}})
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt1 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt1 = Statement.objects.get(statement_id=stmt_id)
 
         stmt2 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
@@ -992,23 +995,23 @@ class StatementManagerTests(TestCase):
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
                 'contextActivities': {'other': {'id': 'act:activity1'}},'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
-        response = self.client.post(reverse(views.statements), stmt2, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt2 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt2 = Statement.objects.get(statement_id=stmt_id)
 
-        self.assertEqual(len(models.Agent.objects.all()), 3)
-        self.assertEqual(len(models.Activity.objects.all()), 2)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Statement.objects.all()), 2)
+        self.assertEqual(len(Agent.objects.all()), 3)
+        self.assertEqual(len(Activity.objects.all()), 2)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Statement.objects.all()), 2)
 
-        models.Statement.objects.get(id=stmt2.id).delete()
+        Statement.objects.get(id=stmt2.id).delete()
 
-        self.assertEqual(len(models.Agent.objects.all()), 3)
-        self.assertEqual(len(models.Activity.objects.all()), 2)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Statement.objects.all()), 1)
+        self.assertEqual(len(Agent.objects.all()), 3)
+        self.assertEqual(len(Activity.objects.all()), 2)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Statement.objects.all()), 1)
 
     def test_activity_also_in_conact(self):
         stmt1 = json.dumps({
@@ -1018,44 +1021,44 @@ class StatementManagerTests(TestCase):
             'context':{'instructor':{'objectType':'Agent', 'mbox':'mailto:inst@inst.com'},
                 'contextActivities': {'other': {'id': 'act:activity2'}},'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt1 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt1 = Statement.objects.get(statement_id=stmt_id)
 
         stmt2 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity2'}})
-        response = self.client.post(reverse(views.statements), stmt2, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt2 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt2 = Statement.objects.get(statement_id=stmt_id)
 
-        self.assertEqual(len(models.Agent.objects.all()), 3)
-        self.assertEqual(len(models.Activity.objects.all()), 2)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Statement.objects.all()), 2)
+        self.assertEqual(len(Agent.objects.all()), 3)
+        self.assertEqual(len(Activity.objects.all()), 2)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Statement.objects.all()), 2)
 
-        models.Statement.objects.get(id=stmt2.id).delete()
+        Statement.objects.get(id=stmt2.id).delete()
 
-        self.assertEqual(len(models.Agent.objects.all()), 3)
-        self.assertEqual(len(models.Activity.objects.all()), 2)
-        self.assertEqual(len(models.Verb.objects.all()), 1)
-        self.assertEqual(len(models.Statement.objects.all()), 1)
+        self.assertEqual(len(Agent.objects.all()), 3)
+        self.assertEqual(len(Activity.objects.all()), 2)
+        self.assertEqual(len(Verb.objects.all()), 1)
+        self.assertEqual(len(Statement.objects.all()), 1)
 
 
-        agents = models.Agent.objects.values_list('mbox', flat=True)
+        agents = Agent.objects.values_list('mbox', flat=True)
         self.assertIn('mailto:a@a.com', agents)
         self.assertIn('mailto:inst@inst.com', agents)
         
-        acts = models.Activity.objects.values_list('activity_id', flat=True)
+        acts = Activity.objects.values_list('activity_id', flat=True)
         self.assertIn('act:activity1', acts)
         self.assertIn('act:activity2', acts)
-        self.assertEqual(models.Verb.objects.all()[0].verb_id, 'verb:verb/url')
-        self.assertEqual(models.Statement.objects.all()[0].id, stmt1.id)
+        self.assertEqual(Verb.objects.all()[0].verb_id, 'verb:verb/url')
+        self.assertEqual(Statement.objects.all()[0].id, stmt1.id)
 
     def test_sub_delete(self):
         stmt1 = json.dumps(
@@ -1070,31 +1073,31 @@ class StatementManagerTests(TestCase):
                     'team':{'objectType': 'Group', 'name':'conteamgroup',
                     'member':[{"name":"agent_in_conteamgroup","mbox":"mailto:actg@actg.com"}]},"revision": "foo",
                     "platform":"bar","language": "en-US","extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
-        response = self.client.post(reverse(views.statements), stmt1, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt1 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt1 = Statement.objects.get(statement_id=stmt_id)
 
         stmt2 = json.dumps(
             {"actor": {"objectType": "Agent", "mbox": "mailto:ref@ref.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/2"},
             "object":{"objectType": "StatementRef", "id":str(stmt1.statement_id)}})
-        response = self.client.post(reverse(views.statements), stmt2, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt2 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt2 = Statement.objects.get(statement_id=stmt_id)
 
         stmt3 = json.dumps(
             {"actor": {"objectType": "Agent", "mbox": "mailto:norm@norm.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/3"},
             "object":{"objectType": "Activity", "id":"act:activity1"}})
-        response = self.client.post(reverse(views.statements), stmt3, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt3, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt3 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt3 = Statement.objects.get(statement_id=stmt_id)
 
         stmt4 = json.dumps({
             'actor':{'objectType':'Agent','mbox':'mailto:a@a.com'},
@@ -1104,57 +1107,57 @@ class StatementManagerTests(TestCase):
                 'contextActivities': {'other': {'id': 'act:conactivity1'}},'revision': 'foo', 'platform':'bar',
                 'language': 'en-US', 'statement':{'objectType': 'StatementRef',
                 'id':str(stmt3.statement_id)}}})
-        response = self.client.post(reverse(views.statements), stmt4, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt4, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
-        stmt4 = models.Statement.objects.get(statement_id=stmt_id)
+        stmt4 = Statement.objects.get(statement_id=stmt_id)
 
-        self.assertEqual(len(models.Statement.objects.all()), 4)
-        self.assertEqual(len(models.Agent.objects.all()), 9)
-        self.assertEqual(len(models.Activity.objects.all()), 5)
-        self.assertEqual(len(models.Verb.objects.all()), 5)
-        self.assertEqual(len(models.SubStatement.objects.all()), 1)
-        self.assertEqual(len(models.StatementRef.objects.all()), 1)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 1)
-        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        models.Statement.objects.get(id=stmt4.id).delete()
+        self.assertEqual(len(Statement.objects.all()), 4)
+        self.assertEqual(len(Agent.objects.all()), 9)
+        self.assertEqual(len(Activity.objects.all()), 5)
+        self.assertEqual(len(Verb.objects.all()), 5)
+        self.assertEqual(len(SubStatement.objects.all()), 1)
+        self.assertEqual(len(StatementRef.objects.all()), 1)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 1)
+        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
+        Statement.objects.get(id=stmt4.id).delete()
 
-        self.assertEqual(len(models.Statement.objects.all()), 3)
-        self.assertEqual(len(models.Agent.objects.all()), 9)
-        self.assertEqual(len(models.Activity.objects.all()), 5)
-        self.assertEqual(len(models.Verb.objects.all()), 5)
-        self.assertEqual(len(models.SubStatement.objects.all()), 1)
-        self.assertEqual(len(models.StatementRef.objects.all()), 1)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        models.Statement.objects.get(id=stmt3.id).delete()
+        self.assertEqual(len(Statement.objects.all()), 3)
+        self.assertEqual(len(Agent.objects.all()), 9)
+        self.assertEqual(len(Activity.objects.all()), 5)
+        self.assertEqual(len(Verb.objects.all()), 5)
+        self.assertEqual(len(SubStatement.objects.all()), 1)
+        self.assertEqual(len(StatementRef.objects.all()), 1)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
+        Statement.objects.get(id=stmt3.id).delete()
 
-        self.assertEqual(len(models.Statement.objects.all()), 2)
-        self.assertEqual(len(models.Agent.objects.all()), 9)
-        self.assertEqual(len(models.Activity.objects.all()), 5)
-        self.assertEqual(len(models.Verb.objects.all()), 5)
-        self.assertEqual(len(models.SubStatement.objects.all()), 1)
-        self.assertEqual(len(models.StatementRef.objects.all()), 1)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        models.Statement.objects.get(id=stmt2.id).delete()
+        self.assertEqual(len(Statement.objects.all()), 2)
+        self.assertEqual(len(Agent.objects.all()), 9)
+        self.assertEqual(len(Activity.objects.all()), 5)
+        self.assertEqual(len(Verb.objects.all()), 5)
+        self.assertEqual(len(SubStatement.objects.all()), 1)
+        self.assertEqual(len(StatementRef.objects.all()), 1)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
+        Statement.objects.get(id=stmt2.id).delete()
 
-        self.assertEqual(len(models.Statement.objects.all()), 1)
-        self.assertEqual(len(models.Agent.objects.all()), 9)
-        self.assertEqual(len(models.Activity.objects.all()), 5)
-        self.assertEqual(len(models.Verb.objects.all()), 5)
-        self.assertEqual(len(models.SubStatement.objects.all()), 1)
-        self.assertEqual(len(models.StatementRef.objects.all()), 0)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 1)
-        models.Statement.objects.get(id=stmt1.id).delete()
+        self.assertEqual(len(Statement.objects.all()), 1)
+        self.assertEqual(len(Agent.objects.all()), 9)
+        self.assertEqual(len(Activity.objects.all()), 5)
+        self.assertEqual(len(Verb.objects.all()), 5)
+        self.assertEqual(len(SubStatement.objects.all()), 1)
+        self.assertEqual(len(StatementRef.objects.all()), 0)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
+        Statement.objects.get(id=stmt1.id).delete()
 
-        self.assertEqual(len(models.Statement.objects.all()), 0)
-        self.assertEqual(len(models.Agent.objects.all()), 9)
-        self.assertEqual(len(models.Activity.objects.all()), 5)
-        self.assertEqual(len(models.Verb.objects.all()), 5)
-        self.assertEqual(len(models.SubStatement.objects.all()), 0)
-        self.assertEqual(len(models.StatementRef.objects.all()), 0)
-        self.assertEqual(len(models.StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(models.SubStatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(Statement.objects.all()), 0)
+        self.assertEqual(len(Agent.objects.all()), 9)
+        self.assertEqual(len(Activity.objects.all()), 5)
+        self.assertEqual(len(Verb.objects.all()), 5)
+        self.assertEqual(len(SubStatement.objects.all()), 0)
+        self.assertEqual(len(StatementRef.objects.all()), 0)
+        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
+        self.assertEqual(len(SubStatementContextActivity.objects.all()), 0)

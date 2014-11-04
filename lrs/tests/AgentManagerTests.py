@@ -1,12 +1,14 @@
-from django.test import TestCase
-from lrs.models import Agent
 import hashlib
 import json
 import base64
-from lrs import models, views
-from lrs.objects.AgentManager import AgentManager
+
+from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.conf import settings
+
+from ..models import Agent, Statement
+from ..views import register, statements
+from ..objects.AgentManager import AgentManager
 
 class AgentManagerTests(TestCase):
     @classmethod
@@ -22,19 +24,19 @@ class AgentManagerTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")           
+        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")           
 
     def test_agent_mbox_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
-        st = models.Statement.objects.get(statement_id=st_id[0])
+        st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
@@ -44,12 +46,12 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
-        st = models.Statement.objects.get(statement_id=st_id[0])
+        st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
 
         self.assertEquals(bob.mbox_sha1sum, hashlib.sha1("mailto:bob@example.com").hexdigest())
@@ -62,12 +64,12 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
-        st = models.Statement.objects.get(statement_id=st_id[0])
+        st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
 
         self.assertEquals(bob.openID, "http://bob.openID.com")
@@ -81,12 +83,12 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
-        st = models.Statement.objects.get(statement_id=st_id[0])
+        st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
 
         self.assertEquals(bob.account_name, "freakshow")
@@ -300,7 +302,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -311,7 +313,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
         self.assertEqual(response.status_code, 400)
@@ -332,7 +334,7 @@ class AgentManagerTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn('agent1', mems)
         self.assertIn('agent2', mems)
-        gr_dict = g.get_agent_json()
+        gr_dict = g.to_dict()
         self.assertEquals(gr_dict['objectType'],'Group')
         
         for member in gr_dict['member']:
@@ -398,12 +400,12 @@ class AgentManagerTests(TestCase):
         self.assertEquals(clark.name, name_s)
         self.assertEquals(clark.mbox, mbox_s)
 
-        clark_exact = clark.get_agent_json()
+        clark_exact = clark.to_dict()
         self.assertEquals(clark_exact['objectType'], ot_s)
         self.assertEquals(clark_exact['name'], name_s)
         self.assertEquals(clark_exact['mbox'], mbox_s)
 
-        clark_ids = clark.get_agent_json(format='ids')
+        clark_ids = clark.to_dict(format='ids')
         self.assertFalse('objectType' in str(clark_ids), "object type was found in agent json")
         self.assertFalse('name' in str(clark_ids), "name was found in agent json")
         self.assertEquals(clark_ids['mbox'], mbox_s)
@@ -419,12 +421,12 @@ class AgentManagerTests(TestCase):
         self.assertEquals(diana.name, name_ww)
         self.assertEquals(diana.mbox_sha1sum, mbox_sha1sum_ww)
 
-        diana_exact = diana.get_agent_json()
+        diana_exact = diana.to_dict()
         self.assertEquals(diana_exact['objectType'], ot_ww)
         self.assertEquals(diana_exact['name'], name_ww)
         self.assertEquals(diana_exact['mbox_sha1sum'], mbox_sha1sum_ww)
 
-        diana_ids = diana.get_agent_json(format='ids')
+        diana_ids = diana.to_dict(format='ids')
         self.assertFalse('objectType' in str(diana_ids), "object type was found in agent json")
         self.assertFalse('name' in str(diana_ids), "name was found in agent json")
         self.assertFalse('mbox' in diana_ids.items(), "mbox was found in agent json")
@@ -441,12 +443,12 @@ class AgentManagerTests(TestCase):
         self.assertEquals(bruce.name, name_b)
         self.assertEquals(bruce.openID, openID_b)
 
-        bruce_exact = bruce.get_agent_json()
+        bruce_exact = bruce.to_dict()
         self.assertEquals(bruce_exact['objectType'], ot_b)
         self.assertEquals(bruce_exact['name'], name_b)
         self.assertEquals(bruce_exact['openID'], openID_b)
 
-        bruce_ids = bruce.get_agent_json(format='ids')
+        bruce_ids = bruce.to_dict(format='ids')
         self.assertFalse('objectType' in str(bruce_ids), "object type was found in agent json")
         self.assertFalse('name' in str(bruce_ids), "name was found in agent json")
         self.assertFalse('mbox' in str(bruce_ids), "mbox was found in agent json")
@@ -465,13 +467,13 @@ class AgentManagerTests(TestCase):
         self.assertEquals(barry.account_homePage, account_f['homePage'])
         self.assertEquals(barry.account_name, account_f['name'])
 
-        barry_exact = barry.get_agent_json()
+        barry_exact = barry.to_dict()
         self.assertEquals(barry_exact['objectType'], ot_f)
         self.assertEquals(barry_exact['name'], name_f)
         self.assertEquals(barry_exact['account']['homePage'], account_f['homePage'])
         self.assertEquals(barry_exact['account']['name'], account_f['name'])
 
-        barry_ids = barry.get_agent_json(format='ids')
+        barry_ids = barry.to_dict(format='ids')
         self.assertFalse('objectType' in str(barry_ids), "object type was found in agent json")
         self.assertFalse('name' in barry_ids.items(), "name was found in agent json")
         self.assertFalse('mbox' in barry_ids.items(), "mbox was found in agent json")
@@ -491,12 +493,12 @@ class AgentManagerTests(TestCase):
         self.assertEquals(justiceleague.name, name_j)
         self.assertEquals(justiceleague.mbox, mbox_j)
 
-        justiceleague_exact = justiceleague.get_agent_json()
+        justiceleague_exact = justiceleague.to_dict()
         self.assertEquals(justiceleague_exact['objectType'], ot_j)
         self.assertEquals(justiceleague_exact['name'], name_j)
         self.assertEquals(justiceleague_exact['mbox'], mbox_j)
 
-        justiceleague_ids = justiceleague.get_agent_json(format='ids')
+        justiceleague_ids = justiceleague.to_dict(format='ids')
         self.assertTrue('objectType' in str(justiceleague_ids), "object type was not found in group json")
         self.assertFalse('name' in str(justiceleague_ids), "name was found in agent json")
         self.assertEquals(justiceleague_ids['mbox'], mbox_j)
@@ -516,7 +518,7 @@ class AgentManagerTests(TestCase):
         for bg in bg_members:
             self.assertTrue(bg.name in str(kwargs_bg['member']))
 
-        badguys_exact = badguys.get_agent_json()
+        badguys_exact = badguys.to_dict()
         self.assertEquals(badguys_exact['objectType'], ot_bg)
         for m in badguys_exact['member']:
             if m['name'] == badguy_ds['name']:
@@ -528,7 +530,7 @@ class AgentManagerTests(TestCase):
             else:
                 self.fail("got an unexpected name: " % m['name'])
 
-        badguys_ids = badguys.get_agent_json(format='ids')
+        badguys_ids = badguys.to_dict(format='ids')
         self.assertTrue('objectType' in str(badguys_ids), "object type was not found in group json")
         for m in badguys_ids['member']:
             self.assertFalse('objectType' in str(m), "object type was found in member agent")

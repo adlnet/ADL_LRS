@@ -4,13 +4,17 @@ import datetime
 import base64
 import uuid
 import urllib
+
 from django.http import QueryDict
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.test import TestCase
 from django.contrib.auth.models import User
-from lrs import views, models
+
+from ..models import Activity
+from ..views import statements
+
 from oauth2_provider.provider import constants
 from oauth2_provider.provider.utils import now as date_now
 from oauth2_provider.provider.oauth2.forms import ClientForm
@@ -285,12 +289,12 @@ class AccessTokenTest(OAuth2Tests):
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
 
-        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -301,11 +305,11 @@ class AccessTokenTest(OAuth2Tests):
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
-        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -316,23 +320,23 @@ class AccessTokenTest(OAuth2Tests):
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
-        response = self.client.post(reverse(views.statements), stmt, content_type="application/json",
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
-        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 2)
 
-        stmt_get = self.client.get(reverse(views.statements), X_Experience_API_Version="1.0.0", Authorization=self.get_user_auth(), content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization=self.get_user_auth(), content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 2)
@@ -384,7 +388,7 @@ class AccessTokenTest(OAuth2Tests):
             {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}}]
-        stmt_post = self.client.post(reverse(views.statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -416,7 +420,7 @@ class AccessTokenTest(OAuth2Tests):
                     }
                 }
             }
-        stmt_post = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+        stmt_post = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -442,13 +446,13 @@ class AccessTokenTest(OAuth2Tests):
                 }
             }
         # Doesn't have define permission - should create another activity with that ID that isn't canonical
-        stmt_post2 = self.client.post(reverse(views.statements), json.dumps(stmt2), content_type="application/json",
+        stmt_post2 = self.client.post(reverse(statements), json.dumps(stmt2), content_type="application/json",
             Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post2.status_code, 200)
-        acts = models.Activity.objects.filter(activity_id="act:test_define")
+        acts = Activity.objects.filter(activity_id="act:test_define")
         self.assertEqual(len(acts), 2)
 
-        stmt_post = self.client.post(reverse(views.statements), json.dumps(stmt), content_type="application/json",
+        stmt_post = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -474,11 +478,11 @@ class AccessTokenTest(OAuth2Tests):
                 }
             }
         # Doesn't have define permission - should create another activity with that ID that isn't canonical
-        stmt_post3 = self.client.post(reverse(views.statements), json.dumps(stmt3), content_type="application/json",
+        stmt_post3 = self.client.post(reverse(statements), json.dumps(stmt3), content_type="application/json",
             Authorization="Bearer " + token2['access_token'], X_Experience_API_Version="1.0.0")
         self.assertEqual(stmt_post3.status_code, 200)
-        act_names = models.Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_name', flat=True)
-        act_descs = models.Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
+        act_names = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_name', flat=True)
+        act_descs = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
         self.assertEqual(len(act_names), 2)
         self.assertEqual(len(act_descs), 2)
         self.assertIn('{"en-US":"testname i define!"}', act_names)
