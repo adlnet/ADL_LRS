@@ -81,6 +81,9 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+# Current xAPI version
+XAPI_VERSION = '1.0.2'
+
 # Where to be redirected after logging in
 LOGIN_REDIRECT_URL = '/XAPI/me'
 
@@ -108,7 +111,6 @@ STATEMENTS_WRITE = 1 << 5
 ALL_READ = 1 << 6
 ALL = 1 << 7
 
-# OAuth 2 stuff
 # List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get defaulted in oauth2/forms.py
 OAUTH_SCOPES = (
         (STATEMENTS_WRITE,'statements/write'),

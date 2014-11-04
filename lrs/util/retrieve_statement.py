@@ -2,15 +2,17 @@ import bencode
 import hashlib
 import json
 from datetime import datetime
+from itertools import chain
+
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
-from itertools import chain
-from lrs.models import Statement, Agent
-from lrs.objects.AgentManager import AgentManager
-from lrs.util import convert_to_utc, convert_to_dict
-from lrs.exceptions import NotFound, IDNotFoundError
+
+from util import convert_to_utc, convert_to_dict
+from ..models import Statement, Agent
+from ..objects.AgentManager import AgentManager
+from ..exceptions import NotFound, IDNotFoundError
 
 MORE_ENDPOINT = '/xapi/statements/more/'
 
@@ -124,7 +126,7 @@ def create_stmt_result(stmt_set, stored, language, format):
             stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in \
                 Statement.objects.filter(id__in=idlist).order_by(stored)])
         else:
-            stmt_result['statements'] = [stmt.object_return(language, format) for stmt in \
+            stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in \
                 Statement.objects.filter(id__in=idlist).order_by(stored)]
             stmt_result['more'] = ""
     else:
@@ -194,7 +196,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
         result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
     else:
-        result['statements'] = [stmt.object_return(language, format) for stmt in \
+        result['statements'] = [stmt.to_dict(language, format) for stmt in \
                         Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
         result['more'] = MORE_ENDPOINT + cache_key    
             
@@ -240,10 +242,10 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         stmt_pager = Paginator(stmt_list, limit)       
         # Return first page of results
         if format == 'exact':
-            result = '{"statements": [%s], "more": ""}' % ",".join([stmt.object_return(language, format) for stmt in \
+            result = '{"statements": [%s], "more": ""}' % ",".join([stmt.to_dict(language, format) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)])
         else:
-            result['statements'] = [stmt.object_return(language, format) for stmt in \
+            result['statements'] = [stmt.to_dict(language, format) for stmt in \
                     Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
             result['more'] = ""
         # Set current page back for when someone hits the URL again
@@ -262,11 +264,11 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         cache_key = create_cache_key(stmt_list)
         # Return first page of results
         if format == 'exact':
-            result = '{"statements": [%s], "more": "%s"}' % (",".join([stmt.object_return(language, format) for stmt in \
+            result = '{"statements": [%s], "more": "%s"}' % (",".join([stmt.to_dict(language, format) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
         else:
             # Set result to have selected page of stmts and more endpoint
-            result['statements'] = [stmt.object_return(language, format) for stmt in \
+            result['statements'] = [stmt.to_dict(language, format) for stmt in \
                     Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
             result['more'] = MORE_ENDPOINT + cache_key
         more_cache_list = []

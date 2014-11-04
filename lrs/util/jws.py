@@ -1,10 +1,11 @@
+import base64
+import json
+
 from binascii import a2b_base64
 from Crypto.Hash import SHA256, SHA384, SHA512
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5, PKCS1_PSS
 from Crypto.Util.asn1 import DerSequence
-import base64
-import json
 
 # https://www.dlitz.net/software/pycrypto/api/current/
 

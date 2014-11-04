@@ -1,12 +1,17 @@
 import base64
 from functools import wraps
+
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.sites.models import Site
-from lrs.exceptions import Unauthorized, BadRequest, Forbidden
-from lrs.objects.AgentManager import AgentManager
-from lrs.util import get_user_from_auth
-from lrs.models import Agent
+from django.contrib.auth.models import User
+
+from ..exceptions import Unauthorized, BadRequest, Forbidden
+from ..objects.AgentManager import AgentManager
+from ..models import Agent
+
+from oauth_provider.models import Consumer
+from oauth2_provider.provider.oauth2.models import Client
 
 # A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
@@ -21,12 +26,33 @@ def auth(func):
         elif auth_type == 'oauth' and settings.OAUTH_ENABLED: 
             oauth_helper(request)
         elif auth_type == 'oauth2' and settings.OAUTH_ENABLED:
-            oauth2_helper(request)
+            oauth_helper(request, 2)
         # There is an oauth auth_type request and oauth is not enabled
         elif (auth_type == 'oauth' or auth_type == 'oauth2') and not settings.OAUTH_ENABLED: 
             raise BadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
         return func(request, *args, **kwargs)
     return inner
+
+def get_user_from_auth(auth):
+    if not auth:
+        return None
+    if type(auth) ==  User:
+        return auth #it is a User already
+    else:
+        oauth = 1
+        # it's a group.. gotta find out which of the 2 members is the client
+        for member in auth.member.all():
+            if member.account_name: 
+                key = member.account_name
+                if 'oauth2' in member.account_homePage.lower():
+                    oauth = 2
+                break
+        # get consumer/client based on oauth version
+        if oauth == 1:
+            user = Consumer.objects.get(key__exact=key).user
+        else:
+            user = Client.objects.get(client_id__exact=key).user
+    return user
 
 def validate_oauth_scope(req_dict):
     method = req_dict['method']
@@ -117,7 +143,7 @@ def http_auth_helper(request):
         # The username/password combo was incorrect, or not provided.
         raise Unauthorized("Authorization header missing")
 
-def oauth_helper(request):
+def oauth_helper(request, version=1):
     token = request['auth']['oauth_token']
     
     user = token.user
@@ -126,47 +152,20 @@ def oauth_helper(request):
         user_email = user.email
     else:
         user_email = 'mailto:%s' % user.email
-    consumer = token.consumer                
-    members = [
-                {
-                    "account":{
-                                "name":consumer.key,
-                                "homePage":"%s://%s/XAPI/OAuth/token/" % (settings.SITE_SCHEME, str(Site.objects.get_current().domain))
-                    },
-                    "objectType": "Agent",
-                    "oauth_identifier": "anonoauth:%s" % (consumer.key)
-                },
-                {
-                    "name":user_name,
-                    "mbox":user_email,
-                    "objectType": "Agent"
-                }
-    ]
-    kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.key, user_email)}
-    # create/get oauth group and set in dictionary
-    oauth_group, created = Agent.objects.oauth_group(**kwargs)
-    request['auth']['authority'] = oauth_group
-    request['auth']['user'] = get_user_from_auth(oauth_group)
-    validate_oauth_scope(request)
 
-def oauth2_helper(request):
-    token = request['auth']['oauth_token']
-
-    user = token.user
-    user_name = user.username
-    if user.email.startswith('mailto:'):
-        user_email = user.email
+    if version == 1 :
+        consumer = token.consumer                
     else:
-        user_email = 'mailto:%s' % user.email
-    consumer = token.client
+        consumer = token.client
     members = [
                 {
                     "account":{
-                                "name":consumer.client_id,
-                                "homePage":"%s://%s/XAPI/OAuth2/access_token/" % (settings.SITE_SCHEME, str(Site.objects.get_current().domain))
+                                "name":consumer.key if version == 1 else consumer.client_id,
+                                "homePage":"%s://%s/XAPI/OAuth/token/" % (settings.SITE_SCHEME, str(Site.objects.get_current().domain)) if version == 1 else \
+                                "%s://%s/XAPI/oauth2/access_token/" % (settings.SITE_SCHEME, str(Site.objects.get_current().domain))
                     },
                     "objectType": "Agent",
-                    "oauth_identifier": "anonoauth:%s" % (consumer.client_id)
+                    "oauth_identifier": "anonoauth:%s" % consumer.key if version == 1 else consumer.client_id
                 },
                 {
                     "name":user_name,
@@ -174,7 +173,7 @@ def oauth2_helper(request):
                     "objectType": "Agent"
                 }
     ]
-    kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.client_id, user_email)}
+    kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.key if version == 1 else consumer.client_id, user_email)}
     # create/get oauth group and set in dictionary
     oauth_group, created = Agent.objects.oauth_group(**kwargs)
     request['auth']['authority'] = oauth_group

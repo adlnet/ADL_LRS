@@ -1,4 +1,4 @@
-from lrs import models
+from ..models import Activity
 
 class ActivityManager():
     def __init__(self, data, auth=None, define=True):
@@ -36,16 +36,16 @@ class ActivityManager():
 
         # Try to get canonical
         try:
-            act = models.Activity.objects.get(activity_id=activity_id, canonical_version=True)
-        except models.Activity.DoesNotExist:
+            act = Activity.objects.get(activity_id=activity_id, canonical_version=True)
+        except Activity.DoesNotExist:
             if self.define:
                 # If canonical DNE and can define - create canonical
-                self.Activity = models.Activity.objects.create(activity_id=activity_id, canonical_version=True,
+                self.Activity = Activity.objects.create(activity_id=activity_id, canonical_version=True,
                     authority=self.auth)
                 act_created = True
             else:
                 # If canonical DNE and cannot define - try to get local version for that user
-                self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id, canonical_version=False,
+                self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, canonical_version=False,
                     authority=self.auth)
         # Canonical version already exists
         else:
@@ -66,11 +66,11 @@ class ActivityManager():
                     can_update = True                                                        
                 else:
                     # Not allowed to create global version b/c the activity already exists (could also already have created a non-global act)
-                    self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
+                    self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id,
                         canonical_version=False, authority=self.auth)
             # Canonical version already exists but do not have define - try to get local version for that user or create it for user
             else:
-                self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
+                self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id,
                     canonical_version=False, authority=self.auth)
 
         activity_definition = the_object.get('definition', None)
@@ -80,7 +80,7 @@ class ActivityManager():
             self.populate_definition(activity_definition, act_created, can_update)
 
     def act_def_changed(self, act_def):
-        return act_def != self.Activity.object_return().get('definition', {})
+        return act_def != self.Activity.to_dict().get('definition', {})
 
     #Populate definition either from JSON or validated XML
     def populate_definition(self, act_def, act_created, can_update):

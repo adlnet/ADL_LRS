@@ -1,6 +1,5 @@
 from django.http import HttpResponse
 
-
 class AllowOriginMiddleware(object):
     def process_request(self, request):
         if request.method == 'OPTIONS':

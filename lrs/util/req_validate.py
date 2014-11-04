@@ -1,16 +1,19 @@
 import json
 import urllib2
+
 from django.conf import settings
 from django.core.cache import get_cache
-from lrs import models
-from lrs.util import StatementValidator, validate_uuid, convert_to_dict, get_agent_ifp
-from lrs.exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
+
+from util import validate_uuid, convert_to_dict, get_agent_ifp
 from Authorization import auth
+from StatementValidator import StatementValidator
+from ..models import Statement, Agent, Activity
+from ..exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 
 att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
-    return models.Statement.objects.filter(statement_id=stmtID).exists()
+    return Statement.objects.filter(statement_id=stmtID).exists()
 
 def check_for_no_other_params_supplied(query_dict):
     supplied = True
@@ -27,8 +30,8 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
         if not isinstance(ag, dict):
             ag = json.loads(ag)
         try:
-            agent = models.Agent.objects.get(**ag)
-        except models.Agent.DoesNotExist:
+            agent = Agent.objects.get(**ag)
+        except Agent.DoesNotExist:
             err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
             raise NotFound(err_msg)
 
@@ -40,8 +43,8 @@ def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
     try:
-        stmt = models.Statement.objects.get(statement_id=void_id)
-    except models.Statement.DoesNotExist:
+        stmt = Statement.objects.get(statement_id=void_id)
+    except Statement.DoesNotExist:
         err_msg = "Statement with ID %s does not exist" % void_id
         raise IDNotFoundError(err_msg)
         
@@ -131,7 +134,7 @@ def server_validation(stmt_set, auth, payload_sha2s):
             get_act_def_data(stmt_set['object'])
             
             try:
-                validator = StatementValidator.StatementValidator(None)
+                validator = StatementValidator(None)
                 validator.validate_activity(stmt_set['object'])
             except Exception, e:
                 raise BadRequest(e.message)
@@ -153,7 +156,7 @@ def statements_post(req_dict):
         req_dict['body'] = convert_to_dict(req_dict['body'])
 
     try:
-        validator = StatementValidator.StatementValidator(req_dict['body'])
+        validator = StatementValidator(req_dict['body'])
         validator.validate()
     except Exception, e:
         raise BadRequest(e.message)
@@ -192,8 +195,8 @@ def validate_statementId(req_dict):
 
     # Try to retrieve stmt, if DNE then return empty else return stmt info                
     try:
-        st = models.Statement.objects.get(statement_id=statementId)
-    except models.Statement.DoesNotExist:
+        st = Statement.objects.get(statement_id=statementId)
+    except Statement.DoesNotExist:
         err_msg = 'There is no statement associated with the id: %s' % statementId
         raise IDNotFoundError(err_msg)
 
@@ -286,7 +289,7 @@ def statements_put(req_dict):
 
     # Validate statement in body
     try:
-        validator = StatementValidator.StatementValidator(req_dict['body'])
+        validator = StatementValidator(req_dict['body'])
         validator.validate()
     except Exception, e:
         raise BadRequest(e.message)
@@ -543,8 +546,8 @@ def activities_get(req_dict):
 
     # Try to retrieve activity, if DNE then return empty else return activity info
     try:
-        models.Activity.objects.get(activity_id=activityId)
-    except models.Activity.DoesNotExist:    
+        Activity.objects.get(activity_id=activityId)
+    except Activity.DoesNotExist:    
         err_msg = "No activity found with ID %s" % activityId
         raise IDNotFoundError(err_msg)
 
@@ -665,7 +668,7 @@ def agents_get(req_dict):
     agent = json.loads(req_dict['params']['agent'])
     params = get_agent_ifp(agent)
 
-    if not models.Agent.objects.filter(**params).exists():
+    if not Agent.objects.filter(**params).exists():
         raise IDNotFoundError("Error with Agent. The agent partial did not match any agents on record")
 
     req_dict['agent_ifp'] = params

@@ -1,11 +1,15 @@
 import StringIO
 import email
 import urllib
+
 from django.http import MultiPartParser
 from django.core.cache import get_cache
-from lrs.util import etag, convert_to_dict, convert_post_body_to_dict
-from lrs.util.jws import JWS, JWSException
-from lrs.exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
+
+from util import convert_to_dict, convert_post_body_to_dict
+from etag import get_etag_info
+from jws import JWS, JWSException
+from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
+
 from oauth_provider.utils import get_oauth_request, require_params
 from oauth_provider.decorators import CheckOauth
 from oauth_provider.store import store
@@ -232,7 +236,7 @@ def get_headers(headers):
     if ';' in r['CONTENT_TYPE']:
         r['CONTENT_TYPE'] = r['CONTENT_TYPE'].split(';')[0]
 
-    r['ETAG'] = etag.get_etag_info(headers, required=False)
+    r['ETAG'] = get_etag_info(headers, required=False)
     if 'HTTP_AUTHORIZATION' in headers:
         r['Authorization'] = headers.get('HTTP_AUTHORIZATION', None)
     elif 'Authorization' in headers:

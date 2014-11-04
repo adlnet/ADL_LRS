@@ -5,17 +5,20 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
+
 from django.http import HttpResponse
 from django.conf import settings
 from django.utils.timezone import utc
-from lrs import models
-from lrs.objects.ActivityProfileManager import ActivityProfileManager
-from lrs.objects.ActivityStateManager import ActivityStateManager 
-from lrs.objects.AgentManager import AgentManager
-from lrs.objects.AgentProfileManager import AgentProfileManager
-from lrs.objects.StatementManager import StatementManager
-from lrs.util import convert_to_dict
-import retrieve_statement
+
+from util import convert_to_dict
+from retrieve_statement import complex_get, get_more_statement_request
+from ..models import Statement, StatementAttachment, Agent, Activity
+from ..objects.ActivityProfileManager import ActivityProfileManager
+from ..objects.ActivityStateManager import ActivityStateManager 
+from ..objects.AgentManager import AgentManager
+from ..objects.AgentProfileManager import AgentProfileManager
+from ..objects.StatementManager import StatementManager
+
 
 def process_statements(stmts, auth):
     stmt_responses = []
@@ -40,9 +43,6 @@ def process_statements(stmts, auth):
                             if isinstance(v, dict):
                                 st['object']['context']['contextActivities'][k] = [v]
 
-                if auth['authority']:
-                    st['authority'] = auth['authority'].get_agent_json()
-
                 st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
                 if not 'timestamp' in st:
@@ -54,7 +54,7 @@ def process_statements(stmts, auth):
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
         except Exception:
             for stmt_id in stmt_responses:
-                models.Statement.objects.get(statement_id=stmt_id).delete()
+                Statement.objects.get(statement_id=stmt_id).delete()
             raise
     else:
         if not 'id' in stmts:
@@ -74,11 +74,6 @@ def process_statements(stmts, auth):
                     if isinstance(v, dict):
                         stmts['object']['context']['contextActivities'][k] = [v]
 
-        if not 'authority' in stmts:
-            # Can still have no auth with blank creds
-            if auth['authority']:
-                stmts['authority'] = auth['authority'].get_agent_json()
-        
         # Handle single POST
         stmts['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
@@ -129,7 +124,7 @@ def process_complex_get(req_dict):
         attachments = False
 
     # Create returned stmt list from the req dict
-    stmt_result = retrieve_statement.complex_get(param_dict, limit, language, format, attachments)
+    stmt_result = complex_get(param_dict, limit, language, format, attachments)
     
     if format == 'exact':
         content_length = len(stmt_result)    
@@ -161,7 +156,7 @@ def statements_put(req_dict):
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
-    stmt_result, attachments = retrieve_statement.get_more_statement_request(req_dict['more_id'])     
+    stmt_result, attachments = get_more_statement_request(req_dict['more_id'])     
 
     if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))
@@ -182,7 +177,7 @@ def statements_more_get(req_dict):
     
     # Add consistent header and set content-length
     try:
-        resp['X-Experience-API-Consistent-Through'] = str(models.Statement.objects.latest('stored').stored)
+        resp['X-Experience-API-Consistent-Through'] = str(Statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     resp['Content-Length'] = str(content_length)
@@ -194,10 +189,10 @@ def statements_get(req_dict):
 
     # If statementId is in req_dict then it is a single get
     if 'statementId' in req_dict:     
-        st = models.Statement.objects.get(statement_id=req_dict['statementId'])        
+        st = Statement.objects.get(statement_id=req_dict['statementId'])        
         
         # return the object, will already be json since format will be exact
-        stmt_result = st.object_return()
+        stmt_result = st.to_dict()
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
         content_length = len(stmt_result)
     # Complex GET
@@ -206,7 +201,7 @@ def statements_get(req_dict):
         
     # Set consistent through and content length headers for all responses
     try:
-        resp['X-Experience-API-Consistent-Through'] = str(models.Statement.objects.latest('stored').stored)
+        resp['X-Experience-API-Consistent-Through'] = str(Statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     
@@ -227,7 +222,7 @@ def build_response(stmt_result, content_length):
             for attachment in stmt['attachments']:
                 if 'sha2' in attachment:
                     # If there is a sha2-retrieve the StatementAttachment object and add the payload to sha2s
-                    att_object = models.StatementAttachment.objects.get(sha2=attachment['sha2'])
+                    att_object = StatementAttachment.objects.get(sha2=attachment['sha2'])
                     sha2s.append((attachment['sha2'], att_object.payload))    
     
     # If attachments have payloads
@@ -347,8 +342,8 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
-    act = models.Activity.objects.get(activity_id=activityId, canonical_version=True)    
-    return_act = json.dumps(act.object_return())    
+    act = Activity.objects.get(activity_id=activityId, canonical_version=True)    
+    return_act = json.dumps(act.to_dict())    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
     return resp
@@ -402,8 +397,8 @@ def agent_profile_delete(req_dict):
     return HttpResponse('', status=204)
 
 def agents_get(req_dict):
-    a = models.Agent.objects.get(**req_dict['agent_ifp'])    
-    agent_data = json.dumps(a.get_person_json())
+    a = Agent.objects.get(**req_dict['agent_ifp'])    
+    agent_data = json.dumps(a.to_dict_person())
     resp = HttpResponse(agent_data, mimetype="application/json")
     resp['Content-Length'] = str(len(agent_data))
     return resp

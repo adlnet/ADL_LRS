@@ -1,12 +1,14 @@
 import json
 import datetime
+
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.timezone import utc
-from lrs.models import AgentProfile
-from lrs.exceptions import IDNotFoundError, ParamError
-from lrs.util import etag
+
+from ..models import AgentProfile
+from ..exceptions import IDNotFoundError, ParamError
+from ..util import etag
 
 class AgentProfileManager():
     def __init__(self, agent):

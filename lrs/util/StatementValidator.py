@@ -1,10 +1,11 @@
 import re
+import ast
+import json
 from dateutil import parser as timeparser
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
-import ast
-import json
-from lrs.exceptions import ParamError
+
+from ..exceptions import ParamError
 
 SCHEME = 2
 EMAIL = 5
