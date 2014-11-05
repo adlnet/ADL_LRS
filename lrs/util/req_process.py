@@ -187,14 +187,17 @@ def statements_get(req_dict):
     stmt_result = {}
     mime_type = "application/json"
 
-    # If statementId is in req_dict then it is a single get
+    # If statementId is in req_dict then it is a single get - can still include attachments
+    # or have a different format
     if 'statementId' in req_dict:     
-        st = Statement.objects.get(statement_id=req_dict['statementId'])        
-        
-        # return the object, will already be json since format will be exact
-        stmt_result = st.to_dict()
-        resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
-        content_length = len(stmt_result)
+        if req_dict['params']['attachments']:
+            resp, content_length = process_complex_get(req_dict)
+        else:
+            st = Statement.objects.get(statement_id=req_dict['statementId'])
+            
+            stmt_result = json.dumps(st.to_dict(format=req_dict['params']['format']))
+            resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+            content_length = len(stmt_result)
     # Complex GET
     else:
         resp, content_length = process_complex_get(req_dict)

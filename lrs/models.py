@@ -692,7 +692,7 @@ class Statement(models.Model):
     
     def to_dict(self, lang=None, format='exact'):
         if format == 'exact':
-            return json.dumps(self.full_statement)
+            return self.full_statement
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.to_dict(format)
