@@ -1766,8 +1766,45 @@ class StatementFilterTests(TestCase):
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/json')
-        obj_from_json = json.loads(r.content)
-        self.assertIn('attachments', obj_from_json.keys())
+
+    def test_attachments_payload_single_stmt_get(self):
+        stmt_id = str(uuid.uuid1())
+        stmt = {"id": stmt_id,
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test11",
+                "display": {"en-US": "A test attachment11"},
+                "description": {"en-US": "A test attachment (description)11"},
+                "contentType": "text/plain; charset=utf-8",
+                "length": 27,
+                "sha2":""}]}
+
+        message = MIMEMultipart(boundary="myboundary")
+        txt11 = u"This is a text attachment11"
+        txtsha11 = hashlib.sha256(txt11).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(txtsha11)
+
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        textdata11 = MIMEText(txt11, 'plain', 'utf-8')
+
+        textdata11.add_header('X-Experience-API-Hash', txtsha11)
+
+        message.attach(stmtdata)
+        message.attach(textdata11)
+                
+        param = {"statementId": stmt_id}
+        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        response = self.client.put(path, message.as_string(), content_type="multipart/mixed",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 204)
+
+        param["attachments"] = True
+        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'multipart/mixed')
 
     def test_more_attachments(self):
         settings.SERVER_STMT_LIMIT=2
