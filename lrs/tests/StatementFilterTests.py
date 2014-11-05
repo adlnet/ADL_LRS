@@ -1555,6 +1555,55 @@ class StatementFilterTests(TestCase):
         self.assertNotEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0], canon_fr['context']['contextActivities']['parent'][0]['definition']['name'].keys()[0])
         self.assertNotEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0], canon_fr['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0])
         
+    def single_stmt_get_canonical(self):
+        ex_stmt = {
+            "actor":{"name":"chair", "mbox":"mailto:chair@example.com"},
+                "verb": {"id": "http://tom.com/tested","display":{"en-US":"tested","es-US":"probado", "fr":"testé"}},
+                "object": {"objectType":"Activity", "id":"act:tom.com/objs/heads", 
+                           "definition":{"name":{"en-US":"format", "es-US":"formato", "fr":"format"},
+                                         "description":{"en-US":"format used to return statement",
+                                                        "es-US":"formato utilizado en este statement",
+                                                        "fr":"format utilisé pour cette statement"
+                                                        },
+                                         "type":"type:thing"
+                                        }
+                          }
+        }
+
+        guid = str(uuid.uuid1())
+        param = {"statementId":guid}
+        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        resp = self.client.put(path, json.dumps(ex_stmt), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+
+        stmt_id = str(uuid.uuid1())
+        stmt = {
+            "id": stmt_id,
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"}
+        }
+        
+        param = {"statementId": stmt_id}
+        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        response = self.client.put(path, json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 204)
+
+        param["format"] = "canonical"
+        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        stmt_obj = json.loads(r.content)
+        self.assertIn('definition', stmt_obj['object'])
+
+        param["format"] = "exact"
+        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        stmt_obj = json.loads(r.content)
+        self.assertNotIn('definition', stmt_obj['object'])
+
     def test_voidedStatementId(self):
         stmt = {"actor":{"mbox":"mailto:dog@example.com"},
                 "verb":{"id":"http://tom.com/verb/ate"},
