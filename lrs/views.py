@@ -323,7 +323,7 @@ def my_statements(request):
     stmt_id = request.GET.get("stmt_id", None)
     if stmt_id:
         s = Statement.objects.get(statement_id=stmt_id, user=request.user)
-        return HttpResponse(s.to_dict(), mimetype="application/json",status=200)
+        return HttpResponse(json.dumps(s.to_dict()), mimetype="application/json",status=200)
     else:
         s = {}
         paginator = Paginator(Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 

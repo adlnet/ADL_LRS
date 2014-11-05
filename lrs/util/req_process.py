@@ -191,8 +191,7 @@ def statements_get(req_dict):
     if 'statementId' in req_dict:     
         st = Statement.objects.get(statement_id=req_dict['statementId'])        
         
-        # return the object, will already be json since format will be exact
-        stmt_result = st.to_dict()
+        stmt_result = json.dumps(st.to_dict())
         resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
         content_length = len(stmt_result)
     # Complex GET
