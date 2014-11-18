@@ -342,6 +342,8 @@ def my_statements(request):
             d['statement_id'] = stmt.statement_id
             d['actor_name'] = stmt.actor.get_a_name()
             d['verb'] = stmt.verb.get_display()
+            import pdb
+            pdb.set_trace()
             d['object'] = stmt.get_object().get_a_name()
             slist.append(d)
 
@@ -352,6 +354,58 @@ def my_statements(request):
             s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
 
         return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
+
+@login_required(login_url=LOGIN_URL)
+def my_activities(request):
+    import pdb
+    pdb.set_trace()
+    try:
+        ag = Agent.objects.get(mbox="mailto:" + request.user.email)
+    except Agent.DoesNotExist:
+        return HttpResponseNotFound("Agent does not exist")
+    except Agent.MultipleObjectsReturned:
+        return HttpResponseBadRequest("More than one agent returned with email")
+
+    act_id = request.GET.get("act_id", None)
+    if act_id:
+        a = Activity.objects.get(activity_id=act_id, authority=ag)
+        return HttpResponse(json.dumps(a.to_dict()), mimetype="application/json",status=200)
+    else:
+        a = {}
+        paginator = Paginator(Activity.objects.filter(authority=ag).values_list('id', flat=True), 
+            settings.STMTS_PER_PAGE)
+
+        page_no = request.GET.get('page', 1)
+        try:
+            page = paginator.page(page_no)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            page = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            page = paginator.page(paginator.num_pages)
+
+        idlist = page.object_list
+        if idlist.count() > 0:
+            act_objs = [act for act in Activity.objects.filter(id__in=(idlist))]
+        else: 
+            act_objs = []
+
+        alist = []
+        for act in act_objs:
+            d = {}
+            d['name'] = act.get_a_name()
+            d['activity_id'] = act.activity_id
+            alist.append(d)
+
+        a['acts'] = slist
+        if page.has_previous():
+            a['previous'] = "%s?page=%s" % (reverse('lrs.views.my_activities'), page.previous_page_number())
+        if page.has_next():
+            a['next'] = "%s?page=%s" % (reverse('lrs.views.my_activities'), page.next_page_number())
+
+        return HttpResponse(json.dumps(a), mimetype="application/json", status=200)
+
 
 @login_required(login_url=LOGIN_URL)
 def my_app_status(request):
