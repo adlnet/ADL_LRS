@@ -330,11 +330,63 @@ function getActs(event){
             else {
                 $(this).append(actuiData(data));
             }
-            $(this).children('div').click(stmtLink);
+            $(this).children('div').click(actLink);
             $(this).children('div').children('ul').find('li.previous a').click(
                 {the_url: $(this).children('div').children('ul').find('li.previous a').attr("data-target")}, getActs);
             $(this).children('div').children('ul').find('li.next a').click(
                 {the_url: $(this).children('div').children('ul').find('li.next a').attr("data-target")}, getActs);
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout : 15000
+    });
+}
+function getProfiles(act_id, id){
+    var pu = "{% url lrs.views.my_activity_profiles %}?act_id="+encodeURIComponent(act_id);
+    $.ajax({
+        url: pu,
+        type: "GET",
+        context: $('#myactivities'),
+        success: function (data){
+            apr = $("#actrow"+id)
+            apr.append("<div><b>Profiles:</b></div>");
+            apr.append("<div id='actprofiles"+id+"'></div>");
+            ap = $("#actprofiles"+id);
+            if (data.length != 0){
+                for (var i=0; i < data.length; i++){
+                    ap.append("<div><a href='{% url lrs.views.my_activity_profile %}?act_id="+encodeURIComponent(act_id)+"&prof_id="+encodeURIComponent(data[i]['profileId'])+"'  target='_blank'>"+data[i]['profileId']+"</a>-"+data[i]['updated']+"</div>");
+                }
+            }
+            else{
+                ap.append("<p>None</p>");
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout : 15000
+    });
+}
+function getStates(act_id, id){
+    var su = "{% url lrs.views.my_activity_states %}?act_id="+encodeURIComponent(act_id);
+    $.ajax({
+        url: su,
+        type: "GET",
+        context: $('#myactivities'),
+        success: function (data){
+            apr = $("#actrow"+id)
+            apr.append("<div><b>Your States:</b></div>");
+            apr.append("<div id='actstates"+id+"'></div>");
+            ap = $("#actstates"+id);
+            if (data.length != 0){
+                for (var i=0; i < data.length; i++){
+                    ap.append("<div><a href='{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+data[i]['stateId']+"' target='_blank'>"+data[i]['stateId']+"</a>-"+data[i]['updated']+"</div>");
+                }
+            }
+            else{
+                ap.append("<p>None</p>");
+            }
         },
         error: function(xhr, ajaxOptions, thrownError){
             alert(thrownError);
@@ -350,10 +402,13 @@ function actuiData(data){
     for (var i = 0; i < data['acts'].length; i++) {
         var act = data['acts'][i];
         ret += "<div class='row'>";
-        ret += "<div class='span9 border'><span class='activity'><strong>" +act['id'] + "</strong></span><br>";
-        ret += " <span class='act_link lpad'>" + act['id'] + "</span> ";
+        ret += "<div id='actrow"+act['id']+"' class='span9 border'><span class='activity'><strong>" +act['name'] + "</strong></span><br>";
+        ret += " <span class='act_link lpad'>" + act['activity_id'] + "</span> ";
         ret += "</div>";
         ret += "</div>";
+        getProfiles(act['activity_id'], act['id']);
+        getStates(act['activity_id'], act['id']);
+
     }
     var prev = "<li class='previous disabled'><a>previous</a></li>";
     if (data['previous']) {
@@ -416,7 +471,7 @@ function getStmt(stmtid,ele){
 
 function getAct(actid, ele){
     $.ajax({
-        url: "{% url lrs.views.my_activities %}?act_id="+actid,
+        url: "{% url lrs.views.my_activities %}?act_id="+encodeURIComponent(actid),
         type: "GET",
         success: function (data){
             $(ele).children('.act_link').after('<pre id="acts"></pre>')
