@@ -359,7 +359,6 @@ def my_activity_profiles(request):
     act_id = request.GET.get("act_id", None)
     if act_id:
         profs = ActivityProfile.objects.filter(activityId=urllib.unquote(act_id))
-        
         p_list = []
         for prof in profs:
             p_list.append({"profileId":prof.profileId, "updated":str(prof.updated)})
@@ -372,7 +371,6 @@ def my_activity_profile(request):
     prof_id = request.GET.get("prof_id", None)
     if act_id and prof_id:
         prof = ActivityProfile.objects.get(activityId=urllib.unquote(act_id), profileId=urllib.unquote(prof_id))
-
         if prof.profile:
             return HttpResponse(prof.profile.read(), content_type=prof.content_type, status=200)
         else:
@@ -388,8 +386,7 @@ def my_activity_states(request):
         except Agent.DoesNotExist:
             return HttpResponseNotFound("Agent does not exist")
         except Agent.MultipleObjectsReturned:
-            return HttpResponseBadRequest("More than one agent returned with email")        
-    
+            return HttpResponseBadRequest("More than one agent returned with email")
         states = ActivityState.objects.filter(activity_id=urllib.unquote(act_id), agent=ag)
         s_list = []
         for state in states:
@@ -415,7 +412,6 @@ def my_activity_state(request):
             return HttpResponse(state.json_state, content_type=state.content_type, status=200)
     return HttpResponseBadRequest("Both Activity ID and State ID required")
 
-
 @login_required(login_url=LOGIN_URL)
 def my_activities(request):
     # These errors shouldn't happen...just in case
@@ -425,7 +421,6 @@ def my_activities(request):
         return HttpResponseNotFound("Agent does not exist")
     except Agent.MultipleObjectsReturned:
         return HttpResponseBadRequest("More than one agent returned with email")
-
     act_id = request.GET.get("act_id", None)
     if act_id:
         a = Activity.objects.get(activity_id=urllib.unquote(act_id), authority=ag)

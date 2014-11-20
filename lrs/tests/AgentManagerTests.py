@@ -59,6 +59,17 @@ class AgentManagerTests(TestCase):
         self.assertFalse(bob.name)
         self.assertFalse(bob.mbox)
 
+    def test_agent_bogus_mbox_sha1sum_create(self):
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox_sha1sum":"notarealsum"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "object": {'id': 'act://blah.com'}})
+
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "mbox_sha1sum value [notarealsum] is not a valid sha1sum")
+
     def test_agent_openID_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "openID":"http://bob.openID.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
