@@ -354,7 +354,7 @@ function getProfiles(act_id, id){
             ap = $("#actprofiles"+id);
             if (data.length != 0){
                 for (var i=0; i < data.length; i++){
-                    ap.append("<div><a href='{% url lrs.views.my_activity_profile %}?act_id="+encodeURIComponent(act_id)+"&prof_id="+encodeURIComponent(data[i]['profileId'])+"'  target='_blank'>"+data[i]['profileId']+"</a>-"+data[i]['updated']+"</div>");
+                    ap.append("<div><a onclick='event.cancelBubble = true; if(event.stopPropagation) { event.stopPropagation(); }' href='{% url lrs.views.my_activity_profile %}?act_id="+encodeURIComponent(act_id)+"&prof_id="+encodeURIComponent(data[i]['profileId'])+"'  target='_blank'>"+data[i]['profileId']+"</a>-"+data[i]['updated']+"</div>");
                 }
             }
             else{
@@ -380,7 +380,7 @@ function getStates(act_id, id){
             ap = $("#actstates"+id);
             if (data.length != 0){
                 for (var i=0; i < data.length; i++){
-                    ap.append("<div><a href='{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+data[i]['stateId']+"' target='_blank'>"+data[i]['stateId']+"</a>-"+data[i]['updated']+"</div>");
+                    ap.append("<div><a onclick='event.cancelBubble = true; if(event.stopPropagation) { event.stopPropagation(); }' href='{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+data[i]['stateId']+"' target='_blank'>"+data[i]['stateId']+"</a>-"+data[i]['updated']+"</div>");
                 }
             }
             else{
@@ -398,11 +398,7 @@ function actuiData(data){
         return "<div>No activities</div>"
     }
 
-    // var ret = $("<div></div>");
-    // var testlink = $('<a></a>').attr("href", "http://www.google.com").attr("target", "_blank");
-    // ret.append(testlink)
-    var ret = "<div id='testdiv'><a class='act act-primary' href='http://google.com' target='_blank'>test</a>";
-    // var ret ="<a href='http://google.com' target='_blank'>test</a><div>";
+    var ret = "<div>";
     for (var i = 0; i < data['acts'].length; i++) {
         var act = data['acts'][i];        
         ret += "<div class='row'>";
