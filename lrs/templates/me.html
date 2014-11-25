@@ -246,6 +246,7 @@ $('a[data-toggle="tab"]').on('shown', function (e) {
         getActs();
     }
 });
+
 $('#mystatements #delstmts').click(function(){
     $.ajax({
         url: "{% url lrs.views.my_statements %}",
@@ -349,12 +350,25 @@ function getProfiles(act_id, id){
         context: $('#myactivities'),
         success: function (data){
             apr = $("#actrow"+id)
-            apr.append("<div><b>Profiles:</b></div>");
-            apr.append("<div id='actprofiles"+id+"'></div>");
+            apr.append("<br><br><div><b>Profiles</b></div>");
+            apr.append("<div id='actprofiles"+id+"' class='panel-group' role='tablist' aria-multiselectable='true'></div>");
             ap = $("#actprofiles"+id);
             if (data.length != 0){
                 for (var i=0; i < data.length; i++){
-                    ap.append("<div><a onclick='event.cancelBubble = true; if(event.stopPropagation) { event.stopPropagation(); }' href='{% url lrs.views.my_activity_profile %}?act_id="+encodeURIComponent(act_id)+"&prof_id="+encodeURIComponent(data[i]['profileId'])+"'  target='_blank'>"+data[i]['profileId']+"</a>-"+data[i]['updated']+"</div>");
+                    ap.append("<a href='#' id='propanel"+id+"-"+i+"'>"+data[i]['profileId']+"</a><br>")
+                    ap.append("<div id='specdiv"+id+"-"+i+"' style='border:solid;border-width:thin;display:none'></div>")
+                    sd = $("#specdiv"+id+"-"+i)
+                    $.each(data[i], function(key, value){
+                        sd.append("<b>" + key + "</b>: " + value + "<br>");
+                    });
+
+                    pp = $("#propanel"+id+"-"+i)
+                    var foo = function (){
+                        var pid = $(this).attr('id')
+                        var specid = pid.substr(pid.length - 3);
+                        $("#specdiv"+specid).toggle();
+                    };
+                    pp.bind("click", foo)
                 }
             }
             else{
@@ -375,12 +389,70 @@ function getStates(act_id, id){
         context: $('#myactivities'),
         success: function (data){
             apr = $("#actrow"+id)
-            apr.append("<div><b>Your States:</b></div>");
+            apr.append("<br><br><div><b>States:</b></div>");
             apr.append("<div id='actstates"+id+"'></div>");
             ap = $("#actstates"+id);
             if (data.length != 0){
                 for (var i=0; i < data.length; i++){
-                    ap.append("<div><a onclick='event.cancelBubble = true; if(event.stopPropagation) { event.stopPropagation(); }' href='{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+data[i]['stateId']+"' target='_blank'>"+data[i]['stateId']+"</a>-"+data[i]['updated']+"</div>");
+                    if (data[i]['stateId'] == "http://adlnet.gov/xapi/profile/scorm/attempt-state"){
+                    }
+                    else if (data[i]['stateId'] == "http://adlnet.gov/xapi/profile/scorm/activity-state"){
+                        ap.append("<a href='#' id='stpanel"+id+"-"+i+"'>"+data[i]['stateId']+"</a>-"+ new Date(data[i]['updated']).toLocaleString()+" -- ("+data[i]['agent_name']+")<br>")
+
+
+                        var real_data = JSON.parse(data[i]['real_data']);
+                        if (real_data['attempts'] != undefined){
+                            var attempts = real_data['attempts']
+                            if (attempts.length > 0){
+                                ap.append("<br><div id='mainatt"+id+"-"+i+"' style='display:none'></div><br>")
+                                matt = $("#mainatt"+id+"-"+i)
+                                matt.append("<div><i>Attempts:</i></div>")
+                                for (var x=0; x < attempts.length; x++){
+                                    if (attempts[x]){
+                                        matt.append("<a href='#' id='attpanel"+id+"-"+i+"-"+x+"'>"+attempts[x]+"</a><br>")
+                                        matt.append("<div id='ssdiv"+id+"-"+i+"-"+x+"' style='border:solid;border-width:thin;display:none'></div>")
+                                        sp = $("#attpanel"+id+"-"+i+"-"+x)
+
+                                        var foo = function (){
+                                            var pid = $(this).attr('id')
+                                            var specsid = pid.substr(pid.length - 5);
+                                            $.post("{% url lrs.views.jono %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(data[i-1]['stateId'])+"&agent="+encodeURIComponent(data[i-1]['agent']), function(new_data, status){
+                                                $.each(new_data, function(key, value){
+                                                    $("#ssdiv"+specsid).append("<b>" + key + "</b>: " + value + "<br>");
+                                                });
+                                            });
+                                            $("#ssdiv"+specsid).toggle();
+                                        };
+                                        sp.bind("click", foo)
+                                    }
+                                }
+                                stp = $("#stpanel"+id+"-"+i)
+                                var foo = function (){
+                                    var pid = $(this).attr('id')
+                                    var ttid = pid.substr(pid.length - 3);
+                                    $("#mainatt"+ttid).toggle();
+                                };
+                                stp.bind("click", foo)
+                            }
+                        }
+
+                    }
+                    else{
+                        ap.append("<a href='#' id='stpanel"+id+"-"+i+"'>"+data[i]['stateId']+"</a>-"+ new Date(data[i]['updated']).toLocaleString()+" -- ("+data[i]['agent_name']+")<br>")
+                        ap.append("<div id='specsdiv"+id+"-"+i+"' style='border:solid;border-width:thin;display:none'></div>")
+                        sd = $("#specsdiv"+id+"-"+i)
+                        $.each(data[i], function(key, value){
+                            sd.append("<b>" + key + "</b>: " + value + "<br>");
+                        });                        
+
+                        sp = $("#stpanel"+id+"-"+i)
+                        var foo = function (){
+                            var pid = $(this).attr('id')
+                            var specsid = pid.substr(pid.length - 3);
+                            $("#specsdiv"+specsid).toggle();
+                        };
+                        sp.bind("click", foo)                      
+                    }
                 }
             }
             else{

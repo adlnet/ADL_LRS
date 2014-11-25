@@ -20,6 +20,7 @@ urlpatterns = patterns('lrs.views',
     # just urls for some user interface and oauth2... not part of xapi
     url(r'^oauth2/', include('oauth2_provider.provider.oauth2.urls', namespace='oauth2')),
     url(r'^me/statements/', 'my_statements'),
+    url(r'^me/jono', 'jono'),
     url(r'^me/activities/profiles', 'my_activity_profiles'),
     url(r'^me/activities/single_profile', 'my_activity_profile'),
     url(r'^me/activities/states', 'my_activity_states'),

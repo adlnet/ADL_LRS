@@ -1,6 +1,7 @@
 import json
 import logging
 import urllib
+import ast
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -355,6 +356,36 @@ def my_statements(request):
         return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
 
 @login_required(login_url=LOGIN_URL)
+def jono(request):
+    act_id = request.GET.get("act_id", None)
+    state_id = request.GET.get("state_id", None)
+    agent_params = request.GET.get("agent", None)
+    if act_id and state_id and agent_params:
+        try:
+            params = ast.literal_eval(urllib.unquote(agent_params))
+            ag = Agent.objects.get(**params)
+        except Agent.DoesNotExist:
+            return HttpResponseNotFound("Agent does not exist")
+        except Agent.MultipleObjectsReturned:
+            return HttpResponseBadRequest("More than one agent returned with email")        
+        state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
+        return_json = []
+        state_data = json.loads(state.json_state)
+        if isinstance(state_data, list):
+            for sid in state_data:
+                # Random null in array
+                if sid:
+                    try:
+                        act_state = ActivityState.objects.get(state_id=str(urllib.unquote(sid)))
+                    except Exception, e:
+                        return HttpResponseBadRequest(e.message)
+                    return_json.append({"stateId": str(sid)}.items() + json.loads(act_state.json_state).items())
+            return HttpResponse(json.dumps(return_json), content_type="application/json", status=200)
+        else:
+            return HttpResponse(state.json_state, content_type=state.content_type, status=200)
+    return HttpResponseBadRequest("Activity ID, State ID and Agent are all required")
+
+@login_required(login_url=LOGIN_URL)
 def my_activity_profiles(request):
     act_id = request.GET.get("act_id", None)
     if act_id:
@@ -387,10 +418,11 @@ def my_activity_states(request):
             return HttpResponseNotFound("Agent does not exist")
         except Agent.MultipleObjectsReturned:
             return HttpResponseBadRequest("More than one agent returned with email")
-        states = ActivityState.objects.filter(activity_id=urllib.unquote(act_id), agent=ag)
+        states = ActivityState.objects.filter(activity_id=urllib.unquote(act_id))    
         s_list = []
         for state in states:
-            s_list.append({"stateId":state.state_id, "updated":str(state.updated)})
+            s_list.append({"stateId":state.state_id, "updated":str(state.updated), "agent_name":state.agent.get_a_name(),
+                "agent":state.agent.__unicode__(), "real_data": state.json_state})
         return HttpResponse(json.dumps(s_list), mimetype="application/json", status=200)
     return HttpResponseBadRequest("Activity ID required")
 
@@ -398,9 +430,11 @@ def my_activity_states(request):
 def my_activity_state(request):
     act_id = request.GET.get("act_id", None)
     state_id = request.GET.get("state_id", None)
-    if act_id and state_id:
+    agent_params = request.GET.get("agent", None)
+    if act_id and state_id and agent_params:
         try:
-            ag = Agent.objects.get(mbox="mailto:" + request.user.email)
+            params = ast.literal_eval(urllib.unquote(agent_params))
+            ag = Agent.objects.get(**params)
         except Agent.DoesNotExist:
             return HttpResponseNotFound("Agent does not exist")
         except Agent.MultipleObjectsReturned:
@@ -410,7 +444,7 @@ def my_activity_state(request):
             return HttpResponse(state.state.read(), content_type=state.content_type, status=200)
         else:
             return HttpResponse(state.json_state, content_type=state.content_type, status=200)
-    return HttpResponseBadRequest("Both Activity ID and State ID required")
+    return HttpResponseBadRequest("Activity ID, State ID and Agent are all required")
 
 @login_required(login_url=LOGIN_URL)
 def my_activities(request):
@@ -423,7 +457,7 @@ def my_activities(request):
         return HttpResponseBadRequest("More than one agent returned with email")
     act_id = request.GET.get("act_id", None)
     if act_id:
-        a = Activity.objects.get(activity_id=urllib.unquote(act_id), authority=ag)
+        a = Activity.objects.get(activity_id=urllib.unquote(act_id), authority=ag, canonical_version=True)
         return HttpResponse(json.dumps(a.to_dict()), mimetype="application/json",status=200)
     else:
         a = {}
