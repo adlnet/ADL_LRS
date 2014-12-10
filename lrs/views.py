@@ -11,7 +11,7 @@ from django.core.context_processors import csrf
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
@@ -97,6 +97,7 @@ def actexample4(request):
     return render_to_response('actexample4.json', mimetype="application/json")
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def about(request):
     lrs_data = { 
         "version": [settings.XAPI_VERSION],
@@ -363,12 +364,19 @@ def jono(request):
     if act_id and state_id and agent_params:
         try:
             params = ast.literal_eval(urllib.unquote(agent_params))
-            ag = Agent.objects.get(**params)
+            ag, created = Agent.objects.retrieve_or_create(**params)
         except Agent.DoesNotExist:
             return HttpResponseNotFound("Agent does not exist")
         except Agent.MultipleObjectsReturned:
             return HttpResponseBadRequest("More than one agent returned with email")        
-        state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
+        try:
+            state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
+        except ActivityState.DoesNotExist:
+            return HttpResponseNotFound("Activity State does not exist")
+        except ActivityState.MultipleObjectsReturned:
+            return HttpResponseBadRequest("More than one Activity State was found with those IDs")        
+
+
         return_json = []
         state_data = json.loads(state.json_state)
         if isinstance(state_data, list):
@@ -737,9 +745,9 @@ def handle_request(request, more_id=None):
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br
-    except Exception as err:
-        log_exception(request.path, err)
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     log_exception(request.path, err)
+    #     return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)
