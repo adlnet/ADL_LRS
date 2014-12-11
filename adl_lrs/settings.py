@@ -82,7 +82,7 @@ STATICFILES_DIRS = (
 )
 
 # Current xAPI version
-XAPI_VERSION = '1.0.2'
+XAPI_VERSION = '1.0.1'
 
 # Where to be redirected after logging in
 LOGIN_REDIRECT_URL = '/XAPI/me'
@@ -208,8 +208,8 @@ INSTALLED_APPS = (
     'django_extensions'
 )
 
-REQUEST_HANDLER_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/django_request.log'
-DEFAULT_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/lrs.log'
+REQUEST_HANDLER_LOG_DIR = '../logs/django_request.log'
+DEFAULT_LOG_DIR = '../logs/lrs.log'
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
@@ -234,6 +234,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': DEFAULT_LOG_DIR,
+            # 'filename': '../logs/lrs.log',
             'maxBytes': 1024*1024*5, # 5 MB
             'backupCount': 5,
             'formatter':'standard',
@@ -242,6 +243,7 @@ LOGGING = {
                 'level':'DEBUG',
                 'class':'logging.handlers.RotatingFileHandler',
                 'filename': REQUEST_HANDLER_LOG_DIR,
+                # 'filename': '../logs/django_request.log', 
                 'maxBytes': 1024*1024*5, # 5 MB
                 'backupCount': 5,
                 'formatter':'standard',

@@ -1,6 +1,7 @@
 import StringIO
 import email
 import urllib
+import re
 
 from django.http import MultiPartParser
 from django.core.cache import get_cache
@@ -21,7 +22,7 @@ def parse(request, more_id=None):
     r_dict = {}
     # Build headers from request in request dict
     r_dict['headers'] = get_headers(request.META)
-    
+
     # Traditional authorization should be passed in headers
     r_dict['auth'] = {}
     if 'Authorization' in r_dict['headers']:
@@ -246,4 +247,7 @@ def get_headers(headers):
         r['language'] = headers.get('Accept_Language', None)
     elif 'Accept-Language' in headers:
         r['language'] = headers['Accept-Language']
+
+    if 'X-Experience-API-Version' in headers:
+            r['X-Experience-API-Version'] = headers['X-Experience-API-Version']
     return r

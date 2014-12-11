@@ -1,4 +1,6 @@
 import re
+import urllib
+from django.conf import settings
 from django.http import HttpResponseBadRequest
 
 class XAPIVersionHeader(object):
@@ -8,14 +10,20 @@ class XAPIVersionHeader(object):
         except:
             try:
                 version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
+                request.META['X-Experience-API-Version'] = version
+                request.META.pop('HTTP_X_EXPERIENCE_API_VERSION', None)
             except:
                 version = request.META.get('X_Experience_API_Version', None)
                 if not version:
-                    import urllib
                     bdy = urllib.unquote_plus(request.body)
                     v = re.search('X\WExperience\WAPI\WVersion=(?P<num>[\d\.]*)\&?', bdy)
                     if v:
                         version = v.group('num')
+                        request.META['X-Experience-API-Version'] = version
+                else:
+                    request.META['X-Experience-API-Version'] = version
+                    request.META.pop('X_Experience_API_Version', None)
+
         if version:
             regex = re.compile("^1\.0(\.\d+)?$")
             if regex.match(version):
@@ -27,5 +35,5 @@ class XAPIVersionHeader(object):
 
 
     def process_response(self, request, response):
-        response['X-Experience-API-Version'] = "1.0.1"
+        response['X-Experience-API-Version'] = settings.XAPI_VERSION
         return response

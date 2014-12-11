@@ -20,7 +20,7 @@ from ..objects.AgentProfileManager import AgentProfileManager
 from ..objects.StatementManager import StatementManager
 
 
-def process_statements(stmts, auth):
+def process_statements(stmts, auth, version):
     stmt_responses = []
    # Handle batch POST
     if type(stmts) is list:
@@ -30,7 +30,7 @@ def process_statements(stmts, auth):
                     st['id'] = str(uuid.uuid1())
                 
                 if not 'version' in st:
-                    st['version'] = "1.0.1"
+                    st['version'] = version
     
                 if 'context' in st and 'contextActivities' in st['context']:
                     for k, v in st['context']['contextActivities'].items():
@@ -61,7 +61,7 @@ def process_statements(stmts, auth):
             stmts['id'] = str(uuid.uuid1())
 
         if not 'version' in stmts:
-            stmts['version'] = "1.0.0"
+            stmts['version'] = version
 
         if 'context' in stmts and 'contextActivities' in stmts['context']:
             for k, v in stmts['context']['contextActivities'].items():
@@ -147,12 +147,12 @@ def process_complex_get(req_dict):
 
 def statements_post(req_dict):
     auth = req_dict['auth']
-    stmt_responses = process_statements(req_dict['body'], auth)
+    stmt_responses = process_statements(req_dict['body'], auth, req_dict['headers']['X-Experience-API-Version'])
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
-    process_statements(req_dict['body'], auth)
+    process_statements(req_dict['body'], auth, req_dict['headers']['X-Experience-API-Version'])
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):

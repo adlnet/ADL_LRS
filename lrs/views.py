@@ -94,6 +94,7 @@ def actexample3(request):
 def actexample4(request):
     return render_to_response('actexample4.json', mimetype="application/json")
 
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 
