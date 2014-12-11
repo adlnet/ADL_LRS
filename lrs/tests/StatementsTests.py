@@ -2540,7 +2540,7 @@ class StatementsTests(TestCase):
         imgdata.add_header('X-Experience-API-Hash', imgsha)
         message.attach(stmtdata)
         message.attach(imgdata)
-        
+
         r = self.client.post(reverse(statements), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
