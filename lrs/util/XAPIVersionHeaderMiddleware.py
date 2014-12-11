@@ -16,7 +16,7 @@ class XAPIVersionHeader(object):
                 version = request.META.get('X_Experience_API_Version', None)
                 if not version:
                     bdy = urllib.unquote_plus(request.body)
-                    v = re.search('X\WExperience\WAPI\WVersion=(?P<num>[\d\.]*)\&?', bdy)
+                    v = re.search('X[-_]Experience[-_]API[-_]Version=(?P<num>1\.0(\.[0-2])?$)', bdy)
                     if v:
                         version = v.group('num')
                         request.META['X-Experience-API-Version'] = version
@@ -25,7 +25,7 @@ class XAPIVersionHeader(object):
                     request.META.pop('X_Experience_API_Version', None)
 
         if version:
-            regex = re.compile("^1\.0(\.\d+)?$")
+            regex = re.compile("^1\.0(\.[0-2])?$")
             if regex.match(version):
                 return None
             else:
