@@ -16,10 +16,13 @@ class XAPIVersionHeader(object):
                 version = request.META.get('X_Experience_API_Version', None)
                 if not version:
                     bdy = urllib.unquote_plus(request.body)
-                    v = re.search('X[-_]Experience[-_]API[-_]Version=(?P<num>1\.0(\.[0-2])?$)', bdy)
-                    if v:
-                        version = v.group('num')
-                        request.META['X-Experience-API-Version'] = version
+                    bdy_parts = bdy.split('&')
+                    for part in bdy_parts:
+                        v = re.search('X[-_]Experience[-_]API[-_]Version=(?P<num>.*)', part)
+                        if v:
+                            version = v.group('num')
+                            request.META['X-Experience-API-Version'] = version
+                            break
                 else:
                     request.META['X-Experience-API-Version'] = version
                     request.META.pop('X_Experience_API_Version', None)
