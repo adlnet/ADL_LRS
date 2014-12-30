@@ -223,7 +223,8 @@ def statements_get(req_dict):
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     
-    resp['Content-Length'] = str(content_length)  
+    resp['Content-Length'] = str(content_length)
+    resp['Content-Type'] = "application/json; charset=utf-8"  
     return resp
 
 def build_response(stmt_result, content_length):
