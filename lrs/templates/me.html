@@ -26,66 +26,129 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
 {% block title %}{{user.username}} Home{% endblock title %}
 {% block heading %}{{user.username}} Home{% endblock heading %}
 {% block content %}
-<ul class='nav nav-tabs' id="mytabs">
-    <li class='statements default'><a href="#mystatements" id='showme' data-toggle="tab">Statements</a></li>
-    <li><a href="#clientapps" data-toggle="tab">Client Apps</a></li>
-    <li><a href="#myaccesstokens" data-toggle="tab">Access Tokens</a></li>
-</ul>
-<div id="mycontent" class="tab-content">
-    <div id="mystatements" class="tab-pane fade">
-        <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">delete all statements</a></small>
-        <!-- content -->
-    </div>
-    <div id="clientapps" class="tab-pane fade">
-        <strong>Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">add app</a></small>
-        {% if client_apps %}
-        <div class="row">
-            {% for app in client_apps %}
-            <div class="span5 border">
-                <h4 class="appname">{{ app.name }}</h4>
-                <span class="{% if app.status == 1 %}label label-warning
-                            {% elif app.status == 2 %}label label-success
-                            {% elif app.status == 3 %}label label-important
-                            {% elif app.status == 4 %}label label-important
-                            {% endif %} app_status">{{ app.get_status_display}}</span>
-                <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
-                <table class="table">
-                    <tr><td><strong>key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
-                    <tr><td><strong>secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
-                </table>
-            </div>
-            {% endfor %}
+<div id="content">
+    <ul class='nav nav-tabs' data-tabs="tabs" id="mytabs">
+        <li class='statements default'><a href="#mystatements" id='showme' data-toggle="tab">Statements</a></li>
+        <li class='activities'><a href="#myactivities" data-toggle="tab">Activities</a></li>
+        <li><a href="#clientapps" data-toggle="tab">OAuth Client Apps</a></li>
+        <li><a href="#myaccesstokens" data-toggle="tab">OAuth Access Tokens</a></li>
+        <li><a href="#clientapps2" data-toggle="tab">OAuth2 Client Apps</a></li>
+        <li><a href="#myaccesstokens2" data-toggle="tab">OAuth2 Access Tokens</a></li>
+    </ul>
+    <div id="mycontent" class="tab-content">
+        <div id="mystatements" class="tab-pane fade">
+            <strong>Statements:</strong><small style="margin-left: 5px"><a id="delstmts" href="#mystatements">Delete all statements</a></small>
+            <!-- content -->
         </div>
-        {% else %}
-        <p>None</p>
-        {% endif %}
-    </div>
-    <div id="myaccesstokens" class="tab-pane fade">
-        <strong>Access Tokens:</strong>
-        {% if access_tokens %}
-        <div class="row">
-        {% for token in access_tokens %}
-            <div class="span5 border">
-                <h4>{{ token.consumer.name }}</h4>
-                <a class="delete_token" href='#myaccesstokens'>delete</a>
-                <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
-                <table>
-                    <tr><td><strong>Date created</strong></td><td>{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</td></tr>
-                    <tr><td><strong>Scopes allowed</strong></td><td></td></tr>
-                    {% for scope in token.scope_to_list %}
-                    <tr><td></td><td>{{ scope }}</td></tr>
-                    {% endfor %}
-                </table>
+        <div id="myactivities" class="tab-pane fade">
+            <strong>Activities:</strong>
+            <!-- content -->
+        </div>
+        <div id="clientapps" class="tab-pane fade">
+            <strong>OAuth Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">Add</a></small><br>
+            {% if client_apps %}
+            <div class="row">
+                {% for app in client_apps %}
+                <div class="span5 border">
+                    <h4 class="appname">{{ app.name }}</h4>
+                    <span class="{% if app.status == 1 %}label label-warning
+                                {% elif app.status == 2 %}label label-success
+                                {% elif app.status == 3 %}label label-important
+                                {% elif app.status == 4 %}label label-important
+                                {% endif %} app_status">{{ app.get_status_display}}</span>
+                    <span class="pull-right"><a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></span>
+                    <table class="table">
+                        <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px">{{ app.key }}</span></td></tr>
+                        {% if not app.rsa_signature %}
+                        <tr><td><strong>Secret</strong></td><td><span style="margin-left: 5px">{{ app.secret }}</span></td></tr>
+                        {% else %}
+                        <tr><td><strong>Secret</strong></td><td><span style="margin-left: 5px">Your RSA key pair</span></td></tr>
+                        {% endif %}
+                    </table>
+                </div>
                 {% endfor %}
-                {% else %}
-                <p> no access tokens </p>
-                {% endif %}
             </div>
+            {% else %}
+                <div>No OAuth1 apps</div>
+            {% endif %}
+        </div>
+        <div id="myaccesstokens" class="tab-pane fade">
+            <strong>OAuth1 Access Tokens:</strong>
+            <div class="row">
+            {% if access_tokens %}
+                {% for token in access_tokens %}
+                <div class="span5 border">
+                    <h4>{{ token.consumer.name }}</h4>
+                    <span class="pull-right"><a class="delete_token" href='#myaccesstokens'>Delete</a></span>
+                    <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
+                    <table class="table" style="table-layout:fixed;">
+                        <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px;word-wrap: break-word">{{ token.key }}</span></td></tr>
+                        <tr><td><strong>Secret</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ token.secret }}</span></td></tr>                    
+                        <tr><td><strong>Date Created</strong></td><td><span style="margin-left: 5px">{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</span></td></tr>
+                        <tr><td><strong>Scopes Allowed</strong></td><td></td></tr>
+                        {% for scope in token.scope_to_list %}
+                        <tr><td></td><td><span style="margin-left: 5px">{{ scope }}</span></td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="span5">No OAuth1 access tokens</div>
+            {% endif %}
+            </div>
+        </div>
+        <div id="clientapps2" class="tab-pane fade">
+            <strong>OAuth2 Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client2 %}">Add</a></small>
+            <div class="row">
+            {% if client_apps2 %}
+                {% for app in client_apps2 %}
+                <div class="span5 border">
+                    <h4 class="appname">{{ app.name }}</h4>
+                    <span class="pull-right"><a class="delete_client" href='#clientapps2'>Delete</a></span>
+                    <span style="visibility:hidden">{{ app.client_id }}</span>
+                    <table class="table" style="table-layout:fixed;">
+                        <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px">{{ app.client_id }}</span></td></tr>
+                        <tr><td><strong>Secret</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ app.client_secret }}</span></td></tr>
+                        <tr><td><strong>URL</strong></td><td><span style="margin-left: 5px">{{ app.url }}</span></td></tr>
+                        <tr><td><strong>Redirect URL</strong></td><td><span style="margin-left: 5px">{{ app.redirect_uri }}</span></td></tr>
+                        <tr><td><strong>Type</strong></td><td><span style="margin-left: 5px">{% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}</span></td></tr>
+                    </table>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="span5">No OAuth2 apps</div>
+            {% endif %}
+            </div>    
+        </div>
+        <div id="myaccesstokens2" class="tab-pane fade">
+            <strong>OAuth2 Access Tokens:</strong>
+            <div class="row">
+            {% if access_tokens2 %}
+                {% for pair in access_tokens2 %}  
+                <div class="span5 border">
+                    <h4>{{ pair.0.client.name }}</h4>
+                    <span class="pull-right"><a class="delete_token2" href='#myaccesstokens2'>Delete</a></span>
+                    <span style="visibility:hidden">{{ pair.0.token }}</span>
+                    <table class="table" style="table-layout:fixed;">
+                        <tr><td><strong>Access Token</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ pair.0.token }}</span></td></tr>
+                        <tr><td><strong>Refresh Token</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ pair.0.refresh_token }}</span></td></tr>
+                        <tr><td><strong>Date Expires</strong></td><td>{{ pair.0.expires }}</td></tr>
+                        <tr><td><strong>Scopes Allowed</strong></td><td></td></tr>
+                        {% for scope in pair.1 %}
+                        <tr><td></td><td><span style="margin-left: 5px">{{ scope }}</span></td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                {% endfor %}    
+            {% else %}
+                <div class="span5">No OAuth2 access tokens</div>
+            {% endif %}
+            </div>    
         </div>
     </div>
 </div>
-    {% endblock content %}
-    {% block extra_js %}
+{% endblock content %}
+{% block extra_js %}
     <script type="text/javascript">
         $(document).ready(function() {
             $('#showme').tab('show');
@@ -123,13 +186,43 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                 });
 });
 $('.delete_token').click(function(){
-    var id = $(this).next('span').text();
+    var id = $(this).parent().next('span').text();
     $.ajax({
         url: "{% url lrs.views.delete_token %}?id="+id,
         type: "DELETE",
         context: $(this),
         success: function(data){
-            $(this).parent().remove();
+            $(this).parent().parent().remove();
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout:5000
+    });
+});
+$('.delete_token2').click(function(){
+    var id = $(this).parent().next('span').text();
+    $.ajax({
+        url: "{% url lrs.views.delete_token2 %}?id="+id,
+        type: "DELETE",
+        context: $(this),
+        success: function(data){
+            $(this).parent().parent().remove();
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout:5000
+    });
+});
+$('.delete_client').click(function(){
+    var id = $(this).parent().next('span').text();
+    $.ajax({
+        url: "{% url lrs.views.delete_client %}?id="+id,
+        type: "DELETE",
+        context: $(this),
+        success: function(data){
+            $(this).parent().parent().remove();
         },
         error: function(xhr, ajaxOptions, thrownError){
             alert(thrownError);
@@ -140,9 +233,17 @@ $('.delete_token').click(function(){
 if ($('#mystatements').hasClass('active') && ! $('#mystatements ul').length){
     getStmts();
 }
+if ($('#myactivities').hasClass('active') && ! $('#myactivities ul').length){
+    getActs();
+}
 $('a[data-toggle="tab"]').on('shown', function (e) {
     if (e.target.hash == "#mystatements"){
         getStmts();
+    }
+});
+$('a[data-toggle="tab"]').on('shown', function (e) {
+    if (e.target.hash == "#myactivities"){
+        getActs();
     }
 });
 $('#mystatements #delstmts').click(function(){
@@ -160,7 +261,6 @@ $('#mystatements #delstmts').click(function(){
     });
 });
 });
-
 function stmtLink(event){
     if (event && event.currentTarget){
         ele = event.target;
@@ -173,7 +273,18 @@ function stmtLink(event){
     }
     return false;
 }
-
+function actLink(event){
+    if (event && event.currentTarget){
+        ele = event.target;
+    }
+    if(!$(ele).children('pre#acts').length){
+        getAct($(ele).children('.act_link').text(), ele);
+    }
+    else{
+        $(ele).children('pre#acts').toggle();
+    }
+    return false;
+}
 function getStmts(event){
     var u = "{% url lrs.views.my_statements %}";
     if (event && event.data.the_url){
@@ -202,10 +313,118 @@ function getStmts(event){
         timeout : 15000
     });
 }
+function getActs(event){
+    var u = "{% url lrs.views.my_activities %}";
+    if (event && event.data.the_url){
+        u = event.data.the_url;
+    }
+    $.ajax({
+        url: u,
+        type: "GET",
+        context: $('#myactivities'),
+        success: function (data){
+            if ($(this).children('div').length){
+                $(this).children('div').replaceWith(actuiData(data));
+            }
+            else {
+                $(this).append(actuiData(data));
+            }
+            $(this).children('div').click(actLink);
+            $(this).children('div').children('ul').find('li.previous a').click(
+                {the_url: $(this).children('div').children('ul').find('li.previous a').attr("data-target")}, getActs);
+            $(this).children('div').children('ul').find('li.next a').click(
+                {the_url: $(this).children('div').children('ul').find('li.next a').attr("data-target")}, getActs);
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout : 15000
+    });
+}
+function getProfiles(act_id, id){
+    var pu = "{% url lrs.views.my_activity_profiles %}?act_id="+encodeURIComponent(act_id);
+    $.ajax({
+        url: pu,
+        type: "GET",
+        context: $('#myactivities'),
+        success: function (data){
+            apr = $("#actrow"+id)
+            apr.append("<div><b>Profiles:</b></div>");
+            apr.append("<div id='actprofiles"+id+"'></div>");
+            ap = $("#actprofiles"+id);
+            if (data.length != 0){
+                for (var i=0; i < data.length; i++){
+                    ap.append("<div><a onclick='event.cancelBubble = true; if(event.stopPropagation) { event.stopPropagation(); }' href='{% url lrs.views.my_activity_profile %}?act_id="+encodeURIComponent(act_id)+"&prof_id="+encodeURIComponent(data[i]['profileId'])+"'  target='_blank'>"+data[i]['profileId']+"</a>-"+data[i]['updated']+"</div>");
+                }
+            }
+            else{
+                ap.append("<p>None</p>");
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout : 15000
+    });
+}
+function getStates(act_id, id){
+    var su = "{% url lrs.views.my_activity_states %}?act_id="+encodeURIComponent(act_id);
+    $.ajax({
+        url: su,
+        type: "GET",
+        context: $('#myactivities'),
+        success: function (data){
+            apr = $("#actrow"+id)
+            apr.append("<div><b>Your States:</b></div>");
+            apr.append("<div id='actstates"+id+"'></div>");
+            ap = $("#actstates"+id);
+            if (data.length != 0){
+                for (var i=0; i < data.length; i++){
+                    ap.append("<div><a onclick='event.cancelBubble = true; if(event.stopPropagation) { event.stopPropagation(); }' href='{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+data[i]['stateId']+"' target='_blank'>"+data[i]['stateId']+"</a>-"+data[i]['updated']+"</div>");
+                }
+            }
+            else{
+                ap.append("<p>None</p>");
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        },
+        timeout : 15000
+    });
+}
+function actuiData(data){
+    if (data['acts'].length == 0){
+        return "<div>No activities</div>"
+    }
 
+    var ret = "<div>";
+    for (var i = 0; i < data['acts'].length; i++) {
+        var act = data['acts'][i];        
+        ret += "<div class='row'>";
+        ret += "<div id='actrow"+act['id']+"' class='span9 border'><span class='activity'><strong>" +act['name'] + "</strong></span><br>";
+        ret += " <span class='act_link lpad'>" + act['activity_id'] + "</span> ";
+        ret += "</div>";
+        ret += "</div>";
+        getProfiles(act['activity_id'], act['id']);
+        getStates(act['activity_id'], act['id']);
+
+    }
+    var prev = "<li class='previous disabled'><a>previous</a></li>";
+    if (data['previous']) {
+        prev = "<li class='previous'><a href='#' data-target='" + data['previous'] + "'>previous</a></li>";
+    }
+    var next = "<li class='next disabled'><a>next</a></li>";
+    if (data['next']) {
+        next = "<li class='next'><a href='#' data-target='" + data['next'] + "'>next</a></li>";
+    }
+    ret += "<ul class='pager'>" + prev + next + "</ul>";
+    ret += "</div>";
+    return ret;
+}
 function uiData(data){
     if (data['stmts'].length == 0){
-        return "<div>no statements</div>"
+        return "<div>No statements</div>"
     }
     var ret = "<div>";
     for (var i = 0; i < data['stmts'].length; i++) {
@@ -229,7 +448,6 @@ function uiData(data){
     ret += "</div>";
     return ret;
 }
-
 function getStmt(stmtid,ele){
     $.ajax({
         url: "{% url lrs.views.my_statements %}?stmt_id="+stmtid,
@@ -238,6 +456,24 @@ function getStmt(stmtid,ele){
             $(ele).children('.stmt_link').after('<pre id="stmts"></pre>')
             $(ele).children().siblings('pre#stmts').append(syntaxHighlight(data));
             $(ele).children().siblings('pre#stmts').find("span.expandable a").click(function(){
+                $(this).next("span.obj").toggle();
+                return false;
+            });
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError)
+        },
+        timeout : 15000
+    });
+}
+function getAct(actid, ele){
+    $.ajax({
+        url: "{% url lrs.views.my_activities %}?act_id="+encodeURIComponent(actid),
+        type: "GET",
+        success: function (data){
+            $(ele).children('.act_link').after('<pre id="acts"></pre>')
+            $(ele).children().siblings('pre#acts').append(syntaxHighlight(data));
+            $(ele).children().siblings('pre#acts').find("span.expandable a").click(function(){
                 $(this).next("span.obj").toggle();
                 return false;
             });

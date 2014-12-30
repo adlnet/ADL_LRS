@@ -16,7 +16,6 @@ class NotFound(Exception):
 class IDNotFoundError(NotFound):
     pass
 
-
 class Conflict(Exception):
     pass
 
@@ -27,5 +26,7 @@ class PreconditionFail(Exception):
     pass
 
 class OauthUnauthorized(Exception):
-    def __init__(self, response):
-        self.response = response
+    pass
+
+class OauthBadRequest(BadRequest):
+    pass

@@ -1,19 +1,8 @@
-import json
-from StringIO import StringIO
-from django.core.exceptions import ValidationError
-from django.core.validators import URLValidator
-from lrs import models, exceptions
-from lrs.util import uri
+from ..models import Activity
 
 class ActivityManager():
     def __init__(self, data, auth=None, define=True):
-        if auth:
-            if auth.__class__.__name__ == 'Agent':
-                self.auth = auth.name
-            else:
-                self.auth = auth.username
-        else:
-            self.auth = None
+        self.auth = auth
         self.define = define
         self.populate(data)
 
@@ -43,46 +32,67 @@ class ActivityManager():
     #Once JSON is verified, populate the activity objects
     def populate(self, the_object):        
         activity_id = the_object['id']
+        can_update = False
 
-        # If allowed to define activities-create or get the global version
-        if self.define:
-            self.Activity, act_created = models.Activity.objects.get_or_create(activity_id=activity_id,
-                canonical_version=True)
+        # Try to get canonical
+        try:
+            act = Activity.objects.get(activity_id=activity_id, canonical_version=True)
+        except Activity.DoesNotExist:
+            if self.define:
+                # If canonical DNE and can define - create canonical
+                self.Activity = Activity.objects.create(activity_id=activity_id, canonical_version=True,
+                    authority=self.auth)
+                act_created = True
+            else:
+                # If canonical DNE and cannot define - try to get local version for that user
+                self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, canonical_version=False,
+                    authority=self.auth)
+        # Canonical version already exists
         else:
-            # Not allowed to create global version b/c don't have define permissions
-            self.Activity = models.Activity.objects.create(activity_id=activity_id, canonical_version=False)
-            act_created = False
-
-        if act_created:
-            if self.auth:
-                self.Activity.authoritative = self.auth
-                self.Activity.save()
+            # If canonical already exists and have define
+            if self.define:
+                # Act exists - if it has same auth set it, else create non-canonical version
+                if act.authority == self.auth:
+                    self.Activity = act
+                    act_created = False
+                    can_update = True
+                elif act.authority.objectType == 'Group' and self.auth in act.authority.member.all():
+                    self.Activity = act
+                    act_created = False
+                    can_update = True
+                elif self.auth.objectType == 'Group' and act.authority in self.auth.member.all():
+                    self.Activity = act
+                    act_created = False
+                    can_update = True                                                        
+                else:
+                    # Not allowed to create global version b/c the activity already exists (could also already have created a non-global act)
+                    self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id,
+                        canonical_version=False, authority=self.auth)
+            # Canonical version already exists but do not have define - try to get local version for that user or create it for user
+            else:
+                self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id,
+                    canonical_version=False, authority=self.auth)
 
         activity_definition = the_object.get('definition', None)
 
         # If there is a definition-populate the definition
         if activity_definition and (act_created or self.act_def_changed(activity_definition)):
-            self.populate_definition(activity_definition, act_created)
-
-    def validate_cmi_interaction(self, act_def, act_created):
-        interaction_flag = None
-
-        return interaction_flag
+            self.populate_definition(activity_definition, act_created, can_update)
 
     def act_def_changed(self, act_def):
-        return act_def != self.Activity.object_return().get('definition', {})
+        return act_def != self.Activity.to_dict().get('definition', {})
 
     #Populate definition either from JSON or validated XML
-    def populate_definition(self, act_def, act_created):
+    def populate_definition(self, act_def, act_created, can_update):
         # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
         # doesn't have a definition
         act_def_created = self.save_activity_definition_to_db(act_def.get('type', ''), act_def.get('interactionType', ''),
-            act_def.get('moreInfo', ''), act_def.get('name', ''), act_def.get('description', ''),
-            act_def.get('correctResponsesPattern', ''), act_def.get('extensions', ''))
+            act_def.get('moreInfo', ''), act_def.get('name', {}), act_def.get('description', {}),
+            act_def.get('correctResponsesPattern', {}), act_def.get('extensions', {}))
 
         # If the activity had already existed and lrs auth is off or user has authority to update it
         if not act_created: 
-            if self.Activity.authoritative == '' or self.Activity.authoritative == self.auth:
+            if not self.Activity.authority or can_update:
                 # Update name and desc if needed
                 if 'name' in act_def:
                     if self.Activity.activity_definition_name:

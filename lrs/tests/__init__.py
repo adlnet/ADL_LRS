@@ -9,5 +9,7 @@ from ActivityTests import *
 from StatementManagerTests import *
 from StatementsMoreTests import *
 from OAuthTests import *
+from OAuth2Tests import *
 from AuthTests import *
 from StatementFilterTests import *
+from OAuthTests import *

@@ -42,6 +42,7 @@ LANGUAGE_CODE = 'en-US'
 # This is used so that application data can hook into specific sites and a single database can manage
 # content for multiple sites.
 SITE_ID = 1
+SITE_SCHEME = 'http'
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
@@ -80,6 +81,9 @@ STATICFILES_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+# Current xAPI version
+XAPI_VERSION = '1.0.2'
+
 # Where to be redirected after logging in
 LOGIN_REDIRECT_URL = '/XAPI/me'
 
@@ -87,14 +91,38 @@ LOGIN_REDIRECT_URL = '/XAPI/me'
 STMTS_PER_PAGE = 10
 
 # Whether HTTP auth or OAuth is enabled
-HTTP_AUTH_ENABLED = True
-OAUTH_ENABLED = False
+ALLOW_EMPTY_HTTP_AUTH = False
+OAUTH_ENABLED = True
 
-# OAuth callback views
+# OAuth1 callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
 OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
+
+
+# THIS IS OAUTH2 STUFF
+STATE = 1
+PROFILE = 1 << 1
+DEFINE = 1 << 2
+STATEMENTS_READ_MINE = 1 << 3
+STATEMENTS_READ = 1 << 4
+STATEMENTS_WRITE = 1 << 5
+ALL_READ = 1 << 6
+ALL = 1 << 7
+
+# List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get defaulted in oauth2/forms.py
+OAUTH_SCOPES = (
+        (STATEMENTS_WRITE,'statements/write'),
+        (STATEMENTS_READ_MINE,'statements/read/mine'),
+        (STATEMENTS_READ,'statements/read'),
+        (STATE,'state'),
+        (DEFINE,'define'),
+        (PROFILE,'profile'),
+        (ALL_READ,'all/read'),
+        (ALL,'all')
+    )
+SESSION_KEY = 'oauth2'
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
@@ -174,15 +202,19 @@ INSTALLED_APPS = (
     'lrs',
     'gunicorn',
     'oauth_provider',
+    'oauth2_provider.provider',
+    'oauth2_provider.provider.oauth2',
     'django.contrib.admin',
     'django_extensions'
 )
 
-REQUEST_HANDLER_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/lrs.log'
-DEFAULT_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/django_request.log'
+REQUEST_HANDLER_LOG_DIR = '../logs/django_request.log'
+DEFAULT_LOG_DIR = '../logs/lrs.log'
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+# lrs logger is used in views.py for LRS specific logging
+# django.request logger logs warning and error server requests
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -223,7 +255,7 @@ LOGGING = {
         },
         'django.request': {
             'handlers': ['request_handler'],
-            'level': 'DEBUG',
+            'level': 'WARNING',
             'propagate': False
         },
     }

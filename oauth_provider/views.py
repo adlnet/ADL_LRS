@@ -1,195 +1,242 @@
-from oauth.oauth import OAuthError
+import oauth2 as oauth
 
+from urllib import urlencode
 from django.conf import settings
-from django.http import (
-    HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
-from django.utils.translation import ugettext as _
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import get_callable, reverse
-from django.utils.decorators import decorator_from_middleware
+from django.contrib.auth import authenticate
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.translation import ugettext as _
+from django.core.urlresolvers import get_callable
 from django.shortcuts import render_to_response
-
 from django.template import RequestContext
-from utils import initialize_server_request, send_oauth_error
-from decorators import oauth_required
-from stores import check_valid_callback
+from oauth_provider.forms import AuthorizeRequestTokenForm
+from oauth_provider.compat import UnsafeRedirect
+from store import store, InvalidConsumerError, InvalidTokenError
+from utils import verify_oauth_request, get_oauth_request, require_params, send_oauth_error
+from utils import is_xauth_request
 from consts import OUT_OF_BAND
-from lrs.forms import AuthClientForm
-from lrs.models import Token
+from models import Token
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
-INVALID_PARAMS_RESPONSE = send_oauth_error(OAuthError(
-                                            _('Invalid request parameters.')))
 
-def oauth_home(request):
-    return HttpResponseRedirect(reverse('lrs.views.reg_client'))
+UNSAFE_REDIRECTS = getattr(settings, "OAUTH_UNSAFE_REDIRECTS", False)
 
+@csrf_exempt
 def request_token(request):
-    """
-    The Consumer obtains an unauthorized Request Token by asking the Service 
-    Provider to issue a Token. The Request Token's sole purpose is to receive 
-    User approval and can only be used to obtain an Access Token.
-    """
-    # If oauth is not enabled, don't initiate the handshake
-    if settings.OAUTH_ENABLED:
-        oauth_server, oauth_request = initialize_server_request(request)
-        if oauth_server is None:
-            return INVALID_PARAMS_RESPONSE
-        try:
-            # create a request token
-            token = oauth_server.fetch_request_token(oauth_request)
-            # return the token
-            response = HttpResponse(token.to_string(), mimetype="text/plain")
-        except OAuthError, err:
-            response = send_oauth_error(err)
-        return response
-    else:
-        return HttpResponseBadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
-
-# tom c added login_url
-@login_required(login_url="/XAPI/accounts/login")
-def user_authorization(request):
-    """
-    The Consumer cannot use the Request Token until it has been authorized by 
-    the User.
-    """
-    oauth_server, oauth_request = initialize_server_request(request)
+    oauth_request = get_oauth_request(request)
     if oauth_request is None:
-        return INVALID_PARAMS_RESPONSE
-    try:
-        # get the request token
-        token = oauth_server.fetch_request_token(oauth_request)
-        # tom c .. we know user.. save it
-        token.user = request.user
-        token.save()
-    except OAuthError, err:
-        return send_oauth_error(err)
+        return HttpResponseBadRequest('Invalid request parameters.')
+
+    missing_params = require_params(oauth_request, ('oauth_callback',))
+    if missing_params is not None:
+        return missing_params
+
+    if is_xauth_request(oauth_request):
+        return HttpResponseBadRequest('xAuth not allowed for this method.')
 
     try:
-        # get the request callback, though there might not be one
-        callback = oauth_server.get_callback(oauth_request)
-        
-        # OAuth 1.0a: this parameter should not be present on this version
-        if token.callback_confirmed:
-            return HttpResponseBadRequest("Cannot specify oauth_callback at authorization step for 1.0a protocol")
-        if not check_valid_callback(callback):
-            return HttpResponseBadRequest("Invalid callback URL")
-    except OAuthError:
-        callback = None
+        consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
+    except InvalidConsumerError:
+        return HttpResponse('Invalid consumer.', status=401)
 
-    # OAuth 1.0a: use the token's callback if confirmed
-    if token.callback_confirmed:
-        callback = token.callback
-        if callback == OUT_OF_BAND:
-            callback = None
+    if not verify_oauth_request(request, oauth_request, consumer):
+        return HttpResponseBadRequest('Could not verify OAuth request.')
 
-    # entry point for the user
-    if request.method == 'GET':
+    try:
+        request_token = store.create_request_token(request, oauth_request, consumer, oauth_request['oauth_callback'])
+    except oauth.Error:
+        return HttpResponse('Invalid request token: %s' % oauth_request.get_parameter('oauth_token'), status=401)
+
+    ret = urlencode({
+        'oauth_token': request_token.key,
+        'oauth_token_secret': request_token.secret,
+        'oauth_callback_confirmed': 'true'
+    })
+    return HttpResponse(ret, content_type='application/x-www-form-urlencoded')
+
+# LRS CHANGE - CHANGED FORM_CLASS TO OUR CUSTOM FORM
+@login_required(login_url="/accounts/login")
+def user_authorization(request, form_class=AuthorizeRequestTokenForm):
+    if 'oauth_token' not in request.REQUEST:
+        return HttpResponseBadRequest('No request token specified.')
+
+    oauth_request = get_oauth_request(request)
+
+    try:
+        request_token = store.get_request_token(request, oauth_request, request.REQUEST['oauth_token'])
+    except InvalidTokenError:
+        return HttpResponse('Invalid request token: %s' % request.REQUEST['oauth_token'], status=401)
+
+    consumer = store.get_consumer_for_request_token(request, oauth_request, request_token)
+
+    # LRS CHANGE - MAKE SURE LOGGED IN USER OWNS THIS CONSUMER
+    if request.user != consumer.user:
+        return HttpResponseForbidden('Invalid user for this client.')
+
+    if request.method == 'POST':
+        form = form_class(request.POST)
+        if request.session.get('oauth', '') == request_token.key and form.is_valid():
+            request.session['oauth'] = ''
+            if form.cleaned_data['authorize_access']:
+                request_token = store.authorize_request_token(request, oauth_request, request_token)
+                args = { 'oauth_token': request_token.key }
+            else:
+                args = { 'error': _('Access not granted by user.') }
+            if request_token.callback is not None and request_token.callback != OUT_OF_BAND:
+                callback_url = request_token.get_callback_url(args)
+                if UNSAFE_REDIRECTS:
+                    response = UnsafeRedirect(callback_url)
+                else:
+                    response = HttpResponseRedirect(callback_url)
+            else:
+                # try to get custom callback view
+                callback_view_str = getattr(settings, OAUTH_CALLBACK_VIEW,
+                                    'oauth_provider.views.fake_callback_view')
+                try:
+                    view_callable = get_callable(callback_view_str)
+                except AttributeError:
+                    raise Exception, "%s view doesn't exist." % callback_view_str
+
+                # try to treat it as Class Based View (CBV)
+                try:
+                    callback_view = view_callable.as_view()
+                except AttributeError:
+                    # if it appears not to be CBV treat it like FBV
+                    callback_view = view_callable
+                
+                response = callback_view(request, **args)
+        else:
+            response = send_oauth_error(oauth.Error(_('Action not allowed.')))
+    else:       
         # try to get custom authorize view
         authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW, 
                                     'oauth_provider.views.fake_authorize_view')
         try:
-            authorize_view = get_callable(authorize_view_str)
+            view_callable = get_callable(authorize_view_str)
         except AttributeError:
             raise Exception, "%s view doesn't exist." % authorize_view_str
+
+        # try to treat it as Class Based View (CBV)
+        try:
+            authorize_view = view_callable.as_view()
+        except AttributeError:
+            # if it appears not to be CBV treat it like FBV
+            authorize_view = view_callable
+
         params = oauth_request.get_normalized_parameters()
         # set the oauth flag
-        request.session['oauth'] = token.key
-        return authorize_view(request, token, callback, params)
-    
-    # user grant access to the service
-    if request.method == 'POST':
-        # verify the oauth flag set in previous GET
-        if request.session.get('oauth', '') == token.key:
-            request.session['oauth'] = ''
-            try:
-                form = AuthClientForm(request.POST)
-                if form.is_valid():
-                    if int(form.cleaned_data.get('authorize_access', 0)):
-                        # authorize the token
-                        token = oauth_server.authorize_token(token, request.user)
-                        # return the token key
-                        s = form.cleaned_data.get('scopes', '')
-                        if isinstance(s, (list, tuple)):
-                            s = ",".join([v.strip() for v in s])
-                        # changed scope, gotta save
-                        if s:
-                            token.scope = s
-                            token.save()
-                        args = { 'token': token }
-                    else:
-                        args = { 'error': _('Access not granted by user.') }
-                else:
-                    # try to get custom authorize view
-                    authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW, 
-                                                'oauth_provider.views.fake_authorize_view')
-                    try:
-                        authorize_view = get_callable(authorize_view_str)
-                    except AttributeError:
-                        raise Exception, "%s view doesn't exist." % authorize_view_str
-                    params = oauth_request.get_normalized_parameters()
-                    # set the oauth flag
-                    request.session['oauth'] = token.key
-                    return authorize_view(request, token, callback, params, form)
-            except OAuthError, err:
-                response = send_oauth_error(err)
-            
-            if callback:
-                if "?" in callback:
-                    url_delimiter = "&"
-                else:
-                    url_delimiter = "?"
-                if 'token' in args:
-                    query_args = args['token'].to_string(only_key=True)
-                else: # access is not authorized i.e. error
-                    query_args = 'error=%s' % args['error']
-                response = HttpResponseRedirect('%s%s%s' % (callback, url_delimiter, query_args))
-            else:
-                # try to get custom callback view
-                callback_view_str = getattr(settings, OAUTH_CALLBACK_VIEW, 
-                                    'oauth_provider.views.fake_callback_view')
-                try:
-                    callback_view = get_callable(callback_view_str)
-                except AttributeError:
-                    raise Exception, "%s view doesn't exist." % callback_view_str
-                response = callback_view(request, **args)
-        else:
-            response = send_oauth_error(OAuthError(_('Action not allowed.')))
-        return response
-
-def access_token(request):    
-    """
-    The Consumer exchanges the Request Token for an Access Token capable of 
-    accessing the Protected Resources.
-    """
-    oauth_server, oauth_request = initialize_server_request(request)
-    if oauth_request is None:
-        return INVALID_PARAMS_RESPONSE
-    try:
-        # get the request token
-        token = oauth_server.fetch_access_token(oauth_request)
-        # return the token
-        response = HttpResponse(token.to_string(), mimetype="text/plain")
-    except OAuthError, err:
-        response = send_oauth_error(err)
+        request.session['oauth'] = request_token.key
+        response = authorize_view(request, request_token, request_token.get_callback_url(), params)
+        
     return response
 
+@csrf_exempt
+def access_token(request):
+    oauth_request = get_oauth_request(request)
+    if oauth_request is None:
+        return HttpResponseBadRequest('Invalid request parameters.')
+
+    # Consumer
+    try:
+        consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
+    except InvalidConsumerError:
+        return HttpResponseBadRequest('Invalid consumer.')
+
+    is_xauth = is_xauth_request(oauth_request)
+
+    if not is_xauth:
+
+        # Check Parameters
+        missing_params = require_params(oauth_request, ('oauth_token', 'oauth_verifier'))
+        if missing_params is not None:
+            return missing_params
+
+        # Check Request Token
+        try:
+            request_token = store.get_request_token(request, oauth_request, oauth_request['oauth_token'])
+        except InvalidTokenError:
+            return HttpResponse('Invalid request token: %s' % oauth_request['oauth_token'], status=401)
+        if not request_token.is_approved:
+            return HttpResponse('Request Token not approved by the user.', status=401)
+
+        # Verify Signature
+        if not verify_oauth_request(request, oauth_request, consumer, request_token):
+            return HttpResponseBadRequest('Could not verify OAuth request.')
+       
+        # Check Verifier
+        if oauth_request.get('oauth_verifier', None) != request_token.verifier:
+            return HttpResponseBadRequest('Invalid OAuth verifier.')
+
+    else: # xAuth
+
+        # Check Parameters
+        missing_params = require_params(oauth_request, ('x_auth_username', 'x_auth_password', 'x_auth_mode'))
+        if missing_params is not None:
+            return missing_params
+
+        # Check if Consumer allows xAuth
+        if not consumer.xauth_allowed:
+            return HttpResponseBadRequest('xAuth not allowed for this method')
+
+        # Check Signature
+        if not verify_oauth_request(request, oauth_request, consumer):
+            return HttpResponseBadRequest('Could not verify xAuth request.')
+
+        user = authenticate(
+            x_auth_username=oauth_request.get_parameter('x_auth_username'),
+            x_auth_password=oauth_request.get_parameter('x_auth_password'),
+            x_auth_mode=oauth_request.get_parameter('x_auth_mode')
+        )
+
+        if not user:
+            return HttpResponseBadRequest('xAuth username or password is not valid')
+        else:
+            request.user = user
+        
+        # Handle Request Token
+        try:
+            #request_token = store.create_request_token(request, oauth_request, consumer, oauth_request.get('oauth_callback'))
+            request_token = store.create_request_token(request, oauth_request, consumer, OUT_OF_BAND)
+            request_token = store.authorize_request_token(request, oauth_request, request_token)
+        except oauth.Error, err:
+            return send_oauth_error(err)
+
+    access_token = store.create_access_token(request, oauth_request, consumer, request_token)
+
+    ret = urlencode({
+        'oauth_token': access_token.key,
+        'oauth_token_secret': access_token.secret
+    })
+    return HttpResponse(ret, content_type='application/x-www-form-urlencoded')
+
+# LRS CHANGE - ADDED OUR REAL VIEWS
+@login_required(login_url="/accounts/login")
 def authorize_client(request, token=None, callback=None, params=None, form=None):
     if not form:
-        form = AuthClientForm(initial={'scopes': token.scope_to_list(),
+        form = AuthorizeRequestTokenForm(initial={'scopes': token.scope_to_list(),
                                       'obj_id': token.pk})
+
     d = {}
     d['form'] = form
     d['name'] = token.consumer.name
     d['description'] = token.consumer.description
     d['params'] = params
+    d['oauth_token'] = token.key
     return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
 
+@login_required(login_url="/accounts/login")
 def callback_view(request, **args):
     d = {}
     if 'error' in args:
         d['error'] = args['error']
 
-    d['verifier'] = args['token'].verifier
-    return render_to_response('oauth_verifier_pin.html', args, context_instance=RequestContext(request))
+    try:
+        oauth_token = Token.objects.get(key=args['oauth_token'])
+    except AttributeError, e:
+        send_oauth_error(e)
+    except Token.DoesNotExist, e:
+        send_oauth_error(e)
+    d['verifier'] = oauth_token.verifier
+    return render_to_response('oauth_verifier_pin.html', d, context_instance=RequestContext(request))

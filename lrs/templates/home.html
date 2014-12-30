@@ -38,7 +38,7 @@
       <h4>Sign up</h2>
       <p>Sign up for HTTP Basic Credentials</p>
       <p>Create a username and supply an email address with it</p>
-      <p><a class="btn btn-primary" href="{% url lrs.views.register %}">register</a></p>
+      <p><a class="btn btn-primary" href="{% url lrs.views.register %}">Register</a></p>
     </div>
   </li>
   <li class="span4">
@@ -54,7 +54,7 @@
       <h4>Statement Validator</h4>
       <p>Want to make sure your statement is valid? Check it here.
       </p>
-      <p><a class="btn" href="{% url lrs.views.stmt_validator %}">go to validator</a></p>
+      <p><a class="btn" href="{% url lrs.views.stmt_validator %}">Validator</a></p>
     </div>
   </li>
 </ul>
@@ -68,13 +68,14 @@
           <li>Visit our client registration page</li>
           <li>Submit the name and description of the client you wish to authorize</li>
           <li>Once submitted, you will receive a client ID and client secret. Use these with the appropriate OAuth
-            headers to perform the initial handshake to gain your temporary token. ({% url oauth_provider.views.request_token %}) <b>NOTE: If you are not familiar with OAuth, please consult the <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md">spec</a> and the OAuth 1.0 <a href="http://tools.ietf.org/html/rfc5849">RFC</a></b></li>
-          <li>You'll then receive your request token. Use this when visiting the authentication page ({% url oauth_provider.views.user_authorization %}). An LRS OAuth ID will be issued to you for you to POST back to the authentication page from your client</li>
-          <li>Once the client is authenticated, send the appropriate OAuth headers and values from your token to gain an access token.({% url oauth_provider.views.access_token %})</li>
+            headers to perform the initial handshake to gain your temporary token. ({% url oauth:oauth_provider.views.request_token %}) <b>NOTE: If you are not familiar with OAuth, please consult the <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md">spec</a> and the OAuth 1.0 <a href="http://tools.ietf.org/html/rfc5849">RFC</a></b></li>
+          <li>You'll then receive your request token. Use this when visiting the authentication page ({% url oauth:oauth_provider.views.user_authorization %}). An LRS OAuth ID will be issued to you for you to POST back to the authentication page from your client</li>
+          <li>Once the client is authenticated, send the appropriate OAuth headers and values from your token to gain an access token.({% url oauth:oauth_provider.views.access_token %})</li>
           <li>You can now send this access token in with the OAuth headers when making calls to the LRS system</li>
         </ol>
       </p>
-      <p><a class="btn" href="{% url lrs.views.reg_client %}">register a client</a></p>
+      <p><a class="btn" href="{% url lrs.views.reg_client %}">Register OAuth1 Client (3-legged process)</a></p>
+      <p><a class="btn" href="{% url lrs.views.reg_client2 %}">Register OAuth2 Client (3-legged process)</a></p>
   </div>
   </li>
 </ul>

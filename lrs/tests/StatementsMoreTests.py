@@ -1,15 +1,17 @@
 import os
-from django.test import TestCase
-from django.core.urlresolvers import reverse
-from lrs import views, models
 import json
 import base64
 import uuid
 from datetime import datetime, timedelta
-from django.utils.timezone import utc
-import time
-from lrs.util import retrieve_statement
+
+from django.test import TestCase
 from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.utils.timezone import utc
+
+from ..models import Statement
+from ..views import register, statements, statements_more
+from ..util import retrieve_statement
 
 class StatementsMoreTests(TestCase):
 
@@ -18,16 +20,14 @@ class StatementsMoreTests(TestCase):
         print "\n%s" % __name__
 
     def setUp(self):
-        settings.SERVER_STMT_LIMIT=10
-        if not settings.HTTP_AUTH_ENABLED:
-            settings.HTTP_AUTH_ENABLED = True        
+        settings.SERVER_STMT_LIMIT=10    
         
         self.username = "auth1"
         self.email = "auth1@example.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email':self.email,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form)
+        self.client.post(reverse(register),form)
 
         self.guid1 = str(uuid.uuid1())
         self.guid2 = str(uuid.uuid1())
@@ -245,93 +245,94 @@ class StatementsMoreTests(TestCase):
         stmt_list.append(self.existStmt25)
 
         # Post statements
-        post_statements = self.client.post(reverse(views.statements), json.dumps(stmt_list),
+        post_statements = self.client.post(reverse(statements), json.dumps(stmt_list),
             content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(post_statements.status_code, 200)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid1).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid1).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=2)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid2).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid2).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=3)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid3).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid3).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=4)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid4).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid4).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=5)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid5).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid5).update(stored=time)
 
         self.secondTime = str((datetime.utcnow()+timedelta(seconds=6)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=7)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid6).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid6).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=8)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid7).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid7).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=9)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid8).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid8).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=10)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid9).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid9).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=11)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid10).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
         self.thirdTime = str((datetime.utcnow()+timedelta(seconds=12)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=13)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid11).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid11).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=14)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid12).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid12).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=15)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid13).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid13).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=16)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid14).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid14).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=17)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid15).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid15).update(stored=time)
 
         self.fourthTime = str((datetime.utcnow()+timedelta(seconds=18)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=19)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid16).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid16).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=20)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid17).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid17).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=21)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid18).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid18).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=22)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid19).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid19).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=23)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid20).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid20).update(stored=time)
 
         self.fifthTime = str((datetime.utcnow()+timedelta(seconds=24)).replace(tzinfo=utc).isoformat())
  
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=25)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid21).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid21).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=26)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid22).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid22).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=27)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid23).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid23).update(stored=time)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=28)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid24).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid24).update(stored=time)
 
         self.sixthTime = str((datetime.utcnow()+timedelta(seconds=29)).replace(tzinfo=utc).isoformat())
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=30)).replace(tzinfo=utc).isoformat()))
-        stmt = models.Statement.objects.filter(statement_id=self.guid25).update(stored=time)
+        Statement.objects.filter(statement_id=self.guid25).update(stored=time)
 
     def tearDown(self):
         settings.SERVER_STMT_LIMIT=100
@@ -344,12 +345,12 @@ class StatementsMoreTests(TestCase):
                 raise e
 
     def test_unknown_more_id_url(self):
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth )
         self.assertEqual(moreURLGet.status_code, 404)
 
     def test_not_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.secondTime},
+        sincePostResponse = self.client.post(reverse(statements), {"until":self.secondTime},
             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         
         self.assertEqual(sincePostResponse.status_code, 200)
@@ -382,7 +383,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid6, rsp)
 
     def test_single_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse(views.statements),
+        sincePostResponse = self.client.post(reverse(statements),
             {"until":self.thirdTime},
             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sincePostResponse.status_code, 200)
@@ -415,7 +416,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid11, rsp)
 
     def test_single_full_second_not_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fourthTime},
+        sincePostResponse = self.client.post(reverse(statements), {"until":self.fourthTime},
             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sincePostResponse.status_code, 200)
         rsp = sincePostResponse.content
@@ -451,7 +452,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(moreURLGet.status_code, 200)
@@ -484,7 +485,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
     def test_two_pages_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse(views.statements), {"until":self.fifthTime},
+        sincePostResponse = self.client.post(reverse(statements), {"until":self.fifthTime},
             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sincePostResponse.status_code, 200)
         rsp = sincePostResponse.content
@@ -520,7 +521,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(moreURLGet.status_code, 200)
@@ -553,7 +554,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
     def test_two_pages_full_third_not_full_more_stmts_url(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10},
+        sinceGetResponse = self.client.get(reverse(statements), {"until":self.sixthTime, "limit":10},
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
@@ -590,7 +591,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
@@ -625,7 +626,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}),
+        anotherURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':more_resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
@@ -659,7 +660,7 @@ class StatementsMoreTests(TestCase):
                 
 
     def test_limit_less_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":8},
+        sinceGetResponse = self.client.get(reverse(statements), {"until":self.sixthTime, "limit":8},
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
@@ -696,7 +697,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
@@ -731,7 +732,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}),
+        anotherURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':more_resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
@@ -765,7 +766,7 @@ class StatementsMoreTests(TestCase):
 
 
     def test_limit_same_as_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":10},
+        sinceGetResponse = self.client.get(reverse(statements), {"until":self.sixthTime, "limit":10},
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -803,7 +804,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
@@ -838,7 +839,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, more_rsp)                
         self.assertNotIn(self.guid25, more_rsp)
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}),
+        anotherURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':more_resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
@@ -871,7 +872,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, another_rsp)    
 
     def test_limit_more_than_server_limit(self):
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime, "limit":12},
+        sinceGetResponse = self.client.get(reverse(statements), {"until":self.sixthTime, "limit":12},
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content
@@ -907,7 +908,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid1, rsp)                
         self.assertNotIn(self.guid25, rsp)
 
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(moreURLGet.status_code, 200)
         more_rsp = moreURLGet.content
@@ -943,7 +944,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
 
-        anotherURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':more_resp_id}),
+        anotherURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':more_resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherURLGet.status_code, 200)
         another_rsp = anotherURLGet.content
@@ -977,7 +978,7 @@ class StatementsMoreTests(TestCase):
 
     def test_two_pages_full_third_not_full_more_stmts_multiple_hits(self):
         # Make initial complex get so 'more' will be required
-        sinceGetResponse = self.client.get(reverse(views.statements), {"until":self.sixthTime},
+        sinceGetResponse = self.client.get(reverse(statements), {"until":self.sixthTime},
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(sinceGetResponse.status_code, 200)
         rsp = sinceGetResponse.content        
@@ -1013,7 +1014,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, rsp)
 
         # Simulate user clicking returned 'more' URL
-        moreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        moreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         more_rsp = moreURLGet.content
         more_json = json.loads(more_rsp)
@@ -1049,7 +1050,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
 
-        more2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':more_resp_id}),
+        more2URLGet = self.client.get(reverse(statements_more, kwargs={'more_id':more_resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more2URLGet.status_code, 200)
         more2_rsp = more2URLGet.content
@@ -1081,7 +1082,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, more2_rsp)        
 
         # Simulate user clicking returned 'more' URL
-        anotherMoreURLGet = self.client.get(reverse(views.statements_more,kwargs={'more_id':resp_id}),
+        anotherMoreURLGet = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         another_more_rsp = anotherMoreURLGet.content
         another_more_json = json.loads(another_more_rsp)
@@ -1117,7 +1118,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid25, another_more_rsp)
 
         # Simulate user clicking returned 'more' URL
-        anotherMore2URLGet = self.client.get(reverse(views.statements_more, kwargs={'more_id':another_more_resp_id}),
+        anotherMore2URLGet = self.client.get(reverse(statements_more, kwargs={'more_id':another_more_resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(anotherMore2URLGet.status_code, 200)
         another_more2_rsp = anotherMore2URLGet.content
@@ -1149,7 +1150,7 @@ class StatementsMoreTests(TestCase):
         self.assertNotIn(self.guid5, another_more2_rsp)
 
     def test_get_order(self):
-        r = self.client.get(reverse(views.statements), {"limit":10},
+        r = self.client.get(reverse(statements), {"limit":10},
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(r.status_code, 200)
         c = r.content        
@@ -1169,7 +1170,7 @@ class StatementsMoreTests(TestCase):
         self.assertEqual(stmts[8]['id'], self.guid17)
         self.assertEqual(stmts[9]['id'], self.guid16)
 
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
+        r = self.client.get(reverse(statements_more,kwargs={'more_id':more}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(r.status_code, 200)
         c = r.content        
@@ -1189,7 +1190,7 @@ class StatementsMoreTests(TestCase):
         self.assertEqual(stmts[8]['id'], self.guid7)
         self.assertEqual(stmts[9]['id'], self.guid6)
 
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
+        r = self.client.get(reverse(statements_more,kwargs={'more_id':more}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(r.status_code, 200)
         c = r.content        
@@ -1204,7 +1205,7 @@ class StatementsMoreTests(TestCase):
         self.assertEqual(stmts[4]['id'], self.guid1)
 
     def test_get_rev_order(self):
-        r = self.client.get(reverse(views.statements), {"limit":10, "ascending":True},
+        r = self.client.get(reverse(statements), {"limit":10, "ascending":True},
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(r.status_code, 200)
         c = r.content        
@@ -1224,7 +1225,7 @@ class StatementsMoreTests(TestCase):
         self.assertEqual(stmts[8]['id'], self.guid9)
         self.assertEqual(stmts[9]['id'], self.guid10)
 
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
+        r = self.client.get(reverse(statements_more,kwargs={'more_id':more}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(r.status_code, 200)
         c = r.content        
@@ -1244,7 +1245,7 @@ class StatementsMoreTests(TestCase):
         self.assertEqual(stmts[8]['id'], self.guid19)
         self.assertEqual(stmts[9]['id'], self.guid20)
 
-        r = self.client.get(reverse(views.statements_more,kwargs={'more_id':more}),
+        r = self.client.get(reverse(statements_more,kwargs={'more_id':more}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(r.status_code, 200)
         c = r.content        

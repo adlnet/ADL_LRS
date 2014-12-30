@@ -1,12 +1,14 @@
 # ADL LRS 
 
-#### Installation tested on Ubuntu 12.10 machine with Python 2.7.3. Should be good with Ubuntu 10.04 LTS - 13.04 releases. This is still in the development stage and NOT ready for production
+#### Installation tested on Ubuntu 12.10 machine with Python 2.7.3. Should be good with Ubuntu 10.04 LTS - 13.04 releases. Updated to be compliant with the 1.0.1 xAPI spec.
+
+This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
 
 ## Installation
 
 Software Installation
 
-    sudo apt-get install git fabric postgresql-9.1 python-setuptools postgresql-server-dev-9.1 python-dev libxml2-dev libxslt-dev
+    sudo apt-get install git fabric postgresql python-setuptools postgresql-server-dev-all python-dev libxml2-dev libxslt-dev
     sudo easy_install pip
     sudo pip install virtualenv
 
@@ -43,6 +45,10 @@ Clone the LRS repository
 Note: Under ADL_LRS/adl_lrs/settings.py, make sure the database USER and PASSWORD are the same as the db_owner created
 earlier. Also, be sure to replace the current SECRET_KEY flag with a secret string of your own, and be sure not to share it.
 
+Set Site Scheme
+
+  Inside of ADL_LRS/adl_lrs/settings.py there is a SITE_SCHEME value you should set (defaults to http but if you're using https set it here)
+
 Setup the environment
 
     fab setup_env
@@ -52,11 +58,6 @@ Setup the LRS - while still in the activated virtual environment (creates media 
 
     fab setup_lrs (when prompted make adllrs a Django superuser)
 
-There is an existing .png file that displays the database schema at the root level. If you want to generate one, run
-
-    python manage.py graph_models -a -o <filename>.png
-
-
 ## Starting
 While still in the ADL_LRS directory, run
 
@@ -65,6 +66,13 @@ While still in the ADL_LRS directory, run
 To verify it's running
 
     supervisorctl
+
+Set your site domain
+
+  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Sync your database again to apply the change
+
+    python manage.py syncdb
+
 
 
 Whenever you want to exit the virtual environment, just type `deactivate`
@@ -86,6 +94,7 @@ Nginx and using uWSGI intead of Gunicorn. For a more detailed description of the
 * [Sending Attachments](https://github.com/adlnet/ADL_LRS/wiki/Sending-Statements-with-Attachments)
 * [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production)
 * [OAuth Help](https://github.com/adlnet/ADL_LRS/wiki/Using-OAuth)
+* [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
 
 ## License
    Copyright 2012 Advanced Distributed Learning

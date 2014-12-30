@@ -1,10 +1,3 @@
-from django.test import TestCase
-from django.conf import settings
-from django.core.urlresolvers import reverse
-from lrs import models, views
-import datetime
-from django.utils.timezone import utc
-from django.utils import timezone
 import hashlib
 import urllib
 import os
@@ -12,9 +5,18 @@ import json
 import base64
 import ast
 import uuid
+import datetime
+
+from django.test import TestCase
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.utils.timezone import utc
+from django.utils import timezone
+
+from ..views import activity_state, register
 
 class ActivityStateTests(TestCase):
-    url = reverse(views.activity_state)
+    url = reverse(activity_state)
     testagent = '{"name":"test","mbox":"mailto:test@example.com"}'
     otheragent = '{"name":"other","mbox":"mailto:other@example.com"}'
     activityId = "http://www.iana.org/domains/example/"
@@ -36,7 +38,7 @@ class ActivityStateTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username,'email': self.email,'password':self.password,'password2':self.password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")
 
 
         self.testparams1 = {"stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
@@ -125,13 +127,12 @@ class ActivityStateTests(TestCase):
         self.assertEqual(del_r.status_code, 204)
 
     def test_put_without_auth(self):
-        # Will return 200 if HTTP_AUTH is not enabled
         testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {"test":"put activity state w/ registration","obj":{"agent":"test"}}
         put1 = self.client.put(path, teststateregid, content_type=self.content_type, X_Experience_API_Version="1.0.0")
 
-        self.assertEqual(put1.status_code, 401)
+        self.assertEqual(put1.status_code, 400)
 
     def test_put_etag_conflict_if_none_match(self):
         teststateetaginm = {"test":"etag conflict - if none match *","obj":{"agent":"test"}}
@@ -227,7 +228,7 @@ class ActivityStateTests(TestCase):
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")        
+        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")        
 
         r = self.client.get(self.url, self.testparams1, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -305,7 +306,7 @@ class ActivityStateTests(TestCase):
         self.assertNotIn(self.stateId3, r.content)
         self.assertNotIn(self.stateId4, r.content)
 
-        del_r = self.client.delete(self.url, testparamssince, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.client.delete(self.url, testparamssince, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
     def test_get_with_since_tz(self):
         state_id = "old_state_test"
@@ -355,8 +356,8 @@ class ActivityStateTests(TestCase):
         self.assertNotIn(self.stateId3, r.content)
         self.assertNotIn(self.stateId4, r.content)
 
-        del_r = self.client.delete(self.url, testparamssince, Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        del_r = self.client.delete(self.url, testparamssince2, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.client.delete(self.url, testparamssince, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.client.delete(self.url, testparamssince2, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_get_with_since_and_regid(self):
         # create old state w/ no registration id
@@ -556,11 +557,10 @@ class ActivityStateTests(TestCase):
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")
 
         testagent = '{"name":"another test","mbox":"mailto:anothertest@example.com"}'
         sid = "test_ie_cors_put_delete_set_1"
-        sparam1 = {"stateId": sid, "activityId": self.activityId, "agent": testagent}
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
         
         content = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
@@ -589,7 +589,7 @@ class ActivityStateTests(TestCase):
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {'username':username,'email': email,'password':password,'password2':password}
-        response = self.client.post(reverse(views.register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")
 
         ot = "Group"
         name = "the group"
