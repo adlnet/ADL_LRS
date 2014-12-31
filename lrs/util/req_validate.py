@@ -245,7 +245,6 @@ def statements_get(req_dict):
             req_dict['params']['attachments'] = False
     else:
         req_dict['params']['attachments'] = False
-   
     return req_dict
 
 @auth
