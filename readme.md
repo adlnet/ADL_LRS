@@ -8,7 +8,7 @@ This version is stable, but only intended to support a small amount of users as 
 
 Software Installation
 
-    sudo apt-get install git fabric postgresql-9.1 python-setuptools postgresql-server-dev-9.1 python-dev libxml2-dev libxslt-dev
+    sudo apt-get install git fabric postgresql python-setuptools postgresql-server-dev-all python-dev libxml2-dev libxslt-dev
     sudo easy_install pip
     sudo pip install virtualenv
 

@@ -10,7 +10,7 @@ from ..exceptions import ParamError
 SCHEME = 2
 EMAIL = 5
 uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
-sha1sum_re = re.compile('([a-fA-F\d]{32})')
+sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']
