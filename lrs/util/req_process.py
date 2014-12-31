@@ -210,8 +210,6 @@ def statements_get(req_dict):
     
     resp['Content-Length'] = str(content_length) 
 
-    # import pdb
-    # pdb.set_trace()
     return resp
 
 def build_response(stmt_result, content_length):
