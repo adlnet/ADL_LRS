@@ -6,7 +6,7 @@ SETTINGS_PATH = Path(__file__)
 PROJECT_ROOT = SETTINGS_PATH.ancestor(3)
 
 # If you want to debug
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -20,8 +20,8 @@ DATABASES = {
         'NAME': 'lrs',
         'USER': 'root',
         'PASSWORD': 'password',
-        'HOST': '10.100.10.73',
-        'PORT': '6432',
+        'HOST': 'localhost',
+        'PORT': '',
     }    
 }
 
@@ -125,7 +125,7 @@ OAUTH_SCOPES = (
 SESSION_KEY = 'oauth2'
 
 # Limit on number of statements the server will return
-SERVER_STMT_LIMIT = 50
+SERVER_STMT_LIMIT = 100
 
 # ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
@@ -233,7 +233,7 @@ LOGGING = {
         'default': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
-            'filename': '../logs/lrs.log',
+            'filename': DEFAULT_LOG_DIR,
             'maxBytes': 1024*1024*5, # 5 MB
             'backupCount': 5,
             'formatter':'standard',
@@ -241,7 +241,7 @@ LOGGING = {
         'request_handler': {
                 'level':'DEBUG',
                 'class':'logging.handlers.RotatingFileHandler',
-                'filename': '../logs/django_request.log',
+                'filename': REQUEST_HANDLER_LOG_DIR,
                 'maxBytes': 1024*1024*5, # 5 MB
                 'backupCount': 5,
                 'formatter':'standard',
