@@ -211,8 +211,8 @@ INSTALLED_APPS = (
     'south'
 )
 
-REQUEST_HANDLER_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/django_request.log'
-DEFAULT_LOG_DIR = SETTINGS_PATH.ancestor(3) + '/logs/lrs.log'
+REQUEST_HANDLER_LOG_DIR = '../logs/django_request.log'
+DEFAULT_LOG_DIR = '../logs/lrs.log'
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.

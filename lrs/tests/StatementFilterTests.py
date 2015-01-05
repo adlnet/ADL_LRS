@@ -1738,7 +1738,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; charset=utf-8')
 
     def test_attachments_no_payload(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -1760,7 +1760,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'application/json')
+        self.assertEqual(r['Content-Type'], 'application/json; charset=utf-8')
         obj_from_json = json.loads(r.content)
         self.assertIn('statements', obj_from_json.keys())
         self.assertIn('more', obj_from_json.keys())
@@ -1784,7 +1784,7 @@ class StatementFilterTests(TestCase):
 
         r = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'application/json')
+        self.assertEqual(r['Content-Type'], 'application/json; charset=utf-8')
         obj_from_json = json.loads(r.content)
         self.assertIn('statements', obj_from_json.keys())
         self.assertIn('more', obj_from_json.keys())
@@ -1814,7 +1814,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'application/json')
+        self.assertEqual(r['Content-Type'], 'application/json; charset=utf-8')
 
     def test_attachments_payload_single_stmt_get(self):
         stmt_id = str(uuid.uuid1())
@@ -1853,7 +1853,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; charset=utf-8')
 
     def test_more_attachments(self):
         settings.SERVER_STMT_LIMIT=2
@@ -1931,7 +1931,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'application/json')
+        self.assertEqual(r['Content-Type'], 'application/json; charset=utf-8')
         obj_from_json = json.loads(r.content)
         self.assertEqual(len(obj_from_json['statements']), 2)
         self.assertIn('attachments', obj_from_json['statements'][0].keys())
@@ -1943,7 +1943,7 @@ class StatementFilterTests(TestCase):
         more_get = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
-        self.assertEqual(more_get['Content-Type'], 'application/json')
+        self.assertEqual(more_get['Content-Type'], 'application/json; charset=utf-8')
         more_obj = json.loads(more_get.content)
         self.assertEqual(len(more_obj['statements']), 2)
         self.assertIn('attachments', more_obj['statements'][0].keys())
@@ -2035,7 +2035,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; charset=utf-8')
         headers_list= [txtsha1, txtsha2, txtsha3,txtsha4]
         payload_list = [u"This is a text attachment1",u"This is a text attachment2",u"This is a text attachment3",u"This is a text attachment4"]
         msg = message_from_string(r.content)
@@ -2164,7 +2164,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'application/json')
+        self.assertEqual(r['Content-Type'], 'application/json; charset=utf-8')
         obj_from_json = json.loads(r.content)
 
         resp_url = obj_from_json['more']
@@ -2173,5 +2173,5 @@ class StatementFilterTests(TestCase):
         more_get = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
             X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
-        self.assertEqual(more_get['Content-Type'], 'application/json')
+        self.assertEqual(more_get['Content-Type'], 'application/json; charset=utf-8')
          
