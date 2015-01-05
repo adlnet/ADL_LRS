@@ -60,6 +60,17 @@ def validate_uuid(uuid):
     id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
     return id_regex.match(uuid)
 
+def get_lang(langdict, lang):
+    if lang:
+        # Return where key = lang
+        try:
+            return {lang:langdict[lang]}
+        except KeyError:
+            pass
+
+    first = langdict.iteritems().next()      
+    return {first[0]:first[1]}
+
 def autoregister(*app_list):
     for app_name in app_list:
         app_models = get_app(app_name)

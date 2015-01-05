@@ -10,6 +10,8 @@ from django.utils.timezone import utc
 
 from oauth_provider.consts import MAX_URL_LENGTH
 
+from .util import util
+
 AGENT_PROFILE_UPLOAD_TO = "agent_profile"
 ACTIVITY_STATE_UPLOAD_TO = "activity_state"
 ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
@@ -23,17 +25,18 @@ class Verb(models.Model):
         ret = {}
         ret['id'] = self.verb_id
         if self.display:
-            ret['display'] = {}
-            if lang:
-                # Return display where key = lang
-                try:
-                    ret['display'] = {lang:self.display[lang]}
-                except KeyError:
-                    first = self.display.iteritems().next()      
-                    ret['display'] = {first[0]:first[1]}                        
-            else:
-                first = self.display.iteritems().next()      
-                ret['display'] = {first[0]:first[1]}                        
+            ret['display'] = util.get_lang(self.display, lang)
+            # ret['display'] = {}
+            # if lang:
+            #     # Return display where key = lang
+            #     try:
+            #         ret['display'] = {lang:self.display[lang]}
+            #     except KeyError:
+            #         first = self.display.iteritems().next()      
+            #         ret['display'] = {first[0]:first[1]}                        
+            # else:
+            #     first = self.display.iteritems().next()      
+            #     ret['display'] = {first[0]:first[1]}                        
         return ret
 
     # Just return one value for human-readable
@@ -318,15 +321,16 @@ class Activity(models.Model):
             interactions = self.activity_definition_targets
 
         for i in interactions:
-            if lang:
-                try:
-                    i['description'] = {lang:i['description']['lang']}
-                except KeyError:
-                    first = interactions.iteritems().next()
-                    i['description'] = {first[0]:first[1]}
-            else:
-                first = i['description'].iteritems().next()
-                i['description'] = {first[0]:first[1]}
+            i['description'] = util.get_lang(i['description'], lang)
+            # if lang:
+            #     try:
+            #         i['description'] = {lang:i['description']['lang']}
+            #     except KeyError:
+            #         first = interactions.iteritems().next()
+            #         i['description'] = {first[0]:first[1]}
+            # else:
+            #     first = i['description'].iteritems().next()
+            #     i['description'] = {first[0]:first[1]}
             ret['definition'][i_type].append(i)        
 
     def to_dict(self, lang=None, format='exact'):
@@ -337,26 +341,28 @@ class Activity(models.Model):
             
             ret['definition'] = {}
             if self.activity_definition_name:
-                if lang:
-                    try:
-                        ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
-                    except KeyError:
-                        first = self.activity_definition_name.iteritems().next()      
-                        ret['definition']['name'] = {first[0]:first[1]}                        
-                else:
-                    first = self.activity_definition_name.iteritems().next()      
-                    ret['definition']['name'] = {first[0]:first[1]}
+                ret['definition']['name'] = util.get_lang(self.activity_definition_name, lang)
+                # if lang:
+                #     try:
+                #         ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
+                #     except KeyError:
+                #         first = self.activity_definition_name.iteritems().next()      
+                #         ret['definition']['name'] = {first[0]:first[1]}                        
+                # else:
+                #     first = self.activity_definition_name.iteritems().next()      
+                #     ret['definition']['name'] = {first[0]:first[1]}
 
             if self.activity_definition_description:
-                if lang:
-                    try:
-                        ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
-                    except KeyError:
-                        first = self.activity_definition_description.iteritems().next()      
-                        ret['definition']['description'] = {first[0]:first[1]}                        
-                else:
-                    first = self.activity_definition_description.iteritems().next()      
-                    ret['definition']['description'] = {first[0]:first[1]}                        
+                ret['definition']['description'] = util.get_lang(self.activity_definition_description, lang)
+                # if lang:
+                #     try:
+                #         ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
+                #     except KeyError:
+                #         first = self.activity_definition_description.iteritems().next()      
+                #         ret['definition']['description'] = {first[0]:first[1]}                        
+                # else:
+                #     first = self.activity_definition_description.iteritems().next()      
+                #     ret['definition']['description'] = {first[0]:first[1]}                        
 
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
