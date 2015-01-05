@@ -624,14 +624,14 @@ class StatementAttachment(models.Model):
 
         if self.display:
             if lang:
-                ret['display'] = {lang:self.display[lang]}
+                ret['display'] = util.get_lang(self.display, lang)
             else:
                 first = self.display.iteritems().next()
                 ret['display'] = {first[0]:first[1]}
 
         if self.description:
             if lang:
-                ret['description'] = {lang:self.description[lang]}
+                ret['description'] = util.get_lang(self.description, lang)
             else:
                 first = self.description.iteritems().next()
                 ret['description'] = {first[0]:first[1]}
