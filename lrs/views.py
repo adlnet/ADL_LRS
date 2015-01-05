@@ -1,5 +1,7 @@
 import json
 import logging
+import urllib
+import ast
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -9,7 +11,7 @@ from django.core.context_processors import csrf
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
@@ -18,7 +20,7 @@ from django.views.decorators.http import require_http_methods
 
 from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
 from .forms import ValidatorForm, RegisterForm, RegClientForm
-from .models import Statement, Verb, Agent, Activity
+from .models import Statement, Verb, Agent, Activity, ActivityProfile, ActivityState
 from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
@@ -362,6 +364,151 @@ def my_statements(request):
             s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
 
         return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
+
+@login_required(login_url=LOGIN_URL)
+def jono(request):
+    act_id = request.GET.get("act_id", None)
+    state_id = request.GET.get("state_id", None)
+    agent_params = request.GET.get("agent", None)
+    if act_id and state_id and agent_params:
+        try:
+            params = ast.literal_eval(urllib.unquote(agent_params))
+            ag, create = Agent.objects.retrieve_or_create(**params)
+        except Agent.DoesNotExist:
+            return HttpResponseNotFound("Agent does not exist")
+        except Agent.MultipleObjectsReturned:
+            return HttpResponseBadRequest("More than one agent returned with email")        
+	try:        
+	    state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
+	except ActivityState.DoesNotExist:
+	    return HttpResponseNotFound("Activity state does not exist")        
+	return_json = []
+        state_data = json.loads(state.json_state)
+        if isinstance(state_data, list):
+            for sid in state_data:
+                # Random null in array
+                if sid:
+                    try:
+                        act_state = ActivityState.objects.get(state_id=str(urllib.unquote(sid)))
+                    except Exception, e:
+                        return HttpResponseBadRequest(e.message)
+                    return_json.append({"stateId": str(sid)}.items() + state_data.items())
+            return HttpResponse(json.dumps(return_json), content_type="application/json", status=200)
+        else:
+            return HttpResponse(state.json_state, content_type=state.content_type, status=200)
+    return HttpResponseBadRequest("Activity ID, State ID and Agent are all required")
+
+@login_required(login_url=LOGIN_URL)
+def my_activity_profiles(request):
+    act_id = request.GET.get("act_id", None)
+    if act_id:
+        profs = ActivityProfile.objects.filter(activityId=urllib.unquote(act_id))
+        p_list = []
+        for prof in profs:
+            p_list.append({"profileId":prof.profileId, "updated":str(prof.updated)})
+        return HttpResponse(json.dumps(p_list), mimetype="application/json", status=200)
+    return HttpResponseBadRequest("Activity ID required")
+
+@login_required(login_url=LOGIN_URL)
+def my_activity_profile(request): 
+    act_id = request.GET.get("act_id", None)
+    prof_id = request.GET.get("prof_id", None)
+    if act_id and prof_id:
+        prof = ActivityProfile.objects.get(activityId=urllib.unquote(act_id), profileId=urllib.unquote(prof_id))
+        if prof.profile:
+            return HttpResponse(prof.profile.read(), content_type=prof.content_type, status=200)
+        else:
+            return HttpResponse(prof.json_profile, content_type=prof.content_type, status=200)     
+    return HttpResponseBadRequest("Both Activity ID and Profile ID required")
+
+@login_required(login_url=LOGIN_URL)
+def my_activity_states(request):
+    act_id = request.GET.get("act_id", None)
+    if act_id:
+        try:
+            ag = Agent.objects.get(mbox="mailto:" + request.user.email)
+        except Agent.DoesNotExist:
+            return HttpResponseNotFound("Agent does not exist")
+        except Agent.MultipleObjectsReturned:
+            return HttpResponseBadRequest("More than one agent returned with email")
+        states = ActivityState.objects.filter(activity_id=urllib.unquote(act_id))    
+        s_list = []
+        for state in states:
+            s_list.append({"stateId":state.state_id, "updated":str(state.updated), "agent_name":state.agent.get_a_name(),
+                "agent":state.agent.__unicode__(), "real_data": state.json_state})
+        return HttpResponse(json.dumps(s_list), mimetype="application/json", status=200)
+    return HttpResponseBadRequest("Activity ID required")
+
+@login_required(login_url=LOGIN_URL)
+def my_activity_state(request):
+    act_id = request.GET.get("act_id", None)
+    state_id = request.GET.get("state_id", None)
+    agent_params = request.GET.get("agent", None)
+    if act_id and state_id and agent_params:
+        try:
+            params = ast.literal_eval(urllib.unquote(agent_params))
+            ag = Agent.objects.get(**params)
+        except Agent.DoesNotExist:
+            return HttpResponseNotFound("Agent does not exist")
+        except Agent.MultipleObjectsReturned:
+            return HttpResponseBadRequest("More than one agent returned with email")        
+        state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=state_id)
+        if state.state:
+            return HttpResponse(state.state.read(), content_type=state.content_type, status=200)
+        else:
+            return HttpResponse(state.json_state, content_type=state.content_type, status=200)
+    return HttpResponseBadRequest("Activity ID, State ID and Agent are all required")
+
+@login_required(login_url=LOGIN_URL)
+def my_activities(request):
+    # These errors shouldn't happen...just in case
+    try:
+        ag = Agent.objects.get(mbox="mailto:" + request.user.email)
+    except Agent.DoesNotExist:
+        return HttpResponseNotFound("Agent does not exist")
+    except Agent.MultipleObjectsReturned:
+        return HttpResponseBadRequest("More than one agent returned with email")
+    act_id = request.GET.get("act_id", None)
+    if act_id:
+        a = Activity.objects.get(activity_id=urllib.unquote(act_id), authority=ag, canonical_version=True)
+        return HttpResponse(json.dumps(a.to_dict()), mimetype="application/json",status=200)
+    else:
+        a = {}
+        paginator = Paginator(Activity.objects.filter(authority=ag).values_list('id', flat=True), 
+            settings.STMTS_PER_PAGE)
+
+        page_no = request.GET.get('page', 1)
+        try:
+            page = paginator.page(page_no)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            page = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            page = paginator.page(paginator.num_pages)
+
+        idlist = page.object_list
+        if idlist.count() > 0:
+            act_objs = [act for act in Activity.objects.filter(id__in=(idlist))]
+        else: 
+            act_objs = []
+
+        alist = []
+        for act in act_objs:
+            d = {}
+            d['name'] = act.get_a_name()
+            d['activity_id'] = act.activity_id
+            d['id'] = act.id
+            alist.append(d)
+
+        a['acts'] = alist
+        if page.has_previous():
+            a['previous'] = "%s?page=%s" % (reverse('lrs.views.my_activities'), page.previous_page_number())
+        if page.has_next():
+            a['next'] = "%s?page=%s" % (reverse('lrs.views.my_activities'), page.next_page_number())
+
+        return HttpResponse(json.dumps(a), mimetype="application/json", status=200)
+
 
 @login_required(login_url=LOGIN_URL)
 def my_app_status(request):

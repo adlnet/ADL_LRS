@@ -417,8 +417,7 @@ class StatementRef(models.Model):
 
     def get_a_name(self):
         s = Statement.objects.get(statement_id=self.ref_id)
-        o, f = s.get_object()
-        return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
+        return s.get_object().get_a_name()
         
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
@@ -592,7 +591,7 @@ class SubStatement(models.Model):
         return ret
 
     def get_a_name(self):
-        return self.stmt_object.statement_id
+        return self.get_object().get_a_name()
 
     def get_object(self):
         if self.object_activity:
@@ -692,7 +691,7 @@ class Statement(models.Model):
     
     def to_dict(self, lang=None, format='exact'):
         if format == 'exact':
-	    return self.full_statement
+            return self.full_statement
         ret = {}
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.to_dict(format)
