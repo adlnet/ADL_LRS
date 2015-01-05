@@ -9,8 +9,6 @@ PROJECT_ROOT = SETTINGS_PATH.ancestor(3)
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
-SOUTH_TESTS_MIGRATE = False
-
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
@@ -44,7 +42,7 @@ LANGUAGE_CODE = 'en-US'
 # This is used so that application data can hook into specific sites and a single database can manage
 # content for multiple sites.
 SITE_ID = 1
-SITE_SCHEME = 'https'
+SITE_SCHEME = 'http'
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
@@ -207,8 +205,7 @@ INSTALLED_APPS = (
     'oauth2_provider.provider',
     'oauth2_provider.provider.oauth2',
     'django.contrib.admin',
-    'django_extensions',
-    'south'
+    'django_extensions'
 )
 
 REQUEST_HANDLER_LOG_DIR = '../logs/django_request.log'

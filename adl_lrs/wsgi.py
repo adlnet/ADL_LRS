@@ -14,9 +14,6 @@ framework.
 
 """
 import os
-import newrelic.agent
-
-newrelic.agent.initialize('/home/techteam/adllrs/newrelic.ini')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adl_lrs.settings")
 
 # This application object is used by any WSGI server configured to use this
@@ -24,7 +21,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adl_lrs.settings")
 # setting points here.
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
-
 
 # Apply WSGI middleware here.
 # from helloworld.wsgi import HelloWorldApplication
