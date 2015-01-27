@@ -8,14 +8,14 @@ This version is stable, but only intended to support a small amount of users as 
 
 **Install Prerequisites**
 
-    $ sudo apt-get install git fabric postgresql python-setuptools \
+    admin:~$ sudo apt-get install git fabric postgresql python-setuptools \
     	postgresql-server-dev-all python-dev libxml2-dev libxslt-dev
-    $ sudo easy_install pip
-    $ sudo pip install virtualenv
+    admin:~$ sudo easy_install pip
+    admin:~$ sudo pip install virtualenv
     
 **Create ADL LRS system user**
 
-    $ sudo useradd -c "ADL Learning Record Store System" -m -s "/bin/bash" <db_owner>
+    admin:~$ sudo useradd -c "ADL Learning Record Store System" -m -s "/bin/bash" <db_owner>
     
 **Setup Postgres**
 
