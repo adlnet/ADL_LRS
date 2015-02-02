@@ -303,6 +303,16 @@ def me(request):
     return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2, 'access_tokens2':access_token_scopes},
         context_instance=RequestContext(request))
 
+@login_required(login_url="/accounts/login")
+@require_http_methods(["GET", "HEAD"])
+def download_statements(request):
+    stmts = models.Statement.objects.filter(user=request.user).order_by('-stored')
+    result = "[%s]" % ",".join([stmt.object_return() for stmt in stmts])
+
+    response = HttpResponse(result, mimetype='application/json', status=200)
+    response['Content-Length'] = len(result)
+    return response
+
 @login_required(login_url=LOGIN_URL)
 def my_statements(request):
     if request.method == "DELETE":
@@ -364,20 +374,16 @@ def jono(request):
     if act_id and state_id and agent_params:
         try:
             params = ast.literal_eval(urllib.unquote(agent_params))
-            ag, created = Agent.objects.retrieve_or_create(**params)
+            ag, create = Agent.objects.retrieve_or_create(**params)
         except Agent.DoesNotExist:
             return HttpResponseNotFound("Agent does not exist")
         except Agent.MultipleObjectsReturned:
             return HttpResponseBadRequest("More than one agent returned with email")        
-        try:
-            state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
-        except ActivityState.DoesNotExist:
-            return HttpResponseNotFound("Activity State does not exist")
-        except ActivityState.MultipleObjectsReturned:
-            return HttpResponseBadRequest("More than one Activity State was found with those IDs")        
-
-
-        return_json = []
+	try:        
+	    state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
+	except ActivityState.DoesNotExist:
+	    return HttpResponseNotFound("Activity state does not exist")        
+	return_json = []
         state_data = json.loads(state.json_state)
         if isinstance(state_data, list):
             for sid in state_data:
@@ -387,7 +393,7 @@ def jono(request):
                         act_state = ActivityState.objects.get(state_id=str(urllib.unquote(sid)))
                     except Exception, e:
                         return HttpResponseBadRequest(e.message)
-                    return_json.append({"stateId": str(sid)}.items() + json.loads(act_state.json_state).items())
+                    return_json.append({"stateId": str(sid)}.items() + state_data.items())
             return HttpResponse(json.dumps(return_json), content_type="application/json", status=200)
         else:
             return HttpResponse(state.json_state, content_type=state.content_type, status=200)
@@ -581,7 +587,17 @@ def statements_more(request, more_id):
 @require_http_methods(["PUT","GET","POST", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
+    if request.method in ['GET', 'HEAD']:
+        return doget(request)
+    else:
+        return doputpost(request)
+
+def doget(request):
     return handle_request(request)   
+
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+def doputpost(request):
+    return handle_request(request)
 
 @require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
@@ -745,9 +761,9 @@ def handle_request(request, more_id=None):
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br
-    # except Exception as err:
-    #     log_exception(request.path, err)
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        log_exception(request.path, err)
+        return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

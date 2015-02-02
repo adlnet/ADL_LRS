@@ -18,8 +18,8 @@ class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
     consumer_key = models.CharField(max_length=CONSUMER_KEY_SIZE)
     key = models.CharField(max_length=255)
-    timestamp = models.PositiveIntegerField(db_index=True)
-    
+    timestamp = models.PositiveIntegerField(db_index=True)   
+
     def __unicode__(self):
         return u"Nonce %s for %s" % (self.key, self.consumer_key)
 

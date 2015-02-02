@@ -390,7 +390,7 @@ function getStates(act_id, id){
         context: $('#myactivities'),
         success: function (data){
             apr = $("#actrow"+id)
-            apr.append("<br><br><div><b>States:</b></div>");
+            apr.append("<div><b>Your States:</b></div>");
             apr.append("<div id='actstates"+id+"'></div>");
             ap = $("#actstates"+id);
             if (data.length != 0){
@@ -405,29 +405,36 @@ function getStates(act_id, id){
                         if (real_data['attempts'] != undefined){
                             var attempts = real_data['attempts']
                             if (attempts.length > 0){
-                                ap.append("<br><div id='mainatt"+stpanelid+"' style='display:none'></div><br>")
+                                ap.append("<br><div id='mainatt"+stpanelid+"' style='border:double;border-width:thin;display:none'></div><br>")
                                 matt = $("#mainatt"+stpanelid)
-                                matt.append("<div style='border:solid;border-width:thin><i>Attempts:</i></div>")
+                                matt.append("<div><i>Attempts:</i></div>")
                                 for (var x=0; x < attempts.length; x++){
                                     if (attempts[x]){
                                         var attid = "attpanel"+id+"-"+i+"-"+x
-                                        matt.append("<a href='#' id='"+attid+"'>"+attempts[x]+"</a><br>")
+                                        matt.append("<a href='#' data-actor='"+data[i]['agent']+"' id='"+attid+"'>"+attempts[x]+"</a><br>")
                                         matt.append("<div id='ssdiv"+attid+"' style='border:solid;border-width:thin;display:none'></div>")
                                         sp = $("#attpanel"+id+"-"+i+"-"+x)
 
-                                        var foo = function (){
-                                            var pid = $(this).attr('id')
+                                        var foo = function (ev){
+					    var pid = $(this).attr('id')
+					    if ($("#ssdiv"+pid).is(":empty")){
+					    var innerid = ev.currentTarget.innerHTML
+					    var innerag = ev.currentTarget.dataset.actor
                                             // var specsid = pid.substr(pid.length - 5);
-                                            // $.post("{% url lrs.views.jono %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(data[i-1]['stateId'])+"&agent="+encodeURIComponent(data[i-1]['agent']), function(new_data, status){
-                                            //     $.each(new_data, function(key, value){
-                                            //         $("#ssdiv"+pid).append("<b>" + key + "</b>: " + value + "<br>");
-                                            //     });
-                                            // });                                            
-                                            $.post("{% url lrs.views.jono %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(attempts[x])+"&agent="+encodeURIComponent(data[i-1]['agent']), function(new_data, status){
+                                            $.post("{% url lrs.views.jono %}?act_id="+encodeURIComponent(innerid)+"&state_id="+encodeURIComponent("http://adlnet.gov/xapi/profile/scorm/attempt-state")+"&agent="+encodeURIComponent(innerag), function(new_data, status){
                                                 $.each(new_data, function(key, value){
-                                                    $("#ssdiv"+pid).append("<b>" + key + "</b>: " + value + "<br>");
-                                                });
+                                                	if (typeof(value) === "object"){
+								$("#ssdiv"+pid).append("<b>" + key + "</b>:<br>");
+								$.each(value, function (k, v){
+									$("#ssdiv"+pid).append(k + ": " + v + "<br>");									
+								});	
+							}
+							else{    
+							$("#ssdiv"+pid).append("<b>" + key + "</b>: " + value + "<br>");
+							}                                                
+						});
                                             });
+					}
                                             $("#ssdiv"+pid).toggle();
                                         };
                                         sp.bind("click", foo)
@@ -445,10 +452,9 @@ function getStates(act_id, id){
 
                     }
                     else{
-                        var stpanelid = "stpanel"+id+"-"+i
-                        ap.append("<a href='#' id='"+stpanelid+"'>"+data[i]['stateId']+"</a>-"+ new Date(data[i]['updated']).toLocaleString()+" -- ("+data[i]['agent_name']+")<br>")
-                        ap.append("<div id='specsdiv"+stpanelid+"' style='border:solid;border-width:thin;display:none'></div>")
-                        sd = $("#specsdiv"+stpanelid)
+                        ap.append("<a href='#' id='stpanel"+id+"-"+i+"'>"+data[i]['stateId']+"</a>-"+ new Date(data[i]['updated']).toLocaleString()+" -- ("+data[i]['agent_name']+")<br>")
+                        ap.append("<div id='specsdiv"+id+"-"+i+"' style='border:solid;border-width:thin;display:none'></div>")
+                        sd = $("#specsdiv"+id+"-"+i)
                         $.each(data[i], function(key, value){
                             sd.append("<b>" + key + "</b>: " + value + "<br>");
                         });                        
@@ -456,8 +462,8 @@ function getStates(act_id, id){
                         sp = $("#stpanel"+id+"-"+i)
                         var foo = function (){
                             var pid = $(this).attr('id')
-                            // var specsid = pid.substr(pid.length - 3);
-                            $("#specsdiv"+stpanelid).toggle();
+                            var specsid = pid.substr(pid.length - 3);
+                            $("#specsdiv"+specsid).toggle();
                         };
                         sp.bind("click", foo)                      
                     }
