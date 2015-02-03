@@ -290,6 +290,7 @@ def reg_client2(request):
 
 @login_required(login_url=LOGIN_URL)
 def me(request):
+    tab = request.GET.get("tab", "st")
     client_apps = Consumer.objects.filter(user=request.user)
     access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
     client_apps2 = Client.objects.filter(user=request.user)
@@ -318,7 +319,7 @@ def me(request):
     except Agent.MultipleObjectsReturned:
         return HttpResponseBadRequest("More than one agent returned with email")
 
-    as_paginator = Paginator(ActivityState.objects.filter(agent=ag).order_by('-updated'), settings.STMTS_PER_PAGE)
+    as_paginator = Paginator(ActivityState.objects.filter(agent=ag).order_by('-updated', 'activity_id'), settings.STMTS_PER_PAGE)
     as_page = request.GET.get('as_page', 1)
     try:
         activity_states = as_paginator.page(as_page)
@@ -330,7 +331,7 @@ def me(request):
         activity_states = as_paginator.page(as_paginator.num_pages)
 
     return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2,
-        'access_tokens2':access_token_scopes, 'statements':statements, 'activity_states': activity_states}, context_instance=RequestContext(request))
+        'access_tokens2':access_token_scopes, 'statements':statements, 'activity_states': activity_states, 'tab': tab}, context_instance=RequestContext(request))
 
 @login_required(login_url="/accounts/login")
 @require_http_methods(["GET", "HEAD"])
