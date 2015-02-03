@@ -205,7 +205,8 @@ INSTALLED_APPS = (
     'oauth2_provider.provider',
     'oauth2_provider.provider.oauth2',
     'django.contrib.admin',
-    'django_extensions'
+    'django_extensions',
+    'jsonify'
 )
 
 REQUEST_HANDLER_LOG_DIR = '../logs/django_request.log'
