@@ -788,6 +788,3 @@ class Statement(models.Model):
                 self.object_statementref.delete()
 
         super(Statement, self).delete(*args, **kwargs)
-
-class Tester(models.Model):
-   fs = JSONField() 

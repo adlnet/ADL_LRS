@@ -386,7 +386,19 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
         $('.attemptarray').each(function(){
             var attempt_data = JSON.parse($(this).prevAll('.hidden:first').val());
             var new_container_div = $("<div></div>");
-            $.each(attempt_data["attempts"], function(i, v){
+            if(!('Attempts' in attempt_data)){
+                if('attempts' in attempt_data){
+                    attempt_data['Attempts'] = attempt_data['attempts'];
+                    delete attempt_data['attempts'];
+                }
+                // If Attempts and attempts are both not in the data
+                else{
+                    $(this).text("Does not contain any attempts");
+                    $(this).hide();
+                    return false;
+                }
+            }
+            $.each(attempt_data["Attempts"], function(i, v){
                 var new_a = $("<a href='javascript:;' class='attempt-a'></a>");
                 new_a.text(v);
                 new_a.click(function(e){

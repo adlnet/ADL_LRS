@@ -376,8 +376,7 @@ def my_activity_state(request):
             return HttpResponseNotFound("Agent does not exist")
         except Agent.MultipleObjectsReturned:
             return HttpResponseBadRequest("More than one agent returned with email")
-        # import pdb
-        # pdb.set_trace()
+
         try:
             state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
         except ActivityState.DoesNotExist:
@@ -385,7 +384,6 @@ def my_activity_state(request):
         except ActivityState.MultipleObjectsReturned:
             return HttpResponseBadRequest("More than one activity state was found")
         # Really only used for the SCORM states so should only have json_state
-        print state.json_state
         return HttpResponse(state.json_state, content_type=state.content_type, status=200)
     return HttpResponseBadRequest("Activity ID, State ID and are both required")
 

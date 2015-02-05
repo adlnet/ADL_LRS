@@ -404,7 +404,7 @@ class StatementValidator():
 			for answer in definition['correctResponsesPattern']:
 				# For each answer, ensure it is a string
 				if not isinstance(answer, basestring):
-					self.return_error("Activity definition correctResponsesPattern answer's must all be strings")
+					self.return_error("Activity definition correctResponsesPattern answers must all be strings")
 		self.validate_interaction_types(interactionType, definition)
 
 		# If extensions, validate it
@@ -417,40 +417,30 @@ class StatementValidator():
 			if 'choices' in definition:
 				choices = definition['choices']
 				self.check_if_list(choices, "Activity definition choices")
-				self.validate_interaction_activities(choices, 'choices')			
-			else:
-				self.return_error("Activity definition is missing choices")
+				self.validate_interaction_activities(choices, 'choices')
 		elif interactionType == "likert":
 			# If scale included, ensure it is an array and validate it
 			if 'scale' in definition:
 				scale = definition['scale']
 				self.check_if_list(scale, "Activity definition scale")
 				self.validate_interaction_activities(scale, 'scale')
-			else:
-				self.return_error("Activity definition is missing scale")
 		elif interactionType == "matching":
 			# If scale included, ensure it is an array and validate it
 			if 'source' in definition:
 				source = definition['source']
 				self.check_if_list(source, "Activity definition source")
 				self.validate_interaction_activities(source, 'source')
-			else:
-				self.return_error("Activity definition is missing source")
 			# If target included, ensure it is an array and validate it
 			if 'target' in definition:
 				target = definition['target']
 				self.check_if_list(target, "Activity definition target")
 				self.validate_interaction_activities(target, 'target')
-			else:
-				self.return_error("Activity definition is missing target")
 		elif interactionType == "performance":
-		# If steps included, ensure it is an array and validate it
+			# If steps included, ensure it is an array and validate it
 			if 'steps' in definition:
 				steps = definition['steps']
 				self.check_if_list(steps, "Activity definition steps")
 				self.validate_interaction_activities(steps, 'steps')
-			else:
-				self.return_error("Activity definition is missing steps")		
 
 	def validate_interaction_activities(self, activities, field):
 		for act in activities:
