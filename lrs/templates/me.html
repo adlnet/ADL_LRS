@@ -66,7 +66,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                                 <br>
                                 {{ stmt.statement_id }}
                                 <br>
-                                <pre id="stmt" class="json_div">{{ stmt.full_statement|jsonify }}</pre>
+                                <pre id="stmt" class="json_pre">{{ stmt.full_statement|jsonify }}</pre>
                             </div>
                         </div>
                     {% endfor %}
@@ -112,14 +112,23 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                     {% for as in activity_states %}
                     <div class="row">
                         <div class="span11 border">
-                            <b>{{ as.activity_id }}</b> - {{ as.state_id }}
+                            <b class="actId">{{ as.activity_id }}</b> - {{ as.state_id }}
                             <br>
                             <i>Last Updated: {{ as.updated }}</i>
                             <br>
                             {% if as.json_state %}
-                                <pre id="as" class="json_div">{{ as.json_state }}</pre>
+                                <pre id="as" class="json_pre">{{ as.json_state }}</pre>
+                                <input class="hidden" type="hidden" value="{{ as.json_state }}">
                             {% else %}
                                 Activity State data is not JSON data.
+                                <input class="hidden" type="hidden" value="">
+                            {% endif %}
+                            {% if as.state_id == "http://adlnet.gov/xapi/profile/scorm/activity-state" %}
+                                <br>
+                                <button class="scormbutton" type="button">Show Attempts</button>
+                                <br>
+                                <br>
+                                <div class="attemptarray"></div>
                             {% endif %}
                         </div>
                     </div>
@@ -290,7 +299,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                     timeout : 15000
                 });
             });
-        $('.json_div').each(function(){
+        $('.json_pre').each(function(){
               $(this).hide();
               var text = $(this).text();
               $(this).empty();
@@ -299,7 +308,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                     $(this).next('span.obj').toggle();
                     return false;
               });
-        });
+        });       
         $('.delete_token').click(function(){
             var id = $(this).parent().next('span').text();
             $.ajax({
@@ -366,12 +375,42 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
             }
         });
         $('.span11.border').click(function(){
-            var json_div = $(this).children(".json_div");
-            json_div.toggle();
+            var json_pre = $(this).children(".json_pre");
+            json_pre.toggle();
+        });
+        $('.span11.border button').click(function(e){
+            e.stopPropagation();
+            var att_div = $(this).nextAll('.attemptarray:first');
+            att_div.toggle(); 
+        });
+        $('.attemptarray').each(function(){
+            var attempt_data = JSON.parse($(this).prevAll('.hidden:first').val());
+            var new_container_div = $("<div></div>");
+            $.each(attempt_data["attempts"], function(i, v){
+                var new_a = $("<a href='javascript:;' class='attempt-a'></a>");
+                new_a.text(v);
+                new_a.click(function(e){
+                    e.stopPropagation();
+                    if (!$(this).next().next().is("pre")){
+                        var att_pre = $("<pre class='att-pre'></pre>");
+                        var state_id = "http://adlnet.gov/xapi/profile/scorm/attempt-state";
+                        getState($(this).text(), state_id, att_pre);
+                        att_pre.insertAfter($(this).next());
+                    }
+                    else{
+                        $(this).nextAll('.att-pre:first').toggle();
+                        $(this).nextAll('.att-br:first').toggle();
+                    }
+                });
+                new_container_div.append(new_a);
+                new_container_div.append("<br>")
+            });
+            $(this).append(new_container_div);
+            $(this).hide();
         });
     });
-
     function syntaxHighlight(json) {
+        // Make it look like nice
         if (typeof json != 'string') {
            try{
                 json = JSON.stringify(json, undefined, 4); 
@@ -389,8 +428,10 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
             }
             
         }
-       json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-       json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+
+        // Make valuables look nice and collapsable
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
             var cls = 'number';
             if (/^"/.test(match)) {
                 if (/:$/.test(match)) {
@@ -405,9 +446,25 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
             }
             return '<span class="' + cls + '">' + match + '</span>';
         });
-
-       json = json.replace(/(\{|\[)/g, function(match){return '<span class="expandable"><a href="#">' + match +'</a><span class="obj">';});
-       return json.replace(/(\}|\])/g, function(match){return '</span>' + match + '</span>'});
+        json = json.replace(/(\{|\[)/g, function(match){
+            return '<span class="expandable"><a href="#">' + match +'</a><span class="obj">';
+        });
+        // Return final formatted JSON
+        return json.replace(/(\}|\])/g, function(match){
+            return '</span>' + match + '</span>'
+        });
+    }
+    function getState(act_id, state_id, ele){
+        $.ajax({
+            url: "{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(state_id),
+            type: "GET",
+            success: function (data){
+                $(ele).append(syntaxHighlight(data));
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            }
+        });
     }
 </script>
 {% endblock extra_js %}
