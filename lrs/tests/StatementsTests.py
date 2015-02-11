@@ -2568,7 +2568,7 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; charset=utf-8')
 
         msg = message_from_string(r.content)
         parts = []

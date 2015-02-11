@@ -35,32 +35,51 @@ class ActivityStateManager():
     @transaction.commit_on_success
     def post(self):
         agent = self.__get_agent()
-        post_state = self.state
 
         if self.registration:
             p,created = ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registration)
         else:
             p,created = ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
         
-        if created:
-            p.json_state = post_state
-            p.content_type = self.content_type
-            p.etag = etag.create_tag(post_state)
+        if "application/json" not in self.content_type:
+            try:
+                post_state = ContentFile(self.state.read())
+            except:
+                try:
+                    post_state = ContentFile(self.state)
+                except:
+                    post_state = ContentFile(str(self.state))
 
+            # Doesn't matter if it's created or not, content_type and state get overridden with new state 
+            p.content_type = self.content_type
             if self.updated:
                 p.updated = self.updated
-        else:
-            orig_state = json.loads(p.json_state)
-            post_state = json.loads(post_state)
-            if not isinstance(post_state, dict):
-                raise ParamError("The document was not able to be parsed into a JSON object.")
             else:
-                merged = json.dumps(dict(orig_state.items() + post_state.items()))
-            p.json_state = merged
-            p.etag = etag.create_tag(merged)
-            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            p.save()
+            fn = "%s_%s_%s" % (p.agent_id,p.activity_id, self.req_dict.get('filename', p.id))
+            p.state.save(fn, post_state)
+        else:
+            post_state = self.state
+            if created:
+                p.json_state = post_state
+                p.content_type = self.content_type
+                p.etag = etag.create_tag(post_state)
 
-        p.save()
+                if self.updated:
+                    p.updated = self.updated
+            else:
+                orig_state = json.loads(p.json_state)
+                post_state = json.loads(post_state)
+                if not isinstance(post_state, dict):
+                    raise ParamError("The document was not able to be parsed into a JSON object.")
+                else:
+                    merged = json.dumps(dict(orig_state.items() + post_state.items()))
+                p.json_state = merged
+                p.etag = etag.create_tag(merged)
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+
+            p.save()
         
     @transaction.commit_on_success
     def put(self):

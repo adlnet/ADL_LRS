@@ -134,7 +134,7 @@ def process_complex_get(req_dict):
     # If attachments=True in req_dict then include the attachment payload and return different mime type
     if attachments:
         stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
-        resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+        resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
     # Else attachments are false for the complex get so just dump the stmt_result
     else:
         if format == 'exact':
@@ -142,7 +142,7 @@ def process_complex_get(req_dict):
         else:
             result = json.dumps(stmt_result)
         content_length = len(result)
-        resp = HttpResponse(result, mimetype=mime_type, status=200)    
+        resp = HttpResponse(result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)    
     return resp, content_length
 
 def statements_post(req_dict):
@@ -167,13 +167,13 @@ def statements_more_get(req_dict):
     # If there are attachments, include them in the payload
     if attachments:
         stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
-        resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+        resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
     # If not, just dump the stmt_result
     else:
         if isinstance(stmt_result, basestring):
-            resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+            resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
         else:
-            resp = HttpResponse(json.dumps(stmt_result), mimetype=mime_type, status=200)
+            resp = HttpResponse(json.dumps(stmt_result), content_type=''.join((mime_type, '; charset=utf-8')), status=200)
     
     # Add consistent header and set content-length
     try:
@@ -196,7 +196,7 @@ def statements_get(req_dict):
             st = Statement.objects.get(statement_id=req_dict['statementId'])
             
             stmt_result = json.dumps(st.to_dict(format=req_dict['params']['format']))
-            resp = HttpResponse(stmt_result, mimetype=mime_type, status=200)
+            resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
             content_length = len(stmt_result)
     # Complex GET
     else:
@@ -208,7 +208,8 @@ def statements_get(req_dict):
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     
-    resp['Content-Length'] = str(content_length)  
+    resp['Content-Length'] = str(content_length) 
+
     return resp
 
 def build_response(stmt_result, content_length):
