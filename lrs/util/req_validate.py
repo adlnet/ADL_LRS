@@ -2,15 +2,12 @@ import json
 import urllib2
 
 from django.conf import settings
-from django.core.cache import get_cache
 
 from util import validate_uuid, convert_to_dict, get_agent_ifp
 from Authorization import auth
 from StatementValidator import StatementValidator
 from ..models import Statement, Agent, Activity
 from ..exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
-
-att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
     return Statement.objects.filter(statement_id=stmtID).exists()

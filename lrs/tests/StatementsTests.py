@@ -1766,9 +1766,10 @@ class StatementsTests(TestCase):
         textdata.add_header('X-Experience-API-Hash', txtsha)
         message.attach(stmtdata)
         message.attach(textdata)
-        
+        cutoff = message.as_string()[14:]
+
         r = self.client.post(reverse(statements), message.as_string(),
-            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            content_type='multipart/mixed; boundary=myboundary', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
 
     def test_multiple_stmt_multipart(self):
@@ -2557,7 +2558,7 @@ class StatementsTests(TestCase):
             parts.append(part)
   
         for part in parts[2:]:
-            self.assertEqual(part.get_payload(), img_data)
+            self.assertEqual(base64.b64decode(part.get_payload()), img_data)
             self.assertEqual(part.get("X-Experience-API-Hash"), imgsha)
             self.assertEqual(part.get('Content-Type'), "application/octet-stream")
             self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')

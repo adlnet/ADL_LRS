@@ -130,8 +130,10 @@ class StatementManager():
 
             # Since there is a sha2, there must be a payload cached
             # Decode payload from msg object saved in cache and create ContentFile from raw data
-            msg = att_cache.get(sha2)
-            raw_payload = msg.get_payload(decode=True)
+            raw_payload = att_cache.get(sha2)
+            if isinstance(raw_payload, str):
+                raw_payload = str.encode(raw_payload)
+            # raw_payload = msg.get_payload(decode=True)
             try:
                 payload = ContentFile(raw_payload)
             except:
