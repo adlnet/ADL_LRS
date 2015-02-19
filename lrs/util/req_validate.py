@@ -236,7 +236,7 @@ def statements_get(req_dict):
     # Django converts all query values to string - make boolean depending on if client wants attachments or not
     # Only need to do this in GET b/c GET/more will have it saved in pickle information
     if 'params' in req_dict and 'attachments' in req_dict['params']:
-        if req_dict['params']['attachments'] == 'True':
+        if req_dict['params']['attachments'].lower() == 'true':
             req_dict['params']['attachments'] = True
         else:
             req_dict['params']['attachments'] = False
