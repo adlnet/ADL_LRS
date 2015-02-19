@@ -2558,6 +2558,7 @@ class StatementsTests(TestCase):
             parts.append(part)
   
         for part in parts[2:]:
+            # MIMEImage automatically b64 encodes data to be transfered
             self.assertEqual(base64.b64decode(part.get_payload()), img_data)
             self.assertEqual(part.get("X-Experience-API-Hash"), imgsha)
             self.assertEqual(part.get('Content-Type'), "application/octet-stream")

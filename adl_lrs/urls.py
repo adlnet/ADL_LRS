@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.conf.urls import patterns, include, url
 from django.views.generic import RedirectView
 
@@ -15,6 +16,7 @@ urlpatterns = patterns('',
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # Uncomment the next line to enable the admin:
+    # url(r'^mediaurl/attachment_payloads/(?P<att_id>.{64})$', 'attachments'),
     url(r'^admin/', include(admin.site.urls)),
 )
 
@@ -22,3 +24,10 @@ urlpatterns += patterns('',
   url(r'^accounts/login/$', 'django.contrib.auth.views.login', name="login"),
   url(r'^accounts/logout/$', 'lrs.views.logout_view', name="logout"),
 )
+
+if settings.DEBUG:
+  urlpatterns += patterns('',
+      url(r'^media/(?P<path>.*)$', 'django.views.static.serve', {
+          'document_root': settings.MEDIA_ROOT,
+      }),
+ )

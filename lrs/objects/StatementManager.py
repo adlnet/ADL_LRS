@@ -131,9 +131,6 @@ class StatementManager():
             # Since there is a sha2, there must be a payload cached
             # Decode payload from msg object saved in cache and create ContentFile from raw data
             raw_payload = att_cache.get(sha2)
-            if isinstance(raw_payload, str):
-                raw_payload = str.encode(raw_payload)
-            # raw_payload = msg.get_payload(decode=True)
             try:
                 payload = ContentFile(raw_payload)
             except:
@@ -303,7 +300,6 @@ class StatementManager():
             self.model_object = self.save_statement_to_db()
         else:
             self.model_object = self.save_substatement_to_db()
-
         self.populate_attachments(attachment_data, attachment_payloads)
 
 class SubStatementManager(StatementManager):
