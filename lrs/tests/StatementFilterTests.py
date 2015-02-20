@@ -1738,7 +1738,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
 
     def test_attachments_no_payload(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -1853,7 +1853,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
 
     def test_more_attachments(self):
         settings.SERVER_STMT_LIMIT=2
@@ -2035,11 +2035,15 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
         headers_list= [txtsha1, txtsha2, txtsha3,txtsha4]
         payload_list = [u"This is a text attachment1",u"This is a text attachment2",u"This is a text attachment3",u"This is a text attachment4"]
+        # import pdb
+        # pdb.set_trace()
+
         msg = message_from_string(r.content)
         parts = []
+
 
         for part in msg.walk():
             parts.append(part)

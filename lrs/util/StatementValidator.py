@@ -17,8 +17,8 @@ statement_required_fields = ['actor', 'verb', 'object']
 attachment_allowed_fields = ['usageType', 'display', 'description', 'contentType', 'length', 'sha2', 'fileUrl']
 attachment_required_fields = ['usageType', 'display', 'contentType', 'length']
 
-agent_ifis_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
-agent_allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'openid','account']
+agent_ifis_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openid', 'account']
+agent_allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openid','account']
 
 account_fields = ['homePage', 'name']
 
@@ -270,15 +270,11 @@ class StatementValidator():
 					self.validate_agent(agent, 'member')
 
 	def validate_ifi(self, ifis, ifi_value):
-		# Spec not clear if openid or openID - set to openID just in case
-		if ifis == 'openid':
-			ifis = 'openID'
-		
 		# Validate each IFI accordingly
 		if ifis == 'mbox':
 			self.validate_email(ifi_value)
-		elif ifis == 'openID':
-			self.validate_uri(ifi_value, 'openID')
+		elif ifis == 'openid':
+			self.validate_uri(ifi_value, 'openid')
 		elif ifis == 'account':
 			self.validate_account(ifi_value)
 

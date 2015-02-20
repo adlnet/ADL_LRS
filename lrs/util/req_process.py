@@ -226,7 +226,6 @@ def build_response(stmt_result, content_length):
                     # If there is a sha2-retrieve the StatementAttachment object and add the payload to sha2s
                     att_object = StatementAttachment.objects.get(sha2=attachment['sha2'])
                     sha2s.append((attachment['sha2'], att_object.payload))    
-    
     # If attachments have payloads
     if sha2s:
         # Create multipart message and attach json message to it
@@ -234,7 +233,7 @@ def build_response(stmt_result, content_length):
         line_feed = "\r\n"
         boundary = "ADL_LRS---------"
         string_list.append(boundary + line_feed)
-        string_list.append("Content-Type:application/json" + line_feed)
+        string_list.append("Content-Type:application/json" + line_feed + line_feed)
         if isinstance(stmt_result, dict):
             string_list.append(json.dumps(stmt_result) + line_feed)
         else:
@@ -248,36 +247,12 @@ def build_response(stmt_result, content_length):
             chunks = []
             for chunk in sha2[1].chunks():
                 chunks.append(chunk)
+            
             string_list.append("".join(chunks) + line_feed)           
             string_list.append(boundary + line_feed)
             content_length += sha2[1].size
         mime_type = "multipart/mixed; boundary=" + boundary
-
-        # full_message = MIMEMultipart(boundary="ADL_LRS---------")
-        # if isinstance(stmt_result, dict):
-        #     stmt_message = MIMEApplication(json.dumps(stmt_result), _subtype="json", _encoder=json.JSONEncoder)
-        # else:
-        #     stmt_message = MIMEApplication(stmt_result, _subtype="json", _encoder=json.JSONEncoder)
-        # full_message.attach(stmt_message)
-        # # For each sha create a binary message, and attach to the multipart message
-        # for sha2 in sha2s:
-        #     binary_message = MIMEBase('application', 'octet-stream')
-        #     binary_message.add_header('X-Experience-API-Hash', sha2[0])
-        #     binary_message.add_header('Content-Transfer-Encoding', 'binary')
-
-        #     chunks = []
-        #     for chunk in sha2[1].chunks():
-        #         chunks.append(chunk)
-        #     file_data = "".join(chunks)
-            
-        #     binary_message.set_payload(file_data)
-        #     full_message.attach(binary_message)
-        #     # Increment size on content-length and set mime type
-        #     content_length += sha2[1].size
-        # mime_type = "multipart/mixed"
-        # return full_message.as_string(), mime_type, content_length
         return "".join([s for s in string_list]), mime_type, content_length
-
     # Has attachments but no payloads so just dump the stmt_result
     else:
         if isinstance(stmt_result, dict):

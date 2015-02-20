@@ -54,7 +54,7 @@ class Verb(models.Model):
     def __unicode__(self):
         return json.dumps(self.to_dict())
 
-agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
+agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'account', 'openid']
 class AgentManager(models.Manager):
     @transaction.commit_on_success
     def retrieve_or_create(self, **kwargs):
@@ -173,7 +173,7 @@ class Agent(models.Model):
     name = models.CharField(max_length=100, blank=True)
     mbox = models.CharField(max_length=128, db_index=True, null=True)
     mbox_sha1sum = models.CharField(max_length=40, db_index=True, null=True)
-    openID = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True)
+    openid = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True)
     oauth_identifier = models.CharField(max_length=192, db_index=True, null=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
     canonical_version = models.BooleanField(default=True)
@@ -183,7 +183,7 @@ class Agent(models.Model):
 
     class Meta:
         unique_together = (("mbox", "canonical_version"), ("mbox_sha1sum", "canonical_version"),
-            ("openID", "canonical_version"),("oauth_identifier", "canonical_version"), ("account_homePage", "account_name", "canonical_version"))
+            ("openid", "canonical_version"),("oauth_identifier", "canonical_version"), ("account_homePage", "account_name", "canonical_version"))
 
     def to_dict(self, format='exact', just_objectType=False):
         just_id = format == 'ids'
@@ -199,8 +199,8 @@ class Agent(models.Model):
             ret['mbox'] = self.mbox
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = self.mbox_sha1sum
-        if self.openID:
-            ret['openID'] = self.openID
+        if self.openid:
+            ret['openid'] = self.openid
         
         ret['account'] = {}
         if self.account_name:
@@ -216,7 +216,7 @@ class Agent(models.Model):
         if self.objectType == 'Group':
             # show members for groups if format isn't 'ids'
             # show members' ids for anon groups if format is 'ids'
-            if not just_id or not (set(['mbox','mbox_sha1sum','openID','account']) & set(ret.keys())):
+            if not just_id or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
                 ret['member'] = [a.to_dict(format) for a in self.member.all()]
         return ret
 
@@ -230,8 +230,8 @@ class Agent(models.Model):
             ret['mbox'] = [self.mbox]
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = [self.mbox_sha1sum]
-        if self.openID:
-            ret['openID'] = [self.openID]
+        if self.openid:
+            ret['openid'] = [self.openid]
 
         ret['account'] = {}
         if self.account_name:
@@ -252,8 +252,8 @@ class Agent(models.Model):
             return self.mbox
         if self.mbox_sha1sum:
             return self.mbox_sha1sum
-        if self.openID:
-            return self.openID
+        if self.openid:
+            return self.openid
         try:
             return self.account_name
         except:

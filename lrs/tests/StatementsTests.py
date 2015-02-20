@@ -338,7 +338,7 @@ class StatementsTests(TestCase):
         self.assertEqual(response.content, 'Activity definition choices is not a properly formatted array')
 
     def test_openid(self):
-        stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
+        stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -346,7 +346,7 @@ class StatementsTests(TestCase):
         
         self.assertEqual(response.status_code, 200)
         agent = Agent.objects.get(name='lulu')
-        self.assertEqual(agent.openID, 'id:luluid')
+        self.assertEqual(agent.openid, 'id:luluid')
 
     def test_invalid_actor_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob", "bad": "blah",
@@ -689,7 +689,7 @@ class StatementsTests(TestCase):
                 }
             },
             "actor": {
-                "openID": "http://test.local/PEab76617d1d21d725d358a7ad5231bd6e",
+                "openid": "http://test.local/PEab76617d1d21d725d358a7ad5231bd6e",
                 "name": "dev2-001",
                 "objectType": "Agent"
             },
@@ -718,7 +718,7 @@ class StatementsTests(TestCase):
                 "objectType": "Activity"
             },
             "actor": {
-                "openID": "http://test.local/EAGLE/PEab76617d1d21d725d358a7ad5231bd6e",
+                "openid": "http://test.local/EAGLE/PEab76617d1d21d725d358a7ad5231bd6e",
                 "name": "dev2-001",
                 "objectType": "Agent"
             },
@@ -2550,7 +2550,7 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
 
         msg = message_from_string(r.content)
         parts = []

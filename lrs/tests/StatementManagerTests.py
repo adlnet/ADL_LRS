@@ -704,7 +704,7 @@ class StatementManagerTests(TestCase):
 
 
     def test_agent_as_object(self):
-        stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
+        stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -715,7 +715,7 @@ class StatementManagerTests(TestCase):
         agent = Agent.objects.get(id=stmt.object_agent.id)
 
         self.assertEqual(agent.name, 'lulu')
-        self.assertEqual(agent.openID, 'id:luluid')
+        self.assertEqual(agent.openid, 'id:luluid')
 
 
     def test_unallowed_substmt_field(self):
