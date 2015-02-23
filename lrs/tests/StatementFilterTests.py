@@ -2038,9 +2038,6 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
         headers_list= [txtsha1, txtsha2, txtsha3,txtsha4]
         payload_list = [u"This is a text attachment1",u"This is a text attachment2",u"This is a text attachment3",u"This is a text attachment4"]
-        # import pdb
-        # pdb.set_trace()
-
         msg = message_from_string(r.content)
         parts = []
 

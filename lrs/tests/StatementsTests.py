@@ -2362,6 +2362,52 @@ class StatementsTests(TestCase):
             X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 204)
 
+    def test_multipart_wrongsha2_in_payload(self):
+        stmt_id = str(uuid.uuid1())
+        stmt = {"id":stmt_id,
+            "actor":{"mbox":"mailto:tom@example.com"},
+            "verb":{"id":"http://tom.com/verb/butted"},
+            "object":{"id":"act:tom.com/objs/heads"},
+            "attachments": [
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment"},
+            "description": {"en-US": "A test attachment (description)"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 27,
+            "sha2":""},
+            {"usageType": "http://example.com/attachment-usage/test",
+            "display": {"en-US": "A test attachment2"},
+            "description": {"en-US": "A test attachment (description)2"},
+            "contentType": "text/plain; charset=utf-8",
+            "length": 28,
+            "sha2":""}]}
+
+        message = MIMEMultipart(boundary="myboundary")
+        txt = u"howdy.. this is a text attachment"
+        txtsha = hashlib.sha256(txt).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(txtsha)
+        wrongsha = hashlib.sha256("this won't work").hexdigest()
+
+        txt2 = u"this is second attachment"
+        txtsha2 = hashlib.sha256(txt2).hexdigest()
+        stmt['attachments'][1]["sha2"] = str(txtsha2)
+
+        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
+        textdata = MIMEText(txt, 'plain', 'utf-8')
+        textdata.add_header('X-Experience-API-Hash', wrongsha)
+        textdata2 = MIMEText(txt2, 'plain', 'utf-8')
+        textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        message.attach(stmtdata)
+        message.attach(textdata)
+        message.attach(textdata2)
+
+        param = {"statementId":stmt_id}
+        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        r = self.client.put(path, message.as_string(), content_type="multipart/mixed" , Authorization=self.auth,
+            X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, "The attachment content associated with sha %s does not match the sha" % wrongsha)
+
     def test_multiple_multipart_put_wrong_attachment(self):
         stmt_id = str(uuid.uuid1())
         stmt = {"id":stmt_id,
