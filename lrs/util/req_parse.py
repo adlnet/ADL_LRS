@@ -2,7 +2,6 @@ import StringIO
 import email
 import urllib
 import json
-import hashlib
 import itertools
 from base64 import b64decode
 
@@ -154,36 +153,44 @@ def get_endpoint(request):
     return endpoint   
 
 def parse_attachment(r, request):
-    msg = email.message_from_string(request.body)
+    # Email library insists on having the multipart header in the body - workaround
+    message = request.body
+    if 'boundary' not in message[:message.index("--")]:
+        if 'boundary' in request.META['CONTENT_TYPE']:
+            message = "Content-Type:" + request.META['CONTENT_TYPE'] + "\r\n" + message
+        else:
+            raise BadRequest("Could not find the boundary for the multipart content")
+
+    msg = email.message_from_string(message)
     boundary = msg.get_boundary()
 
     if msg.is_multipart():
         parts = msg.get_payload()
         stmt_part = parts.pop(0)
-        if stmt_part.get('Content-Type', None) != "application/json":
+        if stmt_part['Content-Type'] != "application/json":
             raise ParamError("Content-Type of statement was not application/json")
+
         try:
             r['body'] = json.loads(stmt_part.get_payload())
         except Exception, e:
             raise ParamError("Statement was not valid JSON")
 
-        # Get all signature sha2s from all of the attachment values in the statements
+        # Find the signature sha2 from the list attachment values in the statements (there should only be one)
         if isinstance(r['body'], list):
-            signature_att_list = list(itertools.chain(*[[a.get('sha2', None) for a in s['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"] for s in r['body'] if 'attachments' in s]))
+            signature_att = list(itertools.chain(*[[a.get('sha2', None) for a in s['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"] for s in r['body'] if 'attachments' in s]))
         else:        
-            signature_att_list = [a.get('sha2', None) for a in r['body']['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and 'attachments' in r['body']]
+            signature_att = [a.get('sha2', None) for a in r['body']['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and 'attachments' in r['body']]
 
         # Get all sha2s from the request
         payload_sha2s = [p.get('X-Experience-API-Hash', None) for p in msg.get_payload()]
-        
+
         # Check each sha2 in payload, if even one of them is None then there is a missing hash
         for sha2 in payload_sha2s:
             if not sha2:
                 raise BadRequest("X-Experience-API-Hash header was missing from attachment")
 
-        # Check each sig sha2 in statements if it not in the payload sha2s then the sig sha2 is missing
-        for sig in signature_att_list:
-
+        # Check the sig sha2 in statements if it not in the payload sha2s then the sig sha2 is missing
+        for sig in signature_att:
             if sig:
                 if sig not in payload_sha2s:
                     raise BadRequest("Signature attachment is missing from request")
@@ -196,14 +203,6 @@ def parse_attachment(r, request):
             xhash = part.get('X-Experience-API-Hash')
             c_type = part['Content-Type']
             payload = part.get_payload()
-            
-            # Only check non-signature hashes
-            if xhash not in signature_att_list:
-                # Compare the hashes to make sure they are legit
-                if hashlib.sha256(payload).hexdigest() != xhash and \
-                    hashlib.sha384(payload).hexdigest() != xhash and \
-                    hashlib.sha512(payload).hexdigest() != xhash:                
-                        raise ParamError("The attachment content associated with sha %s does not match the sha" % xhash)
             att_cache.set(xhash, payload)
     else:
         raise ParamError("This content was not multipart for the multipart request.")

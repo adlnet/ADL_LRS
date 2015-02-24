@@ -1738,7 +1738,7 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
 
     def test_attachments_no_payload(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -1853,9 +1853,9 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
 
-    def test_more_attachments(self):
+    def test_more_attachments_no_payload(self):
         settings.SERVER_STMT_LIMIT=2
         stmts =[
             {"actor":{"mbox":"mailto:tom@example.com"},
@@ -1927,9 +1927,7 @@ class StatementFilterTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 200)
 
-        param= {"attachments":True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
-        r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        r = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/json')
         obj_from_json = json.loads(r.content)
@@ -2035,48 +2033,56 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
-        headers_list= [txtsha1, txtsha2, txtsha3,txtsha4]
-        payload_list = [u"This is a text attachment1",u"This is a text attachment2",u"This is a text attachment3",u"This is a text attachment4"]
-        msg = message_from_string(r.content)
+
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
+        headers_list1 = [txtsha1, txtsha2]
+        headers_list2 = [txtsha3, txtsha4]
+        payload_list1 = [u"This is a text attachment1",u"This is a text attachment2"]
+        payload_list2 = [u"This is a text attachment3",u"This is a text attachment4"]
+
+        # Have to add header to body so email lib will parse correctly
+        msg = message_from_string("Content-Type:" + "multipart/mixed; boundary=======ADL_LRS======" + r.content)
+        self.assertTrue(msg.is_multipart())
+
         parts = []
-
-
         for part in msg.walk():
             parts.append(part)
 
-        self.assertEqual(parts[0].get('Content-Type'), 'multipart/mixed; boundary="ADL_LRS---------"')
         self.assertEqual(parts[1].get('Content-Type'), 'application/json')
         returned_json = json.loads(parts[1].get_payload())
+        self.assertTrue(isinstance(returned_json, dict))
         self.assertEqual(len(returned_json['statements']), 2)
         resp_url = returned_json['more']
         resp_id = resp_url[-32:]        
 
         for part in parts[2:]:
-            self.assertIn(part._payload, payload_list)
-            self.assertIn(part.get("X-Experience-API-Hash"), headers_list)
+            self.assertIn(part.get_payload(), payload_list2)
+            self.assertIn(part.get("X-Experience-API-Hash"), headers_list2)
             self.assertEqual(part.get('Content-Type'), "application/octet-stream")
             self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
 
-        more_get = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
-            X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
+        path = "%s?%s" % (reverse(statements_more,kwargs={'more_id':resp_id}), urllib.urlencode(param))
+        more_get = self.client.get(path, X_Experience_API_Version="1.0.0",HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
-        msg = message_from_string(more_get.content)
-        parts = []
 
-        for part in msg.walk():
-            parts.append(part)
+        # Have to add header to body so email lib will parse correctly        
+        more_msg = message_from_string("Content-Type:" + "multipart/mixed; boundary=======ADL_LRS======" + more_get.content)
+        self.assertTrue(more_msg.is_multipart())
 
-        self.assertEqual(parts[0].get('Content-Type'), 'multipart/mixed; boundary="ADL_LRS---------"')
-        self.assertEqual(parts[1].get('Content-Type'), 'application/json')
-        returned_json = json.loads(parts[1].get_payload())
-        self.assertEqual(len(returned_json['statements']), 2)
+        more_parts = []
+        for more_part in more_msg.walk():
+            more_parts.append(more_part)
 
-        for part in parts[2:]:
-            self.assertIn(part._payload, payload_list)
-            self.assertIn(part.get("X-Experience-API-Hash"), headers_list)
-            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
-            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+        self.assertEqual(more_parts[1].get('Content-Type'), 'application/json')
+        more_returned_json = json.loads(more_parts[1].get_payload())
+        self.assertTrue(isinstance(more_returned_json, dict))
+        self.assertEqual(len(more_returned_json['statements']), 2)
+
+        for more_part in more_parts[2:]:
+            self.assertIn(more_part.get_payload(), payload_list1)
+            self.assertIn(more_part.get("X-Experience-API-Hash"), headers_list1)
+            self.assertEqual(more_part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(more_part.get('Content-Transfer-Encoding'), 'binary')
 
 
     def test_more_attachments_with_payloads_no_attach_param(self):

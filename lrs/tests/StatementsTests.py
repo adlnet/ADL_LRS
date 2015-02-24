@@ -2362,52 +2362,6 @@ class StatementsTests(TestCase):
             X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 204)
 
-    def test_multipart_wrongsha2_in_payload(self):
-        stmt_id = str(uuid.uuid1())
-        stmt = {"id":stmt_id,
-            "actor":{"mbox":"mailto:tom@example.com"},
-            "verb":{"id":"http://tom.com/verb/butted"},
-            "object":{"id":"act:tom.com/objs/heads"},
-            "attachments": [
-            {"usageType": "http://example.com/attachment-usage/test",
-            "display": {"en-US": "A test attachment"},
-            "description": {"en-US": "A test attachment (description)"},
-            "contentType": "text/plain; charset=utf-8",
-            "length": 27,
-            "sha2":""},
-            {"usageType": "http://example.com/attachment-usage/test",
-            "display": {"en-US": "A test attachment2"},
-            "description": {"en-US": "A test attachment (description)2"},
-            "contentType": "text/plain; charset=utf-8",
-            "length": 28,
-            "sha2":""}]}
-
-        message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
-        txtsha = hashlib.sha256(txt).hexdigest()
-        stmt['attachments'][0]["sha2"] = str(txtsha)
-        wrongsha = hashlib.sha256("this won't work").hexdigest()
-
-        txt2 = u"this is second attachment"
-        txtsha2 = hashlib.sha256(txt2).hexdigest()
-        stmt['attachments'][1]["sha2"] = str(txtsha2)
-
-        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
-        textdata = MIMEText(txt, 'plain', 'utf-8')
-        textdata.add_header('X-Experience-API-Hash', wrongsha)
-        textdata2 = MIMEText(txt2, 'plain', 'utf-8')
-        textdata2.add_header('X-Experience-API-Hash', txtsha2)
-        message.attach(stmtdata)
-        message.attach(textdata)
-        message.attach(textdata2)
-
-        param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
-        r = self.client.put(path, message.as_string(), content_type="multipart/mixed" , Authorization=self.auth,
-            X_Experience_API_Version="1.0.0")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.content, "The attachment content associated with sha %s does not match the sha" % wrongsha)
-
     def test_multiple_multipart_put_wrong_attachment(self):
         stmt_id = str(uuid.uuid1())
         stmt = {"id":stmt_id,
@@ -2596,19 +2550,23 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=ADL_LRS---------')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
+        # Have to add the header to the top of the body else the email lib won't parse it correctly
+        msg = message_from_string("Content-Type:multipart/mixed; boundary=======ADL_LRS======" + r.content)
+        self.assertTrue(msg.is_multipart())
 
-        msg = message_from_string(r.content)
         parts = []
         for part in msg.walk():
             parts.append(part)
   
-        for part in parts[2:]:
-            # MIMEImage automatically b64 encodes data to be transfered
-            self.assertEqual(base64.b64decode(part.get_payload()), img_data)
-            self.assertEqual(part.get("X-Experience-API-Hash"), imgsha)
-            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
-            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+        self.assertEqual(parts[1]['Content-Type'], "application/json")
+        self.assertTrue(isinstance(json.loads(parts[1].get_payload()), dict))
+
+        # MIMEImage automatically b64 encodes data to be transfered
+        self.assertEqual(base64.b64decode(parts[2].get_payload()), img_data)
+        self.assertEqual(parts[2].get("X-Experience-API-Hash"), imgsha)
+        self.assertEqual(parts[2].get('Content-Type'), "application/octet-stream")
+        self.assertEqual(parts[2].get('Content-Transfer-Encoding'), 'binary')
 
     def test_app_json_multipart_post_define(self):
         stmt = {

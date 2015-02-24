@@ -231,17 +231,17 @@ def build_response(stmt_result, content_length):
         # Create multipart message and attach json message to it
         string_list =[]
         line_feed = "\r\n"
-        boundary = "ADL_LRS---------"
-        string_list.append(boundary + line_feed)
+        boundary = "======ADL_LRS======"
+        string_list.append(line_feed + "--" + boundary + line_feed)
         string_list.append("Content-Type:application/json" + line_feed + line_feed)
         if isinstance(stmt_result, dict):
             string_list.append(json.dumps(stmt_result) + line_feed)
         else:
             string_list.append(stmt_result + line_feed)
-        string_list.append(boundary + line_feed)
         for sha2 in sha2s:
+            string_list.append("--" + boundary + line_feed)
             string_list.append("Content-Type:application/octet-stream" + line_feed)
-            string_list.append("Content-Transfer-Encoding: binary" + line_feed)
+            string_list.append("Content-Transfer-Encoding:binary" + line_feed)
             string_list.append("X-Experience-API-Hash:" + sha2[0] + line_feed + line_feed)
 
             chunks = []
@@ -249,8 +249,9 @@ def build_response(stmt_result, content_length):
                 chunks.append(chunk)
             
             string_list.append("".join(chunks) + line_feed)           
-            string_list.append(boundary + line_feed)
+            # string_list.append(boundary + line_feed)
             content_length += sha2[1].size
+        string_list.append("--" + boundary + "--") 
         mime_type = "multipart/mixed; boundary=" + boundary
         return "".join([s for s in string_list]), mime_type, content_length
     # Has attachments but no payloads so just dump the stmt_result
