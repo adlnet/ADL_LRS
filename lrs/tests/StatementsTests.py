@@ -2565,7 +2565,7 @@ class StatementsTests(TestCase):
         # MIMEImage automatically b64 encodes data to be transfered
         self.assertEqual(base64.b64decode(parts[2].get_payload()), img_data)
         self.assertEqual(parts[2].get("X-Experience-API-Hash"), imgsha)
-        self.assertEqual(parts[2].get('Content-Type'), "application/octet-stream")
+        self.assertEqual(parts[2].get('Content-Type'), 'image/png')
         self.assertEqual(parts[2].get('Content-Transfer-Encoding'), 'binary')
 
     def test_app_json_multipart_post_define(self):

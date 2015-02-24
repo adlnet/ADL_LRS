@@ -1,6 +1,8 @@
 import json
 import uuid
 import copy
+import binascii
+
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -225,7 +227,7 @@ def build_response(stmt_result, content_length):
                 if 'sha2' in attachment:
                     # If there is a sha2-retrieve the StatementAttachment object and add the payload to sha2s
                     att_object = StatementAttachment.objects.get(sha2=attachment['sha2'])
-                    sha2s.append((attachment['sha2'], att_object.payload))    
+                    sha2s.append((attachment['sha2'], att_object.payload, att_object.contentType))    
     # If attachments have payloads
     if sha2s:
         # Create multipart message and attach json message to it
@@ -240,17 +242,23 @@ def build_response(stmt_result, content_length):
             string_list.append(stmt_result + line_feed)
         for sha2 in sha2s:
             string_list.append("--" + boundary + line_feed)
-            string_list.append("Content-Type:application/octet-stream" + line_feed)
+            string_list.append("Content-Type:%s" % sha2[2] + line_feed)
             string_list.append("Content-Transfer-Encoding:binary" + line_feed)
             string_list.append("X-Experience-API-Hash:" + sha2[0] + line_feed + line_feed)
 
             chunks = []
+            # for chunk in sha2[1].chunks():
+            #     chunks.append(chunk)
+            # string_list.append("".join(chunks) + line_feed)
+            import pdb
+            pdb.set_trace()
+            # Chunk will be full string read from FileField
             for chunk in sha2[1].chunks():
-                chunks.append(chunk)
-            
-            string_list.append("".join(chunks) + line_feed)           
-            # string_list.append(boundary + line_feed)
-            content_length += sha2[1].size
+                bin_data = binascii.a2b_base64(chunk)
+                chunks.append(bin_data)
+                content_length += len(bin_data)
+
+            string_list.append("".join(chunks) + line_feed)
         string_list.append("--" + boundary + "--") 
         mime_type = "multipart/mixed; boundary=" + boundary
         return "".join([s for s in string_list]), mime_type, content_length

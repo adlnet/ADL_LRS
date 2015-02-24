@@ -202,6 +202,7 @@ def parse_attachment(r, request):
         for part in msg.get_payload():
             xhash = part.get('X-Experience-API-Hash')
             c_type = part['Content-Type']
+            # Payloads are base64 encoded implictly from email lib
             payload = part.get_payload()
             att_cache.set(xhash, payload)
     else:

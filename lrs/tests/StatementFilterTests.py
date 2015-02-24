@@ -2058,7 +2058,7 @@ class StatementFilterTests(TestCase):
         for part in parts[2:]:
             self.assertIn(part.get_payload(), payload_list2)
             self.assertIn(part.get("X-Experience-API-Hash"), headers_list2)
-            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(part.get('Content-Type'), 'text/plain; charset=utf-8')
             self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
 
         path = "%s?%s" % (reverse(statements_more,kwargs={'more_id':resp_id}), urllib.urlencode(param))
@@ -2081,7 +2081,7 @@ class StatementFilterTests(TestCase):
         for more_part in more_parts[2:]:
             self.assertIn(more_part.get_payload(), payload_list1)
             self.assertIn(more_part.get("X-Experience-API-Hash"), headers_list1)
-            self.assertEqual(more_part.get('Content-Type'), "application/octet-stream")
+            self.assertEqual(more_part.get('Content-Type'), 'text/plain; charset=utf-8')
             self.assertEqual(more_part.get('Content-Transfer-Encoding'), 'binary')
 
 
