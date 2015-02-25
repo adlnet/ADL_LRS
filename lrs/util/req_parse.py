@@ -3,7 +3,7 @@ import email
 import urllib
 import json
 import itertools
-from base64 import b64decode
+from base64 import b64decode, b64encode
 
 from django.http import MultiPartParser
 from django.core.cache import get_cache
@@ -202,8 +202,11 @@ def parse_attachment(r, request):
         for part in msg.get_payload():
             xhash = part.get('X-Experience-API-Hash')
             c_type = part['Content-Type']
-            # Payloads are base64 encoded implictly from email lib
-            payload = part.get_payload()
+            # Payloads are base64 encoded implictly from email lib (except for text files)
+            if "text/plain" in c_type:
+                payload = b64encode(part.get_payload())
+            else:
+                payload = part.get_payload()
             att_cache.set(xhash, payload)
     else:
         raise ParamError("This content was not multipart for the multipart request.")

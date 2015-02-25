@@ -2,6 +2,7 @@ import json
 import uuid
 import copy
 import binascii
+from base64 import b64decode
 
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -247,16 +248,12 @@ def build_response(stmt_result, content_length):
             string_list.append("X-Experience-API-Hash:" + sha2[0] + line_feed + line_feed)
 
             chunks = []
-            # for chunk in sha2[1].chunks():
-            #     chunks.append(chunk)
-            # string_list.append("".join(chunks) + line_feed)
-            import pdb
-            pdb.set_trace()
             # Chunk will be full string read from FileField
             for chunk in sha2[1].chunks():
-                bin_data = binascii.a2b_base64(chunk)
-                chunks.append(bin_data)
-                content_length += len(bin_data)
+                # Send data is hex format for non text files
+                hex_data = binascii.b2a_hex(b64decode(chunk))                
+                chunks.append(hex_data)
+                content_length += len(hex_data)
 
             string_list.append("".join(chunks) + line_feed)
         string_list.append("--" + boundary + "--") 

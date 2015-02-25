@@ -4,6 +4,7 @@ import base64
 import uuid
 import urllib
 import hashlib
+import binascii
 import os
 
 from datetime import datetime, timedelta
@@ -1827,8 +1828,8 @@ class StatementsTests(TestCase):
         self.assertEqual(len(attachments), 2)
 
         
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), "This is second attachment.")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), base64.b64encode("This is second attachment."))
 
     def test_multiple_stmt_multipart_same_attachment(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -1879,8 +1880,8 @@ class StatementsTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 1)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
 
     def test_multiple_stmt_multipart_one_attachment_one_fileurl(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -1929,7 +1930,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
         self.assertEqual(saved_stmt2.attachments.all()[0].fileUrl, "http://my/file/url")
 
     def test_multiple_stmt_multipart_multiple_attachments_each(self):
@@ -2018,10 +2019,10 @@ class StatementsTests(TestCase):
 
         stmt1_contents = ["This is a text attachment11","This is a text attachment12"]
         stmt2_contents = ["This is a text attachment21","This is a text attachment22"]
-        self.assertIn(saved_stmt1.attachments.all()[0].payload.read(), stmt1_contents)
-        self.assertIn(saved_stmt1.attachments.all()[1].payload.read(), stmt1_contents)
-        self.assertIn(saved_stmt2.attachments.all()[0].payload.read(), stmt2_contents)
-        self.assertIn(saved_stmt2.attachments.all()[1].payload.read(), stmt2_contents)
+        self.assertIn(base64.b64decode(saved_stmt1.attachments.all()[0].payload.read()), stmt1_contents)
+        self.assertIn(base64.b64decode(saved_stmt1.attachments.all()[1].payload.read()), stmt1_contents)
+        self.assertIn(base64.b64decode(saved_stmt2.attachments.all()[0].payload.read()), stmt2_contents)
+        self.assertIn(base64.b64decode(saved_stmt2.attachments.all()[1].payload.read()), stmt2_contents)
 
     def test_multipart_wrong_sha(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -2563,8 +2564,9 @@ class StatementsTests(TestCase):
         self.assertTrue(isinstance(json.loads(parts[1].get_payload()), dict))
 
         # MIMEImage automatically b64 encodes data to be transfered
-        self.assertEqual(base64.b64decode(parts[2].get_payload()), img_data)
+        self.assertEqual(binascii.a2b_hex(parts[2].get_payload()), img_data)
         self.assertEqual(parts[2].get("X-Experience-API-Hash"), imgsha)
+        self.assertEqual(imgsha, hashlib.sha256(binascii.a2b_hex(parts[2].get_payload())).hexdigest())
         self.assertEqual(parts[2].get('Content-Type'), 'image/png')
         self.assertEqual(parts[2].get('Content-Transfer-Encoding'), 'binary')
 
