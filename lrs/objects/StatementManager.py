@@ -133,8 +133,8 @@ class StatementManager():
             raw_payload = att_cache.get(sha2)
             try:
                 payload = ContentFile(raw_payload)
-            except:
-                raise e
+            except Exception, e:
+                raise e    
             # Save ContentFile payload to attachment model object
             attachment.payload.save(sha2, payload)
         return attachment, created 

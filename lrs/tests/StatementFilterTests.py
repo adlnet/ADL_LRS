@@ -2033,7 +2033,6 @@ class StatementFilterTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-
         self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
         headers_list1 = [txtsha1, txtsha2]
         headers_list2 = [txtsha3, txtsha4]
@@ -2056,7 +2055,7 @@ class StatementFilterTests(TestCase):
         resp_id = resp_url[-32:]        
 
         for part in parts[2:]:
-            self.assertIn(part.get_payload().decode("hex"), payload_list2)
+            self.assertIn(part.get_payload(), payload_list2)
             self.assertIn(part.get("X-Experience-API-Hash"), headers_list2)
             self.assertEqual(part.get('Content-Type'), 'text/plain; charset=utf-8')
             self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
@@ -2079,7 +2078,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(more_returned_json['statements']), 2)
 
         for more_part in more_parts[2:]:
-            self.assertIn(more_part.get_payload().decode("hex"), payload_list1)
+            self.assertIn(more_part.get_payload(), payload_list1)
             self.assertIn(more_part.get("X-Experience-API-Hash"), headers_list1)
             self.assertEqual(more_part.get('Content-Type'), 'text/plain; charset=utf-8')
             self.assertEqual(more_part.get('Content-Transfer-Encoding'), 'binary')

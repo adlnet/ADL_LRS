@@ -162,8 +162,6 @@ def parse_attachment(r, request):
             raise BadRequest("Could not find the boundary for the multipart content")
 
     msg = email.message_from_string(message)
-    boundary = msg.get_boundary()
-
     if msg.is_multipart():
         parts = msg.get_payload()
         stmt_part = parts.pop(0)
@@ -172,7 +170,7 @@ def parse_attachment(r, request):
 
         try:
             r['body'] = json.loads(stmt_part.get_payload())
-        except Exception, e:
+        except Exception:
             raise ParamError("Statement was not valid JSON")
 
         # Find the signature sha2 from the list attachment values in the statements (there should only be one)
@@ -183,7 +181,6 @@ def parse_attachment(r, request):
 
         # Get all sha2s from the request
         payload_sha2s = [p.get('X-Experience-API-Hash', None) for p in msg.get_payload()]
-
         # Check each sha2 in payload, if even one of them is None then there is a missing hash
         for sha2 in payload_sha2s:
             if not sha2:

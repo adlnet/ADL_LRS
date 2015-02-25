@@ -5,9 +5,6 @@ import binascii
 from base64 import b64decode
 
 from datetime import datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.mime.base import MIMEBase
 
 from django.http import HttpResponse
 from django.conf import settings
@@ -243,17 +240,16 @@ def build_response(stmt_result, content_length):
             string_list.append(stmt_result + line_feed)
         for sha2 in sha2s:
             string_list.append("--" + boundary + line_feed)
-            string_list.append("Content-Type:%s" % sha2[2] + line_feed)
+            string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
             string_list.append("Content-Transfer-Encoding:binary" + line_feed)
-            string_list.append("X-Experience-API-Hash:" + sha2[0] + line_feed + line_feed)
+            string_list.append("X-Experience-API-Hash:" + str(sha2[0]) + line_feed + line_feed)
 
             chunks = []
-            # Chunk will be full string read from FileField
+            # Default chunk size is 64kb
             for chunk in sha2[1].chunks():
-                # Send data is hex format for non text files
-                hex_data = binascii.b2a_hex(b64decode(chunk))                
-                chunks.append(hex_data)
-                content_length += len(hex_data)
+                decoded_data = b64decode(chunk)
+                chunks.append(decoded_data)
+                content_length += len(decoded_data)
 
             string_list.append("".join(chunks) + line_feed)
         string_list.append("--" + boundary + "--") 

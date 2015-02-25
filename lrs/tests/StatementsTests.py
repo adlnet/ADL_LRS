@@ -2562,11 +2562,10 @@ class StatementsTests(TestCase):
   
         self.assertEqual(parts[1]['Content-Type'], "application/json")
         self.assertTrue(isinstance(json.loads(parts[1].get_payload()), dict))
-
         # MIMEImage automatically b64 encodes data to be transfered
-        self.assertEqual(binascii.a2b_hex(parts[2].get_payload()), img_data)
+        self.assertEqual(parts[2].get_payload(), img_data)
         self.assertEqual(parts[2].get("X-Experience-API-Hash"), imgsha)
-        self.assertEqual(imgsha, hashlib.sha256(binascii.a2b_hex(parts[2].get_payload())).hexdigest())
+        self.assertEqual(imgsha, hashlib.sha256(parts[2].get_payload()).hexdigest())
         self.assertEqual(parts[2].get('Content-Type'), 'image/png')
         self.assertEqual(parts[2].get('Content-Transfer-Encoding'), 'binary')
 
