@@ -134,10 +134,7 @@ class StatementManager():
             try:
                 payload = ContentFile(raw_payload)
             except:
-                try:
-                    payload = ContentFile(raw_payload.read())
-                except Exception, e:
-                    raise e    
+                raise e
             # Save ContentFile payload to attachment model object
             attachment.payload.save(sha2, payload)
         return attachment, created 
