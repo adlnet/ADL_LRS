@@ -245,6 +245,9 @@ class StatementValidator():
 		ifis = [a for a in agent_ifis_can_only_be_one if agent.get(a, None) != None]
 		if agent['objectType'] == 'Agent' and len(ifis) != 1:
 			self.return_error("One and only one of %s may be supplied with an Agent" % ", ".join(agent_ifis_can_only_be_one))
+		elif agent['objectType'] == 'Group' and len(ifis) > 1:
+			self.return_error("None or one and only one of %s may be supplied with a Group" % ", ".join(agent_ifis_can_only_be_one))
+
 
 		if agent['objectType'] == 'Agent':
 			# If agent, if name given, ensure name is string and validate the IFI
@@ -265,7 +268,7 @@ class StatementValidator():
 				self.validate_ifi(ifis[0], agent[ifis[0]])
 
 			# If member is in group (not required if have IFI)
-			if 'member' in agent:
+			if 'member' in agent and len(agent['member']) > 0:
 				# Ensure member list is array
 				members = agent['member']
 				self.check_if_list(members, "Members")
@@ -276,6 +279,9 @@ class StatementValidator():
 				# Validate each member in group
 				for agent in members:
 					self.validate_agent(agent, 'member')
+			# Members is empty
+			else:
+				self.return_error("Members must not be empty")
 
 	def validate_ifi(self, ifis, ifi_value):
 		# Validate each IFI accordingly
