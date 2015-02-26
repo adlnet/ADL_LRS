@@ -27,7 +27,5 @@ urlpatterns += patterns('',
 
 if settings.DEBUG:
   urlpatterns += patterns('',
-      url(r'^media/attachment_payloads/(?P<path>.*)$', 'django.views.static.serve', {
-          'document_root': settings.MEDIA_ROOT,
-      }),
+      url(r'^media/attachment_payloads/(?P<path>.*)$', 'lrs.views.admin_attachments'),
  )

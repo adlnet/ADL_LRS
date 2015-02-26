@@ -10,6 +10,7 @@ from ..exceptions import ParamError
 SCHEME = 2
 EMAIL = 5
 uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
+sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']
@@ -81,6 +82,13 @@ class StatementValidator():
 				self.return_error("mbox value [%s] did not start with mailto:" % email)
 		else:
 			self.return_error("mbox value must be a string type")
+
+	def validate_email_sha1sum(self, sha1sum):
+		if isinstance(sha1sum, basestring):
+			if not sha1sum_re.match(sha1sum):
+				self.return_error("mbox_sha1sum value [%s] is not a valid sha1sum" % sha1sum)
+		else:
+			self.return_error("mbox_sha1sum value must be a string type")	
 
 	def validate_uri(self, uri_value, field):
 		if isinstance(uri_value, basestring):
@@ -273,6 +281,8 @@ class StatementValidator():
 		# Validate each IFI accordingly
 		if ifis == 'mbox':
 			self.validate_email(ifi_value)
+		elif ifis == 'mbox_sha1sum':
+			self.validate_email_sha1sum(ifi_value)
 		elif ifis == 'openid':
 			self.validate_uri(ifi_value, 'openid')
 		elif ifis == 'account':

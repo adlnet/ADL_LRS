@@ -1,5 +1,6 @@
 import json
 import logging
+from base64 import b64decode
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -9,7 +10,7 @@ from django.core.context_processors import csrf
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
@@ -18,7 +19,7 @@ from django.views.decorators.http import require_http_methods
 
 from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
 from .forms import ValidatorForm, RegisterForm, RegClientForm
-from .models import Statement, Verb, Agent, Activity
+from .models import Statement, Verb, Agent, Activity, StatementAttachment
 from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
@@ -239,6 +240,27 @@ def register(request):
             return render_to_response('reg_success.html', d, context_instance=context)
         else:
             return render_to_response('register.html', {"form": form}, context_instance=context)
+
+@login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET"])
+def admin_attachments(request, path):
+    if request.user.is_superuser:
+        try:
+            att_object = StatementAttachment.objects.get(sha2=path)
+        except StatementAttachment.DoesNotExist:
+            raise HttpResponseNotFound("File not found")
+        chunks = []
+        try:
+            # Default chunk size is 64kb
+            for chunk in att_object.payload.chunks():
+                decoded_data = b64decode(chunk)
+                chunks.append(decoded_data)
+        except OSError:
+            return HttpResponseNotFound("File not found")
+
+        response = HttpResponse(chunks, content_type=str(att_object.contentType))
+        response['Content-Disposition'] = 'attachment; filename="%s"' % path
+        return response
 
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["POST", "GET"])
@@ -593,9 +615,9 @@ def handle_request(request, more_id=None):
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br
-    # except Exception as err:
-    #     log_exception(request.path, err)
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        log_exception(request.path, err)
+        return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

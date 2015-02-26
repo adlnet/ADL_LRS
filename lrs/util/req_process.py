@@ -245,11 +245,14 @@ def build_response(stmt_result, content_length):
             string_list.append("X-Experience-API-Hash:" + str(sha2[0]) + line_feed + line_feed)
 
             chunks = []
-            # Default chunk size is 64kb
-            for chunk in sha2[1].chunks():
-                decoded_data = b64decode(chunk)
-                chunks.append(decoded_data)
-                content_length += len(decoded_data)
+            try:
+                # Default chunk size is 64kb
+                for chunk in sha2[1].chunks():
+                    decoded_data = b64decode(chunk)
+                    chunks.append(decoded_data)
+                    content_length += len(decoded_data)
+            except OSError, e:
+                raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
 
             string_list.append("".join(chunks) + line_feed)
         string_list.append("--" + boundary + "--") 
