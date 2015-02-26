@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, include, url, static
+from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('lrs.views',
     url(r'^$', 'home'),
