@@ -512,7 +512,7 @@ class ActivityManagerTests(TestCase):
 
         self.do_actvity_definition_choices_model(act, clist, dlist)        
         
-    #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and multiple choice but missing choices (won't create it)
+    #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and multiple choice but missing choices
     def test_activity_definition_cmiInteraction_multiple_choice_no_choices(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -524,9 +524,32 @@ class ActivityManagerTests(TestCase):
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'Activity definition is missing choices')
+
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)
+        st = Statement.objects.get(statement_id=st_id[0])
+        act = Activity.objects.get(id=st.object_activity.id)
+
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
+
+        self.assertEqual(name_set.keys()[0], 'en-US')
+        self.assertEqual(name_set.values()[0], 'testname2')
+
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'testdesc2')
+
+        self.do_activity_model(act.id,'http://wikipedia.org', 'Activity')
+
+        self.do_activity_definition_model(act, 'http://adlnet.gov/expapi/activities/cmi.interaction',
+            'choice')
+
+        self.do_activity_definition_extensions_model(act, 'ext:key1', 'ext:key2', 'ext:key3',
+            'value1', 'value2', 'value3')
+
+        self.do_activity_definition_correctResponsePattern_model(act, ['golf', 'tetris'])
+
+        self.assertEqual(act.activity_definition_choices, {})
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and fill in interactionType
     def test_activity_definition_cmiInteraction_fill_in(self):

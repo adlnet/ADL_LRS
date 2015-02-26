@@ -10,6 +10,8 @@ from django.utils.timezone import utc
 
 from oauth_provider.consts import MAX_URL_LENGTH
 
+from .util import util
+
 AGENT_PROFILE_UPLOAD_TO = "agent_profile"
 ACTIVITY_STATE_UPLOAD_TO = "activity_state"
 ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
@@ -23,17 +25,7 @@ class Verb(models.Model):
         ret = {}
         ret['id'] = self.verb_id
         if self.display:
-            ret['display'] = {}
-            if lang:
-                # Return display where key = lang
-                try:
-                    ret['display'] = {lang:self.display[lang]}
-                except KeyError:
-                    first = self.display.iteritems().next()      
-                    ret['display'] = {first[0]:first[1]}                        
-            else:
-                first = self.display.iteritems().next()      
-                ret['display'] = {first[0]:first[1]}                        
+            ret['display'] = util.get_lang(self.display, lang)                        
         return ret
 
     # Just return one value for human-readable
@@ -318,15 +310,7 @@ class Activity(models.Model):
             interactions = self.activity_definition_targets
 
         for i in interactions:
-            if lang:
-                try:
-                    i['description'] = {lang:i['description']['lang']}
-                except KeyError:
-                    first = interactions.iteritems().next()
-                    i['description'] = {first[0]:first[1]}
-            else:
-                first = i['description'].iteritems().next()
-                i['description'] = {first[0]:first[1]}
+            i['description'] = util.get_lang(i['description'], lang)
             ret['definition'][i_type].append(i)        
 
     def to_dict(self, lang=None, format='exact'):
@@ -337,26 +321,10 @@ class Activity(models.Model):
             
             ret['definition'] = {}
             if self.activity_definition_name:
-                if lang:
-                    try:
-                        ret['definition']['name'] = {lang:self.activity_definition_name[lang]}
-                    except KeyError:
-                        first = self.activity_definition_name.iteritems().next()      
-                        ret['definition']['name'] = {first[0]:first[1]}                        
-                else:
-                    first = self.activity_definition_name.iteritems().next()      
-                    ret['definition']['name'] = {first[0]:first[1]}
+                ret['definition']['name'] = util.get_lang(self.activity_definition_name, lang)
 
             if self.activity_definition_description:
-                if lang:
-                    try:
-                        ret['definition']['description'] = {lang:self.activity_definition_description[lang]}
-                    except KeyError:
-                        first = self.activity_definition_description.iteritems().next()      
-                        ret['definition']['description'] = {first[0]:first[1]}                        
-                else:
-                    first = self.activity_definition_description.iteritems().next()      
-                    ret['definition']['description'] = {first[0]:first[1]}                        
+                ret['definition']['description'] = util.get_lang(self.activity_definition_description, lang)                      
 
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
@@ -417,8 +385,7 @@ class StatementRef(models.Model):
 
     def get_a_name(self):
         s = Statement.objects.get(statement_id=self.ref_id)
-        o, f = s.get_object()
-        return " ".join([s.actor.get_a_name(),s.verb.get_display(),o.get_a_name()])
+        return s.get_object().get_a_name()
         
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
@@ -592,7 +559,7 @@ class SubStatement(models.Model):
         return ret
 
     def get_a_name(self):
-        return self.stmt_object.statement_id
+        return self.get_object().get_a_name()
 
     def get_object(self):
         if self.object_activity:
@@ -625,14 +592,14 @@ class StatementAttachment(models.Model):
 
         if self.display:
             if lang:
-                ret['display'] = {lang:self.display[lang]}
+                ret['display'] = util.get_lang(self.display, lang)
             else:
                 first = self.display.iteritems().next()
                 ret['display'] = {first[0]:first[1]}
 
         if self.description:
             if lang:
-                ret['description'] = {lang:self.description[lang]}
+                ret['description'] = util.get_lang(self.description, lang)
             else:
                 first = self.description.iteritems().next()
                 ret['description'] = {first[0]:first[1]}

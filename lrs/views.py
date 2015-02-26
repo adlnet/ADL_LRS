@@ -1,5 +1,6 @@
 import json
 import logging
+import urllib
 from base64 import b64decode
 
 from django.conf import settings
@@ -19,7 +20,7 @@ from django.views.decorators.http import require_http_methods
 
 from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
 from .forms import ValidatorForm, RegisterForm, RegClientForm
-from .models import Statement, Verb, Agent, Activity, StatementAttachment
+from .models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityProfile, ActivityState
 from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
@@ -96,6 +97,7 @@ def actexample4(request):
     return render_to_response('actexample4.json', mimetype="application/json")
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def about(request):
     lrs_data = { 
         "version": [settings.XAPI_VERSION],
@@ -309,6 +311,7 @@ def reg_client2(request):
 
 @login_required(login_url=LOGIN_URL)
 def me(request):
+    tab = request.GET.get("tab", "st")
     client_apps = Consumer.objects.filter(user=request.user)
     access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
     client_apps2 = Client.objects.filter(user=request.user)
@@ -319,61 +322,91 @@ def me(request):
         scopes = to_names(token.scope)
         access_token_scopes.append((token, scopes))
 
-    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2, 'access_tokens2':access_token_scopes},
-        context_instance=RequestContext(request))
+    st_paginator = Paginator(Statement.objects.filter(user=request.user).order_by('-timestamp'), settings.STMTS_PER_PAGE)
+    st_page = request.GET.get('st_page', 1)
+    try:
+        statements = st_paginator.page(st_page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        statements = st_paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        statements = st_paginator.page(st_paginator.num_pages)
+
+    try:
+        ag = Agent.objects.get(mbox="mailto:" + request.user.email)
+    except Agent.DoesNotExist:
+        return HttpResponseNotFound("Agent does not exist")
+    except Agent.MultipleObjectsReturned:
+        return HttpResponseBadRequest("More than one agent returned with email")
+
+    as_paginator = Paginator(ActivityState.objects.filter(agent=ag).order_by('-updated', 'activity_id'), settings.STMTS_PER_PAGE)
+    as_page = request.GET.get('as_page', 1)
+    try:
+        activity_states = as_paginator.page(as_page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        activity_states = as_paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        activity_states = as_paginator.page(as_paginator.num_pages)
+
+    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2,
+        'access_tokens2':access_token_scopes, 'statements':statements, 'activity_states': activity_states, 'tab': tab}, context_instance=RequestContext(request))
+
+@login_required(login_url="/accounts/login")
+@require_http_methods(["GET", "HEAD"])
+def download_statements(request):
+    stmts = models.Statement.objects.filter(user=request.user).order_by('-stored')
+    result = "[%s]" % ",".join([stmt.object_return() for stmt in stmts])
+
+    response = HttpResponse(result, mimetype='application/json', status=200)
+    response['Content-Length'] = len(result)
+    return response
 
 @login_required(login_url=LOGIN_URL)
-def my_statements(request):
-    if request.method == "DELETE":
-        Statement.objects.filter(user=request.user).delete()
-        stmts = Statement.objects.filter(user=request.user)
-        if not stmts:
-            return HttpResponse(status=204)
-        else:
-            raise Exception("unable to delete statements")
-
-    stmt_id = request.GET.get("stmt_id", None)
-    if stmt_id:
-        s = Statement.objects.get(statement_id=stmt_id, user=request.user)
-        return HttpResponse(json.dumps(s.to_dict()), mimetype="application/json",status=200)
+@require_http_methods(["DELETE"])
+def delete_statements(request):
+    Statement.objects.filter(user=request.user).delete()
+    stmts = Statement.objects.filter(user=request.user)
+    if not stmts:
+        return HttpResponse(status=204)
     else:
-        s = {}
-        paginator = Paginator(Statement.objects.filter(user=request.user).order_by('-timestamp').values_list('id', flat=True), 
-            settings.STMTS_PER_PAGE)
+        raise Exception("Unable to delete statements")
 
-        page_no = request.GET.get('page', 1)
+@login_required(login_url=LOGIN_URL)
+def my_activity_profile(request): 
+    act_id = request.GET.get("act_id", None)
+    prof_id = request.GET.get("prof_id", None)
+    if act_id and prof_id:
+        prof = ActivityProfile.objects.get(activityId=urllib.unquote(act_id), profileId=urllib.unquote(prof_id))
+        if prof.profile:
+            return HttpResponse(prof.profile.read(), content_type=prof.content_type, status=200)
+        else:
+            return HttpResponse(prof.json_profile, content_type=prof.content_type, status=200)     
+    return HttpResponseBadRequest("Both Activity ID and Profile ID required")
+
+@login_required(login_url=LOGIN_URL)
+def my_activity_state(request):
+    act_id = request.GET.get("act_id", None)
+    state_id = request.GET.get("state_id", None)
+    if act_id and state_id:
         try:
-            page = paginator.page(page_no)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            page = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range (e.g. 9999), deliver last page of results.
-            page = paginator.page(paginator.num_pages)
+            ag = Agent.objects.get(mbox="mailto:" + request.user.email)
+        except Agent.DoesNotExist:
+            return HttpResponseNotFound("Agent does not exist")
+        except Agent.MultipleObjectsReturned:
+            return HttpResponseBadRequest("More than one agent returned with email")
 
-        idlist = page.object_list
-        if idlist.count() > 0:
-            stmt_objs = [stmt for stmt in Statement.objects.filter(id__in=(idlist)).order_by('-timestamp')]
-        else: 
-            stmt_objs = []
-
-        slist = []
-        for stmt in stmt_objs:
-            d = {}
-            d['timestamp'] = stmt.timestamp.isoformat()
-            d['statement_id'] = stmt.statement_id
-            d['actor_name'] = stmt.actor.get_a_name()
-            d['verb'] = stmt.verb.get_display()
-            d['object'] = stmt.get_object().get_a_name()
-            slist.append(d)
-
-        s['stmts'] = slist
-        if page.has_previous():
-            s['previous'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.previous_page_number())
-        if page.has_next():
-            s['next'] = "%s?page=%s" % (reverse('lrs.views.my_statements'), page.next_page_number())
-
-        return HttpResponse(json.dumps(s), mimetype="application/json", status=200)
+        try:
+            state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
+        except ActivityState.DoesNotExist:
+            return HttpResponseNotFound("Activity state does not exist")
+        except ActivityState.MultipleObjectsReturned:
+            return HttpResponseBadRequest("More than one activity state was found")
+        # Really only used for the SCORM states so should only have json_state
+        return HttpResponse(state.json_state, content_type=state.content_type, status=200)
+    return HttpResponseBadRequest("Activity ID, State ID and are both required")
 
 @login_required(login_url=LOGIN_URL)
 def my_app_status(request):
@@ -451,7 +484,17 @@ def statements_more(request, more_id):
 @require_http_methods(["PUT","GET","POST", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
+    if request.method in ['GET', 'HEAD']:
+        return doget(request)
+    else:
+        return doputpost(request)
+
+def doget(request):
     return handle_request(request)   
+
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+def doputpost(request):
+    return handle_request(request)
 
 @require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
