@@ -336,7 +336,7 @@ def me(request):
     try:
         ag = Agent.objects.get(mbox="mailto:" + request.user.email)
     except Agent.DoesNotExist:
-        return HttpResponseNotFound("Agent does not exist")
+        ag = Agent.objects.create(mbox="mailto:" + request.user.email)
     except Agent.MultipleObjectsReturned:
         return HttpResponseBadRequest("More than one agent returned with email")
 
