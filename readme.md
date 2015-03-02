@@ -25,17 +25,15 @@ sudo su
 ./setup_lrs.sh
 ```
 
+## Starting
+
 For development, you can run the LRS with:
 
 ```
 python manage.py runserver
 ```
 
-Alternatively, follow the instructions below.
-
-## Starting
-
-While still in the ADL_LRS directory, run
+Alternatively, while still in the ADL_LRS directory, run
 
     (env)dbowner:ADL_LRS$ supervisord
 
