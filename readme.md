@@ -6,22 +6,24 @@ This version is stable, but only intended to support a small amount of users as 
 
 ## Quick Installation
 
-(Optional) Prior to cloning the repository, create an ADL LRS system user and switch to that user:
+Prior to cloning the repository, create an ADL LRS system user and switch to that user:
 
 ```
 sudo su
 
 useradd -c "ADL Learning Record Store System" -m -s "/bin/bash" adllrs
 
-su adllrs
-
-cd ~
+su - adllrs
+git clone https://github.com/ty-/ADL_LRS.git
+cd ADL_LRS
+git checkout quickinstall
+exit
 ```
 
-change to root and run setup_lrs.sh:
+As root run setup_lrs.sh:
 
 ```
-sudo su
+cd /home/adllrs/ADL_LRS
 ./setup_lrs.sh
 ```
 

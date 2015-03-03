@@ -10,18 +10,18 @@
 # Make sure the script is being run by a superuser (root or sudo)
 if [[ $(/usr/bin/id -u) -ne 0 ]]; then echo "This script must be run as root"; exit; fi
 
-echo ">>> Fixing Ubuntu's broken setuptools package"
-rm /usr/lib/python2.7/dist-packages/setuptools.egg-info
-apt-get install --reinstall python-setuptools
+echo ">>> Adding adllrs user and cloning the repository"
+useradd -c "ADL Learning Record Store System" -m -s "/bin/bash" adllrs
+su - adllrs
+git clone https://github.com/ty-/ADL_LRS.git
+cd ADL_LRS
+git checkout quickinstall
 
-echo ">>> Installing dependencies..." # derp, you need git first
+echo ">>> Installing dependencies..."
 apt-get install fabric postgresql-9.1 python-setuptools postgresql-server-dev-9.1 python-dev libxml2-dev libxslt-dev
 
 echo ">>> Installing pip with easy_install..."
 easy_install pip
-
-echo ">>> Installing setuptools with pip..."
-pip install setuptools --no-use-wheel --upgrade
 
 echo ">>> Installing virtualenv with pip..."
 pip install virtualenv
@@ -31,7 +31,7 @@ sudo -u postgres createuser -s -P -e root
 sudo -u postgres psql -c 'CREATE DATABASE lrs OWNER root TEMPLATE template1'
 
 echo -e "Dependencies installed and database prepared. Finish installation as adllrs user: \n\n"
-echo "su adllrs"
+echo "su - adllrs"
 echo "fab setup_env"
 echo "source ../env/bin/activate"
 echo "fab setup_lrs"
