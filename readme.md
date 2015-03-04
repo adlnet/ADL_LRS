@@ -6,6 +6,8 @@ This version is stable, but only intended to support a small amount of users as 
 
 ## Quick Installation
 
+If you would like to setup a development environment quickly, you can use the following method. For a more hands on approach, check out the [INSTALL.md](INSTALL.md) document.
+
 Prior to cloning the repository, create an ADL LRS system user and switch to that user:
 
 ```
@@ -20,7 +22,7 @@ git checkout quickinstall
 exit
 ```
 
-As root run setup_lrs.sh:
+As root run setup_lrs.sh and go through the prompts (default passwords are "password" for development):
 
 ```
 cd /home/adllrs/ADL_LRS
