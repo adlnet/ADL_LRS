@@ -133,7 +133,7 @@ def process_complex_get(req_dict):
 
     # If attachments=True in req_dict then include the attachment payload and return different mime type
     if attachments:
-        stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
+        stmt_result, mime_type, content_length = build_response(stmt_result)
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # Else attachments are false for the complex get so just dump the stmt_result
     else:
@@ -166,7 +166,7 @@ def statements_more_get(req_dict):
 
     # If there are attachments, include them in the payload
     if attachments:
-        stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
+        stmt_result, mime_type, content_length = build_response(stmt_result)
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # If not, just dump the stmt_result
     else:
@@ -211,7 +211,7 @@ def statements_get(req_dict):
 
     return resp
 
-def build_response(stmt_result, content_length):
+def build_response(stmt_result):
     sha2s = []
     mime_type = "application/json"
     if isinstance(stmt_result, dict):
@@ -251,20 +251,22 @@ def build_response(stmt_result, content_length):
                 for chunk in sha2[1].chunks():
                     decoded_data = b64decode(chunk)
                     chunks.append(decoded_data)
-                    content_length += len(decoded_data)
             except OSError, e:
                 raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
 
             string_list.append("".join(chunks) + line_feed)
+        
         string_list.append("--" + boundary + "--") 
         mime_type = "multipart/mixed; boundary=" + boundary
-        return "".join([s for s in string_list]), mime_type, content_length
+        attachment_body = "".join([s for s in string_list])
+        return attachment_body, mime_type, len(attachment_body)
     # Has attachments but no payloads so just dump the stmt_result
     else:
         if isinstance(stmt_result, dict):
-            return json.dumps(stmt_result), mime_type, content_length
+            res = json.dumps(stmt_result)
+            return res, mime_type, len(res)
         else:
-            return stmt_result, mime_type, content_length
+            return stmt_result, mime_type, len(stmt_result)
 
 def activity_state_post(req_dict):
     # test ETag for concurrency
