@@ -544,7 +544,7 @@ def activities_get(req_dict):
 
     # Try to retrieve activity, if DNE then return empty else return activity info
     try:
-        Activity.objects.get(activity_id=activityId)
+        Activity.objects.get(activity_id=activityId, canonical_version=True)
     except Activity.DoesNotExist:    
         err_msg = "No activity found with ID %s" % activityId
         raise IDNotFoundError(err_msg)
