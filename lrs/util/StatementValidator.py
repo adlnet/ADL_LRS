@@ -18,8 +18,8 @@ statement_required_fields = ['actor', 'verb', 'object']
 attachment_allowed_fields = ['usageType', 'display', 'description', 'contentType', 'length', 'sha2', 'fileUrl']
 attachment_required_fields = ['usageType', 'display', 'contentType', 'length']
 
-agent_ifis_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openID', 'account', 'openid']
-agent_allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openID', 'openid','account']
+agent_ifis_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openid', 'account']
+agent_allowed_fields = ['objectType', 'name', 'member', 'mbox', 'mbox_sha1sum', 'openid','account']
 
 account_fields = ['homePage', 'name']
 
@@ -78,7 +78,7 @@ class StatementValidator():
 	def validate_email(self, email):
 		if isinstance(email, basestring):
 			res = uri_re.match(email)
-			if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None or res.group(0) != email:
+			if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None:
 				self.return_error("mbox value [%s] did not start with mailto:" % email)
 		else:
 			self.return_error("mbox value must be a string type")
@@ -245,6 +245,9 @@ class StatementValidator():
 		ifis = [a for a in agent_ifis_can_only_be_one if agent.get(a, None) != None]
 		if agent['objectType'] == 'Agent' and len(ifis) != 1:
 			self.return_error("One and only one of %s may be supplied with an Agent" % ", ".join(agent_ifis_can_only_be_one))
+		elif agent['objectType'] == 'Group' and len(ifis) > 1:
+			self.return_error("None or one and only one of %s may be supplied with a Group" % ", ".join(agent_ifis_can_only_be_one))
+
 
 		if agent['objectType'] == 'Agent':
 			# If agent, if name given, ensure name is string and validate the IFI
@@ -265,7 +268,7 @@ class StatementValidator():
 				self.validate_ifi(ifis[0], agent[ifis[0]])
 
 			# If member is in group (not required if have IFI)
-			if 'member' in agent:
+			if 'member' in agent and len(agent['member']) > 0:
 				# Ensure member list is array
 				members = agent['member']
 				self.check_if_list(members, "Members")
@@ -276,19 +279,18 @@ class StatementValidator():
 				# Validate each member in group
 				for agent in members:
 					self.validate_agent(agent, 'member')
+			# Members is empty
+			else:
+				self.return_error("Members must not be empty")
 
 	def validate_ifi(self, ifis, ifi_value):
-		# Spec not clear if openid or openID - set to openID just in case
-		if ifis == 'openid':
-			ifis = 'openID'
-		
 		# Validate each IFI accordingly
 		if ifis == 'mbox':
 			self.validate_email(ifi_value)
 		elif ifis == 'mbox_sha1sum':
 			self.validate_email_sha1sum(ifi_value)
-		elif ifis == 'openID':
-			self.validate_uri(ifi_value, 'openID')
+		elif ifis == 'openid':
+			self.validate_uri(ifi_value, 'openid')
 		elif ifis == 'account':
 			self.validate_account(ifi_value)
 
@@ -404,7 +406,7 @@ class StatementValidator():
 			for answer in definition['correctResponsesPattern']:
 				# For each answer, ensure it is a string
 				if not isinstance(answer, basestring):
-					self.return_error("Activity definition correctResponsesPattern answer's must all be strings")
+					self.return_error("Activity definition correctResponsesPattern answers must all be strings")
 		self.validate_interaction_types(interactionType, definition)
 
 		# If extensions, validate it
@@ -417,40 +419,30 @@ class StatementValidator():
 			if 'choices' in definition:
 				choices = definition['choices']
 				self.check_if_list(choices, "Activity definition choices")
-				self.validate_interaction_activities(choices, 'choices')			
-			else:
-				self.return_error("Activity definition is missing choices")
+				self.validate_interaction_activities(choices, 'choices')
 		elif interactionType == "likert":
 			# If scale included, ensure it is an array and validate it
 			if 'scale' in definition:
 				scale = definition['scale']
 				self.check_if_list(scale, "Activity definition scale")
 				self.validate_interaction_activities(scale, 'scale')
-			else:
-				self.return_error("Activity definition is missing scale")
 		elif interactionType == "matching":
 			# If scale included, ensure it is an array and validate it
 			if 'source' in definition:
 				source = definition['source']
 				self.check_if_list(source, "Activity definition source")
 				self.validate_interaction_activities(source, 'source')
-			else:
-				self.return_error("Activity definition is missing source")
 			# If target included, ensure it is an array and validate it
 			if 'target' in definition:
 				target = definition['target']
 				self.check_if_list(target, "Activity definition target")
 				self.validate_interaction_activities(target, 'target')
-			else:
-				self.return_error("Activity definition is missing target")
 		elif interactionType == "performance":
-		# If steps included, ensure it is an array and validate it
+			# If steps included, ensure it is an array and validate it
 			if 'steps' in definition:
 				steps = definition['steps']
 				self.check_if_list(steps, "Activity definition steps")
 				self.validate_interaction_activities(steps, 'steps')
-			else:
-				self.return_error("Activity definition is missing steps")		
 
 	def validate_interaction_activities(self, activities, field):
 		for act in activities:

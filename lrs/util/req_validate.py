@@ -2,15 +2,13 @@ import json
 import urllib2
 
 from django.conf import settings
-from django.core.cache import get_cache
 
 from util import validate_uuid, convert_to_dict, get_agent_ifp
 from Authorization import auth
 from StatementValidator import StatementValidator
+
 from ..models import Statement, Agent, Activity
 from ..exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
-
-att_cache = get_cache('attachment_cache')
 
 def check_for_existing_statementId(stmtID):
     return Statement.objects.filter(statement_id=stmtID).exists()
@@ -239,7 +237,7 @@ def statements_get(req_dict):
     # Django converts all query values to string - make boolean depending on if client wants attachments or not
     # Only need to do this in GET b/c GET/more will have it saved in pickle information
     if 'params' in req_dict and 'attachments' in req_dict['params']:
-        if req_dict['params']['attachments'] == 'True':
+        if req_dict['params']['attachments'].lower() == 'true':
             req_dict['params']['attachments'] = True
         else:
             req_dict['params']['attachments'] = False

@@ -15,3 +15,4 @@ uwsgi==1.9.17.1
 oauth2==1.5.211
 crypto==1.0.1
 shortuuid==0.4.2
+django-jsonify==0.3.0

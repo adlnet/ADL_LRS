@@ -106,7 +106,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
-        stmtset = findstmtrefs(stmtset.distinct(), sinceQ, untilQ)
+        stmtset = findstmtrefs(stmtset, sinceQ, untilQ)
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
@@ -150,7 +150,7 @@ def findstmtrefs(stmtset, sinceQ, untilQ):
         q = q & untilQ
     # finally weed out voided statements in this lookup
     q = q & Q(voided=False)
-    return findstmtrefs(Statement.objects.filter(q).distinct(), sinceQ, untilQ) | stmtset
+    return findstmtrefs(Statement.objects.filter(q), sinceQ, untilQ) | stmtset
 
 def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key

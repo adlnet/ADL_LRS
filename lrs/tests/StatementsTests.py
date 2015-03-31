@@ -4,6 +4,7 @@ import base64
 import uuid
 import urllib
 import hashlib
+import binascii
 import os
 
 from datetime import datetime, timedelta
@@ -338,7 +339,7 @@ class StatementsTests(TestCase):
         self.assertEqual(response.content, 'Activity definition choices is not a properly formatted array')
 
     def test_openid(self):
-        stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openID':'id:luluid'}, 
+        stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -346,7 +347,7 @@ class StatementsTests(TestCase):
         
         self.assertEqual(response.status_code, 200)
         agent = Agent.objects.get(name='lulu')
-        self.assertEqual(agent.openID, 'id:luluid')
+        self.assertEqual(agent.openid, 'id:luluid')
 
     def test_invalid_actor_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob", "bad": "blah",
@@ -689,7 +690,7 @@ class StatementsTests(TestCase):
                 }
             },
             "actor": {
-                "openID": "http://test.local/PEab76617d1d21d725d358a7ad5231bd6e",
+                "openid": "http://test.local/PEab76617d1d21d725d358a7ad5231bd6e",
                 "name": "dev2-001",
                 "objectType": "Agent"
             },
@@ -718,7 +719,7 @@ class StatementsTests(TestCase):
                 "objectType": "Activity"
             },
             "actor": {
-                "openID": "http://test.local/EAGLE/PEab76617d1d21d725d358a7ad5231bd6e",
+                "openid": "http://test.local/EAGLE/PEab76617d1d21d725d358a7ad5231bd6e",
                 "name": "dev2-001",
                 "objectType": "Agent"
             },
@@ -952,6 +953,27 @@ class StatementsTests(TestCase):
         self.assertEquals(len(mems), 2)
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
+
+    def test_post_with_group_multiple_ifi(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        mbox_sha1sum = "9840a8bcddaa2ed97b9af1d23ac77949e22d7e91"
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox, "mbox_sha1sum": mbox_sha1sum,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"}, {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            "object": {"id":"act:i.pity.the.fool"}})
+        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "None or one and only one of mbox, mbox_sha1sum, openid, account may be supplied with a Group")
+
+    def test_post_with_group_empty_members(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":[]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            "object": {"id":"act:i.pity.the.fool"}})
+        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Members must not be empty")
 
     def test_post_with_group_member_not_array(self):
         ot = "Group"
@@ -1766,9 +1788,10 @@ class StatementsTests(TestCase):
         textdata.add_header('X-Experience-API-Hash', txtsha)
         message.attach(stmtdata)
         message.attach(textdata)
-        
+        cutoff = message.as_string()[14:]
+
         r = self.client.post(reverse(statements), message.as_string(),
-            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            content_type='multipart/mixed; boundary=myboundary', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
 
     def test_multiple_stmt_multipart(self):
@@ -1826,8 +1849,8 @@ class StatementsTests(TestCase):
         self.assertEqual(len(attachments), 2)
 
         
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), "This is second attachment.")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), base64.b64encode("This is second attachment."))
 
     def test_multiple_stmt_multipart_same_attachment(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -1878,8 +1901,8 @@ class StatementsTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 1)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
 
     def test_multiple_stmt_multipart_one_attachment_one_fileurl(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -1928,7 +1951,7 @@ class StatementsTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
         self.assertEqual(saved_stmt2.attachments.all()[0].fileUrl, "http://my/file/url")
 
     def test_multiple_stmt_multipart_multiple_attachments_each(self):
@@ -2017,10 +2040,10 @@ class StatementsTests(TestCase):
 
         stmt1_contents = ["This is a text attachment11","This is a text attachment12"]
         stmt2_contents = ["This is a text attachment21","This is a text attachment22"]
-        self.assertIn(saved_stmt1.attachments.all()[0].payload.read(), stmt1_contents)
-        self.assertIn(saved_stmt1.attachments.all()[1].payload.read(), stmt1_contents)
-        self.assertIn(saved_stmt2.attachments.all()[0].payload.read(), stmt2_contents)
-        self.assertIn(saved_stmt2.attachments.all()[1].payload.read(), stmt2_contents)
+        self.assertIn(base64.b64decode(saved_stmt1.attachments.all()[0].payload.read()), stmt1_contents)
+        self.assertIn(base64.b64decode(saved_stmt1.attachments.all()[1].payload.read()), stmt1_contents)
+        self.assertIn(base64.b64decode(saved_stmt2.attachments.all()[0].payload.read()), stmt2_contents)
+        self.assertIn(base64.b64decode(saved_stmt2.attachments.all()[1].payload.read()), stmt2_contents)
 
     def test_multipart_wrong_sha(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -2549,18 +2572,23 @@ class StatementsTests(TestCase):
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'multipart/mixed; charset=utf-8')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
+        # Have to add the header to the top of the body else the email lib won't parse it correctly
+        msg = message_from_string("Content-Type:multipart/mixed; boundary=======ADL_LRS======" + r.content)
+        self.assertTrue(msg.is_multipart())
 
-        msg = message_from_string(r.content)
         parts = []
         for part in msg.walk():
             parts.append(part)
   
-        for part in parts[2:]:
-            self.assertEqual(part.get_payload(), img_data)
-            self.assertEqual(part.get("X-Experience-API-Hash"), imgsha)
-            self.assertEqual(part.get('Content-Type'), "application/octet-stream")
-            self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
+        self.assertEqual(parts[1]['Content-Type'], "application/json")
+        self.assertTrue(isinstance(json.loads(parts[1].get_payload()), dict))
+        # MIMEImage automatically b64 encodes data to be transfered
+        self.assertEqual(parts[2].get_payload(), img_data)
+        self.assertEqual(parts[2].get("X-Experience-API-Hash"), imgsha)
+        self.assertEqual(imgsha, hashlib.sha256(parts[2].get_payload()).hexdigest())
+        self.assertEqual(parts[2].get('Content-Type'), 'image/png')
+        self.assertEqual(parts[2].get('Content-Transfer-Encoding'), 'binary')
 
     def test_app_json_multipart_post_define(self):
         stmt = {

@@ -115,17 +115,21 @@ class ActivityManager():
 
     def populate_correct_responses_pattern(self, act_def):
         #Multiple choice and sequencing must have choices
-        if act_def['interactionType'] == 'choice' or \
-            act_def['interactionType'] == 'sequencing':
+        if (act_def['interactionType'] == 'choice' or \
+            act_def['interactionType'] == 'sequencing') and \
+            ('choices' in act_def):
             self.Activity.activity_definition_choices = act_def['choices']
         #Matching must have both source and target
-        elif act_def['interactionType'] == 'matching':
+        elif (act_def['interactionType'] == 'matching') and \
+            ('source' in act_def and 'target' in act_def):
             self.Activity.activity_definition_sources = act_def['source'] 
             self.Activity.activity_definition_targets = act_def['target']
         #Performance must have steps
-        elif act_def['interactionType'] == 'performance':
+        elif (act_def['interactionType'] == 'performance') and \
+            ('steps' in act_def):
             self.Activity.activity_definition_steps = act_def['steps']
         #Likert must have scale
-        elif act_def['interactionType'] == 'likert':
+        elif (act_def['interactionType'] == 'likert') and \
+            ('scale' in act_def):
             self.Activity.activity_definition_scales = act_def['scale']
         self.Activity.save()

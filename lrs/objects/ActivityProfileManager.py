@@ -13,35 +13,48 @@ from ..util import etag
 class ActivityProfileManager():
     @transaction.commit_on_success
     def post_profile(self, request_dict):
-        post_profile = request_dict['profile']
+        # post_profile = request_dict['profile']
 
         # get / create  profile
         p, created = ActivityProfile.objects.get_or_create(activityId=request_dict['params']['activityId'],  profileId=request_dict['params']['profileId'])
         
-        if created:
-            p.json_profile = post_profile
-            p.content_type = request_dict['headers']['CONTENT_TYPE']
-            p.etag = etag.create_tag(post_profile)
-            
-            #Set updated
-            if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
-                p.updated = request_dict['headers']['updated']
-            else:
-                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-        else:
-            etag.check_preconditions(request_dict,p, required=True)
-            orig_prof = json.loads(p.json_profile)
-            post_profile = json.loads(post_profile)
-            if not isinstance(post_profile, dict):
-                raise ParamError("The document was not able to be parsed into a JSON object.")
-            else:
-                # json.dumps changes the format of the string rep of the dict
-                merged = json.dumps(dict(orig_prof.items() + post_profile.items()))
-            p.json_profile = merged
-            p.etag = etag.create_tag(merged)
-            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+        if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
+            try:
+                post_profile = ContentFile(request_dict['profile'].read())
+            except:
+                try:
+                    post_profile = ContentFile(request_dict['profile'])
+                except:
+                    post_profile = ContentFile(str(request_dict['profile']))            
+        
 
-        p.save()
+            # #Set updated
+            # if 'headers' in request_dict and ('updated' in request_dict['headers'] and request_dict['headers']['updated']):
+            #     p.updated = request_dict['headers']['updated']
+            # else:
+            #     p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            self.save_profile(p, created, profile, request_dict)
+        else:
+            post_profile = request_dict['profile']
+            if created:
+                p.json_profile = post_profile
+                p.content_type = request_dict['headers']['CONTENT_TYPE']
+                p.etag = etag.create_tag(post_profile)
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            else:       
+                etag.check_preconditions(request_dict,p, required=True)
+                orig_prof = json.loads(p.json_profile)
+                post_profile = json.loads(request_dict['profile'])
+                if not isinstance(post_profile, dict):
+                    raise ParamError("The document was not able to be parsed into a JSON object.")
+                else:
+                    # json.dumps changes the format of the string rep of the dict
+                    merged = json.dumps(dict(orig_prof.items() + post_profile.items()))
+                p.json_profile = merged
+                p.etag = etag.create_tag(merged)
+                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+
+            p.save()
 
     @transaction.commit_on_success
 	#Save profile to desired activity

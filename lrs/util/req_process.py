@@ -1,10 +1,10 @@
 import json
 import uuid
 import copy
+import binascii
+from base64 import b64decode
+
 from datetime import datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.mime.base import MIMEBase
 
 from django.http import HttpResponse
 from django.conf import settings
@@ -133,8 +133,8 @@ def process_complex_get(req_dict):
 
     # If attachments=True in req_dict then include the attachment payload and return different mime type
     if attachments:
-        stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
-        resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
+        stmt_result, mime_type, content_length = build_response(stmt_result)
+        resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # Else attachments are false for the complex get so just dump the stmt_result
     else:
         if format == 'exact':
@@ -142,7 +142,7 @@ def process_complex_get(req_dict):
         else:
             result = json.dumps(stmt_result)
         content_length = len(result)
-        resp = HttpResponse(result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)    
+        resp = HttpResponse(result, content_type=mime_type, status=200)    
     return resp, content_length
 
 def statements_post(req_dict):
@@ -166,14 +166,14 @@ def statements_more_get(req_dict):
 
     # If there are attachments, include them in the payload
     if attachments:
-        stmt_result, mime_type, content_length = build_response(stmt_result, content_length)
-        resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
+        stmt_result, mime_type, content_length = build_response(stmt_result)
+        resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # If not, just dump the stmt_result
     else:
         if isinstance(stmt_result, basestring):
-            resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
+            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
         else:
-            resp = HttpResponse(json.dumps(stmt_result), content_type=''.join((mime_type, '; charset=utf-8')), status=200)
+            resp = HttpResponse(json.dumps(stmt_result), content_type=mime_type, status=200)
     
     # Add consistent header and set content-length
     try:
@@ -186,7 +186,6 @@ def statements_more_get(req_dict):
 def statements_get(req_dict):
     stmt_result = {}
     mime_type = "application/json"
-
     # If statementId is in req_dict then it is a single get - can still include attachments
     # or have a different format
     if 'statementId' in req_dict:     
@@ -196,7 +195,7 @@ def statements_get(req_dict):
             st = Statement.objects.get(statement_id=req_dict['statementId'])
             
             stmt_result = json.dumps(st.to_dict(format=req_dict['params']['format']))
-            resp = HttpResponse(stmt_result, content_type=''.join((mime_type, '; charset=utf-8')), status=200)
+            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
             content_length = len(stmt_result)
     # Complex GET
     else:
@@ -212,7 +211,7 @@ def statements_get(req_dict):
 
     return resp
 
-def build_response(stmt_result, content_length):
+def build_response(stmt_result):
     sha2s = []
     mime_type = "application/json"
     if isinstance(stmt_result, dict):
@@ -227,40 +226,47 @@ def build_response(stmt_result, content_length):
                 if 'sha2' in attachment:
                     # If there is a sha2-retrieve the StatementAttachment object and add the payload to sha2s
                     att_object = StatementAttachment.objects.get(sha2=attachment['sha2'])
-                    sha2s.append((attachment['sha2'], att_object.payload))    
-    
+                    sha2s.append((attachment['sha2'], att_object.payload, att_object.contentType))    
     # If attachments have payloads
     if sha2s:
         # Create multipart message and attach json message to it
-        full_message = MIMEMultipart(boundary="ADL_LRS---------")
+        string_list =[]
+        line_feed = "\r\n"
+        boundary = "======ADL_LRS======"
+        string_list.append(line_feed + "--" + boundary + line_feed)
+        string_list.append("Content-Type:application/json" + line_feed + line_feed)
         if isinstance(stmt_result, dict):
-            stmt_message = MIMEApplication(json.dumps(stmt_result), _subtype="json", _encoder=json.JSONEncoder)
+            string_list.append(json.dumps(stmt_result) + line_feed)
         else:
-            stmt_message = MIMEApplication(stmt_result, _subtype="json", _encoder=json.JSONEncoder)
-        full_message.attach(stmt_message)
-        # For each sha create a binary message, and attach to the multipart message
+            string_list.append(stmt_result + line_feed)
         for sha2 in sha2s:
-            binary_message = MIMEBase('application', 'octet-stream')
-            binary_message.add_header('X-Experience-API-Hash', sha2[0])
-            binary_message.add_header('Content-Transfer-Encoding', 'binary')
+            string_list.append("--" + boundary + line_feed)
+            string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
+            string_list.append("Content-Transfer-Encoding:binary" + line_feed)
+            string_list.append("X-Experience-API-Hash:" + str(sha2[0]) + line_feed + line_feed)
 
             chunks = []
-            for chunk in sha2[1].chunks():
-                chunks.append(chunk)
-            file_data = "".join(chunks)
-            
-            binary_message.set_payload(file_data)
-            full_message.attach(binary_message)
-            # Increment size on content-length and set mime type
-            content_length += sha2[1].size
-        mime_type = "multipart/mixed"
-        return full_message.as_string(), mime_type, content_length 
+            try:
+                # Default chunk size is 64kb
+                for chunk in sha2[1].chunks():
+                    decoded_data = b64decode(chunk)
+                    chunks.append(decoded_data)
+            except OSError, e:
+                raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
+
+            string_list.append("".join(chunks) + line_feed)
+        
+        string_list.append("--" + boundary + "--") 
+        mime_type = "multipart/mixed; boundary=" + boundary
+        attachment_body = "".join([s for s in string_list])
+        return attachment_body, mime_type, len(attachment_body)
     # Has attachments but no payloads so just dump the stmt_result
     else:
         if isinstance(stmt_result, dict):
-            return json.dumps(stmt_result), mime_type, content_length
+            res = json.dumps(stmt_result)
+            return res, mime_type, len(res)
         else:
-            return stmt_result, mime_type, content_length
+            return stmt_result, mime_type, len(stmt_result)
 
 def activity_state_post(req_dict):
     # test ETag for concurrency
