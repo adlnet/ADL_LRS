@@ -972,11 +972,36 @@ class StatementsTests(TestCase):
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
 
+    def test_post_with_group_no_members_listed(self):
+        ot = "Group"
+        name = "the group ML"
+        mbox = "mailto:the.groupML@example.com"
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            "object": {"id":"act:i.pity.the.fool"}})
+        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+        g = Agent.objects.get(mbox="mailto:the.groupML@example.com")
+        self.assertEquals(g.name, name)
+        self.assertEquals(g.mbox, mbox)
+        mems = g.member.values_list("name", flat=True)
+        self.assertEquals(len(mems), 0)
+
     def test_post_with_group_member_not_array(self):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
         members = "wrong"
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            "object": {"id":"act:i.pity.the.fool"}})
+        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Members is not a properly formatted array')
+
+    def test_post_with_group_member_empty_array(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        members = []
         stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")

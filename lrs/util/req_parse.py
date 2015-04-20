@@ -226,9 +226,15 @@ def parse_body(r, request):
 def get_headers(headers):
     r = {}
     if 'HTTP_UPDATED' in headers:
-        r['updated'] = headers['HTTP_UPDATED']
+        try:
+            r['updated'] = parse_datetime(headers['HTTP_UPDATED'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Updated header was not a valid ISO8601 timestamp")        
     elif 'updated' in headers:
-        r['updated'] = headers['updated']
+        try:
+            r['updated'] = parse_datetime(headers['updated'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Updated header was not a valid ISO8601 timestamp")
 
     r['CONTENT_TYPE'] = headers.get('CONTENT_TYPE', '')
     if r['CONTENT_TYPE'] == '' and 'Content-Type' in headers:

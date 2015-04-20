@@ -52,11 +52,14 @@ class AgentManager(models.Manager):
     def retrieve_or_create(self, **kwargs):
         ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]        
         is_group = kwargs.get('objectType', None) == "Group"
+        has_member = False
         
         if is_group:
-            member = kwargs.pop('member')
-            if isinstance(member, basestring):
-                member = json.loads(member)
+            member = kwargs.pop('member', None)
+            if member:
+                has_member = True
+                if isinstance(member, basestring):
+                    member = json.loads(member)
 
         if ifp_sent:
             # Canonical is defaulted to true
@@ -92,7 +95,8 @@ class AgentManager(models.Manager):
                 created = True
 
             # For identified groups
-            if is_group:
+            if is_group and has_member:
+
                 members = [self.retrieve_or_create(**a) for a in member]
 
                 # If newly created identified group add all of the incoming members

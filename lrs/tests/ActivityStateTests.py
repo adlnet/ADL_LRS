@@ -296,7 +296,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(robj['obj']['agent'], teststatesince['obj']['agent'])
         self.assertEqual(r['etag'], '"%s"' % hashlib.sha1(r.content).hexdigest())
 
-        since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
+        since = "2012-07-01T12:00:00Z"
         params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
         r = self.client.get(self.url, params2, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -345,7 +345,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(robj2['obj']['agent'], teststatesince2['obj']['agent'])
         self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(r2.content).hexdigest())
 
-        since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
+        since = "2012-7-1T12:00:00Z"
         params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
         r = self.client.get(self.url, params2, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -417,7 +417,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(r3.content).hexdigest())
 
         # get no reg ids set w/o old state
-        since1 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
+        since1 = "2012-7-1T12:30:00+04:00"
         params = {"activityId": self.activityId, "agent": self.testagent, "since": since1}
         r = self.client.get(self.url, params, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -428,7 +428,7 @@ class ActivityStateTests(TestCase):
         self.assertNotIn(self.stateId4, r.content)
 
         # get reg id set w/o old state
-        since2 = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
+        since2 = "2012-7-1T12:30:00+04:00"
         params2 = {"registration": regid, "activityId": self.activityId, "agent": self.testagent, "since": since2}
         r = self.client.get(self.url, params2, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)

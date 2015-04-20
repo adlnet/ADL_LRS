@@ -323,7 +323,10 @@ def activity_profile_get(req_dict):
     if profileId:
         resource = ap.get_profile(profileId, activityId)
         if resource.profile:
-            response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+            try:
+                response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+            except IOError:
+                response = HttpResponseNotFound("Error reading file, could not find: %s" % profileId)
         else:
             response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
         response['ETag'] = '"%s"' % resource.etag
