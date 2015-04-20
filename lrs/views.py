@@ -96,8 +96,8 @@ def actexample3(request):
 def actexample4(request):
     return render_to_response('actexample4.json', mimetype="application/json")
 
-@decorator_from_middleware(accept_middleware.AcceptMiddleware)
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+@decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 
         "version": [settings.XAPI_VERSION],
@@ -658,9 +658,9 @@ def handle_request(request, more_id=None):
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br
-    except Exception as err:
-        log_exception(request.path, err)
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     log_exception(request.path, err)
+    #     return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

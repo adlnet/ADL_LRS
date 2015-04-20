@@ -211,13 +211,36 @@ class ActivityProfileTests(TestCase):
         params = {"activityId": actid, "profileId": profid}
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
+    def test_get_activity_bad_since(self):
+        actid = "test:activity"
+        profid = "test://test/tz"
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "object":{'objectType':'Activity', 'id': actid}})
+        st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(st_post.status_code, 200)
+
+        params = {"profileId": profid, "activityId": actid}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        prof = {"test":"timezone since","obj":{"activity":"other"}}
+        r = self.client.put(path, json.dumps(prof), content_type=self.content_type, updated="2012-11-11T12:00:00+00:00", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 204)
+
+        since = "2012-11-1112:00:00-02:00"
+        response = self.client.get(reverse(views.activity_profile), {'activityId': actid,'since':since}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Since parameter was not a valid ISO8601 timestamp")
+        
+        params = {"activityId": actid, "profileId": profid}
+        self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+
     def test_get_no_activity_profileId(self):
         response = self.client.get(reverse(views.activity_profile), {'profileId': self.testprofileId3}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')
 
     def test_get_no_activity_since(self):
-        since = str(time.time())
+        since = "2012-7-1T13:30:00+04:00"
         response = self.client.get(reverse(views.activity_profile), {'since':since}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')

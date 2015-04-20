@@ -234,8 +234,8 @@ class AgentProfileTests(TestCase):
         self.assertEqual(robj['test1'], profile['test1'])
         self.assertEqual(robj['obj']['agent'], profile['obj']['agent'])
 
-        since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
-        params2 = {"agent": self.testagent, "since":since.isoformat()}
+        since = "2012-7-1T12:00:00Z"
+        params2 = {"agent": self.testagent, "since":since}
         r2 = self.client.get(reverse(agent_profile), params2, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertNotIn(prof_id, r2.content)
 
@@ -273,9 +273,9 @@ class AgentProfileTests(TestCase):
         self.assertEqual(robj2['test3'], profile2['test3'])
         self.assertEqual(robj2['obj']['agent'], profile2['obj']['agent'])
 
-        since = datetime.datetime(2012, 7, 1, 12, 00).replace(tzinfo=utc)
+        since = "2012-7-1T12:00:00Z"
 
-        par = {"agent": self.testagent, "since":since.isoformat()}
+        par = {"agent": self.testagent, "since":since}
         r = self.client.get(reverse(agent_profile), par, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertNotIn(prof_id, r.content)

@@ -1,5 +1,7 @@
 import json
 import urllib2
+from isodate.isodatetime import parse_datetime
+from isodate.isoerror import ISO8601Error
 
 from django.conf import settings
 
@@ -234,6 +236,18 @@ def statements_get(req_dict):
     if 'params' in req_dict and ('statementId' in req_dict['params'] or 'voidedStatementId' in req_dict['params']):
         req_dict['statementId'] = validate_statementId(req_dict)
 
+    if 'since' in req_dict['params']:
+        try:
+            parse_datetime(req_dict['params']['since'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Since parameter was not a valid ISO8601 timestamp")
+
+    if 'until' in req_dict['params']:
+        try:
+            parse_datetime(req_dict['params']['until'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Until parameter was not a valid ISO8601 timestamp")
+
     # Django converts all query values to string - make boolean depending on if client wants attachments or not
     # Only need to do this in GET b/c GET/more will have it saved in pickle information
     if 'params' in req_dict and 'attachments' in req_dict['params']:
@@ -243,7 +257,6 @@ def statements_get(req_dict):
             req_dict['params']['attachments'] = False
     else:
         req_dict['params']['attachments'] = False
-   
     return req_dict
 
 @auth
@@ -413,6 +426,13 @@ def activity_state_get(req_dict):
         if not validate_uuid(req_dict['params']['registration']):
             raise ParamError("%s is not a valid uuid for the registration parameter")
 
+    if 'since' in req_dict['params']:
+        try:
+            parse_datetime(req_dict['params']['since'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Since parameter was not a valid ISO8601 timestamp")
+
+
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(req_dict, "state")    
@@ -510,6 +530,13 @@ def activity_profile_get(req_dict):
     except KeyError:
         err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % req_dict['method']
         raise ParamError(err_msg)
+
+    if 'since' in req_dict['params']:
+        try:
+            parse_datetime(req_dict['params']['since'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Since parameter was not a valid ISO8601 timestamp")
+
     return req_dict
 
 @auth
@@ -623,6 +650,12 @@ def agent_profile_get(req_dict):
     except KeyError:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % req_dict['method']
         raise ParamError(err_msg)
+
+    if 'since' in req_dict['params']:
+        try:
+            parse_datetime(req_dict['params']['since'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Since parameter was not a valid ISO8601 timestamp")
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':

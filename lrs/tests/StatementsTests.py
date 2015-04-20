@@ -926,6 +926,25 @@ class StatementsTests(TestCase):
         self.assertEqual(agent.name, "tester1")
         self.assertEqual(agent.mbox, "mailto:test1@tester.com")
 
+    def test_cors_post_put_wrong_version(self):
+        content = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "mailto:r@r.com"},
+            "object": {"id":"act:test_cors_post_put"}}
+        
+        bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5b&content=%s&Authorization=%s&X-Experience-API-Version=1.0.33&Content-Type=application/json" % (content, self.auth)
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"method":"PUT"}))
+        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "X-Experience-API-Version is not supported")
+
+    def test_cors_post_put_correct_version(self):
+        content = {"verb":{"id":"verb:verb/url"}, "actor":{"objectType":"Agent", "mbox": "mailto:r@r.com"},
+            "object": {"id":"act:test_cors_post_put"}}
+        
+        bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5a&content=%s&Authorization=%s&X-Experience-API-Version=1.0.1&Content-Type=application/json" % (content, self.auth)
+        path = "%s?%s" % (reverse(statements), urllib.urlencode({"method":"PUT"}))
+        response = self.client.post(path, bdy, content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 204)
+
     def test_issue_put(self):
         stmt_id = "33f60b35-e1b2-4ddc-9c6f-7b3f65244430" 
         stmt = json.dumps({"verb":{"id":"verb:verb/uri"},"object":{"id":"act:scorm.com/JsTetris_TCAPI","definition":{"type":"type:media",
@@ -954,6 +973,7 @@ class StatementsTests(TestCase):
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
 
+<<<<<<< HEAD
     def test_post_with_group_multiple_ifi(self):
         ot = "Group"
         name = "the group ST"
@@ -974,12 +994,38 @@ class StatementsTests(TestCase):
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "Members must not be empty")
+=======
+    def test_post_with_group_no_members_listed(self):
+        ot = "Group"
+        name = "the group ML"
+        mbox = "mailto:the.groupML@example.com"
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            "object": {"id":"act:i.pity.the.fool"}})
+        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 200)
+        g = Agent.objects.get(mbox="mailto:the.groupML@example.com")
+        self.assertEquals(g.name, name)
+        self.assertEquals(g.mbox, mbox)
+        mems = g.member.values_list("name", flat=True)
+        self.assertEquals(len(mems), 0)
+>>>>>>> 756e64c47238c83b7c8e8a889ab020c433500ff6
 
     def test_post_with_group_member_not_array(self):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
         members = "wrong"
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            "object": {"id":"act:i.pity.the.fool"}})
+        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, 'Members is not a properly formatted array')
+
+    def test_post_with_group_member_empty_array(self):
+        ot = "Group"
+        name = "the group ST"
+        mbox = "mailto:the.groupST@example.com"
+        members = []
         stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -2563,7 +2609,7 @@ class StatementsTests(TestCase):
         imgdata.add_header('X-Experience-API-Hash', imgsha)
         message.attach(stmtdata)
         message.attach(imgdata)
-        
+
         r = self.client.post(reverse(statements), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)

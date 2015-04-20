@@ -1,7 +1,7 @@
 import re
 import ast
 import json
-from dateutil import parser as timeparser
+from isodate.isodatetime import parse_datetime
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 
@@ -147,8 +147,8 @@ class StatementValidator():
 		if 'timestamp' in stmt:
 			timestamp = stmt['timestamp']
 			try:
-				timeparser.parse(timestamp)
-			except ValueError as e:
+				parse_datetime(timestamp)
+			except ISO8601Error as e:
 				self.return_error("Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
 		# Validate the actor and verb
@@ -391,7 +391,7 @@ class StatementValidator():
 			if not isinstance(definition['interactionType'], basestring):
 				self.return_error("Activity definition interactionType must be a string")
 
-			scorm_interaction_types = ['true-false', 'choice', 'fill-in','matching', 'performance',
+			scorm_interaction_types = ['true-false', 'choice', 'fill-in', 'long-fill-in', 'matching', 'performance',
 				'sequencing', 'likert', 'numeric', 'other']
 
 			#Check if valid SCORM interactionType
@@ -468,8 +468,8 @@ class StatementValidator():
 		if 'timestamp' in substmt:
 			timestamp = substmt['timestamp']
 			try:
-				timeparser.parse(timestamp)
-			except ValueError as e:
+				parse_datetime(timestamp)
+			except ISO8601Error as e:
 				self.return_error("Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
 		# Can't next substmts in other substmts - if not supplied it is an Activity

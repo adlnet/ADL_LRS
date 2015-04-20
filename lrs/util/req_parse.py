@@ -1,9 +1,11 @@
 import StringIO
 import email
 import urllib
+<<<<<<< HEAD
 import json
 import itertools
 from base64 import b64decode, b64encode
+import re
 
 from django.http import MultiPartParser
 from django.core.cache import get_cache
@@ -24,7 +26,7 @@ def parse(request, more_id=None):
     r_dict = {}
     # Build headers from request in request dict
     r_dict['headers'] = get_headers(request.META)
-    
+
     # Traditional authorization should be passed in headers
     r_dict['auth'] = {}
     if 'Authorization' in r_dict['headers']:
@@ -253,9 +255,15 @@ def parse_body(r, request):
 def get_headers(headers):
     r = {}
     if 'HTTP_UPDATED' in headers:
-        r['updated'] = headers['HTTP_UPDATED']
+        try:
+            r['updated'] = parse_datetime(headers['HTTP_UPDATED'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Updated header was not a valid ISO8601 timestamp")        
     elif 'updated' in headers:
-        r['updated'] = headers['updated']
+        try:
+            r['updated'] = parse_datetime(headers['updated'])
+        except (Exception, ISO8601Error), e:
+            raise ParamError("Updated header was not a valid ISO8601 timestamp")
 
     r['CONTENT_TYPE'] = headers.get('CONTENT_TYPE', '')
     if r['CONTENT_TYPE'] == '' and 'Content-Type' in headers:
@@ -274,4 +282,7 @@ def get_headers(headers):
         r['language'] = headers.get('Accept_Language', None)
     elif 'Accept-Language' in headers:
         r['language'] = headers['Accept-Language']
+
+    if 'X-Experience-API-Version' in headers:
+            r['X-Experience-API-Version'] = headers['X-Experience-API-Version']
     return r

@@ -62,7 +62,7 @@ class StatementFilterTests(TestCase):
 
     def test_get_id(self):
         stmt = {
-            "timestamp": "2013-04-08 21:07:11.459000+00:00", 
+            "timestamp": "2013-04-08T21:07:11.459000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
             }, 
@@ -121,9 +121,9 @@ class StatementFilterTests(TestCase):
                     "en-US": "nixed"
                 }
             }, 
-            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "timestamp": "2013-04-11T23:24:03.603184+00:00", 
             "object": {
-                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "timestamp": "2013-04-11T23:24:03.578795+00:00", 
                 "object": {
                     "id": "act:adlnet.gov/website", 
                     "objectType": "Activity"
@@ -150,7 +150,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
         stmt = {
-            "timestamp": "2013-04-08 21:07:20.392000+00:00", 
+            "timestamp": "2013-04-08T21:07:20.392000+00:00", 
             "object": { 
                 "id": "act:adlnet.gov/JsTetris_TCAPI", 
                 "objectType": "Activity"
@@ -203,7 +203,7 @@ class StatementFilterTests(TestCase):
                     "en-US": "started"
                 }
             },
-            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "timestamp": "2013-04-11T14:49:25.376782+00:00", 
             "object": {
                 "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev", 
                 "objectType": "Activity"
@@ -229,7 +229,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
         stmt = {
-            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "timestamp": "2013-04-10T21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
                 "name": "louo", 
@@ -285,7 +285,7 @@ class StatementFilterTests(TestCase):
 
     def test_related_agents_filter(self):
         stmt = {
-            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "timestamp": "2013-04-10T21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
                 "name": "louo", 
@@ -332,7 +332,7 @@ class StatementFilterTests(TestCase):
                     "en-US": "started"
                 }
             }, 
-            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "timestamp": "2013-04-11T14:49:25.376782+00:00", 
             "object": {
                 "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
             }, 
@@ -361,9 +361,9 @@ class StatementFilterTests(TestCase):
                     "en-US": "nixed"
                 }
             },
-            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "timestamp": "2013-04-11T23:24:03.603184+00:00", 
             "object": {
-                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "timestamp": "2013-04-11T23:24:03.578795+00:00", 
                 "object": {
                     "id": "act:adlnet.gov/website"
                 }, 
@@ -405,7 +405,7 @@ class StatementFilterTests(TestCase):
     def test_agent_filter_since_and_until(self):
         batch = [
         {
-            "timestamp": "2013-04-08 17:51:38.118000+00:00", 
+            "timestamp": "2013-04-08T17:51:38.118000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI"
             }, 
@@ -419,7 +419,7 @@ class StatementFilterTests(TestCase):
             }
         }, 
         {
-            "timestamp": "2013-04-08 17:52:31.209000+00:00", 
+            "timestamp": "2013-04-08T17:52:31.209000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI"
             }, 
@@ -433,7 +433,7 @@ class StatementFilterTests(TestCase):
             }
         }, 
         {
-            "timestamp": "2013-04-08 20:47:08.626000+00:00", 
+            "timestamp": "2013-04-08T20:47:08.626000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI"
             }, 
@@ -447,7 +447,7 @@ class StatementFilterTests(TestCase):
             }
         }, 
         {
-            "timestamp": "2013-04-08 20:47:36.129000+00:00", 
+            "timestamp": "2013-04-08T20:47:36.129000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level1"
             }, 
@@ -461,7 +461,7 @@ class StatementFilterTests(TestCase):
             }
         }, 
         {
-            "timestamp": "2013-04-08 20:48:50.090000+00:00", 
+            "timestamp": "2013-04-08T20:48:50.090000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level2"
             }, 
@@ -475,7 +475,7 @@ class StatementFilterTests(TestCase):
             }
         }, 
         {
-            "timestamp": "2013-04-08 20:49:27.109000+00:00", 
+            "timestamp": "2013-04-08T20:49:27.109000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level3"
             }, 
@@ -568,7 +568,7 @@ class StatementFilterTests(TestCase):
 
     def test_related_agents_filter_until(self):
         stmt = {
-            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "timestamp": "2013-04-10T21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
                 "name": "louo", 
@@ -615,7 +615,7 @@ class StatementFilterTests(TestCase):
                     "en-US": "started"
                 }
             }, 
-            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "timestamp": "2013-04-11T14:49:25.376782+00:00", 
             "object": {
                 "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
             }, 
@@ -644,9 +644,9 @@ class StatementFilterTests(TestCase):
                     "en-US": "nixed"
                 }
             },
-            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "timestamp": "2013-04-11T23:24:03.603184+00:00", 
             "object": {
-                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "timestamp": "2013-04-11T23:24:03.578795+00:00", 
                 "object": {
                     "id": "act:adlnet.gov/website"
                 }, 
@@ -710,7 +710,7 @@ class StatementFilterTests(TestCase):
 
     def test_related_agents_filter_since(self):
         stmts = [{
-            "timestamp": "2013-04-10 21:25:59.583000+00:00", 
+            "timestamp": "2013-04-10T21:25:59.583000+00:00", 
             "object": {
                 "mbox": "mailto:louo@example.com", 
                 "name": "louo", 
@@ -755,7 +755,7 @@ class StatementFilterTests(TestCase):
                     "en-US": "started"
                 }
             }, 
-            "timestamp": "2013-04-11 14:49:25.376782+00:00", 
+            "timestamp": "2013-04-11T14:49:25.376782+00:00", 
             "object": {
                 "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
             }, 
@@ -782,9 +782,9 @@ class StatementFilterTests(TestCase):
                     "en-US": "nixed"
                 }
             },
-            "timestamp": "2013-04-11 23:24:03.603184+00:00", 
+            "timestamp": "2013-04-11T23:24:03.603184+00:00", 
             "object": {
-                "timestamp": "2013-04-11 23:24:03.578795+00:00", 
+                "timestamp": "2013-04-11T23:24:03.578795+00:00", 
                 "object": {
                     "id": "act:adlnet.gov/website"
                 }, 
@@ -900,7 +900,7 @@ class StatementFilterTests(TestCase):
         theid = str(uuid.uuid1())
         stmt = {
         "id":theid,
-        "timestamp": "2013-04-10 21:27:15.613000+00:00", 
+        "timestamp": "2013-04-10T21:27:15.613000+00:00", 
         "object": {
             "mbox": "mailto:louo@example.com", 
             "name": "louo",
@@ -947,7 +947,7 @@ class StatementFilterTests(TestCase):
             }
         }, 
         
-        "timestamp": "2013-04-10 21:28:33.870000+00:00", 
+        "timestamp": "2013-04-10T21:28:33.870000+00:00", 
         "object": {
             "id": theid, 
             "objectType": "StatementRef"
@@ -1001,7 +1001,7 @@ class StatementFilterTests(TestCase):
         theid = str(uuid.uuid1())
         stmt = {
         "id":theid,
-        "timestamp": "2013-04-10 21:27:15.613000+00:00", 
+        "timestamp": "2013-04-10T21:27:15.613000+00:00", 
         "object": {
             "mbox": "mailto:louo@example.com", 
             "name": "louo",
@@ -1041,7 +1041,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
         stmt = {
-            "timestamp": "2013-04-08 17:51:38.118000+00:00", 
+            "timestamp": "2013-04-08T17:51:38.118000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI"
             }, 
@@ -1060,7 +1060,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
         stmt =         {
-        "timestamp": "2013-04-08 21:07:20.392000+00:00", 
+        "timestamp": "2013-04-08T21:07:20.392000+00:00", 
         "object": { 
             "id": "act:adlnet.gov/JsTetris_TCAPI", 
             "objectType": "Activity"
@@ -1133,7 +1133,7 @@ class StatementFilterTests(TestCase):
 
     def test_activity_filter(self):
         stmt = {
-        "timestamp": "2013-04-08 21:05:48.869000+00:00", 
+        "timestamp": "2013-04-08T21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
             "objectType": "Activity"
@@ -1157,7 +1157,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
         stmt = {
-            "timestamp": "2013-04-08 21:07:11.459000+00:00", 
+            "timestamp": "2013-04-08T21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
             }, 
@@ -1186,7 +1186,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
         stmt = {
-        "timestamp": "2013-04-08 21:07:20.392000+00:00", 
+        "timestamp": "2013-04-08T21:07:20.392000+00:00", 
         "object": {
             "definition": {
                 "type": "type:media", 
@@ -1262,7 +1262,7 @@ class StatementFilterTests(TestCase):
 
     def test_no_activity_filter(self):
         stmt = {
-        "timestamp": "2013-04-08 21:05:48.869000+00:00", 
+        "timestamp": "2013-04-08T21:05:48.869000+00:00", 
         "object": {
             "id": "act:adlnet.gov/JsTetris_TCAPI/level17", 
             "objectType": "Activity"
@@ -1286,7 +1286,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version="1.0.0")
         self.assertEqual(resp.status_code, 200)
         stmt = {
-            "timestamp": "2013-04-08 21:07:11.459000+00:00", 
+            "timestamp": "2013-04-08T21:07:11.459000+00:00", 
             "object": {
                 "id": "act:adlnet.gov/JsTetris_TCAPI/level18"
             }, 
