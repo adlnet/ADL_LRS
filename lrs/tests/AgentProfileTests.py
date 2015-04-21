@@ -219,13 +219,12 @@ class AgentProfileTests(TestCase):
 
     def test_get_agent_since(self):
         prof_id = "http://oldprofile/time"
-        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
-
+        updated = "2012-06-12:T12:00:00Z"
         params = {"profileId": prof_id, "agent": self.testagent}
         path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
 
         profile = {"test1":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        response = self.client.put(path, profile, content_type=self.content_type, updated=updated, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 204)
 
         r = self.client.get(reverse(agent_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -234,7 +233,7 @@ class AgentProfileTests(TestCase):
         self.assertEqual(robj['test1'], profile['test1'])
         self.assertEqual(robj['obj']['agent'], profile['obj']['agent'])
 
-        since = "2012-7-1T12:00:00Z"
+        since = "2012-07-01T12:00:00Z"
         params2 = {"agent": self.testagent, "since":since}
         r2 = self.client.get(reverse(agent_profile), params2, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertNotIn(prof_id, r2.content)
@@ -243,13 +242,12 @@ class AgentProfileTests(TestCase):
 
     def test_get_agent_since_tz(self):
         prof_id = "http://oldprofile/time"
-        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
-
+        updated = "2012-06-12:T12:00:00Z"
         params = {"profileId": prof_id, "agent": self.testagent}
         path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
 
         profile = {"test2":"agent profile since time: %s" % updated,"obj":{"agent":"test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        response = self.client.put(path, profile, content_type=self.content_type, updated=updated, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         r = self.client.get(reverse(agent_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(r.status_code, 200)
@@ -258,7 +256,7 @@ class AgentProfileTests(TestCase):
         self.assertEqual(robj['obj']['agent'], profile['obj']['agent'])
 
         prof_id2 = "http://newprofile/timezone"
-        updated2 =  "2012-7-1T08:30:00-04:00"
+        updated2 =  "2012-07-01T08:30:00-04:00"
 
         params2 = {"profileId": prof_id2, "agent": self.testagent}
         path2 = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params2))
@@ -273,7 +271,7 @@ class AgentProfileTests(TestCase):
         self.assertEqual(robj2['test3'], profile2['test3'])
         self.assertEqual(robj2['obj']['agent'], profile2['obj']['agent'])
 
-        since = "2012-7-1T12:00:00Z"
+        since = "2012-07-01T12:00:00Z"
 
         par = {"agent": self.testagent, "since":since}
         r = self.client.get(reverse(agent_profile), par, Authorization=self.auth, X_Experience_API_Version="1.0.0")

@@ -973,28 +973,6 @@ class StatementsTests(TestCase):
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
 
-<<<<<<< HEAD
-    def test_post_with_group_multiple_ifi(self):
-        ot = "Group"
-        name = "the group ST"
-        mbox = "mailto:the.groupST@example.com"
-        mbox_sha1sum = "9840a8bcddaa2ed97b9af1d23ac77949e22d7e91"
-        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox, "mbox_sha1sum": mbox_sha1sum,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"}, {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
-            "object": {"id":"act:i.pity.the.fool"}})
-        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "None or one and only one of mbox, mbox_sha1sum, openid, account may be supplied with a Group")
-
-    def test_post_with_group_empty_members(self):
-        ot = "Group"
-        name = "the group ST"
-        mbox = "mailto:the.groupST@example.com"
-        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":[]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
-            "object": {"id":"act:i.pity.the.fool"}})
-        response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Members must not be empty")
-=======
     def test_post_with_group_no_members_listed(self):
         ot = "Group"
         name = "the group ML"
@@ -1008,7 +986,6 @@ class StatementsTests(TestCase):
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list("name", flat=True)
         self.assertEquals(len(mems), 0)
->>>>>>> 756e64c47238c83b7c8e8a889ab020c433500ff6
 
     def test_post_with_group_member_not_array(self):
         ot = "Group"
@@ -1030,7 +1007,7 @@ class StatementsTests(TestCase):
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'Members is not a properly formatted array')
+        self.assertEqual(response.content, "Member property must contain agents")
 
     def test_issue_put_no_version_header(self):
         stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244431'

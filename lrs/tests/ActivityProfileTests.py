@@ -240,7 +240,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')
 
     def test_get_no_activity_since(self):
-        since = "2012-7-1T13:30:00+04:00"
+        since = "2012-07-01T13:30:00+04:00"
         response = self.client.get(reverse(views.activity_profile), {'since':since}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')

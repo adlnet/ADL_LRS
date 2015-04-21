@@ -1,11 +1,12 @@
 import StringIO
 import email
 import urllib
-<<<<<<< HEAD
 import json
 import itertools
-from base64 import b64decode, b64encode
 import re
+from base64 import b64decode, b64encode
+from isodate.isoerror import ISO8601Error
+from isodate.isodatetime import parse_datetime
 
 from django.http import MultiPartParser
 from django.core.cache import get_cache

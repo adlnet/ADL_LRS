@@ -485,8 +485,8 @@ class AccessTokenTest(OAuth2Tests):
         act_descs = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
         self.assertEqual(len(act_names), 2)
         self.assertEqual(len(act_descs), 2)
-        self.assertIn({"en-US":"testname i define!"}, act_names)
-        self.assertIn({"en-US":"testdesc i define!"}, act_descs)
+        self.assertIn('{"en-US":"testname i define!"}', act_names)
+        self.assertIn('{"en-US":"testdesc i define!"}', act_descs)
 
     def test_fetching_access_token_with_valid_grant(self):
         self._login_authorize_get_token()

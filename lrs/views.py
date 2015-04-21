@@ -658,9 +658,9 @@ def handle_request(request, more_id=None):
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br
-    # except Exception as err:
-    #     log_exception(request.path, err)
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        log_exception(request.path, err)
+        return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

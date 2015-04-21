@@ -282,8 +282,8 @@ class ActivityStateTests(TestCase):
         testparamssince = {"stateId": state_id, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
         teststatesince = {"test":"get w/ since","obj":{"agent":"test"}}
-        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=timezone.get_default_timezone())
-        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        updated = "2012-06-12T12:00:00Z"
+        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -313,8 +313,8 @@ class ActivityStateTests(TestCase):
         testparamssince = {"stateId": state_id, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
         teststatesince = {"test":"get w/ since","obj":{"agent":"test"}}
-        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=timezone.get_default_timezone())
-        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        updated = "2012-06-12:T12:00:00Z"
+        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -331,7 +331,7 @@ class ActivityStateTests(TestCase):
         testparamssince2 = {"stateId": state_id2, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince2))
         teststatesince2 = {"test":"get w/ since TZ","obj":{"agent":"test"}}
-        updated_tz =  "2012-7-1T13:30:00+04:00"
+        updated_tz =  "2012-07-01T13:30:00+04:00"
         put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated_tz, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put2.status_code, 204)
@@ -345,7 +345,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(robj2['obj']['agent'], teststatesince2['obj']['agent'])
         self.assertEqual(r2['etag'], '"%s"' % hashlib.sha1(r2.content).hexdigest())
 
-        since = "2012-7-1T12:00:00Z"
+        since = "2012-07-01T12:00:00Z"
         params2 = {"activityId": self.activityId, "agent": self.testagent, "since": since}
         r = self.client.get(self.url, params2, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -365,8 +365,8 @@ class ActivityStateTests(TestCase):
         testparamssince = {"stateId": state_id, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince))
         teststatesince = {"test":"get w/ since","obj":{"agent":"test","stateId":state_id}}
-        updated =  datetime.datetime(2012, 6, 12, 12, 00).replace(tzinfo=utc)
-        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        updated = "2012-06-12:T12:00:00Z"
+        put1 = self.client.put(path, teststatesince, content_type=self.content_type, updated=updated, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
@@ -385,7 +385,7 @@ class ActivityStateTests(TestCase):
         testparamssince2 = {"registration": regid, "activityId": self.activityId, "agent": self.testagent, "stateId":state_id2}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamssince2))
         teststatesince2 = {"test":"get w/ since and registration","obj":{"agent":"test","stateId":state_id2}}
-        put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated.isoformat(), Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        put2 = self.client.put(path, teststatesince2, content_type=self.content_type, updated=updated, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
         self.assertEqual(put2.status_code, 204)
         self.assertEqual(put2.content, '')
@@ -417,7 +417,7 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r3['etag'], '"%s"' % hashlib.sha1(r3.content).hexdigest())
 
         # get no reg ids set w/o old state
-        since1 = "2012-7-1T12:30:00+04:00"
+        since1 = "2012-07-01T12:30:00+04:00"
         params = {"activityId": self.activityId, "agent": self.testagent, "since": since1}
         r = self.client.get(self.url, params, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -428,7 +428,7 @@ class ActivityStateTests(TestCase):
         self.assertNotIn(self.stateId4, r.content)
 
         # get reg id set w/o old state
-        since2 = "2012-7-1T12:30:00+04:00"
+        since2 = "2012-07-01T12:30:00+04:00"
         params2 = {"registration": regid, "activityId": self.activityId, "agent": self.testagent, "since": since2}
         r = self.client.get(self.url, params2, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -450,14 +450,30 @@ class ActivityStateTests(TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertIn('activityId parameter is missing', r.content)
 
-    
     def test_get_without_agent(self):
         params = {"stateId": self.stateId, "activityId": self.activityId}
         r = self.client.get(self.url, params, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 400)
         self.assertIn('agent parameter is missing', r.content)
 
+    def test_get_invalid_agent_structure(self):
+        params = {"stateId": self.stateId, "activityId": self.activityId, "agent": "blahagent"}
+        r = self.client.get(self.url, params, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('agent param for activity state is not valid', r.content)
     
+    def test_get_invalid_agent(self):
+        params = {"stateId": self.stateId, "activityId": self.activityId, "agent": {"mbox":"blahagent"}}
+        r = self.client.get(self.url, params, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('agent param for activity state is not valid', r.content)
+
+    def test_get_invalid_activityid(self):
+        params = {"stateId": self.stateId, "activityId": "foo", "agent": self.testagent}
+        r = self.client.get(self.url, params, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('activityId param for activity state with value foo was not a valid URI', r.content)
+
     def test_delete_without_activityid(self):
         testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))

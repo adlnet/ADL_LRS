@@ -261,27 +261,30 @@ class StatementValidator():
 
 			# If no IFIs, it is an anonymous group which must contain the member property 
 			if not ifis:
+				# No ifi means anonymous group - must have member
 				if not 'member' in agent:
 					self.return_error("Anonymous groups must contain member")
+				else:
+					self.validate_members(agent)
 			else:
 				# IFI given, validate it
 				self.validate_ifi(ifis[0], agent[ifis[0]])
+				if 'member' in agent:
+					self.validate_members(agent)
 
-			# If member is in group (not required if have IFI)
-			if 'member' in agent and len(agent['member']) > 0:
-				# Ensure member list is array
-				members = agent['member']
-				self.check_if_list(members, "Members")
-				# Make sure no member of group is another group
-				object_types = [t['objectType'] for t in members if 'objectType' in t]
-				if 'Group' in object_types:
-					self.return_error('Group member value cannot be other groups')
-				# Validate each member in group
-				for agent in members:
-					self.validate_agent(agent, 'member')
-			# Members is empty
-			else:
-				self.return_error("Members must not be empty")
+	def validate_members(self, agent):
+		# Ensure member list is array
+		members = agent['member']
+		self.check_if_list(members, "Members")
+		if not members:
+			self.return_error("Member property must contain agents")
+		# Make sure no member of group is another group
+		object_types = [t['objectType'] for t in members if 'objectType' in t]
+		if 'Group' in object_types:
+			self.return_error('Group member value cannot be other groups')
+		# Validate each member in group
+		for agent in members:
+			self.validate_agent(agent, 'member')
 
 	def validate_ifi(self, ifis, ifi_value):
 		# Validate each IFI accordingly

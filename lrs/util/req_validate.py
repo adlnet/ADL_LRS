@@ -326,27 +326,31 @@ def activity_state_post(req_dict):
     if rogueparams:
         raise ParamError("The post activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+    else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
-    if not 'activity_state_agent_validated' in req_dict:
-        try:
-            req_dict['params']['agent']
-        except KeyError:
-            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
-            raise ParamError(err_msg)
-    try:
-        req_dict['params']['stateId']
-    except KeyError:
-        err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % req_dict['method']
-        raise ParamError(err_msg)
 
-    if 'params' in req_dict and 'registration' in req_dict['params']:
+    if not 'stateId' in req_dict['params']:
+        err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % req_dict['method']
+        raise ParamError(err_msg)    
+
+    if 'registration' in req_dict['params']:
         if not validate_uuid(req_dict['params']['registration']):
             raise ParamError("%s is not a valid uuid for the registration parameter")
 
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for activity state is not valid")
+        validator.validate_agent(agent, "Activity state agent param")
+    else:
+        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
+        raise ParamError(err_msg)
+    
     if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for activity state POSTs must be application/json"
         raise ParamError(err_msg)
@@ -370,26 +374,30 @@ def activity_state_put(req_dict):
     if rogueparams:
         raise ParamError("The put activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+    else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
-    if not 'activity_state_agent_validated' in req_dict:
-        try:
-            req_dict['params']['agent']
-        except KeyError:
-            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
-            raise ParamError(err_msg)
-    try:
-        req_dict['params']['stateId']
-    except KeyError:
-        err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % req_dict['method']
-        raise ParamError(err_msg)
 
-    if 'params' in req_dict and 'registration' in req_dict['params']:
+    if not 'stateId' in req_dict['params']:
+        err_msg = "Error -- activity_state - method = %s, but stateId parameter is missing.." % req_dict['method']
+        raise ParamError(err_msg)    
+
+    if 'registration' in req_dict['params']:
         if not validate_uuid(req_dict['params']['registration']):
             raise ParamError("%s is not a valid uuid for the registration parameter")
+
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for activity state is not valid")
+        validator.validate_agent(agent, "Activity state agent param")
+    else:
+        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
+        raise ParamError(err_msg)
     
     # Must have body included for state
     if 'body' not in req_dict:
@@ -410,21 +418,26 @@ def activity_state_get(req_dict):
     if rogueparams:
         raise ParamError("The get activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+    else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
-    if not 'activity_state_agent_validated' in req_dict:
-        try:
-            req_dict['params']['agent']
-        except KeyError:
-            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
-            raise ParamError(err_msg)
 
-    if 'params' in req_dict and 'registration' in req_dict['params']:
+    if 'registration' in req_dict['params']:
         if not validate_uuid(req_dict['params']['registration']):
             raise ParamError("%s is not a valid uuid for the registration parameter")
+
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for activity state is not valid")
+        validator.validate_agent(agent, "Activity state agent param")
+    else:
+        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
+        raise ParamError(err_msg)
 
     if 'since' in req_dict['params']:
         try:
@@ -444,21 +457,26 @@ def activity_state_delete(req_dict):
     if rogueparams:
         raise ParamError("The delete activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+    else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
-    if not 'activity_state_agent_validated' in req_dict:
-        try:
-            req_dict['params']['agent']
-        except KeyError:
-            err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
-            raise ParamError(err_msg)
 
-    if 'params' in req_dict and 'registration' in req_dict['params']:
+    if 'registration' in req_dict['params']:
         if not validate_uuid(req_dict['params']['registration']):
             raise ParamError("%s is not a valid uuid for the registration parameter")
+
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for activity state is not valid")
+        validator.validate_agent(agent, "Activity state agent param")
+    else:
+        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
+        raise ParamError(err_msg)
     
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
