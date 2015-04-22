@@ -5,6 +5,7 @@ import base64
 
 from django.test import TestCase
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 from ..models import *
 from ..views import register, statements
@@ -22,14 +23,14 @@ class StatementManagerTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)
 
     def test_minimum_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -50,7 +51,7 @@ class StatementManagerTests(TestCase):
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
         stmt = Statement.objects.get(statement_id=st_id)
 
@@ -81,14 +82,14 @@ class StatementManagerTests(TestCase):
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         stmt2 = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
             'id': st_id}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         stmts = Statement.objects.all()
@@ -101,7 +102,7 @@ class StatementManagerTests(TestCase):
         stmt = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
             'verb': {"id":"http://adlnet.gov/expapi/verbs/voided"}, 'object': {'objectType':'Statement', 'id': "12345678-1234-5678-1234-567812345678"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "The objectType in the statement's object is not valid - Statement")
@@ -109,7 +110,7 @@ class StatementManagerTests(TestCase):
     def test_no_verb_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "object": {'id':'act:activity2'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Statement is missing actor, verb, or object')
@@ -117,7 +118,7 @@ class StatementManagerTests(TestCase):
     def test_no_object_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "verb": {"id":"verb:verb/url"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Statement is missing actor, verb, or object')       
@@ -125,7 +126,7 @@ class StatementManagerTests(TestCase):
     def test_no_actor_stmt(self):
         stmt = json.dumps({"object":{"id":"act:activity_test"}, "verb": {"id":"verb:verb/url"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Statement is missing actor, verb, or object')
@@ -133,7 +134,7 @@ class StatementManagerTests(TestCase):
     def test_voided_true_stmt(self):
         stmt = json.dumps({'actor':{'objectType':'Agent', 'mbox':'mailto:l@l.com'}, 'verb': {"id":'verb:verb/url/kicked'},'voided': True, 'object': {'id':'act:activity3'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Invalid field(s) found in Statement - voided')
@@ -144,7 +145,7 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity12'},
             "result": {'completion': True, 'success': True, 'response': 'kicked', 'duration': time}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -169,7 +170,7 @@ class StatementManagerTests(TestCase):
             "result": {'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -207,7 +208,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.0},'completion': True,
             'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
 
@@ -217,7 +218,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':00.000},'completion': True,
             'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
 
@@ -227,7 +228,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':1.01},'completion': True,
             'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
                 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Score scaled value in statement result must be between -1 and 1')
@@ -238,7 +239,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'scaled':-1.00001},'completion': True,
             'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
                 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Score scaled value in statement result must be between -1 and 1')
@@ -249,7 +250,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.01,'min':-2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
 
@@ -259,7 +260,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':-20.0,'min':-20.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
 
@@ -269,7 +270,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.02,'min':-2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
                 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Score raw value in statement result must be between minimum and maximum')
@@ -280,7 +281,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':-2.00001,'min':-2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
                
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Score raw value in statement result must be between minimum and maximum')
@@ -291,7 +292,7 @@ class StatementManagerTests(TestCase):
             "object": {'id':'act:activity14'}, "result": {'score':{'raw':1.5,'min':2.0, 'max':1.01},
             'completion': True,'success': True, 'response': 'yes'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
                
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Score minimum in statement result must be less than the maximum')
@@ -303,7 +304,7 @@ class StatementManagerTests(TestCase):
             'completion': True, 'success': True, 'response': 'yes', 'duration': time,
             'extensions':{'ext:key1': 'value1', 'ext:key2':'value2'}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -345,7 +346,7 @@ class StatementManagerTests(TestCase):
         stmt = json.dumps({'actor':{'objectType':'Agent','mbox':'mailto:s@s.com'},"verb":{"id":"verb:verb/url"},"object": {'id':'act:activity14'},
                          'context': {'contextActivities': {'other': {'id': 'act:NewActivityID'}}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -359,7 +360,7 @@ class StatementManagerTests(TestCase):
             'revision': 'foo', 'platform':'bar','language': 'en-US',
             'statement': {'objectType': 'Activity','id': "act:some/act"}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
                 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "StatementRef objectType must be set to 'StatementRef'")
@@ -371,7 +372,7 @@ class StatementManagerTests(TestCase):
                 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
                 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Context registration - bbb is not a valid UUID')
@@ -383,7 +384,7 @@ class StatementManagerTests(TestCase):
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'},
                 'grouping':{'id':'act:GroupID'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -418,7 +419,7 @@ class StatementManagerTests(TestCase):
                 'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -462,7 +463,7 @@ class StatementManagerTests(TestCase):
                 'context':{'registration': guid, 'contextActivities': {'other': {'id': 'act:NewActivityID'}},
                 'revision': 'foo', 'platform':'bar','language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -498,7 +499,7 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         guid = str(uuid.uuid1())
@@ -508,7 +509,7 @@ class StatementManagerTests(TestCase):
                 'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'statement': {'objectType': 'StatementRef','id': stmt_guid}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -538,7 +539,7 @@ class StatementManagerTests(TestCase):
                 'mbox':'mailto:sss@sss.com'},'verb':{'id':'verb:verb/url/nest/nest'},
                 'object':{'id':'act://activity/url'}}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "StatementRef objectType must be set to 'StatementRef'")
@@ -549,7 +550,7 @@ class StatementManagerTests(TestCase):
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         guid = str(uuid.uuid1())
@@ -560,7 +561,7 @@ class StatementManagerTests(TestCase):
             'revision': 'foo', 'platform':'bar','language': 'en-US', 'statement': {'id': stmt_guid,
             'objectType':'StatementRef'}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -595,7 +596,7 @@ class StatementManagerTests(TestCase):
             'mbox':'mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         guid = str(uuid.uuid1())
@@ -606,7 +607,7 @@ class StatementManagerTests(TestCase):
             'revision': 'foob', 'platform':'bard','language': 'en-US', 'statement': {'id':stmt_guid,
             "objectType":"StatementRef"}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -641,7 +642,7 @@ class StatementManagerTests(TestCase):
             'mbox':'mailto:mailto:s@s.com'},'verb': {"id":"verb:verb/url/outer"},"object": {'id':'act:activityy16'}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         guid = str(uuid.uuid1())
@@ -676,7 +677,7 @@ class StatementManagerTests(TestCase):
                 }
         )
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -707,7 +708,7 @@ class StatementManagerTests(TestCase):
         stmt = json.dumps({'object':{'objectType':'Agent', 'name': 'lulu', 'openid':'id:luluid'}, 
             'verb': {"id":"verb:verb/url"},'actor':{'objectType':'Agent','mbox':'mailto:t@t.com'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -725,7 +726,7 @@ class StatementManagerTests(TestCase):
             'object': {'objectType':'activity', 'id':'act:testex.com'},
             'authority':{'objectType':'Agent','mbox':'mailto:s@s.com'}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Invalid field(s) found in SubStatement - authority')
@@ -737,7 +738,7 @@ class StatementManagerTests(TestCase):
             'object': {'objectType':'SubStatement', 'actor':{'objectType':'Agent','mbox':'mailto:sss@sss.com'},
             'verb':{'id':'verb:verb/url/nest/nest'}, 'object':{'id':'act://activity/url'}}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Cannot nest a SubStatement inside of another SubStatement')        
@@ -752,7 +753,7 @@ class StatementManagerTests(TestCase):
             'contextActivities': {'other': {'id': 'act:NewActivityID'}},'revision': 'foo', 'platform':'bar',
             'language': 'en-US', 'extensions':{'ext:k1': 'v1', 'ext:k2': 'v2'}}}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -782,7 +783,7 @@ class StatementManagerTests(TestCase):
         stmt = json.dumps({"actor":testagent, 'verb': {"id":"verb:verb/url"},"object": {"id":"act:activity5",
             "objectType": "Activity"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt = Statement.objects.get(statement_id=stmt_id)
@@ -831,7 +832,7 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity'}})
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt1 = Statement.objects.get(statement_id=stmt_id)
@@ -849,7 +850,7 @@ class StatementManagerTests(TestCase):
                 'extensions':{'ext:key1': 'value1'},
                 'statement':{'objectType': 'StatementRef','id':st1_id}}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt2 = Statement.objects.get(statement_id=stmt_id)
@@ -880,7 +881,7 @@ class StatementManagerTests(TestCase):
                 'grouping':{'id':'act:activity3'}},'revision': 'foo', 'platform':'bar','language': 'en-US',
                 'extensions':{'ext:key1': 'value1'}}})
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt1 = Statement.objects.get(statement_id=stmt_id)
@@ -895,7 +896,7 @@ class StatementManagerTests(TestCase):
                 'contextActivities': {'other': [{'id': 'act:activity2'},{'id':'act:activity3'}],
                 'grouping':{'id':'act:activity5'}},'revision': 'foo', 'platform':'bar','language': 'en-US'}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt2 = Statement.objects.get(statement_id=stmt_id)
@@ -910,7 +911,7 @@ class StatementManagerTests(TestCase):
                 'contextActivities': {'other': [{'id': 'act:activity6'},{'id':'act:activity5'}],
                 'grouping':{'id':'act:activity2'}},'revision': 'three', 'platform':'bar','language': 'en-US'}})
         response = self.client.post(reverse(statements), stmt3, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt3 = Statement.objects.get(statement_id=stmt_id)
@@ -949,7 +950,7 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'}})
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt1 = Statement.objects.get(statement_id=stmt_id)
@@ -959,7 +960,7 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt2 = Statement.objects.get(statement_id=stmt_id)
@@ -983,7 +984,7 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity1'}})
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt1 = Statement.objects.get(statement_id=stmt_id)
@@ -996,7 +997,7 @@ class StatementManagerTests(TestCase):
                 'contextActivities': {'other': {'id': 'act:activity1'}},'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt2 = Statement.objects.get(statement_id=stmt_id)
@@ -1022,7 +1023,7 @@ class StatementManagerTests(TestCase):
                 'contextActivities': {'other': {'id': 'act:activity2'}},'revision': 'foo', 'platform':'bar',
                 'language': 'en-US'}})
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt1 = Statement.objects.get(statement_id=stmt_id)
@@ -1032,7 +1033,7 @@ class StatementManagerTests(TestCase):
             'verb': {"id":"verb:verb/url"},
             "object": {'id':'act:activity2'}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt2 = Statement.objects.get(statement_id=stmt_id)
@@ -1074,7 +1075,7 @@ class StatementManagerTests(TestCase):
                     'member':[{"name":"agent_in_conteamgroup","mbox":"mailto:actg@actg.com"}]},"revision": "foo",
                     "platform":"bar","language": "en-US","extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt1 = Statement.objects.get(statement_id=stmt_id)
@@ -1084,7 +1085,7 @@ class StatementManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/2"},
             "object":{"objectType": "StatementRef", "id":str(stmt1.statement_id)}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt2 = Statement.objects.get(statement_id=stmt_id)
@@ -1094,7 +1095,7 @@ class StatementManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/3"},
             "object":{"objectType": "Activity", "id":"act:activity1"}})
         response = self.client.post(reverse(statements), stmt3, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt3 = Statement.objects.get(statement_id=stmt_id)
@@ -1108,7 +1109,7 @@ class StatementManagerTests(TestCase):
                 'language': 'en-US', 'statement':{'objectType': 'StatementRef',
                 'id':str(stmt3.statement_id)}}})
         response = self.client.post(reverse(statements), stmt4, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
         stmt_id = json.loads(response.content)[0]
         stmt4 = Statement.objects.get(statement_id=stmt_id)

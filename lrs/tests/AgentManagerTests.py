@@ -24,7 +24,7 @@ class AgentManagerTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")           
+        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)           
 
     def test_agent_mbox_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com"},
@@ -32,7 +32,7 @@ class AgentManagerTests(TestCase):
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
@@ -47,7 +47,7 @@ class AgentManagerTests(TestCase):
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
@@ -65,7 +65,7 @@ class AgentManagerTests(TestCase):
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "mbox_sha1sum value [notarealsum] is not a valid sha1sum")
@@ -76,7 +76,7 @@ class AgentManagerTests(TestCase):
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
@@ -95,7 +95,7 @@ class AgentManagerTests(TestCase):
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)        
@@ -314,7 +314,7 @@ class AgentManagerTests(TestCase):
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'One and only one of mbox, mbox_sha1sum, openid, account may be supplied with an Agent')
@@ -325,7 +325,7 @@ class AgentManagerTests(TestCase):
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'One and only one of mbox, mbox_sha1sum, openid, account may be supplied with an Agent')
