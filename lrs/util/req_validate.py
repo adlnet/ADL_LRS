@@ -134,7 +134,7 @@ def server_validation(stmt_set, auth, payload_sha2s):
             get_act_def_data(stmt_set['object'])
             
             try:
-                validator = StatementValidator(None)
+                validator = StatementValidator()
                 validator.validate_activity(stmt_set['object'])
             except Exception, e:
                 raise BadRequest(e.message)
@@ -328,7 +328,7 @@ def activity_state_post(req_dict):
     if rogueparams:
         raise ParamError("The post activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
@@ -376,7 +376,7 @@ def activity_state_put(req_dict):
     if rogueparams:
         raise ParamError("The put activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
@@ -420,7 +420,7 @@ def activity_state_get(req_dict):
     if rogueparams:
         raise ParamError("The get activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
@@ -459,7 +459,7 @@ def activity_state_delete(req_dict):
     if rogueparams:
         raise ParamError("The delete activity state request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
@@ -491,7 +491,7 @@ def activity_profile_post(req_dict):
     if rogueparams:
         raise ParamError("The post activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
@@ -519,7 +519,7 @@ def activity_profile_put(req_dict):
     if rogueparams:
         raise ParamError("The put activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
@@ -545,7 +545,7 @@ def activity_profile_get(req_dict):
     if rogueparams:
         raise ParamError("The get activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
@@ -566,7 +566,7 @@ def activity_profile_delete(req_dict):
     if rogueparams:
         raise ParamError("The delete activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
@@ -606,7 +606,7 @@ def agent_profile_post(req_dict):
     if rogueparams:
         raise ParamError("The post agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
@@ -644,7 +644,7 @@ def agent_profile_put(req_dict):
     if rogueparams:
         raise ParamError("The put agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
@@ -675,7 +675,7 @@ def agent_profile_get(req_dict):
     if rogueparams:
         raise ParamError("The get agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
@@ -703,7 +703,7 @@ def agent_profile_delete(req_dict):
     if rogueparams:
         raise ParamError("The delete agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    validator = StatementValidator(None)
+    validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])

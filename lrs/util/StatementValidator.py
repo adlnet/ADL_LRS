@@ -43,34 +43,38 @@ score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities', 'revision', 'platform', 'language', 'statement', 'extensions']
 
 class StatementValidator():
-	def __init__(self, data):
+	def __init__(self, data=None):
 		# If incoming is a string, ast eval it (exception will be caught with whatever is calling validator)
-		if isinstance(data, basestring):
-			try:
-				self.stmt = ast.literal_eval(data)
-			except Exception:
-				self.stmt = json.loads(data)
-		# If incoming data is already a list 
-		elif isinstance(data, list):
-			# If each item in list is not a dict, then try to load them as one
-			if not all(isinstance(item, dict) for item in data):
-				self.stmt = [json.loads(st) for st in data]
-			# Else it is a list of all dicts
+		if data:
+			if isinstance(data, basestring):
+				try:
+					self.data = ast.literal_eval(data)
+				except Exception:
+					self.data = json.loads(data)
+			# If incoming data is already a list 
+			elif isinstance(data, list):
+				# If each item in list is not a dict, then try to load them as one
+				if not all(isinstance(item, dict) for item in data):
+					self.data = [json.loads(st) for st in data]
+				# Else it is a list of all dicts
+				else:
+					self.data = data
+			# If incoming data is not a string or list, try loading into dict
 			else:
-				self.stmt = data
-		# If incoming data is not a string or list, try loading into dict
-		else:
-			self.stmt = data
-	
+				self.data = data
+
 	def validate(self):
 		# If list, validate each stmt inside
-		if isinstance(self.stmt, list):
-			for st in self.stmt:
-				self.validate_statement(st)
-			return "All Statements are valid"
+		if self.data:
+			if isinstance(self.data, list):
+				for st in self.data:
+					self.validate_statement(st)
+				return "All Statements are valid"
+			else:
+				self.validate_statement(self.data)
+				return "Statement is valid"
 		else:
-			self.validate_statement(self.stmt)
-			return "Statement is valid"
+			return "There's no data!"
 
 	def return_error(self, err_msg):
 		raise ParamError(err_msg)
