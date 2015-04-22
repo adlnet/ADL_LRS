@@ -59,7 +59,7 @@ class AgentProfileTests(TestCase):
         self.client.delete(reverse(agent_profile), self.testparams4, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_get_agent_not_found(self):
-        a = '{"mbox":["mailto:notfound@example.com"]}'
+        a = '{"mbox":"mailto:notfound@example.com"}'
         p = 'http://agent.not.found'
         param = {"profileId": p, "agent": a}
         r = self.client.get(reverse(agent_profile), param, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -150,6 +150,16 @@ class AgentProfileTests(TestCase):
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], self.testprofile1['test'])
         self.assertEqual(robj['obj']['agent'], self.testprofile1['obj']['agent'])
+
+    def test_get_invalid_agent_structure(self):
+        r = self.client.get(reverse(agent_profile), {"profileId": self.testprofileId1, "agent": "wrong"}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, "agent param for agent profile is not valid")
+        
+    def test_get_invalid_agent(self):
+        r = self.client.get(reverse(agent_profile), {"profileId": self.testprofileId1, "agent": {"mbox":"foo"}}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, "agent param for agent profile is not valid")
 
     def test_get(self):
         r = self.client.get(reverse(agent_profile), self.testparams1, Authorization=self.auth, X_Experience_API_Version="1.0.0")

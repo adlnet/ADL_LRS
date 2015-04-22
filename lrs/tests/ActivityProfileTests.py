@@ -169,7 +169,8 @@ class ActivityProfileTests(TestCase):
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
     def test_get_activity_profileId(self):
-        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
+        response = self.client.get(reverse(views.activity_profile), {'activityId':self.test_activityId1,'profileId':self.testprofileId1},
+            X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
         robj = ast.literal_eval(response.content)
         self.assertEqual(robj['test'], self.testprofile1['test'])
@@ -234,16 +235,16 @@ class ActivityProfileTests(TestCase):
         params = {"activityId": actid, "profileId": profid}
         self.client.delete(reverse(views.activity_profile), params, Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
-    def test_get_no_activity_profileId(self):
+    def test_get_no_activityId_with_profileId(self):
         response = self.client.get(reverse(views.activity_profile), {'profileId': self.testprofileId3}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')
+        self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but activityId parameter missing..')
 
-    def test_get_no_activity_since(self):
+    def test_get_no_activityId_with_since(self):
         since = "2012-07-01T13:30:00+04:00"
         response = self.client.get(reverse(views.activity_profile), {'since':since}, X_Experience_API_Version="1.0.0", Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but no activityId parameter.. the activityId parameter is required')
+        self.assertEqual(response.content, 'Error -- activity_profile - method = GET, but activityId parameter missing..')
     
     def test_delete(self):
         response = self.client.delete(reverse(views.activity_profile), {'activityId':self.other_activityId, 'profileId':self.otherprofileId1}, Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -437,6 +438,13 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version="1.0.0")
+
+    def test_put_wrong_activityId(self):
+        params = {'activityId':'foo','profileId':'10'}
+        path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
+        
+        put = self.client.put(path, '{test:body}', content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEquals(put.content, 'activityId param for activity profile with value foo was not a valid URI')
 
     def test_current_tetris(self):
         params = {"profileId":"profile:highscores","activityId":"act:adlnet.gov/JsTetris_TCAPI"}

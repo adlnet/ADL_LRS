@@ -489,16 +489,16 @@ def activity_profile_post(req_dict):
     if rogueparams:
         raise ParamError("The post activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+    else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg)    
-    try:
-        req_dict['params']['profileId']
-    except KeyError:
-        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
+
+    if not 'profileId' in req_dict['params']:
+        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict['method']
+        raise ParamError(err_msg)    
 
     if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for activity profile POSTs must be application/json"
@@ -517,16 +517,16 @@ def activity_profile_put(req_dict):
     if rogueparams:
         raise ParamError("The put activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+    else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg)    
-    try:
-        req_dict['params']['profileId']
-    except KeyError:
-        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
+
+    if not 'profileId' in req_dict['params']:
+        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict['method']
+        raise ParamError(err_msg)    
     
     if 'body' not in req_dict:
         err_msg = "Could not find the profile document"
@@ -543,10 +543,11 @@ def activity_profile_get(req_dict):
     if rogueparams:
         raise ParamError("The get activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
-        err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % req_dict['method']
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+    else:
+        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
 
     if 'since' in req_dict['params']:
@@ -563,16 +564,17 @@ def activity_profile_delete(req_dict):
     if rogueparams:
         raise ParamError("The delete activity profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try:
-        req_dict['params']['activityId']
-    except KeyError:
-        err_msg = "Error -- activity_profile - method = %s, but no activityId parameter.. the activityId parameter is required" % req_dict['method']
+    validator = StatementValidator(None)
+    if 'activityId' in req_dict['params']:
+        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+    else:
+        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
-    try:
-        req_dict['params']['profileId']
-    except KeyError:
-        err_msg = "Error -- activity_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % req_dict['method']
-        raise ParamError(err_msg)
+
+    if not 'profileId' in req_dict['params']:
+        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict['method']
+        raise ParamError(err_msg)    
+
     return req_dict
 
 @auth
@@ -602,16 +604,20 @@ def agent_profile_post(req_dict):
     if rogueparams:
         raise ParamError("The post agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try: 
-        req_dict['params']['agent']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for agent profile is not valid")
+        validator.validate_agent(agent, "agent param for agent profile")
+    else:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
-    try:
-        req_dict['params']['profileId']
-    except KeyError:
+
+    if not 'profileId' in req_dict['params']:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg)
+        raise ParamError(err_msg) 
 
     if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
         err_msg = "The content type for agent profile POSTs must be application/json"
@@ -636,16 +642,20 @@ def agent_profile_put(req_dict):
     if rogueparams:
         raise ParamError("The put agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try: 
-        req_dict['params']['agent']
-    except KeyError:
+    validator = StatementValidator(None)
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for agent profile is not valid")
+        validator.validate_agent(agent, "agent param for agent profile")
+    else:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
-    try:
-        req_dict['params']['profileId']
-    except KeyError:
+
+    if not 'profileId' in req_dict['params']:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg)
+        raise ParamError(err_msg) 
     
     if 'body' not in req_dict:
         err_msg = "Could not find the profile document"
@@ -663,10 +673,15 @@ def agent_profile_get(req_dict):
     if rogueparams:
         raise ParamError("The get agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try: 
-        req_dict['params']['agent']
-    except KeyError:
-        err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.. the agent parameter is required" % req_dict['method']
+    validator = StatementValidator(None)
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for agent profile is not valid")
+        validator.validate_agent(agent, "agent param for agent profile")
+    else:
+        err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
 
     if 'since' in req_dict['params']:
@@ -686,16 +701,20 @@ def agent_profile_delete(req_dict):
     if rogueparams:
         raise ParamError("The delete agent profile request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
-    try: 
-        req_dict['params']['agent']
-    except KeyError:
-        err_msg = "Error -- agent_profile - method = %s, but no agent parameter.. the agent parameter is required" % req_dict['method']
+    validator = StatementValidator(None)
+    if 'agent' in req_dict['params']:
+        try:
+            agent = json.loads(req_dict['params']['agent'])
+        except Exception, e:
+            raise ParamError("agent param for agent profile is not valid")
+        validator.validate_agent(agent, "agent param for agent profile")
+    else:
+        err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
-    try:
-        req_dict['params']['profileId']
-    except KeyError:
-        err_msg = "Error -- agent_profile - method = %s, but no profileId parameter.. the profileId parameter is required" % req_dict['method']
-        raise ParamError(err_msg)
+
+    if not 'profileId' in req_dict['params']:
+        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict['method']
+        raise ParamError(err_msg) 
     
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
