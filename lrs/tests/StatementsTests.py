@@ -2257,6 +2257,49 @@ class StatementsTests(TestCase):
         self.assertEqual(saved_stmt1.attachments.all()[0].fileUrl, "http://my/file/url")
         self.assertEqual(saved_stmt2.attachments.all()[0].fileUrl, "http://my/file/url")
 
+    def tyler_attachment_snafu(self):
+        stmt = {
+                "actor": {
+                    "mbox": "mailto:tyler.mulligan.ctr@adlnet.gov",
+                    "name": "Tyler",
+                    "objectType": "Agent"
+                },
+                "verb": {
+                    "id": "http://adlnet.gov/expapi/verbs/answered",
+                    "display": {
+                        "en-US": "answered"
+                    }
+                },
+                "object": {
+                    "id": "http://adlnet.gov/expapi/activities/example",
+                    "definition": {
+                        "name": {
+                            "en-US": "Example Activity"
+                        },
+                        "description": {
+                            "en-US": "Example activity description"
+                        }
+                    },
+                    "objectType": "Activity"
+                },
+                "attachments": [
+                    {
+                        "usageType": "http://cool.com/cool/cool",
+                        "display": {
+                            "en-US": "My attachment"
+                        },
+                        "contentType": "image/jpeg",
+                        "length": 12345,
+                        "sha2": "f522a694d7fc5c38d7c604f63c87c9f74dcd002e"
+                    }
+                ]
+            }
+
+        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Missing X-Experience-API-Hash field in header")
+
     def test_app_json_multipart_no_fileUrl(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
             "verb":{"id":"http://tom.com/verb/butted"},
