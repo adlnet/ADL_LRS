@@ -1,6 +1,5 @@
 import ast
 import json
-import time
 import hashlib
 import urllib
 import base64

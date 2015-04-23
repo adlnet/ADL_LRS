@@ -239,13 +239,13 @@ def statements_get(req_dict):
     if 'since' in req_dict['params']:
         try:
             parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error), e:
+        except (Exception, ISO8601Error):
             raise ParamError("Since parameter was not a valid ISO8601 timestamp")
 
     if 'until' in req_dict['params']:
         try:
             parse_datetime(req_dict['params']['until'])
-        except (Exception, ISO8601Error), e:
+        except (Exception, ISO8601Error):
             raise ParamError("Until parameter was not a valid ISO8601 timestamp")
 
     # Django converts all query values to string - make boolean depending on if client wants attachments or not
@@ -444,7 +444,7 @@ def activity_state_get(req_dict):
     if 'since' in req_dict['params']:
         try:
             parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error), e:
+        except (Exception, ISO8601Error):
             raise ParamError("Since parameter was not a valid ISO8601 timestamp")
 
 
@@ -555,7 +555,7 @@ def activity_profile_get(req_dict):
     if 'since' in req_dict['params']:
         try:
             parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error), e:
+        except (Exception, ISO8601Error):
             raise ParamError("Since parameter was not a valid ISO8601 timestamp")
 
     return req_dict
@@ -689,7 +689,7 @@ def agent_profile_get(req_dict):
     if 'since' in req_dict['params']:
         try:
             parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error), e:
+        except (Exception, ISO8601Error):
             raise ParamError("Since parameter was not a valid ISO8601 timestamp")
 
     # Extra validation if oauth

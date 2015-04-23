@@ -357,7 +357,7 @@ def me(request):
 @login_required(login_url="/accounts/login")
 @require_http_methods(["GET", "HEAD"])
 def download_statements(request):
-    stmts = models.Statement.objects.filter(user=request.user).order_by('-stored')
+    stmts = Statement.objects.filter(user=request.user).order_by('-stored')
     result = "[%s]" % ",".join([stmt.object_return() for stmt in stmts])
 
     response = HttpResponse(result, mimetype='application/json', status=200)

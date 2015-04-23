@@ -1,6 +1,6 @@
 import os
 import sys
-from fabric.api import local,run
+from fabric.api import local
 
 def setup_env():
     INSTALL_STEPS = ['virtualenv ../env;. ../env/bin/activate;pip install -r requirements.txt;deactivate']

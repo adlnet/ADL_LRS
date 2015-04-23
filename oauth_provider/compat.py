@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 import django
 
-# location of patterns, url, include changes in 1.4 onwards
+from django.conf.urls import patterns, url, include
 
-try:
-    from django.conf.urls import patterns, url, include
-except ImportError:
-    from django.conf.urls.defaults import patterns, url, include
 
 
 # in Django>=1.5 CustomUser models can be specified

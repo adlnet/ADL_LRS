@@ -3,12 +3,10 @@ import urllib
 import base64
 import json
 import ast
-import datetime
 
 from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.utils.timezone import utc
 
 from ..views import register, agent_profile
 

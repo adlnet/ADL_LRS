@@ -3,7 +3,6 @@ import email
 import urllib
 import json
 import itertools
-import re
 from base64 import b64decode, b64encode
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
@@ -258,12 +257,12 @@ def get_headers(headers):
     if 'HTTP_UPDATED' in headers:
         try:
             r['updated'] = parse_datetime(headers['HTTP_UPDATED'])
-        except (Exception, ISO8601Error), e:
+        except (Exception, ISO8601Error):
             raise ParamError("Updated header was not a valid ISO8601 timestamp")        
     elif 'updated' in headers:
         try:
             r['updated'] = parse_datetime(headers['updated'])
-        except (Exception, ISO8601Error), e:
+        except (Exception, ISO8601Error):
             raise ParamError("Updated header was not a valid ISO8601 timestamp")
 
     r['CONTENT_TYPE'] = headers.get('CONTENT_TYPE', '')

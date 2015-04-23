@@ -5,13 +5,10 @@ import json
 import base64
 import ast
 import uuid
-import datetime
 
 from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.utils.timezone import utc
-from django.utils import timezone
 
 from ..views import activity_state, register
 

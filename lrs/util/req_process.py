@@ -1,15 +1,13 @@
 import json
 import uuid
 import copy
-import binascii
 from base64 import b64decode
 
 from datetime import datetime
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.timezone import utc
-
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
 from ..models import Statement, StatementAttachment, Agent, Activity
@@ -251,7 +249,7 @@ def build_response(stmt_result):
                 for chunk in sha2[1].chunks():
                     decoded_data = b64decode(chunk)
                     chunks.append(decoded_data)
-            except OSError, e:
+            except OSError:
                 raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
 
             string_list.append("".join(chunks) + line_feed)

@@ -4,7 +4,6 @@ import base64
 import uuid
 import urllib
 import hashlib
-import binascii
 import os
 
 from datetime import datetime, timedelta
@@ -1849,7 +1848,6 @@ class StatementsTests(TestCase):
         textdata.add_header('X-Experience-API-Hash', txtsha)
         message.attach(stmtdata)
         message.attach(textdata)
-        cutoff = message.as_string()[14:]
 
         r = self.client.post(reverse(statements), message.as_string(),
             content_type='multipart/mixed; boundary=myboundary', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
