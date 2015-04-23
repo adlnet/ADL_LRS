@@ -11,11 +11,10 @@ from django.utils.timezone import utc
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
 from ..models import Statement, StatementAttachment, Agent, Activity
-from ..objects.ActivityProfileManager import ActivityProfileManager
-from ..objects.ActivityStateManager import ActivityStateManager 
-from ..objects.AgentManager import AgentManager
-from ..objects.AgentProfileManager import AgentProfileManager
-from ..objects.StatementManager import StatementManager
+from ..managers.ActivityProfileManager import ActivityProfileManager
+from ..managers.ActivityStateManager import ActivityStateManager 
+from ..managers.AgentProfileManager import AgentProfileManager
+from ..managers.StatementManager import StatementManager
 
 
 def process_statements(stmts, auth, version):
@@ -362,7 +361,7 @@ def activities_get(req_dict):
 def agent_profile_post(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
-    a = AgentManager(agent).Agent
+    a = Agent.objects.retrieve_or_create(**agent)[0]
     ap = AgentProfileManager(a)
     ap.post_profile(req_dict)
 
@@ -371,7 +370,7 @@ def agent_profile_post(req_dict):
 def agent_profile_put(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
-    a = AgentManager(agent).Agent
+    a = Agent.objects.retrieve_or_create(**agent)[0]
     ap = AgentProfileManager(a)
     ap.put_profile(req_dict)
 
@@ -380,7 +379,7 @@ def agent_profile_put(req_dict):
 def agent_profile_get(req_dict):
     # add ETag for concurrency
     agent = req_dict['params']['agent']
-    a = AgentManager(agent).Agent
+    a = Agent.objects.retrieve_or_create(**agent)[0]
     ap = AgentProfileManager(a)
 
     profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
@@ -400,7 +399,7 @@ def agent_profile_get(req_dict):
 
 def agent_profile_delete(req_dict):
     agent = req_dict['params']['agent']
-    a = AgentManager(agent).Agent
+    a = Agent.objects.retrieve_or_create(**agent)[0]
     profileId = req_dict['params']['profileId']
     ap = AgentProfileManager(a)
     ap.delete_profile(profileId)

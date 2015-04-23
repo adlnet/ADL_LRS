@@ -6,7 +6,6 @@ from django.db import transaction
 from django.utils.timezone import utc
 from django.core.exceptions import ValidationError
 
-from .AgentManager import AgentManager
 from ..models import ActivityState, Agent
 from ..exceptions import IDNotFoundError, ParamError
 from ..util import etag, uri
@@ -30,7 +29,7 @@ class ActivityStateManager():
         self.since = request_dict['params'].get('since', None)
 
     def __get_agent(self):
-        return AgentManager(self.agent).Agent
+        return Agent.objects.retrieve_or_create(**self.agent)[0]
 
     @transaction.commit_on_success
     def post(self):
@@ -131,7 +130,7 @@ class ActivityStateManager():
         p.state.save(fn, state)
 
     def get(self):
-        ifp = get_agent_ifp(json.loads(self.agent))
+        ifp = get_agent_ifp(self.agent)
         agent = Agent.objects.get(**ifp)
 
         try:
@@ -143,7 +142,7 @@ class ActivityStateManager():
             raise IDNotFoundError(err_msg)
 
     def get_set(self,**kwargs):
-        ifp = get_agent_ifp(json.loads(self.agent))
+        ifp = get_agent_ifp(self.agent)
         agent = Agent.objects.get(**ifp)
 
         if self.registration:

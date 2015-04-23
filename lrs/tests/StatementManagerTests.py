@@ -9,7 +9,7 @@ from django.conf import settings
 
 from ..models import *
 from ..views import register, statements
-from ..objects.ActivityManager import ActivityManager
+from ..managers.ActivityManager import ActivityManager
 
 class StatementManagerTests(TestCase):
     

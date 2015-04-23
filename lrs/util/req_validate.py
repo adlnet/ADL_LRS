@@ -346,6 +346,7 @@ def activity_state_post(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
@@ -394,6 +395,7 @@ def activity_state_put(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
@@ -434,6 +436,7 @@ def activity_state_get(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
@@ -473,6 +476,7 @@ def activity_state_delete(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
@@ -610,6 +614,7 @@ def agent_profile_post(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
@@ -648,6 +653,7 @@ def agent_profile_put(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
@@ -679,6 +685,7 @@ def agent_profile_get(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
@@ -707,6 +714,7 @@ def agent_profile_delete(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
         except Exception, e:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
