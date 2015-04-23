@@ -44,7 +44,7 @@ This version is stable, but only intended to support a small amount of users as 
     	    'ENGINE': 'django.db.backends.postgresql_psycopg2',
 	        'NAME': 'lrs',
 	        'USER': '<db_owner>',
-	        'PASSWORD': 'password',   # Comment out these lines if
+	        'PASSWORD': '<password>',   # Comment out these lines if
 	        'HOST': 'localhost',      # using postgresql "peer" auth.
 	        'PORT': '',               # See pg_hba.conf for details
 	    }
@@ -84,11 +84,10 @@ given in *settings.py* are the same as those you created.
 
 While still in the ADL_LRS directory, run
 
-    (env)dbowner:ADL_LRS$ supervisord
+    (env)dbowner:ADL_LRS$ python manage.py runserver
 
-To verify it's running
+This starts a lightweight development web server on the local machine. By default, the server runs on port 8000 on the IP address 127.0.0.1. You can pass in an IP address and port number explicitly. This will serve your static files without setting up Nginx but must NOT be used for production purposes. Press `CTRL + C` to stop the server
 
-    (env)dbowner:ADL_LRS$ supervisorctl
 
 Set your site domain
 
@@ -100,11 +99,8 @@ Set your site domain
 
 Whenever you want to exit the virtual environment, just type `deactivate`
 
-You should see a task named web running. This will host the application using gunicorn with 2 worker processes.
-If you open a browser and visit http://localhost:8000/xapi you will hit the LRS. Gunicorn does not serve static files
-so no CSS will be present. This is fine if you're doing testing/development but if you want to host a production-ready
-LRS, Nginx needs to be setup to serve static files. For more production-like environments, we also recommend using uWSGI instead of Gunicorn. Please read [these](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production) instructions for including
-Nginx and using uWSGI intead of Gunicorn. For a more detailed description of the tools being used in general, visit [here](https://github.com/adlnet/ADL_LRS/wiki/Putting-the-Pieces-Together). Additionally if you're just doing dev, instead of using supervisor you can just run `python manage.py runserver` and use Django's built-in web server.
+
+For other ways to start and run the LRS, please visit our Wiki.
 
 ## Test LRS
     
