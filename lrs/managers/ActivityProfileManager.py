@@ -120,7 +120,7 @@ class ActivityProfileManager():
         try:
             return ActivityProfile.objects.get(profileId=profileId, activityId=activityId)
         except ActivityProfile.DoesNotExist:
-            err_msg = 'There is no profile associated with the id: %s' % profileId
+            err_msg = 'There is no activity profile associated with the id: %s' % profileId
             raise IDNotFoundError(err_msg)
 
     def get_profile_ids(self, activityId, since=None):

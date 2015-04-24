@@ -117,7 +117,7 @@ class AgentProfileManager():
         try:
             return self.Agent.agentprofile_set.get(profileId=profile_id)
         except:
-            err_msg = 'There is no profile associated with the id: %s' % profile_id
+            err_msg = 'There is no agent profile associated with the id: %s' % profile_id
             raise IDNotFoundError(err_msg)
 
     def get_profile_ids(self, since=None):

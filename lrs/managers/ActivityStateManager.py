@@ -4,12 +4,10 @@ import json
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.timezone import utc
-from django.core.exceptions import ValidationError
 
-from ..models import ActivityState, Agent
+from ..models import ActivityState
 from ..exceptions import IDNotFoundError, ParamError
-from ..util import etag, uri
-from ..util.util import get_agent_ifp
+from ..util import etag
 
 class ActivityStateManager():
     def __init__(self, agent):
@@ -147,12 +145,11 @@ class ActivityStateManager():
             raise IDNotFoundError(err_msg)
 
     def get_state_ids(self, activity_id, registration, since):
-        try:
-            state_set = self.get_state_set(activity_id, registration, since)
-        except ActivityState.DoesNotExist:
-            err_msg = 'There is no activity state associated with the ID: %s' % state_id
-            raise IDNotFoundError(err_msg)
-        return state_set.values_list('state_id', flat=True)
+        state_set = self.get_state_set(activity_id, registration, since)
+        # If state_set isn't empty
+        if state_set:
+            return state_set.values_list('state_id', flat=True)
+        return state_set
 
     def delete_state(self, request_dict):
         state_id = request_dict['params'].get('stateId', None)
