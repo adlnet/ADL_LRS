@@ -12,169 +12,161 @@ from ..util import etag, uri
 from ..util.util import get_agent_ifp
 
 class ActivityStateManager():
-    def __init__(self, request_dict, log_dict=None):        
-        if not uri.validate_uri(request_dict['params']['activityId']):
-            err_msg = 'Activity ID %s is not a valid URI' % request_dict['params']['activityId']       
-            raise ParamError(err_msg)
+    def __init__(self, agent):
+        self.Agent = agent
 
-        self.req_dict = request_dict
-        self.agent = request_dict['params']['agent']
-        self.activity_id = request_dict['params']['activityId']
-        self.registration = request_dict['params'].get('registration', None)
-        self.stateId = request_dict['params'].get('stateId', None)
-        self.updated = request_dict['headers'].get('updated', None)
-        self.content_type = request_dict['headers'].get('CONTENT_TYPE', None)
-        self.state = request_dict.get('state', None)
-        self.etag = request_dict.get('ETAG', None)
-        self.since = request_dict['params'].get('since', None)
+    def save_non_json_state(self, s, state, request_dict):
+        s.content_type = request_dict['headers']['CONTENT_TYPE']
+        s.etag = etag.create_tag(state.read())
 
-    def __get_agent(self):
-        return Agent.objects.retrieve_or_create(**self.agent)[0]
+        if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
+            s.updated = request_dict['headers']['updated']
+        else:
+            s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+        
+        # Go to beginning of file
+        state.seek(0)
+        fn = "%s_%s_%s" % (s.agent_id, s.activity_id, request_dict.get('filename', s.id))
+        s.state.save(fn, state)
+
+        s.save()
+
+    def get_state_set(self, activity_id, registration, since):
+        if registration:
+            # Registration and since
+            if since:
+                state_set = self.Agent.activitystate_set.filter(activity_id=activity_id, registration_id=registration, updated__gt=since)
+            # Registration
+            else:
+                state_set = self.Agent.activitystate_set.filter(activity_id=activity_id, registration_id=registration)
+        else:
+            # Since
+            if since:
+                state_set = self.Agent.activitystate_set.filter(activity_id=activity_id, updated__gt=since)
+            # Neither
+            else:
+                state_set = self.Agent.activitystate_set.filter(activity_id=activity_id)
+        return state_set
 
     @transaction.commit_on_success
-    def post(self):
-        agent = self.__get_agent()
-
-        if self.registration:
-            p,created = ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registration)
+    def post_state(self, request_dict):
+        registration = request_dict['params'].get('registration', None)
+        if registration:
+            s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
+                activity_id=request_dict['params']['activityId'], registration_id=request_dict['params']['registration'])
         else:
-            p,created = ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
+            s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
+                activity_id=request_dict['params']['activityId'])
         
-        if "application/json" not in self.content_type:
+        if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
-                post_state = ContentFile(self.state.read())
+                post_state = ContentFile(request_dict['state'].read())
             except:
                 try:
-                    post_state = ContentFile(self.state)
+                    post_state = ContentFile(request_dict['state'])
                 except:
-                    post_state = ContentFile(str(self.state))
-
-            # Doesn't matter if it's created or not, content_type and state get overridden with new state 
-            p.content_type = self.content_type
-            if self.updated:
-                p.updated = self.updated
-            else:
-                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-            p.save()
-            fn = "%s_%s_%s" % (p.agent_id,p.activity_id, self.req_dict.get('filename', p.id))
-            p.state.save(fn, post_state)
+                    post_state = ContentFile(str(request_dict['state']))
+            self.save_non_json_state(s, post_state, request_dict)
         else:
-            post_state = self.state
+            post_state = request_dict['state']
+            # If incoming state is application/json and if a state didn't already exist with the same agent, stateId, actId, and/or registration
             if created:
-                p.json_state = post_state
-                p.content_type = self.content_type
-                p.etag = etag.create_tag(post_state)
-
-                if self.updated:
-                    p.updated = self.updated
+                s.json_state = post_state
+                s.content_type = request_dict['headers']['CONTENT_TYPE']
+                s.etag = etag.create_tag(post_state)
+            # If incoming state is application/json and if a state already existed with the same agent, stateId, actId, and/or registration
             else:
-                orig_state = json.loads(p.json_state)
+                orig_state = json.loads(s.json_state)
                 post_state = json.loads(post_state)
                 if not isinstance(post_state, dict):
                     raise ParamError("The document was not able to be parsed into a JSON object.")
                 else:
                     merged = json.dumps(dict(orig_state.items() + post_state.items()))
-                p.json_state = merged
-                p.etag = etag.create_tag(merged)
-                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-
-            p.save()
+                s.json_state = merged
+                s.etag = etag.create_tag(merged)
+    
+                #Set updated
+            if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
+                s.updated = request_dict['headers']['updated']
+            else:
+                s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            s.save()
         
     @transaction.commit_on_success
-    def put(self):
-        agent = self.__get_agent()
-        if self.registration:
-            p,created = ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id,registration_id=self.registration)
+    def put_state(self, request_dict):
+        registration = request_dict['params'].get('registration', None)
+        if registration:
+            s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
+                activity_id=request_dict['params']['activityId'], registration_id=request_dict['params']['registration'])
         else:
-            p,created = ActivityState.objects.get_or_create(state_id=self.stateId,agent=agent,activity_id=self.activity_id)
+            s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
+                activity_id=request_dict['params']['activityId'])
         
-        if "application/json" not in self.content_type:
+        if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
-                state = ContentFile(self.state.read())
+                post_state = ContentFile(request_dict['state'].read())
             except:
                 try:
-                    state = ContentFile(self.state)
+                    post_state = ContentFile(request_dict['state'])
                 except:
-                    state = ContentFile(str(self.state))
-
+                    post_state = ContentFile(str(request_dict['state']))
+            
+            # If a state already existed with the profileId and activityId
             if not created:
-                etag.check_preconditions(self.req_dict,p)
-                p.state.delete() # remove old state file
-            p.content_type = self.content_type
-            self.save_state(p, created, state)
+                etag.check_preconditions(request_dict, s)
+                if s.state:
+                    try:
+                        s.state.delete()
+                    except OSError:
+                        # probably was json before
+                        s.json_state = {}
+            self.save_non_json_state(s, post_state, request_dict)
+        # State being PUT is json
         else:
             if not created:
-                etag.check_preconditions(self.req_dict, p)
-            the_state = self.state
-            p.json_state = the_state
-            p.content_type = self.content_type
-            p.etag = etag.create_tag(the_state)
-            if self.updated:
-                p.updated = self.updated
+                etag.check_preconditions(request_dict, s)
+            the_state = request_dict['state']
+            s.json_state = the_state
+            s.content_type = request_dict['headers']['CONTENT_TYPE']
+            s.etag = etag.create_tag(the_state)
+
+            #Set updated
+            if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
+                s.updated = request_dict['headers']['updated']
             else:
-                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-            p.save()
+                s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            s.save()
 
-    def save_state(self, p, created, state):
-        p.content_type = self.content_type
-        p.etag = etag.create_tag(state.read())
-        if self.updated:
-            p.updated = self.updated
-        else:
-            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-        state.seek(0)
-        if created:
-            p.save()
-
-        fn = "%s_%s_%s" % (p.agent_id,p.activity_id, self.req_dict.get('filename', p.id))
-        p.state.save(fn, state)
-
-    def get(self):
-        ifp = get_agent_ifp(self.agent)
-        agent = Agent.objects.get(**ifp)
-
+    def get_state(self, activity_id, registration, state_id):
         try:
-            if self.registration:
-                return ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id, registration_id=self.registration)
-            return ActivityState.objects.get(state_id=self.stateId, agent=agent, activity_id=self.activity_id)
+            if registration:
+                return self.Agent.activitystate_set.get(state_id=state_id, activity_id=activity_id, registration_id=registration)
+            return self.Agent.activitystate_set.get(state_id=state_id, activity_id=activity_id)
         except ActivityState.DoesNotExist:
-            err_msg = 'There is no activity state associated with the id: %s' % self.stateId
+            err_msg = 'There is no activity state associated with the id: %s' % state_id
             raise IDNotFoundError(err_msg)
 
-    def get_set(self,**kwargs):
-        ifp = get_agent_ifp(self.agent)
-        agent = Agent.objects.get(**ifp)
-
-        if self.registration:
-            state_set = ActivityState.objects.filter(agent=agent, activity_id=self.activity_id, registration_id=self.registration)
-        else:
-            state_set = ActivityState.objects.filter(agent=agent, activity_id=self.activity_id)
-        return state_set
-
-    def get_ids(self):
+    def get_state_ids(self, activity_id, registration, since):
         try:
-            state_set = self.get_set()
+            state_set = self.get_state_set(activity_id, registration, since)
         except ActivityState.DoesNotExist:
-            err_msg = 'There is no activity state associated with the ID: %s' % self.stateId
+            err_msg = 'There is no activity state associated with the ID: %s' % state_id
             raise IDNotFoundError(err_msg)
-        if self.since:
-            try:
-                # this expects iso6801 date/time format "2013-02-15T12:00:00+00:00"
-                state_set = state_set.filter(updated__gte=self.since)
-            except ValidationError:
-                err_msg = 'Since field is not in correct format for retrieval of state IDs'
-                raise ParamError(err_msg) 
         return state_set.values_list('state_id', flat=True)
 
-    def delete(self):
+    def delete_state(self, request_dict):
+        state_id = request_dict['params'].get('stateId', None)
+        activity_id = request_dict['params']['activityId']
+        registration = request_dict['params'].get('registration', None)
         try:
-            if not self.stateId:
-                state = self.get_set()
-                for s in state:
+            # Bulk delete if stateId is not in params
+            if not state_id:
+                states = self.get_state_set(activity_id, registration, None)
+                for s in states:
                     s.delete() # bulk delete skips the custom delete function
+            # Single delete
             else:
-                state = self.get()
-                state.delete()
+                self.get_state(activity_id, registration, state_id).delete()
         except ActivityState.DoesNotExist:
             pass
         except IDNotFoundError:

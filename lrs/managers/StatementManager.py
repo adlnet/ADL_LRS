@@ -266,12 +266,6 @@ class StatementManager():
                 self.data['authority'] = Agent.objects.retrieve_or_create(**self.data['full_statement']['authority'])[0]
                 self.auth['authority'] = self.data['authority']
                 
-                # TODO - what to do with authority field in statement here?
-                # Since no data about auth sent in with request, have to set it with the authority agent
-                # If authorty is just an agent, won't necessarily be a user and will have define scope
-                # if self.auth['authority'].objectType == 'Group':
-                #     self.auth['user'] = self.auth['authority'].get_user_from_oauth_group()
-                #     self.auth['define'] = 
             # Empty auth in request or statement
             else:
                 self.auth['authority'] = None

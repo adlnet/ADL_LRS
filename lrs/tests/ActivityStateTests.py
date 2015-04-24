@@ -577,12 +577,14 @@ class ActivityStateTests(TestCase):
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
         
         content = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
-        param = "stateId=%s&activityId=%s&agent=%s&content=%s&Content-Type=application/x-www-form-urlencoded&Authorization=%s&X-Experience-API-Version=1.0.0" % (sid, self.activityId, testagent, content, auth)
+        param = "stateId=%s&activityId=%s&agent=%s&content=%s&Content-Type=application/x-www-form-urlencoded&Authorization=%s&X-Experience-API-Version=1.0.0" % (sid, self.activityId,
+            testagent, content, auth)
+
         put1 = self.client.post(path, param, content_type='application/x-www-form-urlencoded')
  
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
-        
+
         r = self.client.get(self.url, {"stateId": sid, "activityId": self.activityId, "agent": testagent}, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=auth)
         self.assertEqual(r.status_code, 200)
         import ast

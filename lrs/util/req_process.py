@@ -267,38 +267,49 @@ def build_response(stmt_result):
 
 def activity_state_post(req_dict):
     # test ETag for concurrency
-    actstate = ActivityStateManager(req_dict)
-    actstate.post()
-
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]
+    actstate = ActivityStateManager(a)
+    actstate.post_state(req_dict)
     return HttpResponse("", status=204)
 
 def activity_state_put(req_dict):
     # test ETag for concurrency
-    actstate = ActivityStateManager(req_dict)
-    actstate.put()
-
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]
+    actstate = ActivityStateManager(a)
+    actstate.put_state(req_dict)
     return HttpResponse("", status=204)
 
 def activity_state_get(req_dict):
     # add ETag for concurrency
-    actstate = ActivityStateManager(req_dict)
-    stateId = req_dict['params'].get('stateId', None) if 'params' in req_dict else None
-    if stateId: # state id means we want only 1 item
-        resource = actstate.get()
+    state_id = req_dict['params'].get('stateId', None)
+    activity_id = req_dict['params']['activityId']
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]
+    registration = req_dict['params'].get('registration', None)
+    actstate = ActivityStateManager(a)
+    # state id means we want only 1 item
+    if state_id:
+        resource = actstate.get_state(activity_id, registration, state_id)
         if resource.state:
             response = HttpResponse(resource.state.read(), content_type=resource.content_type)
         else:
             response = HttpResponse(resource.json_state, content_type=resource.content_type)
-        response['ETag'] = '"%s"' %resource.etag
-    else: # no state id means we want an array of state ids
-        resource = actstate.get_ids()
+        response['ETag'] = '"%s"' % resource.etag
+    # no state id means we want an array of state ids
+    else:
+        since = req_dict['params'].get('since', None)
+        resource = actstate.get_state_ids(activity_id, registration, since)
         response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     return response
 
 def activity_state_delete(req_dict):
-    actstate = ActivityStateManager(req_dict)
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]
+    actstate = ActivityStateManager(a)
     # Delete state
-    actstate.delete()
+    actstate.delete_state(req_dict)
     return HttpResponse('', status=204)
 
 def activity_profile_post(req_dict):
@@ -337,7 +348,7 @@ def activity_profile_get(req_dict):
 
     #Return IDs of profiles stored since profileId was not submitted
     since = req_dict['params'].get('since', None) if 'params' in req_dict else None
-    resource = ap.get_profile_ids(activityId,since)
+    resource = ap.get_profile_ids(activityId, since)
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     response['since'] = since
     return response
@@ -347,7 +358,6 @@ def activity_profile_delete(req_dict):
     ap = ActivityProfileManager()
     # Delete profile and return success
     ap.delete_profile(req_dict)
-
     return HttpResponse('', status=204)
 
 def activities_get(req_dict):
