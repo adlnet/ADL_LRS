@@ -1,9 +1,10 @@
 # Django settings for adl_lrs project.
-from unipath import Path
+from os import path, walk
+from os.path import dirname, abspath
 
 # Root of LRS
-SETTINGS_PATH = Path(__file__)
-PROJECT_ROOT = SETTINGS_PATH.ancestor(3)
+SETTINGS_DIR = dirname(abspath(__file__))
+PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 
 # If you want to debug
 DEBUG = True
@@ -57,7 +58,7 @@ USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
-MEDIA_ROOT = PROJECT_ROOT.child('media')
+MEDIA_ROOT = path.join(PROJECT_ROOT, 'media')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
@@ -210,8 +211,8 @@ INSTALLED_APPS = (
     'south'
 )
 
-REQUEST_HANDLER_LOG_DIR = Path(PROJECT_ROOT, 'logs/django_request.log')
-DEFAULT_LOG_DIR = Path(PROJECT_ROOT, 'logs/lrs.log')
+REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
+DEFAULT_LOG_DIR = path.join(PROJECT_ROOT, 'logs/lrs.log')
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.

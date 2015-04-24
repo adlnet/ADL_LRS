@@ -31,7 +31,6 @@ from oauth2_provider.provider.oauth2.models import Client, AccessToken
 
 # This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
- 
 LOGIN_URL = "/accounts/login"
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
@@ -74,13 +73,13 @@ def stmt_validator(request):
             try:
                 valid = validator.validate()
             except ParamError, e:
-                return render_to_response('validator.html', {"form": form,"error_message": e.message},
+                return render_to_response('validator.html', {"form": form, "error_message": e.message},
                     context_instance=context)
             else:
                 return render_to_response('validator.html', {"form": form,"valid_message": valid},
                     context_instance=context)
         else:
-            return render_to_response('validator.html', {"form": form},
+            return render_to_response('validator.html', {"form": form, "error_message": "Data: " + form.errors['jsondata'][0]},
                 context_instance=context)
 
 # Hosted example activites for the tests

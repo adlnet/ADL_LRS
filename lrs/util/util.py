@@ -56,10 +56,6 @@ def convert_post_body_to_dict(incoming_data):
     qs = urlparse.parse_qsl(urllib.unquote_plus(incoming_data))
     return dict((k,v) for k, v in qs)
 
-def validate_uuid(uuid):
-    id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
-    return id_regex.match(uuid)
-
 def get_lang(langdict, lang):
     if lang:
         # Return where key = lang

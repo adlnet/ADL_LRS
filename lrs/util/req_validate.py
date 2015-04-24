@@ -5,7 +5,7 @@ from isodate.isoerror import ISO8601Error
 
 from django.conf import settings
 
-from util import validate_uuid, convert_to_dict, get_agent_ifp
+from util import convert_to_dict, get_agent_ifp
 from Authorization import auth
 from StatementValidator import StatementValidator
 
@@ -340,8 +340,7 @@ def activity_state_post(req_dict):
         raise ParamError(err_msg)    
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
@@ -389,8 +388,7 @@ def activity_state_put(req_dict):
         raise ParamError(err_msg)    
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
@@ -430,8 +428,7 @@ def activity_state_get(req_dict):
         raise ParamError(err_msg)
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
@@ -470,8 +467,7 @@ def activity_state_delete(req_dict):
         raise ParamError(err_msg)
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:

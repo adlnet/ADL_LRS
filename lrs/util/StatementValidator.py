@@ -6,6 +6,7 @@ from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 
 from ..exceptions import ParamError
+from util import convert_to_dict
 
 SCHEME = 2
 EMAIL = 5
@@ -46,35 +47,17 @@ class StatementValidator():
 	def __init__(self, data=None):
 		# If incoming is a string, ast eval it (exception will be caught with whatever is calling validator)
 		if data:
-			if isinstance(data, basestring):
-				try:
-					self.data = ast.literal_eval(data)
-				except Exception:
-					self.data = json.loads(data)
-			# If incoming data is already a list 
-			elif isinstance(data, list):
-				# If each item in list is not a dict, then try to load them as one
-				if not all(isinstance(item, dict) for item in data):
-					self.data = [json.loads(st) for st in data]
-				# Else it is a list of all dicts
-				else:
-					self.data = data
-			# If incoming data is not a string or list, try loading into dict
-			else:
-				self.data = data
+			self.data = convert_to_dict(data)
 
 	def validate(self):
 		# If list, validate each stmt inside
-		if self.data:
-			if isinstance(self.data, list):
-				for st in self.data:
-					self.validate_statement(st)
-				return "All Statements are valid"
-			else:
-				self.validate_statement(self.data)
-				return "Statement is valid"
+		if isinstance(self.data, list):
+			for st in self.data:
+				self.validate_statement(st)
+			return "All Statements are valid"
 		else:
-			return "There's no data!"
+			self.validate_statement(self.data)
+			return "Statement is valid"
 
 	def return_error(self, err_msg):
 		raise ParamError(err_msg)
