@@ -26,7 +26,7 @@ class ActivityManagerTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")           
+        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)           
 
     #Called on all activity django models to see if they were created with the correct fields    
     def do_activity_model(self,realid,act_id, objType):
@@ -122,7 +122,7 @@ class ActivityManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample)}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -165,7 +165,7 @@ class ActivityManagerTests(TestCase):
         st_list.append(stmt2)
 
         response = self.client.post(reverse(statements), json.dumps(st_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
@@ -182,7 +182,7 @@ class ActivityManagerTests(TestCase):
             "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample2)}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -219,7 +219,7 @@ class ActivityManagerTests(TestCase):
             'description': {'en-US':'testdesc'}, 'type': 'type:course','interactionType': 'other'}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -247,7 +247,7 @@ class ActivityManagerTests(TestCase):
                 'description': {'en-FR':'desc'}, 'type': 'type:course','interactionType': 'other'}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)[0]
@@ -275,7 +275,7 @@ class ActivityManagerTests(TestCase):
                 'type': 'type:link','interactionType': 'other'}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -299,7 +299,7 @@ class ActivityManagerTests(TestCase):
         stmt1 = "This string should throw exception since it's not JSON"
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "Cannot evaluate data into dictionary to parse -- Error: This string should throw exception since it's not JSON")
@@ -313,7 +313,7 @@ class ActivityManagerTests(TestCase):
                 'description': {'en-GB':'testdesc'}, 'type': 'type:link','interactionType': 'other'}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Activity id with value foo was not a valid URI')
@@ -327,7 +327,7 @@ class ActivityManagerTests(TestCase):
                 'type': 'type:course','interactionType': 'other'}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")       
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)       
         self.assertEqual(response.status_code, 200)
 
         st_id = json.loads(response.content)
@@ -357,7 +357,7 @@ class ActivityManagerTests(TestCase):
                 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -388,7 +388,7 @@ class ActivityManagerTests(TestCase):
                 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -425,7 +425,7 @@ class ActivityManagerTests(TestCase):
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Activity definition interactionType intType2 is not valid')
@@ -441,7 +441,7 @@ class ActivityManagerTests(TestCase):
                 'ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -481,7 +481,7 @@ class ActivityManagerTests(TestCase):
                 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -523,7 +523,7 @@ class ActivityManagerTests(TestCase):
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -562,7 +562,7 @@ class ActivityManagerTests(TestCase):
                 'ext:key2': 'value2', 'ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -599,7 +599,7 @@ class ActivityManagerTests(TestCase):
                 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -639,7 +639,7 @@ class ActivityManagerTests(TestCase):
                 {'id':'likert_3', 'description': {'en-US': 'Its Gonna Change the World'}}]}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -683,7 +683,7 @@ class ActivityManagerTests(TestCase):
                 {'id':'3', 'description':{'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}}]}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -729,7 +729,7 @@ class ActivityManagerTests(TestCase):
                 {'id':'lunch', 'description':{'en-US':'Lunch having been eaten'}}]}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -772,7 +772,7 @@ class ActivityManagerTests(TestCase):
                 'description':{'en-US':'Aaron', 'en-GB': 'Erin'}}]}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -808,7 +808,7 @@ class ActivityManagerTests(TestCase):
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -845,7 +845,7 @@ class ActivityManagerTests(TestCase):
                 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -895,7 +895,7 @@ class ActivityManagerTests(TestCase):
         stmt_list.append(stmt4)
 
         response = self.client.post(reverse(statements), json.dumps(stmt_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
@@ -922,7 +922,7 @@ class ActivityManagerTests(TestCase):
                     'correctResponsesPattern': ['(35,-86)']}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
@@ -960,7 +960,7 @@ class ActivityManagerTests(TestCase):
         stmt_list.append(stmt2)
 
         response = self.client.post(reverse(statements), json.dumps(stmt_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
@@ -1018,7 +1018,7 @@ class ActivityManagerTests(TestCase):
         stmt_list.append(stmt2)
 
         response = self.client.post(reverse(statements), json.dumps(stmt_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
@@ -1071,7 +1071,7 @@ class ActivityManagerTests(TestCase):
         stmt_list.append(stmt2)
 
         response = self.client.post(reverse(statements), json.dumps(stmt_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
@@ -1126,7 +1126,7 @@ class ActivityManagerTests(TestCase):
         stmt_list.append(stmt2)
 
         response = self.client.post(reverse(statements), json.dumps(stmt_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_ids = json.loads(response.content)
@@ -1164,7 +1164,7 @@ class ActivityManagerTests(TestCase):
             'correctResponsesPattern': ['(35,-86)']}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)

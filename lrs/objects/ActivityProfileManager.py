@@ -33,7 +33,7 @@ class ActivityProfileManager():
             #     p.updated = request_dict['headers']['updated']
             # else:
             #     p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-            self.save_profile(p, created, profile, request_dict)
+            self.save_profile(p, created, post_profile, request_dict)
         else:
             post_profile = request_dict['profile']
             if created:

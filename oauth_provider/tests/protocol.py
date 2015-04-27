@@ -177,7 +177,7 @@ class ProtocolExample(BaseOAuthTestCase):
 
         parameters = {'oauth_token': request_token.key}
         self.c.login(username='jane', password='toto')
-        response = self.c.get("/oauth/authorize/", parameters)
+        self.c.get("/oauth/authorize/", parameters)
         parameters['authorize_access'] = 1
         self.c.post("/oauth/authorize/", parameters)
 

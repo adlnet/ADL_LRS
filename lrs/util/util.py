@@ -3,7 +3,7 @@ import json
 import re
 import urllib
 import urlparse
-from dateutil import parser
+from isodate.isodatetime import parse_datetime
 
 from django.db.models import get_models, get_app
 from django.contrib import admin
@@ -33,7 +33,7 @@ def get_agent_ifp(data):
 
 def convert_to_utc(timestr):
     try:
-        date_object = parser.parse(timestr)
+        date_object = parse_datetime(timestr)
     except ValueError as e:
         raise ParamError("There was an error while parsing the date from %s -- Error: %s" % (timestr, e.message))
     return date_object

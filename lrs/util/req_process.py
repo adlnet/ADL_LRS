@@ -1,15 +1,13 @@
 import json
 import uuid
 import copy
-import binascii
 from base64 import b64decode
 
 from datetime import datetime
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.timezone import utc
-
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
 from ..models import Statement, StatementAttachment, Agent, Activity
@@ -20,7 +18,7 @@ from ..objects.AgentProfileManager import AgentProfileManager
 from ..objects.StatementManager import StatementManager
 
 
-def process_statements(stmts, auth):
+def process_statements(stmts, auth, version):
     stmt_responses = []
    # Handle batch POST
     if type(stmts) is list:
@@ -30,7 +28,7 @@ def process_statements(stmts, auth):
                     st['id'] = str(uuid.uuid1())
                 
                 if not 'version' in st:
-                    st['version'] = "1.0.1"
+                    st['version'] = version
     
                 if 'context' in st and 'contextActivities' in st['context']:
                     for k, v in st['context']['contextActivities'].items():
@@ -61,7 +59,7 @@ def process_statements(stmts, auth):
             stmts['id'] = str(uuid.uuid1())
 
         if not 'version' in stmts:
-            stmts['version'] = "1.0.0"
+            stmts['version'] = version
 
         if 'context' in stmts and 'contextActivities' in stmts['context']:
             for k, v in stmts['context']['contextActivities'].items():
@@ -147,12 +145,12 @@ def process_complex_get(req_dict):
 
 def statements_post(req_dict):
     auth = req_dict['auth']
-    stmt_responses = process_statements(req_dict['body'], auth)
+    stmt_responses = process_statements(req_dict['body'], auth, req_dict['headers']['X-Experience-API-Version'])
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
-    process_statements(req_dict['body'], auth)
+    process_statements(req_dict['body'], auth, req_dict['headers']['X-Experience-API-Version'])
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
@@ -251,7 +249,7 @@ def build_response(stmt_result):
                 for chunk in sha2[1].chunks():
                     decoded_data = b64decode(chunk)
                     chunks.append(decoded_data)
-            except OSError, e:
+            except OSError:
                 raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
 
             string_list.append("".join(chunks) + line_feed)
@@ -329,7 +327,10 @@ def activity_profile_get(req_dict):
     if profileId:
         resource = ap.get_profile(profileId, activityId)
         if resource.profile:
-            response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+            try:
+                response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+            except IOError:
+                response = HttpResponseNotFound("Error reading file, could not find: %s" % profileId)
         else:
             response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
         response['ETag'] = '"%s"' % resource.etag

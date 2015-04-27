@@ -206,7 +206,8 @@ INSTALLED_APPS = (
     'oauth2_provider.provider.oauth2',
     'django.contrib.admin',
     'django_extensions',
-    'jsonify'
+    'jsonify',
+    'south'
 )
 
 REQUEST_HANDLER_LOG_DIR = Path(PROJECT_ROOT, 'logs/django_request.log')
@@ -235,6 +236,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': DEFAULT_LOG_DIR,
+            # 'filename': '../logs/lrs.log',
             'maxBytes': 1024*1024*5, # 5 MB
             'backupCount': 5,
             'formatter':'standard',
@@ -243,6 +245,7 @@ LOGGING = {
                 'level':'DEBUG',
                 'class':'logging.handlers.RotatingFileHandler',
                 'filename': REQUEST_HANDLER_LOG_DIR,
+                # 'filename': '../logs/django_request.log', 
                 'maxBytes': 1024*1024*5, # 5 MB
                 'backupCount': 5,
                 'formatter':'standard',

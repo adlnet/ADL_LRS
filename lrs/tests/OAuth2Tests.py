@@ -290,11 +290,11 @@ class AccessTokenTest(OAuth2Tests):
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
 
-        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -306,10 +306,10 @@ class AccessTokenTest(OAuth2Tests):
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
-        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -321,22 +321,22 @@ class AccessTokenTest(OAuth2Tests):
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
-        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization="Bearer " + token['access_token'], content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 2)
 
-        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization=self.get_user_auth(), content_type="application/json")
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.get_user_auth(), content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
         stmts = json.loads(stmt_get.content)['statements']
         self.assertEqual(len(stmts), 2)
@@ -352,7 +352,7 @@ class AccessTokenTest(OAuth2Tests):
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)        
 
     def test_post_statements(self):
@@ -364,7 +364,7 @@ class AccessTokenTest(OAuth2Tests):
         stmt_json = json.dumps(stmt)
         
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
 
     def test_write_statements_wrong_scope(self):
@@ -376,7 +376,7 @@ class AccessTokenTest(OAuth2Tests):
         stmt_json = json.dumps(stmt)
         
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 403)
 
     def test_complex_statement_get(self):
@@ -389,13 +389,13 @@ class AccessTokenTest(OAuth2Tests):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}}]
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"activity":"act:test_complex_get"}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
-        resp = self.client.get(path,Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")        
+        resp = self.client.get(path,Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(resp.status_code, 200)
         stmts = json.loads(resp.content)['statements']
         self.assertEqual(len(stmts), 1)
@@ -421,7 +421,7 @@ class AccessTokenTest(OAuth2Tests):
                 }
             }
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         token = self._login_authorize_get_token()
@@ -447,13 +447,13 @@ class AccessTokenTest(OAuth2Tests):
             }
         # Doesn't have define permission - should create another activity with that ID that isn't canonical
         stmt_post2 = self.client.post(reverse(statements), json.dumps(stmt2), content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post2.status_code, 200)
         acts = Activity.objects.filter(activity_id="act:test_define")
         self.assertEqual(len(acts), 2)
 
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version="1.0.0")
+            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         token2 = self._login_authorize_get_token(scope="%s %s" % (constants.SCOPES[0][1], constants.SCOPES[4][1]), cid=1)
@@ -479,14 +479,14 @@ class AccessTokenTest(OAuth2Tests):
             }
         # Doesn't have define permission - should create another activity with that ID that isn't canonical
         stmt_post3 = self.client.post(reverse(statements), json.dumps(stmt3), content_type="application/json",
-            Authorization="Bearer " + token2['access_token'], X_Experience_API_Version="1.0.0")
+            Authorization="Bearer " + token2['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post3.status_code, 200)
         act_names = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_name', flat=True)
         act_descs = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
         self.assertEqual(len(act_names), 2)
         self.assertEqual(len(act_descs), 2)
-        self.assertIn({"en-US":"testname i define!"}, act_names)
-        self.assertIn({"en-US":"testdesc i define!"}, act_descs)
+        self.assertIn('{"en-US":"testname i define!"}', act_names)
+        self.assertIn('{"en-US":"testdesc i define!"}', act_descs)
 
     def test_fetching_access_token_with_valid_grant(self):
         self._login_authorize_get_token()

@@ -1,7 +1,7 @@
 import re
 import ast
 import json
-from dateutil import parser as timeparser
+from isodate.isodatetime import parse_datetime
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 
@@ -43,34 +43,38 @@ score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities', 'revision', 'platform', 'language', 'statement', 'extensions']
 
 class StatementValidator():
-	def __init__(self, data):
+	def __init__(self, data=None):
 		# If incoming is a string, ast eval it (exception will be caught with whatever is calling validator)
-		if isinstance(data, basestring):
-			try:
-				self.stmt = ast.literal_eval(data)
-			except Exception:
-				self.stmt = json.loads(data)
-		# If incoming data is already a list 
-		elif isinstance(data, list):
-			# If each item in list is not a dict, then try to load them as one
-			if not all(isinstance(item, dict) for item in data):
-				self.stmt = [json.loads(st) for st in data]
-			# Else it is a list of all dicts
+		if data:
+			if isinstance(data, basestring):
+				try:
+					self.data = ast.literal_eval(data)
+				except Exception:
+					self.data = json.loads(data)
+			# If incoming data is already a list 
+			elif isinstance(data, list):
+				# If each item in list is not a dict, then try to load them as one
+				if not all(isinstance(item, dict) for item in data):
+					self.data = [json.loads(st) for st in data]
+				# Else it is a list of all dicts
+				else:
+					self.data = data
+			# If incoming data is not a string or list, try loading into dict
 			else:
-				self.stmt = data
-		# If incoming data is not a string or list, try loading into dict
-		else:
-			self.stmt = data
-	
+				self.data = data
+
 	def validate(self):
 		# If list, validate each stmt inside
-		if isinstance(self.stmt, list):
-			for st in self.stmt:
-				self.validate_statement(st)
-			return "All Statements are valid"
+		if self.data:
+			if isinstance(self.data, list):
+				for st in self.data:
+					self.validate_statement(st)
+				return "All Statements are valid"
+			else:
+				self.validate_statement(self.data)
+				return "Statement is valid"
 		else:
-			self.validate_statement(self.stmt)
-			return "Statement is valid"
+			return "There's no data!"
 
 	def return_error(self, err_msg):
 		raise ParamError(err_msg)
@@ -147,8 +151,8 @@ class StatementValidator():
 		if 'timestamp' in stmt:
 			timestamp = stmt['timestamp']
 			try:
-				timeparser.parse(timestamp)
-			except ValueError as e:
+				parse_datetime(timestamp)
+			except ISO8601Error as e:
 				self.return_error("Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
 		# Validate the actor and verb
@@ -261,27 +265,30 @@ class StatementValidator():
 
 			# If no IFIs, it is an anonymous group which must contain the member property 
 			if not ifis:
+				# No ifi means anonymous group - must have member
 				if not 'member' in agent:
 					self.return_error("Anonymous groups must contain member")
+				else:
+					self.validate_members(agent)
 			else:
 				# IFI given, validate it
 				self.validate_ifi(ifis[0], agent[ifis[0]])
+				if 'member' in agent:
+					self.validate_members(agent)
 
-			# If member is in group (not required if have IFI)
-			if 'member' in agent and len(agent['member']) > 0:
-				# Ensure member list is array
-				members = agent['member']
-				self.check_if_list(members, "Members")
-				# Make sure no member of group is another group
-				object_types = [t['objectType'] for t in members if 'objectType' in t]
-				if 'Group' in object_types:
-					self.return_error('Group member value cannot be other groups')
-				# Validate each member in group
-				for agent in members:
-					self.validate_agent(agent, 'member')
-			# Members is empty
-			else:
-				self.return_error("Members must not be empty")
+	def validate_members(self, agent):
+		# Ensure member list is array
+		members = agent['member']
+		self.check_if_list(members, "Members")
+		if not members:
+			self.return_error("Member property must contain agents")
+		# Make sure no member of group is another group
+		object_types = [t['objectType'] for t in members if 'objectType' in t]
+		if 'Group' in object_types:
+			self.return_error('Group member value cannot be other groups')
+		# Validate each member in group
+		for agent in members:
+			self.validate_agent(agent, 'member')
 
 	def validate_ifi(self, ifis, ifi_value):
 		# Validate each IFI accordingly
@@ -391,7 +398,7 @@ class StatementValidator():
 			if not isinstance(definition['interactionType'], basestring):
 				self.return_error("Activity definition interactionType must be a string")
 
-			scorm_interaction_types = ['true-false', 'choice', 'fill-in','matching', 'performance',
+			scorm_interaction_types = ['true-false', 'choice', 'fill-in', 'long-fill-in', 'matching', 'performance',
 				'sequencing', 'likert', 'numeric', 'other']
 
 			#Check if valid SCORM interactionType
@@ -468,8 +475,8 @@ class StatementValidator():
 		if 'timestamp' in substmt:
 			timestamp = substmt['timestamp']
 			try:
-				timeparser.parse(timestamp)
-			except ValueError as e:
+				parse_datetime(timestamp)
+			except ISO8601Error as e:
 				self.return_error("Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
 		# Can't next substmts in other substmts - if not supplied it is an Activity

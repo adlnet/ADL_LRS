@@ -1090,7 +1090,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
     def test_request_token_rsa_sha1_wrong_key(self):
@@ -1675,7 +1675,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
     def test_unicode(self):
@@ -1814,7 +1814,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path, Authorization=unicode(oauth_header_resource_params), X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path, Authorization=unicode(oauth_header_resource_params), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
     def test_oauth_disabled(self):
@@ -1850,7 +1850,7 @@ Lw03eHTNQghS0A==
 
         # Put statements
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.content, "OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
 
@@ -1886,7 +1886,7 @@ Lw03eHTNQghS0A==
 
         # Put statements
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
 
     def test_stmt_post_no_scope(self):
@@ -1915,7 +1915,7 @@ Lw03eHTNQghS0A==
         oauth_header_resource_params += ',oauth_signature="%s"' % signature  
 
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
 
     def test_stmt_simple_get(self):
@@ -1924,7 +1924,7 @@ Lw03eHTNQghS0A==
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"statementId":guid}        
@@ -1947,7 +1947,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         rsp = resp.content
         self.assertIn(guid, rsp)
@@ -1957,7 +1957,7 @@ Lw03eHTNQghS0A==
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"activity":"act:test_complex_get"}
@@ -1981,7 +1981,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")        
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(resp.status_code, 200)
 
     def test_stmt_get_then_wrong_scope(self):
@@ -1990,7 +1990,7 @@ Lw03eHTNQghS0A==
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
         
         param = {"statementId":guid}
@@ -2014,7 +2014,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         rsp = resp.content
         self.assertIn(guid, rsp)
@@ -2041,7 +2041,7 @@ Lw03eHTNQghS0A==
         oauth_header_resource_params = oauth_header_resource_params.replace('oauth_nonce="resource_nonce"','oauth_nonce="another_nonce"')        
 
         post = self.client.post('/XAPI/statements/', data=post_stmt_json, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 403)
         self.assertEqual(post.content, 'Incorrect permissions to POST at /statements')
 
@@ -2075,7 +2075,7 @@ Lw03eHTNQghS0A==
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
         put = self.client.put(path, data=teststate, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put.status_code, 204)
         # ==========================================================
 
@@ -2085,7 +2085,7 @@ Lw03eHTNQghS0A==
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"statementId":guid}
@@ -2105,7 +2105,7 @@ Lw03eHTNQghS0A==
         new_oauth_headers = oauth_header_resource_params_new.replace('oauth_nonce="resource_nonce"','oauth_nonce="differ_nonce"')        
         
         get = self.client.get(path, content_type="application/json",
-            Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+            Authorization=new_oauth_headers, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(get.status_code, 403)
         self.assertEqual(get.content, 'Incorrect permissions to GET at /statements')
 
@@ -2115,7 +2115,7 @@ Lw03eHTNQghS0A==
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"statementId":guid}
@@ -2139,7 +2139,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         rsp = resp.content
         self.assertIn(guid, rsp)
@@ -2162,7 +2162,7 @@ Lw03eHTNQghS0A==
         # replace headers with the nonce you added in dict
         new_oauth_headers = new_sig_params.replace('oauth_nonce="resource_nonce"','oauth_nonce="differ_nonce"')        
         
-        r = self.client.get(path, Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+        r = self.client.get(path, Authorization=new_oauth_headers, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 403)
 
     def test_consumer_state(self):
@@ -2170,7 +2170,7 @@ Lw03eHTNQghS0A==
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"object":{"objectType": "Activity", "id":"act:test_complex_get"}}
@@ -2199,7 +2199,7 @@ Lw03eHTNQghS0A==
         consumer.status = 4
         consumer.save()
 
-        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")        
+        resp = self.client.get(path,Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.content, 'Invalid Consumer.')
 
@@ -2211,14 +2211,14 @@ Lw03eHTNQghS0A==
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {"username":username, "email":email,"password":password,"password2":password}
-        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
-        put_resp = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="1.0.0")
+        put_resp = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put_resp.status_code, 204)
         
         param = {"statementId":guid}
@@ -2243,7 +2243,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 403)
         # ===================================================
 
@@ -2260,7 +2260,7 @@ Lw03eHTNQghS0A==
         settings.ALLOW_EMPTY_HTTP_AUTH = True
 
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization="Basic %s" % base64.b64encode("%s:%s" % ('','')), X_Experience_API_Version="1.0.0")
+            Authorization="Basic %s" % base64.b64encode("%s:%s" % ('','')), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         param = {"statementId":guid}
@@ -2278,7 +2278,7 @@ Lw03eHTNQghS0A==
         new_oauth_headers = sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="get_differ_nonce"')        
 
         get = self.client.get(path, content_type="application/json",
-            Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+            Authorization=new_oauth_headers, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(get.status_code, 200)
         settings.ALLOW_EMPTY_HTTP_AUTH = False
 
@@ -2289,7 +2289,7 @@ Lw03eHTNQghS0A==
         password = "test"
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {"username":username, "email":email,"password":password,"password2":password}
-        self.client.post(reverse(register),form, X_Experience_API_Version="1.0.0")
+        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)
 
         # Put statement
         param = {"statementId":guid}
@@ -2297,7 +2297,7 @@ Lw03eHTNQghS0A==
         stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
-        put_response = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version="1.0.0")
+        put_response = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put_response.status_code, 204)
         # =============================================
 
@@ -2322,7 +2322,7 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+        resp = self.client.get(path, Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 403)
         # ====================================================
 
@@ -2340,7 +2340,7 @@ Lw03eHTNQghS0A==
 
         # Get statements
         get = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
-            Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+            Authorization=new_oauth_headers, X_Experience_API_Version=settings.XAPI_VERSION)
         get_content = json.loads(get.content)
         self.assertEqual(get.status_code, 200)
         self.assertEqual(len(get_content['statements']), 0)
@@ -2357,7 +2357,7 @@ Lw03eHTNQghS0A==
             "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.to_dict()}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         
@@ -2375,7 +2375,7 @@ Lw03eHTNQghS0A==
 
         # Get statements
         get2 = self.client.get('http://testserver/XAPI/statements', content_type="application/json",
-            Authorization=new_oauth_headers2, X_Experience_API_Version="1.0.0")
+            Authorization=new_oauth_headers2, X_Experience_API_Version=settings.XAPI_VERSION)
         get_content2 = json.loads(get2.content)
         self.assertEqual(get2.status_code, 200)
 
@@ -2413,7 +2413,7 @@ Lw03eHTNQghS0A==
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
         put = self.client.put(path, data=teststate, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put.status_code, 404)        
         self.assertEqual(put.content, "Agent in state cannot be found to match user in authorization")
 
@@ -2445,7 +2445,7 @@ Lw03eHTNQghS0A==
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
         get = self.client.get(path, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(get.status_code, 403)
         self.assertEqual(get.content, "Authorization doesn't match agent in profile")
 
@@ -2457,7 +2457,7 @@ Lw03eHTNQghS0A==
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"},
             "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
 
@@ -2495,7 +2495,7 @@ Lw03eHTNQghS0A==
         # Put statements - does not have define scope, therefore it creates another activity with 
         # canonical_version as false
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         acts = Activity.objects.all()
         self.assertEqual(len(acts), 2)
@@ -2517,7 +2517,7 @@ Lw03eHTNQghS0A==
         sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % signature2)
         new_oauth_headers = sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="get_differ_nonce"')        
 
-        get_resp = self.client.get(path, X_Experience_API_Version="1.0.0", Authorization=new_oauth_headers)
+        get_resp = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=new_oauth_headers)
         self.assertEqual(get_resp.status_code, 200)
         content = json.loads(get_resp.content)
         self.assertEqual(len(content['statements']), 2)
@@ -2555,7 +2555,7 @@ Lw03eHTNQghS0A==
 
         # This adds the act_def to the very first activity created in this test since this has define scope
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
         acts = Activity.objects.all()
         # One canonical act from jane, one local act for oauth_group jane is in since don't have define,
@@ -2596,7 +2596,7 @@ Lw03eHTNQghS0A==
             "display": {"en-US":"helped"}},"object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com",
             "name":"tim"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
 
@@ -2630,7 +2630,7 @@ Lw03eHTNQghS0A==
 
         # Put statements
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         agents = Agent.objects.all().values_list('name', flat=True)
         # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim, tim timson
@@ -2658,7 +2658,7 @@ Lw03eHTNQghS0A==
         sig = oauth_header_resource_params.replace('"%s"' % signature, '"%s"' % signature2)
         new_oauth_headers = sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="get_differ_nonce"')        
 
-        get_resp = self.client.get(path, X_Experience_API_Version="1.0.0",
+        get_resp = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION,
             Authorization=new_oauth_headers)
         self.assertEqual(get_resp.status_code, 200)
         content = json.loads(get_resp.content)
@@ -2708,7 +2708,7 @@ Lw03eHTNQghS0A==
         post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
         
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization=post_oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
         agents = Agent.objects.all()
         # These 5 agents are all non-global since created w/o define scope
@@ -2755,7 +2755,7 @@ Lw03eHTNQghS0A==
         oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
         
         post = self.client.post(TEST_SERVER + '/XAPI/statements/', data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)        
         # ====================================================
         stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/failed","display": {"en-US":"failed"}},
@@ -2773,7 +2773,7 @@ Lw03eHTNQghS0A==
         new_oauth_headers = sig.replace('oauth_nonce="resource_nonce"','oauth_nonce="post_differ_nonce"') 
 
         resp = self.client.post(TEST_SERVER + '/XAPI/statements/', data=stmt2, content_type="application/json",
-            Authorization=new_oauth_headers, X_Experience_API_Version="1.0.0")
+            Authorization=new_oauth_headers, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
     def test_update_activity_with_oauth_containing_user(self):
@@ -2783,7 +2783,7 @@ Lw03eHTNQghS0A==
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         # build stmt data and path
@@ -2819,7 +2819,7 @@ Lw03eHTNQghS0A==
         
         # Put statements - should update existing activity since jane is in oauth group
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         acts = Activity.objects.all()
         self.assertEqual(len(acts), 1)
@@ -2859,7 +2859,7 @@ Lw03eHTNQghS0A==
 
         # Put statements - should update existing activity since jane is in oauth group
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         # ==================================================================
 
@@ -2870,7 +2870,7 @@ Lw03eHTNQghS0A==
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
             'interactionType': 'other'}}})
         stmt_post = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         acts = Activity.objects.all()
@@ -2911,7 +2911,7 @@ Lw03eHTNQghS0A==
         
         # Put statements - should update existing activity since jane is in oauth group
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization=oauth_header_resource_params, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         # ==================================================================
 
@@ -2944,7 +2944,7 @@ Lw03eHTNQghS0A==
         
         # Put statements - should update existing activity since jane is in oauth group
         resp2 = self.client.put(path2, data=stmt2, content_type="application/json",
-            Authorization=oauth_header_resource_params2, X_Experience_API_Version="1.0.0")
+            Authorization=oauth_header_resource_params2, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp2.status_code, 204)
         # ==================================================================
 
@@ -2956,12 +2956,12 @@ Lw03eHTNQghS0A==
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
             'interactionType': 'other'}}})
         stmt_post = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.jane_auth, X_Experience_API_Version="1.0.0")
+            Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
         # ==================================================================
 
 
-        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version="1.0.0", Authorization=self.jane_auth)
+        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.jane_auth)
         self.assertEqual(stmt_get.status_code, 200)
         content = json.loads(stmt_get.content)
         self.assertEqual(len(content['statements']), 3)
