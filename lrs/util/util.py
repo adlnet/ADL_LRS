@@ -1,6 +1,5 @@
 import ast
 import json
-import re
 import urllib
 import urlparse
 from isodate.isodatetime import parse_datetime

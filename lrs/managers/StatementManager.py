@@ -1,5 +1,3 @@
-from functools import wraps
-
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
@@ -8,18 +6,6 @@ from .ActivityManager import ActivityManager
 from ..models import Verb, Statement, StatementRef, StatementAttachment, StatementContextActivity, SubStatement, SubStatementContextActivity, Agent 
 
 att_cache = get_cache('attachment_cache')
-
-class default_on_exception(object):
-    def __init__(self,default):
-        self.default = default
-    def __call__(self,f):
-        @wraps(f)
-        def closure(obj,*args,**kwargs):
-            try:
-                return f(obj,*args,**kwargs)
-            except:
-                return self.default
-        return closure
 
 class StatementManager():
     def __init__(self, data, auth, full_stmt={}):

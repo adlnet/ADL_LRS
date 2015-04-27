@@ -2181,4 +2181,3 @@ class StatementFilterTests(TestCase):
             X_Experience_API_Version=settings.XAPI_VERSION,HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
         self.assertEqual(more_get['Content-Type'], 'application/json')
-         

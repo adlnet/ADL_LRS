@@ -411,4 +411,3 @@ class ActivityTests(TestCase):
         response = self.client.put(reverse(activities), {'activityId':'act:my_activity'},
             content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 405)
-

@@ -16,11 +16,7 @@ class ActivityManagerTests(TestCase):
     def setUpClass(cls):
         print "\n%s" % __name__
 
-
-    def setUp(self):
-        if not settings.ALLOW_EMPTY_HTTP_AUTH:
-            settings.ALLOW_EMPTY_HTTP_AUTH = True
-        
+    def setUp(self):        
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
@@ -60,7 +56,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(answer,act.activity_definition_crpanswers)
 
     #Called on all activity django models with choices because of sequence and choice interactionType
-    def do_actvity_definition_choices_model(self, act, clist, dlist):
+    def do_activity_definition_choices_model(self, act, clist, dlist):
         # Grab all lang map IDs in act def
         choice_ids = [v['id'] for v in act.activity_definition_choices]
         choice_descs = [v['description'] for v in act.activity_definition_choices]
@@ -72,7 +68,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(d, choice_descs)
 
     #Called on all activity django models with scale because of likert interactionType
-    def do_actvity_definition_likert_model(self, act, clist, dlist):
+    def do_activity_definition_likert_model(self, act, clist, dlist):
         scale_ids = [v['id'] for v in act.activity_definition_scales]        
         scale_descs = [v['description'] for v in act.activity_definition_scales]
 
@@ -83,7 +79,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(d, scale_descs)
 
     #Called on all activity django models with steps because of performance interactionType
-    def do_actvity_definition_performance_model(self, act, slist, dlist):
+    def do_activity_definition_performance_model(self, act, slist, dlist):
         step_ids = [v['id'] for v in act.activity_definition_steps]
         step_descs = [v['description'] for v in act.activity_definition_steps]
 
@@ -94,7 +90,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(d, step_descs)
 
     #Called on all activity django models with source and target because of matching interactionType
-    def do_actvity_definition_matching_model(self, act, source_id_list, source_desc_list,
+    def do_activity_definition_matching_model(self, act, source_id_list, source_desc_list,
                                              target_id_list, target_desc_list):
 
         source_ids = [v['id'] for v in act.activity_definition_sources]
@@ -510,7 +506,7 @@ class ActivityManagerTests(TestCase):
         dlist = [{'en-GB': 'GOLF', 'en-US': 'Golf Example'}, {'en-GB': 'TETRIS', 'en-US': 'Tetris Example'},
         {'en-GB': 'FACEBOOK', 'en-US': 'Facebook App'}, {'en-GB': 'SCRABBLE', 'en-US': 'Scrabble Example'}]
 
-        self.do_actvity_definition_choices_model(act, clist, dlist)        
+        self.do_activity_definition_choices_model(act, clist, dlist)        
         
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and multiple choice but missing choices
     def test_activity_definition_cmiInteraction_multiple_choice_no_choices(self):
@@ -667,7 +663,7 @@ class ActivityManagerTests(TestCase):
         dlist = [{'en-GB': 'Tis OK', 'en-US': 'Its OK'},{'en-GB': 'Tis Pretty Cool', 'en-US': 'Its Pretty Cool'},
                  {'en-GB': 'Tis Cool Cool', 'en-US': 'Its Cool Cool'}, {'en-US': 'Its Gonna Change the World'}]
         
-        self.do_actvity_definition_likert_model(act, clist, dlist)
+        self.do_activity_definition_likert_model(act, clist, dlist)
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and matching interactionType
     def test_activity_definition_cmiInteraction_matching(self):    
@@ -713,7 +709,7 @@ class ActivityManagerTests(TestCase):
         target_desc_list = [{"en-US": "SCORM Engine"},{"en-US": "Pure-sewage"},
                             {'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}]
 
-        self.do_actvity_definition_matching_model(act, source_id_list, source_desc_list,
+        self.do_activity_definition_matching_model(act, source_id_list, source_desc_list,
                                                   target_id_list, target_desc_list)
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and performance interactionType
@@ -757,7 +753,7 @@ class ActivityManagerTests(TestCase):
         dlist = [{'en-GB': 'won', 'en-US': 'Net pong matches won'}, {'en-US': 'Strokes over par in disc golf at Liberty'},
                     {'en-US': 'Lunch having been eaten'}]
         
-        self.do_actvity_definition_performance_model(act, slist, dlist)
+        self.do_activity_definition_performance_model(act, slist, dlist)
 
     # Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and sequencing interactionType
     def test_activity_definition_cmiInteraction_sequencing(self):    
@@ -796,7 +792,7 @@ class ActivityManagerTests(TestCase):
         #Check model choice values
         clist = ['lou', 'tom', 'andy', 'aaron']
         dlist = [{"en-US": "Lou"},{"en-US": "Tom"},{"en-US": "Andy"}, {'en-GB': 'Erin', 'en-US': 'Aaron'}]
-        self.do_actvity_definition_choices_model(act, clist, dlist)
+        self.do_activity_definition_choices_model(act, clist, dlist)
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and numeric interactionType
     def test_activity_definition_cmiInteraction_numeric(self):

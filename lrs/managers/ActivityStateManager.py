@@ -168,4 +168,3 @@ class ActivityStateManager():
             pass
         except IDNotFoundError:
             pass
-            

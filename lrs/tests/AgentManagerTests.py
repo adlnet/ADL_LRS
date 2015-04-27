@@ -15,9 +15,6 @@ class AgentManagerTests(TestCase):
         print "\n%s" % __name__
 
     def setUp(self):
-        if not settings.ALLOW_EMPTY_HTTP_AUTH:
-            settings.ALLOW_EMPTY_HTTP_AUTH = True
-        
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
