@@ -4,7 +4,6 @@ pytz==2012c
 bencode==1.0
 psycopg2==2.5
 isodate==0.4.9
-unipath==1.0
 pycrypto==2.5
 django-extensions==1.1.1
 jsonfield==0.9.19
