@@ -444,7 +444,7 @@ class ActivityProfileTests(TestCase):
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         
         put = self.client.put(path, '{test:body}', content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEquals(put.content, 'activityId param for activity profile with value foo was not a valid URI')
+        self.assertEquals(put.content, 'activityId param for activity profile with value foo was not a valid IRI')
 
     def test_current_tetris(self):
         params = {"profileId":"profile:highscores","activityId":"act:adlnet.gov/JsTetris_TCAPI"}

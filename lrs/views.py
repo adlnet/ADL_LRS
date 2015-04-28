@@ -61,14 +61,10 @@ def stmt_validator(request):
         if form.is_valid():
             # Initialize validator (validates incoming data structure)
             try:
-                validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
-            except (SyntaxError, ValueError):
-                return render_to_response('validator.html', {"form": form, "error_message": "Statement is not a properly formatted dictionary"},
-                context_instance=context)             
+                validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])            
             except Exception, e:
                 return render_to_response('validator.html', {"form": form, "error_message": e.message},
                 context_instance=context)
-
             # Once know it's valid JSON, validate keys and fields
             try:
                 valid = validator.validate()
@@ -76,6 +72,7 @@ def stmt_validator(request):
                 return render_to_response('validator.html', {"form": form, "error_message": e.message},
                     context_instance=context)
             else:
+                form.cleaned_data['jsondata'] = json.dumps(json.loads(form.cleaned_data['jsondata']), indent=4, sort_keys=True)
                 return render_to_response('validator.html', {"form": form,"valid_message": valid},
                     context_instance=context)
         else:

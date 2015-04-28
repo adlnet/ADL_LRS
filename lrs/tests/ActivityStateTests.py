@@ -469,7 +469,7 @@ class ActivityStateTests(TestCase):
         params = {"stateId": self.stateId, "activityId": "foo", "agent": self.testagent}
         r = self.client.get(self.url, params, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 400)
-        self.assertIn('activityId param for activity state with value foo was not a valid URI', r.content)
+        self.assertIn('activityId param for activity state with value foo was not a valid IRI', r.content)
 
     def test_delete_without_activityid(self):
         testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}

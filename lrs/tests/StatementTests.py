@@ -861,7 +861,7 @@ class StatementTests(TestCase):
             "password2":wrong_password}
         self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)
 
-        stmt = json.dumps({"verb":{"id":"verb:verb/uri/attempted"},"actor":{"objectType":"Agent", "mbox":"mailto:r@r.com"},
+        stmt = json.dumps({"verb":{"id":"verb:verb/iri/attempted"},"actor":{"objectType":"Agent", "mbox":"mailto:r@r.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"},
             "type": "http://www.adlnet.gov/experienceapi/activity-types/http://adlnet.gov/expapi/activities/cmi.interaction",
@@ -968,7 +968,7 @@ class StatementTests(TestCase):
 
     def test_issue_put(self):
         stmt_id = "33f60b35-e1b2-4ddc-9c6f-7b3f65244430" 
-        stmt = json.dumps({"verb":{"id":"verb:verb/uri"},"object":{"id":"act:scorm.com/JsTetris_TCAPI","definition":{"type":"type:media",
+        stmt = json.dumps({"verb":{"id":"verb:verb/iri"},"object":{"id":"act:scorm.com/JsTetris_TCAPI","definition":{"type":"type:media",
             "name":{"en-US":"Js Tetris - Tin Can Prototype"},"description":{"en-US":"A game of tetris."}}},
             "context":{"contextActivities":{"grouping":{"id":"act:scorm.com/JsTetris_TCAPI"}},
             "registration":"6b1091be-2833-4886-b4a6-59e5e0b3c3f4"},
@@ -982,7 +982,7 @@ class StatementTests(TestCase):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
-        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"}, {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"}, {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/iri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
@@ -998,7 +998,7 @@ class StatementTests(TestCase):
         ot = "Group"
         name = "the group ML"
         mbox = "mailto:the.groupML@example.com"
-        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox},"verb":{"id": "http://verb/iri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
@@ -1013,7 +1013,7 @@ class StatementTests(TestCase):
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
         members = "wrong"
-        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/iri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -1024,7 +1024,7 @@ class StatementTests(TestCase):
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
         members = []
-        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+        stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":members},"verb":{"id": "http://verb/iri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -1794,7 +1794,7 @@ class StatementTests(TestCase):
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertIn('not a valid URI', response.content)
+        self.assertIn('not a valid IRI', response.content)
 
     def test_tag_act_id_uri(self):
         act_id = "tag:adlnet.gov,2013:expapi:0.9:activities"

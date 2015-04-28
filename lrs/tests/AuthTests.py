@@ -487,7 +487,7 @@ class AuthTests(TestCase):
 
     def test_issue_put(self):
         stmt_id = "33f60b35-e1b2-4ddc-9c6f-7b3f65244430" 
-        stmt = json.dumps({"verb":{"id":"verb:verb/uri"},"object":{"id":"act:scorm.com/JsTetris_TCAPI","definition":{"type":"type:media",
+        stmt = json.dumps({"verb":{"id":"verb:verb/iri"},"object":{"id":"act:scorm.com/JsTetris_TCAPI","definition":{"type":"type:media",
             "name":{"en-US":"Js Tetris - Tin Can Prototype"},"description":{"en-US":"A game of tetris."}}},
             "context":{"contextActivities":{"grouping":{"id":"act:scorm.com/JsTetris_TCAPI"}},
             "registration":"6b1091be-2833-4886-b4a6-59e5e0b3c3f4"},
@@ -503,7 +503,7 @@ class AuthTests(TestCase):
         mbox = "mailto:the.groupST@example.com"
 
         stmt = json.dumps({"actor":{"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},
-            {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/uri/created", "display":{"en-US":"created"}},
+            {"name":"agentB","mbox":"mailto:agentB@example.com"}]},"verb":{"id": "http://verb/iri/created", "display":{"en-US":"created"}},
             "object": {"id":"act:i.pity.the.fool"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",  Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
@@ -1105,7 +1105,7 @@ class AuthTests(TestCase):
         ot = "Group"
         name = "the group ST"
         mbox = "mailto:the.groupST@example.com"
-        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/iri/joined", "display":{"en-US":"joined"}},
             "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -1120,7 +1120,7 @@ class AuthTests(TestCase):
         group = {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}
         Agent.objects.retrieve_or_create(**group)
 
-        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/uri/joined", "display":{"en-US":"joined"}},
+        stmt = json.dumps({"actor":{"name":"agentA","mbox":"mailto:agentA@example.com"},"verb":{"id": "http://verb/iri/joined", "display":{"en-US":"joined"}},
             "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
         
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)

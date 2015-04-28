@@ -8,7 +8,7 @@ from util import convert_to_dict
 
 SCHEME = 2
 EMAIL = 5
-uri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
+iri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
 sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
@@ -62,7 +62,7 @@ class StatementValidator():
 
 	def validate_email(self, email):
 		if isinstance(email, basestring):
-			res = uri_re.match(email)
+			res = iri_re.match(email)
 			if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None:
 				self.return_error("mbox value [%s] did not start with mailto:" % email)
 		else:
@@ -75,10 +75,10 @@ class StatementValidator():
 		else:
 			self.return_error("mbox_sha1sum value must be a string type")	
 
-	def validate_uri(self, uri_value, field):
-		if isinstance(uri_value, basestring):
-			if not uri_re.match(uri_value).group(SCHEME):
-				self.return_error("%s with value %s was not a valid URI" % (field, uri_value))
+	def validate_iri(self, iri_value, field):
+		if isinstance(iri_value, basestring):
+			if not iri_re.match(iri_value).group(SCHEME):
+				self.return_error("%s with value %s was not a valid IRI" % (field, iri_value))
 		else:
 			self.return_error("%s must be a string type" % field)
 		
@@ -174,11 +174,11 @@ class StatementValidator():
 			self.check_required_fields(attachment_required_fields, attach, "Attachment")
 
 			# Validate usageType
-			self.validate_uri(attach['usageType'], 'Attachments usageType')
+			self.validate_iri(attach['usageType'], 'Attachments usageType')
 
 			# If fileUrl included, validate it
 			if 'fileUrl' in attach:
-				self.validate_uri(attach['fileUrl'], 'Attachments fileUrl')
+				self.validate_iri(attach['fileUrl'], 'Attachments fileUrl')
 			else:
 				# If fileUrl is not included, sha2 must be - only time sha2 is required
 				if not 'sha2' in attach:
@@ -207,9 +207,9 @@ class StatementValidator():
 		# Ensure incoming extensions is a dict
 		self.check_if_dict(extensions, "%s extensions" % field)
 		
-		# Ensure each key in extensions is a valid URI
+		# Ensure each key in extensions is a valid IRI
 		for k, v in extensions.items():
-			self.validate_uri(k, field)
+			self.validate_iri(k, field)
 
 	def validate_agent(self, agent, placement):
 		# Ensure incoming agent is a dict and check allowed fields
@@ -278,7 +278,7 @@ class StatementValidator():
 		elif ifis == 'mbox_sha1sum':
 			self.validate_email_sha1sum(ifi_value)
 		elif ifis == 'openid':
-			self.validate_uri(ifi_value, 'openid')
+			self.validate_iri(ifi_value, 'openid')
 		elif ifis == 'account':
 			self.validate_account(ifi_value)
 
@@ -288,8 +288,8 @@ class StatementValidator():
 		self.check_allowed_fields(account_fields, account, "Account")
 		self.check_required_fields(account_fields, account, "Account")
 
-		# Ensure homePage is a valid URI
-		self.validate_uri(account['homePage'], 'homePage')
+		# Ensure homePage is a valid IRI
+		self.validate_iri(account['homePage'], 'homePage')
 
 		# Ensure name is a string
 		if not isinstance(account['name'], basestring):
@@ -303,7 +303,7 @@ class StatementValidator():
 		# Verb must conatin id - then validate it
 		if not 'id' in verb:
 			self.return_error('Verb must contain an id')
-		self.validate_uri(verb['id'], 'Verb id')
+		self.validate_iri(verb['id'], 'Verb id')
 
 		# If display given, ensure it's a dict (language map)
 		if 'display' in verb:
@@ -349,8 +349,8 @@ class StatementValidator():
 		if not 'id' in activity:
 			self.return_error("Id field must be present in an Activity")
 
-		# Id must be valid URI
-		self.validate_uri(activity['id'], "Activity id")
+		# Id must be valid IRI
+		self.validate_iri(activity['id'], "Activity id")
 
 		# If definition included, validate it
 		if 'definition' in activity:
@@ -367,11 +367,11 @@ class StatementValidator():
 		if 'description' in definition:
 			self.check_if_dict(definition['description'], "Activity definition description")
 
-		# If type or moreInfo included, ensure it is valid URI
+		# If type or moreInfo included, ensure it is valid IRI
 		if 'type' in definition:
-			self.validate_uri(definition['type'], 'Activity definition type')
+			self.validate_iri(definition['type'], 'Activity definition type')
 		if 'moreInfo' in definition:
-			self.validate_uri(definition['moreInfo'], 'Activity definition moreInfo')
+			self.validate_iri(definition['moreInfo'], 'Activity definition moreInfo')
 
 		interactionType = None
 		# If interactionType included, ensure it is a string

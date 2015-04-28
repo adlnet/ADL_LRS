@@ -330,7 +330,7 @@ def activity_state_post(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -378,7 +378,7 @@ def activity_state_put(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -422,7 +422,7 @@ def activity_state_get(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -461,7 +461,7 @@ def activity_state_delete(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -493,7 +493,7 @@ def activity_profile_post(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -521,7 +521,7 @@ def activity_profile_put(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -547,7 +547,7 @@ def activity_profile_get(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -568,7 +568,7 @@ def activity_profile_delete(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)

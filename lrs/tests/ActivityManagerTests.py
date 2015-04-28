@@ -300,7 +300,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "Cannot evaluate data into dictionary to parse -- Error: This string should throw exception since it's not JSON")
 
-    #Test activity where given URL isn't URI
+    #Test activity where given URL isn't IRI
     def test_activity_invalid_activity_id(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -312,7 +312,7 @@ class ActivityManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'Activity id with value foo was not a valid URI')
+        self.assertEqual(response.content, 'Activity id with value foo was not a valid IRI')
 
     #Test activity with definition - must retrieve activity object in order to test definition from DB
     def test_activity_definition(self):

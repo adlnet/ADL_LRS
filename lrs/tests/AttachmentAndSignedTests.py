@@ -599,7 +599,7 @@ class AttachmentAndSignedTests(TestCase):
         response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertIn('Attachments fileUrl with value  was not a valid URI', response.content)
+        self.assertIn('Attachments fileUrl with value  was not a valid IRI', response.content)
 
     def test_multipart_put(self):
         stmt_id = str(uuid.uuid1())
@@ -833,7 +833,7 @@ class AttachmentAndSignedTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertIn('Attachments fileUrl with value blah was not a valid URI', response.content)
+        self.assertIn('Attachments fileUrl with value blah was not a valid IRI', response.content)
 
 
 
@@ -863,7 +863,7 @@ class AttachmentAndSignedTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertIn('Attachments fileUrl with value  was not a valid URI', response.content)
+        self.assertIn('Attachments fileUrl with value  was not a valid IRI', response.content)
 
     def test_multipart_non_text_file(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
