@@ -42,7 +42,7 @@
               <div class="nav-collapse collapse">
                 {% if user.is_authenticated %}
                 <ul class="nav pull-right">
-                    <li><a href="{% url lrs.views.me %}">{{user.username}}</a></li>
+                    <li><a href="{% url lrs.views.me %}">{{user.username}}'s account</a></li>
                     <li><a href="{% url logout %}">logout</a></li>
                 </ul>
                 {% else %}
