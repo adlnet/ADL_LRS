@@ -79,19 +79,6 @@ def stmt_validator(request):
             return render_to_response('validator.html', {"form": form, "error_message": "Data: " + form.errors['jsondata'][0]},
                 context_instance=context)
 
-# Hosted example activites for the tests
-def actexample(request):
-    return render_to_response('actexample.json', mimetype="application/json")
-
-def actexample2(request):
-    return render_to_response('actexample2.json', mimetype="application/json")
-
-def actexample3(request):
-    return render_to_response('actexample3.json', mimetype="application/json")
-
-def actexample4(request):
-    return render_to_response('actexample4.json', mimetype="application/json")
-
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 

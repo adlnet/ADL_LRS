@@ -353,10 +353,6 @@ def activity_state_post(req_dict):
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
     
-    if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-        err_msg = "The content type for activity state POSTs must be application/json"
-        raise ParamError(err_msg)
-    
     # Must have body included for state
     if 'body' not in req_dict:
         err_msg = "Could not find the state"
@@ -500,10 +496,6 @@ def activity_profile_post(req_dict):
 
     if not 'profileId' in req_dict['params']:
         err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg)    
-
-    if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-        err_msg = "The content type for activity profile POSTs must be application/json"
         raise ParamError(err_msg)
     
     if 'body' not in req_dict:
@@ -620,10 +612,6 @@ def agent_profile_post(req_dict):
 
     if not 'profileId' in req_dict['params']:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg) 
-
-    if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-        err_msg = "The content type for agent profile POSTs must be application/json"
         raise ParamError(err_msg)
     
     if 'body' not in req_dict:

@@ -7,7 +7,7 @@ from django.contrib.sites.models import Site
 from django.test import TestCase
 
 from ..models import Activity, Statement
-from ..views import register, statements, actexample, actexample2, actexample4, home
+from ..views import register, statements, home
 
 CURRENT_SITE = settings.SITE_SCHEME + '://' + Site.objects.get_current().domain
 
@@ -111,100 +111,6 @@ class ActivityManagerTests(TestCase):
         for t_desc in target_desc_list:
             self.assertIn(t_desc, target_descs)            
 
-
-    # Test activity that doesn't have a def (populates everything from JSON)
-    def test_activity_no_def_json_conform(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample)}})
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-
-        self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)
-        st = Statement.objects.get(statement_id=st_id[0])
-        act = Activity.objects.get(id=st.object_activity.id)
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
-
-        # wrap first assertion around try to see if LRS is started
-        try:
-            self.assertEqual(name_set.keys()[0], 'en-FR')
-        except Exception, e:
-            raise Exception("Be sure to have the LRS started for this test " + e.message)
-    
-        self.assertEqual(name_set.values()[0], 'Example Name')
-        self.assertEqual(name_set.keys()[1], 'en-CH')
-        self.assertEqual(name_set.values()[1], 'Alt Name')
-
-        self.assertEqual(desc_set.keys()[0], 'en-US')
-        self.assertEqual(desc_set.values()[0], 'Example Desc')
-        self.assertEqual(desc_set.keys()[1], 'en-CH')
-        self.assertEqual(desc_set.values()[1], 'Alt Desc')
-
-        self.do_activity_model(act.id, CURRENT_SITE + reverse(actexample), 'Activity')        
-        self.do_activity_definition_model(act, 'type:module','other')
-
-    # Test that passing in the same info gets the same activity
-    def test_activity_no_def_not_link_schema_conform1(self):
-        st_list = []
-
-        stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample)}}
-        
-        stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample)}}
-
-        st_list.append(stmt1)
-        st_list.append(stmt2)
-
-        response = self.client.post(reverse(statements), json.dumps(st_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
-        self.assertEqual(response.status_code, 200)
-        st_ids = json.loads(response.content)
-        st1 = Statement.objects.get(statement_id=st_ids[0])
-        st2 = Statement.objects.get(statement_id=st_ids[1])
-        act1 = Activity.objects.get(id=st1.object_activity.id)
-        act2 = Activity.objects.get(id=st2.object_activity.id)
-        self.assertEqual(act2.id, act1.id)
-
-    # Test activity that doesn't have a def with extensions (populates everything from XML)
-    def test_activity_no_def_schema_conform_extensions(self):
-        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample2)}})
-
-        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
-        self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)
-        st = Statement.objects.get(statement_id=st_id[0])
-        act = Activity.objects.get(id=st.object_activity.id)
-
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
-        
-        # wrap first assertion around try to see if LRS is started
-        try:
-            self.assertEqual(name_set.keys()[0], 'en-US')
-        except Exception, e:
-            raise Exception("Be sure to have the LRS started for this test " + e.message)
-
-        self.assertEqual(name_set.values()[0], 'Example Name')
-
-        self.assertEqual(desc_set.keys()[0], 'en-US')
-        self.assertEqual(desc_set.values()[0], 'Example Desc')
-
-        self.do_activity_model(act.id, CURRENT_SITE + reverse(actexample2), 'Activity')        
-        self.do_activity_definition_model(act, 'type:module','other')
-
-        self.do_activity_definition_extensions_model(act, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
-            'second value', 'third value')
-
     # Test an activity that has a def, and the provided ID doesn't resolve
     # (should still use values from JSON)
     def test_activity_no_resolve(self):
@@ -233,34 +139,6 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_model(act.id, 'act://var/www/adllrs/activity/example.json', 'Activity')        
         self.do_activity_definition_model(act, 'type:course', 'other')
-
-    # Test an activity that has a def (should use values from payload and override JSON from ID)
-    def test_activity_from_id(self):
-        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType': 'Activity',
-                'id':CURRENT_SITE + reverse(actexample4),'definition': {'name': {'en-FR': 'name'},
-                'description': {'en-FR':'desc'}, 'type': 'type:course','interactionType': 'other'}}})
-
-        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
-        self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)[0]
-        st = Statement.objects.get(statement_id=st_id)
-        act = Activity.objects.get(id=st.object_activity.id)
-
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
-
-        self.assertEqual(name_set.keys()[0], 'en-FR')
-        self.assertEqual(name_set.values()[0], 'name')
-
-        self.assertEqual(desc_set.keys()[0], 'en-FR')
-        self.assertEqual(desc_set.values()[0], 'desc')
-
-        self.do_activity_model(act.id, CURRENT_SITE + reverse(actexample4), 'Activity')        
-        self.do_activity_definition_model(act, 'type:course','other')
 
     # Test an activity that has a def and the ID resolves (should use values from payload)
     def test_activity_id_resolve(self):

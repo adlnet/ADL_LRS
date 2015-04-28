@@ -137,8 +137,13 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                                 <pre id="as" class="json_pre">{{ as.json_state }}</pre>
                                 <input class="hidden" type="hidden" value="{{ as.json_state }}">
                             {% else %}
-                                Activity State data is not JSON data.
-                                <input class="hidden" type="hidden" value="">
+                                {% if as.content_type == "application/octect-stream" or as.content_type == "text/plain" %}
+                                    <pre id="as" class="json_pre">{{ as.state.read }}</pre>
+                                    <input class="hidden" type="hidden" value="{{ as.state.read }}">
+                                {% else %}
+                                    Cannot display state (non-text and non-JSON)
+                                    <input class="hidden" type="hidden" value="">
+                                {% endif %}
                             {% endif %}
                             {% if as.state_id == "http://adlnet.gov/xapi/profile/scorm/activity-state" %}
                                 <br>
