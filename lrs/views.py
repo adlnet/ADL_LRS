@@ -38,14 +38,17 @@ LOGIN_URL = "/accounts/login"
 def home(request):
     context = RequestContext(request)
     context.update(csrf(request))
-
+    
     stats = {}
     stats['usercnt'] = User.objects.all().count()
     stats['stmtcnt'] = Statement.objects.all().count()
     stats['verbcnt'] = Verb.objects.all().count()
     stats['agentcnt'] = Agent.objects.filter().count()
     stats['activitycnt'] = Activity.objects.filter().count()
-    return render_to_response('home.html', {'stats':stats}, context_instance=context)
+
+    if request.method == 'GET':
+        form = RegisterForm()
+        return render_to_response('home.html', {'stats':stats, "form": form}, context_instance=context)
 
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 @csrf_protect
@@ -197,33 +200,29 @@ def about(request):
     return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)
 
 @csrf_protect
-@require_http_methods(["POST", "GET"])
+@require_http_methods(["POST"])
 def register(request):
     context = RequestContext(request)
     context.update(csrf(request))
     
-    if request.method == 'GET':
-        form = RegisterForm()
-        return render_to_response('register.html', {"form": form}, context_instance=context)
-    elif request.method == 'POST':
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            name = form.cleaned_data['username']
-            pword = form.cleaned_data['password']
-            email = form.cleaned_data['email']
-            
-            try:
-                user = User.objects.get(username__exact=name)
-            except User.DoesNotExist:
-                user = User.objects.create_user(name, email, pword)
-            else:
-                return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
-                    context_instance=context)                
-            
-            d = {"info_message": "Thanks for registering. You can now use your name [%s] and password to sign in." % user.username}
-            return render_to_response('reg_success.html', d, context_instance=context)
+    form = RegisterForm(request.POST)
+    if form.is_valid():
+        name = form.cleaned_data['username']
+        pword = form.cleaned_data['password']
+        email = form.cleaned_data['email']
+        
+        try:
+            user = User.objects.get(username__exact=name)
+        except User.DoesNotExist:
+            user = User.objects.create_user(name, email, pword)
         else:
-            return render_to_response('register.html', {"form": form}, context_instance=context)
+            return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
+                context_instance=context)                
+        
+        d = {"info_message": "Thanks for registering. You can now use your name [%s] and password to sign in." % user.username}
+        return render_to_response('reg_success.html', d, context_instance=context)
+    else:
+        return render_to_response('register.html', {"form": form}, context_instance=context)
 
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["GET"])

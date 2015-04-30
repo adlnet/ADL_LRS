@@ -138,8 +138,8 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
                                 <input class="hidden" type="hidden" value="{{ as.json_state }}">
                             {% else %}
                                 {% if as.content_type == "application/octect-stream" or as.content_type == "text/plain" %}
-                                    <pre id="as" class="json_pre">{{ as.state.read }}</pre>
-                                    <input class="hidden" type="hidden" value="{{ as.state.read }}">
+                                    <pre id="as" class="json_pre">Not JSON</pre>
+                                    <input class="hidden" type="hidden" value="Not JSON">
                                 {% else %}
                                     Cannot display state (non-text and non-JSON)
                                     <input class="hidden" type="hidden" value="">

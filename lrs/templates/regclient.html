@@ -2,25 +2,55 @@
 {% block title %}ADL LRS Client Registration{% endblock title %}
 {% block heading %}ADL LRS Client Registration{% endblock heading %}
 {% block content %}
-<p>
-	Registration is used to enable OAuth Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register your client and follow the OAuth process, you will be able to send data back and forth from the LRS to your client.
-</p>
-{% for key,err in form.errors.items %}
-<span class="label label-warning">
-	<strong>{{ key }}</strong>:{{ err }}
-</span>
-{% endfor %}
-<p>Note: If you plan on using RSA-SHA1 as your signature method, please list it as it will be set as your client secret key. Else you can leave the field blank.</p>
-<form action="{% url lrs.views.reg_client %}" method="post">
-	{% include 'table_form.html' %}
-	<input type="submit" value="Register" />
-</form>
+<br>
+<div class="content">
+    <div class="pure-g">
+    	<div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+	    <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3">
+		    <h3 class="content-subhead">OAuth Client Registration</h3>
+			<p>
+				Registration is used to enable OAuth Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register your client and follow the OAuth process, you will be able to send data back and forth from the LRS to your client.
+			</p>
+			{% for key,err in form.errors.items %}
+			<p>
+				<strong>{{ key }}</strong>:{{ err }}
+			</p>
+			{% endfor %}
+			<p>Note: If you plan on using RSA-SHA1 as your signature method, please list it as it will be set as your client secret key. Else you can leave the field blank.</p>
+		    <form class="pure-form pure-form-stacked" action="{% url oauth:oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
+		      <fieldset>
+		          {% for field in form %}
+		            {% if field.name == 'name' %}
+		              <label for="{{ field.auto_id }}">{{ field.label }}</label>            
+		              <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input-1-2" type="text" required>
+		            {% elif field.name == 'description' %}
+		              <label for="{{ field.auto_id }}">{{ field.label }}</label>
+		          	  <textarea id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input-1"></textarea>
+		            {% elif field.name == 'rsa' %}
+		              <label for="{{ field.auto_id }}" class="pure-checkbox">{{ field.label }}</label>
+		        	  <div class="pull-left">
+		        	  	<input id="{{ field.auto_id }}" name="{{ field.html_name }}" type="checkbox" value="">
+		    		  </div>
+		    		  <br>
+		            {% else %}
+		              <label id="{{ field.auto_id }}_label" for="{{ field.auto_id }}">{{ field.label }}</label>
+		              <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input-1-2" type="text" required>
+		            {% endif %}
+		          {% endfor %}
+		          <button type="submit" class="pure-button pure-button-primary">Register</button>
+		      </fieldset>
+		    </form>
+		</div>
+		<div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+	</div>
+</div>
 {% endblock content %}
 {% block extra_js %}
 <script type="text/javascript">
 	$(function (){
 		$('#id_rsa').change(function (){
-			$('#id_secret_group').toggle(this.checked);
+			$('#id_secret_label').toggle(this.checked);
+			$('#id_secret').toggle(this.checked);
 		}).change();
 	});
 </script>
