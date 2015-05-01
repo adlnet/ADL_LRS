@@ -2,38 +2,45 @@
 {% block title %}Application Access Approval{% endblock title %}
 {% block heading %}Application Access Approval{% endblock heading %}
 {% block content %}
+<br>
 <div class="content">
-    <h2 id="applying-padding-and-borders-to-grid-units" class="content-subhead">Application Access Approval</h2>
-    <p>
-        The application is requesting access to the following scopes. Although you can 
-        change the scope, note that you can only limit the access further. You can not 
-        give the application greater permissions than the scopes selected when the 
-        applicaton was registered.
-    </p>
-    {% if form.non_field_errors %}
-    <p>
-        <strong>{{ form.non_field_errors }}</strong>
-    </p>
-    {% endif %}
-    <form class="pure-form pure-form-stacked" action="{% url oauth:oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
-        <fieldset>
-            <legend>{{ form.authorize_access }}{{ form.obj_id }}</legend>
+    <div class="pure-g">
+        <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+        <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3">
+            <h3 class="content-subhead">Application Access Approval</h3>
+            <p>
+                The application is requesting access to the following scopes. Although you can 
+                change the scope, note that you can only limit the access further. You can not 
+                give the application greater permissions than the scopes selected when the 
+                applicaton was registered.
+            </p>
+            {% if form.non_field_errors %}
+            <p>
+                <strong>{{ form.non_field_errors }}</strong>
+            </p>
+            {% endif %}
+            <form class="pure-form pure-form-stacked" action="{% url oauth:oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
+                <fieldset>
+                    <legend>{{ form.authorize_access }}{{ form.obj_id }}</legend>
 
-            <label for="{{ name }}">Application</label>
-            <input type="text" value="{{ name }}" readonly>
-                          
-            <label for="{{ description }}">Description</label>
-            <input type="text" value="{{ description }}" readonly>
+                    <label for="{{ name }}">Application</label>
+                    <input type="text" value="{{ name }}" readonly>
+                                  
+                    <label for="{{ description }}">Description</label>
+                    <input type="text" value="{{ description }}" readonly>
 
-            <label>Scope</label>
-            
-            {% for scope in form.scopes %}
-            <input type="text" value="{{ scope }}" readonly>        
-            {% endfor %}
+                    <label>Scope</label>
+                    
+                    {% for scope in form.scopes %}
+                    <input type="text" value="{{ scope }}" readonly>        
+                    {% endfor %}
 
-            <input type='hidden' name="oauth_token" value="{{ oauth_token }}" />
-            <button type="submit" class="pure-button pure-button-primary">Register</button>
-        </fieldset>
-    </form>
+                    <input type='hidden' name="oauth_token" value="{{ oauth_token }}" />
+                    <button type="submit" class="pure-button pure-button-primary">Register</button>
+                </fieldset>
+            </form>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+    </div>
 </div>
 {% endblock content %}

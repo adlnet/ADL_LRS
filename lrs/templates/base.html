@@ -41,18 +41,14 @@
             <ul class="pure-menu-list">
                 {% if user.is_authenticated %}
                   <li class="pure-menu-item"><a class="pure-menu-link" href="{% url lrs.views.me %}">{{user.username}} ({{user.email}})</a></li>
-                  <li class="pure-menu-item"><a class="pure-menu-link" href="{% url logout %}">logout</a></li>
+                  <li class="pure-menu-item"><a class="pure-menu-link" href="{% url logout %}">Logout</a></li>
                 {% else %}
-                    <li class="pure-menu-item">
-                      <form action="{% url django.contrib.auth.views.login %}" method="post" class="pure-menu-form">
-                          {% csrf_token %}
-                          <fieldset>
-                            <input class="pure-input" type="text" name="username" placeholder="Username" required>
-                            <input class="pure-input" type="password" name="password" placeholder="Password" required>
-                            <button type="submit" class="pure-button pure-button-primary">Sign in</button>
-                          </fieldset>
-                      </form>
-                    </li>
+                  <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                    <a href="{% url login %}" id="menuLink1" class="pure-menu-link">Login</a>
+                    <ul class="pure-menu-children">
+                        <li class="pure-menu-item"><a href="{% url lrs.views.register %}" class="pure-menu-link">Register</a></li>
+                    </ul>
+                  </li>
                 {% endif %}
             </ul>
           </div>

@@ -108,6 +108,16 @@ a.pure-button-primary {
     z-index: 4;
 }
 
+/*begin custom LRS additions*/
+.custom-menu{
+    border: solid;
+    border-color: #6FBEF3;
+}
+.pure-menu-selected{
+    background-color: #6FBEF3;
+}
+/*end custom LRS additions*/
+
 .home-menu .pure-menu-heading {
     color: white;
     font-weight: 400;
