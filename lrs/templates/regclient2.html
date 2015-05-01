@@ -25,7 +25,7 @@
 		            {% elif field.name == 'client_type' %}
 		          	  <select id="{{ field.auto_id }}" name="{{ field.html_name }}" required>
 		          	  	{% for choice in field.field.choices %}
-		          	  		<option>{{ choice.1 }}</option>
+		          	  		<option value="{{ choice.0 }}">{{ choice.1 }}</option>
 		          	  	{% endfor %}
 		          	  </select>
 		            {% else %}

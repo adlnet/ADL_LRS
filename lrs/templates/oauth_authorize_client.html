@@ -30,11 +30,13 @@
                     <input type="text" value="{{ description }}" readonly>
 
                     <label>Scope</label>
-                    
-                    {% for scope in form.scopes %}
-                    <input type="text" value="{{ scope }}" readonly>        
+                    {% for scope in oauth_scopes %}
+                        <label for="{{ scope.1 }}" class="pure-checkbox">{{ scope.1 }}</label>
+                            <div class="pull-left">
+                                <input id="{{ scope.1 }}" name="scopes" type="checkbox" value="{{ scope.1 }}">
+                            </div>
+                        <br>
                     {% endfor %}
-
                     <input type='hidden' name="oauth_token" value="{{ oauth_token }}" />
                     <button type="submit" class="pure-button pure-button-primary">Register</button>
                 </fieldset>
@@ -44,3 +46,15 @@
     </div>
 </div>
 {% endblock content %}
+{% block extra_js %}
+<!-- For styling scope widget -->
+<script type="text/javascript">
+    $(document).ready(function(){
+        var allowed_scopes = {{ scopes|safe }};
+        $.each(allowed_scopes, function(index, value){
+            var id = "#" + value.replace(/ |\//g, "\\/");
+            $(id).prop('checked', true);
+        });
+    });
+</script>
+{% endblock extra_js %}

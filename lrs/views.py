@@ -258,8 +258,6 @@ def reg_client(request):
     elif request.method == 'POST':
         form = RegClientForm(request.POST)
         if form.is_valid():
-            import pdb
-            pdb.set_trace()
             name = form.cleaned_data['name']
             description = form.cleaned_data['description']
             rsa_signature = form.cleaned_data['rsa']

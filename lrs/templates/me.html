@@ -169,117 +169,190 @@
             <div id="clientapps" class="content">
                 <strong>OAuth Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">Add</a></small><br>
                 {% if client_apps %}
-                <div class="pure-g">
-                    {% for app in client_apps %}
-                      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
-                        <table class="pure-table pure-table-horizontal">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        {{ app.name }}
-                                    </th>
-                                    <th>
-                                        <a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a>
-                                    </th>                                    
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Key</strong></td>
-                                    <td>{{ app.key }}</td>
-                                </tr>
-                                {% if not app.rsa_signature %}
-                                <tr>
-                                    <td><strong>Secret</strong></td>
-                                    <td>{{ app.secret }}</td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td><strong>Secret</strong></td>
-                                    <td>Your RSA key pair</td>
-                                </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                      </div>
-                    {% endfor %}
-                </div>
+                    <div class="pure-g">
+                        {% for app in client_apps %}
+                            <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+                                <table class="pure-table pure-table-horizontal">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                {{ app.name }}
+                                            </th>
+                                            <th>
+                                                <a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a>
+                                            </th>                                    
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Key</strong></td>
+                                            <td>{{ app.key }}</td>
+                                        </tr>
+                                        {% if not app.rsa_signature %}
+                                        <tr>
+                                            <td><strong>Secret</strong></td>
+                                            <td>{{ app.secret }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td><strong>Secret</strong></td>
+                                            <td>Your RSA key pair</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% else %}
                     <div>No OAuth1 apps</div>
                 {% endif %}
             </div>
-            <div id="myaccesstokens">
+            <div id="myaccesstokens" class="content">
                 <strong>OAuth1 Access Tokens:</strong>
-                <div class="row">
                 {% if access_tokens %}
-                    {% for token in access_tokens %}
-                    <div class="span5 border">
-                        <h4>{{ token.consumer.name }}</h4>
-                        <span class="pull-right"><a class="delete_token" href='#myaccesstokens'>Delete</a></span>
-                        <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
-                        <table class="table" style="table-layout:fixed;">
-                            <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px;word-wrap: break-word">{{ token.key }}</span></td></tr>
-                            <tr><td><strong>Secret</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ token.secret }}</span></td></tr>                    
-                            <tr><td><strong>Date Created</strong></td><td><span style="margin-left: 5px">{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</span></td></tr>
-                            <tr><td><strong>Scopes Allowed</strong></td><td></td></tr>
-                            {% for scope in token.scope_to_list %}
-                            <tr><td></td><td><span style="margin-left: 5px">{{ scope }}</span></td></tr>
-                            {% endfor %}
-                        </table>
+                    <div class="pure-g">
+                        {% for token in access_tokens %}
+                            <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+                                <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
+                                <table class="pure-table pure-table-horizontal">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                {{ token.consumer.name }}
+                                            </th>
+                                            <th>
+                                                <a class="delete_token" href='#myaccesstokens'>Delete</a>
+                                            </th>                                    
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Key</strong></td>
+                                            <td>{{ token.key }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Secret</strong></td>
+                                            <td>{{ token.secret }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Date Created</strong></td>
+                                            <td>{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Scopes Allowed</strong></td>
+                                        </tr>
+                                        {% for scope in token.scope_to_list %}
+                                            <tr>
+                                                <td></td>
+                                                <td>{{ scope }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 {% else %}
-                    <div class="span5">No OAuth1 access tokens</div>
+                    <div>No OAuth1 access tokens</div>
                 {% endif %}
-                </div>
             </div>
-            <div id="clientapps2">
+            <div id="clientapps2" class="content">
                 <strong>OAuth2 Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client2 %}">Add</a></small>
-                <div class="row">
                 {% if client_apps2 %}
-                    {% for app in client_apps2 %}
-                    <div class="span5 border">
-                        <h4 class="appname">{{ app.name }}</h4>
-                        <span class="pull-right"><a class="delete_client" href='#clientapps2'>Delete</a></span>
-                        <span style="visibility:hidden">{{ app.client_id }}</span>
-                        <table class="table" style="table-layout:fixed;">
-                            <tr><td><strong>Key</strong></td><td><span style="margin-left: 5px">{{ app.client_id }}</span></td></tr>
-                            <tr><td><strong>Secret</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ app.client_secret }}</span></td></tr>
-                            <tr><td><strong>URL</strong></td><td><span style="margin-left: 5px">{{ app.url }}</span></td></tr>
-                            <tr><td><strong>Redirect URL</strong></td><td><span style="margin-left: 5px">{{ app.redirect_uri }}</span></td></tr>
-                            <tr><td><strong>Type</strong></td><td><span style="margin-left: 5px">{% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}</span></td></tr>
-                        </table>
+                    <div class="pure-g">
+                        {% for app in client_apps2 %}
+                        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+                            <span style="visibility:hidden">{{ app.client_id }}</span>
+                            <table class="pure-table pure-table-horizontal">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            {{ app.name }}
+                                        </th>
+                                        <th>
+                                            <a class="delete_client" href='#clientapps2'>Delete</a>
+                                        </th>                                    
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Key</strong></td>
+                                        <td>{{ app.client_id }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Secret</strong></td>
+                                        <td>{{ app.client_secret }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>URL</strong></td>
+                                        <td>{{ app.url }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Redirect URL</strong></td>
+                                        <td>{{ app.redirect_uri }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Type</strong></td>
+                                        <td>{% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 {% else %}
-                    <div class="span5">No OAuth2 apps</div>
-                {% endif %}
-                </div>    
+                    <div>No OAuth2 apps</div>
+                {% endif %}  
             </div>
             <div id="myaccesstokens2">
                 <strong>OAuth2 Access Tokens:</strong>
-                <div class="row">
                 {% if access_tokens2 %}
-                    {% for pair in access_tokens2 %}  
-                    <div class="span5 border">
-                        <h4>{{ pair.0.client.name }}</h4>
-                        <span class="pull-right"><a class="delete_token2" href='#myaccesstokens2'>Delete</a></span>
-                        <span style="visibility:hidden">{{ pair.0.token }}</span>
-                        <table class="table" style="table-layout:fixed;">
-                            <tr><td><strong>Access Token</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ pair.0.token }}</span></td></tr>
-                            <tr><td><strong>Refresh Token</strong></td><td style="word-wrap: break-word"><span style="margin-left: 5px">{{ pair.0.refresh_token }}</span></td></tr>
-                            <tr><td><strong>Date Expires</strong></td><td>{{ pair.0.expires }}</td></tr>
-                            <tr><td><strong>Scopes Allowed</strong></td><td></td></tr>
-                            {% for scope in pair.1 %}
-                            <tr><td></td><td><span style="margin-left: 5px">{{ scope }}</span></td></tr>
-                            {% endfor %}
-                        </table>
-                    </div>
-                    {% endfor %}    
+                    <div class="pure-g">
+                        {% for pair in access_tokens2 %}  
+                        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+                            <span style="visibility:hidden">{{ pair.0.token }}</span>
+                            <table class="pure-table pure-table-horizontal">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            {{ pair.0.client.name }}
+                                        </th>
+                                        <th>
+                                            <a class="delete_token2" href='#myaccesstokens2'>Delete</a>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Access Token</strong></td>
+                                        <td>{{ pair.0.token }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Refresh Token</strong></td>
+                                        <td>{{ pair.0.refresh_token }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Date Expires</strong></td>
+                                        <td>{{ pair.0.expires }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Scopes Allowed</strong></td>
+                                    </tr>
+                                    {% for scope in pair.1 %}
+                                        <tr>
+                                            <td></td>
+                                            <td>{{ scope }}</td>
+                                        </tr>
+                                    {% endfor %}                                                                                                     
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endfor %}    
+                    </div> 
                 {% else %}
                     <div class="span5">No OAuth2 access tokens</div>
                 {% endif %}
-                </div>    
             </div>                        
         </div>
     </div>
