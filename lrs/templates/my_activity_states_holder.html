@@ -1,0 +1,35 @@
+{% load endless %}
+{% if activity_states %}
+    {% lazy_paginate activity_states %}
+    {% for as in activity_states %}
+        <div class="datacontainer">
+            <b>{{ as.activity_id }}</b> - {{ as.state_id }}
+            <br>
+            <i>Last Updated: {{ as.updated }}</i>
+            <br>
+            {% if as.json_state %}
+                <pre class="json_pre">{{ as.json_state }}</pre>
+                <input class="hidden" type="hidden" value="{{ as.json_state }}">
+            {% else %}
+                {% if as.content_type == "application/octect-stream" or as.content_type == "text/plain" %}
+                    <pre class="json_pre">Not JSON</pre>
+                    <input class="hidden" type="hidden" value="Not JSON">
+                {% else %}
+                    Cannot display state (non-text and non-JSON)
+                    <input class="hidden" type="hidden" value="">
+                {% endif %}
+            {% endif %}
+            {% if as.state_id == "http://adlnet.gov/xapi/profile/scorm/activity-state" %}
+                <br>
+                <button class="scormbutton pure-button pure-button-primary" type="button">Show Attempts</button>
+                <br>
+                <br>
+                <div class="attemptarray"></div>
+            {% endif %}
+        </div>
+        <br>
+    {% endfor %}
+    {% show_more %}
+{% else %}
+    No activity states to display
+{% endif %}

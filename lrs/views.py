@@ -17,6 +17,7 @@ from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
+from endless_pagination.decorators import page_template
 
 from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
 from .forms import ValidatorForm, RegisterForm, RegClientForm
@@ -295,8 +296,30 @@ def reg_client2(request):
             return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
 
 @login_required(login_url=LOGIN_URL)
-def me(request):
-    tab = request.GET.get("tab", "st")
+def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
+    context = {'statements': Statement.objects.filter(user=request.user).order_by('-timestamp'),'page_template': page_template}
+    
+    if request.is_ajax():
+        template = page_template
+    return render_to_response(template, context, context_instance=RequestContext(request))
+
+@login_required(login_url=LOGIN_URL)
+def activity_states(request, template="my_activity_states.html", page_template="my_activity_states_holder.html"):
+    try:
+        ag = Agent.objects.get(mbox="mailto:" + request.user.email)
+    except Agent.DoesNotExist:
+        ag = Agent.objects.create(mbox="mailto:" + request.user.email)
+    except Agent.MultipleObjectsReturned:
+        return HttpResponseBadRequest("More than one agent returned with email")
+
+    context = {'activity_states': ActivityState.objects.filter(agent=ag).order_by('-updated', 'activity_id'), 'page_template': page_template}
+    
+    if request.is_ajax():
+        template = page_template
+    return render_to_response(template, context, context_instance=RequestContext(request))
+
+@login_required(login_url=LOGIN_URL)
+def me(request, template='me.html'):
     client_apps = Consumer.objects.filter(user=request.user)
     access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
     client_apps2 = Client.objects.filter(user=request.user)
@@ -307,37 +330,12 @@ def me(request):
         scopes = to_names(token.scope)
         access_token_scopes.append((token, scopes))
 
-    st_paginator = Paginator(Statement.objects.filter(user=request.user).order_by('-timestamp'), settings.STMTS_PER_PAGE)
-    st_page = request.GET.get('st_page', 1)
-    try:
-        statements = st_paginator.page(st_page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        statements = st_paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        statements = st_paginator.page(st_paginator.num_pages)
+    context = {'client_apps':client_apps,
+                'access_tokens':access_tokens,
+                'client_apps2': client_apps2,
+                'access_tokens2':access_token_scopes}
 
-    try:
-        ag = Agent.objects.get(mbox="mailto:" + request.user.email)
-    except Agent.DoesNotExist:
-        ag = Agent.objects.create(mbox="mailto:" + request.user.email)
-    except Agent.MultipleObjectsReturned:
-        return HttpResponseBadRequest("More than one agent returned with email")
-
-    as_paginator = Paginator(ActivityState.objects.filter(agent=ag).order_by('-updated', 'activity_id'), settings.STMTS_PER_PAGE)
-    as_page = request.GET.get('as_page', 1)
-    try:
-        activity_states = as_paginator.page(as_page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        activity_states = as_paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        activity_states = as_paginator.page(as_paginator.num_pages)
-
-    return render_to_response('me.html', {'client_apps':client_apps, 'access_tokens':access_tokens, 'client_apps2': client_apps2,
-        'access_tokens2':access_token_scopes, 'statements':statements, 'activity_states': activity_states, 'tab': tab}, context_instance=RequestContext(request))
+    return render_to_response(template, context, context_instance=RequestContext(request))
 
 @login_required(login_url="/accounts/login")
 @require_http_methods(["GET", "HEAD"])
@@ -373,6 +371,8 @@ def my_activity_profile(request):
 
 @login_required(login_url=LOGIN_URL)
 def my_activity_state(request):
+    import pdb
+    pdb.set_trace()
     act_id = request.GET.get("act_id", None)
     state_id = request.GET.get("state_id", None)
     if act_id and state_id:

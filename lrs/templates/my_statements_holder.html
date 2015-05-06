@@ -1,0 +1,20 @@
+{% load jsonify %}
+{% load endless %}
+{% if statements %}
+    {% lazy_paginate statements %}
+    {% for stmt in statements %}
+        <div class="datacontainer">
+            <b>{{ stmt.actor.get_a_name }} {{ stmt.verb.get_display }} {{ stmt.get_object.get_a_name }}</b>
+            <br>
+            <i>{{ stmt.timestamp }}</i>
+            <br>
+            {{ stmt.statement_id }}
+            <br>
+            <pre id="stmt" class="json_pre">{{ stmt.full_statement|jsonify }}</pre>
+        </div>
+        <br>
+    {% endfor %}
+    {% show_more %}
+{% else %}
+    No statements to display
+{% endif %}

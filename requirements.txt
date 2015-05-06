@@ -10,3 +10,4 @@ jsonfield==0.9.19
 oauth2==1.5.211
 shortuuid==0.4.2
 django-jsonify==0.3.0
+django-endless-pagination==2.0

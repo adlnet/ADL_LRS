@@ -1,0 +1,11 @@
+.datacontainer {
+border: solid;
+border-color: #6FBEF3;
+border-width: 2px;
+border-radius: 15px 50px;
+padding: 20px; 
+}
+
+.deletestmts {
+	margin-left: 5px;
+}
