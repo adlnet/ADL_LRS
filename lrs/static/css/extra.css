@@ -9,3 +9,18 @@ padding: 20px;
 .deletestmts {
 	margin-left: 5px;
 }
+
+.formerror{
+	color: #FF0000;
+	font-weight: bold;
+}
+
+.formvalid{
+	color: #008000;
+	font-weight: bold;
+}
+
+.errorlist{
+	color: #FF0000;
+	font-weight: bold;
+}

@@ -53,21 +53,6 @@ function styleSCORMData(){
     });
 }
 
-// Appends the returned state to the given element
-function getState(act_id, state_id, ele){
-    $.ajax({
-        url: "/me/activities/single_state?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(state_id),
-        type: "GET",
-        success: function (data){
-            // $(ele).append(syntaxHighlight(data));
-            alert(data)
-        },
-        error: function(xhr, ajaxOptions, thrownError){
-            alert(thrownError);
-        }
-    });
-}
-
 //Pretty-fies JSON syntax
 function syntaxHighlight(json) {
     // Make it look like nice

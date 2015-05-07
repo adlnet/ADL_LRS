@@ -1,5 +1,8 @@
 {% load scope %}
 {% load url from future %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+{% endblock extra_css %}
 {% block content %}
     {% if not error %}
         <p>{{ client.name }} would like to access your data with the following permissions:</p>
@@ -12,8 +15,12 @@
         </ul>
         <form method="post" action="{% url "oauth2:authorize" %}">
             {% csrf_token %}
-            {{ form.errors }}
-            {{ form.non_field_errors }}
+            {% if form.errors %}
+                <p class="formerror">{{ form.errors }}</p>
+            {% endif %}
+            {% if form.non_field_errors %}
+                <p class="formerror">{{ form.non_field_errors }}</p>
+            {% endif %}
             <fieldset>
                 <div style="display: none;" />
                     <select type="select" name="scope" multiple="multiple">

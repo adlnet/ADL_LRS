@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}ADL LRS Registration{% endblock title %}
 {% block heading %}ADL LRS Registration{% endblock heading %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+{% endblock extra_css %}
 {% block content %}
 <br>
 <div class="content">
@@ -12,16 +15,14 @@
            Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register a user, you can use the HTTP_AUTHORIZATION header with your encoded username and password.
         </p>
         {% if error_message %}
-          <p>{{ error_message }}</p>
+          <ul class="errorlist">
+            <li>{{ error_message }}</li>
+          </ul>
         {% endif %}
 
-        {% for error in form.non_field_errors %}
-          <p>{{ error }}</p>
-        {% endfor %}
-
-        {% for error, message in form.errors.items %}
-          <p>{{ message }}</p>
-        {% endfor %}
+        {% if form.non_field_errors %}
+            {{ form.non_field_errors }}
+        {% endif %}
           <form class="pure-form pure-form-stacked" action="{% url lrs.views.register %}" method="post">
               {% csrf_token %}
               <fieldset>

@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}ADL LRS Login{% endblock title %}
 {% block heading %}ADL LRS Login{% endblock heading %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+{% endblock extra_css %}
 {% block content %}
 <br>
 <div class="content">
@@ -8,10 +11,8 @@
       <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
       <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3">
         <h3 class="content-subhead">LRS Login</h3>
-		{% if error_message %}
-		<p>
-		    <strong>{{ error_message }}</strong>
-		</p>
+		{% if form.non_field_errors %}
+		    {{ form.non_field_errors }}
 		{% endif %}      
 	    <form class="pure-form pure-form-stacked" method="post">
 	        {% csrf_token %}

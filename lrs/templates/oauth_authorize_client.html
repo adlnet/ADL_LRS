@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Application Access Approval{% endblock title %}
 {% block heading %}Application Access Approval{% endblock heading %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+{% endblock extra_css %}
 {% block content %}
 <br>
 <div class="content">
@@ -15,10 +18,8 @@
                 applicaton was registered.
             </p>
             {% if form.non_field_errors %}
-            <p>
-                <strong>{{ form.non_field_errors }}</strong>
-            </p>
-            {% endif %}
+                {{ form.non_field_errors }}
+            {% endif %} 
             <form class="pure-form pure-form-stacked" action="{% url oauth:oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
                 <fieldset>
                     <legend>{{ form.authorize_access }}{{ form.obj_id }}</legend>

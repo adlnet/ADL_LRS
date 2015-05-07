@@ -32,6 +32,22 @@
 </div>        
 {% endblock content %}
 {% block extra_js %}
+<!-- This script has to be placed in html file so url resolves correctly -->
+<script type="text/javascript">
+// Appends the returned state to the given element
+function getState(act_id, state_id, ele){
+    $.ajax({
+        url: "{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(state_id),
+        type: "GET",
+        success: function (data){
+            $(ele).append(syntaxHighlight(data));
+        },
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(thrownError);
+        }
+    });
+}
+</script>
 <script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-data.js"></script>
 <script src="{{ STATIC_URL }}endless_pagination/js/endless-pagination.js"></script>
 <script>
