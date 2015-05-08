@@ -1,11 +1,14 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra-home.css">
+{% endblock extra_css %}
 {% block content %}
 <div class="splash-container">
     <div class="splash">
         <h1 class="splash-head">ADL Learning Record Store</h1>
         <p class="splash-subhead">
           Welcome to the ADL LRS. This is a reference implementation of an LRS as described in the 
-          <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md#experience-api" target="_blank" alt="experience api spec"> Experience API Specification</a>.
+          <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md#experience-api" target="_blank" alt="experience api spec"> Experience API Specification</a>
         </p>
         <p class="splash-subhead">Current LRS Stats</p>
         <div class="pure-g">
@@ -136,11 +139,11 @@
           <div class="l-box-lrg pure-u-1 pure-u-md-3-5">
               <h4>Register</h4>
               <p>
-                  Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register a user, you can use the HTTP_AUTHORIZATION header with your encoded username and password
+                  Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register a user, you can use the HTTP_AUTHORIZATION header with your encoded username and password.
               </p>
               <h4>More Information</h4>
               <p>
-                  For more information or questions, please contact us at helpdesk@adlnet.gov
+                  For more information or questions, please contact us at helpdesk@adlnet.gov.
               </p>
           </div>
       </div>

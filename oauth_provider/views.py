@@ -135,6 +135,8 @@ def user_authorization(request, form_class=AuthorizeRequestTokenForm):
 
 @csrf_exempt
 def access_token(request):
+    import pdb
+    pdb.set_trace()
     oauth_request = get_oauth_request(request)
     if oauth_request is None:
         return HttpResponseBadRequest('Invalid request parameters.')

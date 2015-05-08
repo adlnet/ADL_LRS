@@ -1,9 +1,11 @@
 .datacontainer {
-border: solid;
-border-color: #6FBEF3;
-border-width: 2px;
-border-radius: 15px 50px;
-padding: 20px; 
+	border: solid;
+	border-color: #6FBEF3;
+	border-width: 2px;
+	border-radius: 15px 50px;
+	padding: 20px; 
+	width: 100%;
+	overflow: hidden;
 }
 
 .deletestmts {
@@ -24,3 +26,31 @@ padding: 20px;
 	color: #FF0000;
 	font-weight: bold;
 }
+
+.appdiv{
+	border-bottom: solid;
+	border-color: #6FBEF3;
+	border-width: 1px;	
+}
+
+.deletestmts{
+	background-color:#ff0000;
+}
+
+.actor{
+	color: #912CEE;
+}
+
+.verb{
+	color: #FF8000;
+}
+
+.object{
+	color: #008000;
+}
+
+a {color:#6FBEF3;}
+a:visited { text-decoration: none; }
+a:hover { text-decoration: none; }
+a:focus { text-decoration: none; }
+a:hover, a:active { text-decoration: none; }

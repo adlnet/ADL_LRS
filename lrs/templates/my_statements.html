@@ -18,8 +18,9 @@
     <div class="pure-g">
         <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
         <div class="pure-u-1-2 pure-u-md-1-2 pure-u-lg-1-2">
-            <div id="mystatements">
-                <strong>My Statements:</strong><small class="deletestmts"><a id="delstmts" href="#">Delete all statements</a></small>
+            <div id="mystatements" class="content">
+                <h2>My Statements</h2>
+                <a id="delstmts" class="pure-button deletestmts" href="#">Delete</a>
                 <br>
                 <br>
                 {% include page_template %}            
@@ -30,6 +31,32 @@
 </div>        
 {% endblock content %}
 {% block extra_js %}
+<!-- This script needs to be in html page so url renders correctly -->
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Binds delete stmts link to click function
+        $('#delstmts').click(function(){
+            var sure = confirm("Are you sure you want to delete all of your statements?")
+            if (sure == true){
+                $.ajax({
+                    url: "{% url lrs.views.my_delete_statements %}",
+                    type: "DELETE",
+                    context: $(this),
+                    success: function (data){
+                        location.reload();
+                    },
+                    error: function(xhr, ajaxOptions, thrownError){
+                        alert(thrownError);
+                    },
+                    timeout : 15000
+                });                
+            }
+            else{
+                return false;    
+            }
+        });
+    });
+</script>
 <script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-data.js"></script>
 <script src="{{ STATIC_URL }}endless_pagination/js/endless-pagination.js"></script>
 <script>

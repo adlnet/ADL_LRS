@@ -6,6 +6,7 @@
 <!--[if gt IE 8]><!-->
     <link rel="stylesheet" href="{{ STATIC_URL }}css/side-menu.css">
 <!--<![endif]-->
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 {% endblock extra_css %}
 {% block title %}{{user.username}}'s Account{% endblock title %}
 {% block heading %}{{user.username}}'s Account{% endblock heading %}
@@ -45,43 +46,20 @@
                 </div>
             </div>
             <div id="clientapps" class="content">
-                <strong>OAuth Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client %}">Add</a></small><br>
+                <h2>OAuth Client Apps</h2>
+                <a class="pure-button" href="{% url lrs.views.reg_client %}">Add</a>
                 {% if client_apps %}
-                    <div class="pure-g">
+                    <div class="email-item">
                         {% for app in client_apps %}
-                            <div class="l-box pure-u-1 pure-u-md-1 pure-u-lg-1">
-                                <table class="pure-table pure-table-horizontal">
-                                    <thead>
-                                        <tr>
-                                            <th>
-                                                {{ app.name }}
-                                            </th>
-                                            <th>
-                                                {{ app.get_status_display }}
-                                            </th>
-                                            <th>
-                                                <a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a>
-                                            </th>                                    
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><strong>Key</strong></td>
-                                            <td>{{ app.key }}</td>
-                                        </tr>
-                                        {% if not app.rsa_signature %}
-                                        <tr>
-                                            <td><strong>Secret</strong></td>
-                                            <td>{{ app.secret }}</td>
-                                        </tr>
-                                        {% else %}
-                                        <tr>
-                                            <td><strong>Secret</strong></td>
-                                            <td>Your RSA key pair</td>
-                                        </tr>
-                                        {% endif %}
-                                    </tbody>
-                                </table>
+                            <div class="pure-u appdiv">
+                                <h5 class="email-name"><span class="appname">{{ app.name }}</span> --- <a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></h5>
+                                <h4 class="email-subject {% if app.get_status_display == 'Accepted' %}formvalid
+                                                         {% elif app.get_status_display == 'Canceled' %}errorlist
+                                                         {% endif %}">{{ app.get_status_display }}</h4>
+                                <p class="email-desc">
+                                    <strong>Key</strong>: {{ app.key }}<br>
+                                    <strong>Secret</strong>: {% if not app.rsa_signature %}{{ app.secret }}{% else %}Your RSA key pair{% endif %}<br>
+                                </p>
                             </div>
                         {% endfor %}
                     </div>
@@ -90,47 +68,23 @@
                 {% endif %}
             </div>
             <div id="myaccesstokens" class="content">
-                <strong>OAuth1 Access Tokens:</strong>
+                <h2>OAuth1 Access Tokens</h2>
                 {% if access_tokens %}
-                    <div class="pure-g">
+                    <div class="email-item">
                         {% for token in access_tokens %}
-                            <div class="l-box pure-u-1 pure-u-md-1 pure-u-lg-1">
-                                <table class="pure-table pure-table-horizontal">
-                                    <thead>
-                                        <tr>
-                                            <th>
-                                                {{ token.consumer.name }}
-                                            </th>
-                                            <th>
-                                                <a class="delete_token" href='#myaccesstokens'>Delete</a>
-                                                <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
-                                            </th>                                    
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><strong>Key</strong></td>
-                                            <td>{{ token.key }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Secret</strong></td>
-                                            <td>{{ token.secret }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Date Created</strong></td>
-                                            <td>{{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Scopes Allowed</strong></td>
-                                        </tr>
-                                        {% for scope in token.scope_to_list %}
-                                            <tr>
-                                                <td></td>
-                                                <td>{{ scope }}</td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                            <div class="pure-u appdiv">
+                                <h5 class="email-name"><span class="appname">{{ token.consumer.name }}</span></h5>
+                                <h4 class="email-subject">
+                                    <a class="delete_token" href='#myaccesstokens'>Delete</a>
+                                    <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
+                                </h4>
+                                <p class="email-desc">
+                                    <strong>Key</strong>: {{ token.key }}<br>
+                                    <strong>Secret</strong>: {{ token.secret }}<br>
+                                    <strong>Date Created</strong>: {{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}<br>
+                                    <strong>Secret</strong>: {{ token.secret }}<br>
+                                    <strong>Scopes Allowed</strong>: {{ token.scope_to_list|join:" " }}<br>
+                                </p>
                             </div>
                         {% endfor %}
                     </div>
@@ -139,46 +93,24 @@
                 {% endif %}
             </div>
             <div id="clientapps2" class="content">
-                <strong>OAuth2 Client Apps:</strong><small style="margin-left: 5px"><a href="{% url lrs.views.reg_client2 %}">Add</a></small>
+                <h2>OAuth2 Client Apps</h2>
+                <a class="pure-button" href="{% url lrs.views.reg_client2 %}">Add</a>
                 {% if client_apps2 %}
-                    <div class="pure-g">
+                    <div class="email-item">
                         {% for app in client_apps2 %}
-                        <div class="l-box pure-u-1 pure-u-md-1 pure-u-lg-1">
-                            <table class="pure-table pure-table-horizontal">
-                                <thead>
-                                    <tr>
-                                        <th>
-                                            {{ app.name }}
-                                        </th>
-                                        <th>
-                                            <a class="delete_client" href='#clientapps2'>Delete</a>
-                                            <span style="visibility:hidden">{{ app.client_id }}</span>                                            
-                                        </th>                                    
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Key</strong></td>
-                                        <td>{{ app.client_id }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Secret</strong></td>
-                                        <td>{{ app.client_secret }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>URL</strong></td>
-                                        <td>{{ app.url }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Redirect URL</strong></td>
-                                        <td>{{ app.redirect_uri }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Type</strong></td>
-                                        <td>{% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="pure-u appdiv">
+                            <h5 class="email-name"><span class="appname">{{ app.name }}</span></h5>
+                            <h4 class="email-subject">
+                                <a class="delete_client" href='#clientapps2'>Delete</a>
+                                <span style="visibility:hidden">{{ app.client_id }}</span>
+                            </h4>
+                            <p class="email-desc">
+                                <strong>Key</strong>: {{ app.client_id }}<br>
+                                <strong>Secret</strong>: {{ app.client_secret }}<br>
+                                <strong>URL</strong>: {{ app.url }}<br>
+                                <strong>Redirect URL</strong>: {{ app.redirect_uri }}<br>
+                                <strong>Type</strong>: {% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}<br>
+                            </p>
                         </div>
                         {% endfor %}
                     </div>
@@ -187,47 +119,22 @@
                 {% endif %}  
             </div>
             <div id="myaccesstokens2">
-                <strong>OAuth2 Access Tokens:</strong>
+                <h2>OAuth2 Access Tokens</h2>
                 {% if access_tokens2 %}
-                    <div class="pure-g">
+                    <div class="email-item">
                         {% for pair in access_tokens2 %}  
-                        <div class="l-box pure-u-1 pure-u-md-1 pure-u-lg-1">
-                            <table class="pure-table pure-table-horizontal">
-                                <thead>
-                                    <tr>
-                                        <th>
-                                            {{ pair.0.client.name }}
-                                        </th>
-                                        <th>
-                                            <a class="delete_token2" href='#myaccesstokens2'>Delete</a>
-                                            <span style="visibility:hidden">{{ pair.0.token }}</span>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Access Token</strong></td>
-                                        <td>{{ pair.0.token }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Refresh Token</strong></td>
-                                        <td>{{ pair.0.refresh_token }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Date Expires</strong></td>
-                                        <td>{{ pair.0.expires }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Scopes Allowed</strong></td>
-                                    </tr>
-                                    {% for scope in pair.1 %}
-                                        <tr>
-                                            <td></td>
-                                            <td>{{ scope }}</td>
-                                        </tr>
-                                    {% endfor %}                                                                                                     
-                                </tbody>
-                            </table>
+                        <div class="pure-u appdiv">
+                            <h5 class="email-name"><span class="appname">{{ pair.0.client.name }}</span></h5>
+                            <h4 class="email-subject">
+                                <a class="delete_token2" href='#myaccesstokens2'>Delete</a>
+                                <span style="visibility:hidden">{{ pair.0.token }}</span>
+                            </h4>
+                            <p class="email-desc">
+                                <strong>Access Token</strong>: {{ pair.0.token }}<br>
+                                <strong>Refresh Token</strong>: {{ pair.0.refresh_token }}<br>
+                                <strong>Date Expires</strong>: {{ pair.0.expires }}<br>
+                                <strong>Scopes Allowed</strong>: {{ pair.1|join:" " }}<br>
+                            </p>
                         </div>
                         {% endfor %}    
                     </div> 
@@ -240,37 +147,15 @@
 </div>
 {% endblock content %}
 {% block extra_js %}
+<script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-menu.js"></script>
 <script type="text/javascript">
     $(document).ready(function() {
-        function checkContent(){
-            $('.tab_content').each(function(){
-                var href = $(this).children('a').attr('href').substring(1);
-                var content = $('#'+href);
-                content.hide();
-            });
-            $('.pure-menu-selected').each(function(){
-                if($(this).hasClass('tab_content')){
-                    var href = $(this).children('a').attr('href').substring(1);
-                    var content = $('#'+href);
-                    content.show();                    
-                }
-            });            
-        }
-        checkContent();
-        $('.pure-menu-link').click(function(){
-            if (!($(this).attr('target'))){
-                if (!($(this).parent().hasClass("pure-menu-selected"))){
-                    $(".pure-menu-selected").removeClass("pure-menu-selected");
-                    $(this).parent().addClass("pure-menu-selected");
-                    checkContent();
-                    $("html, body").animate({ scrollTop: 0 }, "slow");
-                }                
-            }
-        });
-        $('.change_app_status').click(function(){
-            var appname = $(this).parent().prev().prev().text().trim();
+        // These events stay inline so urls render correctly
+        $('.change_app_status').click(function(e){
+            e.preventDefault();
+            var appname = $(this).prev(".appname").text().trim();
             var status = "";
-            cur_s = $(this).parent().prev().text().trim();
+            cur_s = $(this).parent().next(".email-subject").text().trim();
             if (cur_s == "Accepted"){
                 status = "Canceled";                
             } 
@@ -286,13 +171,15 @@
                     if (data['status'] == "Canceled"){
                         link = "Activate";
                         status = data['status'];
+                        $(this).parent().next(".email-subject").removeClass("formvalid").addClass("errorlist")
                     }
                     else {
                         link = "Deactivate";
                         status = data['status'];
+                        $(this).parent().next(".email-subject").removeClass("errorlist").addClass("formvalid")
                     }
                     $(this).text(link);
-                    $(this).parent().prev().text(status);
+                    $(this).parent().next(".email-subject").text(status);
                 },
                 error: function(xhr, ajaxOptions, thrownError){
                     alert(thrownError);
@@ -307,7 +194,7 @@
                 type: "DELETE",
                 context: $(this),
                 success: function(data){
-                    $(this).parent().parent().parent().parent().parent().remove();
+                    $(this).parent().parent().remove();
                 },
                 error: function(xhr, ajaxOptions, thrownError){
                     alert(thrownError);
@@ -322,7 +209,7 @@
                 type: "DELETE",
                 context: $(this),
                 success: function(data){
-                    $(this).parent().parent().parent().parent().parent().remove();
+                    $(this).parent().parent().remove();
                 },
                 error: function(xhr, ajaxOptions, thrownError){
                     alert(thrownError);
@@ -337,7 +224,7 @@
                 type: "DELETE",
                 context: $(this),
                 success: function(data){
-                    $(this).parent().parent().parent().parent().parent().remove();
+                    $(this).parent().parent().remove();
                 },
                 error: function(xhr, ajaxOptions, thrownError){
                     alert(thrownError);

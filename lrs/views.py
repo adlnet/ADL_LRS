@@ -206,10 +206,12 @@ def register(request):
             pword = form.cleaned_data['password']
             email = form.cleaned_data['email']
             
-            try:
-                user = User.objects.get(username__exact=name)
-            except User.DoesNotExist:
-                user = User.objects.create_user(name, email, pword)
+            if not User.objects.filter(username__exact=name).count():
+                if not User.objects.filter(email__exact=email).count():
+                    user = User.objects.create_user(name, email, pword)
+                else:
+                    return render_to_response('register.html', {"form": form, "error_message": "Email %s is already registered." % email},
+                        context_instance=context)                    
             else:
                 return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
                     context_instance=context)                

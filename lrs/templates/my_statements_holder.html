@@ -1,20 +1,22 @@
 {% load jsonify %}
 {% load endless %}
 {% if statements %}
-    {% lazy_paginate statements %}
-    {% for stmt in statements %}
-        <div class="datacontainer">
-            <b>{{ stmt.actor.get_a_name }} {{ stmt.verb.get_display }} {{ stmt.get_object.get_a_name }}</b>
+    <div class="email-item">
+        {% lazy_paginate statements %}
+        {% for stmt in statements %}
+            <div class="datacontainer pure-u">
+                <h4 class="email-name"><span class="actor">{{ stmt.actor.get_a_name }}</span> <span class="verb">{{ stmt.verb.get_display }}</span> <span class="object">{{ stmt.get_object.get_a_name }}</span></h4>
+                <h5 class="email-subject">{{ stmt.timestamp }}</h5>
+                <h5 class="email-subject">{{ stmt.statement_id }}</h5>
+                <p class="email-desc">
+                    <pre id="stmt" class="json_pre">{{ stmt.full_statement|jsonify }}</pre>
+                </p>
+            </div>
             <br>
-            <i>{{ stmt.timestamp }}</i>
             <br>
-            {{ stmt.statement_id }}
-            <br>
-            <pre id="stmt" class="json_pre">{{ stmt.full_statement|jsonify }}</pre>
-        </div>
-        <br>
-    {% endfor %}
-    {% show_more %}
+        {% endfor %}
+        {% show_more %}
+    </div>
 {% else %}
     No statements to display
 {% endif %}
