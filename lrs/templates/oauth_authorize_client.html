@@ -23,20 +23,15 @@
             <form class="pure-form pure-form-stacked" action="{% url oauth:oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
                 <fieldset>
                     <legend>{{ form.authorize_access }}{{ form.obj_id }}</legend>
-
                     <label for="{{ name }}">Application</label>
                     <input type="text" value="{{ name }}" readonly>
-                                  
                     <label for="{{ description }}">Description</label>
                     <input type="text" value="{{ description }}" readonly>
-
                     <label>Scope</label>
                     {% for scope in oauth_scopes %}
-                        <label for="{{ scope.1 }}" class="pure-checkbox">{{ scope.1 }}</label>
-                            <div class="pull-left">
-                                <input id="{{ scope.1 }}" name="scopes" type="checkbox" value="{{ scope.1 }}">
-                            </div>
-                        <br>
+                          <label for="{{ scope.1 }}" class="pure-checkbox">{{ scope.1 }}
+                            <input id="{{ scope.1 }}" name="scopes" type="checkbox" value="{{ scope.1 }}">
+                          </label>                        
                     {% endfor %}
                     <input type='hidden' name="oauth_token" value="{{ oauth_token }}" />
                     <button type="submit" class="pure-button pure-button-primary">Register</button>
@@ -58,4 +53,5 @@
         });
     });
 </script>
+<script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-forms.js"></script>
 {% endblock extra_js %}
