@@ -33,12 +33,16 @@
     <div class="home-menu pure-menu pure-menu-horizontal pure-menu-fixed">
         <div class="pure-g">
           <div class="pure-u-1-2">
-            <a class="pure-menu-heading" href="{% url lrs.views.home %}">ADL LRS</a>
+            {% if user.is_authenticated %}
+              <a class="pure-menu-heading" href="#" style="text-transform:none;">{{user.username}} ({{user.email}})</a>
+            {% else %}
+              <a class="pure-menu-heading" href="{% url lrs.views.home %}">ADL LRS</a>
+            {% endif %}
           </div>
           <div class="pure-u-1-2">
             <ul class="pure-menu-list">
                 {% if user.is_authenticated %}
-                  <li class="pure-menu-item"><a class="pure-menu-link" href="{% url lrs.views.me %}">{{user.username}} ({{user.email}})</a></li>
+                  <li class="pure-menu-item"><a class="pure-menu-link" href="{% url lrs.views.me %}">My Account</a></li>
                   <li class="pure-menu-item"><a class="pure-menu-link" href="{% url logout %}">Logout</a></li>
                 {% else %}
                   <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
