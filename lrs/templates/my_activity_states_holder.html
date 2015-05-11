@@ -12,7 +12,7 @@
                         <input class="hidden" type="hidden" value="{{ as.json_state }}">
                     {% else %}
                         {% if as.content_type == "application/octect-stream" or as.content_type == "text/plain" %}
-                            <pre class="json_pre">Not JSON</pre>
+                            <pre class="json_pre">Non-JSON</pre>
                             <input class="hidden" type="hidden" value="Not JSON">
                         {% else %}
                             Cannot display state (non-text and non-JSON)

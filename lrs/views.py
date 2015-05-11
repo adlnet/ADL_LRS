@@ -8,7 +8,6 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
@@ -16,11 +15,10 @@ from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
-from endless_pagination.decorators import page_template
 
 from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
 from .forms import ValidatorForm, RegisterForm, RegClientForm
-from .models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityProfile, ActivityState
+from .models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState
 from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
