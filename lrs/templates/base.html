@@ -34,7 +34,7 @@
         <div class="pure-g">
           <div class="pure-u-1-2">
             {% if user.is_authenticated %}
-              <a class="pure-menu-heading" href="#" style="text-transform:none;">{{user.username}} ({{user.email}})</a>
+              <a class="pure-menu-heading" style="text-transform:none;">{{user.username}} ({{user.email}})</a>
             {% else %}
               <a class="pure-menu-heading" href="{% url lrs.views.home %}">ADL LRS</a>
             {% endif %}

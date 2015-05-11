@@ -2,7 +2,7 @@
 function styleData(){
     $('.json_pre').each(function(){
           // Check if pre already has been styled or not
-          if(!$(this).has("span").length){
+          if(!($(this).has("span").length)){
               $(this).hide();
               var text = $(this).text();
               $(this).empty();
@@ -17,7 +17,7 @@ function styleSCORMData(){
         // Get attempt data from hidden field
         var attempt_data = JSON.parse($(this).prevAll('.hidden:first').val());
         var new_container_div = $("<div></div>");
-        if(!'attempts' in attempt_data){
+        if(!('attempts' in attempt_data)){
             $(this).text("Does not contain any attempts");
             $(this).hide();
             return false;
@@ -31,7 +31,7 @@ function styleSCORMData(){
             new_a.click(function(e){
                 e.stopPropagation();
                 // Check if the pre element has been created already - if not add the attempt-state info to it
-                if (!$(this).next().next().is("pre")){
+                if (!($(this).next().next().is("pre"))){
                     var att_pre = $("<pre class='att_pre'></pre>");
                     var state_id = "http://adlnet.gov/xapi/profile/scorm/attempt-state";
                     getState($(this).text(), state_id, att_pre);
