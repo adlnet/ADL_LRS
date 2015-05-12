@@ -4,10 +4,6 @@ a:hover { text-decoration: none; }
 a:focus { text-decoration: none; }
 a:hover, a:active { text-decoration: none; }
 
-.home-heading{
-	text-transform:none;
-}
-
 .home-top-content{
 	border-bottom-style:dashed;
 }

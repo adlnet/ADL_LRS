@@ -113,6 +113,10 @@ a.pure-button-primary {
 .pure-menu-selected{
     background-color: #6FBEF3;
 }
+
+.home-heading{
+    text-transform:none;
+}
 /*end custom LRS additions*/
 
 .home-menu .pure-menu-heading {

@@ -104,6 +104,13 @@ $( "body" ).on( "click", "div",function() {
     }
 });
 
+// Binds all pre blocks (even if dynamically added) to click function (so can copy/paste from pre blocks instead of toggling parent)
+$( "body" ).on( "click", "pre", function(e) {
+    if ($(this).hasClass("json_pre") || $(this).hasClass("att_pre")){
+        e.stopPropagation();
+    }
+});
+
 // Binds all buttons in datacontainers (even if dynamically added) to toggle attemptarrays
 $( "body" ).on( "click", "button",function(e) {
     if ($(this).parent().hasClass("datacontainer")){
