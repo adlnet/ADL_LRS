@@ -23,10 +23,10 @@
             <form class="pure-form pure-form-stacked" action="{% url oauth:oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
                 <fieldset>
                     <legend>{{ form.authorize_access }}{{ form.obj_id }}</legend>
-                    <label for="{{ name }}">Application</label>
-                    <input type="text" value="{{ name }}" readonly>
-                    <label for="{{ description }}">Description</label>
-                    <input type="text" value="{{ description }}" readonly>
+                    <label for="name">Application</label>
+                    <input id="name" type="text" value="{{ name }}" readonly>
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="pure-input-1" readonly>{{ description }}</textarea>
                     <label>Scope</label>
                     {% for scope in oauth_scopes %}
                           <label for="{{ scope.1 }}" class="pure-checkbox">{{ scope.1 }}

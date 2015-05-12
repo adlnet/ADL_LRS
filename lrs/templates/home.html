@@ -14,40 +14,40 @@
 </div>
 <div class="content-wrapper">
     <div class="content" style="border-bottom-style:dashed;">
-    <h2 class="content-head is-center">Current LRS Stats</h2>
-    <div class="pure-g">
-      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
-        <h3 class="content-subhead is-center">Users</h3>
-        <p class="is-center">
-          {{ stats.usercnt }}
-        </p>
+      <h2 class="content-head is-center">Current LRS Stats</h2>
+      <div class="pure-g">
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Users</h3>
+          <p class="is-center">
+            {{ stats.usercnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Statements</h3>
+          <p class="is-center">
+            {{ stats.stmtcnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Agents</h3>
+          <p class="is-center">
+            {{ stats.agentcnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Verbs</h3>
+          <p class="is-center">
+            {{ stats.verbcnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Activities</h3>
+          <p class="is-center">
+            {{ stats.activitycnt }}
+          </p>
+        </div>      
       </div>
-      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
-        <h3 class="content-subhead is-center">Statements</h3>
-        <p class="is-center">
-          {{ stats.stmtcnt }}
-        </p>
-      </div>
-      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
-        <h3 class="content-subhead is-center">Agents</h3>
-        <p class="is-center">
-          {{ stats.agentcnt }}
-        </p>
-      </div>
-      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
-        <h3 class="content-subhead is-center">Verbs</h3>
-        <p class="is-center">
-          {{ stats.verbcnt }}
-        </p>
-      </div>
-      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
-        <h3 class="content-subhead is-center">Activities</h3>
-        <p class="is-center">
-          {{ stats.activitycnt }}
-        </p>
-      </div>      
     </div>
-  </div>
   <div class="content">
     <h2 class="content-head is-center">Features</h2>
     <div class="pure-g">
@@ -64,7 +64,7 @@
       <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
         <h3 class="content-subhead"><i class="fa fa-check"></i>Statement Validator</h3>
         <p>
-          Want to make sure your statement is valid? Check it here.
+          Want to make sure your statement is valid? Check it out here.
         </p>
         <p>
           <a class="pure-button pull-right" href="{% url lrs.views.stmt_validator %}">Validate</a>
@@ -89,8 +89,6 @@
   </div>
   <div class="ribbon l-box-lrg pure-g">
     <div class="l-box-lrg is-center pure-u-1 pure-u-md-1-2 pure-u-lg-2-5">
-        <br>
-        <br>
         <i class="fa fa-lock" style="font-size:25em"></i>
     </div>
     <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-3-5">
