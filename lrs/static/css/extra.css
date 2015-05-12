@@ -1,3 +1,4 @@
+/*Styles stmt and act state divs*/
 .datacontainer {
 	border: solid;
 	border-color: #6FBEF3;
@@ -8,10 +9,12 @@
 	overflow: hidden;
 }
 
+/*Delete stmt button*/
 .deletestmts {
-	margin-left: 5px;
+	background-color:#ff0000;
 }
 
+/*Styles form errors and messages*/
 .formerror{
 	color: #FF0000;
 	font-weight: bold;
@@ -26,17 +29,16 @@
 	color: #FF0000;
 	font-weight: bold;
 }
+/*End form styles*/
 
+/*Styles oauth 1 and 2 app divs*/
 .appdiv{
 	border-bottom: solid;
 	border-color: #6FBEF3;
 	border-width: 1px;	
 }
 
-.deletestmts{
-	background-color:#ff0000;
-}
-
+/*Statement styles*/
 .actor{
 	color: #912CEE;
 }
@@ -48,9 +50,15 @@
 .object{
 	color: #008000;
 }
+/*End statement styles*/
 
+/*Colors all links light blue - no other decoration*/
 a {color:#6FBEF3;}
 a:visited { text-decoration: none; }
 a:hover { text-decoration: none; }
 a:focus { text-decoration: none; }
 a:hover, a:active { text-decoration: none; }
+
+.hide-token-info{
+	visibility:hidden;	
+}

@@ -1,4 +1,5 @@
 $(document).ready(function() {
+    // Changes page content with menu item clicks
     function checkContent(){
         $('.tab_content').each(function(){
             var href = $(this).children('a').attr('href').substring(1);

@@ -1,11 +1,5 @@
 {% extends "base.html" %}
 {% block extra_css %}
-<!--[if lte IE 8]>
-    <link rel="stylesheet" href="{{ STATIC_URL }}css/side-menu-old-ie.css">
-<![endif]-->
-<!--[if gt IE 8]><!-->
-    <link rel="stylesheet" href="{{ STATIC_URL }}css/side-menu.css">
-<!--<![endif]-->
 <link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 {% endblock extra_css %}
 {% block title %}{{user.username}}'s Account{% endblock title %}
@@ -76,13 +70,12 @@
                                 <h5 class="email-name"><span class="appname">{{ token.consumer.name }}</span></h5>
                                 <h4 class="email-subject">
                                     <a class="delete_token" href='#myaccesstokens'>Delete</a>
-                                    <span style="visibility:hidden">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
+                                    <span class="hide-token-info">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
                                 </h4>
                                 <p class="email-desc">
                                     <strong>Key</strong>: {{ token.key }}<br>
                                     <strong>Secret</strong>: {{ token.secret }}<br>
                                     <strong>Date Created</strong>: {{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}<br>
-                                    <strong>Secret</strong>: {{ token.secret }}<br>
                                     <strong>Scopes Allowed</strong>: {{ token.scope_to_list|join:" " }}<br>
                                 </p>
                             </div>
@@ -102,7 +95,7 @@
                             <h5 class="email-name"><span class="appname">{{ app.name }}</span></h5>
                             <h4 class="email-subject">
                                 <a class="delete_client" href='#clientapps2'>Delete</a>
-                                <span style="visibility:hidden">{{ app.client_id }}</span>
+                                <span class="hide-token-info">{{ app.client_id }}</span>
                             </h4>
                             <p class="email-desc">
                                 <strong>Key</strong>: {{ app.client_id }}<br>
@@ -127,7 +120,7 @@
                             <h5 class="email-name"><span class="appname">{{ pair.0.client.name }}</span></h5>
                             <h4 class="email-subject">
                                 <a class="delete_token2" href='#myaccesstokens2'>Delete</a>
-                                <span style="visibility:hidden">{{ pair.0.token }}</span>
+                                <span class="hide-token-info">{{ pair.0.token }}</span>
                             </h4>
                             <p class="email-desc">
                                 <strong>Access Token</strong>: {{ pair.0.token }}<br>

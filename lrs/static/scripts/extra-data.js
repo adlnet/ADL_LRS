@@ -114,27 +114,6 @@ $( "body" ).on( "click", "button",function(e) {
 });
 
 $(document).ready(function() {
-    // Binds delete stmts link to click function
-    $('#delstmts').click(function(){
-        var sure = confirm("Are you sure you want to delete all of your statements?")
-        if (sure == true){
-            $.ajax({
-                url: "{% url lrs.views.delete_statements %}",
-                type: "DELETE",
-                context: $(this),
-                success: function (data){
-                    location.reload();
-                },
-                error: function(xhr, ajaxOptions, thrownError){
-                    alert(thrownError);
-                },
-                timeout : 15000
-            });                
-        }
-        else{
-            return false;    
-        }
-    });
     styleData();
     styleSCORMData();
 });

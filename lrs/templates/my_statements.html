@@ -52,6 +52,32 @@
     });
 </script>
 <script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-data.js"></script>
+<!-- Script stays so delete_statements url renders correctly -->
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Binds delete stmts link to click function
+        $('#delstmts').click(function(){
+            var sure = confirm("Are you sure you want to delete all of your statements?")
+            if (sure == true){
+                $.ajax({
+                    url: "{% url lrs.views.my_delete_statements %}",
+                    type: "DELETE",
+                    context: $(this),
+                    success: function (data){
+                        location.reload();
+                    },
+                    error: function(xhr, ajaxOptions, thrownError){
+                        alert(thrownError);
+                    },
+                    timeout : 15000
+                });                
+            }
+            else{
+                return false;    
+            }
+        });
+    });
+</script>
 <script src="{{ STATIC_URL }}endless_pagination/js/endless-pagination.js"></script>
 <script>
     $.endlessPaginate({

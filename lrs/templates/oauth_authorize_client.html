@@ -43,7 +43,7 @@
 </div>
 {% endblock content %}
 {% block extra_js %}
-<!-- For styling scope widget -->
+<!-- For styling scope widget stays in file b/c of server scope rendering -->
 <script type="text/javascript">
     $(document).ready(function(){
         var allowed_scopes = {{ scopes|safe }};
