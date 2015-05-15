@@ -592,14 +592,14 @@ def handle_request(request, more_id=None):
     except ValidationError as ve:
         log_exception(request.path, ve)
         return HttpResponse(ve.messages[0], status=400)
+    except OauthBadRequest as oauth_err:
+        log_exception(request.path, oauth_err)
+        return HttpResponse(oauth_err.message, status=400)
     except Unauthorized as autherr:
         log_exception(request.path, autherr)
         r = HttpResponse(autherr, status = 401)
         r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
         return r
-    except OauthBadRequest as oauth_err:
-        log_exception(request.path, oauth_err)
-        return HttpResponse(oauth_err.message, status=400)
     except OauthUnauthorized as oauth_err:
         log_exception(request.path, oauth_err)
         return HttpResponse(oauth_err.message, status=401)

@@ -42,6 +42,7 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
 def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
+
     try:
         stmt = Statement.objects.get(statement_id=void_id)
     except Statement.DoesNotExist:

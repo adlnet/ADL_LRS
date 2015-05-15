@@ -10,6 +10,7 @@ SCHEME = 2
 EMAIL = 5
 iri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
 sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
+lang_tag_re = re.compile('^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']
@@ -62,11 +63,27 @@ class StatementValidator():
 
 	def validate_email(self, email):
 		if isinstance(email, basestring):
-			res = iri_re.match(email)
-			if res.group(SCHEME) != "mailto" or res.group(EMAIL) == None:
-				self.return_error("mbox value [%s] did not start with mailto:" % email)
+			if email.startswith("mailto:"):
+				email_re = re.compile("[^@]+@[^@]+\.[^@]+")
+				if not email_re.match(email[7:]):
+					self.return_error("mbox value %s is not a valid email")
+			else:
+				self.return_error("mbox value %s did not start with mailto:" % email)
 		else:
 			self.return_error("mbox value must be a string type")
+
+	def validate_lang_tag(self, tag, field):
+		if tag:
+			for lang in tag:
+				if not lang_tag_re.match(lang) or tag == 'test':
+					self.return_error("language %s is not valid in %s" % (tag, field))
+		else:
+			self.return_error("language tags must contain at least one key/value pair in %s" % field)
+
+	def validate_dict_values(self, values, field):
+		for v in values:
+			if not v:
+				self.return_error("%s contains a null value" % field)
 
 	def validate_email_sha1sum(self, sha1sum):
 		if isinstance(sha1sum, basestring):
@@ -84,7 +101,7 @@ class StatementValidator():
 		
 	def validate_uuid(self, uuid, field):
 		if isinstance(uuid, basestring):
-			id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
+			id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$")
 			if not id_regex.match(uuid):
 				self.return_error("%s - %s is not a valid UUID" % (field, uuid))
 		else:
@@ -198,10 +215,12 @@ class StatementValidator():
 
 			# Ensure display is a dict (language map)
 			self.check_if_dict(attach['display'], "Attachment display")
-			
+			self.validate_lang_tag(attach['display'].keys(), "attachment display")			
+
 			# If description included, ensure it is a dict (language map)
 			if 'description' in attach:
 				self.check_if_dict(attach['description'], "Attachment description")
+				self.validate_lang_tag(attach['description'].keys(), "attachment description")
 
 	def validate_extensions(self, extensions, field):
 		# Ensure incoming extensions is a dict
@@ -305,9 +324,18 @@ class StatementValidator():
 			self.return_error('Verb must contain an id')
 		self.validate_iri(verb['id'], 'Verb id')
 
+		if verb['id'] == "http://adlnet.gov/expapi/verbs/voided":
+			if self.data['object']['objectType']:
+				if self.data['object']['objectType'] != "StatementRef":
+					raise ParamError("Statement with voided verb must have StatementRef as objectType")
+			else:
+				raise ParamError("Statement with voided verb must have StatementRef as objectType")
+
 		# If display given, ensure it's a dict (language map)
 		if 'display' in verb:
 			self.check_if_dict(verb['display'], "Verb display")
+			self.validate_lang_tag(verb['display'].keys(), "verb display")
+			self.validate_dict_values(verb['display'].values(), "verb display")
 
 	def validate_object(self, stmt_object):
 		# Ensure incoming object is a dict
@@ -359,13 +387,20 @@ class StatementValidator():
 	def validate_activity_definition(self, definition):
 		# Ensure incoming def is a dict and check allowed fields
 		self.check_if_dict(definition, "Activity definition")
+
+		# Make sure it's not an empty definition
+		if not definition:
+			self.return_error("Definition is empty")
+
 		self.check_allowed_fields(act_def_allowed_fields, definition, "Activity definition")
 
 		# If name or description included, ensure it is a dict (language map)
 		if 'name' in definition:
 			self.check_if_dict(definition['name'], "Activity definition name")
+			self.validate_lang_tag(definition['name'].keys(), "activity definition name")
 		if 'description' in definition:
 			self.check_if_dict(definition['description'], "Activity definition description")
+			self.validate_lang_tag(definition['description'].keys(), "activity definition description")
 
 		# If type or moreInfo included, ensure it is valid IRI
 		if 'type' in definition:
@@ -375,7 +410,7 @@ class StatementValidator():
 
 		interactionType = None
 		# If interactionType included, ensure it is a string
-		if 'interactionType' in definition:
+		if 'interactionType' in definition and 'correctResponsesPattern' in definition:
 			if not isinstance(definition['interactionType'], basestring):
 				self.return_error("Activity definition interactionType must be a string")
 
@@ -388,51 +423,71 @@ class StatementValidator():
 
 			interactionType = definition['interactionType']
 
-		# If correctResponsesPatter included, ensure it is an array
-		if 'correctResponsesPattern' in definition:
 			self.check_if_list(definition['correctResponsesPattern'], "Activity definition correctResponsesPattern")
 			for answer in definition['correctResponsesPattern']:
 				# For each answer, ensure it is a string
 				if not isinstance(answer, basestring):
 					self.return_error("Activity definition correctResponsesPattern answers must all be strings")
+		elif 'interactionType' not in definition and 'correctResponsesPattern' not in definition:
+			pass
+		else:
+			self.return_error('If using interaction types, both interactionType and correctResponsesPattern fields must be present')
 		self.validate_interaction_types(interactionType, definition)
 
 		# If extensions, validate it
 		if 'extensions' in definition:
 			self.validate_extensions(definition['extensions'], 'activity definition')		
 
+	def check_other_interaction_component_fields(self, allowed, definition):
+		interaction_components = set(["choices", "scale", "source", "target", "steps"])
+		keys = set(definition.keys())
+
+		both = interaction_components.intersection(keys)
+		not_allowed = list(both - set(allowed))
+
+		if not_allowed:
+			self.return_error("Only interaction component field(s) allowed (%s) - not allowed: %s" % (' '.join(allowed), ' '.join(not_allowed)))
+
+		# not_allowed = any(x in keys for x in interaction_components if x not in allowed)
+
 	def validate_interaction_types(self, interactionType, definition):
 		if interactionType == "choice" or interactionType == "sequencing":
 			# If choices included, ensure it is an array and validate it
 			if 'choices' in definition:
+				self.check_other_interaction_component_fields(['choices'], definition)
 				choices = definition['choices']
 				self.check_if_list(choices, "Activity definition choices")
 				self.validate_interaction_activities(choices, 'choices')
 		elif interactionType == "likert":
 			# If scale included, ensure it is an array and validate it
 			if 'scale' in definition:
+				self.check_other_interaction_component_fields(['scale'], definition)
 				scale = definition['scale']
 				self.check_if_list(scale, "Activity definition scale")
 				self.validate_interaction_activities(scale, 'scale')
 		elif interactionType == "matching":
 			# If scale included, ensure it is an array and validate it
 			if 'source' in definition:
+				self.check_other_interaction_component_fields(['target', 'source'], definition)
 				source = definition['source']
 				self.check_if_list(source, "Activity definition source")
 				self.validate_interaction_activities(source, 'source')
 			# If target included, ensure it is an array and validate it
 			if 'target' in definition:
+				self.check_other_interaction_component_fields(['target', 'source'], definition)
 				target = definition['target']
 				self.check_if_list(target, "Activity definition target")
 				self.validate_interaction_activities(target, 'target')
 		elif interactionType == "performance":
 			# If steps included, ensure it is an array and validate it
 			if 'steps' in definition:
+				self.check_other_interaction_component_fields(['steps'], definition)
 				steps = definition['steps']
 				self.check_if_list(steps, "Activity definition steps")
 				self.validate_interaction_activities(steps, 'steps')
 
 	def validate_interaction_activities(self, activities, field):
+		id_list = []
 		for act in activities:
 			# Ensure each interaction activity is a dict and check allowed fields
 			self.check_if_dict(act, "%s interaction component" % field)
@@ -443,8 +498,16 @@ class StatementValidator():
 			if not isinstance(act['id'], basestring):
 				self.return_error("Interaction activity in component %s has an id that is not a string" % field)
 
-			# Ensure description is a dict (language map)
-			self.check_if_dict(act['description'], "%s interaction component description" % field)
+			id_list.append(act['id'])
+			if 'description' in act:
+				# Ensure description is a dict (language map)
+				self.check_if_dict(act['description'], "%s interaction component description" % field)
+				self.validate_lang_tag(act['description'].keys(), "%s interaction component description" % field)
+
+		# Check and make sure all ids being listed are unique
+		dups = set([i for i in id_list if id_list.count(i) > 1])
+		if dups:
+			self.return_error("Interaction activities shared the same id(s) (%s) which is not allowed" % ' '.join(dups))
 
 	def validate_substatement(self, substmt):
 		# Ensure incoming substmt is a dict and check allowed and required fields
@@ -469,8 +532,8 @@ class StatementValidator():
 
 		# Validate agent, verb, and object
 		self.validate_agent(substmt['actor'], 'actor')
-		self.validate_verb(substmt['verb'])
 		self.validate_object(substmt['object'])
+		self.validate_verb(substmt['verb'])
 
 		# If result included, validate it
 		if 'result' in substmt:
@@ -570,24 +633,27 @@ class StatementValidator():
 			self.validate_agent(context['instructor'], 'Context instructor')
 		if 'team' in context:
 			self.validate_agent(context['team'], 'Context team')
+			if not 'objectType' in context['team'] or context['team']['objectType'] == 'Agent':
+				self.return_error("Team in context must be a group")
 
 		# If objectType of object in stmt is Agent/Group, context cannot have revision or platform fields
 		object_type = stmt_object['objectType']
+		
 		if 'revision' in context:
-			if object_type == 'Agent' or object_type == 'Group':
-				self.return_error("Revision is not allowed in context if statement object is an Agent or Group")		
-
 			# Check revision is string
 			if not isinstance(context['revision'], basestring):
 				self.return_error("Context revision must be a string")
 
-		if 'platform' in context:
-			if object_type == 'Agent' or object_type == 'Group':
-				self.return_error("Platform is not allowed in context if statement object is an Agent or Group")		
+			if object_type != 'Activity':
+				self.return_error("Revision is not allowed in context if statement object is not an Activity")
 
+		if 'platform' in context:
 			# Check platform is string
 			if not isinstance(context['platform'], basestring):
 				self.return_error("Context platform must be a string")
+
+			if object_type != 'Activity':
+				self.return_error("Platform is not allowed in context if statement object is not an Activity")		
 
 		# If language given, ensure it is string
 		if 'language' in context:
@@ -610,15 +676,18 @@ class StatementValidator():
 		# Ensure incoming conact is dict
 		self.check_if_dict(conacts, "Context activity")
 		context_activity_types = ['parent', 'grouping', 'category', 'other']
-		for conact in conacts.items():
-			# Check if conact is a valid type
-			if not conact[0] in context_activity_types:
-				self.return_error("Context activity type is not valid - %s - must be %s" % (conact[0], ', '.join(context_activity_types)))
-			# Ensure conact is a list or dict
-			if isinstance(conact[1], list):
-				for act in conact[1]:
-					self.validate_activity(act)
-			elif isinstance(conact[1], dict):
-				self.validate_activity(conact[1])
-			else:
-				self.return_error("contextActivities is not formatted correctly")
+		if conacts:
+			for conact in conacts.items():
+				# Check if conact is a valid type
+				if not conact[0] in context_activity_types:
+					self.return_error("Context activity type is not valid - %s - must be %s" % (conact[0], ', '.join(context_activity_types)))
+				# Ensure conact is a list or dict
+				if isinstance(conact[1], list):
+					for act in conact[1]:
+						self.validate_activity(act)
+				elif isinstance(conact[1], dict):
+					self.validate_activity(conact[1])
+				else:
+					self.return_error("contextActivities is not formatted correctly")
+		else:
+			self.return_error("contextActivities must contain at least one key/value pair")
