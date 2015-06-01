@@ -76,7 +76,7 @@ def stmt_validator(request):
 def about(request):
     lrs_data = { 
         "version": [settings.XAPI_VERSION],
-        "Extensions":{
+        "extensions":{
             "xapi": {
                 "statements":
                 {

@@ -65,28 +65,11 @@ def validate_stmt_authority(stmt, auth, auth_validated):
             if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
                 err_msg = "Statements cannot have a non-Oauth group as the authority"
                 raise ParamError(err_msg)
-            else:
+            elif auth['authority'].objectType == 'Group' and auth['authority'].oauth_identifier:
+                if auth['authority'].member.count() != 2:
+                    err_msg = "OAuth authority must only contain 2 members"
+                    raise ParamError(err_msg)
                 return True
-        # If no auth then validate authority in stmt if there is one
-        else:
-            if 'authority' in stmt:
-                # If they try using a non-oauth group that already exists-throw error
-                if stmt['authority']['objectType'] == 'Group':
-                    contains_account = len([x for m in stmt['authority']['member'] for x in m.keys() if 'account' in x]) > 0
-                    if contains_account:
-                        for agent in stmt['authority']['member']:
-                            if 'account' in agent:
-                                if not 'oauth' in agent['account']['homePage'].lower():
-                                    err_msg = "Statements cannot have a non-Oauth group as the authority"
-                                    raise ParamError(err_msg)
-                    # No members contain an account so that means it's not an Oauth group
-                    else:
-                        err_msg = "Statements cannot have a non-Oauth group as the authority"
-                        raise ParamError(err_msg)
-                else:
-                    return True
-            else:
-                return True            
 
 # Retrieve JSON data from ID
 def get_act_def_data(act_data):

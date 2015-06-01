@@ -729,17 +729,18 @@ class AuthTests(TestCase):
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:resultKey11": "resultValue11", "ext:resultKey22":"resultValue22"}},
             "context":{"registration": sub_context_id,
             "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test/nest"}},
-            "revision": "Spelling error in target.", "platform":"Ipad.","language": "en-US",
+            "language": "en-US",
             "statement":{"objectType":"StatementRef", "id":str(nested_sub_st_id)},
             "extensions":{"ext:contextKey11": "contextVal11","ext:contextKey22": "contextVal22"}}}, 
             "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:resultKey1": "resultValue1", "ext:resultKey2":"resultValue2"}},
             "context":{"registration": context_id, "contextActivities": {"other": {"id": "http://example.adlnet.gov/tincan/example/test"}},
-            "revision": "Spelling error in choices.", "platform":"Platform is web browser.","language": "en-US",
+            "language": "en-US",
             "statement":{"objectType":"StatementRef", "id":str(nested_st_id)},
             "extensions":{"ext:contextKey1": "contextVal1","ext:contextKey2": "contextVal2"}},
             "timestamp":self.firstTime})
         put_stmt = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(put_stmt.status_code, 204)
         get_response = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         
@@ -760,8 +761,6 @@ class AuthTests(TestCase):
         
         self.assertEqual(the_returned['object']['context']['registration'], sub_context_id)
         self.assertEqual(the_returned['object']['context']['language'], 'en-US')
-        self.assertEqual(the_returned['object']['context']['platform'], 'Ipad.')
-        self.assertEqual(the_returned['object']['context']['revision'], 'Spelling error in target.')
         self.assertEqual(the_returned['object']['context']['statement']['id'], str(nested_sub_st_id))
         self.assertEqual(the_returned['object']['context']['statement']['objectType'], 'StatementRef')
         self.assertEqual(the_returned['object']['context']['contextActivities']['other'][0]['id'], 'http://example.adlnet.gov/tincan/example/test/nest')
@@ -828,9 +827,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey1'], 'contextVal1')
         self.assertEqual(the_returned['context']['extensions']['ext:contextKey2'], 'contextVal2')
         self.assertEqual(the_returned['context']['language'], 'en-US')
-        self.assertEqual(the_returned['context']['platform'], 'Platform is web browser.')
         self.assertEqual(the_returned['context']['registration'], context_id)
-        self.assertEqual(the_returned['context']['revision'], 'Spelling error in choices.')
         self.assertEqual(the_returned['context']['statement']['id'], nested_st_id)
         self.assertEqual(the_returned['context']['statement']['objectType'], 'StatementRef')
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
@@ -878,7 +875,7 @@ class AuthTests(TestCase):
 
     def test_post_list_rollback_part_2(self):
         stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"en-US":"wrong"}},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}},
             {"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
             "object": {"objectType": "Activity", "id":"act:foogie",
@@ -939,10 +936,10 @@ class AuthTests(TestCase):
     def test_post_list_rollback_with_subs(self):
         sub_context_id = str(uuid.uuid1())
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"mailto:wrong-s@s.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"wrong-en-US":"wrong"}},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"en-US":"wrong"}},
             "object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"}},
             {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"wrong-en-US":"wrong-next"}},
+            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"en-US":"wrong-next"}},
             "object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},"verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
             "object": {"objectType":"Activity", "id":"act:wrong-testex.com"}, "result":{"completion": True, "success": True,
@@ -1111,7 +1108,7 @@ class AuthTests(TestCase):
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Statements cannot have a non-Oauth group as the authority", response.content)
+        self.assertIn("Statements cannot have a non-OAuth group as the authority", response.content)
 
     def test_post_with_non_oauth_existing_group(self):
         ot = "Group"
@@ -1125,4 +1122,4 @@ class AuthTests(TestCase):
         
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Statements cannot have a non-Oauth group as the authority")
+        self.assertEqual(response.content, "Statements cannot have a non-OAuth group as the authority")

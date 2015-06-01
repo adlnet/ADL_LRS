@@ -178,6 +178,11 @@ def statements_more_get(req_dict):
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     resp['Content-Length'] = str(content_length)
+    
+    # If it's a HEAD request
+    if req_dict['method'].lower() != 'get':
+        resp.body = ''
+
     return resp
 
 def statements_get(req_dict):
@@ -205,6 +210,10 @@ def statements_get(req_dict):
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     
     resp['Content-Length'] = str(content_length) 
+
+    # If it's a HEAD request
+    if req_dict['method'].lower() != 'get':
+        resp.body = ''
 
     return resp
 
@@ -302,6 +311,11 @@ def activity_state_get(req_dict):
         since = req_dict['params'].get('since', None)
         resource = actstate.get_state_ids(activity_id, registration, since)
         response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+    
+    # If it's a HEAD request
+    if req_dict['method'].lower() != 'get':
+        response.body = ''
+
     return response
 
 def activity_state_delete(req_dict):
@@ -351,6 +365,11 @@ def activity_profile_get(req_dict):
     resource = ap.get_profile_ids(activityId, since)
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     response['since'] = since
+    
+    # If it's a HEAD request
+    if req_dict['method'].lower() != 'get':
+        resp.body = ''
+
     return response
 
 def activity_profile_delete(req_dict):
@@ -366,6 +385,11 @@ def activities_get(req_dict):
     return_act = json.dumps(act.to_dict())    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
+    
+    # If it's a HEAD request
+    if req_dict['method'].lower() != 'get':
+        resp.body = ''
+
     return resp
 
 def agent_profile_post(req_dict):
@@ -405,6 +429,11 @@ def agent_profile_get(req_dict):
     since = req_dict['params'].get('since', None) if 'params' in req_dict else None
     resource = ap.get_profile_ids(since)
     response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+    
+    # If it's a HEAD request
+    if req_dict['method'].lower() != 'get':
+        resp.body = ''
+
     return response
 
 def agent_profile_delete(req_dict):
@@ -421,4 +450,9 @@ def agents_get(req_dict):
     agent_data = json.dumps(a.to_dict_person())
     resp = HttpResponse(agent_data, mimetype="application/json")
     resp['Content-Length'] = str(len(agent_data))
+    
+    # If it's a HEAD request
+    if req_dict['method'].lower() != 'get':
+        resp.body = ''
+            
     return resp

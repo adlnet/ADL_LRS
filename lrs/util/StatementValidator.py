@@ -155,7 +155,7 @@ class StatementValidator():
 
 		# Validate the actor and verb
 		self.validate_agent(stmt['actor'], 'actor')
-		self.validate_verb(stmt['verb'])
+		self.validate_verb(stmt['verb'], stmt['object'])
 
 		# Validate the object
 		stmt_object = stmt['object']
@@ -176,10 +176,26 @@ class StatementValidator():
 		# If authority is included, validate it
 		if 'authority' in stmt:
 			self.validate_agent(stmt['authority'], 'authority')
+			self.validate_authority(stmt['authority'])
 
 		# If attachments is included, validate it
 		if 'attachments' in stmt:
 			self.validate_attachments(stmt['attachments'])
+
+	def validate_authority(self, authority):
+		if authority['objectType'] == 'Group':
+			contains_account = len([x for m in authority['member'] for x in m.keys() if 'account' in x]) > 0
+			if contains_account:
+				if len(authority['member']) == 2:
+					for agent in authority['member']:
+						if 'account' in agent:
+							if not 'oauth' in agent['account']['homePage'].lower():
+								self.return_error("Statements cannot have a non-OAuth group as the authority")
+				else:
+					self.return_error("OAuth authority must only contain 2 members")
+			# No members contain an account so that means it's not an Oauth group
+			else:
+				self.return_error("Statements cannot have a non-OAuth group as the authority")
 
 	def validate_attachments(self, attachments):
 		# Ensure attachments is a list
@@ -314,7 +330,7 @@ class StatementValidator():
 		if not isinstance(account['name'], basestring):
 			self.return_error("account name must be a string")
 
-	def validate_verb(self, verb):
+	def validate_verb(self, verb, stmt_object=None):
 		# Ensure incoming verb is a dict and check allowed fields
 		self.check_if_dict(verb, "Verb")
 		self.check_allowed_fields(verb_allowed_fields, verb, "Verb")
@@ -325,8 +341,8 @@ class StatementValidator():
 		self.validate_iri(verb['id'], 'Verb id')
 
 		if verb['id'] == "http://adlnet.gov/expapi/verbs/voided":
-			if self.data['object']['objectType']:
-				if self.data['object']['objectType'] != "StatementRef":
+			if stmt_object['objectType']:
+				if stmt_object['objectType'] != "StatementRef":
 					raise ParamError("Statement with voided verb must have StatementRef as objectType")
 			else:
 				raise ParamError("Statement with voided verb must have StatementRef as objectType")
