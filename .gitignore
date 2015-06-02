@@ -7,4 +7,5 @@ runtests
 .coverage
 404.html
 500.html
+media/
 federated-analytics.js
