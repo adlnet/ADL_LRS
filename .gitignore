@@ -5,3 +5,6 @@ build
 migrations
 runtests
 .coverage
+404.html
+500.html
+federated-analytics.js
