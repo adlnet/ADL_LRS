@@ -2,14 +2,14 @@ $(document).ready(function() {
     // Changes page content with menu item clicks
     function checkContent(){
         // hides all tab content
-        $('.tab_content').each(function(){
+        $('.tab-content').each(function(){
             var href = $(this).children('a').attr('href').substring(1);
             var content = $('#'+href);
             content.hide();
         });
         // displays the selected content
         $('.pure-menu-selected').each(function(){
-            if($(this).hasClass('tab_content')){
+            if($(this).hasClass('tab-content')){
                 var href = $(this).children('a').attr('href').substring(1);
                 var content = $('#'+href);
                 content.show();

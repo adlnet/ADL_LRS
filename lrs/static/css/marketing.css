@@ -110,10 +110,12 @@ a.pure-button-primary {
     border: solid;
     border-color: #6FBEF3;
 }
+.custom-wrap{
+    white-space: normal;
+}
 .pure-menu-selected{
     background-color: #6FBEF3;
 }
-
 .home-heading{
     text-transform:none;
 }

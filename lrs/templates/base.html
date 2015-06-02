@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="ADL's open LRS">
 
-    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+    <!-- <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css"> -->
+    <link rel="stylesheet" href="{{STATIC_URL}}css/pure-min.css">
     <link rel="shortcut icon" href="{{ STATIC_URL }}img/favicon.ico" />
     <link rel="icon" href="{{ STATIC_URL }}img/favicon.ico" type="image/x-icon">
 
     <!--[if lte IE 8]>
-      <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-old-ie-min.css">
+      <link rel="stylesheet" href="{{STATIC_URL}}css/grids-responsive-old-ie-min.css">
     <![endif]-->
     
     <!--[if gt IE 8]><!-->
-      <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css">
+      <!-- <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css"> -->
+      <link rel="stylesheet" href="{{STATIC_URL}}css/grids-responsive-min.css">
     <!--<![endif]-->
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
@@ -61,3 +63,4 @@
 <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
 {% block extra_js %}{% endblock extra_js %}
 </body>
+</html>
