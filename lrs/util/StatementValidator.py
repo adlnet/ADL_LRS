@@ -66,7 +66,7 @@ class StatementValidator():
 			if email.startswith("mailto:"):
 				email_re = re.compile("[^@]+@[^@]+\.[^@]+")
 				if not email_re.match(email[7:]):
-					self.return_error("mbox value %s is not a valid email")
+					self.return_error("mbox value %s is not a valid email" % email)
 			else:
 				self.return_error("mbox value %s did not start with mailto:" % email)
 		else:

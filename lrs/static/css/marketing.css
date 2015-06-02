@@ -109,11 +109,14 @@ a.pure-button-primary {
 .custom-menu{
     border: solid;
     border-color: #6FBEF3;
+    word-wrap: break-word;
+}
+.custom-wrap{
+    white-space: normal;
 }
 .pure-menu-selected{
     background-color: #6FBEF3;
 }
-
 .home-heading{
     text-transform:none;
 }
