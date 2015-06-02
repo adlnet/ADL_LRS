@@ -1,68 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="viewport" content="width=940px, initial-scale=1, user-scalable=yes">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ADL's open LRS">
+
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
     <link rel="shortcut icon" href="{{ STATIC_URL }}img/favicon.ico" />
     <link rel="icon" href="{{ STATIC_URL }}img/favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}bootstrap/css/bootstrap.min.css" />
-    <style type="text/css">
-      html,
-      body {
-        height: 100%;
-        /* The html and body elements cannot have any padding or margin. */
-      }
-      /* Wrapper for page content to push down footer */
-      #wrap {
-        min-height: 100%;
-        height: auto !important;
-        height: 100%;
-        /* Negative indent footer by it's height */
-        margin: 0 auto -60px;
-      }
 
-      #wrap > .container {
-        padding-top: 60px;
-      }
-    </style>
+    <!--[if lte IE 8]>
+      <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-old-ie-min.css">
+    <![endif]-->
+    
+    <!--[if gt IE 8]><!-->
+      <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css">
+    <!--<![endif]-->
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <!--[if lte IE 8]>
+        <link rel="stylesheet" href="{{ STATIC_URL }}css/marketing-old-ie.css">
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+        <link rel="stylesheet" href="{{ STATIC_URL }}css/marketing.css">
+    <!--<![endif]-->
     {% block extra_css %}{% endblock extra_css %}
     <title>{% block title %}ADL LRS{% endblock title %}</title>
 </head>
+
 <body>
-    <div id="wrap">
-        <div class="navbar navbar-fixed-top">
-            <div class="navbar-inner">
-              <div class="container">
-                <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-                  <span class="icon-bar"></span>
-                  <span class="icon-bar"></span>
-                  <span class="icon-bar"></span>
-              </button>
-              <img class="brand" style="height:25px; width:auto;" src="{{ STATIC_URL }}/img/adllogo.png" alt="experience api logo"/>
-              <a class="brand" href="{% url lrs.views.home %}">ADL LRS</a>
-              <div class="nav-collapse collapse">
+  <div class="header">
+    <div class="home-menu pure-menu pure-menu-horizontal pure-menu-fixed">
+        <div class="pure-g">
+          <div class="pure-u-1-2">
+            {% if user.is_authenticated %}
+              <a class="pure-menu-heading home-heading" href="{% url lrs.views.home %}">{{user.username}} ({{user.email}})</a>
+            {% else %}
+              <a class="pure-menu-heading" href="{% url lrs.views.home %}">ADL LRS</a>
+            {% endif %}
+          </div>
+          <div class="pure-u-1-2">
+            <ul class="pure-menu-list">
                 {% if user.is_authenticated %}
-                <ul class="nav pull-right">
-                    <li><a href="{% url lrs.views.me %}">{{user.username}}</a></li>
-                    <li><a href="{% url logout %}">logout</a></li>
-                </ul>
+                  <li class="pure-menu-item"><a class="pure-menu-link" href="{% url lrs.views.me %}">My Account</a></li>
+                  <li class="pure-menu-item"><a class="pure-menu-link" href="{% url logout %}">Logout</a></li>
                 {% else %}
-                <form action="{% url django.contrib.auth.views.login %}" method="post" class="navbar-form pull-right">
-                    {% csrf_token %}
-                    <input class="span2" type="text" name="username" placeholder="Username">
-                    <input class="span2" type="password" name="password" placeholder="Password">
-                    <button type="submit" class="btn">Sign in</button>
-                </form>
+                  <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                    <a href="{% url login %}" id="menuLink1" class="pure-menu-link">Login</a>
+                    <ul class="pure-menu-children">
+                        <li class="pure-menu-item"><a href="{% url lrs.views.register %}" class="pure-menu-link">Register</a></li>
+                    </ul>
+                  </li>
                 {% endif %}
-            </div><!--/.nav-collapse -->
+            </ul>
+          </div>
         </div>
     </div>
-</div>
-<div class="container">
-    {% block content %}{% endblock content %}
-</div>
-</div>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-<script src="{{ STATIC_URL }}bootstrap/js/bootstrap.min.js"></script>
+  </div>
+{% block content %}{% endblock content %}
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
 {% block extra_js %}{% endblock extra_js %}
 </body>
-</html> 

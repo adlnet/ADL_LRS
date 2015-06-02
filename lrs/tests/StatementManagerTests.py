@@ -9,7 +9,7 @@ from django.conf import settings
 
 from ..models import *
 from ..views import register, statements
-from ..objects.ActivityManager import ActivityManager
+from ..managers.ActivityManager import ActivityManager
 
 class StatementManagerTests(TestCase):
     
@@ -105,7 +105,7 @@ class StatementManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "The objectType in the statement's object is not valid - Statement")
+        self.assertEqual(response.content, "Statement with voided verb must have StatementRef as objectType")
 
     def test_no_verb_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}, "object": {'id':'act:activity2'}})

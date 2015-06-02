@@ -31,7 +31,6 @@ class OAuth2Tests(TestCase):
     def login(self):
         if not settings.OAUTH_ENABLED:
             settings.OAUTH_ENABLED = True
-
         self.client.login(username='test-user-1', password='test')
 
     def auth_url(self):

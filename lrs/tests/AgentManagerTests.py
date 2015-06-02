@@ -8,7 +8,6 @@ from django.conf import settings
 
 from ..models import Agent, Statement
 from ..views import register, statements
-from ..objects.AgentManager import AgentManager
 
 class AgentManagerTests(TestCase):
     @classmethod
@@ -16,9 +15,6 @@ class AgentManagerTests(TestCase):
         print "\n%s" % __name__
 
     def setUp(self):
-        if not settings.ALLOW_EMPTY_HTTP_AUTH:
-            settings.ALLOW_EMPTY_HTTP_AUTH = True
-        
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
@@ -362,7 +358,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g = AgentManager(params=kwargs).Agent
+        g = Agent.objects.retrieve_or_create(**kwargs)[0]
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)
@@ -377,7 +373,7 @@ class AgentManagerTests(TestCase):
         members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
                     {"name":"agent2","mbox":"mailto:agent2@example.com"}]
         kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
-        g = AgentManager(params=kwargs).Agent
+        g = Agent.objects.retrieve_or_create(**kwargs)[0]
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
         mems = g.member.values_list('name', flat=True)

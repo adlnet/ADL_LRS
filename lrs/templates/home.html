@@ -1,81 +1,165 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra-home.css">
+{% endblock extra_css %}
 {% block content %}
-<a href="https://github.com/adlnet/ADL_LRS" target="_blank"><img style="position: absolute; top: 40px; right: 0; border: 0;" src="{{ STATIC_URL }}/img/forkme.png" alt="Fork me on GitHub"></a>
-<div class="hero-unit">
-  <img src="{{ STATIC_URL }}/img/xAPI-transparent_300px.png" style="height:50px; width:auto;" class="pull-right" alt="experience api logo"/>
-  <h2>Welcome to the ADL Learning Record Store</h2>
-  <p>This Learning Record Store (LRS) is a reference implementation of an LRS as 
-     described in the <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md#experience-api" target="_blank" alt="experience api spec">
-     Experience API Specification</a>.
-  </p>
-  <h4>Current LRS Stats</h4>
-  <div class="row">
-    <div class="span2 text-center">
-    <h4>Users</h4>
-    <h4>{{ stats.usercnt }}</h4>
+<div class="splash-container">
+    <div class="splash">
+        <h1 class="splash-head">ADL Learning Record Store</h1>
+        <p class="splash-subhead">
+          Welcome to the ADL LRS. This is a reference implementation of an LRS as described in the 
+          <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md#experience-api" target="_blank" alt="experience api spec"> Experience API Specification</a>
+        </p>
     </div>
-    <div class="span2 text-center">
-    <h4>Statements</h4>
-    <h4>{{ stats.stmtcnt }}</h4>
+</div>
+<div class="content-wrapper">
+    <div class="content home-top-content">
+      <h2 class="content-head is-center">Current LRS Stats</h2>
+      <div class="pure-g">
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Users</h3>
+          <p class="is-center">
+            {{ stats.usercnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Statements</h3>
+          <p class="is-center">
+            {{ stats.stmtcnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Agents</h3>
+          <p class="is-center">
+            {{ stats.agentcnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Verbs</h3>
+          <p class="is-center">
+            {{ stats.verbcnt }}
+          </p>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
+          <h3 class="content-subhead is-center">Activities</h3>
+          <p class="is-center">
+            {{ stats.activitycnt }}
+          </p>
+        </div>      
+      </div>
     </div>
-    <div class="span2 text-center">
-    <h4>Agents</h4>
-    <h4>{{ stats.agentcnt }}</h4>
+  <div class="content">
+    <h2 class="content-head is-center">Features</h2>
+    <div class="pure-g">
+      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+        <h3 class="content-subhead"><i class="fa fa-code"></i>Original GitHub Examples</h3>
+        <p>
+          Visit the original GitHub prototype page to find some of the first-built prototypes. These prototypes can be configured to report to an LRS. See the <a href="https://github.com/adlnet/experienceapi_client_examples/tree/master/1.0/original_prototypes#original-prototypes" target="_blank">ReadMe</a> for more information.
+        </p>
+        <p>
+          <a class="pure-button pull-left" href="https://github.com/adlnet/experienceapi_client_examples" target="_blank">Prototypes</a>
+          <a class="pure-button pull-right" target="_blank" href="/prototypes/">Launch</a>
+        </p>
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+        <h3 class="content-subhead"><i class="fa fa-check"></i>Statement Validator</h3>
+        <p>
+          Want to make sure your statement is valid? Check it out here.
+        </p>
+        <p>
+          <a class="pure-button pull-right" href="{% url lrs.views.stmt_validator %}">Validate</a>
+        </p>
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+        <h3 class="content-subhead"><i class="fa fa-wrench"></i>ADL xAPI Tools</h3>
+        <p>
+          Check out all of the new and improved xAPI tools freely available on GitHub.
+        </p>
+        <p>
+          <a class="pure-button pull-right" target="_blank" href="http://adlnet.github.io/">xAPI Tools</a>
+        </p>
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+        <h3 class="content-subhead"><i class="fa fa-mobile"></i>Android App</h3>
+        <p>
+          Check out the LRS in action on the Google Play Store. Download the app <a target="_blank" href="https://play.google.com/store/apps/details?id=org.adl.roses&hl=en">here</a>.
+        </p>
+      </div>
     </div>
-    <div class="span2 text-center">
-    <h4>Verbs</h4>
-    <h4>{{ stats.verbcnt }}</h4>
+  </div>
+  <div class="ribbon l-box-lrg pure-g">
+    <div class="l-box-lrg is-center pure-u-1 pure-u-md-1-2 pure-u-lg-2-5">
+        <i class="fa fa-lock home-icon"></i>
     </div>
-    <div class="span2 text-center">
-    <h4>Activities</h4>
-    <h4>{{ stats.activitycnt }}</h4>
+    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-3-5">
+        <h2 class="content-head content-head-ribbon">Authenticate via OAuth</h2>
+        <p>
+          <ul>
+            <li>By default, only HTTP Auth is enabled. To enable OAuth, have your administrator set the 'OAUTH_ENABLED' flag to true in settings.py</li>                
+            <li>While registering, submit the name and description of the client you wish to authorize</li>
+            <li>Once submitted, you will receive a client ID and client secret. Use these with the appropriate OAuth
+              headers to perform the initial handshake to gain your temporary token. ({% url oauth:oauth_provider.views.request_token %}) <b>NOTE: If you are not familiar with OAuth, please consult the <a target="_blank" href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md">spec</a> and the OAuth 1.0 <a target="_blank" href="http://tools.ietf.org/html/rfc5849">RFC</a></b></li>
+            <li>You'll then receive your request token. Use this when visiting the authentication page ({% url oauth:oauth_provider.views.user_authorization %}). An LRS OAuth ID will be issued to you for you to POST back to the authentication page from your client</li>
+            <li>Once the client is authenticated, send the appropriate OAuth headers and values from your token to gain an access token.({% url oauth:oauth_provider.views.access_token %})</li>
+            <li>You can now send this access token in with the OAuth headers when making calls to the LRS system</li>
+          </ul>
+          <a class="pure-button" href="{% url lrs.views.reg_client %}">Register OAuth1 Client</a>
+        </p>
     </div>
+    <div class="l-box-lrg is-center pure-u-1 pure-u-md-1-2 pure-u-lg-2-5">
+        <i class="fa fa-cog home-icon"></i>
+    </div>
+    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-3-5">
+        <h2 class="content-head content-head-ribbon">Authenticate via OAuth2</h2>
+        <p>
+          <ul>
+            <li>By default, only HTTP Auth is enabled. To enable OAuth, have your administrator set the 'OAUTH_ENABLED' flag to true in settings.py</li>                
+            <li>While registering, submit the name, client url, redirect url, and type of the client you wish to authorize</li>
+            <li>Once submitted, you will receive a client ID and client secret. Use these with the appropriate OAuth2
+              headers to authorize. (/XAPI/oauth2/authorize) <b>NOTE: If you are not familiar with OAuth2, please consult the the OAuth 2.0 <a target="_blank" href="https://tools.ietf.org/html/rfc6749">RFC</a></b></li>
+            <li>Once the client is authenticated, send the appropriate OAuth2 headers and values from your token to gain an access token.(/XAPI/oauth2/access_token)
+            </li>
+            <li>You can now send this access token in with the OAuth2 headers when making calls to the LRS system</li>
+          </ul>
+          <a class="pure-button" href="{% url lrs.views.reg_client2 %}">Register OAuth2 Client</a>
+        </p>        
+    </div>
+  </div>
+  <div class="content">
+    <h2 class="content-head is-center">Sign up for HTTP Basic Credentials</h2>
+      <div class="pure-g">
+          <div class="l-box-lrg pure-u-1 pure-u-md-2-5">
+              <form class="pure-form pure-form-stacked" action="{% url lrs.views.register %}" method="post">
+                  {% csrf_token %}
+                  <fieldset>
+                      {% for field in form %}
+                        <label for="{{ field.auto_id }}">{{ field.label }}</label>
+                        {% if field.name == 'username' %}
+                          <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="text" placeholder="Your Username" required>
+                        {% elif field.name == 'email' %}
+                          <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="email" placeholder="Your Email" required>
+                        {% else %}
+                          <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="password" placeholder="Your Password" required>
+                        {% endif %}
+                      {% endfor %}
+                      <button type="submit" class="pure-button pure-button-primary">Sign Up</button>
+                  </fieldset>
+              </form>
+          </div>
+          <div class="l-box-lrg pure-u-1 pure-u-md-3-5">
+              <h4>Register</h4>
+              <p>
+                  Registration is used to enable HTTP Basic Authentication. Without using secure sockets (SSL), this authentication scheme is likely not secure enough for most production systems. Please do not register using sensitive names and passwords. Assume all data provided here is public. After you register a user, you can use the HTTP_AUTHORIZATION header with your encoded username and password.
+              </p>
+              <h4>More Information</h4>
+              <p>
+                  For more information or questions, please contact us at helpdesk@adlnet.gov.
+              </p>
+          </div>
+      </div>
+  </div>
+  <div class="footer l-box is-center">
+      <img class="brand" height="35" width="auto" class="pure-img" src="{{ STATIC_URL }}/img/adllogo.png" alt="experience api logo"/> Advanced Distributed Learning
   </div>
 </div>
-<ul class="thumbnails">
-  <li class="span4">
-    <div class="thumbnail text-center" style="padding-left:13px; padding-right:10px; height:210px">
-      <h4>Sign up</h2>
-      <p>Sign up for HTTP Basic Credentials</p>
-      <p>Create a username and supply an email address with it</p>
-      <p><a class="btn btn-primary" href="{% url lrs.views.register %}">Register</a></p>
-    </div>
-  </li>
-  <li class="span4">
-    <div class="thumbnail text-center" style="padding-left:13px; padding-right:10px; height:210px">
-      <h4>Github Examples</h2>
-      <p>Visit our GitHub prototype page to find some of the updated 1.0.2 prototypes. These prototypes can be configured to report to an LRS. See the <a href="https://github.com/adlnet/experienceapi_client_examples/tree/master/1.0/original_prototypes#original-prototypes" target="_blank">Readme</a> for more information.</p>
-      <p><a class="btn pull-left" href="https://github.com/adlnet/experienceapi_client_examples" target="_blank">GitHub Prototypes</a><a class="btn btn-primary pull-right" target="_blank" href="/prototypes/">Launch</a></p>
-    </div>
-  </li>
-  <li class="span4">
-    <div class="thumbnail text-center" style="padding-left:13px; padding-right:10px; height:210px">
-      <h4>Statement Validator</h4>
-      <p>Want to make sure your statement is valid? Check it here.
-      </p>
-      <p><a class="btn" href="{% url lrs.views.stmt_validator %}">Validator</a></p>
-    </div>
-  </li>
-</ul>
-<ul class="thumbnails">
-  <li class="span12">
-  <div class="thumbnail" style="padding-left:13px;">
-    <h4>OAuth Clients</h4>
-      <p><ol>
-          <li>By default, only HTTP Auth is enabled. To enable OAuth, set the 'OAUTH_ENABLED' flag to true
-            in settings.py</li>                
-          <li>Visit our client registration page</li>
-          <li>Submit the name and description of the client you wish to authorize</li>
-          <li>Once submitted, you will receive a client ID and client secret. Use these with the appropriate OAuth
-            headers to perform the initial handshake to gain your temporary token. ({% url oauth:oauth_provider.views.request_token %}) <b>NOTE: If you are not familiar with OAuth, please consult the <a href="https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md">spec</a> and the OAuth 1.0 <a href="http://tools.ietf.org/html/rfc5849">RFC</a></b></li>
-          <li>You'll then receive your request token. Use this when visiting the authentication page ({% url oauth:oauth_provider.views.user_authorization %}). An LRS OAuth ID will be issued to you for you to POST back to the authentication page from your client</li>
-          <li>Once the client is authenticated, send the appropriate OAuth headers and values from your token to gain an access token.({% url oauth:oauth_provider.views.access_token %})</li>
-          <li>You can now send this access token in with the OAuth headers when making calls to the LRS system</li>
-        </ol>
-      </p>
-      <p><a class="btn" href="{% url lrs.views.reg_client %}">Register OAuth1 Client (3-legged process)</a></p>
-      <p><a class="btn" href="{% url lrs.views.reg_client2 %}">Register OAuth2 Client (3-legged process)</a></p>
-  </div>
-  </li>
-</ul>
 {% endblock content %}

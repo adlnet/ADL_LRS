@@ -7,7 +7,6 @@ from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
 from ..exceptions import Unauthorized, BadRequest, Forbidden
-from ..objects.AgentManager import AgentManager
 from ..models import Agent
 
 from oauth_provider.models import Consumer
@@ -134,8 +133,7 @@ def http_auth_helper(request):
                         # If the user successfully logged in, then add/overwrite
                         # the user object of this request.
                         request['auth']['user'] = user
-                        request['auth']['authority'] = AgentManager(params={'name':user.username, 'mbox':'mailto:%s' % user.email, 'objectType': 'Agent'},
-                            define=True).Agent
+                        request['auth']['authority'] = Agent.objects.retrieve_or_create(**{'name':user.username, 'mbox':'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
                     else:
                         raise Unauthorized("Authorization failed, please verify your username and password")
                 request['auth']['define'] = True

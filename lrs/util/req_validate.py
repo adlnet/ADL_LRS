@@ -5,7 +5,7 @@ from isodate.isoerror import ISO8601Error
 
 from django.conf import settings
 
-from util import validate_uuid, convert_to_dict, get_agent_ifp
+from util import convert_to_dict, get_agent_ifp
 from Authorization import auth
 from StatementValidator import StatementValidator
 
@@ -42,6 +42,7 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
 def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
+
     try:
         stmt = Statement.objects.get(statement_id=void_id)
     except Statement.DoesNotExist:
@@ -64,28 +65,11 @@ def validate_stmt_authority(stmt, auth, auth_validated):
             if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
                 err_msg = "Statements cannot have a non-Oauth group as the authority"
                 raise ParamError(err_msg)
-            else:
+            elif auth['authority'].objectType == 'Group' and auth['authority'].oauth_identifier:
+                if auth['authority'].member.count() != 2:
+                    err_msg = "OAuth authority must only contain 2 members"
+                    raise ParamError(err_msg)
                 return True
-        # If no auth then validate authority in stmt if there is one
-        else:
-            if 'authority' in stmt:
-                # If they try using a non-oauth group that already exists-throw error
-                if stmt['authority']['objectType'] == 'Group':
-                    contains_account = len([x for m in stmt['authority']['member'] for x in m.keys() if 'account' in x]) > 0
-                    if contains_account:
-                        for agent in stmt['authority']['member']:
-                            if 'account' in agent:
-                                if not 'oauth' in agent['account']['homePage'].lower():
-                                    err_msg = "Statements cannot have a non-Oauth group as the authority"
-                                    raise ParamError(err_msg)
-                    # No members contain an account so that means it's not an Oauth group
-                    else:
-                        err_msg = "Statements cannot have a non-Oauth group as the authority"
-                        raise ParamError(err_msg)
-                else:
-                    return True
-            else:
-                return True            
 
 # Retrieve JSON data from ID
 def get_act_def_data(act_data):
@@ -330,7 +314,7 @@ def activity_state_post(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -340,21 +324,17 @@ def activity_state_post(req_dict):
         raise ParamError(err_msg)    
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
     else:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict['method']
-        raise ParamError(err_msg)
-    
-    if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-        err_msg = "The content type for activity state POSTs must be application/json"
         raise ParamError(err_msg)
     
     # Must have body included for state
@@ -378,7 +358,7 @@ def activity_state_put(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -388,13 +368,13 @@ def activity_state_put(req_dict):
         raise ParamError(err_msg)    
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
     else:
@@ -422,19 +402,19 @@ def activity_state_get(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
     else:
@@ -461,19 +441,19 @@ def activity_state_delete(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity state")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity state")
     else:
         err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing.." % req_dict['method']
         raise ParamError(err_msg)
 
     if 'registration' in req_dict['params']:
-        if not validate_uuid(req_dict['params']['registration']):
-            raise ParamError("%s is not a valid uuid for the registration parameter")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for activity state is not valid")
         validator.validate_agent(agent, "Activity state agent param")
     else:
@@ -493,17 +473,13 @@ def activity_profile_post(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
 
     if not 'profileId' in req_dict['params']:
         err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg)    
-
-    if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-        err_msg = "The content type for activity profile POSTs must be application/json"
         raise ParamError(err_msg)
     
     if 'body' not in req_dict:
@@ -521,7 +497,7 @@ def activity_profile_put(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -547,7 +523,7 @@ def activity_profile_get(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -568,7 +544,7 @@ def activity_profile_delete(req_dict):
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
-        validator.validate_uri(req_dict['params']['activityId'], "activityId param for activity profile")
+        validator.validate_iri(req_dict['params']['activityId'], "activityId param for activity profile")
     else:
         err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict['method']
         raise ParamError(err_msg)
@@ -610,7 +586,8 @@ def agent_profile_post(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
     else:
@@ -619,10 +596,6 @@ def agent_profile_post(req_dict):
 
     if not 'profileId' in req_dict['params']:
         err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict['method']
-        raise ParamError(err_msg) 
-
-    if 'headers' not in req_dict or ('CONTENT_TYPE' not in req_dict['headers'] or req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-        err_msg = "The content type for agent profile POSTs must be application/json"
         raise ParamError(err_msg)
     
     if 'body' not in req_dict:
@@ -648,7 +621,8 @@ def agent_profile_put(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
     else:
@@ -679,7 +653,8 @@ def agent_profile_get(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
     else:
@@ -707,7 +682,8 @@ def agent_profile_delete(req_dict):
     if 'agent' in req_dict['params']:
         try:
             agent = json.loads(req_dict['params']['agent'])
-        except Exception, e:
+            req_dict['params']['agent'] = agent
+        except Exception:
             raise ParamError("agent param for agent profile is not valid")
         validator.validate_agent(agent, "agent param for agent profile")
     else:

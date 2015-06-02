@@ -74,7 +74,7 @@ class ActivityTests(TestCase):
             "object":{'objectType': 'Activity', 'id':'act:foobar1',
                 'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},
-                'type': 'type:course','interactionType': 'other'}}})
+                'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[]}}})
         st_post = self.client.post(reverse(statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
 
@@ -93,7 +93,7 @@ class ActivityTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar2',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
-                'type': 'type:course','interactionType': 'other', 
+                'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[],
                 'extensions': {'ext:key1': 'value1', 'ext:key2': 'value2'}}}})
         st_post = self.client.post(reverse(statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -411,4 +411,3 @@ class ActivityTests(TestCase):
         response = self.client.put(reverse(activities), {'activityId':'act:my_activity'},
             content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 405)
-

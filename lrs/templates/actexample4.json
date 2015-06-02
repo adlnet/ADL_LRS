@@ -1,7 +1,0 @@
-
-{
-    "name":{"en-US": "Example Name"},
-    "description": {"en-US": "Example Desc"},
-    "type": "type:module",
-    "interactionType": "course"
-}

@@ -469,7 +469,7 @@ class ActivityStateTests(TestCase):
         params = {"stateId": self.stateId, "activityId": "foo", "agent": self.testagent}
         r = self.client.get(self.url, params, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 400)
-        self.assertIn('activityId param for activity state with value foo was not a valid URI', r.content)
+        self.assertIn('activityId param for activity state with value foo was not a valid IRI', r.content)
 
     def test_delete_without_activityid(self):
         testparamsregid = {"registration": self.registration, "stateId": self.stateId, "activityId": self.activityId, "agent": self.testagent}
@@ -577,12 +577,14 @@ class ActivityStateTests(TestCase):
         path = '%s?%s' % (self.url, urllib.urlencode({"method":"PUT"}))
         
         content = {"test":"test_ie_cors_put_delete","obj":{"actor":"another test"}}
-        param = "stateId=%s&activityId=%s&agent=%s&content=%s&Content-Type=application/x-www-form-urlencoded&Authorization=%s&X-Experience-API-Version=1.0.0" % (sid, self.activityId, testagent, content, auth)
+        param = "stateId=%s&activityId=%s&agent=%s&content=%s&Content-Type=application/x-www-form-urlencoded&Authorization=%s&X-Experience-API-Version=1.0.0" % (sid, self.activityId,
+            testagent, content, auth)
+
         put1 = self.client.post(path, param, content_type='application/x-www-form-urlencoded')
  
         self.assertEqual(put1.status_code, 204)
         self.assertEqual(put1.content, '')
-        
+
         r = self.client.get(self.url, {"stateId": sid, "activityId": self.activityId, "agent": testagent}, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=auth)
         self.assertEqual(r.status_code, 200)
         import ast

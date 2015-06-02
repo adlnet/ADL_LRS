@@ -1,26 +1,11 @@
-from functools import wraps
-
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
 
-from .AgentManager import AgentManager
 from .ActivityManager import ActivityManager
-from ..models import Verb, Statement, StatementRef, StatementAttachment, StatementContextActivity, SubStatement, SubStatementContextActivity 
+from ..models import Verb, Statement, StatementRef, StatementAttachment, StatementContextActivity, SubStatement, SubStatementContextActivity, Agent 
 
 att_cache = get_cache('attachment_cache')
-
-class default_on_exception(object):
-    def __init__(self,default):
-        self.default = default
-    def __call__(self,f):
-        @wraps(f)
-        def closure(obj,*args,**kwargs):
-            try:
-                return f(obj,*args,**kwargs)
-            except:
-                return self.default
-        return closure
 
 class StatementManager():
     def __init__(self, data, auth, full_stmt={}):
@@ -192,12 +177,12 @@ class StatementManager():
                 self.data['context_' + k] = v
 
             if 'context_instructor' in self.data:
-                self.data['context_instructor'] = AgentManager(params=self.data['context_instructor'],
-                    define=self.auth['define']).Agent
+                self.data['context_instructor']['canonical_version'] = self.auth['define']
+                self.data['context_instructor'] = Agent.objects.retrieve_or_create(**self.data['context_instructor'])[0]
                 
             if 'context_team' in self.data:
-                self.data['context_team'] = AgentManager(params=self.data['context_team'],
-                    define=self.auth['define']).Agent
+                self.data['context_team']['canonical_version'] = self.auth['define']
+                self.data['context_team'] = Agent.objects.retrieve_or_create(**self.data['context_team'])[0]
 
             if 'context_statement' in self.data:
                 self.data['context_statement'] = self.data['context_statement']['id']
@@ -244,7 +229,8 @@ class StatementManager():
                 self.data['object_activity'] = ActivityManager(statement_object_data, auth=self.auth['authority'],
                     define=self.auth['define']).Activity
             elif statement_object_data['objectType'] in valid_agent_objects:
-                self.data['object_agent'] = AgentManager(params=statement_object_data, define=self.auth['define']).Agent
+                statement_object_data['canonical_version'] = self.auth['define']
+                self.data['object_agent'] = Agent.objects.retrieve_or_create(**statement_object_data)[0]
             elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
@@ -263,15 +249,9 @@ class StatementManager():
         else:
             # If authority is given in statement
             if 'authority' in self.data:
-                self.data['authority'] = AgentManager(params=self.data['full_statement']['authority']).Agent
+                self.data['authority'] = Agent.objects.retrieve_or_create(**self.data['full_statement']['authority'])[0]
                 self.auth['authority'] = self.data['authority']
                 
-                # TODO - what to do with authority field in statement here?
-                # Since no data about auth sent in with request, have to set it with the authority agent
-                # If authorty is just an agent, won't necessarily be a user and will have define scope
-                # if self.auth['authority'].objectType == 'Group':
-                #     self.auth['user'] = self.auth['authority'].get_user_from_oauth_group()
-                #     self.auth['define'] = 
             # Empty auth in request or statement
             else:
                 self.auth['authority'] = None
@@ -284,7 +264,8 @@ class StatementManager():
         self.build_verb_object()
         self.build_statement_object()
 
-        self.data['actor'] = AgentManager(params=self.data['actor'], define=self.auth['define']).Agent
+        self.data['actor']['canonical_version'] = self.auth['define']
+        self.data['actor'] = Agent.objects.retrieve_or_create(**self.data['actor'])[0]
 
         self.populate_context()
         self.populate_result()

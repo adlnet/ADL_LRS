@@ -8,7 +8,7 @@ from django.conf import settings
 from ..views import register, agents
 from ..models import Agent
 
-class AgentsTests(TestCase):
+class AgentTests(TestCase):
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__

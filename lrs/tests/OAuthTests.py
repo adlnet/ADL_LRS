@@ -2468,7 +2468,7 @@ Lw03eHTNQghS0A==
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
-            'interactionType': 'other'}}})
+            'interactionType': 'other', 'correctResponsesPattern':[]}}})
 
         param = {"statementId":put_guid}
         path = "%s?%s" % (url, urllib.urlencode(param))
@@ -2496,6 +2496,7 @@ Lw03eHTNQghS0A==
         # canonical_version as false
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(resp.status_code, 204)
         acts = Activity.objects.all()
         self.assertEqual(len(acts), 2)
@@ -2530,7 +2531,7 @@ Lw03eHTNQghS0A==
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
             'description': {'en-US':'definedesc', 'en-GB': 'definealtdesc'},'type': 'type:course',
-            'interactionType': 'other'}}}
+            'interactionType': 'other', 'correctResponsesPattern':[]}}}
         stmt_json = json.dumps(post_stmt)
 
         post_oauth_header_resource_params, post_access_token = self.oauth_handshake2(scope_type='define statements/write')
@@ -2793,7 +2794,7 @@ Lw03eHTNQghS0A==
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
-            'interactionType': 'other'}}})
+            'interactionType': 'other', 'correctResponsesPattern':[]}}})
 
         param = {"statementId":put_guid}
         path = "%s?%s" % (url, urllib.urlencode(param))
@@ -2820,6 +2821,7 @@ Lw03eHTNQghS0A==
         # Put statements - should update existing activity since jane is in oauth group
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(resp.status_code, 204)
         acts = Activity.objects.all()
         self.assertEqual(len(acts), 1)
@@ -2868,9 +2870,10 @@ Lw03eHTNQghS0A==
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
-            'interactionType': 'other'}}})
+            'interactionType': 'other', 'correctResponsesPattern':[]}}})
         stmt_post = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(stmt_post.status_code, 200)
 
         acts = Activity.objects.all()
@@ -2954,9 +2957,10 @@ Lw03eHTNQghS0A==
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
-            'interactionType': 'other'}}})
+            'interactionType': 'other', 'correctResponsesPattern':[]}}})
         stmt_post = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(stmt_post.status_code, 200)
         # ==================================================================
 

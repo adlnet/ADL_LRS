@@ -7,7 +7,7 @@ from django.contrib.sites.models import Site
 from django.test import TestCase
 
 from ..models import Activity, Statement
-from ..views import register, statements, actexample, actexample2, actexample4, home
+from ..views import register, statements, home
 
 CURRENT_SITE = settings.SITE_SCHEME + '://' + Site.objects.get_current().domain
 
@@ -16,11 +16,7 @@ class ActivityManagerTests(TestCase):
     def setUpClass(cls):
         print "\n%s" % __name__
 
-
-    def setUp(self):
-        if not settings.ALLOW_EMPTY_HTTP_AUTH:
-            settings.ALLOW_EMPTY_HTTP_AUTH = True
-        
+    def setUp(self): 
         self.username = "tester1"
         self.email = "test1@tester.com"
         self.password = "test"
@@ -60,7 +56,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(answer,act.activity_definition_crpanswers)
 
     #Called on all activity django models with choices because of sequence and choice interactionType
-    def do_actvity_definition_choices_model(self, act, clist, dlist):
+    def do_activity_definition_choices_model(self, act, clist, dlist):
         # Grab all lang map IDs in act def
         choice_ids = [v['id'] for v in act.activity_definition_choices]
         choice_descs = [v['description'] for v in act.activity_definition_choices]
@@ -72,7 +68,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(d, choice_descs)
 
     #Called on all activity django models with scale because of likert interactionType
-    def do_actvity_definition_likert_model(self, act, clist, dlist):
+    def do_activity_definition_likert_model(self, act, clist, dlist):
         scale_ids = [v['id'] for v in act.activity_definition_scales]        
         scale_descs = [v['description'] for v in act.activity_definition_scales]
 
@@ -83,7 +79,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(d, scale_descs)
 
     #Called on all activity django models with steps because of performance interactionType
-    def do_actvity_definition_performance_model(self, act, slist, dlist):
+    def do_activity_definition_performance_model(self, act, slist, dlist):
         step_ids = [v['id'] for v in act.activity_definition_steps]
         step_descs = [v['description'] for v in act.activity_definition_steps]
 
@@ -94,7 +90,7 @@ class ActivityManagerTests(TestCase):
             self.assertIn(d, step_descs)
 
     #Called on all activity django models with source and target because of matching interactionType
-    def do_actvity_definition_matching_model(self, act, source_id_list, source_desc_list,
+    def do_activity_definition_matching_model(self, act, source_id_list, source_desc_list,
                                              target_id_list, target_desc_list):
 
         source_ids = [v['id'] for v in act.activity_definition_sources]
@@ -115,100 +111,6 @@ class ActivityManagerTests(TestCase):
         for t_desc in target_desc_list:
             self.assertIn(t_desc, target_descs)            
 
-
-    # Test activity that doesn't have a def (populates everything from JSON)
-    def test_activity_no_def_json_conform(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample)}})
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-
-        self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)
-        st = Statement.objects.get(statement_id=st_id[0])
-        act = Activity.objects.get(id=st.object_activity.id)
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
-
-        # wrap first assertion around try to see if LRS is started
-        try:
-            self.assertEqual(name_set.keys()[0], 'en-FR')
-        except Exception, e:
-            raise Exception("Be sure to have the LRS started for this test " + e.message)
-    
-        self.assertEqual(name_set.values()[0], 'Example Name')
-        self.assertEqual(name_set.keys()[1], 'en-CH')
-        self.assertEqual(name_set.values()[1], 'Alt Name')
-
-        self.assertEqual(desc_set.keys()[0], 'en-US')
-        self.assertEqual(desc_set.values()[0], 'Example Desc')
-        self.assertEqual(desc_set.keys()[1], 'en-CH')
-        self.assertEqual(desc_set.values()[1], 'Alt Desc')
-
-        self.do_activity_model(act.id, CURRENT_SITE + reverse(actexample), 'Activity')        
-        self.do_activity_definition_model(act, 'type:module','other')
-
-    # Test that passing in the same info gets the same activity
-    def test_activity_no_def_not_link_schema_conform1(self):
-        st_list = []
-
-        stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample)}}
-        
-        stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample)}}
-
-        st_list.append(stmt1)
-        st_list.append(stmt2)
-
-        response = self.client.post(reverse(statements), json.dumps(st_list), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
-        self.assertEqual(response.status_code, 200)
-        st_ids = json.loads(response.content)
-        st1 = Statement.objects.get(statement_id=st_ids[0])
-        st2 = Statement.objects.get(statement_id=st_ids[1])
-        act1 = Activity.objects.get(id=st1.object_activity.id)
-        act2 = Activity.objects.get(id=st2.object_activity.id)
-        self.assertEqual(act2.id, act1.id)
-
-    # Test activity that doesn't have a def with extensions (populates everything from XML)
-    def test_activity_no_def_schema_conform_extensions(self):
-        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + reverse(actexample2)}})
-
-        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
-        self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)
-        st = Statement.objects.get(statement_id=st_id[0])
-        act = Activity.objects.get(id=st.object_activity.id)
-
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
-        
-        # wrap first assertion around try to see if LRS is started
-        try:
-            self.assertEqual(name_set.keys()[0], 'en-US')
-        except Exception, e:
-            raise Exception("Be sure to have the LRS started for this test " + e.message)
-
-        self.assertEqual(name_set.values()[0], 'Example Name')
-
-        self.assertEqual(desc_set.keys()[0], 'en-US')
-        self.assertEqual(desc_set.values()[0], 'Example Desc')
-
-        self.do_activity_model(act.id, CURRENT_SITE + reverse(actexample2), 'Activity')        
-        self.do_activity_definition_model(act, 'type:module','other')
-
-        self.do_activity_definition_extensions_model(act, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
-            'second value', 'third value')
-
     # Test an activity that has a def, and the provided ID doesn't resolve
     # (should still use values from JSON)
     def test_activity_no_resolve(self):
@@ -216,11 +118,11 @@ class ActivityManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity',
             'id':'act://var/www/adllrs/activity/example.json','definition': {'name': {'en-CH':'testname'},
-            'description': {'en-US':'testdesc'}, 'type': 'type:course','interactionType': 'other'}}})
+            'description': {'en-US':'testdesc'}, 'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[]}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
@@ -238,45 +140,17 @@ class ActivityManagerTests(TestCase):
         self.do_activity_model(act.id, 'act://var/www/adllrs/activity/example.json', 'Activity')        
         self.do_activity_definition_model(act, 'type:course', 'other')
 
-    # Test an activity that has a def (should use values from payload and override JSON from ID)
-    def test_activity_from_id(self):
-        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType': 'Activity',
-                'id':CURRENT_SITE + reverse(actexample4),'definition': {'name': {'en-FR': 'name'},
-                'description': {'en-FR':'desc'}, 'type': 'type:course','interactionType': 'other'}}})
-
-        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
-        self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)[0]
-        st = Statement.objects.get(statement_id=st_id)
-        act = Activity.objects.get(id=st.object_activity.id)
-
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
-
-        self.assertEqual(name_set.keys()[0], 'en-FR')
-        self.assertEqual(name_set.values()[0], 'name')
-
-        self.assertEqual(desc_set.keys()[0], 'en-FR')
-        self.assertEqual(desc_set.values()[0], 'desc')
-
-        self.do_activity_model(act.id, CURRENT_SITE + reverse(actexample4), 'Activity')        
-        self.do_activity_definition_model(act, 'type:course','other')
-
     # Test an activity that has a def and the ID resolves (should use values from payload)
     def test_activity_id_resolve(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id': CURRENT_SITE + reverse(home),
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-GB':'testdesc1'},
-                'type': 'type:link','interactionType': 'other'}}})
+                'type': 'type:link','interactionType': 'other', 'correctResponsesPattern':[]}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
@@ -304,7 +178,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "Cannot evaluate data into dictionary to parse -- Error: This string should throw exception since it's not JSON")
 
-    #Test activity where given URL isn't URI
+    #Test activity where given URL isn't IRI
     def test_activity_invalid_activity_id(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
@@ -316,7 +190,7 @@ class ActivityManagerTests(TestCase):
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, 'Activity id with value foo was not a valid URI')
+        self.assertEqual(response.content, 'Activity id with value foo was not a valid IRI')
 
     #Test activity with definition - must retrieve activity object in order to test definition from DB
     def test_activity_definition(self):
@@ -324,10 +198,10 @@ class ActivityManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'id':'act:fooc',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
-                'type': 'type:course','interactionType': 'other'}}})
+                'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[]}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)       
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         st_id = json.loads(response.content)
@@ -353,12 +227,12 @@ class ActivityManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:food',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-CH':'testdesc2'},
-                'type': 'type:course','interactionType': 'other', 'extensions': {'ext:key1': 'value1',
+                'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[], 'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
@@ -384,12 +258,12 @@ class ActivityManagerTests(TestCase):
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:food',
                 'definition': {'name': {'en-FR':'testname2','en-US': 'testnameEN'},'description': {'en-CH':'testdesc2',
-                'en-GB': 'testdescGB'},'type': 'type:course','interactionType': 'other', 'extensions': {'ext:key1': 'value1',
+                'en-GB': 'testdescGB'},'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[], 'extensions': {'ext:key1': 'value1',
                 'ext:key2': 'value2','ext:key3': 'value3'}}}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
@@ -510,7 +384,7 @@ class ActivityManagerTests(TestCase):
         dlist = [{'en-GB': 'GOLF', 'en-US': 'Golf Example'}, {'en-GB': 'TETRIS', 'en-US': 'Tetris Example'},
         {'en-GB': 'FACEBOOK', 'en-US': 'Facebook App'}, {'en-GB': 'SCRABBLE', 'en-US': 'Scrabble Example'}]
 
-        self.do_actvity_definition_choices_model(act, clist, dlist)        
+        self.do_activity_definition_choices_model(act, clist, dlist)        
         
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and multiple choice but missing choices
     def test_activity_definition_cmiInteraction_multiple_choice_no_choices(self):
@@ -667,7 +541,7 @@ class ActivityManagerTests(TestCase):
         dlist = [{'en-GB': 'Tis OK', 'en-US': 'Its OK'},{'en-GB': 'Tis Pretty Cool', 'en-US': 'Its Pretty Cool'},
                  {'en-GB': 'Tis Cool Cool', 'en-US': 'Its Cool Cool'}, {'en-US': 'Its Gonna Change the World'}]
         
-        self.do_actvity_definition_likert_model(act, clist, dlist)
+        self.do_activity_definition_likert_model(act, clist, dlist)
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and matching interactionType
     def test_activity_definition_cmiInteraction_matching(self):    
@@ -713,7 +587,7 @@ class ActivityManagerTests(TestCase):
         target_desc_list = [{"en-US": "SCORM Engine"},{"en-US": "Pure-sewage"},
                             {'en-US': 'SCORM Cloud', 'en-CH': 'cloud'}]
 
-        self.do_actvity_definition_matching_model(act, source_id_list, source_desc_list,
+        self.do_activity_definition_matching_model(act, source_id_list, source_desc_list,
                                                   target_id_list, target_desc_list)
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and performance interactionType
@@ -721,7 +595,7 @@ class ActivityManagerTests(TestCase):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:fook',
-                'definition': {'name': {'en-us':'testname2'},'description': {'en-us':'testdesc2'},
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'performance',
                 'correctResponsesPattern': ['pong.1,dg.10,lunch.4'],'steps':[{'id': 'pong',
                 'description': {'en-US':'Net pong matches won', 'en-GB': 'won'}},{'id': 'dg',
@@ -730,7 +604,7 @@ class ActivityManagerTests(TestCase):
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+
         self.assertEqual(response.status_code, 200)
         st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
@@ -739,10 +613,10 @@ class ActivityManagerTests(TestCase):
         name_set = act.activity_definition_name
         desc_set = act.activity_definition_description
         
-        self.assertEqual(name_set.keys()[0], 'en-us')
+        self.assertEqual(name_set.keys()[0], 'en-US')
         self.assertEqual(name_set.values()[0], 'testname2')
 
-        self.assertEqual(desc_set.keys()[0], 'en-us')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
         self.assertEqual(desc_set.values()[0], 'testdesc2')        
 
         self.do_activity_model(act.id, 'act:fook', 'Activity')
@@ -757,7 +631,7 @@ class ActivityManagerTests(TestCase):
         dlist = [{'en-GB': 'won', 'en-US': 'Net pong matches won'}, {'en-US': 'Strokes over par in disc golf at Liberty'},
                     {'en-US': 'Lunch having been eaten'}]
         
-        self.do_actvity_definition_performance_model(act, slist, dlist)
+        self.do_activity_definition_performance_model(act, slist, dlist)
 
     # Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and sequencing interactionType
     def test_activity_definition_cmiInteraction_sequencing(self):    
@@ -796,7 +670,7 @@ class ActivityManagerTests(TestCase):
         #Check model choice values
         clist = ['lou', 'tom', 'andy', 'aaron']
         dlist = [{"en-US": "Lou"},{"en-US": "Tom"},{"en-US": "Andy"}, {'en-GB': 'Erin', 'en-US': 'Aaron'}]
-        self.do_actvity_definition_choices_model(act, clist, dlist)
+        self.do_activity_definition_choices_model(act, clist, dlist)
 
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and numeric interactionType
     def test_activity_definition_cmiInteraction_numeric(self):
@@ -917,7 +791,7 @@ class ActivityManagerTests(TestCase):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id': 'act:foz',
-                'definition': {'name': {'en-US':'actname'},'description': {'en-us':'actdesc'},
+                'definition': {'name': {'en-US':'actname'},'description': {'en-US':'actdesc'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
                     'correctResponsesPattern': ['(35,-86)']}}})
 
@@ -935,7 +809,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(name_set.keys()[0], 'en-US')
         self.assertEqual(name_set.values()[0], 'actname')
 
-        self.assertEqual(desc_set.keys()[0], 'en-us')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
         self.assertEqual(desc_set.values()[0], 'actdesc')
         self.do_activity_model(act.id, 'act:foz', 'Activity')
 
@@ -947,13 +821,13 @@ class ActivityManagerTests(TestCase):
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
-            'definition':{'name': {'en-US':'actname'},'description': {'en-us':'actdesc'}, 
+            'definition':{'name': {'en-US':'actname'},'description': {'en-US':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
-            'definition':{'name': {'en-US':'actname2'},'description': {'en-us':'actdesc'}, 
+            'definition':{'name': {'en-US':'actname2'},'description': {'en-US':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt_list.append(stmt1)
@@ -977,7 +851,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(name_set1.keys()[0], 'en-US')
         self.assertEqual(name_set1.values()[0], 'actname2')
 
-        self.assertEqual(desc_set1.keys()[0], 'en-us')
+        self.assertEqual(desc_set1.keys()[0], 'en-US')
         self.assertEqual(desc_set1.values()[0], 'actdesc')        
 
 
@@ -992,7 +866,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(name_set2.keys()[0], 'en-US')
         self.assertEqual(name_set2.values()[0], 'actname2')
 
-        self.assertEqual(desc_set2.keys()[0], 'en-us')
+        self.assertEqual(desc_set2.keys()[0], 'en-US')
         self.assertEqual(desc_set2.values()[0], 'actdesc')        
 
         self.do_activity_definition_model(act2, 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -1005,13 +879,13 @@ class ActivityManagerTests(TestCase):
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foobe',
-            'definition':{'name': {'en-US':'actname'},'description': {'en-us':'actdesc'}, 
+            'definition':{'name': {'en-US':'actname'},'description': {'en-US':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foobe',
-            'definition':{'name': {'en-US':'actname'},'description': {'en-us':'actdesc2'}, 
+            'definition':{'name': {'en-US':'actname'},'description': {'en-US':'actdesc2'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt_list.append(stmt1)
@@ -1035,7 +909,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(name_set1.keys()[0], 'en-US')
         self.assertEqual(name_set1.values()[0], 'actname')
 
-        self.assertEqual(desc_set1.keys()[0], 'en-us')
+        self.assertEqual(desc_set1.keys()[0], 'en-US')
         self.assertEqual(desc_set1.values()[0], 'actdesc2')
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 
@@ -1047,7 +921,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(name_set2.keys()[0], 'en-US')
         self.assertEqual(name_set2.values()[0], 'actname')
 
-        self.assertEqual(desc_set2.keys()[0], 'en-us')
+        self.assertEqual(desc_set2.keys()[0], 'en-US')
         self.assertEqual(desc_set2.values()[0], 'actdesc2')        
         self.do_activity_definition_model(act2, 'http://adlnet.gov/expapi/activities/cmi.interaction', 'other')
 

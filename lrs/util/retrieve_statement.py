@@ -11,7 +11,6 @@ from django.db.models import Q
 
 from util import convert_to_utc, convert_to_dict
 from ..models import Statement, Agent
-from ..objects.AgentManager import AgentManager
 from ..exceptions import NotFound, IDNotFoundError
 
 MORE_ENDPOINT = '/xapi/statements/more/'
@@ -56,7 +55,7 @@ def complex_get(param_dict, limit, language, format, attachments):
             data = convert_to_dict(data)
         
         try:
-            agent = AgentManager(data).Agent
+            agent = Agent.objects.retrieve_or_create(**data)[0]
             if agent.objectType == "Group":
                 groups = []
             else:

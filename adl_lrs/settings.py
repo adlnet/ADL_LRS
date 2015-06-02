@@ -1,9 +1,10 @@
 # Django settings for adl_lrs project.
-from unipath import Path
+from os import path
+from os.path import dirname, abspath
 
 # Root of LRS
-SETTINGS_PATH = Path(__file__)
-PROJECT_ROOT = SETTINGS_PATH.ancestor(3)
+SETTINGS_DIR = dirname(abspath(__file__))
+PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 
 # If you want to debug
 DEBUG = True
@@ -57,7 +58,7 @@ USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
-MEDIA_ROOT = PROJECT_ROOT.child('media')
+MEDIA_ROOT = path.join(PROJECT_ROOT, 'media')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
@@ -161,6 +162,7 @@ TEMPLATE_LOADERS = (
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     "django.contrib.auth.context_processors.auth",
+    "django.core.context_processors.request",
     "django.core.context_processors.debug",
     "django.core.context_processors.i18n",
     "django.core.context_processors.media",
@@ -207,11 +209,12 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django_extensions',
     'jsonify',
-    'south'
+    'south',
+    'endless_pagination'
 )
 
-REQUEST_HANDLER_LOG_DIR = Path(PROJECT_ROOT, 'logs/django_request.log')
-DEFAULT_LOG_DIR = Path(PROJECT_ROOT, 'logs/lrs.log')
+REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
+DEFAULT_LOG_DIR = path.join(PROJECT_ROOT, 'logs/lrs.log')
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
@@ -236,7 +239,6 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': DEFAULT_LOG_DIR,
-            # 'filename': '../logs/lrs.log',
             'maxBytes': 1024*1024*5, # 5 MB
             'backupCount': 5,
             'formatter':'standard',
@@ -245,7 +247,6 @@ LOGGING = {
                 'level':'DEBUG',
                 'class':'logging.handlers.RotatingFileHandler',
                 'filename': REQUEST_HANDLER_LOG_DIR,
-                # 'filename': '../logs/django_request.log', 
                 'maxBytes': 1024*1024*5, # 5 MB
                 'backupCount': 5,
                 'formatter':'standard',

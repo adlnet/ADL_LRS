@@ -21,7 +21,7 @@ class Command(BaseCommand):
 	def handle(self, *args, **options):
 		# To preserve users' agents add -sa True when running command
 		sa = False
-		if options['saveagents'].lower() == 'true':
+		if options['saveagents']:
 			sa = True
 
 		apps = []

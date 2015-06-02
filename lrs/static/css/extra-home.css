@@ -1,0 +1,13 @@
+a {color:inherit;}
+a:visited { text-decoration: none; }
+a:hover { text-decoration: none; }
+a:focus { text-decoration: none; }
+a:hover, a:active { text-decoration: none; }
+
+.home-top-content{
+	border-bottom-style:dashed;
+}
+
+.home-icon{
+	font-size:25em;
+}

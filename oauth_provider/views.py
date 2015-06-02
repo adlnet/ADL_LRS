@@ -1,4 +1,5 @@
 import oauth2 as oauth
+import json
 
 from urllib import urlencode
 from django.conf import settings
@@ -217,8 +218,9 @@ def authorize_client(request, token=None, callback=None, params=None, form=None)
     if not form:
         form = AuthorizeRequestTokenForm(initial={'scopes': token.scope_to_list(),
                                       'obj_id': token.pk})
-
     d = {}
+    d['oauth_scopes'] = settings.OAUTH_SCOPES
+    d['scopes'] = json.dumps(token.scope_to_list())
     d['form'] = form
     d['name'] = token.consumer.name
     d['description'] = token.consumer.description

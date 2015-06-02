@@ -359,40 +359,40 @@ class AgentProfileTests(TestCase):
         self.assertEqual(post.status_code, 400)
         self.assertEqual(post.content, 'No body in request')
 
-    def test_post_update_profile(self):
-        params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
-        path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
-        prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com"}}
+    # def test_post_update_profile(self):
+    #     params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
+    #     path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
+    #     prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com"}}
         
-        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(post.status_code, 204)
+    #     post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+    #     self.assertEqual(post.status_code, 204)
         
-        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(get.status_code, 200)
-        self.assertEqual(json.loads(get.content), prof)
-        etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
-        self.assertEqual(get.get('etag'), etag)
+    #     get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+    #     self.assertEqual(get.status_code, 200)
+    #     self.assertEqual(json.loads(get.content), prof)
+    #     etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
+    #     self.assertEqual(get.get('etag'), etag)
 
-        params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
-        path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
-        prof = {"obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
+    #     params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
+    #     path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
+    #     prof = {"obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
 
-        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(post.status_code, 409)
+    #     post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+    #     self.assertEqual(post.status_code, 409)
         
-        post = self.client.post(path, json.dumps(prof), content_type="application/json",If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(post.status_code, 204)
+    #     post = self.client.post(path, json.dumps(prof), content_type="application/json",If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+    #     self.assertEqual(post.status_code, 204)
 
-        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(get.status_code, 200)
-        ret_json = json.loads(get.content)
-        self.assertEqual(ret_json['added'], prof['added'])
-        self.assertEqual(ret_json['test'], "post updated profile")
-        self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
-        self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
-        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+    #     get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+    #     self.assertEqual(get.status_code, 200)
+    #     ret_json = json.loads(get.content)
+    #     self.assertEqual(ret_json['added'], prof['added'])
+    #     self.assertEqual(ret_json['test'], "post updated profile")
+    #     self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
+    #     self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
+    #     self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
-        self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+    #     self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
 
     def test_post_and_put_profile(self):
         params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
@@ -421,24 +421,24 @@ class AgentProfileTests(TestCase):
         etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
         self.assertEqual(get.get('etag'), etag)
 
-        params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
-        path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
-        prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
+        # params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
+        # path = '%s?%s' % (reverse(agent_profile), urllib.urlencode(params))
+        # prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
         
-        post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(post.status_code, 409)
+        # post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+        # self.assertEqual(post.status_code, 409)
 
-        post = self.client.post(path, json.dumps(prof), content_type="application/json", If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(post.status_code, 204)
+        # post = self.client.post(path, json.dumps(prof), content_type="application/json", If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+        # self.assertEqual(post.status_code, 204)
 
-        get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(get.status_code, 200)
-        ret_json = json.loads(get.content)
-        self.assertEqual(ret_json['wipe'], "new data")
-        self.assertEqual(ret_json['added'], prof['added'])
-        self.assertEqual(ret_json['test'], prof['test'])
-        self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
-        self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
-        self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
+        # get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
+        # self.assertEqual(get.status_code, 200)
+        # ret_json = json.loads(get.content)
+        # self.assertEqual(ret_json['wipe'], "new data")
+        # self.assertEqual(ret_json['added'], prof['added'])
+        # self.assertEqual(ret_json['test'], prof['test'])
+        # self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
+        # self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
+        # self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)

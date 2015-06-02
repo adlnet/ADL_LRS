@@ -52,18 +52,12 @@ class ActivityManager():
             # If canonical already exists and have define
             if self.define:
                 # Act exists - if it has same auth set it, else create non-canonical version
-                if act.authority == self.auth:
+                if (act.authority == self.auth) or \
+                   (act.authority.objectType == 'Group' and self.auth in act.authority.member.all()) or \
+                   (self.auth.objectType == 'Group' and act.authority in self.auth.member.all()):
                     self.Activity = act
                     act_created = False
-                    can_update = True
-                elif act.authority.objectType == 'Group' and self.auth in act.authority.member.all():
-                    self.Activity = act
-                    act_created = False
-                    can_update = True
-                elif self.auth.objectType == 'Group' and act.authority in self.auth.member.all():
-                    self.Activity = act
-                    act_created = False
-                    can_update = True                                                        
+                    can_update = True                                                     
                 else:
                     # Not allowed to create global version b/c the activity already exists (could also already have created a non-global act)
                     self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id,

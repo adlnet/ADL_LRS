@@ -50,7 +50,7 @@ class StatementFilterTests(TestCase):
     def test_limit_filter(self):
         # Test limit
         for i in range(1,4):
-            stmt = {"actor":{"mbox":"mailto:test%s" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}
+            stmt = {"actor":{"mbox":"mailto:test%s@mail.com" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}
             resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         limitGetResponse = self.client.post(reverse(statements),{"limit":2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -2181,4 +2181,3 @@ class StatementFilterTests(TestCase):
             X_Experience_API_Version=settings.XAPI_VERSION,HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
         self.assertEqual(more_get['Content-Type'], 'application/json')
-         

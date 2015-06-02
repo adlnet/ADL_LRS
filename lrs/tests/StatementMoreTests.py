@@ -13,7 +13,7 @@ from ..models import Statement
 from ..views import register, statements, statements_more
 from ..util import retrieve_statement
 
-class StatementsMoreTests(TestCase):
+class StatementMoreTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -247,6 +247,7 @@ class StatementsMoreTests(TestCase):
         # Post statements
         post_statements = self.client.post(reverse(statements), json.dumps(stmt_list),
             content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        
         self.assertEqual(post_statements.status_code, 200)
 
         time = retrieve_statement.convert_to_utc(str((datetime.utcnow()+timedelta(seconds=1)).replace(tzinfo=utc).isoformat()))
