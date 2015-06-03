@@ -62,3 +62,8 @@ a:hover, a:active { text-decoration: none; }
 .hide-token-info{
 	visibility:hidden;	
 }
+
+.user-agent{
+	font-size:13px;
+	color:#007F00;
+}
