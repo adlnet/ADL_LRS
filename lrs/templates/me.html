@@ -27,6 +27,10 @@
                 <strong>My Account</strong>
                 <div>
                     <p>Welcome to the ADL LRS, {{user.username}}! ({{user.email}})</p>
+                    <P>When you first use your credentials as basic authority to access the LRS, it will automatically create an agent for you. For example,
+                        the agent created for you will be:<br>
+                        <span class="user-agent">{"name": "{{user.username}}", "mbox": "mailto:{{user.email}}", "objectType": "Agent"}</span>
+                    </p>
                     <p>Please take a minute to read the descriptions below of the tabs available to help you visualize your xAPI information better.</p>
                     <ul>
                         <li><b>Statements</b> - Displays human-readable sentences for your stored statements. Expand them to view the raw JSON data</li>

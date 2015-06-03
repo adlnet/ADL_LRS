@@ -118,6 +118,7 @@ a.pure-button-primary {
 }
 .home-heading{
     text-transform:none;
+    white-space: normal;
 }
 /*end custom LRS additions*/
 

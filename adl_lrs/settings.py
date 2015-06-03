@@ -202,7 +202,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'lrs',
-    'gunicorn',
     'oauth_provider',
     'oauth2_provider.provider',
     'oauth2_provider.provider.oauth2',
