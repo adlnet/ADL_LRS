@@ -2,7 +2,7 @@ from ActivityStateTests import *
 from StatementTests import *
 from ActivityProfileTests import *
 from AgentProfileTests import *
-from AgentsTests import *
+from AgentTests import *
 from ActivityManagerTests import *
 from AgentManagerTests import *
 from ActivityTests import *
