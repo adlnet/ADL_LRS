@@ -44,7 +44,7 @@ LANGUAGE_CODE = 'en-US'
 # content for multiple sites.
 SITE_ID = 1
 SITE_SCHEME = 'http'
-
+SITE_DOMAIN = 'localhost:8000'
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
@@ -99,8 +99,7 @@ OAUTH_ENABLED = True
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
-OAUTH_REALM_KEY_NAME = 'http://localhost:8000/XAPI'
-
+OAUTH_REALM_KEY_NAME = '%s://%s/xAPI' % (SITE_SCHEME, SITE_DOMAIN)
 
 # THIS IS OAUTH2 STUFF
 STATE = 1

@@ -2,7 +2,7 @@ from ActivityStateTests import *
 from StatementTests import *
 from ActivityProfileTests import *
 from AgentProfileTests import *
-from AgentsTests import *
+from AgentTests import *
 from ActivityManagerTests import *
 from AgentManagerTests import *
 from ActivityTests import *
@@ -12,5 +12,4 @@ from OAuthTests import *
 from OAuth2Tests import *
 from AuthTests import *
 from StatementFilterTests import *
-from OAuthTests import *
 from AttachmentAndSignedTests import *
