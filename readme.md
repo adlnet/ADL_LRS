@@ -55,6 +55,8 @@ This version is stable, but only intended to support a small amount of users as 
 	
 	# set to 'https' if using SSL encryption
 	SITE_SCHEME = 'http'
+  # Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below)
+  SITE_DOMAIN = 'localhost:8000'
 
 **Setup the environment**
 
@@ -91,7 +93,7 @@ This starts a lightweight development web server on the local machine. By defaul
 
 Set your site domain
 
-  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Sync your database again to apply the change
+  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. This should be the same value as what you set SITE_DOMAIN as in the settings.py file. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Sync your database again to apply the change
 
     (env)dbowner:ADL_LRS$ python manage.py syncdb
 
