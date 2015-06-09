@@ -11,6 +11,8 @@ from ..exceptions import IDNotFoundError, ParamError
 from ..util import etag
 
 class ActivityProfileManager():
+    
+    @transaction.commit_on_success
     def save_non_json_profile(self, p, created, profile, request_dict):
         #Save profile content type based on incoming content type header and create etag
         p.content_type = request_dict['headers']['CONTENT_TYPE']
@@ -140,6 +142,7 @@ class ActivityProfileManager():
             ids = ActivityProfile.objects.filter(activityId=activityId).values_list('profileId', flat=True)
         return ids
 
+    @transaction.commit_on_success
     def delete_profile(self, request_dict):
         #Get profile and delete it
         try:

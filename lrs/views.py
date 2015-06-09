@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -268,6 +269,7 @@ def reg_client(request):
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
+@transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["POST", "GET"])
 def reg_client2(request):
@@ -337,6 +339,7 @@ def my_download_statements(request):
     response['Content-Length'] = len(result)
     return response
 
+@transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["DELETE"])
 def my_delete_statements(request):
@@ -369,6 +372,7 @@ def my_activity_state(request):
         return HttpResponse(state.json_state, content_type=state.content_type, status=200)
     return HttpResponseBadRequest("Activity ID, State ID and are both required")
 
+@transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
 def my_app_status(request):
     try:
@@ -383,6 +387,7 @@ def my_app_status(request):
     except:
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
+@transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["DELETE"])
 def delete_token(request):
@@ -403,6 +408,7 @@ def delete_token(request):
     except:
         return HttpResponse("Unknown token", status=400)
 
+@transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["DELETE"])
 def delete_token2(request):
@@ -417,6 +423,7 @@ def delete_token2(request):
         return HttpResponse(e.message, status=400)
     return HttpResponse("", status=204)
 
+@transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["DELETE"])
 def delete_client(request):

@@ -13,6 +13,7 @@ class ActivityStateManager():
     def __init__(self, agent):
         self.Agent = agent
 
+    @transaction.commit_on_success
     def save_non_json_state(self, s, state, request_dict):
         s.content_type = request_dict['headers']['CONTENT_TYPE']
         s.etag = etag.create_tag(state.read())
@@ -151,6 +152,7 @@ class ActivityStateManager():
             return state_set.values_list('state_id', flat=True)
         return state_set
 
+    @transaction.commit_on_success
     def delete_state(self, request_dict):
         state_id = request_dict['params'].get('stateId', None)
         activity_id = request_dict['params']['activityId']

@@ -1,6 +1,6 @@
 // Called on document ready and pagination scroll callback
 function styleData(){
-    $('.json_pre').each(function(){
+    $('.json-pre').each(function(){
           // Check if pre already has been styled or not
           if(!($(this).has("span").length)){
               $(this).hide();
@@ -32,14 +32,14 @@ function styleSCORMData(){
                 e.stopPropagation();
                 // Check if the pre element has been created already - if not add the attempt-state info to it
                 if (!($(this).next().next().is("pre"))){
-                    var att_pre = $("<pre class='att_pre'></pre>");
+                    var attpre = $("<pre class='attpre'></pre>");
                     var state_id = "http://adlnet.gov/xapi/profile/scorm/attempt-state";
-                    getState($(this).text(), state_id, att_pre);
-                    att_pre.insertAfter($(this).next());
+                    getState($(this).text(), state_id, attpre);
+                    attpre.insertAfter($(this).next());
                 }
                 // If pre element has been created just toggle it
                 else{
-                    $(this).nextAll('.att_pre:first').toggle();
+                    $(this).nextAll('.attpre:first').toggle();
                     $(this).nextAll('.att-br:first').toggle();
                 }
             });
@@ -58,7 +58,7 @@ function syntaxHighlight(json) {
     // Make it look like nice
     if (typeof json != 'string') {
        try{
-            json = JSON.stringify(json, undefined, 6); 
+            json = JSON.stringify(json, undefined, 4); 
        }
        catch (e){
             return json;
@@ -66,7 +66,7 @@ function syntaxHighlight(json) {
     }
     else{
         try{
-            json = JSON.stringify(JSON.parse(json), undefined, 6);    
+            json = JSON.stringify(JSON.parse(json), undefined, 4);    
         }
         catch (e){
             return json;
@@ -99,14 +99,14 @@ function syntaxHighlight(json) {
 // Binds all datacontainers (even if dynamically added) to click function
 $( "body" ).on( "click", "div",function() {
     if ($(this).hasClass("datacontainer")){
-        var json_pre = $(this).children(".json_pre");
-        json_pre.toggle();
+        var json-pre = $(this).children(".json-pre");
+        json-pre.toggle();
     }
 });
 
 // Binds all pre blocks (even if dynamically added) to click function (so can copy/paste from pre blocks instead of toggling parent)
 $( "body" ).on( "click", "pre", function(e) {
-    if ($(this).hasClass("json_pre") || $(this).hasClass("att_pre")){
+    if ($(this).hasClass("json-pre") || $(this).hasClass("attpre")){
         e.stopPropagation();
     }
 });

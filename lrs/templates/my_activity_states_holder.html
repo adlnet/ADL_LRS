@@ -8,11 +8,11 @@
                 <h5 class="email-subject"><i>Last Updated: {{ as.updated }}</i></h5>
                 <p class="email-desc">
                     {% if as.json_state %}
-                        <pre class="json_pre">{{ as.json_state }}</pre>
+                        <pre class="jsonpre">{{ as.json_state }}</pre>
                         <input class="hidden" type="hidden" value="{{ as.json_state }}">
                     {% else %}
                         {% if as.content_type == "application/octect-stream" or as.content_type == "text/plain" %}
-                            <pre class="json_pre">Non-JSON</pre>
+                            <pre class="jsonpre">Non-JSON</pre>
                             <input class="hidden" type="hidden" value="Not JSON">
                         {% else %}
                             Cannot display state (non-text and non-JSON)

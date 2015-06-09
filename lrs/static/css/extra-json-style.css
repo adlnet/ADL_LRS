@@ -5,6 +5,7 @@ pre {
 	margin: 5px;
 	font-size: 13px;
 	border-radius: 10px;
+	white-space: normal;
 }
 .string { 
 	color: green; 

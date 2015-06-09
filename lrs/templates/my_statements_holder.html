@@ -9,7 +9,7 @@
                 <h5 class="email-subject">{{ stmt.timestamp }}</h5>
                 <h5 class="email-subject">{{ stmt.statement_id }}</h5>
                 <p class="email-desc">
-                    <pre id="stmt" class="json_pre">{{ stmt.full_statement|jsonify }}</pre>
+                    <pre id="stmt" class="jsonpre">{{ stmt.full_statement|jsonify }}</pre>
                 </p>
             </div>
             <br>

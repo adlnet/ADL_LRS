@@ -106,15 +106,13 @@ a.pure-button-primary {
 }
 
 /*begin custom LRS additions*/
-.custom-menu{
-    border: solid;
-    border-color: #6FBEF3;
-}
 .custom-wrap{
     white-space: normal;
 }
-.pure-menu-selected{
-    background-color: #6FBEF3;
+.pure-menu-item-custom{
+    border-bottom-width: 1px;
+    border-bottom: solid;
+    border-color: #6FBEF3;
 }
 /*end custom LRS additions*/
 
