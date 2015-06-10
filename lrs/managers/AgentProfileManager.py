@@ -14,6 +14,7 @@ class AgentProfileManager():
     def __init__(self, agent):
     	self.Agent = agent
 
+    @transaction.commit_on_success
     def save_non_json_profile(self, p, profile, request_dict):
         p.content_type = request_dict['headers']['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
@@ -134,6 +135,7 @@ class AgentProfileManager():
             ids = self.Agent.agentprofile_set.values_list('profileId', flat=True)
         return ids
 
+    @transaction.commit_on_success
     def delete_profile(self, profileId):
         try:
             self.get_profile(profileId).delete()

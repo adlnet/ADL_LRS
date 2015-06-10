@@ -1,3 +1,4 @@
+from django.db import transaction
 from ..models import Activity
 
 class ActivityManager():
@@ -7,6 +8,7 @@ class ActivityManager():
         self.populate(data)
 
     #Save activity definition to DB
+    @transaction.commit_on_success
     def save_activity_definition_to_db(self, act_def_type, int_type, more_info, name, desc, crp, ext):
         created = True        
         # Have to check if the activity already has an activity definition. Can only update name and
@@ -30,6 +32,7 @@ class ActivityManager():
         return new_name_value == existing_name_value
 
     #Once JSON is verified, populate the activity objects
+    @transaction.commit_on_success
     def populate(self, the_object):        
         activity_id = the_object['id']
         can_update = False
@@ -77,6 +80,7 @@ class ActivityManager():
         return act_def != self.Activity.to_dict().get('definition', {})
 
     #Populate definition either from JSON or validated XML
+    @transaction.commit_on_success
     def populate_definition(self, act_def, act_created, can_update):
         # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
         # doesn't have a definition
@@ -107,6 +111,7 @@ class ActivityManager():
         if act_def_created and self.Activity.activity_definition_crpanswers:
             self.populate_correct_responses_pattern(act_def)
 
+    @transaction.commit_on_success
     def populate_correct_responses_pattern(self, act_def):
         #Multiple choice and sequencing must have choices
         if (act_def['interactionType'] == 'choice' or \

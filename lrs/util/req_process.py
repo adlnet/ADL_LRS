@@ -7,6 +7,7 @@ from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
+from django.db import transaction
 from django.utils.timezone import utc
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
@@ -16,7 +17,7 @@ from ..managers.ActivityStateManager import ActivityStateManager
 from ..managers.AgentProfileManager import AgentProfileManager
 from ..managers.StatementManager import StatementManager
 
-
+@transaction.commit_on_success
 def process_statements(stmts, auth, version):
     stmt_responses = []
    # Handle batch POST

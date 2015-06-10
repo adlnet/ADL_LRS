@@ -1,7 +1,32 @@
 {% extends "base.html" %}
 {% block extra_css %}
-<link rel="stylesheet" href="{{ STATIC_URL }}css/extra-json-style.css">
-<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+<style>
+    pre {
+        border: 1px solid;
+        border-color: #004C1A;
+        padding: 5px;
+        margin: 5px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+    .string { 
+        color: green; 
+    }
+    .number { 
+        color: blue; 
+    }
+    .boolean { 
+        color: red; 
+    }
+    .null {
+     color: red; 
+    }
+    .key {
+     color: black; 
+    }
+</style>
+<script>loadCSS("{{ STATIC_URL }}css/extra.css")</script>
+<noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css"></noscript>
 {% endblock extra_css %}
 {% block title %}{{user.username}}'s Statements{% endblock title %}
 {% block heading %}{{user.username}}'s Statements{% endblock heading %}

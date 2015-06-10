@@ -5,24 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="ADL's open LRS">
 
-    <link rel="stylesheet" href="{{STATIC_URL}}css/pure-min.css">
     <link rel="shortcut icon" href="{{ STATIC_URL }}img/favicon.ico" />
     <link rel="icon" href="{{ STATIC_URL }}img/favicon.ico" type="image/x-icon">
-
-    <!--[if lte IE 8]>
-      <link rel="stylesheet" href="{{STATIC_URL}}css/grids-responsive-old-ie-min.css">
-    <![endif]-->
     
-    <!--[if gt IE 8]><!-->
-      <link rel="stylesheet" href="{{STATIC_URL}}css/grids-responsive-min.css">
-    <!--<![endif]-->
+    <script type="text/javascript" src="{{ STATIC_URL }}scripts/loadCSS.js"></script>
 
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <script>loadCSS("https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css")</script>
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css"></noscript>
+    
+    <script>loadCSS("https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css")</script>
+    <noscript><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"></noscript>
+
     <!--[if lte IE 8]>
-        <link rel="stylesheet" href="{{ STATIC_URL }}css/marketing-old-ie.css">
+      <script>loadCSS("https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css")</script>
+      <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css"></noscript>
     <![endif]-->
     <!--[if gt IE 8]><!-->
-        <link rel="stylesheet" href="{{ STATIC_URL }}css/marketing.css">
+      <script>loadCSS("https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css")</script>
+      <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css"></noscript>
+    <!--<![endif]-->
+    
+    <!--[if lte IE 8]>
+        <script>loadCSS("{{ STATIC_URL }}css/marketing-old-ie.css")</script>
+        <noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/marketing-old-ie.css"></noscript>
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+        <script>loadCSS("{{ STATIC_URL }}css/marketing.css")</script>
+        <noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/marketing.css"></noscript>
     <!--<![endif]-->
     {% block extra_css %}{% endblock extra_css %}
     <title>{% block title %}ADL LRS{% endblock title %}</title>

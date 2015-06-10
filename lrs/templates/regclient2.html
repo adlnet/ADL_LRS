@@ -2,7 +2,8 @@
 {% block title %}ADL LRS Client Registration{% endblock title %}
 {% block heading %}ADL LRS Client Registration{% endblock heading %}
 {% block extra_css %}
-<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+<script>loadCSS("{{ STATIC_URL }}css/extra.css")</script>
+<noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css"></noscript>
 {% endblock extra_css %}
 {% block content %}
 <br>
