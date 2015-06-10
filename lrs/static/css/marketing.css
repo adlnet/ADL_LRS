@@ -8,6 +8,7 @@
  * -- BASE STYLES --
  * Most of these are inherited from Base, but I want to change a few.
  */
+ 
 body {
     line-height: 1.7em;
     color: #7f8c8d;
@@ -33,6 +34,7 @@ label {
  * -- LAYOUT STYLES --
  * These are some useful classes which I will need
  */
+ 
 .l-box {
     padding: 1em;
 }
@@ -46,12 +48,11 @@ label {
     text-align: center;
 }
 
-
-
 /*
  * -- PURE FORM STYLES --
  * Style the form inputs and labels
  */
+ 
 .pure-form label {
     margin: 1em 0 0;
     font-weight: bold;

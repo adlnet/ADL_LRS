@@ -1,6 +1,6 @@
 // Called on document ready and pagination scroll callback
 function styleData(){
-    $('.json-pre').each(function(){
+    $('.jsonpre').each(function(){
           // Check if pre already has been styled or not
           if(!($(this).has("span").length)){
               $(this).hide();
@@ -99,14 +99,14 @@ function syntaxHighlight(json) {
 // Binds all datacontainers (even if dynamically added) to click function
 $( "body" ).on( "click", "div",function() {
     if ($(this).hasClass("datacontainer")){
-        var json-pre = $(this).children(".json-pre");
-        json-pre.toggle();
+        var jsonpre = $(this).children(".jsonpre");
+        jsonpre.toggle();
     }
 });
 
 // Binds all pre blocks (even if dynamically added) to click function (so can copy/paste from pre blocks instead of toggling parent)
 $( "body" ).on( "click", "pre", function(e) {
-    if ($(this).hasClass("json-pre") || $(this).hasClass("attpre")){
+    if ($(this).hasClass("jsonpre") || $(this).hasClass("attpre")){
         e.stopPropagation();
     }
 });
