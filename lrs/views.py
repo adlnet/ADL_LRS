@@ -4,7 +4,7 @@ import urllib
 from base64 import b64decode
 
 from django.conf import settings
-from django.contrib.auth import logout
+from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -215,8 +215,13 @@ def register(request):
                 return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
                     context_instance=context)                
             
-            d = {"info_message": "Thanks for registering. You can now use your name [%s] and password to sign in." % user.username}
-            return render_to_response('reg_success.html', d, context_instance=context)
+            # If a user is already logged in, log them out
+            if request.user.is_authenticated():
+                logout(request)
+
+            new_user = authenticate(username=name, password=pword)
+            login(request, new_user)
+            return HttpResponseRedirect(reverse('lrs.views.home'))
         else:
             return render_to_response('register.html', {"form": form}, context_instance=context)
 
