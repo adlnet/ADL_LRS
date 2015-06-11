@@ -2212,6 +2212,7 @@ Lw03eHTNQghS0A==
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {"username":username, "email":email,"password":password,"password2":password}
         self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.client.logout()
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
@@ -2290,6 +2291,7 @@ Lw03eHTNQghS0A==
         auth = "Basic %s" % base64.b64encode("%s:%s" % (username, password))
         form = {"username":username, "email":email,"password":password,"password2":password}
         self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.client.logout()
 
         # Put statement
         param = {"statementId":guid}
