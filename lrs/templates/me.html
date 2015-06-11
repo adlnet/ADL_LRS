@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block extra_css %}
-<script>loadCSS("{{ STATIC_URL }}css/extra.css")</script>
-<noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css"></noscript>
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 {% endblock extra_css %}
 {% block title %}{{user.username}}'s Account{% endblock title %}
 {% block heading %}{{user.username}}'s Account{% endblock heading %}
