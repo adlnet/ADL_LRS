@@ -17,7 +17,6 @@ from ..managers.ActivityStateManager import ActivityStateManager
 from ..managers.AgentProfileManager import AgentProfileManager
 from ..managers.StatementManager import StatementManager
 
-@transaction.commit_on_success
 def process_statements(stmts, auth, version):
     stmt_responses = []
    # Handle batch POST
@@ -52,8 +51,11 @@ def process_statements(stmts, auth, version):
         # Catch exceptions being thrown from object classes, delete the statement first then raise 
         except Exception:
             for stmt_id in stmt_responses:
-                Statement.objects.get(statement_id=stmt_id).delete()
-            raise
+                # If it DNE that's OK
+                try:
+                    Statement.objects.get(statement_id=stmt_id).delete()
+                except Exception, e:
+                    pass
     else:
         if not 'id' in stmts:
             stmts['id'] = str(uuid.uuid1())
