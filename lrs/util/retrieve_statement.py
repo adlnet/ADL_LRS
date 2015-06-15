@@ -100,7 +100,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = Statement.objects.filter(voidQ & untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ)
+    stmtset = Statement.objects.filter(voidQ & untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
     
     # only find references when a filter other than
     # since, until, or limit was used 
@@ -109,7 +109,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
-    
+    stmtset = stmtset.order_by(stored_param)
     # If there are more stmts than the limit, need to break it up and return more id
     if stmtset.count() > return_limit:
         return initial_cache_return(stmtset, stored_param, return_limit, language, format, attachments)
@@ -123,11 +123,10 @@ def create_stmt_result(stmt_set, stored, language, format):
     idlist = stmt_set.values_list('id', flat=True)
     if idlist > 0:
         if format == 'exact':
-            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in \
-                Statement.objects.filter(id__in=idlist).order_by(stored)])
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in stmt_set])
         else:
             stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in \
-                Statement.objects.filter(id__in=idlist).order_by(stored)]
+                stmt_set]
             stmt_result['more'] = ""
     else:
         stmt_result['statements'] = []
@@ -149,7 +148,7 @@ def findstmtrefs(stmtset, sinceQ, untilQ):
         q = q & untilQ
     # finally weed out voided statements in this lookup
     q = q & Q(voided=False)
-    return findstmtrefs(Statement.objects.filter(q), sinceQ, untilQ) | stmtset
+    return findstmtrefs(Statement.objects.filter(q).distinct(), sinceQ, untilQ) | stmtset
 
 def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key
@@ -166,7 +165,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     result = {}
     cache_list = []
     
-    cache_list.append([s for s in stmt_list.order_by(stored).values_list('id', flat=True)])
+    cache_list.append([s for s in stmt_list.values_list('id', flat=True)])
     stmt_pager = Paginator(cache_list[0], limit)
  
     # Always start on first page
