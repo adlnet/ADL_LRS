@@ -8,27 +8,15 @@
     <link rel="shortcut icon" href="{{ STATIC_URL }}img/favicon.ico" />
     <link rel="icon" href="{{ STATIC_URL }}img/favicon.ico" type="image/x-icon">
     
-    <script type="text/javascript" src="{{ STATIC_URL }}scripts/loadCSS.js"></script>
-
-    <script>loadCSS("https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css")</script>
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css"></noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css">
 
     <!--[if lte IE 8]>
-      <script>loadCSS("https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css")</script>
-      <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css"></noscript>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css">
+      <link rel="stylesheet" href="{{ STATIC_URL }}css/marketing-old-ie.css">
     <![endif]-->
     <!--[if gt IE 8]><!-->
-      <script>loadCSS("https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css")</script>
-      <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css"></noscript>
-    <!--<![endif]-->
-    
-    <!--[if lte IE 8]>
-        <script>loadCSS("{{ STATIC_URL }}css/marketing-old-ie.css")</script>
-        <noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/marketing-old-ie.css"></noscript>
-    <![endif]-->
-    <!--[if gt IE 8]><!-->
-        <script>loadCSS("{{ STATIC_URL }}css/marketing.css")</script>
-        <noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/marketing.css"></noscript>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css">
+      <link rel="stylesheet" href="{{ STATIC_URL }}css/marketing.css">
     <!--<![endif]-->
     {% block extra_css %}{% endblock extra_css %}
     <title>{% block title %}ADL LRS{% endblock title %}</title>

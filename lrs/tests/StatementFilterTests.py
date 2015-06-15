@@ -2181,3 +2181,166 @@ class StatementFilterTests(TestCase):
             X_Experience_API_Version=settings.XAPI_VERSION,HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
         self.assertEqual(more_get['Content-Type'], 'application/json')
+
+    def test_related_activities_filter_more(self):
+        stmt_list = []
+        stmt1 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt1)
+
+        stmt2 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt2)
+
+        stmt3 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt3)
+
+        stmt4 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt4)
+
+        stmt5 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt5)
+
+        stmt6 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}   
+        stmt_list.append(stmt6)
+
+        stmt7 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt7)
+
+        stmt8 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt8)
+
+        stmt9 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt9)
+
+        stmt10 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt10)
+
+        stmt11 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt11)
+
+        stmt12 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt12)
+
+        stmt13 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt13)
+
+        stmt14 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt14)
+
+        stmt15 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt15)
+
+        stmt16 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt16)
+
+        stmt17 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt17)
+
+        stmt18 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt18)
+
+        stmt19 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt19)
+
+        stmt20 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt20)
+
+        stmt21 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt21)
+
+        stmt22 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt22)
+
+        stmt23 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt23)
+
+        stmt24 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt24)
+
+        stmt25 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt25)
+
+        stmt26 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://foobar"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}}}
+        stmt_list.append(stmt26)
+
+        stmt27 = {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
+            "object":{"id":"act://barfoo"},"verb":{"id":"verb:verb/passed",
+            "display":{"en-US":"passed", 'en-GB':"altpassed"}},
+            "context":{"contextActivities": {"other": {"id": "act://foobar"}}}}   
+        stmt_list.append(stmt27)
+
+        # Post statements
+        post_statements = self.client.post(reverse(statements), json.dumps(stmt_list),
+            content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)        
+        self.assertEqual(post_statements.status_code, 200)
+
+        # Get regular
+        get_param = {"activity":"act://foobar"}
+        path = "%s?%s" % (reverse(statements),urllib.urlencode(get_param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        returned = json.loads(r.content)
+        returned_stmts = returned['statements']
+        self.assertEqual(len(returned_stmts), len(stmt_list) - 1)
+        self.assertEqual(returned['more'], "")
+
+        # Get related
+        get_param = {"activity":"act://foobar", "related_activities": True}
+        path = "%s?%s" % (reverse(statements),urllib.urlencode(get_param))
+        r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        returned = json.loads(r.content)
+        returned_stmts = returned['statements']
+        self.assertEqual(len(returned_stmts), len(stmt_list))
+        self.assertEqual(returned['more'], "")

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 <style>
     pre {
         border: 1px solid;
@@ -25,8 +26,6 @@
      color: black; 
     }
 </style>
-<script>loadCSS("{{ STATIC_URL }}css/extra.css")</script>
-<noscript><link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css"></noscript>
 {% endblock extra_css %}
 {% block title %}{{user.username}}'s Activity States{% endblock title %}
 {% block heading %}{{user.username}}'s Activity States{% endblock heading %}
