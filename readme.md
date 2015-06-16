@@ -19,10 +19,9 @@ This version is stable, but only intended to support a small amount of users as 
     
 **Setup Postgres**
 
-    admin:~$ sudo -u postgres createuser -P <db_owner>
+    admin:~$ sudo -u postgres createuser -P -s <db_owner>
     Enter password for new role: *****
 	Enter it again: *****
-    Shall the new role be a superuser? (y/n) y
     admin:~$ sudo -u postgres psql template1
     template1=# CREATE DATABASE lrs OWNER <db_owner>;
     template1=# \q (exits shell)
@@ -31,8 +30,9 @@ This version is stable, but only intended to support a small amount of users as 
 
 	admin:~$ sudo su <db_owner>
 	dbowner:~$ mkdir <dir_name>
-    dbowner:~$ git clone https://github.com/adlnet/ADL_LRS.git <dir_name>/
-    dbowner:~$ cd <dir_name>/ADL_LRS
+	dbowner:~$ cd <dir_name>
+    dbowner:~$ git clone https://github.com/adlnet/ADL_LRS.git
+    dbowner:~$ cd ADL_LRS/
     
 **Set the LRS configuration**
 
@@ -55,8 +55,9 @@ This version is stable, but only intended to support a small amount of users as 
 	
 	# set to 'https' if using SSL encryption
 	SITE_SCHEME = 'http'
-  # Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below)
-  SITE_DOMAIN = 'localhost:8000'
+  
+  	# Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below)
+  	SITE_DOMAIN = 'localhost:8000'
 
 **Setup the environment**
 
