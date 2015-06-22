@@ -29,6 +29,7 @@ This version is stable, but only intended to support a small amount of users as 
 **Clone the LRS repository**
 
 	admin:~$ sudo su <db_owner>
+	dbowner:~$ cd ~
 	dbowner:~$ mkdir <dir_name>
 	dbowner:~$ cd <dir_name>
     dbowner:~$ git clone https://github.com/adlnet/ADL_LRS.git
