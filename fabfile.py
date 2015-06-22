@@ -1,11 +1,28 @@
 import os
 import sys
+import linecache
 from fabric.api import local
 
 def setup_env():
     INSTALL_STEPS = ['virtualenv ../env;. ../env/bin/activate;pip install -r requirements.txt;deactivate']
     for step in INSTALL_STEPS:
         local(step)
+
+    try:
+        line_138 = linecache.getline('../env/local/lib/python2.7/site-packages/django/utils/translation/trans_real.py', 138)
+    except Exception, e:
+        line_138 = ""
+
+    if not line_138:
+        with open('../env/local/lib/python2.7/site-packages/django/utils/translation/trans_real.py', 'r') as f:
+            data = f.readlines()
+    
+        data[137] = "\t\tif res is None:\n"
+        data[138] = "\t\t\treturn gettext_module.NullTranslations()\n"
+    
+        with open('../env/local/lib/python2.7/site-packages/django/utils/translation/trans_real.py', 'w') as f:
+            data = f.writelines(data)
+
 
 def setup_lrs():
     # Media folder names
