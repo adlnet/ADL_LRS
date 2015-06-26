@@ -126,10 +126,11 @@ def process_complex_get(req_dict):
     # Create returned stmt list from the req dict
     stmt_result = complex_get(param_dict, limit, language, format, attachments)
     
-    if format == 'exact':
-        content_length = len(stmt_result)    
-    else:
+    # Get the length of the response - make sure in string format to count every character
+    if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))
+    else:
+        content_length = len(stmt_result)
 
     # If attachments=True in req_dict then include the attachment payload and return different mime type
     if attachments:
@@ -137,12 +138,10 @@ def process_complex_get(req_dict):
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # Else attachments are false for the complex get so just dump the stmt_result
     else:
-        if format == 'exact':
-            result = stmt_result
-        else:
-            result = json.dumps(stmt_result)
-        content_length = len(result)
-        resp = HttpResponse(result, content_type=mime_type, status=200)    
+        if isinstance(stmt_result, dict):
+            stmt_result = json.dumps(stmt_result)
+
+        resp = HttpResponse(stmt_result, content_type=mime_type, status=200)    
     return resp, content_length
 
 def statements_post(req_dict):

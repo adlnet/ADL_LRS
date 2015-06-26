@@ -56,8 +56,10 @@ def complex_get(param_dict, limit, language, format, attachments):
         
         try:
             agent = Agent.objects.retrieve_or_create(**data)[0]
+            # If agent is already a group, it can't be part of another group
             if agent.objectType == "Group":
                 groups = []
+            # Since single agent, return all groups it is in
             else:
                 groups = agent.member.all()
             agentQ = Q(actor=agent)
@@ -109,7 +111,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
-    stmtset = stmtset.order_by(stored_param)
+
     # If there are more stmts than the limit, need to break it up and return more id
     if stmtset.count() > return_limit:
         return initial_cache_return(stmtset, stored_param, return_limit, language, format, attachments)
@@ -119,14 +121,12 @@ def complex_get(param_dict, limit, language, format, attachments):
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
 
-    # blows up if the idlist is empty... so i gotta check for that
-    idlist = stmt_set.values_list('id', flat=True)
-    if idlist > 0:
+    if stmt_set.count() > 0:
         if format == 'exact':
-            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in stmt_set])
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in stmt_set.order_by(stored)])
         else:
             stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in \
-                stmt_set]
+                stmt_set.order_by(stored)]
             stmt_result['more'] = ""
     else:
         stmt_result['statements'] = []
@@ -165,7 +165,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     result = {}
     cache_list = []
     
-    cache_list.append([s for s in stmt_list.values_list('id', flat=True)])
+    cache_list.append([s for s in stmt_list.order_by(stored).values_list('id', flat=True)])
     stmt_pager = Paginator(cache_list[0], limit)
  
     # Always start on first page
