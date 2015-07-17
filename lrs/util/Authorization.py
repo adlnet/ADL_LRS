@@ -137,6 +137,10 @@ def http_auth_helper(request):
                     else:
                         raise Unauthorized("Authorization failed, please verify your username and password")
                 request['auth']['define'] = True
+            else:
+                raise Unauthorized("HTTP Basic Authorization Header must start with Basic")
+        else:
+            raise Unauthorized("The format of the HTTP Basic Authorization Header value is incorrect")
     else:
         # The username/password combo was incorrect, or not provided.
         raise Unauthorized("Authorization header missing")
