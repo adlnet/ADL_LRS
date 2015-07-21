@@ -134,7 +134,7 @@ def create_stmt_result(stmt_set, stored, language, format):
     return stmt_result
 
 def findstmtrefs(stmtset, sinceQ, untilQ):
-    if stmtset.count() == 0:
+    if not stmtset:
         return stmtset
     q = Q()
     for s in stmtset:
