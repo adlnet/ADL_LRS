@@ -10,7 +10,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from util import convert_to_utc, convert_to_dict
-from ..models import Statement, Agent
+from ..models import Statement, Agent, StatementRef
 from ..exceptions import NotFound, IDNotFoundError
 
 MORE_ENDPOINT = '/xapi/statements/more/'
@@ -103,17 +103,19 @@ def complex_get(param_dict, limit, language, format, attachments):
             stored_param = 'stored'
 
     stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','object_statementref','actor','verb','context_team','context_instructor','authority').filter(voidQ & untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
-    
+    stmtset = list(stmtset.values_list('statement_id', flat=True))
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
-        stmtset = findstmtrefs(stmtset, sinceQ, untilQ)
+        # stmtset = findstmtrefs(stmtset, sinceQ, untilQ)
+        stmtreflist = list(StatementRef.objects.filter(ref_id__in=stmtset).values_list('ref_id', flat=True))
+        stmtset = stmtset + list(Statement.objects.filter(object_statementref__ref_id__in=stmtreflist).distinct().values_list('statement_id', flat=True))
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
 
     # If there are more stmts than the limit, need to break it up and return more id
-    if stmtset.count() > return_limit:
+    if len(stmtset) > return_limit:
         return initial_cache_return(stmtset, stored_param, return_limit, language, format, attachments)
     else:
         return create_stmt_result(stmtset, stored_param, language, format)
@@ -121,7 +123,8 @@ def complex_get(param_dict, limit, language, format, attachments):
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
 
-    if stmt_set.count() > 0:
+    if stmt_set:
+        stmt_set = Statement.objects.filter(statement_id__in=stmt_set).distinct()
         if format == 'exact':
             stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in stmt_set.order_by(stored)])
         else:
@@ -132,23 +135,6 @@ def create_stmt_result(stmt_set, stored, language, format):
         stmt_result['statements'] = []
         stmt_result['more'] = ""
     return stmt_result
-
-def findstmtrefs(stmtset, sinceQ, untilQ):
-    if stmtset.exists():
-        return stmtset
-    q = Q()
-    for s in stmtset:
-        q = q | Q(object_statementref__ref_id=s.statement_id)
-
-    if sinceQ and untilQ:
-        q = q & Q(sinceQ, untilQ)
-    elif sinceQ:
-        q = q & sinceQ
-    elif untilQ:
-        q = q & untilQ
-    # finally weed out voided statements in this lookup
-    q = q & Q(voided=False)
-    return findstmtrefs(Statement.objects.filter(q).distinct(), sinceQ, untilQ) | stmtset
 
 def create_cache_key(stmt_list):
     # Create unique hash data to use for the cache key
@@ -165,6 +151,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     result = {}
     cache_list = []
 
+    stmt_list = Statement.objects.filter(statement_id__in=stmt_list).distinct()
     cache_list.append([s for s in stmt_list.order_by(stored).values_list('id', flat=True)])
     stmt_pager = Paginator(cache_list[0], limit)
 
