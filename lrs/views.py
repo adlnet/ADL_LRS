@@ -68,7 +68,7 @@ def stmt_validator(request):
                 return render_to_response('validator.html', {"form": form, "error_message": e.message, "clean_data":clean_data},
                     context_instance=context)
             else:
-                clean_data = json.dumps(json.loads(form.cleaned_data['jsondata']), indent=4, sort_keys=True)
+                clean_data = json.dumps(validator.data, indent=4, sort_keys=True)
                 return render_to_response('validator.html', {"form": form,"valid_message": valid, "clean_data":clean_data},
                     context_instance=context)
     return render_to_response('validator.html', {"form": form}, context_instance=context)

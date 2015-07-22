@@ -102,7 +102,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','object_statementref','actor','verb','context_team','context_instructor','authority').filter(voidQ & untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+    stmtset = Statement.objects.filter(voidQ & untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
     
     # only find references when a filter other than
     # since, until, or limit was used 
@@ -134,7 +134,7 @@ def create_stmt_result(stmt_set, stored, language, format):
     return stmt_result
 
 def findstmtrefs(stmtset, sinceQ, untilQ):
-    if stmtset.exists():
+    if not stmtset:
         return stmtset
     q = Q()
     for s in stmtset:
@@ -164,10 +164,10 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     # First time someone queries POST/GET
     result = {}
     cache_list = []
-
+    
     cache_list.append([s for s in stmt_list.order_by(stored).values_list('id', flat=True)])
     stmt_pager = Paginator(cache_list[0], limit)
-
+ 
     # Always start on first page
     current_page = 1
     total_pages = stmt_pager.num_pages
@@ -198,7 +198,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
         result['statements'] = [stmt.to_dict(language, format) for stmt in \
                         Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
         result['more'] = MORE_ENDPOINT + cache_key    
-                    
+            
     return result
 
 def set_limit(req_limit):
