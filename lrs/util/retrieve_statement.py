@@ -107,9 +107,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
-        # stmtset = findstmtrefs(stmtset, sinceQ, untilQ)
-        stmtreflist = list(StatementRef.objects.filter(ref_id__in=stmtset).values_list('ref_id', flat=True))
-        stmtset = stmtset + list(Statement.objects.filter(object_statementref__ref_id__in=stmtreflist).distinct().values_list('statement_id', flat=True))
+        stmtset = stmtset + stmtrefsearch(stmtset)
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
@@ -119,6 +117,14 @@ def complex_get(param_dict, limit, language, format, attachments):
         return initial_cache_return(stmtset, stored_param, return_limit, language, format, attachments)
     else:
         return create_stmt_result(stmtset, stored_param, language, format)
+
+def stmtrefsearch(stmt_list):
+    # find statement refs where ref_id = statement_id in stmt_list
+    stmtreflist = list(StatementRef.objects.filter(ref_id__in=stmt_list).values_list('ref_id', flat=True))
+    if not stmtreflist:
+        return stmt_list
+    # get the statements that have a statement ref_id in the stmtreflist, recurse
+    return stmtreflist + list(stmtrefsearch(Statement.objects.filter(object_statementref__ref_id__in=stmtreflist).distinct().values_list('statement_id', flat=True)))
 
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
