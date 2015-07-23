@@ -54,6 +54,74 @@ def process_statement(stmt, auth, version):
 def process_body(stmts, auth, version):
     return [process_statement(st, auth, version) for st in stmts]
 
+def check_activity_metadata(stmts):
+    activity_ids = list(Activity.objects.filter(object_of_statement__statement_id__in=stmts).values_list('activity_id', flat=True).distinct())
+    [get_activity_metadata(a_id) for a_id in activity_ids]
+
+# Retrieve JSON data from ID
+def get_activity_metadata(act_id):
+    act_url_data = {}
+    # See if id resolves
+    try:
+        req = urllib2.Request(act_id)
+        req.add_header('Accept', 'application/json, */*')
+        act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
+    except Exception:
+        # Doesn't resolve-hopefully data is in payload
+        pass
+    else:
+        # If it resolves then try parsing JSON from it
+        try:
+            act_url_data = json.loads(act_resp.read())
+        except Exception:
+            # Resolves but no data to retrieve - this is OK
+            pass
+
+        # If there was data from the URL
+        if act_url_data:
+            valid_url_data = True
+            # Have to validate new data given from URL
+            try:
+                fake_activity = {"id": act_id, "definition": act_url_data}
+                validator = StatementValidator()
+                validator.validate_activity(fake_activity)
+            except Exception, e:
+                valid_url_data = False
+            except ParamError, e:
+                valid_url_data = False
+
+            if valid_url_data:
+                update_activity_definition(fake_activity)
+
+@transaction.commit_on_success
+def update_activity_definition(act):
+    # Try to get canonical activity by id
+    try:
+        activity = Activity.objects.get(activity_id=act['id'], canonical_version=True)
+    except Activity.DoesNotExist:
+        # Could not exist yet
+        pass
+    # If the activity already exists in the db
+    else:
+        # If there is a name in the IRI act definition add it to what already exists
+        if 'name'in act['definition']:
+            activity.activity_definition_name = dict(activity.activity_definition_name.items() + act['definition']['name'].items())
+        # If there is a description in the IRI act definition add it to what already exists
+        if 'description' in act['description']:
+            activity.activity_definition_description = dict(activity.activity_definition_description.items() + act['definition']['description'].items())
+
+        activity.activity_definition_type = act['definition'].get('type', '')
+        activity.activity_definition_moreInfo = act['definition'].get('moreInfo', '')
+        activity.activity_definition_interactionType = act['definition'].get('interactionType', '')
+        activity.activity_definition_extensions = act['definition'].get('extensions', {})
+        activity.activity_definition_crpanswers = act['definition'].get('correctResponsesPattern', {})
+        activity.activity_definition_choices = act['definition'].get('choices', {})
+        activity.activity_definition_sources = act['definition'].get('source', {}) 
+        activity.activity_definition_targets = act['definition'].get('target', {})
+        activity.activity_definition_steps = act['definition'].get('steps', {})
+        activity.activity_definition_scales = act['definition'].get('scale', {})
+        activity.save()
+
 def process_complex_get(req_dict):
     mime_type = "application/json"
     # Parse out params into single dict-GET data not in body
@@ -122,12 +190,14 @@ def statements_post(req_dict):
         body = req_dict['body']
 
     stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'])
+    check_activity_metadata(stmt_responses)
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
     # Since it is single stmt put in list
-    process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'])
+    stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'])
+    check_activity_metadata(stmt_responses)
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):

@@ -69,74 +69,6 @@ def validate_stmt_authority(stmt, auth):
                 err_msg = "OAuth authority must only contain 2 members"
                 raise ParamError(err_msg)
 
-# Retrieve JSON data from ID
-def get_act_def_data(act_data):
-    act_url_data = {}
-    # See if id resolves
-    try:
-        req = urllib2.Request(act_data['id'])
-        req.add_header('Accept', 'application/json, */*')
-        act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
-    except Exception:
-        # Doesn't resolve-hopefully data is in payload
-        pass
-    else:
-        # If it resolves then try parsing JSON from it
-        try:
-            act_url_data = json.loads(act_resp.read())
-        except Exception:
-            # Resolves but no data to retrieve - this is OK
-            pass
-
-        # If there was data from the URL
-        if act_url_data:
-            # If there was a defintion in received JSON already
-            if 'definition' in act_data:
-                act_data['definition'] = dict(act_url_data.items() + act_data['definition'].items())
-            else:
-                # If there was data from the URL and no definition in the JSON
-                act_data['definition'] = act_url_data
-
-            # # Have to validate new data given from URL
-            # try:
-            #     validator = StatementValidator()
-            #     validator.validate_activity(act_data)
-            # except Exception, e:
-            #     raise BadRequest(e.message)
-            # except ParamError, e:
-            #     raise ParamError(e.message)
-
-            # update_activity_definition(act_data)
-
-@transaction.commit_on_success
-def update_activity_definition(act):
-    # Try to get canonical activity by id
-    try:
-        activity = Activity.objects.get(activity_id=act['id'], canonical_version=True)
-    except Activity.DoesNotExist:
-        # Could not exist yet
-        pass
-    # If the activity already exists in the db
-    else:
-        # If there is a name in the IRI act definition add it to what already exists
-        if 'name'in act['definition']:
-            activity.activity_definition_name = dict(activity.activity_definition_name.items() + act['definition']['name'].items())
-        # If there is a description in the IRI act definition add it to what already exists
-        if 'description' in act['description']:
-            activity.activity_definition_description = dict(activity.activity_definition_description.items() + act['definition']['description'].items())
-
-        activity.activity_definition_type = act['definition'].get('type', '')
-        activity.activity_definition_moreInfo = act['definition'].get('moreInfo', '')
-        activity.activity_definition_interactionType = act['definition'].get('interactionType', '')
-        activity.activity_definition_extensions = act['definition'].get('extensions', {})
-        activity.activity_definition_crpanswers = act['definition'].get('correctResponsesPattern', {})
-        activity.activity_definition_choices = act['definition'].get('choices', {})
-        activity.activity_definition_sources = act['definition'].get('source', {}) 
-        activity.activity_definition_targets = act['definition'].get('target', {})
-        activity.activity_definition_steps = act['definition'].get('steps', {})
-        activity.activity_definition_scales = act['definition'].get('scale', {})
-        activity.save()
-
 def validate_body(body, auth, payload_sha2s):
         [server_validate_statement(stmt, auth, payload_sha2s) for stmt in body]
     
@@ -151,18 +83,18 @@ def server_validate_statement(stmt, auth, payload_sha2s):
     if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         validate_void_statement(stmt['object']['id'])
 
-    if not 'objectType' in stmt['object'] or stmt['object']['objectType'] == 'Activity':
-        # push act ID to queue here
-        # pass
-        get_act_def_data(stmt['object'])
+    # if not 'objectType' in stmt['object'] or stmt['object']['objectType'] == 'Activity':
+    #     # push act ID to queue here
+    #     # pass
+    #     get_act_def_data(stmt['object'])
 
-        try:
-            validator = StatementValidator()
-            validator.validate_activity(stmt['object'])
-        except Exception, e:
-            raise BadRequest(e.message)
-        except ParamError, e:
-            raise ParamError(e.message)
+    #     try:
+    #         validator = StatementValidator()
+    #         validator.validate_activity(stmt['object'])
+    #     except Exception, e:
+    #         raise BadRequest(e.message)
+    #     except ParamError, e:
+    #         raise ParamError(e.message)
 
     validate_stmt_authority(stmt, auth)
     if 'attachments' in stmt:
