@@ -1808,3 +1808,13 @@ class StatementTests(TestCase):
         stmt_db = Statement.objects.get(statement_id=json.loads(response.content)[0])
         act = Activity.objects.get(id=stmt_db.object_activity.id)
         self.assertEqual(act.activity_id, act_id)
+
+    def test_large_batch(self):
+        post_payload = []
+        for x in range(1, 200):
+            post_payload.append({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},"object": {"id":"act:foo"},
+                "actor":{"mbox":"mailto:t@t.com"}})
+
+        response = self.client.post(reverse(statements), json.dumps(post_payload), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(response.status_code, 200)

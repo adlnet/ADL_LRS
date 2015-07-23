@@ -4,6 +4,7 @@ from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
 
 from django.conf import settings
+from django.db import transaction
 
 from util import convert_to_dict, get_agent_ifp
 from Authorization import auth
@@ -42,7 +43,6 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
 def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
-
     try:
         stmt = Statement.objects.get(statement_id=void_id)
     except Statement.DoesNotExist:
@@ -58,18 +58,16 @@ def server_validate_statement_object(stmt_object, auth):
             err_msg = "No statement with ID %s was found" % stmt_object['id']
             raise IDNotFoundError(err_msg)
             
-def validate_stmt_authority(stmt, auth, auth_validated):
+def validate_stmt_authority(stmt, auth):
     # If not validated yet - validate auth first since it supercedes any auth in stmt
-    if not auth_validated:
-        if auth['authority']:
-            if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
-                err_msg = "Statements cannot have a non-Oauth group as the authority"
+    if auth['authority']:
+        if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
+            err_msg = "Statements cannot have a non-Oauth group as the authority"
+            raise ParamError(err_msg)
+        elif auth['authority'].objectType == 'Group' and auth['authority'].oauth_identifier:
+            if auth['authority'].member.count() != 2:
+                err_msg = "OAuth authority must only contain 2 members"
                 raise ParamError(err_msg)
-            elif auth['authority'].objectType == 'Group' and auth['authority'].oauth_identifier:
-                if auth['authority'].member.count() != 2:
-                    err_msg = "OAuth authority must only contain 2 members"
-                    raise ParamError(err_msg)
-                return True
 
 # Retrieve JSON data from ID
 def get_act_def_data(act_data):
@@ -90,46 +88,86 @@ def get_act_def_data(act_data):
             # Resolves but no data to retrieve - this is OK
             pass
 
-        # If there was data from the URL and a defintion in received JSON already
-        if act_url_data and 'definition' in act_data:
-            act_data['definition'] = dict(act_url_data.items() + act_data['definition'].items())
-        # If there was data from the URL and no definition in the JSON
-        elif act_url_data and not 'definition' in act_data:
-            act_data['definition'] = act_url_data
+        # If there was data from the URL
+        if act_url_data:
+            # If there was a defintion in received JSON already
+            if 'definition' in act_data:
+                act_data['definition'] = dict(act_url_data.items() + act_data['definition'].items())
+            else:
+                # If there was data from the URL and no definition in the JSON
+                act_data['definition'] = act_url_data
 
-def server_validation(stmt_set, auth, payload_sha2s):
-    auth_validated = False    
-    if type(stmt_set) is list:
-        for stmt in stmt_set:
-            server_validation(stmt, auth, payload_sha2s)
+            # # Have to validate new data given from URL
+            # try:
+            #     validator = StatementValidator()
+            #     validator.validate_activity(act_data)
+            # except Exception, e:
+            #     raise BadRequest(e.message)
+            # except ParamError, e:
+            #     raise ParamError(e.message)
+
+            # update_activity_definition(act_data)
+
+@transaction.commit_on_success
+def update_activity_definition(act):
+    # Try to get canonical activity by id
+    try:
+        activity = Activity.objects.get(activity_id=act['id'], canonical_version=True)
+    except Activity.DoesNotExist:
+        # Could not exist yet
+        pass
+    # If the activity already exists in the db
     else:
-        if 'id' in stmt_set:
-            statement_id = stmt_set['id']
-            if check_for_existing_statementId(statement_id):
-                err_msg = "A statement with ID %s already exists" % statement_id
-                raise ParamConflict(err_msg)
+        # If there is a name in the IRI act definition add it to what already exists
+        if 'name'in act['definition']:
+            activity.activity_definition_name = dict(activity.activity_definition_name.items() + act['definition']['name'].items())
+        # If there is a description in the IRI act definition add it to what already exists
+        if 'description' in act['description']:
+            activity.activity_definition_description = dict(activity.activity_definition_description.items() + act['definition']['description'].items())
 
-        server_validate_statement_object(stmt_set['object'], auth)
+        activity.activity_definition_type = act['definition'].get('type', '')
+        activity.activity_definition_moreInfo = act['definition'].get('moreInfo', '')
+        activity.activity_definition_interactionType = act['definition'].get('interactionType', '')
+        activity.activity_definition_extensions = act['definition'].get('extensions', {})
+        activity.activity_definition_crpanswers = act['definition'].get('correctResponsesPattern', {})
+        activity.activity_definition_choices = act['definition'].get('choices', {})
+        activity.activity_definition_sources = act['definition'].get('source', {}) 
+        activity.activity_definition_targets = act['definition'].get('target', {})
+        activity.activity_definition_steps = act['definition'].get('steps', {})
+        activity.activity_definition_scales = act['definition'].get('scale', {})
+        activity.save()
 
-        if stmt_set['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
-            validate_void_statement(stmt_set['object']['id'])
+def validate_body(body, auth, payload_sha2s):
+        [server_validate_statement(stmt, auth, payload_sha2s) for stmt in body]
+    
+def server_validate_statement(stmt, auth, payload_sha2s):
+    if 'id' in stmt:
+        statement_id = stmt['id']
+        if check_for_existing_statementId(statement_id):
+            err_msg = "A statement with ID %s already exists" % statement_id
+            raise ParamConflict(err_msg)
 
-        if not 'objectType' in stmt_set['object'] or stmt_set['object']['objectType'] == 'Activity':
-            get_act_def_data(stmt_set['object'])
-            
-            try:
-                validator = StatementValidator()
-                validator.validate_activity(stmt_set['object'])
-            except Exception, e:
-                raise BadRequest(e.message)
-            except ParamError, e:
-                raise ParamError(e.message)
+    server_validate_statement_object(stmt['object'], auth)
+    if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+        validate_void_statement(stmt['object']['id'])
 
-        auth_validated = validate_stmt_authority(stmt_set, auth, auth_validated)
+    if not 'objectType' in stmt['object'] or stmt['object']['objectType'] == 'Activity':
+        # push act ID to queue here
+        # pass
+        get_act_def_data(stmt['object'])
 
-        if 'attachments' in stmt_set:
-            attachment_data = stmt_set['attachments']
-            validate_attachments(attachment_data, payload_sha2s)
+        try:
+            validator = StatementValidator()
+            validator.validate_activity(stmt['object'])
+        except Exception, e:
+            raise BadRequest(e.message)
+        except ParamError, e:
+            raise ParamError(e.message)
+
+    validate_stmt_authority(stmt, auth)
+    if 'attachments' in stmt:
+        attachment_data = stmt['attachments']
+        validate_attachments(attachment_data, payload_sha2s)
 
 @auth
 def statements_post(req_dict):
@@ -147,7 +185,11 @@ def statements_post(req_dict):
     except ParamError, e:
         raise ParamError(e.message)
 
-    server_validation(req_dict['body'], req_dict['auth'], req_dict.get('payload_sha2s', None))
+    if isinstance(req_dict['body'], dict):
+        body = [req_dict['body']]
+    else:
+        body = req_dict['body']
+    validate_body(body, req_dict['auth'], req_dict.get('payload_sha2s', None))
 
     return req_dict
 
@@ -290,7 +332,7 @@ def statements_put(req_dict):
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
-    server_validation(req_dict['body'], req_dict['auth'], req_dict.get('payload_sha2s', None))
+    validate_body([req_dict['body']], req_dict['auth'], req_dict.get('payload_sha2s', None))
     return req_dict
 
 def validate_attachments(attachment_data, payload_sha2s):
