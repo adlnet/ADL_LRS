@@ -1,10 +1,6 @@
 import json
-import urllib2
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
-
-from django.conf import settings
-from django.db import transaction
 
 from util import convert_to_dict, get_agent_ifp
 from Authorization import auth
@@ -82,19 +78,6 @@ def server_validate_statement(stmt, auth, payload_sha2s):
     server_validate_statement_object(stmt['object'], auth)
     if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         validate_void_statement(stmt['object']['id'])
-
-    # if not 'objectType' in stmt['object'] or stmt['object']['objectType'] == 'Activity':
-    #     # push act ID to queue here
-    #     # pass
-    #     get_act_def_data(stmt['object'])
-
-    #     try:
-    #         validator = StatementValidator()
-    #         validator.validate_activity(stmt['object'])
-    #     except Exception, e:
-    #         raise BadRequest(e.message)
-    #     except ParamError, e:
-    #         raise ParamError(e.message)
 
     validate_stmt_authority(stmt, auth)
     if 'attachments' in stmt:

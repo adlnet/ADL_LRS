@@ -2,6 +2,11 @@
 from os import path
 from os.path import dirname, abspath
 
+import djcelery
+
+djcelery.setup_loader()
+BROKER_URL = 'django://'
+
 # Root of LRS
 SETTINGS_DIR = dirname(abspath(__file__))
 PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
@@ -208,11 +213,14 @@ INSTALLED_APPS = (
     'django_extensions',
     'jsonify',
     'south',
-    'endless_pagination'
+    'endless_pagination',
+    'djcelery',
+    'kombu.transport.django'
 )
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
 DEFAULT_LOG_DIR = path.join(PROJECT_ROOT, 'logs/lrs.log')
+CELERY_TASKS_LOG_DIR =  path.join(PROJECT_ROOT, 'logs/celery_tasks.log')
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
@@ -249,6 +257,14 @@ LOGGING = {
                 'backupCount': 5,
                 'formatter':'standard',
         },
+        'celery_handler': {
+            'level':'INFO',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': CELERY_TASKS_LOG_DIR,
+            'maxBytes': 1024*1024*5, # 5 MB
+            'backupCount': 5,
+            'formatter':'standard',
+        },        
     },
     'loggers': {
         'lrs': {
@@ -261,5 +277,10 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False
         },
+        'lrs.tasks': {
+            'handlers': ['celery_handler'],
+            'level': 'INFO',
+            'propagate': True
+        },        
     }
 }

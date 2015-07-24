@@ -73,6 +73,19 @@ def stmt_validator(request):
                     context_instance=context)
     return render_to_response('validator.html', {"form": form}, context_instance=context)
 
+# Hosted example activites for the tests
+def actexample1(request):
+    return render_to_response('actexample1.json', mimetype="application/json")
+
+def actexample2(request):
+    return render_to_response('actexample2.json', mimetype="application/json")
+
+def actexample3(request):
+    return render_to_response('actexample3.json', mimetype="application/json")
+
+def actexample4(request):
+    return render_to_response('actexample4.json', mimetype="application/json")
+
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 
@@ -205,9 +218,11 @@ def register(request):
             pword = form.cleaned_data['password']
             email = form.cleaned_data['email']
             
+            # If username doesn't already exist
             if not User.objects.filter(username__exact=name).count():
+                # if email doesn't already exist
                 if not User.objects.filter(email__exact=email).count():
-                    user = User.objects.create_user(name, email, pword)
+                    User.objects.create_user(name, email, pword)
                 else:
                     return render_to_response('register.html', {"form": form, "error_message": "Email %s is already registered." % email},
                         context_instance=context)                    
