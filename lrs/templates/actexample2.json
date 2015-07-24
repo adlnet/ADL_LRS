@@ -2,7 +2,6 @@
         "name":{"en-US": "Example Name"},
         "description": {"en-US": "Example Desc"},
         "type":"type:module",
-        "interactionType": "other",
         "extensions":{
                 "ext:keya": "first value",
                 "ext:keyb": "second value",

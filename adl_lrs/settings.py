@@ -5,7 +5,7 @@ from os.path import dirname, abspath
 import djcelery
 
 djcelery.setup_loader()
-BROKER_URL = 'django://'
+BROKER_URL = 'amqp://lrs:password@localhost:5672/lrsvhost'
 
 # Root of LRS
 SETTINGS_DIR = dirname(abspath(__file__))
