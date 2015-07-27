@@ -1,18 +1,19 @@
+from __future__ import absolute_import
 import urllib2
 import json
 
-from celery import task
+from celery import shared_task
 from celery.utils.log import get_task_logger
 
 from django.conf import settings
 from django.db import transaction
 
-from models import Activity
-from util import StatementValidator as SV
+from lrs.models import Activity
+from lrs.util import StatementValidator as SV
 
-logger = get_task_logger('__name__')
+logger = get_task_logger('celery-act-task')
 
-@task
+@shared_task
 def check_activity_metadata(stmts):
     activity_ids = list(Activity.objects.filter(object_of_statement__statement_id__in=stmts).values_list('activity_id', flat=True).distinct())
     [get_activity_metadata(a_id) for a_id in activity_ids]
@@ -46,7 +47,7 @@ def get_activity_metadata(act_id):
                 validator.validate_activity(fake_activity)
             except Exception, e:
                 valid_url_data = False
-                logger.info(e.message)
+                logger.exception(e.message)
 
             if valid_url_data:
                 update_activity_definition(fake_activity)

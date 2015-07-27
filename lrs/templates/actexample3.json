@@ -1,7 +1,0 @@
-{
-    "name":{"en-FR": "Example Name","en-CH":"Alt Name"},
-    "description": {"en-US": "Example Desc", "en-CH": "Alt Desc"},
-    "type":"http://adlnet.gov/expapi/activities/cmi.interaction",
-    "interactionType": "choice",
-    "correctResponsesPattern": ["golf", "tetris"]
-}
