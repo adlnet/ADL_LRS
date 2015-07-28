@@ -80,12 +80,6 @@ def actexample1(request):
 def actexample2(request):
     return render_to_response('actexample2.json', mimetype="application/json")
 
-def actexample3(request):
-    return render_to_response('actexample3.json', mimetype="application/json")
-
-def actexample4(request):
-    return render_to_response('actexample4.json', mimetype="application/json")
-
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 
