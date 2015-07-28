@@ -11,3 +11,5 @@ oauth2==1.5.211
 shortuuid==0.4.2
 django-jsonify==0.3.0
 django-endless-pagination==2.0
+amqp==1.4.6
+celery==3.1.18
