@@ -2,11 +2,6 @@
 from os import path
 from os.path import dirname, abspath
 
-import djcelery
-
-# djcelery.setup_loader()
-# BROKER_URL = 'amqp://lrs:password@localhost:5672/lrsvhost'
-
 # Root of LRS
 SETTINGS_DIR = dirname(abspath(__file__))
 PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
@@ -214,8 +209,6 @@ INSTALLED_APPS = (
     'jsonify',
     'south',
     'endless_pagination',
-    # 'djcelery',
-    'kombu.transport.django'
 )
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
