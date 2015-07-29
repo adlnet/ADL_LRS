@@ -127,9 +127,10 @@ SESSION_KEY = 'oauth2'
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
 
+# Enable celery for activityID metadata retrieval
+CELERY_ENABLED = False
 # ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
-
 # Caches for /more endpoint and attachments
 CACHES = {
     'default': {

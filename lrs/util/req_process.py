@@ -122,14 +122,16 @@ def statements_post(req_dict):
         body = req_dict['body']
 
     stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'])
-    check_activity_metadata.delay(stmt_responses)
+    if settings.CELERY_ENABLED:
+        check_activity_metadata.delay(stmt_responses)
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
     # Since it is single stmt put in list
     stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'])
-    check_activity_metadata.delay(stmt_responses)
+    if settings.CELERY_ENABLED:
+        check_activity_metadata.delay(stmt_responses)
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
