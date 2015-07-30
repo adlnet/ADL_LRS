@@ -129,6 +129,8 @@ SERVER_STMT_LIMIT = 100
 
 # Enable celery for activityID metadata retrieval
 CELERY_ENABLED = False
+# One minute timeout to all celery tasks
+CELERYD_TASK_SOFT_TIME_LIMIT = 60
 # ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
 # Caches for /more endpoint and attachments
