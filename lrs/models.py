@@ -62,11 +62,8 @@ class AgentManager(models.Manager):
                     member = json.loads(member)
 
         if ifp_sent:
-            # Canonical is defaulted to true
-            canonical_version = kwargs.get('canonical_version', True)
-
             ifp = ifp_sent[0]
-            ifp_dict = {'canonical_version': canonical_version}
+            ifp_dict = {}
 
             if not 'account' == ifp:
                 ifp_dict[ifp] = kwargs[ifp]
@@ -94,27 +91,13 @@ class AgentManager(models.Manager):
                 agent = Agent.objects.create(**kwargs)
                 created = True
 
-            # For identified groups
+            # For identified groups with members
             if is_group and has_member:
-                members = [self.retrieve_or_create(**a) for a in member]
-
                 # If newly created identified group add all of the incoming members
                 if created:
+                    members = [self.retrieve_or_create(**a) for a in member]
                     agent.member.add(*(a for a, c in members))
-
-                # If retrieving existing canonical identified group, update members if necessary
-                if not created and canonical_version:
-                    for mem in members:
-                        member_agent = mem[0]
-                        if not member_agent in agent.member.all():
-                            agent.member.add(member_agent)
-                            agent.save()
-
-            # If retreived agent or identified group is canonical version and name is different then update the name
-            if 'name' in kwargs and kwargs['name'] != agent.name and canonical_version and not created:
-                agent.name = kwargs['name']
-                agent.save()
-
+                    agent.save()
         # Only way it doesn't have IFP is if anonymous group
         else:
             agent, created = self.retrieve_or_create_anonymous_group(member, kwargs)
@@ -166,19 +149,17 @@ class AgentManager(models.Manager):
 class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
-    mbox = models.CharField(max_length=128, db_index=True, null=True)
-    mbox_sha1sum = models.CharField(max_length=40, db_index=True, null=True)
-    openid = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True)
-    oauth_identifier = models.CharField(max_length=192, db_index=True, null=True)
+    mbox = models.CharField(max_length=128, db_index=True, null=True, unique=True)
+    mbox_sha1sum = models.CharField(max_length=40, db_index=True, null=True, unique=True)
+    openid = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True, unique=True)
+    oauth_identifier = models.CharField(max_length=192, db_index=True, null=True, unique=True)
     member = models.ManyToManyField('self', related_name="agents", null=True)
-    canonical_version = models.BooleanField(default=True)
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, null=True)
     account_name = models.CharField(max_length=50, null=True)
     objects = AgentManager()
 
     class Meta:
-        unique_together = (("mbox", "canonical_version"), ("mbox_sha1sum", "canonical_version"),
-            ("openid", "canonical_version"),("oauth_identifier", "canonical_version"), ("account_homePage", "account_name", "canonical_version"))
+        unique_together = ("account_homePage", "account_name")
 
     def to_dict(self, format='exact', just_objectType=False):
         just_id = format == 'ids'

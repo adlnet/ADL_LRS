@@ -2636,14 +2636,10 @@ Lw03eHTNQghS0A==
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         agents = Agent.objects.all().values_list('name', flat=True)
-        # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim, tim timson
-        self.assertEqual(len(agents), 7)
+        # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim and tim timson should be same (no update to tim)
+        self.assertEqual(len(agents), 6)
         self.assertIn('tim', agents)
-        self.assertIn('tim timson', agents)
-        tim = Agent.objects.get(name='tim timson')
-        self.assertFalse(tim.canonical_version)
-        tim = Agent.objects.get(name='tim')
-        self.assertTrue(tim.canonical_version)
+        self.assertNotIn('tim timson', agents)
         # =================================================
 
         # START GET STMT
@@ -2665,8 +2661,8 @@ Lw03eHTNQghS0A==
             Authorization=new_oauth_headers)
         self.assertEqual(get_resp.status_code, 200)
         content = json.loads(get_resp.content)
-        # Should only be one since querying by tim email. Will only pick up global tim object
-        self.assertEqual(len(content['statements']), 1)
+        # Should be two since querying by tim email.
+        self.assertEqual(len(content['statements']), 2)
         self.client.logout()
         # ==================================================
 
@@ -2713,26 +2709,21 @@ Lw03eHTNQghS0A==
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
-        agents = Agent.objects.all()
-        # These 5 agents are all non-global since created w/o define scope
-        non_globals = Agent.objects.filter(canonical_version=False).values_list('name', flat=True)
-        self.assertEqual(len(non_globals), 4)
-        self.assertIn('bill', non_globals)
-        self.assertIn('tim timson', non_globals)
-        self.assertIn('dom', non_globals)
-        self.assertIn('doe group', non_globals)
-        # 2 oauth group objects, all of these agents since created with member or manually and 2 anon
-        # account agents for the accounts in the oauth groups
-        global_agents = Agent.objects.filter(canonical_version=True).values_list('name', flat=True)
-        self.assertEqual(len(global_agents), 12)
-        self.assertIn('bob', global_agents)
-        self.assertIn('tim', global_agents)
-        self.assertIn('jan doe', global_agents)
-        self.assertIn('john doe', global_agents)
-        self.assertIn('dave doe', global_agents)        
-        self.assertIn('jane', global_agents)
-        self.assertIn('dick', global_agents)
-        self.assertIn('doe group', global_agents)
+        agents = Agent.objects.all().values_list('name', flat=True)
+        # 2 oauth group objects and 2 anon account agents for oauth, all of these agents since created with member or manually, 2 agents for
+        # jand and dick users, 2 doe groups since can't update anymore
+        self.assertEqual(len(agents), 15)
+        self.assertIn('bill', agents)
+        self.assertNotIn('tim timson', agents)
+        self.assertIn('dom', agents)
+        self.assertIn('bob', agents)
+        self.assertIn('tim', agents)
+        self.assertIn('jan doe', agents)
+        self.assertIn('john doe', agents)
+        self.assertIn('dave doe', agents)        
+        self.assertIn('jane', agents)
+        self.assertIn('dick', agents)
+        self.assertIn('doe group', agents)
 
     def test_default_scope_multiple_requests(self):
         oauth_header_resource_params, access_token = self.oauth_handshake(scope=False)

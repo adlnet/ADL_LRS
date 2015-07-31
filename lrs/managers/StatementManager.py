@@ -177,11 +177,9 @@ class StatementManager():
                 self.data['context_' + k] = v
 
             if 'context_instructor' in self.data:
-                self.data['context_instructor']['canonical_version'] = self.auth['define']
                 self.data['context_instructor'] = Agent.objects.retrieve_or_create(**self.data['context_instructor'])[0]
                 
             if 'context_team' in self.data:
-                self.data['context_team']['canonical_version'] = self.auth['define']
                 self.data['context_team'] = Agent.objects.retrieve_or_create(**self.data['context_team'])[0]
 
             if 'context_statement' in self.data:
@@ -229,7 +227,6 @@ class StatementManager():
                 self.data['object_activity'] = ActivityManager(statement_object_data, auth=self.auth['authority'],
                     define=self.auth['define']).Activity
             elif statement_object_data['objectType'] in valid_agent_objects:
-                statement_object_data['canonical_version'] = self.auth['define']
                 self.data['object_agent'] = Agent.objects.retrieve_or_create(**statement_object_data)[0]
             elif statement_object_data['objectType'] == 'SubStatement':
                 self.data['object_substatement'] = SubStatementManager(statement_object_data, self.auth).model_object
@@ -264,7 +261,6 @@ class StatementManager():
         self.build_verb_object()
         self.build_statement_object()
 
-        self.data['actor']['canonical_version'] = self.auth['define']
         self.data['actor'] = Agent.objects.retrieve_or_create(**self.data['actor'])[0]
 
         self.populate_context()

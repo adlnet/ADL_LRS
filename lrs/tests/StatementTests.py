@@ -650,7 +650,6 @@ class StatementTests(TestCase):
         getResponse = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
-        # Will only return 10 since that is server limit
         self.assertEqual(len(jsn["statements"]), 11)
         self.assertIn('content-length', getResponse._headers)
 
