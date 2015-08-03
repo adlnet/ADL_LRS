@@ -262,7 +262,8 @@ def validate_attachments(attachment_data, payload_sha2s):
                     err_msg = "Could not find attachment payload with sha: %s" % sha2
                     raise ParamError(err_msg)
             else:
-                raise BadRequest("Missing X-Experience-API-Hash field in header")
+                if not 'fileUrl' in attachment:
+                    raise BadRequest("Missing X-Experience-API-Hash field in header")
 @auth
 def activity_state_post(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "agent", "stateId", "registration"])
