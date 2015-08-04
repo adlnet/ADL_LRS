@@ -363,7 +363,7 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
-    act = Activity.objects.get(activity_id=activityId, canonical_version=True)    
+    act = Activity.objects.get(activity_id=activityId, authority__isnull=False)    
     return_act = json.dumps(act.to_dict())    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))

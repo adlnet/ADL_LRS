@@ -2462,7 +2462,6 @@ Lw03eHTNQghS0A==
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
-
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
@@ -2494,15 +2493,13 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
         
-        # Put statements - does not have define scope, therefore it creates another activity with 
-        # canonical_version as false
+        # Put statements - does not have define scope, therefore it cannot update the activity
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(resp.status_code, 204)
         acts = Activity.objects.all()
-        self.assertEqual(len(acts), 2)
-        self.assertEqual(acts[0].activity_id, acts[1].activity_id)
+        self.assertEqual(len(acts), 1)
         # ==========================================================
 
         # START GET STMT
@@ -2556,40 +2553,13 @@ Lw03eHTNQghS0A==
         post_signature = post_signature_method.sign(post_oauth_request, self.consumer2, post_access_token)
         post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
 
-        # This adds the act_def to the very first activity created in this test since this has define scope
+        # Even though dick has define scope, he didn't create the activity so he can't update it
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
         acts = Activity.objects.all()
-        # One canonical act from jane, one local act for oauth_group jane is in since don't have define,
-        # one local act for dick
-        self.assertEqual(len(acts), 3)
-
-        global_act = Activity.objects.get(canonical_version=True)   
-        global_name_list = global_act.activity_definition_name
-        self.assertEqual(global_name_list, {})
-        global_desc_list = global_act.activity_definition_description
-        self.assertEqual(global_desc_list, {})
-
-        jane_agent = Agent.objects.get(mbox="mailto:jane@example.com")
-        jane_oauth_group = Agent.objects.get(objectType='Group', member__in=[jane_agent])
-        non_global_act_jane_oauth = Activity.objects.get(canonical_version=False, authority=jane_oauth_group)        
-        non_global_name_list_jane_oauth = non_global_act_jane_oauth.activity_definition_name.values()
-        self.assertIn('testname', non_global_name_list_jane_oauth)
-        self.assertIn('altname', non_global_name_list_jane_oauth)
-        non_global_desc_list_jane_oauth = non_global_act_jane_oauth.activity_definition_description.values()
-        self.assertIn('testdesc', non_global_desc_list_jane_oauth)
-        self.assertIn('altdesc', non_global_desc_list_jane_oauth)
-
-        dick_agent = Agent.objects.get(mbox="mailto:dick@example.com")
-        dick_oauth_group = Agent.objects.get(objectType='Group', member__in=[dick_agent])
-        non_global_act_dick_oauth = Activity.objects.get(canonical_version=False, authority=dick_oauth_group)        
-        non_global_name_list_dick_oauth = non_global_act_dick_oauth.activity_definition_name.values()
-        self.assertIn('definename', non_global_name_list_dick_oauth)
-        self.assertIn('definealtname', non_global_name_list_dick_oauth)
-        non_global_desc_list_dick_oauth = non_global_act_dick_oauth.activity_definition_description.values()
-        self.assertIn('definedesc', non_global_desc_list_dick_oauth)
-        self.assertIn('definealtdesc', non_global_desc_list_dick_oauth)
+        self.assertEqual(len(acts), 1)
+        self.assertNotIn("definition", acts[0].to_dict().keys())
 
     def test_define_scope_agent(self):
         url = 'http://testserver/XAPI/statements'

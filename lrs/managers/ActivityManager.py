@@ -4,131 +4,97 @@ from ..models import Activity
 class ActivityManager():
     def __init__(self, data, auth=None, define=True):
         self.auth = auth
-        self.define = define
+        self.define_permission = define
         self.populate(data)
 
-    #Save activity definition to DB
+    # Create activity definition
     @transaction.commit_on_success
-    def save_activity_definition_to_db(self, act_def_type, int_type, more_info, name, desc, crp, ext):
-        created = True        
-        # Have to check if the activity already has an activity definition. Can only update name and
-        # description in definition, so no matter what the user's scope is, if the activity def already
-        # exists you can't create another one
-        if (self.Activity.activity_definition_type or self.Activity.activity_definition_moreInfo or
-                self.Activity.activity_definition_interactionType):
-            created = False
-        else:
-            self.Activity.activity_definition_name = name
-            self.Activity.activity_definition_description = desc
-            self.Activity.activity_definition_type = act_def_type
-            self.Activity.activity_definition_moreInfo = more_info
-            self.Activity.activity_definition_interactionType = int_type
-            self.Activity.activity_definition_crpanswers = crp
-            self.Activity.activity_definition_extensions = ext
-            self.Activity.save()
-        return created
+    def create_activity_definition(self, act_def):
+        interactionType = act_def.get('interactionType', '')
+        self.Activity.activity_definition_name = act_def.get('name', {})
+        self.Activity.activity_definition_description = act_def.get('description', {})
+        self.Activity.activity_definition_type = act_def.get('type', '')
+        self.Activity.activity_definition_moreInfo = act_def.get('moreInfo', '')
+        self.Activity.activity_definition_crpanswers = act_def.get('correctResponsesPattern', {})
+        self.Activity.activity_definition_extensions = act_def.get('extensions', {})
+        self.Activity.activity_definition_interactionType = interactionType
 
-    def check_activity_definition_value(self, new_name_value, existing_name_value):
-        return new_name_value == existing_name_value
-
-    #Once JSON is verified, populate the activity objects
-    @transaction.commit_on_success
-    def populate(self, the_object):        
-        activity_id = the_object['id']
-        can_update = False
-
-        # Try to get canonical
-        try:
-            act = Activity.objects.get(activity_id=activity_id, canonical_version=True)
-        except Activity.DoesNotExist:
-            if self.define:
-                # If canonical DNE and can define - create canonical
-                self.Activity = Activity.objects.create(activity_id=activity_id, canonical_version=True,
-                    authority=self.auth)
-                act_created = True
-            else:
-                # If canonical DNE and cannot define - try to get local version for that user
-                self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, canonical_version=False,
-                    authority=self.auth)
-        # Canonical version already exists
-        else:
-            # If canonical already exists and have define
-            if self.define:
-                # Act exists - if it has same auth set it, else create non-canonical version
-                if (act.authority == self.auth) or \
-                   (act.authority.objectType == 'Group' and self.auth in act.authority.member.all()) or \
-                   (self.auth.objectType == 'Group' and act.authority in self.auth.member.all()):
-                    self.Activity = act
-                    act_created = False
-                    can_update = True                                                     
-                else:
-                    # Not allowed to create global version b/c the activity already exists (could also already have created a non-global act)
-                    self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id,
-                        canonical_version=False, authority=self.auth)
-            # Canonical version already exists but do not have define - try to get local version for that user or create it for user
-            else:
-                self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id,
-                    canonical_version=False, authority=self.auth)
-
-        activity_definition = the_object.get('definition', None)
-
-        # If there is a definition-populate the definition
-        if activity_definition and (act_created or self.act_def_changed(activity_definition)):
-            self.populate_definition(activity_definition, act_created, can_update)
-
-    def act_def_changed(self, act_def):
-        return act_def != self.Activity.to_dict().get('definition', {})
-
-    #Populate definition either from JSON or validated XML
-    @transaction.commit_on_success
-    def populate_definition(self, act_def, act_created, can_update):
-        # return t/f if you can create the def from type, interactionType and moreInfo if the activity already
-        # doesn't have a definition
-        act_def_created = self.save_activity_definition_to_db(act_def.get('type', ''), act_def.get('interactionType', ''),
-            act_def.get('moreInfo', ''), act_def.get('name', {}), act_def.get('description', {}),
-            act_def.get('correctResponsesPattern', {}), act_def.get('extensions', {}))
-
-        # If the activity had already existed and lrs auth is off or user has authority to update it
-        if not act_created: 
-            if not self.Activity.authority or can_update:
-                # Update name and desc if needed
-                if 'name' in act_def:
-                    if self.Activity.activity_definition_name:
-                        self.Activity.activity_definition_name = dict(self.Activity.activity_definition_name.items() + act_def['name'].items())
-                    else:
-                        self.Activity.activity_definition_name = act_def['name']
-                    self.Activity.save()
-
-                if 'description' in act_def:
-                    if self.Activity.activity_definition_description:
-                        self.Activity.activity_definition_description = dict(self.Activity.activity_definition_description.items() + act_def['description'].items())
-                    else:
-                        self.Activity.activity_definition_description = act_def['description']
-                    self.Activity.save()
-
-        # If the activity definition was just created (can't update the CRP or extensions of a def if already existed)
-        #If there is a correctResponsesPattern then save the pattern
-        if act_def_created and self.Activity.activity_definition_crpanswers:
-            self.populate_correct_responses_pattern(act_def)
-
-    @transaction.commit_on_success
-    def populate_correct_responses_pattern(self, act_def):
         #Multiple choice and sequencing must have choices
-        if (act_def['interactionType'] == 'choice' or \
-            act_def['interactionType'] == 'sequencing') and \
+        if (interactionType == 'choice' or \
+            interactionType == 'sequencing') and \
             ('choices' in act_def):
             self.Activity.activity_definition_choices = act_def['choices']
         #Matching must have both source and target
-        elif (act_def['interactionType'] == 'matching') and \
+        elif (interactionType == 'matching') and \
             ('source' in act_def and 'target' in act_def):
             self.Activity.activity_definition_sources = act_def['source'] 
             self.Activity.activity_definition_targets = act_def['target']
         #Performance must have steps
-        elif (act_def['interactionType'] == 'performance') and \
+        elif (interactionType == 'performance') and \
             ('steps' in act_def):
             self.Activity.activity_definition_steps = act_def['steps']
         #Likert must have scale
-        elif (act_def['interactionType'] == 'likert') and \
+        elif (interactionType == 'likert') and \
             ('scale' in act_def):
             self.Activity.activity_definition_scales = act_def['scale']
         self.Activity.save()
+
+    # Update activity definition
+    @transaction.commit_on_success
+    def update_activity_definition(self, act_def):
+        if 'name' in act_def:
+            if self.Activity.activity_definition_name:
+                self.Activity.activity_definition_name = dict(self.Activity.activity_definition_name.items() + act_def['name'].items())
+            else:
+                self.Activity.activity_definition_name = act_def['name']       
+
+        if 'description' in act_def:
+            if self.Activity.activity_definition_description:
+                self.Activity.activity_definition_description = dict(self.Activity.activity_definition_description.items() + act_def['description'].items())
+            else:
+                self.Activity.activity_definition_description = act_def['description']
+        self.Activity.save()
+
+    @transaction.commit_on_success
+    def populate(self, the_object):
+        activity_id = the_object['id']
+        can_define = False
+        # Try to get activity
+        try:
+            act = Activity.objects.get(activity_id=activity_id)
+        except Activity.DoesNotExist:
+            act_created = True
+            if self.define_permission:
+                # If activity DNE and can define - create activity with auth
+                self.Activity = Activity.objects.create(activity_id=activity_id, authority=self.auth)
+                can_define = True
+            else:
+                # If activity DNE and cannot define - create activity without auth
+                self.Activity = Activity.objects.create(activity_id=activity_id)
+        # activity already exists
+        else:
+            self.Activity = act
+            act_created = False
+            # If activity already exists and have define
+            if self.define_permission:
+                # Act exists but it was created by someone who didn't have define permissions so it's up for grabs
+                # for first user with define permission or...
+                # Act exists - if it has same auth set it, else do nothing    
+                if (not act.authority) or \
+                   (act.authority == self.auth) or \
+                   (act.authority.objectType == 'Group' and self.auth in act.authority.member.all()) or \
+                   (self.auth.objectType == 'Group' and act.authority in self.auth.member.all()):
+                    can_define = True                                                     
+                else:
+                    can_define = False
+            # activity already exists but do not have define
+            else:
+                can_define = False
+
+        activity_definition = the_object.get('definition', None)
+        # If there is an incoming definition for an activity that had already existed, and the user has define privelages
+        if activity_definition and can_define and not act_created:
+            self.update_activity_definition(activity_definition)
+        # If there is an incoming definition for an activity and the activity didn't exist yet and the user can update create the definition
+        elif activity_definition and can_define and act_created:
+            self.create_activity_definition(activity_definition)

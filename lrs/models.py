@@ -264,13 +264,13 @@ class AgentProfile(models.Model):
         super(AgentProfile, self).delete(*args, **kwargs)
 
 class Activity(models.Model):
-    activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
+    activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity")
     activity_definition_name = JSONField(default={}, blank=True)
     activity_definition_description = JSONField(default={}, blank=True)
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    activity_definition_interactionType = models.CharField(max_length=25, blank=True)    
+    activity_definition_interactionType = models.CharField(max_length=25, blank=True)
     activity_definition_extensions = JSONField(default={}, blank=True)
     activity_definition_crpanswers = JSONField(default={}, blank=True)
     activity_definition_choices = JSONField(default={}, blank=True)
@@ -279,7 +279,6 @@ class Activity(models.Model):
     activity_definition_targets = JSONField(default={}, blank=True)
     activity_definition_steps = JSONField(default={}, blank=True)
     authority = models.ForeignKey(Agent, null=True)
-    canonical_version = models.BooleanField(default=True)
 
     def add_interaction_type(self, i_type, ret, lang):
         if i_type == 'scale':
@@ -461,10 +460,7 @@ class SubStatement(models.Model):
         if self.object_agent:
             ret['object'] = self.object_agent.to_dict(format, just_objectType=True)
         elif self.object_activity:
-            if not self.object_activity.canonical_version:
-                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).to_dict(lang, format)
-            else:
-                ret['object'] = self.object_activity.to_dict(lang, format)
+            ret['object'] = self.object_activity.to_dict(lang, format)
         else:
             ret['object'] = self.object_statementref.to_dict()
 
@@ -652,10 +648,7 @@ class Statement(models.Model):
         if self.object_agent:
             ret['object'] = self.object_agent.to_dict(format, just_objectType=True)            
         elif self.object_activity:
-            if not self.object_activity.canonical_version:
-                ret['object'] = Activity.objects.get(activity_id=self.object_activity.activity_id, canonical_version=True).to_dict(lang, format)
-            else:
-                ret['object'] = self.object_activity.to_dict(lang, format)
+            ret['object'] = self.object_activity.to_dict(lang, format)
         elif self.object_substatement:
             ret['object'] = self.object_substatement.to_dict(lang, format)
         else:

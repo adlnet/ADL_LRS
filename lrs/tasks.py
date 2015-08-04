@@ -55,9 +55,9 @@ def get_activity_metadata(act_id):
 
 @transaction.commit_on_success
 def update_activity_definition(act):
-    # Try to get canonical activity by id
+    # Try to get activity by id
     try:
-        activity = Activity.objects.get(activity_id=act['id'], canonical_version=True)
+        activity = Activity.objects.get(activity_id=act['id'])
     except Activity.DoesNotExist:
         # Could not exist yet
         pass
