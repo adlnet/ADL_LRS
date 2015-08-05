@@ -1,4 +1,3 @@
-from django.db import transaction
 from ..models import Activity
 
 class ActivityManager():
@@ -7,8 +6,6 @@ class ActivityManager():
         self.define_permission = define
         self.populate(data)
 
-    # Create activity definition
-    @transaction.commit_on_success
     def create_activity_definition(self, act_def):
         interactionType = act_def.get('interactionType', '')
         self.Activity.activity_definition_name = act_def.get('name', {})
@@ -39,8 +36,6 @@ class ActivityManager():
             self.Activity.activity_definition_scales = act_def['scale']
         self.Activity.save()
 
-    # Update activity definition
-    @transaction.commit_on_success
     def update_activity_definition(self, act_def):
         if 'name' in act_def:
             if self.Activity.activity_definition_name:
@@ -55,7 +50,6 @@ class ActivityManager():
                 self.Activity.activity_definition_description = act_def['description']
         self.Activity.save()
 
-    @transaction.commit_on_success
     def populate(self, the_object):
         activity_id = the_object['id']
         can_define = False

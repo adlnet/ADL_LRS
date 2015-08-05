@@ -1,4 +1,3 @@
-from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.cache import get_cache
 
@@ -32,7 +31,6 @@ class StatementManager():
             else:
                 auth_info['agent'] = None
 
-    @transaction.commit_on_success
     def void_statement(self, stmt_id):
         stmt = Statement.objects.get(statement_id=stmt_id)
         stmt.voided = True
@@ -40,54 +38,7 @@ class StatementManager():
         # Create statement ref
         return StatementRef.objects.create(ref_id=stmt_id)
 
-    @transaction.commit_on_success
-    # Save sub to DB
-    def create_substatement(self, auth_info, stmt_data):
-        # Pop off any context activities
-        con_act_data = stmt_data.pop('context_contextActivities',{})
-        # Delete objectType since it is not a field in the model
-        del stmt_data['objectType']
-        sub = SubStatement.objects.create(**stmt_data)
-        
-        for con_act_group in con_act_data.items():
-            # Incoming contextActivities can either be a list or dict    
-            if isinstance(con_act_group[1], list):
-                for con_act in con_act_group[1]:
-                    act = ActivityManager(con_act, auth=auth_info['agent'], define=auth_info['define']).Activity
-                    if con_act_group[0] == 'parent':
-                        sub.context_ca_parent.add(act)
-                    elif con_act_group[0] == 'grouping':
-                        sub.context_ca_grouping.add(act)
-                    elif con_act_group[0] == 'category':
-                        sub.context_ca_category.add(act)
-                    else:
-                        sub.context_ca_other.add(act)
-            else:        
-                act = ActivityManager(con_act_group[1], auth=auth_info['agent'], define=auth_info['define']).Activity
-                if con_act_group[0] == 'parent':
-                    sub.context_ca_parent.add(act)
-                elif con_act_group[0] == 'grouping':
-                    sub.context_ca_grouping.add(act)
-                elif con_act_group[0] == 'category':
-                    sub.context_ca_category.add(act)
-                else:
-                    sub.context_ca_other.add(act)
-            sub.save()
-        return sub
-
-    @transaction.commit_on_success
-    # Save statement to DB
-    def create_statement(self, auth_info, stmt_data):
-        # Pop off any context activities
-        con_act_data = stmt_data.pop('context_contextActivities',{})
-        stmt_data['user'] = auth_info['user']
-        # Name of id field in models is statement_id
-        if 'id' in stmt_data:
-            stmt_data['statement_id'] = stmt_data['id']
-            del stmt_data['id']
-        # Try to create statement
-        stmt = Statement.objects.create(**stmt_data)
-
+    def build_context_activities(self, stmt, auth_info, con_act_data):
         for con_act_group in con_act_data.items():
             # Incoming contextActivities can either be a list or dict    
             if isinstance(con_act_group[1], list):
@@ -111,7 +62,30 @@ class StatementManager():
                     stmt.context_ca_category.add(act)
                 else:
                     stmt.context_ca_other.add(act)
-            stmt.save()
+        stmt.save()
+
+    def build_substatement(self, auth_info, stmt_data):
+        # Pop off any context activities
+        con_act_data = stmt_data.pop('context_contextActivities',{})
+        # Delete objectType since it is not a field in the model
+        del stmt_data['objectType']
+        sub = SubStatement.objects.create(**stmt_data)        
+        if con_act_data:
+            self.build_context_activities(sub, auth_info, con_act_data)
+        return sub
+
+    def build_statement(self, auth_info, stmt_data):
+        # Pop off any context activities
+        con_act_data = stmt_data.pop('context_contextActivities',{})
+        stmt_data['user'] = auth_info['user']
+        # Name of id field in models is statement_id
+        if 'id' in stmt_data:
+            stmt_data['statement_id'] = stmt_data['id']
+            del stmt_data['id']
+        # Try to create statement
+        stmt = Statement.objects.create(**stmt_data)
+        if con_act_data:
+            self.build_context_activities(stmt, auth_info, con_act_data)
         return stmt
 
     def build_result(self, stmt_data):
@@ -126,7 +100,7 @@ class StatementManager():
                 del stmt_data['result_score']
             del stmt_data['result']
 
-    def create_attachment(self, attach):
+    def build_attachment(self, attach):
         sha2 = attach['sha2']
         try:
             attachment = StatementAttachment.objects.get(sha2=sha2)
@@ -145,14 +119,13 @@ class StatementManager():
             attachment.payload.save(sha2, payload)
         return attachment, created 
 
-    @transaction.commit_on_success
-    def create_attachments(self, user_info, attachment_data, attachment_payloads):
+    def build_attachments(self, user_info, attachment_data, attachment_payloads):
         if attachment_data:
             # Iterate through each attachment
             for attach in attachment_data:
                 # Get or create based on sha2
                 if 'sha2' in attach:
-                    attachment, created = self.create_attachment(attach)
+                    attachment, created = self.build_attachment(attach)
                 # If no sha2 there must be a fileUrl which is unique
                 else:
                     try:
@@ -198,7 +171,6 @@ class StatementManager():
                 stmt_data['context_statement'] = stmt_data['context_statement']['id']
             del stmt_data['context']
     
-    @transaction.commit_on_success
     def build_verb(self, stmt_data):
         incoming_verb = stmt_data['verb']
         verb_id = incoming_verb['id']
@@ -237,7 +209,6 @@ class StatementManager():
                 stmt_data['object_statementref'] = StatementRef.objects.create(ref_id=statement_object_data['id'])
         del stmt_data['object']
 
-    # Once JSON is verified, populate the statement object
     def populate(self, auth_info, stmt_data):
         if self.__class__.__name__ == 'StatementManager':
             stmt_data['voided'] = False
@@ -252,10 +223,10 @@ class StatementManager():
         
         if self.__class__.__name__ == 'StatementManager':
             #Save statement/substatement
-            self.model_object = self.create_statement(auth_info, stmt_data)
+            self.model_object = self.build_statement(auth_info, stmt_data)
         else:
-            self.model_object = self.create_substatement(auth_info, stmt_data)
-        self.create_attachments(auth_info, attachment_data, attachment_payloads)
+            self.model_object = self.build_substatement(auth_info, stmt_data)
+        self.build_attachments(auth_info, attachment_data, attachment_payloads)
 
 class SubStatementManager(StatementManager):
     def __init__(self, substmt_data, auth_info):        
