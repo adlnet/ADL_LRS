@@ -330,28 +330,6 @@ class StatementRef(models.Model):
     def __unicode__(self):
         return json.dumps(self.to_dict())
 
-class SubStatementContextActivity(models.Model):
-    key = models.CharField(max_length=8)
-    context_activity = models.ManyToManyField(Activity)
-    substatement = models.ForeignKey('SubStatement')
-
-    def to_dict(self, lang=None, format='exact'):
-        ret = {}
-        ret[self.key] = {}
-        ret[self.key] = [a.to_dict(lang, format) for a in self.context_activity.all()]
-        return ret
-
-class StatementContextActivity(models.Model):
-    key = models.CharField(max_length=8)
-    context_activity = models.ManyToManyField(Activity)
-    statement = models.ForeignKey('Statement')
-
-    def to_dict(self, lang=None, format='exact'):
-        ret = {}
-        ret[self.key] = {}
-        ret[self.key] = [a.to_dict(lang, format) for a in self.context_activity.all()]
-        return ret
-
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
@@ -409,6 +387,10 @@ class SubStatement(models.Model):
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
     context_extensions = JSONField(default={}, blank=True)
+    context_ca_parent = models.ManyToManyField(Activity, related_name="sub_context_ca_parent")
+    context_ca_grouping = models.ManyToManyField(Activity, related_name="sub_context_ca_grouping")
+    context_ca_category = models.ManyToManyField(Activity, related_name="sub_context_ca_category")
+    context_ca_other = models.ManyToManyField(Activity, related_name="sub_context_ca_other")
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     
@@ -467,12 +449,20 @@ class SubStatement(models.Model):
             ret['context']['language'] = self.context_language
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
-        if self.substatementcontextactivity_set.all():
-            ret['context']['contextActivities'] = {}
-            for con_act in self.substatementcontextactivity_set.all():
-                ret['context']['contextActivities'].update(con_act.to_dict(lang, format))
+
+        ret['context']['contextActivities'] = {}
+        if self.context_ca_parent.all():
+            ret['context']['contextActivities']['parent'] = [cap.to_dict(lang, format) for cap in self.context_ca_parent.all()]
+        if self.context_ca_grouping.all():
+            ret['context']['contextActivities']['grouping'] = [cag.to_dict(lang, format) for cag in self.context_ca_grouping.all()]
+        if self.context_ca_category.all():
+            ret['context']['contextActivities']['category'] = [cac.to_dict(lang, format) for cac in self.context_ca_category.all()]
+        if self.context_ca_other.all():
+            ret['context']['contextActivities']['other'] = [cao.to_dict(lang, format) for cao in self.context_ca_other.all()]
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
+        if not ret['context']['contextActivities']:
+            del ret['context']['contextActivities']
         if not ret['context']:
             del ret['context']
 
@@ -563,6 +553,10 @@ class Statement(models.Model):
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
     context_extensions = JSONField(default={}, blank=True)
+    context_ca_parent = models.ManyToManyField(Activity, related_name="stmt_context_ca_parent")
+    context_ca_grouping = models.ManyToManyField(Activity, related_name="stmt_context_ca_grouping")
+    context_ca_category = models.ManyToManyField(Activity, related_name="stmt_context_ca_category")
+    context_ca_other = models.ManyToManyField(Activity, related_name="stmt_context_ca_other")
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7)
@@ -630,19 +624,26 @@ class Statement(models.Model):
             ret['context']['language'] = self.context_language
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
-        if self.statementcontextactivity_set.all():
-            ret['context']['contextActivities'] = {}
-            for con_act in self.statementcontextactivity_set.all():
-                ret['context']['contextActivities'].update(con_act.to_dict(lang, format))
+        
+        ret['context']['contextActivities'] = {}
+        if self.context_ca_parent.all():
+            ret['context']['contextActivities']['parent'] = [cap.to_dict(lang, format) for cap in self.context_ca_parent.all()]
+        if self.context_ca_grouping.all():
+            ret['context']['contextActivities']['grouping'] = [cag.to_dict(lang, format) for cag in self.context_ca_grouping.all()]
+        if self.context_ca_category.all():
+            ret['context']['contextActivities']['category'] = [cac.to_dict(lang, format) for cac in self.context_ca_category.all()]
+        if self.context_ca_other.all():
+            ret['context']['contextActivities']['other'] = [cao.to_dict(lang, format) for cao in self.context_ca_other.all()]
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
+        if not ret['context']['contextActivities']:
+            del ret['context']['contextActivities']
         if not ret['context']:
             del ret['context']
 
         ret['timestamp'] = self.timestamp.isoformat()
         ret['stored'] = self.stored.isoformat()
         ret['version'] = self.version
-        
         if not self.authority is None:
             ret['authority'] = self.authority.to_dict(format)
         if self.attachments.all():

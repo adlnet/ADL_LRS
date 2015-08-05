@@ -3,7 +3,7 @@ from django.core.files.base import ContentFile
 from django.core.cache import get_cache
 
 from .ActivityManager import ActivityManager
-from ..models import Verb, Statement, StatementRef, StatementAttachment, StatementContextActivity, SubStatement, SubStatementContextActivity, Agent 
+from ..models import Verb, Statement, StatementRef, StatementAttachment, SubStatement, Agent 
 
 att_cache = get_cache('attachment_cache')
 
@@ -45,23 +45,34 @@ class StatementManager():
     def create_substatement(self, auth_info, stmt_data):
         # Pop off any context activities
         con_act_data = stmt_data.pop('context_contextActivities',{})
-        # Try to create SubStatement            
         # Delete objectType since it is not a field in the model
         del stmt_data['objectType']
         sub = SubStatement.objects.create(**stmt_data)
-        # Save context activities
-        # Can have multiple groupings
+        
         for con_act_group in con_act_data.items():
-            ca = SubStatementContextActivity.objects.create(key=con_act_group[0], substatement=sub)
-            # Incoming contextActivities can either be a list or dict
+            # Incoming contextActivities can either be a list or dict    
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
                     act = ActivityManager(con_act, auth=auth_info['agent'], define=auth_info['define']).Activity
-                    ca.context_activity.add(act)
-            else:
+                    if con_act_group[0] == 'parent':
+                        sub.context_ca_parent.add(act)
+                    elif con_act_group[0] == 'grouping':
+                        sub.context_ca_grouping.add(act)
+                    elif con_act_group[0] == 'category':
+                        sub.context_ca_category.add(act)
+                    else:
+                        sub.context_ca_other.add(act)
+            else:        
                 act = ActivityManager(con_act_group[1], auth=auth_info['agent'], define=auth_info['define']).Activity
-                ca.context_activity.add(act)
-            ca.save()
+                if con_act_group[0] == 'parent':
+                    sub.context_ca_parent.add(act)
+                elif con_act_group[0] == 'grouping':
+                    sub.context_ca_grouping.add(act)
+                elif con_act_group[0] == 'category':
+                    sub.context_ca_category.add(act)
+                else:
+                    sub.context_ca_other.add(act)
+            sub.save()
         return sub
 
     @transaction.commit_on_success
@@ -76,19 +87,31 @@ class StatementManager():
             del stmt_data['id']
         # Try to create statement
         stmt = Statement.objects.create(**stmt_data)
-        # Save context activities
-        # Can have multiple groupings
+
         for con_act_group in con_act_data.items():
-            ca = StatementContextActivity.objects.create(key=con_act_group[0], statement=stmt)
-            # Incoming contextActivities can either be a list or dict
+            # Incoming contextActivities can either be a list or dict    
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
                     act = ActivityManager(con_act, auth=auth_info['agent'], define=auth_info['define']).Activity
-                    ca.context_activity.add(act)
-            else:
-                act = ActivityManager(con_act_group[1], auth=auth_info['authority'], define=auth_info['define']).Activity
-                ca.context_activity.add(act)
-            ca.save()
+                    if con_act_group[0] == 'parent':
+                        stmt.context_ca_parent.add(act)
+                    elif con_act_group[0] == 'grouping':
+                        stmt.context_ca_grouping.add(act)
+                    elif con_act_group[0] == 'category':
+                        stmt.context_ca_category.add(act)
+                    else:
+                        stmt.context_ca_other.add(act)
+            else:        
+                act = ActivityManager(con_act_group[1], auth=auth_info['agent'], define=auth_info['define']).Activity
+                if con_act_group[0] == 'parent':
+                    stmt.context_ca_parent.add(act)
+                elif con_act_group[0] == 'grouping':
+                    stmt.context_ca_grouping.add(act)
+                elif con_act_group[0] == 'category':
+                    stmt.context_ca_category.add(act)
+                else:
+                    stmt.context_ca_other.add(act)
+            stmt.save()
         return stmt
 
     def build_result(self, stmt_data):
