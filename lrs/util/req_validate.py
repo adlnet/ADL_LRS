@@ -32,7 +32,7 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
             err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
             raise NotFound(err_msg)
 
-        if not agent in req_dict['auth']['authority'].member.all():
+        if not agent in req_dict['auth']['agent'].member.all():
             err_msg = "Authorization doesn't match agent in %s" % endpoint
             raise Forbidden(err_msg)
 
@@ -56,12 +56,12 @@ def server_validate_statement_object(stmt_object, auth):
             
 def validate_stmt_authority(stmt, auth):
     # If not validated yet - validate auth first since it supercedes any auth in stmt
-    if auth['authority']:
-        if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
+    if auth['agent']:
+        if auth['agent'].objectType == 'Group' and not auth['agent'].oauth_identifier:
             err_msg = "Statements cannot have a non-Oauth group as the authority"
             raise ParamError(err_msg)
-        elif auth['authority'].objectType == 'Group' and auth['authority'].oauth_identifier:
-            if auth['authority'].member.count() != 2:
+        elif auth['agent'].objectType == 'Group' and auth['agent'].oauth_identifier:
+            if auth['agent'].member.count() != 2:
                 err_msg = "OAuth authority must only contain 2 members"
                 raise ParamError(err_msg)
 
@@ -144,8 +144,8 @@ def validate_statementId(req_dict):
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
 
-    if auth['authority']:
-        if mine_only and st.authority.id != auth['authority'].id:
+    if auth['agent']:
+        if mine_only and st.authority.id != auth['agent'].id:
             err_msg = "Incorrect permissions to view statements"
             raise Forbidden(err_msg)
     

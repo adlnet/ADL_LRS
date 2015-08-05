@@ -25,7 +25,7 @@ class Verb(models.Model):
         ret = {}
         ret['id'] = self.verb_id
         if self.display:
-            ret['display'] = util.get_lang(self.display, lang)                        
+            ret['display'] = util.get_lang(self.display, lang)
         return ret
 
     # Just return one value for human-readable
@@ -46,48 +46,40 @@ class Verb(models.Model):
     def __unicode__(self):
         return json.dumps(self.to_dict())
 
-agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'account', 'openid']
 class AgentManager(models.Manager):
     @transaction.commit_on_success
     def retrieve_or_create(self, **kwargs):
+        agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'account', 'openid']
         ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]        
         is_group = kwargs.get('objectType', None) == "Group"
         has_member = False
-        
+        # Set member if incoming group
         if is_group:
             member = kwargs.pop('member', None)
             if member:
                 has_member = True
-                if isinstance(member, basestring):
-                    member = json.loads(member)
-
+        # Create agent based on IFP
         if ifp_sent:
+            # Get IFP
             ifp = ifp_sent[0]
             ifp_dict = {}
-
+            # If IFP is account, have to set the kwargs keys differently since they have different
+            # field names
             if not 'account' == ifp:
                 ifp_dict[ifp] = kwargs[ifp]
             else:
-                if not isinstance(kwargs['account'], dict):
-                    account = json.loads(kwargs['account'])
-                else:
-                    account = kwargs['account']
-
-                ifp_dict['account_homePage'] = account['homePage']
-                kwargs['account_homePage'] = account['homePage']
-
-                ifp_dict['account_name'] = account['name']
-                kwargs['account_name'] = account['name']
-
+                # Set ifp_dict and kwargs
+                ifp_dict['account_homePage'] = kwargs['account']['homePage']
+                kwargs['account_homePage'] = kwargs['account']['homePage']
+                ifp_dict['account_name'] = kwargs['account']['name']
+                kwargs['account_name'] = kwargs['account']['name']
                 del kwargs['account']
-
             try:
-                if not 'account' == ifp:
-                    agent = Agent.objects.filter(**ifp_dict)[0]
-                else:
-                    agent = Agent.objects.filter(**ifp_dict)[0]
+                # Try getting agent by IFP in ifp_dict
+                agent = Agent.objects.filter(**ifp_dict)[0]
                 created = False
             except IndexError:
+                # If DNE create the agent based off of kwargs (kwargs now includes account_homePage and account_name fields)
                 agent = Agent.objects.create(**kwargs)
                 created = True
 
@@ -132,7 +124,6 @@ class AgentManager(models.Manager):
         else:
             agent = Agent.objects.create(**kwargs)
             created = True
-
         # If it is a newly created anonymous group, add the members
         if created:
             members = [self.retrieve_or_create(**a) for a in member]
@@ -161,39 +152,28 @@ class Agent(models.Model):
     class Meta:
         unique_together = ("account_homePage", "account_name")
 
-    def to_dict(self, format='exact', just_objectType=False):
-        just_id = format == 'ids'
+    def to_dict(self, format='exact'):
         ret = {}
-        # add object type if format isn't id,
-        # or if it is a group,
-        # or if it's an object
-        if not just_id or self.objectType == 'Group' or just_objectType:
-            ret['objectType'] = self.objectType
-        if self.name and not just_id:
-            ret['name'] = self.name
         if self.mbox:
             ret['mbox'] = self.mbox
         if self.mbox_sha1sum:
             ret['mbox_sha1sum'] = self.mbox_sha1sum
         if self.openid:
             ret['openid'] = self.openid
-        
-        ret['account'] = {}
         if self.account_name:
+            ret['account'] = {}
             ret['account']['name'] = self.account_name
-
-        if self.account_homePage:
             ret['account']['homePage'] = self.account_homePage
-
-        # If not account, delete it
-        if not ret['account']:
-            del ret['account']
-
         if self.objectType == 'Group':
+            ret['objectType'] = self.objectType
             # show members for groups if format isn't 'ids'
             # show members' ids for anon groups if format is 'ids'
-            if not just_id or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
+            if not format == 'ids' or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
                 ret['member'] = [a.to_dict(format) for a in self.member.all()]
+        if self.objectType and not format == 'ids':
+            ret['objectType'] = self.objectType
+        if self.name and not format == 'ids':
+            ret['name'] = self.name
         return ret
 
     # Used only for /agent GET endpoint (check spec)
@@ -208,17 +188,10 @@ class Agent(models.Model):
             ret['mbox_sha1sum'] = [self.mbox_sha1sum]
         if self.openid:
             ret['openid'] = [self.openid]
-
-        ret['account'] = {}
         if self.account_name:
+            ret['account'] = {}
             ret['account']['name'] = self.account_name
-
-        if self.account_homePage:
             ret['account']['homePage'] = self.account_homePage
-
-        if not ret['account']:
-            del ret['account']
-
         return ret
 
     def get_a_name(self):
@@ -230,13 +203,12 @@ class Agent(models.Model):
             return self.mbox_sha1sum
         if self.openid:
             return self.openid
-        try:
+        if self.account_name:
             return self.account_name
-        except:
-            if self.objectType == 'Agent':
-                return "unknown"
-            else:
-                return "anonymous group"
+        if self.objectType == 'Agent':
+            return "unknown"
+        else:
+            return "anonymous group"
 
     def get_user_from_oauth_group(self):
         if self.oauth_identifier:
@@ -291,7 +263,6 @@ class Activity(models.Model):
             interactions = self.activity_definition_sources
         elif i_type == 'target':
             interactions = self.activity_definition_targets
-
         for i in interactions:
             i['description'] = util.get_lang(i['description'], lang)
             ret['definition'][i_type].append(i)        
@@ -301,53 +272,39 @@ class Activity(models.Model):
         ret['id'] = self.activity_id
         if format != 'ids':
             ret['objectType'] = self.objectType
-            
             ret['definition'] = {}
             if self.activity_definition_name:
                 ret['definition']['name'] = util.get_lang(self.activity_definition_name, lang)
-
             if self.activity_definition_description:
-                ret['definition']['description'] = util.get_lang(self.activity_definition_description, lang)                      
-
+                ret['definition']['description'] = util.get_lang(self.activity_definition_description, lang)
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
-            
             if self.activity_definition_moreInfo != '':
                 ret['definition']['moreInfo'] = self.activity_definition_moreInfo
-
             if self.activity_definition_interactionType != '':
                 ret['definition']['interactionType'] = self.activity_definition_interactionType
-
             # Get answers
             if self.activity_definition_crpanswers:
                 ret['definition']['correctResponsesPattern'] = self.activity_definition_crpanswers
-            
             if self.activity_definition_scales:
                 ret['definition']['scale'] = []
                 self.add_interaction_type('scale', ret, lang)
-
             if self.activity_definition_choices:
                 ret['definition']['choices'] = []
                 self.add_interaction_type('choices', ret, lang)
-
             if self.activity_definition_steps:
                 ret['definition']['steps'] = []
                 self.add_interaction_type('steps', ret, lang)
-
             if self.activity_definition_sources:
                 ret['definition']['source'] = []
                 self.add_interaction_type('source', ret, lang)
-
             if self.activity_definition_targets:
                 ret['definition']['target'] = []
                 self.add_interaction_type('target', ret, lang)
-
             if self.activity_definition_extensions:
                 ret['definition']['extensions'] = self.activity_definition_extensions
-
             if not ret['definition']:
                 del ret['definition']
-
         return ret
 
     def get_a_name(self):
@@ -369,7 +326,10 @@ class StatementRef(models.Model):
     def get_a_name(self):
         s = Statement.objects.get(statement_id=self.ref_id)
         return s.get_object().get_a_name()
-        
+
+    def __unicode__(self):
+        return json.dumps(self.to_dict())
+
 class SubStatementContextActivity(models.Model):
     key = models.CharField(max_length=8)
     context_activity = models.ManyToManyField(Activity)
@@ -456,47 +416,38 @@ class SubStatement(models.Model):
         ret = {}
         ret['actor'] = self.actor.to_dict(format)
         ret['verb'] = self.verb.to_dict()
-
+        
         if self.object_agent:
-            ret['object'] = self.object_agent.to_dict(format, just_objectType=True)
+            ret['object'] = self.object_agent.to_dict(format)
         elif self.object_activity:
             ret['object'] = self.object_activity.to_dict(lang, format)
         else:
             ret['object'] = self.object_statementref.to_dict()
-
+        
         ret['result'] = {}
         if self.result_success != None:
             ret['result']['success'] = self.result_success
-
         if self.result_completion != None:
             ret['result']['completion'] = self.result_completion
-
         if self.result_response:
             ret['result']['response'] = self.result_response
-
         if self.result_duration:
             ret['result']['duration'] = self.result_duration
-
+        
         ret['result']['score'] = {}
         if not self.result_score_scaled is None:
             ret['result']['score']['scaled'] = self.result_score_scaled
-
         if not self.result_score_raw is None:
             ret['result']['score']['raw'] = self.result_score_raw
-
         if not self.result_score_min is None:
             ret['result']['score']['min'] = self.result_score_min
-
         if not self.result_score_max is None:
             ret['result']['score']['max'] = self.result_score_max
-
         # If there is no score, delete from dict
         if not ret['result']['score']:
             del ret['result']['score']
-
         if self.result_extensions:
             ret['result']['extensions'] = self.result_extensions
-
         # If no result, delete from dict
         if not ret['result']:
             del ret['result']
@@ -504,33 +455,24 @@ class SubStatement(models.Model):
         ret['context'] = {}
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
-
         if self.context_instructor:
             ret['context']['instructor'] = self.context_instructor.to_dict(format)
-
         if self.context_team:
             ret['context']['team'] = self.context_team.to_dict(format)
-
         if self.context_revision:
             ret['context']['revision'] = self.context_revision
-
         if self.context_platform:
             ret['context']['platform'] = self.context_platform
-
         if self.context_language:
             ret['context']['language'] = self.context_language
-
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
-
         if self.substatementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.substatementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.to_dict(lang, format))
-
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
-
         if not ret['context']:
             del ret['context']
 
@@ -553,8 +495,10 @@ class SubStatement(models.Model):
     def delete(self, *args, **kwargs):
         if self.object_statementref:
             self.object_statementref.delete()
-        
         super(SubStatement, self).delete(*args, **kwargs)
+
+    def __unicode__(self):
+        return json.dumps(self.to_dict())
 
 class StatementAttachment(models.Model):
     usageType = models.CharField(max_length=MAX_URL_LENGTH)
@@ -569,30 +513,20 @@ class StatementAttachment(models.Model):
     def to_dict(self, lang=None):
         ret = {}
         ret['usageType'] = self.usageType
-
         if self.display:
-            if lang:
-                ret['display'] = util.get_lang(self.display, lang)
-            else:
-                first = self.display.iteritems().next()
-                ret['display'] = {first[0]:first[1]}
-
+            ret['display'] = util.get_lang(self.display, lang)
         if self.description:
-            if lang:
-                ret['description'] = util.get_lang(self.description, lang)
-            else:
-                first = self.description.iteritems().next()
-                ret['description'] = {first[0]:first[1]}
-
+            ret['description'] = util.get_lang(self.description, lang)
         ret['contentType'] = self.contentType
         ret['length'] = self.length
-
         if self.sha2:
             ret['sha2'] = self.sha2
-
         if self.fileUrl:
             ret['fileUrl'] = self.fileUrl
         return ret
+
+    def __unicode__(self):
+        return json.dumps(self.to_dict())
 
 class Statement(models.Model):
     # If no statement_id is given, will create one automatically
@@ -646,7 +580,7 @@ class Statement(models.Model):
         ret['verb'] = self.verb.to_dict()
 
         if self.object_agent:
-            ret['object'] = self.object_agent.to_dict(format, just_objectType=True)            
+            ret['object'] = self.object_agent.to_dict(format)            
         elif self.object_activity:
             ret['object'] = self.object_activity.to_dict(lang, format)
         elif self.object_substatement:
@@ -657,80 +591,60 @@ class Statement(models.Model):
         ret['result'] = {}
         if self.result_success != None:
             ret['result']['success'] = self.result_success
-
         if self.result_completion != None:
             ret['result']['completion'] = self.result_completion
-
         if self.result_response:
             ret['result']['response'] = self.result_response
-
         if self.result_duration:
             ret['result']['duration'] = self.result_duration
 
         ret['result']['score'] = {}
         if not self.result_score_scaled is None:
             ret['result']['score']['scaled'] = self.result_score_scaled
-
         if not self.result_score_raw is None:
             ret['result']['score']['raw'] = self.result_score_raw
-
         if not self.result_score_min is None:
             ret['result']['score']['min'] = self.result_score_min
-
         if not self.result_score_max is None:
             ret['result']['score']['max'] = self.result_score_max
-
         # If there is no score, delete from dict
         if not ret['result']['score']:
             del ret['result']['score']
-
         if self.result_extensions:
             ret['result']['extensions'] = self.result_extensions
-
         if not ret['result']:
             del ret['result']
 
         ret['context'] = {}
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
-
         if self.context_instructor:
             ret['context']['instructor'] = self.context_instructor.to_dict(format)
-
         if self.context_team:
             ret['context']['team'] = self.context_team.to_dict(format)
-
         if self.context_revision:
             ret['context']['revision'] = self.context_revision
-
         if self.context_platform:
             ret['context']['platform'] = self.context_platform
-
         if self.context_language:
             ret['context']['language'] = self.context_language
-
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
-
         if self.statementcontextactivity_set.all():
             ret['context']['contextActivities'] = {}
             for con_act in self.statementcontextactivity_set.all():
                 ret['context']['contextActivities'].update(con_act.to_dict(lang, format))
-
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
-
         if not ret['context']:
             del ret['context']
 
         ret['timestamp'] = self.timestamp.isoformat()
         ret['stored'] = self.stored.isoformat()
+        ret['version'] = self.version
         
         if not self.authority is None:
             ret['authority'] = self.authority.to_dict(format)
-        
-        ret['version'] = self.version
-
         if self.attachments.all():
             ret['attachments'] = [a.to_dict(lang) for a in self.attachments.all()]
         return ret
@@ -756,12 +670,13 @@ class Statement(models.Model):
         # Unvoid stmt if verb is voided
         if self.verb.verb_id == 'http://adlnet.gov/expapi/verbs/voided':
             self.unvoid_statement()
-        
         # If sub or ref, FK will be set to null, then call delete
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             if self.object_substatement:
                 self.object_substatement.delete()
             elif self.object_statementref:
                 self.object_statementref.delete()
-
         super(Statement, self).delete(*args, **kwargs)
+
+    def __unicode__(self):
+        return json.dumps(self.to_dict())

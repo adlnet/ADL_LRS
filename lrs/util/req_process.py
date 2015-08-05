@@ -47,8 +47,8 @@ def process_statement(stmt, auth, version):
         stmt['timestamp'] = stmt['stored']
 
     # Copy full statement and send off to StatementManager to save
-    full_stmt = copy.deepcopy(stmt)
-    st = StatementManager(stmt, auth, full_stmt).model_object
+    stmt['full_statement'] = copy.deepcopy(stmt)
+    st = StatementManager(stmt, auth).model_object
     return st.statement_id
 
 def process_body(stmts, auth, version):

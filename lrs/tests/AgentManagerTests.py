@@ -131,7 +131,7 @@ class AgentManagerTests(TestCase):
     def test_agent_kwargs_basic_account(self):        
         ot = "Agent"
         name = "bob bobson"
-        account = json.dumps({"homePage":"http://www.adlnet.gov","name":"freakshow"})
+        account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
         kwargs = {"objectType":ot,"name":name,"account":account}
         bob, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
