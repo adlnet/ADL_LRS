@@ -264,6 +264,7 @@ def validate_attachments(attachment_data, payload_sha2s):
             else:
                 if not 'fileUrl' in attachment:
                     raise BadRequest("Missing X-Experience-API-Hash field in header")
+
 @auth
 def activity_state_post(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId", "agent", "stateId", "registration"])

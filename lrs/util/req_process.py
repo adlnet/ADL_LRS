@@ -4,7 +4,6 @@ import copy
 from base64 import b64decode
 from datetime import datetime
 
-from django.db import transaction
 from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.timezone import utc
@@ -114,7 +113,6 @@ def process_complex_get(req_dict):
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)    
     return resp, content_length
 
-@transaction.commit_on_success
 def statements_post(req_dict):
     auth = req_dict['auth']
     # If single statement, put in list
@@ -128,7 +126,6 @@ def statements_post(req_dict):
         check_activity_metadata.delay(stmt_responses)
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
-@transaction.commit_on_success
 def statements_put(req_dict):
     auth = req_dict['auth']
     # Since it is single stmt put in list
@@ -137,7 +134,6 @@ def statements_put(req_dict):
         check_activity_metadata.delay(stmt_responses)
     return HttpResponse("No Content", status=204)
 
-@transaction.commit_on_success
 def statements_more_get(req_dict):
     stmt_result, attachments = get_more_statement_request(req_dict['more_id'])     
 
@@ -171,7 +167,6 @@ def statements_more_get(req_dict):
 
     return resp
 
-@transaction.commit_on_success
 def statements_get(req_dict):
     stmt_result = {}
     mime_type = "application/json"
@@ -232,6 +227,7 @@ def build_response(stmt_result):
             string_list.append(json.dumps(stmt_result) + line_feed)
         else:
             string_list.append(stmt_result + line_feed)
+        
         for sha2 in sha2s:
             string_list.append("--" + boundary + line_feed)
             string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
@@ -246,7 +242,6 @@ def build_response(stmt_result):
                     chunks.append(decoded_data)
             except OSError:
                 raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
-
             string_list.append("".join(chunks) + line_feed)
         
         string_list.append("--" + boundary + "--") 
@@ -261,7 +256,6 @@ def build_response(stmt_result):
         else:
             return stmt_result, mime_type, len(stmt_result)
 
-@transaction.commit_on_success
 def activity_state_post(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
@@ -270,7 +264,6 @@ def activity_state_post(req_dict):
     actstate.post_state(req_dict)
     return HttpResponse("", status=204)
 
-@transaction.commit_on_success
 def activity_state_put(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
@@ -279,7 +272,6 @@ def activity_state_put(req_dict):
     actstate.put_state(req_dict)
     return HttpResponse("", status=204)
 
-@transaction.commit_on_success
 def activity_state_get(req_dict):
     # add ETag for concurrency
     state_id = req_dict['params'].get('stateId', None)
@@ -308,7 +300,6 @@ def activity_state_get(req_dict):
 
     return response
 
-@transaction.commit_on_success
 def activity_state_delete(req_dict):
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]
@@ -317,7 +308,6 @@ def activity_state_delete(req_dict):
     actstate.delete_state(req_dict)
     return HttpResponse('', status=204)
 
-@transaction.commit_on_success
 def activity_profile_post(req_dict):
     #Instantiate ActivityProfile
     ap = ActivityProfileManager()
@@ -325,7 +315,6 @@ def activity_profile_post(req_dict):
     ap.post_profile(req_dict)
     return HttpResponse('', status=204)
 
-@transaction.commit_on_success
 def activity_profile_put(req_dict):
     #Instantiate ActivityProfile
     ap = ActivityProfileManager()
@@ -333,7 +322,6 @@ def activity_profile_put(req_dict):
     ap.put_profile(req_dict)
     return HttpResponse('', status=204)
 
-@transaction.commit_on_success
 def activity_profile_get(req_dict):
     # Instantiate ActivityProfile
     ap = ActivityProfileManager()
@@ -366,7 +354,6 @@ def activity_profile_get(req_dict):
 
     return response
 
-@transaction.commit_on_success
 def activity_profile_delete(req_dict):
     #Instantiate activity profile
     ap = ActivityProfileManager()
@@ -386,7 +373,6 @@ def activities_get(req_dict):
 
     return resp
 
-@transaction.commit_on_success
 def agent_profile_post(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
@@ -396,7 +382,6 @@ def agent_profile_post(req_dict):
 
     return HttpResponse("", status=204)
 
-@transaction.commit_on_success
 def agent_profile_put(req_dict):
     # test ETag for concurrency
     agent = req_dict['params']['agent']
@@ -406,7 +391,6 @@ def agent_profile_put(req_dict):
 
     return HttpResponse("", status=204)
 
-@transaction.commit_on_success
 def agent_profile_get(req_dict):
     # add ETag for concurrency
     agent = req_dict['params']['agent']
@@ -433,7 +417,6 @@ def agent_profile_get(req_dict):
 
     return response
 
-@transaction.commit_on_success
 def agent_profile_delete(req_dict):
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]

@@ -21,18 +21,15 @@ class AgentProfileManager():
             p.updated = request_dict['headers']['updated']
         else:
             p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-        
         # Go to beginning of file
         profile.seek(0)
         fn = "%s_%s" % (p.agent_id, request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
-
         p.save()
      
     def post_profile(self, request_dict):
         # get/create profile
         p, created = AgentProfile.objects.get_or_create(profileId=request_dict['params']['profileId'],agent=self.Agent)
-
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 post_profile = ContentFile(request_dict['profile'].read())
