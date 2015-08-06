@@ -16,50 +16,6 @@ ACTIVITY_STATE_UPLOAD_TO = "activity_state"
 ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
 STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
-class ActivityState(models.Model):
-    state_id = models.CharField(max_length=MAX_URL_LENGTH)
-    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
-    state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
-    json_state = models.TextField(blank=True)
-    agent = models.ForeignKey(Agent, db_index=True)
-    activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    registration_id = models.CharField(max_length=40)
-    content_type = models.CharField(max_length=255,blank=True)
-    etag = models.CharField(max_length=50,blank=True)
-
-    def delete(self, *args, **kwargs):
-        if self.state:
-            self.state.delete()
-        super(ActivityState, self).delete(*args, **kwargs)
-
-class ActivityProfile(models.Model):
-    profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
-    activityId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    profile = models.FileField(upload_to=ACTIVITY_PROFILE_UPLOAD_TO, null=True)
-    json_profile = models.TextField(blank=True)
-    content_type = models.CharField(max_length=255,blank=True)
-    etag = models.CharField(max_length=50,blank=True)
-
-    def delete(self, *args, **kwargs):
-        if self.profile:
-            self.profile.delete()
-        super(ActivityProfile, self).delete(*args, **kwargs)
-
-class AgentProfile(models.Model):
-    profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    updated = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(Agent)
-    profile = models.FileField(upload_to=AGENT_PROFILE_UPLOAD_TO, null=True)
-    json_profile = models.TextField(blank=True)
-    content_type = models.CharField(max_length=255,blank=True)
-    etag = models.CharField(max_length=50,blank=True)
-
-    def delete(self, *args, **kwargs):
-        if self.profile:
-            self.profile.delete()
-        super(AgentProfile, self).delete(*args, **kwargs)
-
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     display = JSONField(default={}, blank=True)
@@ -678,3 +634,47 @@ class Statement(models.Model):
 
     def __unicode__(self):
         return json.dumps(self.to_dict())
+
+class ActivityState(models.Model):
+    state_id = models.CharField(max_length=MAX_URL_LENGTH)
+    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
+    state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
+    json_state = models.TextField(blank=True)
+    agent = models.ForeignKey(Agent, db_index=True)
+    activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
+    registration_id = models.CharField(max_length=40)
+    content_type = models.CharField(max_length=255,blank=True)
+    etag = models.CharField(max_length=50,blank=True)
+
+    def delete(self, *args, **kwargs):
+        if self.state:
+            self.state.delete()
+        super(ActivityState, self).delete(*args, **kwargs)
+
+class ActivityProfile(models.Model):
+    profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
+    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
+    activityId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
+    profile = models.FileField(upload_to=ACTIVITY_PROFILE_UPLOAD_TO, null=True)
+    json_profile = models.TextField(blank=True)
+    content_type = models.CharField(max_length=255,blank=True)
+    etag = models.CharField(max_length=50,blank=True)
+
+    def delete(self, *args, **kwargs):
+        if self.profile:
+            self.profile.delete()
+        super(ActivityProfile, self).delete(*args, **kwargs)
+
+class AgentProfile(models.Model):
+    profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
+    updated = models.DateTimeField(auto_now_add=True, blank=True)
+    agent = models.ForeignKey(Agent)
+    profile = models.FileField(upload_to=AGENT_PROFILE_UPLOAD_TO, null=True)
+    json_profile = models.TextField(blank=True)
+    content_type = models.CharField(max_length=255,blank=True)
+    etag = models.CharField(max_length=50,blank=True)
+
+    def delete(self, *args, **kwargs):
+        if self.profile:
+            self.profile.delete()
+        super(AgentProfile, self).delete(*args, **kwargs)
