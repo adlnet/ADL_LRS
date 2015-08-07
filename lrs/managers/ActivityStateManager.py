@@ -2,7 +2,6 @@ import datetime
 import json
 
 from django.core.files.base import ContentFile
-from django.db import transaction
 from django.utils.timezone import utc
 
 from ..models import ActivityState
@@ -13,7 +12,6 @@ class ActivityStateManager():
     def __init__(self, agent):
         self.Agent = agent
 
-    @transaction.commit_on_success
     def save_non_json_state(self, s, state, request_dict):
         s.content_type = request_dict['headers']['CONTENT_TYPE']
         s.etag = etag.create_tag(state.read())
@@ -47,7 +45,6 @@ class ActivityStateManager():
                 state_set = self.Agent.activitystate_set.filter(activity_id=activity_id)
         return state_set
 
-    @transaction.commit_on_success
     def post_state(self, request_dict):
         registration = request_dict['params'].get('registration', None)
         if registration:
@@ -91,7 +88,6 @@ class ActivityStateManager():
                 s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
             s.save()
         
-    @transaction.commit_on_success
     def put_state(self, request_dict):
         registration = request_dict['params'].get('registration', None)
         if registration:
@@ -152,7 +148,6 @@ class ActivityStateManager():
             return state_set.values_list('state_id', flat=True)
         return state_set
 
-    @transaction.commit_on_success
     def delete_state(self, request_dict):
         state_id = request_dict['params'].get('stateId', None)
         activity_id = request_dict['params']['activityId']

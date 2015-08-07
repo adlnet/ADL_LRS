@@ -2462,7 +2462,6 @@ Lw03eHTNQghS0A==
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
-
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
@@ -2494,15 +2493,13 @@ Lw03eHTNQghS0A==
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
         
-        # Put statements - does not have define scope, therefore it creates another activity with 
-        # canonical_version as false
+        # Put statements - does not have define scope, therefore it cannot update the activity
         resp = self.client.put(path, data=stmt, content_type="application/json",
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(resp.status_code, 204)
         acts = Activity.objects.all()
-        self.assertEqual(len(acts), 2)
-        self.assertEqual(acts[0].activity_id, acts[1].activity_id)
+        self.assertEqual(len(acts), 1)
         # ==========================================================
 
         # START GET STMT
@@ -2556,40 +2553,13 @@ Lw03eHTNQghS0A==
         post_signature = post_signature_method.sign(post_oauth_request, self.consumer2, post_access_token)
         post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature  
 
-        # This adds the act_def to the very first activity created in this test since this has define scope
+        # Even though dick has define scope, he didn't create the activity so he can't update it
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
         acts = Activity.objects.all()
-        # One canonical act from jane, one local act for oauth_group jane is in since don't have define,
-        # one local act for dick
-        self.assertEqual(len(acts), 3)
-
-        global_act = Activity.objects.get(canonical_version=True)   
-        global_name_list = global_act.activity_definition_name
-        self.assertEqual(global_name_list, {})
-        global_desc_list = global_act.activity_definition_description
-        self.assertEqual(global_desc_list, {})
-
-        jane_agent = Agent.objects.get(mbox="mailto:jane@example.com")
-        jane_oauth_group = Agent.objects.get(objectType='Group', member__in=[jane_agent])
-        non_global_act_jane_oauth = Activity.objects.get(canonical_version=False, authority=jane_oauth_group)        
-        non_global_name_list_jane_oauth = non_global_act_jane_oauth.activity_definition_name.values()
-        self.assertIn('testname', non_global_name_list_jane_oauth)
-        self.assertIn('altname', non_global_name_list_jane_oauth)
-        non_global_desc_list_jane_oauth = non_global_act_jane_oauth.activity_definition_description.values()
-        self.assertIn('testdesc', non_global_desc_list_jane_oauth)
-        self.assertIn('altdesc', non_global_desc_list_jane_oauth)
-
-        dick_agent = Agent.objects.get(mbox="mailto:dick@example.com")
-        dick_oauth_group = Agent.objects.get(objectType='Group', member__in=[dick_agent])
-        non_global_act_dick_oauth = Activity.objects.get(canonical_version=False, authority=dick_oauth_group)        
-        non_global_name_list_dick_oauth = non_global_act_dick_oauth.activity_definition_name.values()
-        self.assertIn('definename', non_global_name_list_dick_oauth)
-        self.assertIn('definealtname', non_global_name_list_dick_oauth)
-        non_global_desc_list_dick_oauth = non_global_act_dick_oauth.activity_definition_description.values()
-        self.assertIn('definedesc', non_global_desc_list_dick_oauth)
-        self.assertIn('definealtdesc', non_global_desc_list_dick_oauth)
+        self.assertEqual(len(acts), 1)
+        self.assertNotIn("definition", acts[0].to_dict().keys())
 
     def test_define_scope_agent(self):
         url = 'http://testserver/XAPI/statements'
@@ -2636,14 +2606,10 @@ Lw03eHTNQghS0A==
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         agents = Agent.objects.all().values_list('name', flat=True)
-        # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim, tim timson
-        self.assertEqual(len(agents), 7)
+        # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim and tim timson should be same (no update to tim)
+        self.assertEqual(len(agents), 6)
         self.assertIn('tim', agents)
-        self.assertIn('tim timson', agents)
-        tim = Agent.objects.get(name='tim timson')
-        self.assertFalse(tim.canonical_version)
-        tim = Agent.objects.get(name='tim')
-        self.assertTrue(tim.canonical_version)
+        self.assertNotIn('tim timson', agents)
         # =================================================
 
         # START GET STMT
@@ -2665,8 +2631,8 @@ Lw03eHTNQghS0A==
             Authorization=new_oauth_headers)
         self.assertEqual(get_resp.status_code, 200)
         content = json.loads(get_resp.content)
-        # Should only be one since querying by tim email. Will only pick up global tim object
-        self.assertEqual(len(content['statements']), 1)
+        # Should be two since querying by tim email.
+        self.assertEqual(len(content['statements']), 2)
         self.client.logout()
         # ==================================================
 
@@ -2713,26 +2679,21 @@ Lw03eHTNQghS0A==
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
             Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
-        agents = Agent.objects.all()
-        # These 5 agents are all non-global since created w/o define scope
-        non_globals = Agent.objects.filter(canonical_version=False).values_list('name', flat=True)
-        self.assertEqual(len(non_globals), 4)
-        self.assertIn('bill', non_globals)
-        self.assertIn('tim timson', non_globals)
-        self.assertIn('dom', non_globals)
-        self.assertIn('doe group', non_globals)
-        # 2 oauth group objects, all of these agents since created with member or manually and 2 anon
-        # account agents for the accounts in the oauth groups
-        global_agents = Agent.objects.filter(canonical_version=True).values_list('name', flat=True)
-        self.assertEqual(len(global_agents), 12)
-        self.assertIn('bob', global_agents)
-        self.assertIn('tim', global_agents)
-        self.assertIn('jan doe', global_agents)
-        self.assertIn('john doe', global_agents)
-        self.assertIn('dave doe', global_agents)        
-        self.assertIn('jane', global_agents)
-        self.assertIn('dick', global_agents)
-        self.assertIn('doe group', global_agents)
+        agents = Agent.objects.all().values_list('name', flat=True)
+        # 2 oauth group objects and 2 anon account agents for oauth, all of these agents since created with member or manually, 2 agents for
+        # jand and dick users, 2 doe groups since can't update anymore
+        self.assertEqual(len(agents), 15)
+        self.assertIn('bill', agents)
+        self.assertNotIn('tim timson', agents)
+        self.assertIn('dom', agents)
+        self.assertIn('bob', agents)
+        self.assertIn('tim', agents)
+        self.assertIn('jan doe', agents)
+        self.assertIn('john doe', agents)
+        self.assertIn('dave doe', agents)        
+        self.assertIn('jane', agents)
+        self.assertIn('dick', agents)
+        self.assertIn('doe group', agents)
 
     def test_default_scope_multiple_requests(self):
         oauth_header_resource_params, access_token = self.oauth_handshake(scope=False)

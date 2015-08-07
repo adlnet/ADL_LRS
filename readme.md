@@ -118,6 +118,7 @@ For other ways to start and run the LRS, please visit our Wiki.
 * [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production)
 * [OAuth Help](https://github.com/adlnet/ADL_LRS/wiki/Using-OAuth)
 * [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
+* [Using Celery for Retrieving Activity Metadata](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery-for-Retrieving-Activity-Metadata)
 
 ## License
    Copyright &copy;2015 Advanced Distributed Learning

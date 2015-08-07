@@ -11,6 +11,7 @@ from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.conf import settings
+from django.test.utils import override_settings
 
 from ..models import Statement, Activity, Agent, Verb, SubStatement
 from ..views import register, statements
@@ -649,7 +650,6 @@ class StatementTests(TestCase):
         getResponse = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
-        # Will only return 10 since that is server limit
         self.assertEqual(len(jsn["statements"]), 11)
         self.assertIn('content-length', getResponse._headers)
 
@@ -879,10 +879,7 @@ class StatementTests(TestCase):
         self.assertEqual(post_response.status_code, 200)
 
         acts = Activity.objects.filter(activity_id="act:foogie").count()
-        canonicals = Activity.objects.filter(activity_id="act:foogie").values_list('canonical_version', flat=True)
-        self.assertEqual(acts, 2)
-        self.assertIn(True, canonicals)
-        self.assertIn(False, canonicals)
+        self.assertEqual(acts, 1)
 
     def test_update_activity_correct_auth(self):
         self.bunchostmts()
@@ -1643,10 +1640,7 @@ class StatementTests(TestCase):
         self.assertEqual(response2.status_code, 200)
 
         acts = Activity.objects.filter(activity_id='act:test_post').count()
-        self.assertEqual(acts, 2)
-        canonicals = Activity.objects.filter(activity_id='act:test_post').values_list('canonical_version', flat=True)
-        self.assertIn(True, canonicals)
-        self.assertIn(False, canonicals)
+        self.assertEqual(acts, 1)
 
     def test_stmts_w_same_regid(self):
         stmt1_guid = str(uuid.uuid1())
@@ -1808,3 +1802,24 @@ class StatementTests(TestCase):
         stmt_db = Statement.objects.get(statement_id=json.loads(response.content)[0])
         act = Activity.objects.get(id=stmt_db.object_activity.id)
         self.assertEqual(act.activity_id, act_id)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True,
+                        TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner') 
+    def test_large_batch(self):
+        if settings.CELERY_ENABLED:
+            import random
+            post_payload = []
+            acts = ["http://tom.com/act/1/foo", "http://adlnet.gov/act/arrgs/2", "http://google.com/activity/eats/ants", "http://tom.com/act/3/boo"];
+            ctxs = ["http://ctx.com/one", "http://ctx.com/two"];
+
+            for x in range(1, 500):
+                s = {"verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},"object": {"id":""}, "actor":{"mbox":"mailto:t@t.com"},
+                    "context": {"contextActivities": {"grouping": [{"id": ""}]}}}
+
+                s['object']['id'] = acts[random.randrange(0, len(acts)-1)]
+                s['context']['contextActivities']['grouping'][0]['id'] = ctxs[random.randrange(0, len(ctxs)-1)]
+                post_payload.append(s)
+
+            response = self.client.post(reverse(statements), json.dumps(post_payload), content_type="application/json",
+                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+            self.assertEqual(response.status_code, 200)

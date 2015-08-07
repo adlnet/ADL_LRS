@@ -126,14 +126,14 @@ def http_auth_helper(request):
                     raise BadRequest('Must supply auth credentials')
                 elif not uname and not passwd and settings.ALLOW_EMPTY_HTTP_AUTH:
                     request['auth']['user'] = None
-                    request['auth']['authority'] = None
+                    request['auth']['agent'] = None
                 elif uname or passwd:
                     user = authenticate(username=uname, password=passwd)
                     if user:
                         # If the user successfully logged in, then add/overwrite
                         # the user object of this request.
                         request['auth']['user'] = user
-                        request['auth']['authority'] = Agent.objects.retrieve_or_create(**{'name':user.username, 'mbox':'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
+                        request['auth']['agent'] = Agent.objects.retrieve_or_create(**{'name':user.username, 'mbox':'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
                     else:
                         raise Unauthorized("Authorization failed, please verify your username and password")
                 request['auth']['define'] = True
@@ -147,7 +147,6 @@ def http_auth_helper(request):
 
 def oauth_helper(request, version=1):
     token = request['auth']['oauth_token']
-    
     user = token.user
     user_name = user.username
     if user.email.startswith('mailto:'):
@@ -175,9 +174,9 @@ def oauth_helper(request, version=1):
                     "objectType": "Agent"
                 }
     ]
-    kwargs = {"objectType":"Group", "member":members,"oauth_identifier": "anongroup:%s-%s" % (consumer.key if version == 1 else consumer.client_id, user_email)}
+    kwargs = {"objectType":"Group", "member":members, "oauth_identifier": "anongroup:%s-%s" % (consumer.key if version == 1 else consumer.client_id, user_email)}
     # create/get oauth group and set in dictionary
     oauth_group, created = Agent.objects.oauth_group(**kwargs)
-    request['auth']['authority'] = oauth_group
+    request['auth']['agent'] = oauth_group
     request['auth']['user'] = get_user_from_auth(oauth_group)
     validate_oauth_scope(request)

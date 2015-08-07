@@ -390,19 +390,16 @@ class StatementManagerTests(TestCase):
         stmt = Statement.objects.get(statement_id=stmt_id)
 
         activity = Activity.objects.get(id=stmt.object_activity.id)
-        context_activities = stmt.statementcontextactivity_set.all()
+        context_activities_grouping = stmt.context_ca_grouping.all()
+        context_activities_other = stmt.context_ca_other.all()
+        self.assertEqual(context_activities_grouping[0].activity_id, 'act:GroupID')
+        self.assertEqual(context_activities_other[0].activity_id, 'act:NewActivityID')
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
 
         st = Statement.objects.get(id=stmt.id)
         self.assertEqual(st.object_activity.id, activity.id)
-        
-        for ca in context_activities:
-            if ca.key == 'grouping':
-                self.assertEqual(ca.context_activity.all()[0].activity_id, 'act:GroupID')
-            elif ca.key == 'other':
-                self.assertEqual(ca.context_activity.all()[0].activity_id, 'act:NewActivityID')
 
         self.assertEqual(st.context_registration, guid)        
         self.assertEqual(st.context_revision, 'foo')
@@ -426,24 +423,13 @@ class StatementManagerTests(TestCase):
 
         activity = Activity.objects.get(id=stmt.object_activity.id)
 
-        context_activities = StatementContextActivity.objects.filter(statement=stmt)
-        self.assertEqual(len(context_activities), 2)
+        context_activities_other = stmt.context_ca_other.all().values_list('activity_id', flat=True)
+        context_activities_grouping = stmt.context_ca_grouping.all().values_list('activity_id', flat=True)
+        self.assertEqual(len(context_activities_other) + len(context_activities_grouping), 3)
         
-        context_activity_keys = [ca.key for ca in context_activities]
-        self.assertEqual(len(context_activity_keys), 2)
-        self.assertIn('grouping', context_activity_keys)
-        self.assertIn('other', context_activity_keys)
-
-        context_activity_activities = []        
-        for ca in context_activities:
-            for c in ca.context_activity.all():
-                context_activity_activities.append(c.activity_id)
-
-        self.assertEqual(len(context_activity_activities), 3)
-
-        self.assertIn('act:NewActivityID', context_activity_activities)
-        self.assertIn('act:anotherActID', context_activity_activities)
-        self.assertIn('act:GroupID', context_activity_activities)
+        self.assertIn('act:NewActivityID', context_activities_other)
+        self.assertIn('act:anotherActID', context_activities_other)
+        self.assertIn('act:GroupID', context_activities_grouping)
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
@@ -471,7 +457,7 @@ class StatementManagerTests(TestCase):
         activity = Activity.objects.get(id=stmt.object_activity.id)
         extKeys = stmt.context_extensions.keys()
         extVals = stmt.context_extensions.values()
-        context_activities = stmt.statementcontextactivity_set.all()
+        context_activities_other = stmt.context_ca_other.all()
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
@@ -480,8 +466,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(st.object_activity.id, activity.id)
 
         self.assertEqual(st.context_registration, guid)
-        self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
+        self.assertEqual(context_activities_other[0].activity_id, 'act:NewActivityID')
         self.assertEqual(st.context_revision, 'foo')
         self.assertEqual(st.context_platform, 'bar')
         self.assertEqual(st.context_language, 'en-US')
@@ -569,15 +554,14 @@ class StatementManagerTests(TestCase):
         activity = Activity.objects.get(id=stmt.object_activity.id)
         stmt_ref = StatementRef(ref_id=stmt_guid)
         neststmt = Statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.statementcontextactivity_set.all()
+        context_activities_other = stmt.context_ca_other.all()
 
         st = Statement.objects.get(id=stmt.id)
 
         self.assertEqual(st.object_activity.id, activity.id)
 
         self.assertEqual(st.context_registration, guid)
-        self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID')
+        self.assertEqual(context_activities_other[0].activity_id, 'act:NewActivityID')
         self.assertEqual(st.context_revision, 'foo')
         self.assertEqual(st.context_platform, 'bar')
         self.assertEqual(st.context_language, 'en-US')
@@ -616,14 +600,13 @@ class StatementManagerTests(TestCase):
         stmt_ref = StatementRef(ref_id=stmt_guid)
         neststmt = Statement.objects.get(statement_id=stmt_ref.ref_id)
         st = Statement.objects.get(id=stmt.id)
-        context_activities = stmt.statementcontextactivity_set.all()
+        context_activities = stmt.context_ca_other.all()
 
         self.assertEqual(st.object_activity.id, activity.id)
         self.assertEqual(st.verb.verb_id, "verb:verb/url" )
 
         self.assertEqual(st.context_registration, guid)
-        self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(st.context_revision, 'foob')
         self.assertEqual(st.context_platform, 'bard')
         self.assertEqual(st.context_language, 'en-US')
@@ -684,15 +667,14 @@ class StatementManagerTests(TestCase):
 
         stmt_ref = StatementRef(ref_id=stmt_guid)
         neststmt = Statement.objects.get(statement_id=stmt_ref.ref_id)
-        context_activities = stmt.statementcontextactivity_set.all()
+        context_activities = stmt.context_ca_other.all()
 
         st = Statement.objects.get(id=stmt.id)
 
         self.assertEqual(st.verb.verb_id, "verb:verb/url")
 
         self.assertEqual(st.context_registration, guid)
-        self.assertEqual(context_activities[0].key, 'other')
-        self.assertEqual(context_activities[0].context_activity.all()[0].activity_id, 'act:NewActivityID1')
+        self.assertEqual(context_activities[0].activity_id, 'act:NewActivityID1')
         self.assertEqual(st.context_language, 'en-US')
         
         self.assertEqual(neststmt.verb.verb_id, "verb:verb/url/outer")
@@ -919,7 +901,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(Activity.objects.all()), 6)
         self.assertEqual(len(Agent.objects.all()), 8)
         self.assertEqual(len(Verb.objects.all()), 3)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 6)
         self.assertEqual(len(Statement.objects.all()), 3)
 
         Statement.objects.get(id=stmt3.id).delete()
@@ -927,21 +908,18 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(Activity.objects.all()), 6)
         self.assertEqual(len(Agent.objects.all()), 8)        
         self.assertEqual(len(Verb.objects.all()), 3)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 4)
         self.assertEqual(len(Statement.objects.all()), 2)
 
         Statement.objects.get(id=stmt2.id).delete()
         self.assertEqual(len(Activity.objects.all()), 6)
         self.assertEqual(len(Agent.objects.all()), 8)        
         self.assertEqual(len(Verb.objects.all()), 3)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 2)
         self.assertEqual(len(Statement.objects.all()), 1)
 
         Statement.objects.get(id=stmt1.id).delete()
         self.assertEqual(len(Activity.objects.all()), 6)
         self.assertEqual(len(Agent.objects.all()), 8)        
         self.assertEqual(len(Verb.objects.all()), 3)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
         self.assertEqual(len(Statement.objects.all()), 0)
 
     def test_simple_statement_delete(self):
@@ -1120,8 +1098,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(Verb.objects.all()), 5)
         self.assertEqual(len(SubStatement.objects.all()), 1)
         self.assertEqual(len(StatementRef.objects.all()), 1)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 1)
-        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
         Statement.objects.get(id=stmt4.id).delete()
 
         self.assertEqual(len(Statement.objects.all()), 3)
@@ -1130,8 +1106,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(Verb.objects.all()), 5)
         self.assertEqual(len(SubStatement.objects.all()), 1)
         self.assertEqual(len(StatementRef.objects.all()), 1)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
         Statement.objects.get(id=stmt3.id).delete()
 
         self.assertEqual(len(Statement.objects.all()), 2)
@@ -1140,8 +1114,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(Verb.objects.all()), 5)
         self.assertEqual(len(SubStatement.objects.all()), 1)
         self.assertEqual(len(StatementRef.objects.all()), 1)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
         Statement.objects.get(id=stmt2.id).delete()
 
         self.assertEqual(len(Statement.objects.all()), 1)
@@ -1150,8 +1122,6 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(Verb.objects.all()), 5)
         self.assertEqual(len(SubStatement.objects.all()), 1)
         self.assertEqual(len(StatementRef.objects.all()), 0)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(SubStatementContextActivity.objects.all()), 1)
         Statement.objects.get(id=stmt1.id).delete()
 
         self.assertEqual(len(Statement.objects.all()), 0)
@@ -1160,5 +1130,3 @@ class StatementManagerTests(TestCase):
         self.assertEqual(len(Verb.objects.all()), 5)
         self.assertEqual(len(SubStatement.objects.all()), 0)
         self.assertEqual(len(StatementRef.objects.all()), 0)
-        self.assertEqual(len(StatementContextActivity.objects.all()), 0)
-        self.assertEqual(len(SubStatementContextActivity.objects.all()), 0)
