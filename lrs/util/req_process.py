@@ -7,7 +7,6 @@ from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
-from django.db import transaction
 from django.utils.timezone import utc
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
@@ -16,74 +15,44 @@ from ..managers.ActivityProfileManager import ActivityProfileManager
 from ..managers.ActivityStateManager import ActivityStateManager 
 from ..managers.AgentProfileManager import AgentProfileManager
 from ..managers.StatementManager import StatementManager
+from ..tasks import check_activity_metadata
 
-def process_statements(stmts, auth, version):
-    stmt_responses = []
-   # Handle batch POST
-    if type(stmts) is list:
-        try:
-            for st in stmts:
-                if not 'id' in st:
-                    st['id'] = str(uuid.uuid1())
-                
-                if not 'version' in st:
-                    st['version'] = version
-    
-                if 'context' in st and 'contextActivities' in st['context']:
-                    for k, v in st['context']['contextActivities'].items():
-                        if isinstance(v, dict):
-                            st['context']['contextActivities'][k] = [v]
-                
-                if 'objectType' in st['object'] and st['object']['objectType'] == 'SubStatement':
-                    if 'context' in st['object'] and 'contextActivities' in st['object']['context']:
-                        for k, v in st['object']['context']['contextActivities'].items():
-                            if isinstance(v, dict):
-                                st['object']['context']['contextActivities'][k] = [v]
+def process_statement(stmt, auth, version):
+    # Add id to statement if not present
+    if not 'id' in stmt:
+        stmt['id'] = str(uuid.uuid1())
 
-                st['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+    # Add version to statement if not present
+    if not 'version' in stmt:
+        stmt['version'] = version
 
-                if not 'timestamp' in st:
-                    st['timestamp'] = st['stored']
+    # Convert context activities to list if dict
+    if 'context' in stmt and 'contextActivities' in stmt['context']:
+        for k, v in stmt['context']['contextActivities'].items():
+            if isinstance(v, dict):
+                stmt['context']['contextActivities'][k] = [v]
 
-                full_stmt = copy.deepcopy(st)
-                stmt = StatementManager(st, auth, full_stmt).model_object
-                stmt_responses.append(str(stmt.statement_id))
-        # Catch exceptions being thrown from object classes, delete the statement first then raise 
-        except Exception:
-            for stmt_id in stmt_responses:
-                # If it DNE that's OK
-                try:
-                    Statement.objects.get(statement_id=stmt_id).delete()
-                except Exception, e:
-                    pass
-    else:
-        if not 'id' in stmts:
-            stmts['id'] = str(uuid.uuid1())
-
-        if not 'version' in stmts:
-            stmts['version'] = version
-
-        if 'context' in stmts and 'contextActivities' in stmts['context']:
-            for k, v in stmts['context']['contextActivities'].items():
+    # Convert context activities to list if dict (for substatements)
+    if 'objectType' in stmt['object'] and stmt['object']['objectType'] == 'SubStatement':
+        if 'context' in stmt['object'] and 'contextActivities' in stmt['object']['context']:
+            for k, v in stmt['object']['context']['contextActivities'].items():
                 if isinstance(v, dict):
-                    stmts['context']['contextActivities'][k] = [v]
+                    stmt['object']['context']['contextActivities'][k] = [v]
 
-        if 'objectType' in stmts['object'] and stmts['object']['objectType'] == 'SubStatement':
-            if 'context' in stmts['object'] and 'contextActivities' in stmts['object']['context']:
-                for k, v in stmts['object']['context']['contextActivities'].items():
-                    if isinstance(v, dict):
-                        stmts['object']['context']['contextActivities'][k] = [v]
+    # Add stored time
+    stmt['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
 
-        # Handle single POST
-        stmts['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+    # Add stored as timestamp if timestamp not present
+    if not 'timestamp' in stmt:
+        stmt['timestamp'] = stmt['stored']
 
-        if not 'timestamp' in stmts:
-            stmts['timestamp'] = stmts['stored']
+    # Copy full statement and send off to StatementManager to save
+    full_stmt = copy.deepcopy(stmt)
+    st = StatementManager(stmt, auth, full_stmt).model_object
+    return st.statement_id
 
-        full_stmt = copy.deepcopy(stmts)
-        stmt = StatementManager(stmts, auth, full_stmt).model_object
-        stmt_responses.append(stmt.statement_id)
-    return stmt_responses
+def process_body(stmts, auth, version):
+    return [process_statement(st, auth, version) for st in stmts]
 
 def process_complex_get(req_dict):
     mime_type = "application/json"
@@ -146,12 +115,23 @@ def process_complex_get(req_dict):
 
 def statements_post(req_dict):
     auth = req_dict['auth']
-    stmt_responses = process_statements(req_dict['body'], auth, req_dict['headers']['X-Experience-API-Version'])
+    # If single statement, put in list
+    if isinstance(req_dict['body'], dict):
+        body = [req_dict['body']]
+    else:
+        body = req_dict['body']
+
+    stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'])
+    if settings.CELERY_ENABLED:
+        check_activity_metadata.delay(stmt_responses)
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
-    process_statements(req_dict['body'], auth, req_dict['headers']['X-Experience-API-Version'])
+    # Since it is single stmt put in list
+    stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'])
+    if settings.CELERY_ENABLED:
+        check_activity_metadata.delay(stmt_responses)
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
@@ -370,7 +350,7 @@ def activity_profile_get(req_dict):
     
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
-        resp.body = ''
+        response.body = ''
 
     return response
 
@@ -434,7 +414,7 @@ def agent_profile_get(req_dict):
     
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
-        resp.body = ''
+        response.body = ''
 
     return response
 

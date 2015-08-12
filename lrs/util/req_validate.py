@@ -1,9 +1,6 @@
 import json
-import urllib2
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
-
-from django.conf import settings
 
 from util import convert_to_dict, get_agent_ifp
 from Authorization import auth
@@ -42,7 +39,6 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
 def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
-
     try:
         stmt = Statement.objects.get(statement_id=void_id)
     except Statement.DoesNotExist:
@@ -58,78 +54,35 @@ def server_validate_statement_object(stmt_object, auth):
             err_msg = "No statement with ID %s was found" % stmt_object['id']
             raise IDNotFoundError(err_msg)
             
-def validate_stmt_authority(stmt, auth, auth_validated):
+def validate_stmt_authority(stmt, auth):
     # If not validated yet - validate auth first since it supercedes any auth in stmt
-    if not auth_validated:
-        if auth['authority']:
-            if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
-                err_msg = "Statements cannot have a non-Oauth group as the authority"
+    if auth['authority']:
+        if auth['authority'].objectType == 'Group' and not auth['authority'].oauth_identifier:
+            err_msg = "Statements cannot have a non-Oauth group as the authority"
+            raise ParamError(err_msg)
+        elif auth['authority'].objectType == 'Group' and auth['authority'].oauth_identifier:
+            if auth['authority'].member.count() != 2:
+                err_msg = "OAuth authority must only contain 2 members"
                 raise ParamError(err_msg)
-            elif auth['authority'].objectType == 'Group' and auth['authority'].oauth_identifier:
-                if auth['authority'].member.count() != 2:
-                    err_msg = "OAuth authority must only contain 2 members"
-                    raise ParamError(err_msg)
-                return True
 
-# Retrieve JSON data from ID
-def get_act_def_data(act_data):
-    act_url_data = {}
-    # See if id resolves
-    try:
-        req = urllib2.Request(act_data['id'])
-        req.add_header('Accept', 'application/json, */*')
-        act_resp = urllib2.urlopen(req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
-    except Exception:
-        # Doesn't resolve-hopefully data is in payload
-        pass
-    else:
-        # If it resolves then try parsing JSON from it
-        try:
-            act_url_data = json.loads(act_resp.read())
-        except Exception:
-            # Resolves but no data to retrieve - this is OK
-            pass
+def validate_body(body, auth, payload_sha2s):
+        [server_validate_statement(stmt, auth, payload_sha2s) for stmt in body]
+    
+def server_validate_statement(stmt, auth, payload_sha2s):
+    if 'id' in stmt:
+        statement_id = stmt['id']
+        if check_for_existing_statementId(statement_id):
+            err_msg = "A statement with ID %s already exists" % statement_id
+            raise ParamConflict(err_msg)
 
-        # If there was data from the URL and a defintion in received JSON already
-        if act_url_data and 'definition' in act_data:
-            act_data['definition'] = dict(act_url_data.items() + act_data['definition'].items())
-        # If there was data from the URL and no definition in the JSON
-        elif act_url_data and not 'definition' in act_data:
-            act_data['definition'] = act_url_data
+    server_validate_statement_object(stmt['object'], auth)
+    if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
+        validate_void_statement(stmt['object']['id'])
 
-def server_validation(stmt_set, auth, payload_sha2s):
-    auth_validated = False    
-    if type(stmt_set) is list:
-        for stmt in stmt_set:
-            server_validation(stmt, auth, payload_sha2s)
-    else:
-        if 'id' in stmt_set:
-            statement_id = stmt_set['id']
-            if check_for_existing_statementId(statement_id):
-                err_msg = "A statement with ID %s already exists" % statement_id
-                raise ParamConflict(err_msg)
-
-        server_validate_statement_object(stmt_set['object'], auth)
-
-        if stmt_set['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
-            validate_void_statement(stmt_set['object']['id'])
-
-        if not 'objectType' in stmt_set['object'] or stmt_set['object']['objectType'] == 'Activity':
-            get_act_def_data(stmt_set['object'])
-            
-            try:
-                validator = StatementValidator()
-                validator.validate_activity(stmt_set['object'])
-            except Exception, e:
-                raise BadRequest(e.message)
-            except ParamError, e:
-                raise ParamError(e.message)
-
-        auth_validated = validate_stmt_authority(stmt_set, auth, auth_validated)
-
-        if 'attachments' in stmt_set:
-            attachment_data = stmt_set['attachments']
-            validate_attachments(attachment_data, payload_sha2s)
+    validate_stmt_authority(stmt, auth)
+    if 'attachments' in stmt:
+        attachment_data = stmt['attachments']
+        validate_attachments(attachment_data, payload_sha2s)
 
 @auth
 def statements_post(req_dict):
@@ -147,7 +100,11 @@ def statements_post(req_dict):
     except ParamError, e:
         raise ParamError(e.message)
 
-    server_validation(req_dict['body'], req_dict['auth'], req_dict.get('payload_sha2s', None))
+    if isinstance(req_dict['body'], dict):
+        body = [req_dict['body']]
+    else:
+        body = req_dict['body']
+    validate_body(body, req_dict['auth'], req_dict.get('payload_sha2s', None))
 
     return req_dict
 
@@ -290,7 +247,7 @@ def statements_put(req_dict):
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
-    server_validation(req_dict['body'], req_dict['auth'], req_dict.get('payload_sha2s', None))
+    validate_body([req_dict['body']], req_dict['auth'], req_dict.get('payload_sha2s', None))
     return req_dict
 
 def validate_attachments(attachment_data, payload_sha2s):

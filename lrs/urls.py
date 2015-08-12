@@ -9,6 +9,8 @@ urlpatterns = patterns('lrs.views',
     url(r'^activities', 'activities'),
     url(r'^agents/profile', 'agent_profile'),
     url(r'^agents', 'agents'),
+    url(r'^actexample1/$', 'actexample1'),
+    url(r'^actexample2/$', 'actexample2'),
     url(r'^about', 'about'),
     url(r'^OAuth/', include('oauth_provider.urls', namespace='oauth')),
     # just urls for some user interface and oauth2... not part of xapi

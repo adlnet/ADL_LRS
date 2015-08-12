@@ -127,9 +127,12 @@ SESSION_KEY = 'oauth2'
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
 
+# Enable celery for activityID metadata retrieval
+CELERY_ENABLED = False
+# One minute timeout to all celery tasks
+CELERYD_TASK_SOFT_TIME_LIMIT = 60
 # ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
-
 # Caches for /more endpoint and attachments
 CACHES = {
     'default': {
@@ -208,11 +211,14 @@ INSTALLED_APPS = (
     'django_extensions',
     'jsonify',
     'south',
-    'endless_pagination'
+    'endless_pagination',
 )
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
 DEFAULT_LOG_DIR = path.join(PROJECT_ROOT, 'logs/lrs.log')
+CELERY_TASKS_LOG_DIR =  path.join(PROJECT_ROOT, 'logs/celery_tasks.log')
+
+CELERYD_HIJACK_ROOT_LOGGER = False
 
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
@@ -249,6 +255,14 @@ LOGGING = {
                 'backupCount': 5,
                 'formatter':'standard',
         },
+        'celery_handler': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': CELERY_TASKS_LOG_DIR,
+            'maxBytes': 1024*1024*5, # 5 MB
+            'backupCount': 5,
+            'formatter':'standard',
+        },        
     },
     'loggers': {
         'lrs': {
@@ -260,6 +274,11 @@ LOGGING = {
             'handlers': ['request_handler'],
             'level': 'WARNING',
             'propagate': False
+        },
+        'celery-act-task': {
+            'handlers': ['celery_handler'],
+            'level': 'DEBUG',
+            'propagate': True
         },
     }
 }
