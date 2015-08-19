@@ -32,7 +32,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     # For statements/read/mine oauth scope
     authQ = Q()
     if 'auth' in param_dict and (param_dict['auth'] and 'statements_mine_only' in param_dict['auth']):
-        q_auth = param_dict['auth']['authority']
+        q_auth = param_dict['auth']['agent']
 
         # If oauth - set authority to look for as the user
         if q_auth.oauth_identifier:
@@ -88,9 +88,15 @@ def complex_get(param_dict, limit, language, format, attachments):
         reffilter = True
         activityQ = Q(object_activity__activity_id=param_dict['activity'])
         if 'related_activities' in param_dict and param_dict['related_activities']:
-            activityQ = activityQ | Q(statementcontextactivity__context_activity__activity_id=param_dict['activity']) \
+            activityQ = activityQ | Q(context_ca_parent__activity_id=param_dict['activity']) \
+                    | Q(context_ca_grouping__activity_id=param_dict['activity']) \
+                    | Q(context_ca_category__activity_id=param_dict['activity']) \
+                    | Q(context_ca_other__activity_id=param_dict['activity']) \
                     | Q(object_substatement__object_activity__activity_id=param_dict['activity']) \
-                    | Q(object_substatement__substatementcontextactivity__context_activity__activity_id=param_dict['activity'])
+                    | Q(object_substatement__context_ca_parent__activity_id=param_dict['activity']) \
+                    | Q(object_substatement__context_ca_grouping__activity_id=param_dict['activity']) \
+                    | Q(object_substatement__context_ca_category__activity_id=param_dict['activity']) \
+                    | Q(object_substatement__context_ca_other__activity_id=param_dict['activity'])
 
     registrationQ = Q()
     if 'registration' in param_dict:

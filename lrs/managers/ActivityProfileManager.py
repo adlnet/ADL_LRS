@@ -3,7 +3,6 @@ import json
 
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.utils.timezone import utc
 
 from ..models import ActivityProfile
@@ -11,8 +10,6 @@ from ..exceptions import IDNotFoundError, ParamError
 from ..util import etag
 
 class ActivityProfileManager():
-    
-    @transaction.commit_on_success
     def save_non_json_profile(self, p, created, profile, request_dict):
         #Save profile content type based on incoming content type header and create etag
         p.content_type = request_dict['headers']['CONTENT_TYPE']
@@ -32,7 +29,6 @@ class ActivityProfileManager():
         
         p.save()
 
-    @transaction.commit_on_success
     def post_profile(self, request_dict):
         # get/create profile
         p, created = ActivityProfile.objects.get_or_create(activityId=request_dict['params']['activityId'],  profileId=request_dict['params']['profileId'])
@@ -72,9 +68,7 @@ class ActivityProfileManager():
                 p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
             p.save()
 
-    @transaction.commit_on_success
-	#Save profile to desired activity
-    def put_profile(self, request_dict):        
+    def put_profile(self, request_dict):
         #Get the profile, or if not already created, create one
         p,created = ActivityProfile.objects.get_or_create(profileId=request_dict['params']['profileId'],activityId=request_dict['params']['activityId'])
         
@@ -142,7 +136,6 @@ class ActivityProfileManager():
             ids = ActivityProfile.objects.filter(activityId=activityId).values_list('profileId', flat=True)
         return ids
 
-    @transaction.commit_on_success
     def delete_profile(self, request_dict):
         #Get profile and delete it
         try:

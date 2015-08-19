@@ -128,7 +128,7 @@ SESSION_KEY = 'oauth2'
 SERVER_STMT_LIMIT = 100
 
 # Enable celery for activityID metadata retrieval
-CELERY_ENABLED = False
+CELERY_ENABLED = True
 # One minute timeout to all celery tasks
 CELERYD_TASK_SOFT_TIME_LIMIT = 60
 # ActivityID resolve timeout (seconds)

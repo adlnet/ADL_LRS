@@ -7,7 +7,6 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 
 from django.conf import settings
-from django.db import transaction
 
 from lrs.models import Activity
 from lrs.util import StatementValidator as SV
@@ -53,11 +52,10 @@ def get_activity_metadata(act_id):
             if valid_url_data:
                 update_activity_definition(fake_activity)
 
-@transaction.commit_on_success
 def update_activity_definition(act):
-    # Try to get canonical activity by id
+    # Try to get activity by id
     try:
-        activity = Activity.objects.get(activity_id=act['id'], canonical_version=True)
+        activity = Activity.objects.get(activity_id=act['id'])
     except Activity.DoesNotExist:
         # Could not exist yet
         pass

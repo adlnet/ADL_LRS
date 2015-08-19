@@ -985,7 +985,6 @@ class AuthTests(TestCase):
         form_2 = {"username":username_2, "email":email_2,"password":password_2,"password2":password_2}
         response_2 = self.client.post(reverse(register),form_2, X_Experience_API_Version=settings.XAPI_VERSION)
 
-
         # Should have no definition
         stmt_1 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
                             "object":{"id": "act:test_activity_change"},
@@ -1001,8 +1000,7 @@ class AuthTests(TestCase):
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
         self.assertEqual(acts, 1)
 
-
-        # Creates local act for other user
+        # Does not update existing activity
         stmt_2 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
                             "object":{"id": "act:test_activity_change", "definition":{"name":{"en-US": "fail_test"}}},
                             "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
@@ -1010,25 +1008,26 @@ class AuthTests(TestCase):
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)
         user2_agent = Agent.objects.get(mbox="mailto:test2@tester.com")
         self.assertEqual(response_2.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
-        self.assertEqual(act["id"], "act:test_activity_change")
-        self.assertIn('definition', act)
-        acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
-        self.assertEqual(acts, 2)
+        with self.assertRaises(Activity.DoesNotExist):
+            Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
 
+        acts = Activity.objects.filter(activity_id="act:test_activity_change")
+        self.assertEqual(acts.count(), 1)
+        with self.assertRaises(KeyError):
+            acts[0].to_dict()["definition"]
 
-        # Should update local version of activity with definition for that user
+        # Should not update activity
         response_3 = self.client.post(reverse(statements), stmt_1, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_3.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
         self.assertEqual(act["id"], "act:test_activity_change")
-        self.assertIn('definition', act)
+        with self.assertRaises(KeyError):
+            act["definition"]
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
-        self.assertEqual(acts, 2)
+        self.assertEqual(acts, 1)
 
-
-        # Should have new definition for canonical since user is owner
+        # Should have new definition since user is owner
         stmt_3 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
                             "object":{"id": "act:test_activity_change", "definition":{"name":{"en-US": "foo"}}},
                             "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
@@ -1039,56 +1038,51 @@ class AuthTests(TestCase):
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
 
-
-        # Should have updated local activity for that user with new definition
+        # Should still have definition from above
         response_5 = self.client.post(reverse(statements), stmt_3, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_5.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
-        self.assertEqual(acts, 2)
+        self.assertEqual(acts, 1)
 
-
-        # Should update local version of that activity for that user
+        # Should still have definition from above
         stmt_4 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
                             "object":{"id": "act:test_activity_change", "definition":{"name":{"en-US": "bar"}}},
                             "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
         response_6 = self.client.post(reverse(statements), stmt_4, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_6.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
         self.assertEqual(act["id"], "act:test_activity_change")
-        self.assertEqual(act["definition"], {"name":{"en-US": "bar"}})
+        self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
-        self.assertEqual(acts, 2)
+        self.assertEqual(acts, 1)
 
-
-        # Should have replaced name in def for local act of that user
+        # Should still have definition from above
         stmt_5 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
                             "object":{"id": "act:test_activity_change", "definition":{"name":{"fr": "bar"}}},
                             "verb":{"id": "http://adlnet.gov/expapi/verbs/created", "display": {"en-US":"created"}}})
         response_7 = self.client.post(reverse(statements), stmt_5, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_7.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
         self.assertEqual(act["id"], "act:test_activity_change")
-        self.assertIn("fr", act['definition']['name'])
+        self.assertNotIn("fr", act['definition']['name'])
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
-        self.assertEqual(acts, 2)
+        self.assertEqual(acts, 1)
 
-
-        # Can't remove definition if it already exists - should still be there
+        # Should still have definition from above
         response_8 = self.client.post(reverse(statements), stmt_1, content_type="application/json",
-            Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
+            Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response_8.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertIn("definition", act.keys())
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
-        self.assertEqual(acts, 2)
-
+        self.assertEqual(acts, 1)
 
         # Check canonical of last stmt returned from query to make sure it contains the definition
         param = {"agent":{"mbox":"mailto:max@max.com"}, "format":"canonical", "activity":"act:test_activity_change"}

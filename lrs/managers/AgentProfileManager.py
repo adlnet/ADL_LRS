@@ -3,7 +3,6 @@ import datetime
 
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.utils.timezone import utc
 
 from ..models import AgentProfile
@@ -14,7 +13,6 @@ class AgentProfileManager():
     def __init__(self, agent):
     	self.Agent = agent
 
-    @transaction.commit_on_success
     def save_non_json_profile(self, p, profile, request_dict):
         p.content_type = request_dict['headers']['CONTENT_TYPE']
         p.etag = etag.create_tag(profile.read())
@@ -23,19 +21,15 @@ class AgentProfileManager():
             p.updated = request_dict['headers']['updated']
         else:
             p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-        
         # Go to beginning of file
         profile.seek(0)
         fn = "%s_%s" % (p.agent_id, request_dict.get('filename', p.id))
         p.profile.save(fn, profile)
-
         p.save()
-
-    @transaction.commit_on_success        
+     
     def post_profile(self, request_dict):
         # get/create profile
         p, created = AgentProfile.objects.get_or_create(profileId=request_dict['params']['profileId'],agent=self.Agent)
-
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 post_profile = ContentFile(request_dict['profile'].read())
@@ -71,7 +65,6 @@ class AgentProfileManager():
                 p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
             p.save()
 
-    @transaction.commit_on_success
     def put_profile(self, request_dict):
         # get/create profile
         p, created = AgentProfile.objects.get_or_create(profileId=request_dict['params']['profileId'],agent=self.Agent)
@@ -135,7 +128,6 @@ class AgentProfileManager():
             ids = self.Agent.agentprofile_set.values_list('profileId', flat=True)
         return ids
 
-    @transaction.commit_on_success
     def delete_profile(self, profileId):
         try:
             self.get_profile(profileId).delete()

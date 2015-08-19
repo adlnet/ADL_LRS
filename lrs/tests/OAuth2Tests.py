@@ -444,12 +444,12 @@ class AccessTokenTest(OAuth2Tests):
                     }
                 }
             }
-        # Doesn't have define permission - should create another activity with that ID that isn't canonical
+        # Doesn't have define permission
         stmt_post2 = self.client.post(reverse(statements), json.dumps(stmt2), content_type="application/json",
             Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post2.status_code, 200)
         acts = Activity.objects.filter(activity_id="act:test_define")
-        self.assertEqual(len(acts), 2)
+        self.assertEqual(len(acts), 1)
 
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
             Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
@@ -476,14 +476,14 @@ class AccessTokenTest(OAuth2Tests):
                     }
                 }
             }
-        # Doesn't have define permission - should create another activity with that ID that isn't canonical
+        # Has define perission
         stmt_post3 = self.client.post(reverse(statements), json.dumps(stmt3), content_type="application/json",
             Authorization="Bearer " + token2['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post3.status_code, 200)
         act_names = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_name', flat=True)
         act_descs = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
-        self.assertEqual(len(act_names), 2)
-        self.assertEqual(len(act_descs), 2)
+        self.assertEqual(len(act_names), 1)
+        self.assertEqual(len(act_descs), 1)
         self.assertIn('{"en-US":"testname i define!"}', act_names)
         self.assertIn('{"en-US":"testdesc i define!"}', act_descs)
 

@@ -2,12 +2,12 @@ import json
 import uuid
 import copy
 from base64 import b64decode
-
 from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.timezone import utc
+
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
 from ..models import Statement, StatementAttachment, Agent, Activity
@@ -47,8 +47,8 @@ def process_statement(stmt, auth, version):
         stmt['timestamp'] = stmt['stored']
 
     # Copy full statement and send off to StatementManager to save
-    full_stmt = copy.deepcopy(stmt)
-    st = StatementManager(stmt, auth, full_stmt).model_object
+    stmt['full_statement'] = copy.deepcopy(stmt)
+    st = StatementManager(stmt, auth).model_object
     return st.statement_id
 
 def process_body(stmts, auth, version):
@@ -227,6 +227,7 @@ def build_response(stmt_result):
             string_list.append(json.dumps(stmt_result) + line_feed)
         else:
             string_list.append(stmt_result + line_feed)
+        
         for sha2 in sha2s:
             string_list.append("--" + boundary + line_feed)
             string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
@@ -241,7 +242,6 @@ def build_response(stmt_result):
                     chunks.append(decoded_data)
             except OSError:
                 raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
-
             string_list.append("".join(chunks) + line_feed)
         
         string_list.append("--" + boundary + "--") 
@@ -363,11 +363,10 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
-    act = Activity.objects.get(activity_id=activityId, canonical_version=True)    
+    act = Activity.objects.get(activity_id=activityId, authority__isnull=False)    
     return_act = json.dumps(act.to_dict())    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
-    
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
         resp.body = ''
@@ -432,9 +431,7 @@ def agents_get(req_dict):
     agent_data = json.dumps(a.to_dict_person())
     resp = HttpResponse(agent_data, mimetype="application/json")
     resp['Content-Length'] = str(len(agent_data))
-    
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
         resp.body = ''
-            
     return resp

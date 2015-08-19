@@ -15,8 +15,7 @@ def get_agent_ifp(data):
     ifp_sent = [a for a in agent_ifps_can_only_be_one if data.get(a, None) != None]    
 
     ifp = ifp_sent[0]
-    canonical_version = data.get('canonical_version', True)
-    ifp_dict = {'canonical_version': canonical_version}
+    ifp_dict = {}
     
     if not 'account' == ifp:
         ifp_dict[ifp] = data[ifp]

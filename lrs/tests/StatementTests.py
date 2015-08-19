@@ -650,7 +650,6 @@ class StatementTests(TestCase):
         getResponse = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(getResponse.status_code, 200)
         jsn = json.loads(getResponse.content)
-        # Will only return 10 since that is server limit
         self.assertEqual(len(jsn["statements"]), 11)
         self.assertIn('content-length', getResponse._headers)
 
@@ -880,10 +879,7 @@ class StatementTests(TestCase):
         self.assertEqual(post_response.status_code, 200)
 
         acts = Activity.objects.filter(activity_id="act:foogie").count()
-        canonicals = Activity.objects.filter(activity_id="act:foogie").values_list('canonical_version', flat=True)
-        self.assertEqual(acts, 2)
-        self.assertIn(True, canonicals)
-        self.assertIn(False, canonicals)
+        self.assertEqual(acts, 1)
 
     def test_update_activity_correct_auth(self):
         self.bunchostmts()
@@ -1644,10 +1640,7 @@ class StatementTests(TestCase):
         self.assertEqual(response2.status_code, 200)
 
         acts = Activity.objects.filter(activity_id='act:test_post').count()
-        self.assertEqual(acts, 2)
-        canonicals = Activity.objects.filter(activity_id='act:test_post').values_list('canonical_version', flat=True)
-        self.assertIn(True, canonicals)
-        self.assertIn(False, canonicals)
+        self.assertEqual(acts, 1)
 
     def test_stmts_w_same_regid(self):
         stmt1_guid = str(uuid.uuid1())
