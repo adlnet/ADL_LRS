@@ -2,6 +2,7 @@ import re
 from isodate.isodatetime import parse_datetime
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
+from rfc3987 import parse as iriparse
 
 from ..exceptions import ParamError
 from util import convert_to_dict
@@ -94,7 +95,9 @@ class StatementValidator():
 
 	def validate_iri(self, iri_value, field):
 		if isinstance(iri_value, basestring):
-			if not iri_re.match(iri_value).group(SCHEME):
+			try:
+				iriparse(iri_value, rule='IRI')
+			except Exception, e:
 				self.return_error("%s with value %s was not a valid IRI" % (field, iri_value))
 		else:
 			self.return_error("%s must be a string type" % field)
@@ -191,6 +194,10 @@ class StatementValidator():
 						if 'account' in agent:
 							if not 'oauth' in agent['account']['homePage'].lower():
 								self.return_error("Statements cannot have a non-OAuth group as the authority")
+							# Probably an oauth group
+							else:
+								if set(authority.keys()) != set(['objectType', 'member']):
+									self.return_error("Statements cannot have a non-OAuth group as the authority")
 				else:
 					self.return_error("OAuth authority must only contain 2 members")
 			# No members contain an account so that means it's not an Oauth group
@@ -268,7 +275,6 @@ class StatementValidator():
 		elif agent['objectType'] == 'Group' and len(ifis) > 1:
 			self.return_error("None or one and only one of %s may be supplied with a Group" % ", ".join(agent_ifis_can_only_be_one))
 
-
 		if agent['objectType'] == 'Agent':
 			# If agent, if name given, ensure name is string and validate the IFI
 			if 'name' in agent and not isinstance(agent['name'], basestring):
@@ -302,6 +308,7 @@ class StatementValidator():
 		object_types = [t['objectType'] for t in members if 'objectType' in t]
 		if 'Group' in object_types:
 			self.return_error('Group member value cannot be other groups')
+		
 		# Validate each member in group
 		for agent in members:
 			self.validate_agent(agent, 'member')

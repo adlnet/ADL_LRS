@@ -1101,8 +1101,7 @@ class AuthTests(TestCase):
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("Statements cannot have a non-OAuth group as the authority", response.content)
+        self.assertEqual(response.status_code, 200)
 
     def test_post_with_non_oauth_existing_group(self):
         ot = "Group"
@@ -1115,5 +1114,4 @@ class AuthTests(TestCase):
             "object": {"id":"act:i.pity.the.fool"}, "authority": {"objectType":ot, "name":name, "mbox":mbox,"member":[{"name":"agentA","mbox":"mailto:agentA@example.com"},{"name":"agentB","mbox":"mailto:agentB@example.com"}]}})
         
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Statements cannot have a non-OAuth group as the authority")
+        self.assertEqual(response.status_code, 200)

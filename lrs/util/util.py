@@ -62,8 +62,7 @@ def get_lang(langdict, lang):
         except KeyError:
             pass
 
-    first = langdict.iteritems().next()      
-    return {first[0]:first[1]}
+    return langdict
 
 def autoregister(*app_list):
     for app_name in app_list:

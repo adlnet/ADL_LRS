@@ -769,60 +769,18 @@ class StatementTests(TestCase):
     def test_amsterdam_snafu(self):
         stmt = json.dumps({
             "timestamp": "2013-05-23T10:46:39+02:00",
-            "verb": {"id": "http:\/\/www.adlnet.gov\/expapi\/verbs\/experienced"},
+            "verb": {"id": "http://www.adlnet.gov/expapi/verbs/experienced"},
             "context": {
                 "contextActivities": {
                     "parent": {
-                        "id": "http:\/\/localhost:8080\/portal\/site\/~88a4933d-99d2-4a35-8906-993fdcdf2259"
+                        "id": "http://localhost:8080/portal/site/~88a4933d-99d2-4a35-8906-993fdcdf2259"
                     }
                 }
             },
             "object": {
-                "id": "http:\/\/localhost:8080\/portal\/web\/~88a4933d-99d2-4a35-8906-993fdcdf2259\/id\/c50bf034-0f3e-4055-a1e7-8d1cf92be353\/url\/%2Flibrary%2Fcontent%2Fmyworkspace_info.html",
+                "id": "http://localhost:8080/portal/web/~88a4933d-99d2-4a35-8906-993fdcdf2259/id/c50bf034-0f3e-4055-a1e7-8d1cf92be353/url/%2Flibrary%2Fcontent%2Fmyworkspace_info.html",
                 "definition": {
-                    "type": "http:\/\/adlnet.gov\/expapi\/activities\/view-web-content"
-                },
-                "objectType": "Activity"
-            },
-            "actor": {
-                "name": "Alan Tester",
-                "objectType": "Agent",
-                "mbox": "mailto:tester@dev.nl"
-            }
-        })
-        post_response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(post_response.status_code, 200)
-
-    def test_nik_snafu(self):
-        stmt = json.dumps({
-            "verb": {"id": "http:\/\/www.adlnet.gov\/expapi\/verbs\/experienced"},
-            "object": {
-                "id": "act:test/nik/issue",
-                "definition": {
-                    "type": "http:\/\/adlnet.gov\/expapi\/activities\/view-web-content",
-                    "description": {"en-US":"just trying to test stuff"}
-                },
-                "objectType": "Activity"
-            },
-            "actor": {
-                "name": "Alan Tester",
-                "objectType": "Agent",
-                "mbox": "mailto:tester@dev.nl"
-            }
-        })
-        post_response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(post_response.status_code, 200)
-
-        stmt = json.dumps({
-            "verb": {"id": "http:\/\/www.adlnet.gov\/expapi\/verbs\/experienced"},
-            "object": {
-                "id": "act:test/nik/issue",
-                "definition": {
-                    "type": "http:\/\/adlnet.gov\/expapi\/activities\/view-web-content",
-                    "description": {"en-US":"just trying to test stuff"},
-                    "name": {"en-US":"nik test"}
+                    "type": "http://adlnet.gov/expapi/activities/view-web-content"
                 },
                 "objectType": "Activity"
             },

@@ -6,7 +6,7 @@ from util import convert_to_dict, get_agent_ifp
 from Authorization import auth
 from StatementValidator import StatementValidator
 
-from ..models import Statement, Agent, Activity
+from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile
 from ..exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 
 def check_for_existing_statementId(stmtID):
@@ -305,6 +305,30 @@ def activity_state_post(req_dict):
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(req_dict, "state")
 
+    # Check the content type if the document already exists
+    registration = req_dict['params'].get('registration', None)
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]    
+    exists = False
+    if registration:
+        try:
+            s = ActivityState.objects.get(state_id=req_dict['params']['stateId'], agent=a,
+                activity_id=req_dict['params']['activityId'], registration_id=req_dict['params']['registration'])
+            exists = True
+        except ActivityState.DoesNotExist:
+            pass
+    else:
+        try:
+            s = ActivityState.objects.get(state_id=req_dict['params']['stateId'], agent=a,
+                activity_id=req_dict['params']['activityId'])
+            exists = True
+        except ActivityState.DoesNotExist:
+            pass
+    if exists:
+        if str(s.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or \
+            req_dict['headers']['CONTENT_TYPE'] != "application/json"):
+            raise ParamError("Neither original document or document to be posted has a Content-Type of 'application/json'")
+
     # Set state
     req_dict['state'] = req_dict.pop('raw_body', req_dict.pop('body', None))
     return req_dict
@@ -445,6 +469,20 @@ def activity_profile_post(req_dict):
         err_msg = "Could not find the profile document"
         raise ParamError(err_msg)
 
+    # Check the content type if the document already exists 
+    exists = False
+    try:
+        p = ActivityProfile.objects.get(activityId=req_dict['params']['activityId'], 
+            profileId=req_dict['params']['profileId'])
+        exists = True
+    except ActivityProfile.DoesNotExist:
+        pass
+
+    if exists:
+        if str(p.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or \
+            req_dict['headers']['CONTENT_TYPE'] != "application/json"):
+            raise ParamError("Neither original document or document to be posted has a Content-Type of 'application/json'")
+
     req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
     return req_dict
 
@@ -565,6 +603,21 @@ def agent_profile_post(req_dict):
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(req_dict, "profile")
     
+    # Check the content type if the document already exists 
+    exists = False
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]   
+    try:
+        p = AgentProfile.objects.get(profileId=req_dict['params']['profileId'],agent=a)
+        exists = True
+    except AgentProfile.DoesNotExist:
+        pass
+
+    if exists:
+        if str(p.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or \
+            req_dict['headers']['CONTENT_TYPE'] != "application/json"):
+            raise ParamError("Neither original document or document to be posted has a Content-Type of 'application/json'")
+
     # Set profile
     req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
 

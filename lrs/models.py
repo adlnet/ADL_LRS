@@ -186,9 +186,11 @@ class Agent(models.Model):
         if self.openid:
             ret['openid'] = [self.openid]
         if self.account_name:
-            ret['account'] = {}
-            ret['account']['name'] = self.account_name
-            ret['account']['homePage'] = self.account_homePage
+            ret['account'] = []
+            acc = {}
+            acc['name'] = self.account_name
+            acc['homePage'] = self.account_homePage
+            ret['account'].append(acc)
         return ret
 
     def get_a_name(self):

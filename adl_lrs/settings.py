@@ -85,6 +85,8 @@ STATICFILES_DIRS = (
 # Current xAPI version
 XAPI_VERSION = '1.0.2'
 
+XAPI_VERSIONS = ['1.0.1', '1.0.2']
+
 # Where to be redirected after logging in
 LOGIN_REDIRECT_URL = '/XAPI/me'
 
