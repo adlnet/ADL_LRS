@@ -433,7 +433,7 @@ class StatementValidator():
 
 		interactionType = None
 		# If interactionType included, ensure it is a string
-		if 'interactionType' in definition and 'correctResponsesPattern' in definition:
+		if 'interactionType' in definition:
 			if not isinstance(definition['interactionType'], basestring):
 				self.return_error("Activity definition interactionType must be a string")
 
@@ -445,16 +445,14 @@ class StatementValidator():
 				self.return_error("Activity definition interactionType %s is not valid" % definition['interactionType'])
 
 			interactionType = definition['interactionType']
-
+		# If crp included, ensure they are strings in a list
+		if 'correctResponsesPattern' in definition:
 			self.check_if_list(definition['correctResponsesPattern'], "Activity definition correctResponsesPattern")
 			for answer in definition['correctResponsesPattern']:
 				# For each answer, ensure it is a string
 				if not isinstance(answer, basestring):
 					self.return_error("Activity definition correctResponsesPattern answers must all be strings")
-		elif 'interactionType' not in definition and 'correctResponsesPattern' not in definition:
-			pass
-		else:
-			self.return_error('If using interaction types, both interactionType and correctResponsesPattern fields must be present')
+
 		self.validate_interaction_types(interactionType, definition)
 
 		# If extensions, validate it

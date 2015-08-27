@@ -233,6 +233,8 @@ def parse_body(r, request):
     if request.method == 'POST' or request.method == 'PUT':
         # Parse out profiles/states if the POST dict is not empty
         if 'multipart/form-data' in request.META['CONTENT_TYPE']:
+            if r['auth']['endpoint'] == '/statements':
+                raise BadRequest("Content-Type unsupported")
             if request.POST.dict().keys():
                 r['params'].update(request.POST.dict())
                 parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
