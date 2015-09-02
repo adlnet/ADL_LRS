@@ -65,10 +65,10 @@ def validate_stmt_authority(stmt, auth):
                 err_msg = "OAuth authority must only contain 2 members"
                 raise ParamError(err_msg)
 
-def validate_body(body, auth, payload_sha2s):
-        [server_validate_statement(stmt, auth, payload_sha2s) for stmt in body]
+def validate_body(body, auth, payload_sha2s, content_type):
+        [server_validate_statement(stmt, auth, payload_sha2s, content_type) for stmt in body]
     
-def server_validate_statement(stmt, auth, payload_sha2s):
+def server_validate_statement(stmt, auth, payload_sha2s, content_type):
     if 'id' in stmt:
         statement_id = stmt['id']
         if check_for_existing_statementId(statement_id):
@@ -82,7 +82,7 @@ def server_validate_statement(stmt, auth, payload_sha2s):
     validate_stmt_authority(stmt, auth)
     if 'attachments' in stmt:
         attachment_data = stmt['attachments']
-        validate_attachments(attachment_data, payload_sha2s)
+        validate_attachments(attachment_data, payload_sha2s, content_type)
 
 @auth
 def statements_post(req_dict):
@@ -104,7 +104,7 @@ def statements_post(req_dict):
         body = [req_dict['body']]
     else:
         body = req_dict['body']
-    validate_body(body, req_dict['auth'], req_dict.get('payload_sha2s', None))
+    validate_body(body, req_dict['auth'], req_dict.get('payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])
 
     return req_dict
 
@@ -247,12 +247,15 @@ def statements_put(req_dict):
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
-    validate_body([req_dict['body']], req_dict['auth'], req_dict.get('payload_sha2s', None))
+    validate_body([req_dict['body']], req_dict['auth'], req_dict.get('payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])
     return req_dict
 
-def validate_attachments(attachment_data, payload_sha2s):
+def validate_attachments(attachment_data, payload_sha2s, content_type):
     # For each attachment that is in the actual statement
     for attachment in attachment_data:
+        if 'fileUrl' in attachment:
+            if content_type != 'application/json' and 'multipart/mixed' not in content_type:
+                raise BadRequest('Invalid Content-Type %s when providing fileUrl' % content_type)
         # If the attachment data has a sha2 field, must validate it against the payload data
         if 'sha2' in attachment:
             sha2 = attachment['sha2']

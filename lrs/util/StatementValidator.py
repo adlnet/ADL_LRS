@@ -97,7 +97,7 @@ class StatementValidator():
 		if isinstance(iri_value, basestring):
 			try:
 				iriparse(iri_value, rule='IRI')
-			except Exception, e:
+			except Exception:
 				self.return_error("%s with value %s was not a valid IRI" % (field, iri_value))
 		else:
 			self.return_error("%s must be a string type" % field)

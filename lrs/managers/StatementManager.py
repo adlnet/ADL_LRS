@@ -2,7 +2,7 @@ from django.core.files.base import ContentFile
 from django.core.cache import get_cache
 
 from .ActivityManager import ActivityManager
-from ..models import Verb, Statement, StatementRef, StatementAttachment, SubStatement, Agent 
+from ..models import Verb, Statement, StatementAttachment, SubStatement, Agent 
 
 att_cache = get_cache('attachment_cache')
 
@@ -35,8 +35,6 @@ class StatementManager():
         stmt = Statement.objects.get(statement_id=stmt_id)
         stmt.voided = True
         stmt.save()
-        # Create statement ref
-        return StatementRef.objects.create(ref_id=stmt_id)
 
     def build_context_activities(self, stmt, auth_info, con_act_data):
         for con_act_group in con_act_data.items():
@@ -195,7 +193,8 @@ class StatementManager():
         valid_agent_objects = ['Agent', 'Group']
         # Check to see if voiding statement
         if stmt_data['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
-            stmt_data['object_statementref'] = self.void_statement(statement_object_data['id'])
+            self.void_statement(statement_object_data['id'])
+            stmt_data['object_statementref'] = statement_object_data['id']
         else:
             # Check objectType, get object based on type
             if statement_object_data['objectType'] == 'Activity':
@@ -206,7 +205,7 @@ class StatementManager():
             elif statement_object_data['objectType'] == 'SubStatement':
                 stmt_data['object_substatement'] = SubStatementManager(statement_object_data, auth_info).model_object
             elif statement_object_data['objectType'] == 'StatementRef':
-                stmt_data['object_statementref'] = StatementRef.objects.create(ref_id=statement_object_data['id'])
+                stmt_data['object_statementref'] = statement_object_data['id']
         del stmt_data['object']
 
     def populate(self, auth_info, stmt_data):

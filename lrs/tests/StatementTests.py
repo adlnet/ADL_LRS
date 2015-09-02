@@ -620,16 +620,6 @@ class StatementTests(TestCase):
         rsp = json.loads(getResponse.content)
         self.assertEqual(len(rsp['statements']), 11)
 
-    def test_post_no_params(self):
-        self.bunchostmts()
-        getResponse = self.client.post(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION,
-            Authorization=self.auth)
-        self.assertEqual(getResponse.status_code, 200)
-        self.assertIn('content-length', getResponse._headers)
-
-        rsp = json.loads(getResponse.content)
-        self.assertEqual(len(rsp['statements']), 11)
-
     def test_head(self):
         self.bunchostmts()
         param = {"statementId":self.guid1}

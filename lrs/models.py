@@ -298,27 +298,10 @@ class Activity(models.Model):
     def __unicode__(self):
         return json.dumps(self.to_dict())
 
-class StatementRef(models.Model):
-    object_type = models.CharField(max_length=12, default="StatementRef")
-    ref_id = models.CharField(max_length=40)
-
-    def to_dict(self):
-        ret = {}
-        ret['objectType'] = "StatementRef"
-        ret['id'] = self.ref_id
-        return ret
-
-    def get_a_name(self):
-        s = Statement.objects.get(statement_id=self.ref_id)
-        return s.get_object().get_a_name()
-
-    def __unicode__(self):
-        return json.dumps(self.to_dict())
-
 class SubStatement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
-    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)    
+    object_statementref = models.CharField(max_length=40, blank=True, null=True, db_index=True)
     actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
@@ -359,7 +342,7 @@ class SubStatement(models.Model):
         elif self.object_activity:
             ret['object'] = self.object_activity.to_dict(lang, format)
         else:
-            ret['object'] = self.object_statementref.to_dict()
+            ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         
         ret['result'] = {}
         if self.result_success != None:
@@ -426,7 +409,12 @@ class SubStatement(models.Model):
         return ret
 
     def get_a_name(self):
-        return self.get_object().get_a_name()
+        if self.object_activity:
+            return self.object_activity.get_a_name()
+        elif self.object_agent:
+            return self.object_agent.get_a_name()
+        else:
+            return self.object_statementref
 
     def get_object(self):
         if self.object_activity:
@@ -434,13 +422,8 @@ class SubStatement(models.Model):
         elif self.object_agent:
             stmt_object = self.object_agent
         else:
-            stmt_object = self.object_statementref
+            stmt_object = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         return stmt_object
-
-    def delete(self, *args, **kwargs):
-        if self.object_statementref:
-            self.object_statementref.delete()
-        super(SubStatement, self).delete(*args, **kwargs)
 
     def __unicode__(self):
         return json.dumps(self.to_dict())
@@ -479,7 +462,7 @@ class Statement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
-    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)    
+    object_statementref = models.CharField(max_length=40, blank=True, null=True, db_index=True)    
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
@@ -535,7 +518,7 @@ class Statement(models.Model):
         elif self.object_substatement:
             ret['object'] = self.object_substatement.to_dict(lang, format)
         else:
-            ret['object'] = self.object_statementref.to_dict()
+            ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
 
         ret['result'] = {}
         if self.result_success != None:
@@ -606,7 +589,7 @@ class Statement(models.Model):
         return ret
 
     def unvoid_statement(self):
-        Statement.objects.filter(statement_id=self.object_statementref.ref_id).update(voided=False)        
+        Statement.objects.filter(statement_id=self.object_statementref).update(voided=False)        
 
     def get_a_name(self):
         return self.statement_id
@@ -619,7 +602,7 @@ class Statement(models.Model):
         elif self.object_substatement:
             stmt_object = self.object_substatement
         else:
-            stmt_object = self.object_statementref
+            stmt_object = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         return stmt_object
 
     def delete(self, *args, **kwargs):        
@@ -630,8 +613,6 @@ class Statement(models.Model):
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             if self.object_substatement:
                 self.object_substatement.delete()
-            elif self.object_statementref:
-                self.object_statementref.delete()
         super(Statement, self).delete(*args, **kwargs)
 
     def __unicode__(self):

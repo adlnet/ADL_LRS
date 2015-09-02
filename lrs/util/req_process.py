@@ -364,7 +364,7 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
     act = Activity.objects.get(activity_id=activityId, authority__isnull=False)
-    return_act = json.dumps(act.to_dict())    
+    return_act = json.dumps(act.to_dict('all'))    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
     # If it's a HEAD request
@@ -429,7 +429,6 @@ def agent_profile_delete(req_dict):
 def agents_get(req_dict):
     a = Agent.objects.get(**req_dict['agent_ifp'])    
     agent_data = json.dumps(a.to_dict_person())
-    print agent_data
     resp = HttpResponse(agent_data, mimetype="application/json")
     resp['Content-Length'] = str(len(agent_data))
     # If it's a HEAD request

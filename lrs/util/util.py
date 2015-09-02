@@ -56,13 +56,16 @@ def convert_post_body_to_dict(incoming_data):
 
 def get_lang(langdict, lang):
     if lang:
-        # Return where key = lang
-        try:
-            return {lang:langdict[lang]}
-        except KeyError:
-            pass
-
-    return langdict
+        if lang == 'all':
+            return langdict
+        else:
+            # Return where key = lang
+            try:
+                return {lang:langdict[lang]}
+            except KeyError:
+                pass
+    first = langdict.iteritems().next()      
+    return {first[0]:first[1]}
 
 def autoregister(*app_list):
     for app_name in app_list:
