@@ -145,6 +145,7 @@ CACHES = {
     'attachment_cache':{
         'BACKEND':'django.core.cache.backends.db.DatabaseCache',
         'LOCATION':'attachment_cache',
+        'TIMEOUT': 86400,        
     },
 }
 

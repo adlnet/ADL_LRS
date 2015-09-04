@@ -7,12 +7,12 @@ from ..models import Verb, Statement, StatementAttachment, SubStatement, Agent
 att_cache = get_cache('attachment_cache')
 
 class StatementManager():
-    def __init__(self, stmt_data, auth_info):
+    def __init__(self, stmt_data, auth_info, payload_sha2s):
         # auth_info contains define, endpoint, user, and request authority
         if self.__class__.__name__ == 'StatementManager':
             # Full statement is for a statement only, same with authority
             self.set_authority(auth_info, stmt_data)
-        self.populate(auth_info, stmt_data)
+        self.populate(auth_info, stmt_data, payload_sha2s)
 
     def set_authority(self, auth_info, stmt_data):
         # Could still have no authority in stmt if HTTP_AUTH and OAUTH are disabled
@@ -98,63 +98,25 @@ class StatementManager():
                 del stmt_data['result_score']
             del stmt_data['result']
 
-    def build_attachment(self, attach):
-        sha2 = attach['sha2']
-        try:
-            attachment = StatementAttachment.objects.get(sha2=sha2)
-            created = False
-        except StatementAttachment.DoesNotExist:
-            attachment = StatementAttachment.objects.create(**attach)                
-            created = True
-            # Since there is a sha2, there must be a payload cached
-            # Decode payload from msg object saved in cache and create ContentFile from raw data
-            raw_payload = att_cache.get(sha2)
-            try:
-                payload = ContentFile(raw_payload)
-            except Exception, e:
-                raise e    
-            # Save ContentFile payload to attachment model object
-            attachment.payload.save(sha2, payload)
-        return attachment, created 
-
-    def build_attachments(self, user_info, attachment_data, attachment_payloads):
-        if attachment_data:
-            # Iterate through each attachment
-            for attach in attachment_data:
-                # Get or create based on sha2
-                if 'sha2' in attach:
-                    attachment, created = self.build_attachment(attach)
-                # If no sha2 there must be a fileUrl which is unique
-                else:
+    def build_attachments(self, user_info, attachment_data, payload_sha2s):
+        # Iterate through each attachment
+        for attach in attachment_data:
+            sha2 = attach.pop('sha2', None)
+            fileUrl = attach.pop('fileUrl', None)
+            attachment = StatementAttachment.objects.create(**attach)
+            if sha2:
+                attachment.sha2 = sha2
+                if payload_sha2s and sha2 in payload_sha2s:
+                    raw_payload = att_cache.get(sha2)
                     try:
-                        attachment = StatementAttachment.objects.get(fileUrl=attach['fileUrl'])
-                        created = False
-                    except Exception:
-                        attachment = StatementAttachment.objects.create(**attach)
-                        created = True
-                # If have define permission and attachment already has existed
-                if user_info['define'] and not created:
-                    if attachment.display:
-                        existing_displays = attachment.display
-                    else:
-                        existing_displays = {}
-                    if attachment.description:
-                        existing_descriptions = attachment.description
-                    else:
-                        existing_descriptions = {}
-                    # Save displays
-                    if 'display' in attach:
-                        attachment.display = dict(existing_displays.items() + attach['display'].items())
-
-                    if 'description' in attach:
-                        attachment.description = dict(existing_descriptions.items() + attach['description'].items())
-                    attachment.save()
-                # Add each attach to the stmt
-                self.model_object.attachments.add(attachment)
-                # Delete everything in cache for this statement
-                if attachment_payloads:
-                    att_cache.delete_many(attachment_payloads)
-            self.model_object.save()
+                        payload = ContentFile(raw_payload)
+                    except Exception, e:
+                        raise e
+                    attachment.payload.save(sha2, payload)
+            if fileUrl:
+                attachment.fileUrl = fileUrl
+            attachment.statement = self.model_object
+            attachment.save()
 
     def build_context(self, stmt_data):
         if 'context' in stmt_data:
@@ -208,7 +170,7 @@ class StatementManager():
                 stmt_data['object_statementref'] = statement_object_data['id']
         del stmt_data['object']
 
-    def populate(self, auth_info, stmt_data):
+    def populate(self, auth_info, stmt_data, payload_sha2s):
         if self.__class__.__name__ == 'StatementManager':
             stmt_data['voided'] = False
         
@@ -218,15 +180,15 @@ class StatementManager():
         self.build_context(stmt_data)
         self.build_result(stmt_data)
         attachment_data = stmt_data.pop('attachments', None)
-        attachment_payloads = stmt_data.pop('attachment_payloads', None)
         
         if self.__class__.__name__ == 'StatementManager':
             #Save statement/substatement
             self.model_object = self.build_statement(auth_info, stmt_data)
         else:
             self.model_object = self.build_substatement(auth_info, stmt_data)
-        self.build_attachments(auth_info, attachment_data, attachment_payloads)
+        if attachment_data:
+            self.build_attachments(auth_info, attachment_data, payload_sha2s)
 
 class SubStatementManager(StatementManager):
     def __init__(self, substmt_data, auth_info):        
-        StatementManager.__init__(self, substmt_data, auth_info)
+        StatementManager.__init__(self, substmt_data, auth_info, None)

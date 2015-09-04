@@ -17,7 +17,7 @@ from ..managers.AgentProfileManager import AgentProfileManager
 from ..managers.StatementManager import StatementManager
 from ..tasks import check_activity_metadata
 
-def process_statement(stmt, auth, version):
+def process_statement(stmt, auth, version, payload_sha2s):
     # Add id to statement if not present
     if not 'id' in stmt:
         stmt['id'] = str(uuid.uuid1())
@@ -48,11 +48,11 @@ def process_statement(stmt, auth, version):
 
     # Copy full statement and send off to StatementManager to save
     stmt['full_statement'] = copy.deepcopy(stmt)
-    st = StatementManager(stmt, auth).model_object
+    st = StatementManager(stmt, auth, payload_sha2s).model_object
     return st.statement_id
 
-def process_body(stmts, auth, version):
-    return [process_statement(st, auth, version) for st in stmts]
+def process_body(stmts, auth, version, payload_sha2s):
+    return [process_statement(st, auth, version, payload_sha2s) for st in stmts]
 
 def process_complex_get(req_dict):
     mime_type = "application/json"
@@ -121,7 +121,7 @@ def statements_post(req_dict):
     else:
         body = req_dict['body']
 
-    stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'])
+    stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
     if settings.CELERY_ENABLED:
         check_activity_metadata.delay(stmt_responses)
     return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
@@ -129,7 +129,7 @@ def statements_post(req_dict):
 def statements_put(req_dict):
     auth = req_dict['auth']
     # Since it is single stmt put in list
-    stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'])
+    stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
     if settings.CELERY_ENABLED:
         check_activity_metadata.delay(stmt_responses)
     return HttpResponse("No Content", status=204)
@@ -210,11 +210,11 @@ def build_response(stmt_result):
     # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
-            for attachment in stmt['attachments']:
-                if 'sha2' in attachment:
-                    # If there is a sha2-retrieve the StatementAttachment object and add the payload to sha2s
-                    att_object = StatementAttachment.objects.get(sha2=attachment['sha2'])
-                    sha2s.append((attachment['sha2'], att_object.payload, att_object.contentType))    
+            st_atts = Statement.objects.get(statement_id=stmt['id']).stmt_attachments
+            if st_atts:
+                for att in st_atts.all():
+                    if att.payload:
+                        sha2s.append((att.sha2, att.payload, att.contentType))
     # If attachments have payloads
     if sha2s:
         # Create multipart message and attach json message to it

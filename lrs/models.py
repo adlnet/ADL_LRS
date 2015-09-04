@@ -5,6 +5,7 @@ from jsonfield import JSONField
 from django_extensions.db.fields import UUIDField
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.files.storage import FileSystemStorage
 from django.utils.timezone import utc
 
 from oauth_provider.consts import MAX_URL_LENGTH
@@ -428,34 +429,6 @@ class SubStatement(models.Model):
     def __unicode__(self):
         return json.dumps(self.to_dict())
 
-class StatementAttachment(models.Model):
-    usageType = models.CharField(max_length=MAX_URL_LENGTH)
-    contentType = models.CharField(max_length=128)
-    length = models.PositiveIntegerField()
-    sha2 = models.CharField(max_length=128, blank=True)
-    fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, null=True)
-    display = JSONField(default={}, blank=True)
-    description = JSONField(default={}, blank=True)
-
-    def to_dict(self, lang=None):
-        ret = {}
-        ret['usageType'] = self.usageType
-        if self.display:
-            ret['display'] = util.get_lang(self.display, lang)
-        if self.description:
-            ret['description'] = util.get_lang(self.description, lang)
-        ret['contentType'] = self.contentType
-        ret['length'] = self.length
-        if self.sha2:
-            ret['sha2'] = self.sha2
-        if self.fileUrl:
-            ret['fileUrl'] = self.fileUrl
-        return ret
-
-    def __unicode__(self):
-        return json.dumps(self.to_dict())
-
 class Statement(models.Model):
     # If no statement_id is given, will create one automatically
     statement_id = UUIDField(version=1, db_index=True, unique=True)
@@ -498,7 +471,6 @@ class Statement(models.Model):
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7)
-    attachments = models.ManyToManyField(StatementAttachment)
     # Used in views
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     full_statement = JSONField()
@@ -583,9 +555,10 @@ class Statement(models.Model):
         ret['stored'] = self.stored.isoformat()
         ret['version'] = self.version
         if not self.authority is None:
-            ret['authority'] = self.authority.to_dict(format)
-        if self.attachments.all():
-            ret['attachments'] = [a.to_dict(lang) for a in self.attachments.all()]
+            ret['authority'] = self.authority.to_dict(format)        
+        if self.stmt_attachments.all():
+            ret['attachments'] = [a.to_dict(lang) for a in self.stmt_attachments.all()]
+
         return ret
 
     def unvoid_statement(self):
@@ -614,6 +587,46 @@ class Statement(models.Model):
             if self.object_substatement:
                 self.object_substatement.delete()
         super(Statement, self).delete(*args, **kwargs)
+
+    def __unicode__(self):
+        return json.dumps(self.to_dict())
+
+class AttachmentFileSystemStorage(FileSystemStorage):
+    def get_available_name(self, name):
+        return name
+
+    def _save(self, name, content):
+        if self.exists(name):
+            # if the file exists, do not call the superclasses _save method
+            return name
+        # if the file is new, DO call it
+        return super(AttachmentFileSystemStorage, self)._save(name, content)    
+
+class StatementAttachment(models.Model):
+    usageType = models.CharField(max_length=MAX_URL_LENGTH)
+    contentType = models.CharField(max_length=128)
+    length = models.PositiveIntegerField()
+    sha2 = models.CharField(max_length=128, blank=True)
+    fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, storage=AttachmentFileSystemStorage(), null=True)
+    display = JSONField(default={}, blank=True)
+    description = JSONField(default={}, blank=True)
+    statement = models.ForeignKey(Statement, related_name="stmt_attachments", null=True)
+
+    def to_dict(self, lang=None):
+        ret = {}
+        ret['usageType'] = self.usageType
+        if self.display:
+            ret['display'] = util.get_lang(self.display, lang)
+        if self.description:
+            ret['description'] = util.get_lang(self.description, lang)
+        ret['contentType'] = self.contentType
+        ret['length'] = self.length
+        if self.sha2:
+            ret['sha2'] = self.sha2
+        if self.fileUrl:
+            ret['fileUrl'] = self.fileUrl
+        return ret
 
     def __unicode__(self):
         return json.dumps(self.to_dict())

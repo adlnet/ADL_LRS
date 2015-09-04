@@ -250,23 +250,26 @@ def statements_put(req_dict):
     validate_body([req_dict['body']], req_dict['auth'], req_dict.get('payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])
     return req_dict
 
-def validate_attachments(attachment_data, payload_sha2s, content_type):
-    # For each attachment that is in the actual statement
-    for attachment in attachment_data:
-        if 'fileUrl' in attachment:
-            if content_type != 'application/json' and 'multipart/mixed' not in content_type:
-                raise BadRequest('Invalid Content-Type %s when providing fileUrl' % content_type)
-        # If the attachment data has a sha2 field, must validate it against the payload data
-        if 'sha2' in attachment:
-            sha2 = attachment['sha2']
-            # Check if the sha2 field is a key in the payload dict
-            if payload_sha2s:
-                if not sha2 in payload_sha2s:
-                    err_msg = "Could not find attachment payload with sha: %s" % sha2
-                    raise ParamError(err_msg)
-            else:
-                if not 'fileUrl' in attachment:
-                    raise BadRequest("Missing X-Experience-API-Hash field in header")
+def validate_attachments(attachment_data, payload_sha2s, content_type):    
+    if "multipart/mixed" in content_type:
+        for attachment in attachment_data:
+            # If the attachment data has a sha2 field, must validate it against the payload data
+            if 'sha2' in attachment:
+                sha2 = attachment['sha2']
+                # Check if the sha2 field is a key in the payload dict
+                if payload_sha2s:
+                    if not sha2 in payload_sha2s and not 'fileUrl' in attachment:
+                        err_msg = "Could not find attachment payload with sha: %s" % sha2
+                        raise ParamError(err_msg)
+                else:
+                    if not 'fileUrl' in attachment:
+                        raise BadRequest("Missing X-Experience-API-Hash field in header")
+    elif "application/json" == content_type:
+        for attachment in attachment_data:
+            if not 'fileUrl' in attachment:
+                raise BadRequest("When sending statements with attachments as 'application/json', you must include fileUrl field")
+    else:
+        raise BadRequest('Invalid Content-Type %s when sending statements with attachments' % content_type)
 
 @auth
 def activity_state_post(req_dict):
