@@ -10,7 +10,7 @@ from django.utils.timezone import utc
 
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
-from ..models import Statement, StatementAttachment, Agent, Activity
+from ..models import Statement, Agent, Activity
 from ..managers.ActivityProfileManager import ActivityProfileManager
 from ..managers.ActivityStateManager import ActivityStateManager 
 from ..managers.AgentProfileManager import AgentProfileManager
