@@ -39,20 +39,13 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
 def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
-    try:
-        stmt = Statement.objects.get(statement_id=void_id)
-    except Statement.DoesNotExist:
-        err_msg = "Statement with ID %s does not exist" % void_id
-        raise IDNotFoundError(err_msg)
-        
-    if stmt.voided:
-        err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
-        raise Forbidden(err_msg)
-
-def server_validate_statement_object(stmt_object, auth):
-    if stmt_object['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt_object['id']):
-            err_msg = "No statement with ID %s was found" % stmt_object['id']
-            raise IDNotFoundError(err_msg)
+    stmts = Statement.objects.filter(statement_id=void_id)
+    if len(stmts) > 1:
+        raise IDNotFoundError("Something went wrong. %s statements found with id %s" % (len(stmts), void_id))
+    elif len(stmts) == 1:
+        if stmts[0].voided:
+            err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
+            raise BadRequest(err_msg)
             
 def validate_stmt_authority(stmt, auth):
     # If not validated yet - validate auth first since it supercedes any auth in stmt
@@ -75,7 +68,6 @@ def server_validate_statement(stmt, auth, payload_sha2s, content_type):
             err_msg = "A statement with ID %s already exists" % statement_id
             raise ParamConflict(err_msg)
 
-    server_validate_statement_object(stmt['object'], auth)
     if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         validate_void_statement(stmt['object']['id'])
 
@@ -226,10 +218,6 @@ def statements_put(req_dict):
     # If ids exist in both places, check if they are equal
     if statement_body_id and statement_id != statement_body_id:
         raise ParamError("Error -- statements - method = %s, param and body ID both given, but do not match" % req_dict['method'])
-
-    # If statement with that ID already exists-raise conflict error
-    if check_for_existing_statementId(statement_id):
-        raise ParamConflict("A statement with ID %s already exists" % statement_id)
     
     # Set id inside of statement with param id
     if not statement_body_id:

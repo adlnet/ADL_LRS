@@ -9,5 +9,5 @@ runtests
 500.html
 media/
 federated-analytics.js
-celeryd.conf
+*.conf
 lrs/celery.py

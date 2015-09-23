@@ -3,15 +3,10 @@ from isodate.isodatetime import parse_datetime
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
 from rfc3987 import parse as iriparse
+from uuid import UUID
 
 from ..exceptions import ParamError
 from util import convert_to_dict
-
-SCHEME = 2
-EMAIL = 5
-iri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
-sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
-lang_tag_re = re.compile('^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']
@@ -75,6 +70,7 @@ class StatementValidator():
 
 	def validate_lang_tag(self, tag, field):
 		if tag:
+			lang_tag_re = re.compile('^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
 			for lang in tag:
 				if not lang_tag_re.match(lang) or tag == 'test':
 					self.return_error("language %s is not valid in %s" % (tag, field))
@@ -88,6 +84,7 @@ class StatementValidator():
 
 	def validate_email_sha1sum(self, sha1sum):
 		if isinstance(sha1sum, basestring):
+			sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
 			if not sha1sum_re.match(sha1sum):
 				self.return_error("mbox_sha1sum value [%s] is not a valid sha1sum" % sha1sum)
 		else:
@@ -104,9 +101,11 @@ class StatementValidator():
 		
 	def validate_uuid(self, uuid, field):
 		if isinstance(uuid, basestring):
-			id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$")
-			if not id_regex.match(uuid):
+			try:
+				val = UUID(uuid, version=4)
+			except ValueError:
 				self.return_error("%s - %s is not a valid UUID" % (field, uuid))
+			return val.hex == uuid				
 		else:
 			self.return_error("%s must be a string type" % field)
 

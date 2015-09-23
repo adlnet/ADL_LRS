@@ -31,11 +31,6 @@ class StatementManager():
             else:
                 auth_info['agent'] = None
 
-    def void_statement(self, stmt_id):
-        stmt = Statement.objects.get(statement_id=stmt_id)
-        stmt.voided = True
-        stmt.save()
-
     def build_context_activities(self, stmt, auth_info, con_act_data):
         for con_act_group in con_act_data.items():
             # Incoming contextActivities can either be a list or dict    
@@ -149,25 +144,18 @@ class StatementManager():
 
     def build_statement_object(self, auth_info, stmt_data):
         statement_object_data = stmt_data['object']
+        valid_agent_objects = ['Agent', 'Group']        
         # If not specified, the object is assumed to be an activity
-        if not 'objectType' in statement_object_data:
+        if not 'objectType' in statement_object_data or statement_object_data['objectType'] == 'Activity':
             statement_object_data['objectType'] = 'Activity'
-        valid_agent_objects = ['Agent', 'Group']
-        # Check to see if voiding statement
-        if stmt_data['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
-            self.void_statement(statement_object_data['id'])
+            stmt_data['object_activity'] = ActivityManager(statement_object_data, auth=auth_info['agent'],
+                define=auth_info['define']).Activity
+        elif statement_object_data['objectType'] in valid_agent_objects:
+            stmt_data['object_agent'] = Agent.objects.retrieve_or_create(**statement_object_data)[0]
+        elif statement_object_data['objectType'] == 'SubStatement':
+            stmt_data['object_substatement'] = SubStatementManager(statement_object_data, auth_info).model_object
+        elif statement_object_data['objectType'] == 'StatementRef':
             stmt_data['object_statementref'] = statement_object_data['id']
-        else:
-            # Check objectType, get object based on type
-            if statement_object_data['objectType'] == 'Activity':
-                stmt_data['object_activity'] = ActivityManager(statement_object_data, auth=auth_info['agent'],
-                    define=auth_info['define']).Activity
-            elif statement_object_data['objectType'] in valid_agent_objects:
-                stmt_data['object_agent'] = Agent.objects.retrieve_or_create(**statement_object_data)[0]
-            elif statement_object_data['objectType'] == 'SubStatement':
-                stmt_data['object_substatement'] = SubStatementManager(statement_object_data, auth_info).model_object
-            elif statement_object_data['objectType'] == 'StatementRef':
-                stmt_data['object_statementref'] = statement_object_data['id']
         del stmt_data['object']
 
     def populate(self, auth_info, stmt_data, payload_sha2s):

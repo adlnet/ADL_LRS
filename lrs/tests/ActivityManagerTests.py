@@ -116,92 +116,89 @@ class ActivityManagerTests(TestCase):
     @override_settings(CELERY_ALWAYS_EAGER=True,
                         TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner')    
     def test_activity_no_def_json_metadata(self):
-        if settings.CELERY_ENABLED:
-            stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-                "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-                "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}})
-            response = self.client.post(reverse(statements), stmt, content_type="application/json",
-                Authorization=self.auth, X_Experience_API_Version="1.0.0")
-            
-            self.assertEqual(response.status_code, 200)
-            st_id = json.loads(response.content)
-            st = Statement.objects.get(statement_id=st_id[0])
-            act = Activity.objects.get(id=st.object_activity.id)
-            name_keys = act.activity_definition_name.keys()
-            name_values = act.activity_definition_name.values()
-            desc_keys = act.activity_definition_description.keys()
-            desc_values = act.activity_definition_description.values() 
+        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}})
+        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)
+        st = Statement.objects.get(statement_id=st_id[0])
+        act = Activity.objects.get(id=st.object_activity.id)
+        name_keys = act.activity_definition_name.keys()
+        name_values = act.activity_definition_name.values()
+        desc_keys = act.activity_definition_description.keys()
+        desc_values = act.activity_definition_description.values() 
 
-            self.assertIn('en-FR', name_keys)
-            self.assertIn('Example Name', name_values)
-            self.assertIn('en-CH', name_keys)
-            self.assertIn('Alt Name', name_values)
+        self.assertIn('en-FR', name_keys)
+        self.assertIn('Example Name', name_values)
+        self.assertIn('en-CH', name_keys)
+        self.assertIn('Alt Name', name_values)
 
-            self.assertIn('en-US', desc_keys)
-            self.assertIn('Example Desc', desc_values)
-            self.assertIn('en-CH', desc_keys)
-            self.assertIn('Alt Desc', desc_values)
+        self.assertIn('en-US', desc_keys)
+        self.assertIn('Example Desc', desc_values)
+        self.assertIn('en-CH', desc_keys)
+        self.assertIn('Alt Desc', desc_values)
 
-            self.do_activity_model(act.id, CURRENT_SITE + '/XAPI/actexample1/', 'Activity')
+        self.do_activity_model(act.id, CURRENT_SITE + '/XAPI/actexample1/', 'Activity')
 
     @override_settings(CELERY_ALWAYS_EAGER=True,
                         TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner')
     # Test that passing in the same info gets the same activity
     def test_activities_no_defs_json_metadata(self):
-        if settings.CELERY_ENABLED:
-            st_list = []
+        st_list = []
 
-            stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-                "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-                "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}}
-            
-            stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-                "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-                "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}}
+        stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}}
+        
+        stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}}
 
-            st_list.append(stmt1)
-            st_list.append(stmt2)
+        st_list.append(stmt1)
+        st_list.append(stmt2)
 
-            response = self.client.post(reverse(statements), json.dumps(st_list), content_type="application/json",
-                Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        response = self.client.post(reverse(statements), json.dumps(st_list), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
 
-            self.assertEqual(response.status_code, 200)
-            st_ids = json.loads(response.content)
-            st1 = Statement.objects.get(statement_id=st_ids[0])
-            st2 = Statement.objects.get(statement_id=st_ids[1])
-            act1 = Activity.objects.get(id=st1.object_activity.id)
-            act2 = Activity.objects.get(id=st2.object_activity.id)
-            self.assertEqual(act2.id, act1.id)
+        self.assertEqual(response.status_code, 200)
+        st_ids = json.loads(response.content)
+        st1 = Statement.objects.get(statement_id=st_ids[0])
+        st2 = Statement.objects.get(statement_id=st_ids[1])
+        act1 = Activity.objects.get(id=st1.object_activity.id)
+        act2 = Activity.objects.get(id=st2.object_activity.id)
+        self.assertEqual(act2.id, act1.id)
 
     # Test activity that doesn't have a def with extensions (populates everything from XML)
     @override_settings(CELERY_ALWAYS_EAGER=True,
                         TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner')
     def test_activity_no_def_json_metadata_extensions(self):
-        if settings.CELERY_ENABLED:
-            stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-                "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-                "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample2/'}})
+        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample2/'}})
 
-            response = self.client.post(reverse(statements), stmt1, content_type="application/json",
-                Authorization=self.auth, X_Experience_API_Version="1.0.0")
-            
-            self.assertEqual(response.status_code, 200)
-            st_id = json.loads(response.content)
-            st = Statement.objects.get(statement_id=st_id[0])
-            act = Activity.objects.get(id=st.object_activity.id)
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version="1.0.0")
+        
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)
+        st = Statement.objects.get(statement_id=st_id[0])
+        act = Activity.objects.get(id=st.object_activity.id)
 
-            name_set = act.activity_definition_name
-            desc_set = act.activity_definition_description
-            
-            self.assertEqual(name_set.keys()[0], 'en-US')
-            self.assertEqual(name_set.values()[0], 'Example Name')
+        name_set = act.activity_definition_name
+        desc_set = act.activity_definition_description
+        
+        self.assertEqual(name_set.keys()[0], 'en-US')
+        self.assertEqual(name_set.values()[0], 'Example Name')
 
-            self.assertEqual(desc_set.keys()[0], 'en-US')
-            self.assertEqual(desc_set.values()[0], 'Example Desc')
+        self.assertEqual(desc_set.keys()[0], 'en-US')
+        self.assertEqual(desc_set.values()[0], 'Example Desc')
 
-            self.do_activity_model(act.id, CURRENT_SITE + '/XAPI/actexample2/', 'Activity')
-            self.do_activity_definition_extensions_model(act, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
-                'second value', 'third value')
+        self.do_activity_model(act.id, CURRENT_SITE + '/XAPI/actexample2/', 'Activity')
+        self.do_activity_definition_extensions_model(act, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
+            'second value', 'third value')
 
 
     # Test an activity that has a def, and the provided ID doesn't resolve

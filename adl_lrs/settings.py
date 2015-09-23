@@ -124,13 +124,15 @@ OAUTH_SCOPES = (
         (ALL_READ,'all/read'),
         (ALL,'all')
     )
+
 SESSION_KEY = 'oauth2'
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
-
-# Enable celery for activityID metadata retrieval
-CELERY_ENABLED = True
 # One minute timeout to all celery tasks
 CELERYD_TASK_SOFT_TIME_LIMIT = 60
 # ActivityID resolve timeout (seconds)
@@ -175,7 +177,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.tz",
     "django.contrib.messages.context_processors.messages"
 )
-
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -278,10 +279,10 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False
         },
-        'celery-act-task': {
+        'celery-task': {
             'handlers': ['celery_handler'],
             'level': 'DEBUG',
             'propagate': True
-        },
+        },   
     }
 }

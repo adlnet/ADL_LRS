@@ -367,7 +367,6 @@ class StatementTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Invalid field(s) found in Activity definition - bad')
 
-
     def test_post_wrong_duration(self):
         stmt = json.dumps({"actor":{'name':'jon',
             'mbox':'mailto:jon@example.com'},'verb': {"id":"verb:verb/url"},"object": {'id':'act:activity13'}, 
@@ -380,15 +379,13 @@ class StatementTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "Error with result duration - Unable to parse duration string u'wrongduration'")
 
-
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:ref@ref.com"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
             "id":"12345678-1234-5678-1234-567812345678"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(response.status_code, 404)
-
+        self.assertEqual(response.status_code, 200)
 
     def test_post_with_actor(self):
         stmt = json.dumps({"actor":{"mbox":"mailto:mr.t@example.com"},
@@ -1618,7 +1615,9 @@ class StatementTests(TestCase):
         stmt_payload2 = stmt2
         resp2 = self.client.put(path2, stmt_payload2, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp2.status_code, 204)
-        
+
+    @override_settings(CELERY_ALWAYS_EAGER=True,
+                        TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner')         
     def test_void(self):
         stmt_guid = str(uuid.uuid1())
         stmt = {"actor":{"mbox":"mailto:tinytom@example.com"},
@@ -1634,7 +1633,6 @@ class StatementTests(TestCase):
 
         r = self.client.get(reverse(statements), Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
-
         obj = json.loads(r.content)
 
         self.assertEqual(len(obj['statements']), 1)
@@ -1672,8 +1670,7 @@ class StatementTests(TestCase):
                 self.assertEqual(o['object']['id'], stmt2['object']['id'])
 
         stmtv = {"actor":{"mbox":"mailto:hulk@example.com"},
-                "verb":{"id":"http://adlnet.gov/expapi/verbs/voided",
-                        "display":{"en-US":"smash"}},
+                "verb":{"id":"http://adlnet.gov/expapi/verbs/voided"},
                 "object":{"objectType":"StatementRef",
                           "id":"%s" % stmt_guid}}
         v_guid = str(uuid.uuid1())
@@ -1686,6 +1683,7 @@ class StatementTests(TestCase):
 
         r = self.client.get(reverse(statements), Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
+        test = Statement.objects.get(statement_id=stmt_guid)
         obj = json.loads(r.content)
         self.assertEqual(len(obj['statements']), 2)
         objs = obj['statements']
@@ -1754,20 +1752,19 @@ class StatementTests(TestCase):
     @override_settings(CELERY_ALWAYS_EAGER=True,
                         TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner') 
     def test_large_batch(self):
-        if settings.CELERY_ENABLED:
-            import random
-            post_payload = []
-            acts = ["http://tom.com/act/1/foo", "http://adlnet.gov/act/arrgs/2", "http://google.com/activity/eats/ants", "http://tom.com/act/3/boo"];
-            ctxs = ["http://ctx.com/one", "http://ctx.com/two"];
+        import random
+        post_payload = []
+        acts = ["http://tom.com/act/1/foo", "http://adlnet.gov/act/arrgs/2", "http://google.com/activity/eats/ants", "http://tom.com/act/3/boo"];
+        ctxs = ["http://ctx.com/one", "http://ctx.com/two"];
 
-            for x in range(1, 500):
-                s = {"verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},"object": {"id":""}, "actor":{"mbox":"mailto:t@t.com"},
-                    "context": {"contextActivities": {"grouping": [{"id": ""}]}}}
+        for x in range(1, 500):
+            s = {"verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},"object": {"id":""}, "actor":{"mbox":"mailto:t@t.com"},
+                "context": {"contextActivities": {"grouping": [{"id": ""}]}}}
 
-                s['object']['id'] = acts[random.randrange(0, len(acts)-1)]
-                s['context']['contextActivities']['grouping'][0]['id'] = ctxs[random.randrange(0, len(ctxs)-1)]
-                post_payload.append(s)
+            s['object']['id'] = acts[random.randrange(0, len(acts)-1)]
+            s['context']['contextActivities']['grouping'][0]['id'] = ctxs[random.randrange(0, len(ctxs)-1)]
+            post_payload.append(s)
 
-            response = self.client.post(reverse(statements), json.dumps(post_payload), content_type="application/json",
-                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-            self.assertEqual(response.status_code, 200)
+        response = self.client.post(reverse(statements), json.dumps(post_payload), content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(response.status_code, 200)
