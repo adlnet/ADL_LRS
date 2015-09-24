@@ -561,9 +561,6 @@ class Statement(models.Model):
 
         return ret
 
-    def unvoid_statement(self):
-        Statement.objects.filter(statement_id=self.object_statementref).update(voided=False)        
-
     def get_a_name(self):
         return self.statement_id
 
@@ -578,16 +575,6 @@ class Statement(models.Model):
             stmt_object = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         return stmt_object
 
-    def delete(self, *args, **kwargs):        
-        # Unvoid stmt if verb is voided
-        if self.verb.verb_id == 'http://adlnet.gov/expapi/verbs/voided':
-            self.unvoid_statement()
-        # If sub or ref, FK will be set to null, then call delete
-        if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
-            if self.object_substatement:
-                self.object_substatement.delete()
-        super(Statement, self).delete(*args, **kwargs)
-
     def __unicode__(self):
         return json.dumps(self.to_dict())
 
@@ -601,7 +588,6 @@ class AttachmentFileSystemStorage(FileSystemStorage):
             return name
         # if the file is new, DO call it
         return super(AttachmentFileSystemStorage, self)._save(name, content)    
-
 class StatementAttachment(models.Model):
     usageType = models.CharField(max_length=MAX_URL_LENGTH)
     contentType = models.CharField(max_length=128)
