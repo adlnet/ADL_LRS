@@ -315,7 +315,7 @@ class SubStatement(models.Model):
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(default={}, blank=True)
-    timestamp = models.DateTimeField(blank=True,null=True,
+    timestamp = models.DateTimeField(blank=True, null=True,
         default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
     context_registration = models.CharField(max_length=40, blank=True, db_index=True)
     context_instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
