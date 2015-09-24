@@ -134,8 +134,8 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(attachments), 2)
 
         
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), base64.b64encode("This is second attachment."))
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].payload.read(), base64.b64encode("This is second attachment."))
 
     def test_multiple_stmt_multipart_same_attachment(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -184,10 +184,10 @@ class AttachmentAndSignedTests(TestCase):
         stmts = Statement.objects.all()
         attachments = StatementAttachment.objects.all()
         self.assertEqual(len(stmts), 2)
-        self.assertEqual(len(attachments), 1)
+        self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
-        self.assertEqual(saved_stmt2.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
 
     def test_multiple_stmt_multipart_one_attachment_one_fileurl(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -236,8 +236,8 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
-        self.assertEqual(saved_stmt2.attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
 
     def test_multiple_stmt_multipart_multiple_attachments_each(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -325,10 +325,10 @@ class AttachmentAndSignedTests(TestCase):
 
         stmt1_contents = ["This is a text attachment11","This is a text attachment12"]
         stmt2_contents = ["This is a text attachment21","This is a text attachment22"]
-        self.assertIn(base64.b64decode(saved_stmt1.attachments.all()[0].payload.read()), stmt1_contents)
-        self.assertIn(base64.b64decode(saved_stmt1.attachments.all()[1].payload.read()), stmt1_contents)
-        self.assertIn(base64.b64decode(saved_stmt2.attachments.all()[0].payload.read()), stmt2_contents)
-        self.assertIn(base64.b64decode(saved_stmt2.attachments.all()[1].payload.read()), stmt2_contents)
+        self.assertIn(base64.b64decode(saved_stmt1.stmt_attachments.all()[0].payload.read()), stmt1_contents)
+        self.assertIn(base64.b64decode(saved_stmt1.stmt_attachments.all()[1].payload.read()), stmt1_contents)
+        self.assertIn(base64.b64decode(saved_stmt2.stmt_attachments.all()[0].payload.read()), stmt2_contents)
+        self.assertIn(base64.b64decode(saved_stmt2.stmt_attachments.all()[1].payload.read()), stmt2_contents)
 
     def test_multipart_wrong_sha(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -514,10 +514,10 @@ class AttachmentAndSignedTests(TestCase):
         stmts = Statement.objects.all()
         attachments = StatementAttachment.objects.all()
         self.assertEqual(len(stmts), 2)
-        self.assertEqual(len(attachments), 1)
+        self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.attachments.all()[0].fileUrl, "http://my/file/url")
-        self.assertEqual(saved_stmt2.attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
 
     def tyler_attachment_snafu(self):
         stmt = {
@@ -917,57 +917,6 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(imgsha, hashlib.sha256(parts[2].get_payload()).hexdigest())
         self.assertEqual(parts[2].get('Content-Type'), 'image/png')
         self.assertEqual(parts[2].get('Content-Transfer-Encoding'), 'binary')
-
-    def test_app_json_multipart_post_define(self):
-        stmt = {
-            "actor":{"mbox":"mailto:tom@example.com"},
-            "verb":{"id":"http://tom.com/verb/butted"},
-            "object":{"id":"act:tom.com/objs/heads"},
-            "attachments": [
-            {"usageType": "http://example.com/attachment-usage/test",
-            "display": {"en-US": "A test attachment"},
-            "description": {"en-US": "A test attachment (description)"},
-            "contentType": "text/plain; charset=utf-8",
-            "length": 27,
-            "fileUrl": "http://my/file/url"}]}
-        
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(response.status_code, 200)
-
-        stmt = {
-            "actor":{"mbox":"mailto:tom@example.com"},
-            "verb":{"id":"http://tom.com/verb/butted"},
-            "object":{"id":"act:tom.com/objs/heads"},
-            "attachments": [
-            {"usageType": "http://example.com/attachment-usage/test",
-            "display": {"en-US": "A test attachment.", "en-UK": "UK attachment"},
-            "description": {"en-US": "A test attachment (description)", "en-UK": "UK attachment"},
-            "contentType": "text/plain; charset=utf-8",
-            "length": 27,
-            "fileUrl": "http://my/file/url"}]}
-        
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(response.status_code, 200)
-        attach_objs = StatementAttachment.objects.all()
-        self.assertEqual(len(attach_objs), 1)
-
-        displays = attach_objs[0].display
-        descs = attach_objs[0].description
-
-        self.assertEqual(len(displays), 2)
-        self.assertEqual(len(descs), 2)
-
-        self.assertIn('en-US', displays.keys())
-        self.assertIn('en-UK', displays.keys())
-        self.assertIn('A test attachment.', displays.values())
-        self.assertIn('UK attachment', displays.values())
-
-        self.assertIn('en-US', descs.keys())
-        self.assertIn('en-UK', descs.keys())
-        self.assertIn('A test attachment (description)', descs.values())
-        self.assertIn('UK attachment', descs.values())
 
     def test_example_signed_statement(self):
         header = base64.urlsafe_b64decode(fixpad(encodedhead))

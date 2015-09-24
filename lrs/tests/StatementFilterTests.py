@@ -13,6 +13,7 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
@@ -1604,6 +1605,8 @@ class StatementFilterTests(TestCase):
         stmt_obj = json.loads(r.content)
         self.assertNotIn('definition', stmt_obj['object'])
 
+    @override_settings(CELERY_ALWAYS_EAGER=True,
+                        TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner') 
     def test_voidedStatementId(self):
         stmt = {"actor":{"mbox":"mailto:dog@example.com"},
                 "verb":{"id":"http://tom.com/verb/ate"},

@@ -5,7 +5,7 @@
         {% lazy_paginate statements %}
         {% for stmt in statements %}
             <div class="datacontainer pure-u">
-                <h4 class="email-name"><span class="actor">{{ stmt.actor.get_a_name }}</span> <span class="verb">{{ stmt.verb.get_display }}</span> <span class="object">{{ stmt.get_object.get_a_name }}</span></h4>
+                <h4 class="email-name"><span class="actor">{{ stmt.actor.get_a_name }}</span> <span class="verb">{{ stmt.verb.get_display }}</span> <span class="object">{% if stmt.object_statementref %}{{ stmt.get_object.id }}{% else %}{{ stmt.get_object.get_a_name }}{% endif %}</span></h4>
                 <h5 class="email-subject">{{ stmt.timestamp }}</h5>
                 <h5 class="email-subject">{{ stmt.statement_id }}</h5>
                 <p class="email-desc">

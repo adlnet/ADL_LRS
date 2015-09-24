@@ -2,15 +2,11 @@ import re
 from isodate.isodatetime import parse_datetime
 from isodate.isoduration import parse_duration
 from isodate.isoerror import ISO8601Error
+from rfc3987 import parse as iriparse
+from uuid import UUID
 
 from ..exceptions import ParamError
 from util import convert_to_dict
-
-SCHEME = 2
-EMAIL = 5
-iri_re = re.compile('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?')
-sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
-lang_tag_re = re.compile('^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']
@@ -74,6 +70,7 @@ class StatementValidator():
 
 	def validate_lang_tag(self, tag, field):
 		if tag:
+			lang_tag_re = re.compile('^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
 			for lang in tag:
 				if not lang_tag_re.match(lang) or tag == 'test':
 					self.return_error("language %s is not valid in %s" % (tag, field))
@@ -87,6 +84,7 @@ class StatementValidator():
 
 	def validate_email_sha1sum(self, sha1sum):
 		if isinstance(sha1sum, basestring):
+			sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
 			if not sha1sum_re.match(sha1sum):
 				self.return_error("mbox_sha1sum value [%s] is not a valid sha1sum" % sha1sum)
 		else:
@@ -94,16 +92,20 @@ class StatementValidator():
 
 	def validate_iri(self, iri_value, field):
 		if isinstance(iri_value, basestring):
-			if not iri_re.match(iri_value).group(SCHEME):
+			try:
+				iriparse(iri_value, rule='IRI')
+			except Exception:
 				self.return_error("%s with value %s was not a valid IRI" % (field, iri_value))
 		else:
 			self.return_error("%s must be a string type" % field)
 		
 	def validate_uuid(self, uuid, field):
 		if isinstance(uuid, basestring):
-			id_regex = re.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$")
-			if not id_regex.match(uuid):
+			try:
+				val = UUID(uuid, version=4)
+			except ValueError:
 				self.return_error("%s - %s is not a valid UUID" % (field, uuid))
+			return val.hex == uuid				
 		else:
 			self.return_error("%s must be a string type" % field)
 
@@ -191,6 +193,10 @@ class StatementValidator():
 						if 'account' in agent:
 							if not 'oauth' in agent['account']['homePage'].lower():
 								self.return_error("Statements cannot have a non-OAuth group as the authority")
+							# Probably an oauth group
+							else:
+								if set(authority.keys()) != set(['objectType', 'member']):
+									self.return_error("Statements cannot have a non-OAuth group as the authority")
 				else:
 					self.return_error("OAuth authority must only contain 2 members")
 			# No members contain an account so that means it's not an Oauth group
@@ -268,7 +274,6 @@ class StatementValidator():
 		elif agent['objectType'] == 'Group' and len(ifis) > 1:
 			self.return_error("None or one and only one of %s may be supplied with a Group" % ", ".join(agent_ifis_can_only_be_one))
 
-
 		if agent['objectType'] == 'Agent':
 			# If agent, if name given, ensure name is string and validate the IFI
 			if 'name' in agent and not isinstance(agent['name'], basestring):
@@ -302,6 +307,7 @@ class StatementValidator():
 		object_types = [t['objectType'] for t in members if 'objectType' in t]
 		if 'Group' in object_types:
 			self.return_error('Group member value cannot be other groups')
+		
 		# Validate each member in group
 		for agent in members:
 			self.validate_agent(agent, 'member')
@@ -426,7 +432,7 @@ class StatementValidator():
 
 		interactionType = None
 		# If interactionType included, ensure it is a string
-		if 'interactionType' in definition and 'correctResponsesPattern' in definition:
+		if 'interactionType' in definition:
 			if not isinstance(definition['interactionType'], basestring):
 				self.return_error("Activity definition interactionType must be a string")
 
@@ -438,16 +444,14 @@ class StatementValidator():
 				self.return_error("Activity definition interactionType %s is not valid" % definition['interactionType'])
 
 			interactionType = definition['interactionType']
-
+		# If crp included, ensure they are strings in a list
+		if 'correctResponsesPattern' in definition:
 			self.check_if_list(definition['correctResponsesPattern'], "Activity definition correctResponsesPattern")
 			for answer in definition['correctResponsesPattern']:
 				# For each answer, ensure it is a string
 				if not isinstance(answer, basestring):
 					self.return_error("Activity definition correctResponsesPattern answers must all be strings")
-		elif 'interactionType' not in definition and 'correctResponsesPattern' not in definition:
-			pass
-		else:
-			self.return_error('If using interaction types, both interactionType and correctResponsesPattern fields must be present')
+
 		self.validate_interaction_types(interactionType, definition)
 
 		# If extensions, validate it

@@ -83,7 +83,7 @@ def actexample2(request):
 @decorator_from_middleware(accept_middleware.AcceptMiddleware)
 def about(request):
     lrs_data = { 
-        "version": [settings.XAPI_VERSION],
+        "version": settings.XAPI_VERSIONS,
         "extensions":{
             "xapi": {
                 "statements":

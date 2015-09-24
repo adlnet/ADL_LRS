@@ -6,7 +6,7 @@ from util import convert_to_dict, get_agent_ifp
 from Authorization import auth
 from StatementValidator import StatementValidator
 
-from ..models import Statement, Agent, Activity
+from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile
 from ..exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
 
 def check_for_existing_statementId(stmtID):
@@ -39,20 +39,13 @@ def validate_oauth_state_or_profile_agent(req_dict, endpoint):
 def validate_void_statement(void_id):
     # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error 
     # since you cannot unvoid a statement and should just reissue the statement under a new ID.
-    try:
-        stmt = Statement.objects.get(statement_id=void_id)
-    except Statement.DoesNotExist:
-        err_msg = "Statement with ID %s does not exist" % void_id
-        raise IDNotFoundError(err_msg)
-        
-    if stmt.voided:
-        err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
-        raise Forbidden(err_msg)
-
-def server_validate_statement_object(stmt_object, auth):
-    if stmt_object['objectType'] == 'StatementRef' and not check_for_existing_statementId(stmt_object['id']):
-            err_msg = "No statement with ID %s was found" % stmt_object['id']
-            raise IDNotFoundError(err_msg)
+    stmts = Statement.objects.filter(statement_id=void_id)
+    if len(stmts) > 1:
+        raise IDNotFoundError("Something went wrong. %s statements found with id %s" % (len(stmts), void_id))
+    elif len(stmts) == 1:
+        if stmts[0].voided:
+            err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
+            raise BadRequest(err_msg)
             
 def validate_stmt_authority(stmt, auth):
     # If not validated yet - validate auth first since it supercedes any auth in stmt
@@ -65,24 +58,23 @@ def validate_stmt_authority(stmt, auth):
                 err_msg = "OAuth authority must only contain 2 members"
                 raise ParamError(err_msg)
 
-def validate_body(body, auth, payload_sha2s):
-        [server_validate_statement(stmt, auth, payload_sha2s) for stmt in body]
+def validate_body(body, auth, payload_sha2s, content_type):
+        [server_validate_statement(stmt, auth, payload_sha2s, content_type) for stmt in body]
     
-def server_validate_statement(stmt, auth, payload_sha2s):
+def server_validate_statement(stmt, auth, payload_sha2s, content_type):
     if 'id' in stmt:
         statement_id = stmt['id']
         if check_for_existing_statementId(statement_id):
             err_msg = "A statement with ID %s already exists" % statement_id
             raise ParamConflict(err_msg)
 
-    server_validate_statement_object(stmt['object'], auth)
     if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         validate_void_statement(stmt['object']['id'])
 
     validate_stmt_authority(stmt, auth)
     if 'attachments' in stmt:
         attachment_data = stmt['attachments']
-        validate_attachments(attachment_data, payload_sha2s)
+        validate_attachments(attachment_data, payload_sha2s, content_type)
 
 @auth
 def statements_post(req_dict):
@@ -104,7 +96,7 @@ def statements_post(req_dict):
         body = [req_dict['body']]
     else:
         body = req_dict['body']
-    validate_body(body, req_dict['auth'], req_dict.get('payload_sha2s', None))
+    validate_body(body, req_dict['auth'], req_dict.get('payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])
 
     return req_dict
 
@@ -226,10 +218,6 @@ def statements_put(req_dict):
     # If ids exist in both places, check if they are equal
     if statement_body_id and statement_id != statement_body_id:
         raise ParamError("Error -- statements - method = %s, param and body ID both given, but do not match" % req_dict['method'])
-
-    # If statement with that ID already exists-raise conflict error
-    if check_for_existing_statementId(statement_id):
-        raise ParamConflict("A statement with ID %s already exists" % statement_id)
     
     # Set id inside of statement with param id
     if not statement_body_id:
@@ -247,23 +235,29 @@ def statements_put(req_dict):
         raise BadRequest(e.message)
     except ParamError, e:
         raise ParamError(e.message)
-    validate_body([req_dict['body']], req_dict['auth'], req_dict.get('payload_sha2s', None))
+    validate_body([req_dict['body']], req_dict['auth'], req_dict.get('payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])
     return req_dict
 
-def validate_attachments(attachment_data, payload_sha2s):
-    # For each attachment that is in the actual statement
-    for attachment in attachment_data:
-        # If the attachment data has a sha2 field, must validate it against the payload data
-        if 'sha2' in attachment:
-            sha2 = attachment['sha2']
-            # Check if the sha2 field is a key in the payload dict
-            if payload_sha2s:
-                if not sha2 in payload_sha2s:
-                    err_msg = "Could not find attachment payload with sha: %s" % sha2
-                    raise ParamError(err_msg)
-            else:
-                if not 'fileUrl' in attachment:
-                    raise BadRequest("Missing X-Experience-API-Hash field in header")
+def validate_attachments(attachment_data, payload_sha2s, content_type):    
+    if "multipart/mixed" in content_type:
+        for attachment in attachment_data:
+            # If the attachment data has a sha2 field, must validate it against the payload data
+            if 'sha2' in attachment:
+                sha2 = attachment['sha2']
+                # Check if the sha2 field is a key in the payload dict
+                if payload_sha2s:
+                    if not sha2 in payload_sha2s and not 'fileUrl' in attachment:
+                        err_msg = "Could not find attachment payload with sha: %s" % sha2
+                        raise ParamError(err_msg)
+                else:
+                    if not 'fileUrl' in attachment:
+                        raise BadRequest("Missing X-Experience-API-Hash field in header")
+    elif "application/json" == content_type:
+        for attachment in attachment_data:
+            if not 'fileUrl' in attachment:
+                raise BadRequest("When sending statements with attachments as 'application/json', you must include fileUrl field")
+    else:
+        raise BadRequest('Invalid Content-Type %s when sending statements with attachments' % content_type)
 
 @auth
 def activity_state_post(req_dict):
@@ -304,6 +298,30 @@ def activity_state_post(req_dict):
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(req_dict, "state")
+
+    # Check the content type if the document already exists
+    registration = req_dict['params'].get('registration', None)
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]    
+    exists = False
+    if registration:
+        try:
+            s = ActivityState.objects.get(state_id=req_dict['params']['stateId'], agent=a,
+                activity_id=req_dict['params']['activityId'], registration_id=req_dict['params']['registration'])
+            exists = True
+        except ActivityState.DoesNotExist:
+            pass
+    else:
+        try:
+            s = ActivityState.objects.get(state_id=req_dict['params']['stateId'], agent=a,
+                activity_id=req_dict['params']['activityId'])
+            exists = True
+        except ActivityState.DoesNotExist:
+            pass
+    if exists:
+        if str(s.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or \
+            req_dict['headers']['CONTENT_TYPE'] != "application/json"):
+            raise ParamError("Neither original document or document to be posted has a Content-Type of 'application/json'")
 
     # Set state
     req_dict['state'] = req_dict.pop('raw_body', req_dict.pop('body', None))
@@ -445,6 +463,20 @@ def activity_profile_post(req_dict):
         err_msg = "Could not find the profile document"
         raise ParamError(err_msg)
 
+    # Check the content type if the document already exists 
+    exists = False
+    try:
+        p = ActivityProfile.objects.get(activityId=req_dict['params']['activityId'], 
+            profileId=req_dict['params']['profileId'])
+        exists = True
+    except ActivityProfile.DoesNotExist:
+        pass
+
+    if exists:
+        if str(p.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or \
+            req_dict['headers']['CONTENT_TYPE'] != "application/json"):
+            raise ParamError("Neither original document or document to be posted has a Content-Type of 'application/json'")
+
     req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
     return req_dict
 
@@ -565,6 +597,21 @@ def agent_profile_post(req_dict):
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(req_dict, "profile")
     
+    # Check the content type if the document already exists 
+    exists = False
+    agent = req_dict['params']['agent']
+    a = Agent.objects.retrieve_or_create(**agent)[0]   
+    try:
+        p = AgentProfile.objects.get(profileId=req_dict['params']['profileId'],agent=a)
+        exists = True
+    except AgentProfile.DoesNotExist:
+        pass
+
+    if exists:
+        if str(p.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or \
+            req_dict['headers']['CONTENT_TYPE'] != "application/json"):
+            raise ParamError("Neither original document or document to be posted has a Content-Type of 'application/json'")
+
     # Set profile
     req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
 

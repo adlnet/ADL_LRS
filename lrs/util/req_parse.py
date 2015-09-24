@@ -1,4 +1,3 @@
-import StringIO
 import email
 import urllib
 import json
@@ -7,7 +6,6 @@ from base64 import b64decode, b64encode
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
 
-from django.http import MultiPartParser
 from django.core.cache import get_cache
 
 from util import convert_to_dict, convert_post_body_to_dict
@@ -145,7 +143,6 @@ def set_authorization(r_dict, request):
     else:        
         r_dict['auth']['type'] = 'http'    
 
-
 def get_endpoint(request):
     # Used for OAuth scope
     endpoint = request.path[5:]
@@ -231,20 +228,13 @@ def parse_attachment(r, request):
 
 def parse_body(r, request):
     if request.method == 'POST' or request.method == 'PUT':
-        # Parse out profiles/states if the POST dict is not empty
-        if 'multipart/form-data' in request.META['CONTENT_TYPE']:
-            if request.POST.dict().keys():
-                r['params'].update(request.POST.dict())
-                parser = MultiPartParser(request.META, StringIO.StringIO(request.raw_post_data),request.upload_handlers)
-                post, files = parser.parse()
-                r['files'] = files
-        # If it is multipart/mixed, parse out all data
-        elif 'multipart/mixed' in request.META['CONTENT_TYPE']: 
+        # If it is multipart/mixed we're expecting attachment data (also for signed statements)
+        if 'multipart/mixed' in request.META['CONTENT_TYPE']: 
             parse_attachment(r, request)
-        # Normal POST/PUT data
+        # If it's any other content-type try parsing it out
         else:
             if request.body:
-                # profile uses the request body
+                # profile/states use the raw body
                 r['raw_body'] = request.body
                 # Body will be some type of string, not necessarily JSON
                 r['body'] = convert_to_dict(request.body)

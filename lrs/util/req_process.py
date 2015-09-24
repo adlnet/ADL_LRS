@@ -10,14 +10,14 @@ from django.utils.timezone import utc
 
 from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
-from ..models import Statement, StatementAttachment, Agent, Activity
+from ..models import Statement, Agent, Activity
 from ..managers.ActivityProfileManager import ActivityProfileManager
 from ..managers.ActivityStateManager import ActivityStateManager 
 from ..managers.AgentProfileManager import AgentProfileManager
 from ..managers.StatementManager import StatementManager
-from ..tasks import check_activity_metadata
+from ..tasks import check_activity_metadata, void_statements
 
-def process_statement(stmt, auth, version):
+def process_statement(stmt, auth, version, payload_sha2s):
     # Add id to statement if not present
     if not 'id' in stmt:
         stmt['id'] = str(uuid.uuid1())
@@ -48,11 +48,14 @@ def process_statement(stmt, auth, version):
 
     # Copy full statement and send off to StatementManager to save
     stmt['full_statement'] = copy.deepcopy(stmt)
-    st = StatementManager(stmt, auth).model_object
-    return st.statement_id
+    st = StatementManager(stmt, auth, payload_sha2s).model_object
 
-def process_body(stmts, auth, version):
-    return [process_statement(st, auth, version) for st in stmts]
+    if stmt['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
+        return st.statement_id, st.object_statementref
+    return st.statement_id, None
+
+def process_body(stmts, auth, version, payload_sha2s):
+    return [process_statement(st, auth, version, payload_sha2s) for st in stmts]
 
 def process_complex_get(req_dict):
     mime_type = "application/json"
@@ -121,17 +124,23 @@ def statements_post(req_dict):
     else:
         body = req_dict['body']
 
-    stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'])
-    if settings.CELERY_ENABLED:
-        check_activity_metadata.delay(stmt_responses)
-    return HttpResponse(json.dumps([st for st in stmt_responses]), mimetype="application/json", status=200)
+    stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
+    stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
+    stmts_to_void = [stmt_tup[1] for stmt_tup in stmt_responses if stmt_tup[1]]
+    check_activity_metadata.delay(stmt_ids)
+    if stmts_to_void:
+        void_statements.delay(stmts_to_void)
+    return HttpResponse(json.dumps([st for st in stmt_ids]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
     # Since it is single stmt put in list
-    stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'])
-    if settings.CELERY_ENABLED:
-        check_activity_metadata.delay(stmt_responses)
+    stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
+    stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
+    stmts_to_void = [stmt_tup[1] for stmt_tup in stmt_responses if stmt_tup[1]]
+    check_activity_metadata.delay(stmt_ids)
+    if stmts_to_void:
+        result = void_statements.delay(stmts_to_void)
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
@@ -210,11 +219,11 @@ def build_response(stmt_result):
     # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
-            for attachment in stmt['attachments']:
-                if 'sha2' in attachment:
-                    # If there is a sha2-retrieve the StatementAttachment object and add the payload to sha2s
-                    att_object = StatementAttachment.objects.get(sha2=attachment['sha2'])
-                    sha2s.append((attachment['sha2'], att_object.payload, att_object.contentType))    
+            st_atts = Statement.objects.get(statement_id=stmt['id']).stmt_attachments
+            if st_atts:
+                for att in st_atts.all():
+                    if att.payload:
+                        sha2s.append((att.sha2, att.payload, att.contentType))
     # If attachments have payloads
     if sha2s:
         # Create multipart message and attach json message to it
@@ -363,8 +372,8 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
-    act = Activity.objects.get(activity_id=activityId, authority__isnull=False)    
-    return_act = json.dumps(act.to_dict())    
+    act = Activity.objects.get(activity_id=activityId, authority__isnull=False)
+    return_act = json.dumps(act.to_dict('all'))    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
     # If it's a HEAD request

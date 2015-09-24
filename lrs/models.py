@@ -5,6 +5,7 @@ from jsonfield import JSONField
 from django_extensions.db.fields import UUIDField
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.files.storage import FileSystemStorage
 from django.utils.timezone import utc
 
 from oauth_provider.consts import MAX_URL_LENGTH
@@ -186,9 +187,11 @@ class Agent(models.Model):
         if self.openid:
             ret['openid'] = [self.openid]
         if self.account_name:
-            ret['account'] = {}
-            ret['account']['name'] = self.account_name
-            ret['account']['homePage'] = self.account_homePage
+            ret['account'] = []
+            acc = {}
+            acc['name'] = self.account_name
+            acc['homePage'] = self.account_homePage
+            ret['account'].append(acc)
         return ret
 
     def get_a_name(self):
@@ -296,27 +299,10 @@ class Activity(models.Model):
     def __unicode__(self):
         return json.dumps(self.to_dict())
 
-class StatementRef(models.Model):
-    object_type = models.CharField(max_length=12, default="StatementRef")
-    ref_id = models.CharField(max_length=40)
-
-    def to_dict(self):
-        ret = {}
-        ret['objectType'] = "StatementRef"
-        ret['id'] = self.ref_id
-        return ret
-
-    def get_a_name(self):
-        s = Statement.objects.get(statement_id=self.ref_id)
-        return s.get_object().get_a_name()
-
-    def __unicode__(self):
-        return json.dumps(self.to_dict())
-
 class SubStatement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
-    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)    
+    object_statementref = models.CharField(max_length=40, blank=True, null=True, db_index=True)
     actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
@@ -357,7 +343,7 @@ class SubStatement(models.Model):
         elif self.object_activity:
             ret['object'] = self.object_activity.to_dict(lang, format)
         else:
-            ret['object'] = self.object_statementref.to_dict()
+            ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         
         ret['result'] = {}
         if self.result_success != None:
@@ -424,7 +410,12 @@ class SubStatement(models.Model):
         return ret
 
     def get_a_name(self):
-        return self.get_object().get_a_name()
+        if self.object_activity:
+            return self.object_activity.get_a_name()
+        elif self.object_agent:
+            return self.object_agent.get_a_name()
+        else:
+            return self.object_statementref
 
     def get_object(self):
         if self.object_activity:
@@ -432,41 +423,8 @@ class SubStatement(models.Model):
         elif self.object_agent:
             stmt_object = self.object_agent
         else:
-            stmt_object = self.object_statementref
+            stmt_object = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         return stmt_object
-
-    def delete(self, *args, **kwargs):
-        if self.object_statementref:
-            self.object_statementref.delete()
-        super(SubStatement, self).delete(*args, **kwargs)
-
-    def __unicode__(self):
-        return json.dumps(self.to_dict())
-
-class StatementAttachment(models.Model):
-    usageType = models.CharField(max_length=MAX_URL_LENGTH)
-    contentType = models.CharField(max_length=128)
-    length = models.PositiveIntegerField()
-    sha2 = models.CharField(max_length=128, blank=True)
-    fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
-    payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, null=True)
-    display = JSONField(default={}, blank=True)
-    description = JSONField(default={}, blank=True)
-
-    def to_dict(self, lang=None):
-        ret = {}
-        ret['usageType'] = self.usageType
-        if self.display:
-            ret['display'] = util.get_lang(self.display, lang)
-        if self.description:
-            ret['description'] = util.get_lang(self.description, lang)
-        ret['contentType'] = self.contentType
-        ret['length'] = self.length
-        if self.sha2:
-            ret['sha2'] = self.sha2
-        if self.fileUrl:
-            ret['fileUrl'] = self.fileUrl
-        return ret
 
     def __unicode__(self):
         return json.dumps(self.to_dict())
@@ -477,7 +435,7 @@ class Statement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
-    object_statementref = models.ForeignKey(StatementRef, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)    
+    object_statementref = models.CharField(max_length=40, blank=True, null=True, db_index=True)    
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
@@ -513,7 +471,6 @@ class Statement(models.Model):
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7)
-    attachments = models.ManyToManyField(StatementAttachment)
     # Used in views
     user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
     full_statement = JSONField()
@@ -533,7 +490,7 @@ class Statement(models.Model):
         elif self.object_substatement:
             ret['object'] = self.object_substatement.to_dict(lang, format)
         else:
-            ret['object'] = self.object_statementref.to_dict()
+            ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
 
         ret['result'] = {}
         if self.result_success != None:
@@ -598,13 +555,14 @@ class Statement(models.Model):
         ret['stored'] = self.stored.isoformat()
         ret['version'] = self.version
         if not self.authority is None:
-            ret['authority'] = self.authority.to_dict(format)
-        if self.attachments.all():
-            ret['attachments'] = [a.to_dict(lang) for a in self.attachments.all()]
+            ret['authority'] = self.authority.to_dict(format)        
+        if self.stmt_attachments.all():
+            ret['attachments'] = [a.to_dict(lang) for a in self.stmt_attachments.all()]
+
         return ret
 
     def unvoid_statement(self):
-        Statement.objects.filter(statement_id=self.object_statementref.ref_id).update(voided=False)        
+        Statement.objects.filter(statement_id=self.object_statementref).update(voided=False)        
 
     def get_a_name(self):
         return self.statement_id
@@ -617,7 +575,7 @@ class Statement(models.Model):
         elif self.object_substatement:
             stmt_object = self.object_substatement
         else:
-            stmt_object = self.object_statementref
+            stmt_object = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         return stmt_object
 
     def delete(self, *args, **kwargs):        
@@ -628,9 +586,47 @@ class Statement(models.Model):
         if self.verb.verb_id != 'http://adlnet.gov/expapi/verbs/voided':
             if self.object_substatement:
                 self.object_substatement.delete()
-            elif self.object_statementref:
-                self.object_statementref.delete()
         super(Statement, self).delete(*args, **kwargs)
+
+    def __unicode__(self):
+        return json.dumps(self.to_dict())
+
+class AttachmentFileSystemStorage(FileSystemStorage):
+    def get_available_name(self, name):
+        return name
+
+    def _save(self, name, content):
+        if self.exists(name):
+            # if the file exists, do not call the superclasses _save method
+            return name
+        # if the file is new, DO call it
+        return super(AttachmentFileSystemStorage, self)._save(name, content)    
+
+class StatementAttachment(models.Model):
+    usageType = models.CharField(max_length=MAX_URL_LENGTH)
+    contentType = models.CharField(max_length=128)
+    length = models.PositiveIntegerField()
+    sha2 = models.CharField(max_length=128, blank=True)
+    fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, storage=AttachmentFileSystemStorage(), null=True)
+    display = JSONField(default={}, blank=True)
+    description = JSONField(default={}, blank=True)
+    statement = models.ForeignKey(Statement, related_name="stmt_attachments", null=True)
+
+    def to_dict(self, lang=None):
+        ret = {}
+        ret['usageType'] = self.usageType
+        if self.display:
+            ret['display'] = util.get_lang(self.display, lang)
+        if self.description:
+            ret['description'] = util.get_lang(self.description, lang)
+        ret['contentType'] = self.contentType
+        ret['length'] = self.length
+        if self.sha2:
+            ret['sha2'] = self.sha2
+        if self.fileUrl:
+            ret['fileUrl'] = self.fileUrl
+        return ret
 
     def __unicode__(self):
         return json.dumps(self.to_dict())

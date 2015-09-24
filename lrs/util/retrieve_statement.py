@@ -10,13 +10,12 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from util import convert_to_utc, convert_to_dict
-from ..models import Statement, Agent, StatementRef
+from ..models import Statement, Agent
 from ..exceptions import NotFound, IDNotFoundError
 
 MORE_ENDPOINT = '/xapi/statements/more/'
 
 def complex_get(param_dict, limit, language, format, attachments):
-    # Tests if value is True or "true"
     voidQ = Q(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
@@ -108,35 +107,41 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','object_statementref','actor','verb','context_team','context_instructor','authority').filter(voidQ & untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority') \
+        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+    
     stmtset = list(stmtset.values_list('statement_id', flat=True))
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
-        stmtset = stmtset + stmtrefsearch(stmtset)
+        stmtset = stmtset + stmtrefsearch(stmtset, untilQ, sinceQ)
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
 
+    actual_length = Statement.objects.filter(Q(statement_id__in=stmtset) & voidQ).distinct().count()
+
     # If there are more stmts than the limit, need to break it up and return more id
-    if len(stmtset) > return_limit:
+    if actual_length > return_limit:
         return initial_cache_return(stmtset, stored_param, return_limit, language, format, attachments)
     else:
         return create_stmt_result(stmtset, stored_param, language, format)
 
-def stmtrefsearch(stmt_list):
-    # find statement refs where ref_id = statement_id in stmt_list
-    stmtreflist = list(StatementRef.objects.filter(ref_id__in=stmt_list).values_list('ref_id', flat=True))
+def stmtrefsearch(stmt_list, untilQ, sinceQ):
+    # find statements where ids in list are used in other statements' objects, context, substatements, and substatement context
+    stmtreflist = list(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True))
     if not stmtreflist:
         return stmt_list
+
     # get the statements that have a statement ref_id in the stmtreflist, recurse
-    return stmtreflist + list(stmtrefsearch(Statement.objects.filter(object_statementref__ref_id__in=stmtreflist).distinct().values_list('statement_id', flat=True)))
+    return stmtreflist + list(stmtrefsearch(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True),
+        untilQ, sinceQ))
 
 def create_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
 
     if stmt_set:
-        stmt_set = Statement.objects.filter(statement_id__in=stmt_set).distinct()
+        stmt_set = Statement.objects.filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
         if format == 'exact':
             stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in stmt_set.order_by(stored)])
         else:
@@ -163,7 +168,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     result = {}
     cache_list = []
 
-    stmt_list = Statement.objects.filter(statement_id__in=stmt_list).distinct()
+    stmt_list = Statement.objects.filter(Q(statement_id__in=stmt_list) & Q(voided=False)).distinct()
     cache_list.append([s for s in stmt_list.order_by(stored).values_list('id', flat=True)])
     stmt_pager = Paginator(cache_list[0], limit)
 
