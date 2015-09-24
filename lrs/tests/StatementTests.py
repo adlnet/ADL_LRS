@@ -1683,6 +1683,7 @@ class StatementTests(TestCase):
 
         r = self.client.get(reverse(statements), Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
+        test = Statement.objects.get(statement_id=stmt_guid)
         obj = json.loads(r.content)
         self.assertEqual(len(obj['statements']), 2)
         objs = obj['statements']

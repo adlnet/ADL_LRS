@@ -353,6 +353,17 @@ def my_download_statements(request):
     response['Content-Length'] = len(result)
     return response
 
+@transaction.commit_on_success
+@login_required(login_url=LOGIN_URL)
+@require_http_methods(["DELETE"])
+def my_delete_statements(request):
+    Statement.objects.filter(user=request.user).delete()
+    stmts = Statement.objects.filter(user=request.user)
+    if not stmts:
+        return HttpResponse(status=204)
+    else:
+        raise Exception("Unable to delete statements")
+
 @login_required(login_url=LOGIN_URL)
 def my_activity_state(request):
     act_id = request.GET.get("act_id", None)
