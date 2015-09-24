@@ -1118,3 +1118,23 @@ class ActivityManagerTests(TestCase):
 
         self.do_activity_definition_model(act1, 'http://adlnet.gov/expapi/activities/cmi.interaction',
             'other')
+        
+    def test_del_act(self):
+        stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
+            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "object": {'objectType':'Activity', 'id': 'act:foob',
+            'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
+            'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
+            'correctResponsesPattern': ['(35,-86)']}}})
+
+        response = self.client.post(reverse(statements), stmt1, content_type="application/json",
+            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        
+        self.assertEqual(response.status_code, 200)
+        st_id = json.loads(response.content)
+        st = Statement.objects.get(statement_id=st_id[0])
+        act = Activity.objects.get(id=st.object_activity.id)
+
+        self.assertEqual(1, len(Activity.objects.all()))
+        act.delete()
+        self.assertEqual(0, len(Activity.objects.all()))
