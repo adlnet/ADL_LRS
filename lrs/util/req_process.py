@@ -140,7 +140,7 @@ def statements_put(req_dict):
     stmts_to_void = [stmt_tup[1] for stmt_tup in stmt_responses if stmt_tup[1]]
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
-        result = void_statements.delay(stmts_to_void)
+        void_statements.delay(stmts_to_void)
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
