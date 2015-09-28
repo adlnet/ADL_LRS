@@ -247,20 +247,6 @@ class AgentManagerTests(TestCase):
         self.assertIn('agent1', mems)
         self.assertIn('agent2', mems)
 
-    def test_agent_del(self):
-        ag = Agent(name="the agent", account_homePage="http://adlnet.gov/agent/1",
-            account_name="agent 1 account")
-        ag.save()
-
-        self.assertEquals(ag.name, "the agent")
-        self.assertEquals(ag.account_name, "agent 1 account")
-        self.assertEquals(ag.account_homePage, "http://adlnet.gov/agent/1")
-        self.assertEquals(1, len(Agent.objects.all()))
-
-        ag.delete()
-
-        self.assertEquals(0, len(Agent.objects.all()))
-
     def test_agent_format(self):
         ot_s = "Agent"
         name_s = "superman"
