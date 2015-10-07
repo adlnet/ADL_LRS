@@ -6,7 +6,7 @@ from rfc3987 import parse as iriparse
 from uuid import UUID
 
 from ..exceptions import ParamError
-from util import convert_to_dict
+from util import convert_to_datatype
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']
@@ -42,8 +42,11 @@ class StatementValidator():
 	def __init__(self, data=None):
 		# If incoming is a string, ast eval it (exception will be caught with whatever is calling validator)
 		if data:
-			self.data = convert_to_dict(data)
-
+			try:
+				self.data = convert_to_datatype(data)
+			except Exception, e:
+				self.return_error(e.message)
+			
 	def validate(self):
 		# If list, validate each stmt inside
 		if isinstance(self.data, list):

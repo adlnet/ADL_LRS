@@ -2,7 +2,7 @@ import json
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
 
-from util import convert_to_dict, get_agent_ifp
+from util import get_agent_ifp
 from Authorization import auth
 from StatementValidator import StatementValidator
 
@@ -80,9 +80,6 @@ def server_validate_statement(stmt, auth, payload_sha2s, content_type):
 def statements_post(req_dict):
     if req_dict['params'].keys():
         raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(req_dict['params'].keys()))
-
-    if isinstance(req_dict['body'], basestring):
-        req_dict['body'] = convert_to_dict(req_dict['body'])
 
     try:
         validator = StatementValidator(req_dict['body'])
@@ -204,10 +201,6 @@ def statements_put(req_dict):
         raise ParamError("Error -- statements - method = %s, but no statementId parameter or ID given in statement" % req_dict['method'])
     else:
         statement_id = req_dict['params']['statementId']
-
-    # Convert data so it can be parsed
-    if isinstance(req_dict['body'], basestring):
-        req_dict['body'] = convert_to_dict(req_dict['body'])
 
     # Try to get id if in body
     try:

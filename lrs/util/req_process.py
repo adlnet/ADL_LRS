@@ -8,7 +8,6 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.timezone import utc
 
-from util import convert_to_dict
 from retrieve_statement import complex_get, get_more_statement_request
 from ..models import Statement, Agent, Activity
 from ..managers.ActivityProfileManager import ActivityProfileManager
@@ -63,8 +62,6 @@ def process_complex_get(req_dict):
     param_dict = {}
     try:
         param_dict = req_dict['body']
-        if not isinstance(param_dict, dict):
-            param_dict = convert_to_dict(param_dict)
     except KeyError:
         pass # no params in the body    
     param_dict.update(req_dict['params'])

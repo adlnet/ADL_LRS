@@ -294,7 +294,6 @@ class AuthTests(TestCase):
         self.assertEqual(lang_map2.keys()[0], "en-GB")
         self.assertEqual(lang_map2.values()[0], "failed")
 
-
     def test_put(self):
         guid = str(uuid.uuid1())
 
@@ -433,7 +432,6 @@ class AuthTests(TestCase):
         jsn = json.loads(getResponse.content)
         self.assertEqual(len(jsn["statements"]), 11)
        
-
     # Sever activities are PUT-contextActivites create 3 more
     def test_number_of_activities(self):
         acts = len(Activity.objects.all())
@@ -513,7 +511,6 @@ class AuthTests(TestCase):
         self.assertIn("agentA", mems)
         self.assertIn("agentB", mems)
 
-
     def test_issue_put_no_version_header(self):
         stmt_id = '33f60b35-e1b2-4ddc-9c6f-7b3f65244431'
         stmt = json.dumps({"verb":"verb:completed","object":{"id":"act:scorm.com/JsTetris_TCAPI/level2",
@@ -541,7 +538,6 @@ class AuthTests(TestCase):
         path = '%s?%s' % (reverse(statements), urllib.urlencode({"statementId":stmt_id}))
         put_stmt = self.client.put(path, stmt, content_type="application/json",  Authorization=self.auth, X_Experience_API_Version="0.90")
         self.assertEqual(put_stmt.status_code, 400)
-
 
     # Use this test to make sure stmts are being returned correctly with all data - doesn't check timestamp and stored fields
     def test_all_fields_activity_as_object(self):
@@ -828,6 +824,7 @@ class AuthTests(TestCase):
         self.assertEqual(the_returned['context']['registration'], context_id)
         self.assertEqual(the_returned['context']['statement']['id'], nested_st_id)
         self.assertEqual(the_returned['context']['statement']['objectType'], 'StatementRef')
+    
     # Third stmt in list is missing actor - should throw error and perform cascading delete on first three statements
     def test_post_list_rollback(self):
         cguid1 = str(uuid.uuid1())
@@ -966,7 +963,6 @@ class AuthTests(TestCase):
         self.assertEqual(len(subs), 1)
         self.assertEqual(len(wrong_verb), 0)
         self.assertEqual(len(activities), 0)
-
 
     def test_activity_definition_change(self):
         username_1 = "tester1"

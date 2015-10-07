@@ -36,18 +36,18 @@ def convert_to_utc(timestr):
         raise ParamError("There was an error while parsing the date from %s -- Error: %s" % (timestr, e.message))
     return date_object
 
-def convert_to_dict(incoming_data):
+def convert_to_datatype(incoming_data):
     data = {}
     # GET data will be non JSON string-have to try literal_eval
-    if type(incoming_data) == dict:
+    if isinstance(incoming_data, dict) or isinstance(incoming_data, list):
         return incoming_data
     try:
         data = json.loads(incoming_data)
     except Exception:
         try:
             data = ast.literal_eval(incoming_data)
-        except Exception:
-            data = incoming_data
+        except Exception, e:
+            raise e
     return data
 
 def convert_post_body_to_dict(incoming_data):

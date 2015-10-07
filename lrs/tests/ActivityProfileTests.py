@@ -269,13 +269,13 @@ class ActivityProfileTests(TestCase):
 
         thedata = urllib.quote_plus(params)
         put1 = self.client.post(path, thedata, content_type="application/x-www-form-urlencoded")
-        self.assertEqual(put1.status_code, 204)
+        self.assertEqual(put1.status_code, 204)      
         get1 = self.client.get(reverse(views.activity_profile), testparams1, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(get1.status_code, 200)
         
         import ast
         c = ast.literal_eval(get1.content)
-        self.assertEqual(c['test'], content['test'])
+        self.assertEqual(c['test'], content['test'])     
         self.client.delete(reverse(views.activity_profile), testparams1, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
     def test_cors_put_etag(self):
@@ -443,7 +443,7 @@ class ActivityProfileTests(TestCase):
         params = {'activityId':'foo','profileId':'10'}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(params))
         
-        put = self.client.put(path, '{test:body}', content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        put = self.client.put(path, '{"test":"body"}', content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEquals(put.content, 'activityId param for activity profile with value foo was not a valid IRI')
 
     def test_current_tetris(self):
