@@ -146,10 +146,10 @@ def parse_normal_body(request, r_dict):
                 if r_dict['auth']['endpoint'] == '/statements':
                     try:
                         r_dict['body'] = convert_to_datatype(request.body)
-                    except Exception, e:
+                    except Exception:
                         try:
                             r_dict['body'] = QueryDict(request.body).dict()
-                        except Exception, e:
+                        except Exception:
                             raise BadRequest("Could not parse request body")
                         else:
                             # QueryDict will create {'foo':''} key for any string - does not care if valid query string or not
@@ -175,11 +175,11 @@ def parse_cors_request(request, r_dict):
             try:
                 # Should convert to dict if data is in JSON format
                 r_dict['body'] = convert_to_datatype(str_body)
-            except Exception, e:
+            except Exception:
                 try:
                     # Convert to dict if data is in form format (foo=bar)
                     r_dict['body'] = QueryDict(str_body).dict()
-                except Exception, e:
+                except Exception:
                     raise BadRequest("Could not parse request body in CORS request")           
                 else:
                     # QueryDict will create {'foo':''} key for any string - does not care if valid query string or not
@@ -355,5 +355,5 @@ def set_agent_param(r_dict):
     if 'agent' in r_dict['params'] and r_dict['auth']['endpoint'] == '/statements':
         try:
             r_dict['params']['agent'] = convert_to_datatype(r_dict['params']['agent'])
-        except Exception, e:
+        except Exception:
             raise BadRequest("Agent param was not a valid JSON structure")
