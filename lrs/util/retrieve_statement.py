@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from util import convert_to_utc, convert_to_dict
+from util import convert_to_utc
 from ..models import Statement, Agent
 from ..exceptions import NotFound, IDNotFoundError
 
@@ -49,9 +49,6 @@ def complex_get(param_dict, limit, language, format, attachments):
         agent = None
         data = param_dict['agent']
         related = 'related_agents' in param_dict and param_dict['related_agents']
-        
-        if not type(data) is dict:
-            data = convert_to_dict(data)
         
         try:
             agent = Agent.objects.retrieve_or_create(**data)[0]
