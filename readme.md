@@ -84,6 +84,8 @@ If you get some sort of authentication error here, make sure that Django and Pos
 using the same form of authentication (*adl_lrs/settings.py* and *pg_hba.conf*) and that the credentials
 given in *settings.py* are the same as those you created.
 
+You will also have to setup celery for retrieving the activity metadata from the ID as well as voiding statements that might have come in out of order. Vist the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for more information.
+
 ## Starting
 
 While still in the ADL_LRS directory, run
@@ -118,7 +120,6 @@ For other ways to start and run the LRS, please visit our Wiki.
 * [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production)
 * [OAuth Help](https://github.com/adlnet/ADL_LRS/wiki/Using-OAuth)
 * [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
-* [Using Celery for Retrieving Activity Metadata](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery-for-Retrieving-Activity-Metadata)
 
 ## License
    Copyright &copy;2015 Advanced Distributed Learning
