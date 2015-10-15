@@ -1,7 +1,6 @@
 import re
 from isodate.isodatetime import parse_datetime
 from isodate.isoduration import parse_duration
-from isodate.isoerror import ISO8601Error
 from rfc3987 import parse as iriparse
 from uuid import UUID
 
@@ -155,7 +154,7 @@ class StatementValidator():
 			timestamp = stmt['timestamp']
 			try:
 				parse_datetime(timestamp)
-			except ISO8601Error as e:
+			except Exception as e:
 				self.return_error("Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
 		# Validate the actor and verb
@@ -543,7 +542,7 @@ class StatementValidator():
 			timestamp = substmt['timestamp']
 			try:
 				parse_datetime(timestamp)
-			except ISO8601Error as e:
+			except Exception as e:
 				self.return_error("Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
 		# Can't next substmts in other substmts - if not supplied it is an Activity
@@ -575,7 +574,7 @@ class StatementValidator():
 		if 'duration' in result:
 			try:
 				parse_duration(result['duration'])
-			except ISO8601Error as e:
+			except Exception as e:
 				self.return_error("Error with result duration - %s" % e.message)
 
 		# If success or completion included, ensure they are boolean
