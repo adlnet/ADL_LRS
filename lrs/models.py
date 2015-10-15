@@ -660,3 +660,10 @@ class AgentProfile(models.Model):
         if self.profile:
             self.profile.delete()
         super(AgentProfile, self).delete(*args, **kwargs)
+
+class Hook(models.Model):
+    name = models.CharField(max_length=50)
+    active = models.BooleanField(default=True)
+    endpoint = models.CharField(max_length=MAX_URL_LENGTH)
+    filters = JSONField()   
+    user = models.ForeignKey(User, null=False)

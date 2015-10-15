@@ -446,6 +446,30 @@ def logout_view(request):
     # Redirect to a success page.
     return HttpResponseRedirect(reverse('lrs.views.home'))
 
+@require_http_methods(["POST"])
+def statements_hooks(request):
+    # Only concentrate on basic auth now
+    if 'Authorization' in request['headers']:
+        auth = request['headers']['Authorization'].split()
+        if len(auth) == 2:
+            if auth[0].lower() == 'basic':
+                uname, passwd = base64.b64decode(auth[1]).split(':')
+                if uname and passwd:
+                    user = authenticate(username=uname, password=passwd)
+                    if not user:
+                        raise HttpResponse("Unauthorized: Authorization failed, please verify your username and password", status=401)
+                else:
+                    raise HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+            else:
+                raise HttpResponse("Unauthorized: HTTP Basic Authorization Header must start with Basic", status=401)
+        else:
+            raise HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+    else:
+        raise HttpResponseBadRequest("Hook request has no authorization")        
+
+
+
+
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 @require_http_methods(["GET", "HEAD"])

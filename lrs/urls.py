@@ -3,6 +3,7 @@ from django.conf.urls import patterns, include, url
 urlpatterns = patterns('lrs.views',
     url(r'^$', 'home'),
     url(r'^statements/more/(?P<more_id>.{32})$', 'statements_more'),
+    url(r'^statements/hooks', 'statements_hooks'),
     url(r'^statements', 'statements'),
     url(r'^activities/state', 'activity_state'),
     url(r'^activities/profile', 'activity_profile'),
