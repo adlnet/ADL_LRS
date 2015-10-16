@@ -2,6 +2,7 @@ import json
 import logging
 import urllib
 from base64 import b64decode
+from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth import logout, login, authenticate
@@ -19,8 +20,8 @@ from django.views.decorators.http import require_http_methods
 
 from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
 from .forms import ValidatorForm, RegisterForm, RegClientForm
-from .models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState
-from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator
+from .models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState, Hook
+from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator, util
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
@@ -446,29 +447,74 @@ def logout_view(request):
     # Redirect to a success page.
     return HttpResponseRedirect(reverse('lrs.views.home'))
 
-@require_http_methods(["POST"])
-def statements_hooks(request):
-    # Only concentrate on basic auth now
-    if 'Authorization' in request['headers']:
-        auth = request['headers']['Authorization'].split()
-        if len(auth) == 2:
-            if auth[0].lower() == 'basic':
-                uname, passwd = base64.b64decode(auth[1]).split(':')
-                if uname and passwd:
-                    user = authenticate(username=uname, password=passwd)
-                    if not user:
-                        raise HttpResponse("Unauthorized: Authorization failed, please verify your username and password", status=401)
-                else:
-                    raise HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
-            else:
-                raise HttpResponse("Unauthorized: HTTP Basic Authorization Header must start with Basic", status=401)
-        else:
-            raise HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+@require_http_methods(["DELETE"])
+def my_statements_hook(request, hook_id):
+    try:
+        hook = Hook.objects.get(hook_id=hook_id).delete()
+    except Hook.DoesNotExist:
+        return HttpResponseNotFound("The hook with ID: %s was not found" % hook_id)
     else:
-        raise HttpResponseBadRequest("Hook request has no authorization")        
+        return HttpResponse('', status=204)
 
+@require_http_methods(["POST"])
+def my_statements_hooks(request):
+    auth = None
+    if 'HTTP_AUTHORIZATION' in request.META:
+        auth = request.META.get('HTTP_AUTHORIZATION')
+    elif 'Authorization' in request.META:
+        auth = request.META.get('Authorization')
 
-
+    content_type = None
+    if 'CONTENT_TYPE' in request.META:
+        content_type = request.META.get('CONTENT_TYPE')
+    elif 'Content-Type' in request.META:
+        content_type = request.META.get('Content-Type')
+    
+    if content_type and auth:
+        if 'application/json' in content_type:
+            if request.body:
+                try:
+                    body = util.convert_to_datatype(request.body)
+                except Exception:
+                    return HttpResponseBadRequest("Could not parse request body")
+                else:
+                    auth = auth.split()
+                    if len(auth) == 2:
+                        if auth[0].lower() == 'basic':
+                            uname, passwd = b64decode(auth[1]).split(':')
+                            if uname and passwd:
+                                user = authenticate(username=uname, password=passwd)
+                                if not user:
+                                    return HttpResponse("Unauthorized: Authorization failed, please verify your username and password", status=401)
+                                try:
+                                    body['user'] = user
+                                    hook = Hook.objects.create(**body)
+                                except Exception, e:
+                                    return HttpResponseBadRequest("Something went wrong: %s" % e.message)
+                                else:
+                                    holder = {"id": hook.hook_id}
+                                    hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('lrs.views.my_statements_hooks'), hook.hook_id)
+                                    holder['url'] = hook_location
+                                    holder['created_at'] = datetime.utcnow().replace(tzinfo=utc).isoformat()
+                                    holder['updated_at'] = holder['created_at']
+                                    body.pop('user')
+                                    resp_data = holder.copy()
+                                    resp_data.update(body)
+                                    resp = HttpResponse(resp_data, content_type="application/json", status=201)
+                                    resp['Location'] = hook_location
+                                    return resp
+                            else:
+                                return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+                        else:
+                            return HttpResponse("Unauthorized: HTTP Basic Authorization Header must start with Basic", status=401)
+                    else:
+                        return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+            else:
+                return HttpResponseBadRequest("No request body found")      
+        else:
+            return HttpResponseBadRequest("Request's Content-Type must be 'application/json'")
+    else:
+        return HttpResponseBadRequest("Content-Type and Authorization both must be supplied")
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)

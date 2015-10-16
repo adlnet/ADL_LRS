@@ -662,8 +662,11 @@ class AgentProfile(models.Model):
         super(AgentProfile, self).delete(*args, **kwargs)
 
 class Hook(models.Model):
-    name = models.CharField(max_length=50)
-    active = models.BooleanField(default=True)
-    endpoint = models.CharField(max_length=MAX_URL_LENGTH)
-    filters = JSONField()   
+    hook_id = UUIDField(version=1, db_index=True, unique=True)
+    name = models.CharField(max_length=50, blank=False)
+    config = JSONField(blank=False)
+    filters = JSONField(blank=False)
     user = models.ForeignKey(User, null=False)
+
+    class Meta:
+        unique_together = (("name", "user"))
