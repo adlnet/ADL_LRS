@@ -10,11 +10,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
+from django.utils.timezone import utc
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
@@ -449,12 +450,35 @@ def logout_view(request):
 
 @require_http_methods(["DELETE"])
 def my_statements_hook(request, hook_id):
-    try:
-        hook = Hook.objects.get(hook_id=hook_id).delete()
-    except Hook.DoesNotExist:
-        return HttpResponseNotFound("The hook with ID: %s was not found" % hook_id)
+    auth = None
+    if 'HTTP_AUTHORIZATION' in request.META:
+        auth = request.META.get('HTTP_AUTHORIZATION')
+    elif 'Authorization' in request.META:
+        auth = request.META.get('Authorization')
+    if auth:
+        auth = auth.split()
+        if len(auth) == 2:
+            if auth[0].lower() == 'basic':
+                uname, passwd = b64decode(auth[1]).split(':')
+                if uname and passwd:
+                    user = authenticate(username=uname, password=passwd)
+                    if not user:
+                        return HttpResponse("Unauthorized: Authorization failed, please verify your username and password", status=401)
+                    try:
+                        hook = Hook.objects.get(hook_id=hook_id).delete()
+                    except Hook.DoesNotExist:
+                        return HttpResponseNotFound("The hook with ID: %s was not found" % hook_id)
+                    else:
+                        return HttpResponse('', status=204)  
+                else:
+                    return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+            else:
+                return HttpResponse("Unauthorized: HTTP Basic Authorization Header must start with Basic", status=401)
+        else:
+            return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
     else:
-        return HttpResponse('', status=204)
+        return HttpResponse("Unauthorized: Authorization must be supplied", status=401)
+
 
 @require_http_methods(["POST"])
 def my_statements_hooks(request):
@@ -489,6 +513,8 @@ def my_statements_hooks(request):
                                 try:
                                     body['user'] = user
                                     hook = Hook.objects.create(**body)
+                                except IntegrityError:
+                                    return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
                                 except Exception, e:
                                     return HttpResponseBadRequest("Something went wrong: %s" % e.message)
                                 else:
@@ -500,7 +526,7 @@ def my_statements_hooks(request):
                                     body.pop('user')
                                     resp_data = holder.copy()
                                     resp_data.update(body)
-                                    resp = HttpResponse(resp_data, content_type="application/json", status=201)
+                                    resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
                                     resp['Location'] = hook_location
                                     return resp
                             else:
