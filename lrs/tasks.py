@@ -7,26 +7,66 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 
 from django.conf import settings
+from django.db.models import Q
 
-from lrs.models import Activity, Statement
 from lrs.util import StatementValidator as SV
 
 celery_logger = get_task_logger('celery-task')
 
 @shared_task
 def check_activity_metadata(stmts):
+    from lrs.models import Activity
     activity_ids = list(Activity.objects.filter(object_of_statement__statement_id__in=stmts).values_list('activity_id', flat=True).distinct())
     [get_activity_metadata(a_id) for a_id in activity_ids]
 
 @shared_task
 def void_statements(stmts):
+    from lrs.models import Statement    
     try:
         Statement.objects.filter(statement_id__in=stmts).update(voided=True)
     except Exception, e:
         celery_logger.exception("Voiding Statement Error: " + e.message)
 
+@shared_task
+def check_statement_hooks(stmt_ids):
+    from lrs.models import Agent, Hook, Statement
+    hooks = Hook.objects.all()
+    for h in hooks:
+        filters = h.filters
+        config = h.config
+        if 'endpoint' not in config:
+            celery_logger.exception("Endpoint not in hook %s" % str(h.name))
+        secret = str(config['secret']) if 'secret' in config else None
+
+
+        
+
+        # if 'and' in filters and isinstance(filters['and'], list):
+        #     agent_andQ = Q()
+        #     for agent_data in filters['and']:
+        #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
+        #         agent_andQ = agent_andQ & Q(actor=agent)
+
+        # if 'or' in filters and isinstance(filters['or'], list):
+        #     agent_orQ = Q()
+        #     for agent_data in filters['or']:
+        #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
+        #         agent_orQ = agent_orQ | Q(actor=agent)
+
+
+        # found = Statement.objects.filter(agent_andQ & agent_orQ & Q(statement_id__in=stmt_ids))
+        found = Statement.objects.all()[:9]
+        if found:
+            data = found.values_list('full_statement', flat=True)
+            req = urllib2.Request(str(h.config['endpoint']))
+            req.add_header('Content-Type', 'application/json')
+            if secret:
+                req.add_header('X-XAPI-Signature', secret)
+            urllib2.urlopen(req, json.dumps(data))
+
 # Retrieve JSON data from ID
 def get_activity_metadata(act_id):
+    from lrs.models import Activity
     act_url_data = {}
     # See if id resolves
     try:
@@ -60,6 +100,7 @@ def get_activity_metadata(act_id):
                 update_activity_definition(fake_activity)
 
 def update_activity_definition(act):
+    from lrs.models import Activity
     # Try to get activity by id
     try:
         activity = Activity.objects.get(activity_id=act['id'])

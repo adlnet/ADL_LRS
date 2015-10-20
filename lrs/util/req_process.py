@@ -14,7 +14,7 @@ from ..managers.ActivityProfileManager import ActivityProfileManager
 from ..managers.ActivityStateManager import ActivityStateManager 
 from ..managers.AgentProfileManager import AgentProfileManager
 from ..managers.StatementManager import StatementManager
-from ..tasks import check_activity_metadata, void_statements
+from ..tasks import check_activity_metadata, void_statements, check_statement_hooks
 
 def process_statement(stmt, auth, version, payload_sha2s):
     # Add id to statement if not present
@@ -127,6 +127,7 @@ def statements_post(req_dict):
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
         void_statements.delay(stmts_to_void)
+    check_statement_hooks.delay(stmt_ids)
     return HttpResponse(json.dumps([st for st in stmt_ids]), mimetype="application/json", status=200)
 
 def statements_put(req_dict):
@@ -138,6 +139,7 @@ def statements_put(req_dict):
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
         void_statements.delay(stmts_to_void)
+    check_statement_hooks.delay(stmt_ids)        
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):

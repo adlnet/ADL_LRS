@@ -465,7 +465,7 @@ def my_statements_hook(request, hook_id):
                     if not user:
                         return HttpResponse("Unauthorized: Authorization failed, please verify your username and password", status=401)
                     try:
-                        hook = Hook.objects.get(hook_id=hook_id).delete()
+                        Hook.objects.get(hook_id=hook_id).delete()
                     except Hook.DoesNotExist:
                         return HttpResponseNotFound("The hook with ID: %s was not found" % hook_id)
                     else:
@@ -478,7 +478,6 @@ def my_statements_hook(request, hook_id):
             return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
     else:
         return HttpResponse("Unauthorized: Authorization must be supplied", status=401)
-
 
 @require_http_methods(["POST"])
 def my_statements_hooks(request):

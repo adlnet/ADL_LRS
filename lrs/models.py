@@ -17,6 +17,9 @@ ACTIVITY_STATE_UPLOAD_TO = "activity_state"
 ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
 STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
+# def statement_signal_handler(sender, **kwargs):
+#     send_statement_hook.delay(kwargs['instance'].statement_id)
+
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     display = JSONField(default={}, blank=True)
@@ -577,6 +580,8 @@ class Statement(models.Model):
 
     def __unicode__(self):
         return json.dumps(self.to_dict())
+
+# signals.post_save.connect(statement_signal_handler, sender=Statement)
 
 class AttachmentFileSystemStorage(FileSystemStorage):
     def get_available_name(self, name):
