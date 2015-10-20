@@ -36,33 +36,34 @@ def check_statement_hooks(stmt_ids):
         config = h.config
         if 'endpoint' not in config:
             celery_logger.exception("Endpoint not in hook %s" % str(h.name))
-        secret = str(config['secret']) if 'secret' in config else None
+        else:
+            secret = str(config['secret']) if 'secret' in config else None
 
 
-        
+            
 
-        # if 'and' in filters and isinstance(filters['and'], list):
-        #     agent_andQ = Q()
-        #     for agent_data in filters['and']:
-        #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
-        #         agent_andQ = agent_andQ & Q(actor=agent)
+            # if 'and' in filters and isinstance(filters['and'], list):
+            #     agent_andQ = Q()
+            #     for agent_data in filters['and']:
+            #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
+            #         agent_andQ = agent_andQ & Q(actor=agent)
 
-        # if 'or' in filters and isinstance(filters['or'], list):
-        #     agent_orQ = Q()
-        #     for agent_data in filters['or']:
-        #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
-        #         agent_orQ = agent_orQ | Q(actor=agent)
+            # if 'or' in filters and isinstance(filters['or'], list):
+            #     agent_orQ = Q()
+            #     for agent_data in filters['or']:
+            #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
+            #         agent_orQ = agent_orQ | Q(actor=agent)
 
 
-        # found = Statement.objects.filter(agent_andQ & agent_orQ & Q(statement_id__in=stmt_ids))
-        found = Statement.objects.all()[:9]
-        if found:
-            data = found.values_list('full_statement', flat=True)
-            req = urllib2.Request(str(h.config['endpoint']))
-            req.add_header('Content-Type', 'application/json')
-            if secret:
-                req.add_header('X-XAPI-Signature', secret)
-            urllib2.urlopen(req, json.dumps(data))
+            # found = Statement.objects.filter(agent_andQ & agent_orQ & Q(statement_id__in=stmt_ids))
+            found = Statement.objects.all()[:9]
+            if found:
+                data = "[%s]" % ",".join(stmt for stmt in found.values_list('full_statement', flat=True))
+                req = urllib2.Request(str(h.config['endpoint']))
+                req.add_header('Content-Type', 'application/json')
+                if secret:
+                    req.add_header('X-XAPI-Signature', secret)
+                urllib2.urlopen(req, data)
 
 # Retrieve JSON data from ID
 def get_activity_metadata(act_id):
