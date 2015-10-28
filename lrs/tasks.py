@@ -55,24 +55,37 @@ def check_statement_hooks(stmt_ids):
 
 def parse_filter(filters, filterQ):
     from lrs.models import Agent
-    actorQ, verbQ, objectQ = Q(), Q(), Q()
-    if 'actor' in filters.keys():
-        actors = filters.pop('actor')
-        for a in actors:
-            agent = Agent.objects.retrieve_or_create(**a)[0]
-            actorQ = actorQ | Q(actor=agent)
-    if 'verb' in filters.keys():
-        verbs = filters.pop('verb')
-        for v in verbs:
-            verbQ = verbQ | Q(verb__verb_id=v['id'])
-    if 'object' in filters.keys():
-        objects = filters.pop('object')
-        for o in objects:
-            objectQ = objectQ | Q(object_activity__activity_id=o['id'])
-    filterQ = actorQ & verbQ & objectQ
+    actorQ, verbQ, objectQ, filterQ = Q(), Q(), Q(), Q()
+    
+    if isinstance(filters, dict):
+        if 'actor' in filters.keys():
+            actors = filters.pop('actor')
+            if isinstance(actors, list):
+                for a in actors:
+                    try:
+                        agent = Agent.objects.retrieve_or_create(**a)[0]
+                    except Exception:
+                        celery_logger.exception("Agent data was invalid for agent filter")
+                    else:
+                        actorQ = actorQ | Q(actor=agent)
+        if 'verb' in filters.keys():
+            verbs = filters.pop('verb')
+            if isinstance(verbs, list):
+                for v in verbs:
+                    if 'id' in v:
+                        verbQ = verbQ | Q(verb__verb_id=v['id'])
+        if 'object' in filters.keys():
+            objects = filters.pop('object')
+            if isinstance(objects, list):
+                for o in objects:
+                    if 'id' in o:
+                        objectQ = objectQ | Q(object_activity__activity_id=o['id'])
+        filterQ = actorQ & verbQ & objectQ
 
-    if 'related' in filters.keys():
-        filterQ = filterQ & parse_related_filter(filters.pop('related'), True)
+        if 'related' in filters.keys():
+            related = filters.pop('related')
+            if isinstance(related, list):
+                filterQ = filterQ & parse_related_filter(related, True)
     return filterQ
 
 def parse_related_filter(related, or_operand):
@@ -80,16 +93,26 @@ def parse_related_filter(related, or_operand):
     innerQ = Q()
     objectQ = Q()
     for ob in related:
+        # Any or/and values should be a list
         if 'or' in ob.keys():
-            innerQ = innerQ | parse_related_filter(ob['or'], True)
+            ors = ob['or']
+            if isinstance(ors, list):
+                innerQ = innerQ | parse_related_filter(ors, True)
         elif 'and' in ob.keys():
-            innerQ = innerQ & parse_related_filter(ob['and'], False)
+            ands = ob['and']
+            if isinstance(ands, list):
+                innerQ = innerQ & parse_related_filter(ands, False)
+        # Any other values will be an object
         else:
             if 'id' in ob:
                 objectQ = set_object_activity_query(objectQ, ob['id'], or_operand)
             else:
-                agent = Agent.objects.retrieve_or_create(**ob)[0]
-                objectQ = set_object_agent_query(objectQ, agent, or_operand)
+                try:
+                    agent = Agent.objects.retrieve_or_create(**ob)[0]
+                except Exception:
+                    celery_logger.exception("Agent data was invalid for agent filter")
+                else:
+                    objectQ = set_object_agent_query(objectQ, agent, or_operand)
     if or_operand:
         return objectQ | innerQ
     else:
