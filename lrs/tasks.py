@@ -29,7 +29,7 @@ def void_statements(stmts):
 
 @shared_task
 def check_statement_hooks(stmt_ids):
-    from lrs.models import Agent, Hook, Statement
+    from lrs.models import Hook, Statement
     hooks = Hook.objects.all()
     for h in hooks:
         filters = h.filters
@@ -38,36 +38,103 @@ def check_statement_hooks(stmt_ids):
             celery_logger.exception("Endpoint not in hook %s" % str(h.name))
         else:
             secret = str(config['secret']) if 'secret' in config else None
-
-
-            
-
-            # if 'and' in filters and isinstance(filters['and'], list):
-            #     agent_andQ = Q()
-            #     for agent_data in filters['and']:
-            #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
-            #         agent_andQ = agent_andQ & Q(actor=agent)
-
-            # if 'or' in filters and isinstance(filters['or'], list):
-            #     agent_orQ = Q()
-            #     for agent_data in filters['or']:
-            #         agent = Agent.objects.retrieve_or_create(**agent_data)[0]
-            #         agent_orQ = agent_orQ | Q(actor=agent)
-
-
-            # found = Statement.objects.filter(agent_andQ & agent_orQ & Q(statement_id__in=stmt_ids))
-            found = Statement.objects.all()[:9]
+            filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
+            found = Statement.objects.filter(filterQ)
             if found:
-                data = "[%s]" % ",".join(stmt for stmt in found.values_list('full_statement', flat=True))
+                data = '{"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
                 req = urllib2.Request(str(h.config['endpoint']))
                 req.add_header('Content-Type', 'application/json')
                 if secret:
                     req.add_header('X-XAPI-Signature', secret)
-                urllib2.urlopen(req, data)
+                try:
+                    resp = urllib2.urlopen(req, data)
+                    resp.close()
+                    celery_logger.info("Response code for sending statements to hook endpoint %s : %s" % (str(h.config['endpoint']), resp.getcode()))
+                except Exception, e:
+                    celery_logger.exception("Could not send statements to hook %s: %s" % (str(h.config['endpoint']), e.message))
 
+def parse_filter(filters, filterQ):
+    from lrs.models import Agent
+    actorQ, verbQ, objectQ = Q(), Q(), Q()
+    if 'actor' in filters.keys():
+        actors = filters.pop('actor')
+        for a in actors:
+            agent = Agent.objects.retrieve_or_create(**a)[0]
+            actorQ = actorQ | Q(actor=agent)
+    if 'verb' in filters.keys():
+        verbs = filters.pop('verb')
+        for v in verbs:
+            verbQ = verbQ | Q(verb__verb_id=v['id'])
+    if 'object' in filters.keys():
+        objects = filters.pop('object')
+        for o in objects:
+            objectQ = objectQ | Q(object_activity__activity_id=o['id'])
+    filterQ = actorQ & verbQ & objectQ
+
+    if 'related' in filters.keys():
+        filterQ = filterQ & parse_related_filter(filters.pop('related'), True)
+    return filterQ
+
+def set_object_activity_query(q, act_id, or_operand):
+    if or_operand:
+        return q | (Q(context_ca_parent__activity_id=act_id) \
+            | Q(context_ca_grouping__activity_id=act_id) \
+            | Q(context_ca_category__activity_id=act_id) \
+            | Q(context_ca_other__activity_id=act_id) \
+            | Q(object_substatement__object_activity__activity_id=act_id) \
+            | Q(object_substatement__context_ca_parent__activity_id=act_id) \
+            | Q(object_substatement__context_ca_grouping__activity_id=act_id) \
+            | Q(object_substatement__context_ca_category__activity_id=act_id) \
+            | Q(object_substatement__context_ca_other__activity_id=act_id))        
+
+    return q & (Q(context_ca_parent__activity_id=act_id) \
+        | Q(context_ca_grouping__activity_id=act_id) \
+        | Q(context_ca_category__activity_id=act_id) \
+        | Q(context_ca_other__activity_id=act_id) \
+        | Q(object_substatement__object_activity__activity_id=act_id) \
+        | Q(object_substatement__context_ca_parent__activity_id=act_id) \
+        | Q(object_substatement__context_ca_grouping__activity_id=act_id) \
+        | Q(object_substatement__context_ca_category__activity_id=act_id) \
+        | Q(object_substatement__context_ca_other__activity_id=act_id))
+
+def set_object_agent_query(q, agent, or_operand):
+    if or_operand:
+        return q | (Q(object_agent=agent) | Q(authority=agent) \
+              | Q(context_instructor=agent) | Q(context_team=agent) \
+              | Q(object_substatement__actor=agent) \
+              | Q(object_substatement__object_agent=agent) \
+              | Q(object_substatement__context_instructor=agent) \
+              | Q(object_substatement__context_team=agent))
+
+    return q & (Q(object_agent=agent) | Q(authority=agent) \
+          | Q(context_instructor=agent) | Q(context_team=agent) \
+          | Q(object_substatement__actor=agent) \
+          | Q(object_substatement__object_agent=agent) \
+          | Q(object_substatement__context_instructor=agent) \
+          | Q(object_substatement__context_team=agent))
+
+def parse_related_filter(related, or_operand):
+    from lrs.models import Agent
+    innerQ = Q()
+    objectQ = Q()
+    for ob in related:
+        if 'or' in ob.keys():
+            innerQ = innerQ | parse_related_filter(ob['or'], True)
+        elif 'and' in ob.keys():
+            innerQ = innerQ & parse_related_filter(ob['and'], False)
+        else:
+            if 'id' in ob:
+                objectQ = set_object_activity_query(objectQ, ob['id'], or_operand)
+            else:
+                agent = Agent.objects.retrieve_or_create(**ob)[0]
+                objectQ = set_object_agent_query(objectQ, agent, or_operand)
+    if or_operand:
+        return objectQ | innerQ
+    else:
+        return objectQ & innerQ
+    
 # Retrieve JSON data from ID
 def get_activity_metadata(act_id):
-    from lrs.models import Activity
     act_url_data = {}
     # See if id resolves
     try:
