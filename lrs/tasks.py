@@ -75,6 +75,26 @@ def parse_filter(filters, filterQ):
         filterQ = filterQ & parse_related_filter(filters.pop('related'), True)
     return filterQ
 
+def parse_related_filter(related, or_operand):
+    from lrs.models import Agent
+    innerQ = Q()
+    objectQ = Q()
+    for ob in related:
+        if 'or' in ob.keys():
+            innerQ = innerQ | parse_related_filter(ob['or'], True)
+        elif 'and' in ob.keys():
+            innerQ = innerQ & parse_related_filter(ob['and'], False)
+        else:
+            if 'id' in ob:
+                objectQ = set_object_activity_query(objectQ, ob['id'], or_operand)
+            else:
+                agent = Agent.objects.retrieve_or_create(**ob)[0]
+                objectQ = set_object_agent_query(objectQ, agent, or_operand)
+    if or_operand:
+        return objectQ | innerQ
+    else:
+        return objectQ & innerQ
+
 def set_object_activity_query(q, act_id, or_operand):
     if or_operand:
         return q | (Q(context_ca_parent__activity_id=act_id) \
@@ -112,26 +132,6 @@ def set_object_agent_query(q, agent, or_operand):
           | Q(object_substatement__object_agent=agent) \
           | Q(object_substatement__context_instructor=agent) \
           | Q(object_substatement__context_team=agent))
-
-def parse_related_filter(related, or_operand):
-    from lrs.models import Agent
-    innerQ = Q()
-    objectQ = Q()
-    for ob in related:
-        if 'or' in ob.keys():
-            innerQ = innerQ | parse_related_filter(ob['or'], True)
-        elif 'and' in ob.keys():
-            innerQ = innerQ & parse_related_filter(ob['and'], False)
-        else:
-            if 'id' in ob:
-                objectQ = set_object_activity_query(objectQ, ob['id'], or_operand)
-            else:
-                agent = Agent.objects.retrieve_or_create(**ob)[0]
-                objectQ = set_object_agent_query(objectQ, agent, or_operand)
-    if or_operand:
-        return objectQ | innerQ
-    else:
-        return objectQ & innerQ
     
 # Retrieve JSON data from ID
 def get_activity_metadata(act_id):
