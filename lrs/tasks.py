@@ -47,6 +47,7 @@ def check_statement_hooks(stmt_ids):
                 if secret:
                     req.add_header('X-XAPI-Signature', secret)
                 try:
+                    celery_logger.info("Sending statements to hook endpoint %s" % str(h.config['endpoint']))
                     resp = urllib2.urlopen(req, data)
                     resp.close()
                     celery_logger.info("Response code for sending statements to hook endpoint %s : %s" % (str(h.config['endpoint']), resp.getcode()))

@@ -2,7 +2,6 @@ import json
 import logging
 import urllib
 from base64 import b64decode
-from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth import logout, login, authenticate
@@ -15,7 +14,6 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadReque
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.decorators import decorator_from_middleware
-from django.utils.timezone import utc
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
@@ -23,6 +21,7 @@ from .exceptions import BadRequest, ParamError, Unauthorized, Forbidden, NotFoun
 from .forms import ValidatorForm, RegisterForm, RegClientForm
 from .models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState, Hook
 from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware, StatementValidator, util
+from .util.Authorization import non_xapi_auth
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
@@ -448,98 +447,75 @@ def logout_view(request):
     # Redirect to a success page.
     return HttpResponseRedirect(reverse('lrs.views.home'))
 
-@require_http_methods(["DELETE"])
+@require_http_methods(["GET", "DELETE"])
+@non_xapi_auth
 def my_statements_hook(request, hook_id):
-    auth = None
-    if 'HTTP_AUTHORIZATION' in request.META:
-        auth = request.META.get('HTTP_AUTHORIZATION')
-    elif 'Authorization' in request.META:
-        auth = request.META.get('Authorization')
-    if auth:
-        auth = auth.split()
-        if len(auth) == 2:
-            if auth[0].lower() == 'basic':
-                uname, passwd = b64decode(auth[1]).split(':')
-                if uname and passwd:
-                    user = authenticate(username=uname, password=passwd)
-                    if not user:
-                        return HttpResponse("Unauthorized: Authorization failed, please verify your username and password", status=401)
-                    try:
-                        Hook.objects.get(hook_id=hook_id).delete()
-                    except Hook.DoesNotExist:
-                        return HttpResponseNotFound("The hook with ID: %s was not found" % hook_id)
-                    else:
-                        return HttpResponse('', status=204)  
-                else:
-                    return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
-            else:
-                return HttpResponse("Unauthorized: HTTP Basic Authorization Header must start with Basic", status=401)
+    if not request.META['lrs-user'][0]:
+        return HttpResponse(request.META['lrs-user'][1], status=401)
+    user = request.META['lrs-user'][1]
+    if request.method == "GET":
+        try:
+            hook = Hook.objects.get(hook_id=hook_id, user=user)
+        except Hook.DoesNotExist:
+            return HttpResponseBadRequest("Something went wrong: %s hook doesn't exist" % hook_id)
         else:
-            return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+            data = hook.to_dict()
+            hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('lrs.views.my_statements_hooks'), hook.hook_id)
+            data['url'] = hook_location
+            resp = HttpResponse(json.dumps(data), content_type="application/json", status=201)
+            resp['Location'] = hook_location
+            return resp
     else:
-        return HttpResponse("Unauthorized: Authorization must be supplied", status=401)
+        try:
+            Hook.objects.get(hook_id=hook_id, user=user).delete()
+        except Hook.DoesNotExist:
+            return HttpResponseNotFound("The hook with ID: %s was not found" % hook_id)
+        else:
+            return HttpResponse('', status=204)
 
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
+@non_xapi_auth
 def my_statements_hooks(request):
-    auth = None
-    if 'HTTP_AUTHORIZATION' in request.META:
-        auth = request.META.get('HTTP_AUTHORIZATION')
-    elif 'Authorization' in request.META:
-        auth = request.META.get('Authorization')
-
-    content_type = None
-    if 'CONTENT_TYPE' in request.META:
-        content_type = request.META.get('CONTENT_TYPE')
-    elif 'Content-Type' in request.META:
-        content_type = request.META.get('Content-Type')
-    
-    if content_type and auth:
-        if 'application/json' in content_type:
+    if not request.META['lrs-user'][0]:
+        return HttpResponse(request.META['lrs-user'][1], status=401)
+    user = request.META['lrs-user'][1]
+    if request.method == "POST":
+        content_type = None
+        if 'CONTENT_TYPE' in request.META:
+            content_type = request.META.get('CONTENT_TYPE')
+        elif 'Content-Type' in request.META:
+            content_type = request.META.get('Content-Type')                                    
+        if content_type:
             if request.body:
-                try:
-                    body = util.convert_to_datatype(request.body)
-                except Exception:
-                    return HttpResponseBadRequest("Could not parse request body")
-                else:
-                    auth = auth.split()
-                    if len(auth) == 2:
-                        if auth[0].lower() == 'basic':
-                            uname, passwd = b64decode(auth[1]).split(':')
-                            if uname and passwd:
-                                user = authenticate(username=uname, password=passwd)
-                                if not user:
-                                    return HttpResponse("Unauthorized: Authorization failed, please verify your username and password", status=401)
-                                try:
-                                    body['user'] = user
-                                    hook = Hook.objects.create(**body)
-                                except IntegrityError:
-                                    return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
-                                except Exception, e:
-                                    return HttpResponseBadRequest("Something went wrong: %s" % e.message)
-                                else:
-                                    holder = {"id": hook.hook_id}
-                                    hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('lrs.views.my_statements_hooks'), hook.hook_id)
-                                    holder['url'] = hook_location
-                                    holder['created_at'] = datetime.utcnow().replace(tzinfo=utc).isoformat()
-                                    holder['updated_at'] = holder['created_at']
-                                    body.pop('user')
-                                    resp_data = holder.copy()
-                                    resp_data.update(body)
-                                    resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
-                                    resp['Location'] = hook_location
-                                    return resp
-                            else:
-                                return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
-                        else:
-                            return HttpResponse("Unauthorized: HTTP Basic Authorization Header must start with Basic", status=401)
+                if 'application/json' in content_type:
+                    try:
+                        body = util.convert_to_datatype(request.body)
+                    except Exception:
+                        return HttpResponseBadRequest("Could not parse request body")
+                    try:
+                        body['user'] = user
+                        hook = Hook.objects.create(**body)
+                    except IntegrityError, e:
+                        return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
+                    except Exception, e:
+                        return HttpResponseBadRequest("Something went wrong: %s" % e.message)
                     else:
-                        return HttpResponse("Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect", status=401)
+                        hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('lrs.views.my_statements_hooks'), hook.hook_id)
+                        resp_data = hook.to_dict()
+                        resp_data['url'] = hook_location
+                        resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
+                        resp['Location'] = hook_location
+                        return resp
+                else:
+                    return HttpResponseBadRequest("Request's Content-Type must be 'application/json'")
             else:
-                return HttpResponseBadRequest("No request body found")      
+                return HttpResponseBadRequest("No request body found")
         else:
-            return HttpResponseBadRequest("Request's Content-Type must be 'application/json'")
+            return HttpResponseBadRequest("Request must contain a Content-Type")
     else:
-        return HttpResponseBadRequest("Content-Type and Authorization both must be supplied")
+        hooks = Hook.objects.filter(user=user)
+        resp_data = [h.to_dict() for h in hooks]
+        return HttpResponse(json.dumps(resp_data), content_type="application/json", status=200)
 
 # Called when user queries GET statement endpoint and returned list is larger than server limit (10)
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)

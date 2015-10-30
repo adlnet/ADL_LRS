@@ -32,6 +32,36 @@ def auth(func):
         return func(request, *args, **kwargs)
     return inner
 
+# Decorater used for non-xapi endpoints
+def non_xapi_auth(func):
+    @wraps(func)
+    def inner(request, *args, **kwargs):
+        auth = None
+        if 'HTTP_AUTHORIZATION' in request.META:
+            auth = request.META.get('HTTP_AUTHORIZATION')
+        elif 'Authorization' in request.META:
+            auth = request.META.get('Authorization')
+        if auth:
+            auth = auth.split()
+            if len(auth) == 2:
+                if auth[0].lower() == 'basic':
+                    uname, passwd = base64.b64decode(auth[1]).split(':')
+                    if uname and passwd:
+                        user = authenticate(username=uname, password=passwd)
+                        if not user:
+                            request.META['lrs-user'] = (False, "Unauthorized: Authorization failed, please verify your username and password")
+                        request.META['lrs-user'] = (True, user)
+                    else:
+                        request.META['lrs-user'] = (False, "Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect")
+                else:
+                    request.META['lrs-user'] = (False, "Unauthorized: HTTP Basic Authorization Header must start with Basic")
+            else:
+                request.META['lrs-user'] = (False, "Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect")
+        else:
+            request.META['lrs-user'] = (False, "Unauthorized: Authorization must be supplied")                            
+        return func(request, *args, **kwargs)
+    return inner
+
 def get_user_from_auth(auth):
     if not auth:
         return None
