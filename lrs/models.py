@@ -667,6 +667,12 @@ class Hook(models.Model):
     config = JSONField(blank=False)
     filters = JSONField(blank=False)
     user = models.ForeignKey(User, null=False)
+    created_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat())
+    updated_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat())
 
     class Meta:
         unique_together = (("name", "user"))
+
+    def to_dict(self):
+        return {'id': self.hook_id, 'name': self.name, 'config': self.config, 'filters': self.filters, \
+        'created_at': self.created_at.isoformat(), 'updated_at': self.updated_at.isoformat()}
