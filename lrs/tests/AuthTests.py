@@ -11,8 +11,9 @@ from django.utils.timezone import utc
 from django.conf import settings
 
 from ..models import Statement, Agent, Verb, Activity, SubStatement
-from ..views import register, statements
+from ..views import statements
 from ..util import retrieve_statement
+from adl_lrs.views import register
 
 class AuthTests(TestCase):
     # Want to test no auth, so have to disable both auths

@@ -3,10 +3,12 @@ import json
 import hashlib
 import urllib
 import base64
+
 from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from lrs import models, views
+from adl_lrs.views import register
 
 class ActivityProfileTests(TestCase):
     test_activityId1 = 'act:act-1'
@@ -29,7 +31,7 @@ class ActivityProfileTests(TestCase):
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
         form = {'username':self.username, 'email': self.email,'password':self.password,'password2':self.password}
-        self.client.post(reverse(views.register),form, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams1 = {"profileId": self.testprofileId1, "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode(self.testparams1))

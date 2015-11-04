@@ -7,7 +7,8 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from ..models import Agent, Statement
-from ..views import register, statements
+from ..views import statements
+from adl_lrs.views import register
 
 class AgentManagerTests(TestCase):
     @classmethod

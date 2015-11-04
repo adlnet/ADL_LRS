@@ -18,8 +18,9 @@ from django.utils.timezone import utc
 from django.conf import settings
 
 from ..models import Statement, StatementAttachment
-from ..views import register, statements
+from ..views import statements
 from ..util.jws import JWS
+from adl_lrs.views import register
 
 class AttachmentAndSignedTests(TestCase):
     @classmethod

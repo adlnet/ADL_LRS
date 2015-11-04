@@ -57,7 +57,7 @@
     // Appends the returned state to the given element
     function getState(act_id, state_id, ele){
         $.ajax({
-            url: "{% url lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(state_id),
+            url: "{% url adl_lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(state_id),
             type: "GET",
             success: function (data){
                 $(ele).append(syntaxHighlight(data));

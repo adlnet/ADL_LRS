@@ -1,31 +1,48 @@
 from django.conf import settings
 from django.conf.urls import patterns, include, url
-from django.views.generic import RedirectView
 
 # Uncomment the next two lines to enable the admin (imports admin module in each app):
 from django.contrib import admin
 admin.autodiscover()
 
-urlpatterns = patterns('',
-    url(r'^$', RedirectView.as_view(url='/xAPI/')),
+urlpatterns = patterns('adl_lrs.views',
+    # for anyone trying to hit the xapi endpoints
     url(r'^XAPI/', include('lrs.urls')),
     url(r'^xapi/', include('lrs.urls')),
     url(r'^xAPI/', include('lrs.urls')),
 
-    # Uncomment the admin/doc line below to enable admin documentation:
-    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-    # Uncomment the next line to enable the admin:
+    # start of non xapi endpoints
+    # comment the next line to disable the admin:
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^actexample1/$', 'actexample1'),
+    url(r'^actexample2/$', 'actexample2'),    
+    url(r'^oauth2/', include('oauth2_provider.provider.oauth2.urls', namespace='oauth2')),    
+    url(r'^$', 'home'),
+    url(r'^register', 'register'),
+    url(r'^regclient2', 'reg_client2'),    
+    url(r'^regclient', 'reg_client'),
+    url(r'^me/statements/hooks/(?P<hook_id>.{36})$', 'my_statements_hook'),
+    url(r'^me/statements/hooks', 'my_statements_hooks'),
+    url(r'^me/statements', 'my_statements'),
+    url(r'^me/download/statements', 'my_download_statements'),
+    url(r'^me/activities/states', 'my_activity_states'),
+    url(r'^me/activities/state', 'my_activity_state'),
+    url(r'^me/apps', 'my_app_status'),
+    url(r'^me/tokens2', 'delete_token2'),
+    url(r'^me/tokens', 'delete_token'),
+    url(r'^me/clients', 'delete_client'),
+    url(r'^me', 'me'),
+    url(r'^statementvalidator', 'stmt_validator'),
 )
 
 # Login and logout patterns
 urlpatterns += patterns('',
   url(r'^accounts/login/$', 'django.contrib.auth.views.login', name="login"),
-  url(r'^accounts/logout/$', 'lrs.views.logout_view', name="logout"),
+  url(r'^accounts/logout/$', 'adl_lrs.views.logout_view', name="logout"),
 )
 
 # Allows admins to view attachments in admin console
 if settings.DEBUG:
-  urlpatterns += patterns('',
-      url(r'^media/attachment_payloads/(?P<path>.*)$', 'lrs.views.admin_attachments'),
+  urlpatterns += patterns('adl_lrs.views',
+      url(r'^media/attachment_payloads/(?P<path>.*)$', 'admin_attachments'),
  )

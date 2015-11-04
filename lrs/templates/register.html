@@ -23,7 +23,7 @@
         {% if form.non_field_errors %}
             {{ form.non_field_errors }}
         {% endif %}
-          <form class="pure-form pure-form-stacked" action="{% url lrs.views.register %}" method="post">
+          <form class="pure-form pure-form-stacked" action="{% url adl_lrs.views.register %}" method="post">
               {% csrf_token %}
               <fieldset>
                   {% for field in form %}

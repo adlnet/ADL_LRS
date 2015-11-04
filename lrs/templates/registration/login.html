@@ -17,7 +17,7 @@
 	    <form class="pure-form pure-form-stacked" method="post">
 	        {% csrf_token %}
 	        <fieldset>
-	            <legend>Register <a href="{% url lrs.views.register %}">here</a> if you're a new user</legend>
+	            <legend>Register <a href="{% url adl_lrs.views.register %}">here</a> if you're a new user</legend>
 	              {% for field in form %}
 	                <label for="{{ field.auto_id }}">{{ field.label }}</label>
 	                {% if field.name == 'password' %}

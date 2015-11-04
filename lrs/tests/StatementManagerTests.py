@@ -8,8 +8,9 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from ..models import *
-from ..views import register, statements
+from ..views import statements
 from ..managers.ActivityManager import ActivityManager
+from adl_lrs.views import register
 
 class StatementManagerTests(TestCase):
     

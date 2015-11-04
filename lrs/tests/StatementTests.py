@@ -14,8 +14,9 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from ..models import Statement, Activity, Agent, Verb, SubStatement
-from ..views import register, statements
+from ..views import statements
 from ..util import retrieve_statement
+from adl_lrs.views import register
 
 class StatementTests(TestCase):
     @classmethod

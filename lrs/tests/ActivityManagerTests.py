@@ -8,7 +8,8 @@ from django.test import TestCase
 from django.test.utils import override_settings
 
 from ..models import Activity, Statement
-from ..views import register, statements, home
+from adl_lrs.views import register, home
+from ..views import statements
 
 CURRENT_SITE = settings.SITE_SCHEME + '://' + Site.objects.get_current().domain
 
@@ -118,7 +119,7 @@ class ActivityManagerTests(TestCase):
     def test_activity_no_def_json_metadata(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}})
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample1/'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
         
@@ -141,7 +142,7 @@ class ActivityManagerTests(TestCase):
         self.assertIn('en-CH', desc_keys)
         self.assertIn('Alt Desc', desc_values)
 
-        self.do_activity_model(act.id, CURRENT_SITE + '/XAPI/actexample1/', 'Activity')
+        self.do_activity_model(act.id, CURRENT_SITE + '/actexample1/', 'Activity')
 
     @override_settings(CELERY_ALWAYS_EAGER=True,
                         TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner')
@@ -151,11 +152,11 @@ class ActivityManagerTests(TestCase):
 
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}}
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample1/'}}
         
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample1/'}}
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample1/'}}
 
         st_list.append(stmt1)
         st_list.append(stmt2)
@@ -177,7 +178,7 @@ class ActivityManagerTests(TestCase):
     def test_activity_no_def_json_metadata_extensions(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
-            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/XAPI/actexample2/'}})
+            "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample2/'}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -196,7 +197,7 @@ class ActivityManagerTests(TestCase):
         self.assertEqual(desc_set.keys()[0], 'en-US')
         self.assertEqual(desc_set.values()[0], 'Example Desc')
 
-        self.do_activity_model(act.id, CURRENT_SITE + '/XAPI/actexample2/', 'Activity')
+        self.do_activity_model(act.id, CURRENT_SITE + '/actexample2/', 'Activity')
         self.do_activity_definition_extensions_model(act, 'ext:keya', 'ext:keyb', 'ext:keyc','first value',
             'second value', 'third value')
 

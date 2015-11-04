@@ -14,8 +14,9 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from ..views import reg_client, register, statements
+from ..views import statements
 from ..models import Activity, Agent
+from adl_lrs.views import register, reg_client
 
 from oauth_provider.models import Consumer, Token, Nonce
 from oauth_provider.utils import SignatureMethod_RSA_SHA1

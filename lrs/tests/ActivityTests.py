@@ -5,7 +5,8 @@ from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from ..views import register, statements, activities
+from ..views import statements, activities
+from adl_lrs.views import register
 
 class ActivityTests(TestCase):
     @classmethod
