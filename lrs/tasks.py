@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 import urllib2
 import json
+import hmac
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
+from hashlib import sha1
 
 from django.conf import settings
 from django.db.models import Q
@@ -34,30 +36,31 @@ def check_statement_hooks(stmt_ids):
     for h in hooks:
         filters = h.filters
         config = h.config
-        if 'endpoint' not in config:
-            celery_logger.exception("Endpoint not in hook %s" % str(h.name))
-        else:
-            secret = str(config['secret']) if 'secret' in config else None
-            filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
-            found = Statement.objects.filter(filterQ)
-            if found:
+        secret = config['secret'] if config['secret'] else False
+        filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
+        found = Statement.objects.filter(filterQ)
+        if found:
+            if config['content_type'] == 'json':
                 data = '{"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
                 req = urllib2.Request(str(h.config['endpoint']))
                 req.add_header('Content-Type', 'application/json')
+            else:
+                data = 'payload={"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
+                req = urllib2.Request(str(h.config['endpoint']))
+                req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+            try:
                 if secret:
-                    req.add_header('X-XAPI-Signature', secret)
-                try:
-                    celery_logger.info("Sending statements to hook endpoint %s" % str(h.config['endpoint']))
-                    resp = urllib2.urlopen(req, data)
-                    resp.close()
-                    celery_logger.info("Response code for sending statements to hook endpoint %s : %s" % (str(h.config['endpoint']), resp.getcode()))
-                except Exception, e:
-                    celery_logger.exception("Could not send statements to hook %s: %s" % (str(h.config['endpoint']), e.message))
+                    req.add_header('X-LRS-Signature', hmac.new(str(secret), str(data), sha1).hexdigest())
+                celery_logger.info("Sending statements to hook endpoint %s" % str(h.config['endpoint']))
+                resp = urllib2.urlopen(req, data)
+                resp.close()
+                celery_logger.info("Response code for sending statements to hook endpoint %s : %s" % (str(h.config['endpoint']), resp.getcode()))
+            except Exception, e:
+                celery_logger.exception("Could not send statements to hook %s: %s" % (str(h.config['endpoint']), e.message))
 
 def parse_filter(filters, filterQ):
     from lrs.models import Agent
     actorQ, verbQ, objectQ, filterQ = Q(), Q(), Q(), Q()
-    
     if isinstance(filters, dict):
         if 'actor' in filters.keys():
             actors = filters.pop('actor')
@@ -121,7 +124,8 @@ def parse_related_filter(related, or_operand):
 
 def set_object_activity_query(q, act_id, or_operand):
     if or_operand:
-        return q | (Q(context_ca_parent__activity_id=act_id) \
+        return q | (Q(object_activity__activity_id=act_id) \
+            | Q(context_ca_parent__activity_id=act_id) \
             | Q(context_ca_grouping__activity_id=act_id) \
             | Q(context_ca_category__activity_id=act_id) \
             | Q(context_ca_other__activity_id=act_id) \
@@ -131,7 +135,8 @@ def set_object_activity_query(q, act_id, or_operand):
             | Q(object_substatement__context_ca_category__activity_id=act_id) \
             | Q(object_substatement__context_ca_other__activity_id=act_id))        
 
-    return q & (Q(context_ca_parent__activity_id=act_id) \
+    return q & (Q(object_activity__activity_id=act_id) \
+        | Q(context_ca_parent__activity_id=act_id) \
         | Q(context_ca_grouping__activity_id=act_id) \
         | Q(context_ca_category__activity_id=act_id) \
         | Q(context_ca_other__activity_id=act_id) \
@@ -143,14 +148,14 @@ def set_object_activity_query(q, act_id, or_operand):
 
 def set_object_agent_query(q, agent, or_operand):
     if or_operand:
-        return q | (Q(object_agent=agent) | Q(authority=agent) \
+        return q | (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) \
               | Q(context_instructor=agent) | Q(context_team=agent) \
               | Q(object_substatement__actor=agent) \
               | Q(object_substatement__object_agent=agent) \
               | Q(object_substatement__context_instructor=agent) \
               | Q(object_substatement__context_team=agent))
 
-    return q & (Q(object_agent=agent) | Q(authority=agent) \
+    return q & (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) \
           | Q(context_instructor=agent) | Q(context_team=agent) \
           | Q(object_substatement__actor=agent) \
           | Q(object_substatement__object_agent=agent) \
