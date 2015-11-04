@@ -459,12 +459,7 @@ def my_statements_hook(request, hook_id):
         except Hook.DoesNotExist:
             return HttpResponseBadRequest("Something went wrong: %s hook doesn't exist" % hook_id)
         else:
-            data = hook.to_dict()
-            hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('lrs.views.my_statements_hooks'), hook.hook_id)
-            data['url'] = hook_location
-            resp = HttpResponse(json.dumps(data), content_type="application/json", status=201)
-            resp['Location'] = hook_location
-            return resp
+            return HttpResponse(json.dumps(hook.to_dict()), content_type="application/json", status=201) 
     else:
         try:
             Hook.objects.get(hook_id=hook_id, user=user).delete()
@@ -480,38 +475,27 @@ def my_statements_hooks(request):
         return HttpResponse(request.META['lrs-user'][1], status=401)
     user = request.META['lrs-user'][1]
     if request.method == "POST":
-        content_type = None
-        if 'CONTENT_TYPE' in request.META:
-            content_type = request.META.get('CONTENT_TYPE')
-        elif 'Content-Type' in request.META:
-            content_type = request.META.get('Content-Type')                                    
-        if content_type:
-            if request.body:
-                if 'application/json' in content_type:
-                    try:
-                        body = util.convert_to_datatype(request.body)
-                    except Exception:
-                        return HttpResponseBadRequest("Could not parse request body")
-                    try:
-                        body['user'] = user
-                        hook = Hook.objects.create(**body)
-                    except IntegrityError, e:
-                        return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
-                    except Exception, e:
-                        return HttpResponseBadRequest("Something went wrong: %s" % e.message)
-                    else:
-                        hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('lrs.views.my_statements_hooks'), hook.hook_id)
-                        resp_data = hook.to_dict()
-                        resp_data['url'] = hook_location
-                        resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
-                        resp['Location'] = hook_location
-                        return resp
-                else:
-                    return HttpResponseBadRequest("Request's Content-Type must be 'application/json'")
+        if request.body:
+            try:
+                body = util.convert_to_datatype(request.body)
+            except Exception:
+                return HttpResponseBadRequest("Could not parse request body")
+            try:
+                body['user'] = user
+                hook = Hook.objects.create(**body)
+            except IntegrityError, e:
+                return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
+            except Exception, e:
+                return HttpResponseBadRequest("Something went wrong: %s" % e.message)
             else:
-                return HttpResponseBadRequest("No request body found")
+                hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('lrs.views.my_statements_hooks'), hook.hook_id)
+                resp_data = hook.to_dict()
+                resp_data['url'] = hook_location
+                resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
+                resp['Location'] = hook_location
+                return resp
         else:
-            return HttpResponseBadRequest("Request must contain a Content-Type")
+            return HttpResponseBadRequest("No request body found")
     else:
         hooks = Hook.objects.filter(user=user)
         resp_data = [h.to_dict() for h in hooks]

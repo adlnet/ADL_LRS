@@ -667,11 +667,25 @@ class Hook(models.Model):
     config = JSONField(blank=False)
     filters = JSONField(blank=False)
     user = models.ForeignKey(User, null=False)
-    created_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat())
-    updated_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat())
+    created_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc))
+    updated_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc))
 
     class Meta:
         unique_together = (("name", "user"))
+
+    def save(self, *args, **kwargs):
+        if 'endpoint' not in self.config:
+            raise ValueError('Hook does not contain an endpoint')
+
+        if 'content_type' not in self.config:
+            self.config['content_type'] = 'json'
+        else:
+            if self.config['content_type'] != 'form' and self.config['content_type'] != 'json':
+                self.config['content_type'] = 'json'
+
+        if self.filters == {}:
+            raise ValueError('Hook does not have any filters')
+        super(Hook, self).save(*args, **kwargs)
 
     def to_dict(self):
         return {'id': self.hook_id, 'name': self.name, 'config': self.config, 'filters': self.filters, \
