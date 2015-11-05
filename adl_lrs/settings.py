@@ -88,7 +88,7 @@ XAPI_VERSION = '1.0.2'
 XAPI_VERSIONS = ['1.0.0', '1.0.1', '1.0.2']
 
 # Where to be redirected after logging in
-LOGIN_REDIRECT_URL = '/XAPI/me'
+LOGIN_REDIRECT_URL = '/me'
 
 # Me view has a tab of user's statements
 STMTS_PER_PAGE = 10

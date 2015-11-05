@@ -221,7 +221,7 @@ def me(request, template='me.html'):
 
     return render_to_response(template, context, context_instance=RequestContext(request))
 
-@login_required(login_url="/accounts/login")
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["GET", "HEAD"])
 def my_download_statements(request):
     stmts = Statement.objects.filter(user=request.user).order_by('-stored')
