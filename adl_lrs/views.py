@@ -15,10 +15,11 @@ from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
+from .forms import ValidatorForm, RegisterForm, RegClientForm, HookRegistrationForm
+
 from lrs.exceptions import ParamError
-from lrs.forms import ValidatorForm, RegisterForm, RegClientForm
 from lrs.models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState, Hook
-from lrs.util import accept_middleware, StatementValidator, util, Authorization
+from lrs.util import StatementValidator, util, authorization
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
@@ -28,8 +29,8 @@ from oauth2_provider.provider.oauth2.models import Client, AccessToken
 
 LOGIN_URL = "/accounts/login"
 
-@decorator_from_middleware(accept_middleware.AcceptMiddleware)
 @csrf_protect
+@require_http_methods(["GET"])
 def home(request):
     context = RequestContext(request)
     stats = {}
@@ -39,12 +40,11 @@ def home(request):
     stats['agentcnt'] = Agent.objects.filter().count()
     stats['activitycnt'] = Activity.objects.filter().count()
 
-    if request.method == 'GET':
-        form = RegisterForm()
-        return render_to_response('home.html', {'stats':stats, "form": form}, context_instance=context)
+    form = RegisterForm()
+    return render_to_response('home.html', {'stats':stats, "form": form}, context_instance=context)
 
-@decorator_from_middleware(accept_middleware.AcceptMiddleware)
 @csrf_protect
+@require_http_methods(["POST", "GET"])
 def stmt_validator(request):
     context = RequestContext(request)
     if request.method == 'GET':
@@ -69,9 +69,10 @@ def stmt_validator(request):
     return render_to_response('validator.html', {"form": form}, context_instance=context)
 
 # Hosted example activites for the tests
+@require_http_methods(["GET"])
 def actexample1(request):
     return render_to_response('actexample1.json', mimetype="application/json")
-
+@require_http_methods(["GET"])
 def actexample2(request):
     return render_to_response('actexample2.json', mimetype="application/json")
 
@@ -79,7 +80,6 @@ def actexample2(request):
 @require_http_methods(["POST", "GET"])
 def register(request):
     context = RequestContext(request)
-    
     if request.method == 'GET':
         form = RegisterForm()
         return render_to_response('register.html', {"form": form}, context_instance=context)
@@ -133,6 +133,7 @@ def admin_attachments(request, path):
         response['Content-Disposition'] = 'attachment; filename="%s"' % path
         return response
 
+@transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
 @require_http_methods(["POST", "GET"])
 def reg_client(request):
@@ -180,6 +181,7 @@ def reg_client2(request):
             return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
 
 @login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET"])
 def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
     context = {'statements': Statement.objects.filter(user=request.user).order_by('-timestamp'),'page_template': page_template}
     
@@ -188,6 +190,7 @@ def my_statements(request, template="my_statements.html", page_template="my_stat
     return render_to_response(template, context, context_instance=RequestContext(request))
 
 @login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET"])
 def my_activity_states(request, template="my_activity_states.html", page_template="my_activity_states_holder.html"):
     try:
         ag = Agent.objects.get(mbox="mailto:" + request.user.email)
@@ -203,35 +206,7 @@ def my_activity_states(request, template="my_activity_states.html", page_templat
     return render_to_response(template, context, context_instance=RequestContext(request))
 
 @login_required(login_url=LOGIN_URL)
-def me(request, template='me.html'):
-    client_apps = Consumer.objects.filter(user=request.user)
-    access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
-    client_apps2 = Client.objects.filter(user=request.user)
-    access_tokens2 = AccessToken.objects.filter(user=request.user)
-    access_token_scopes = []
-
-    for token in access_tokens2:
-        scopes = to_names(token.scope)
-        access_token_scopes.append((token, scopes))
-
-    context = {'client_apps':client_apps,
-                'access_tokens':access_tokens,
-                'client_apps2': client_apps2,
-                'access_tokens2':access_token_scopes}
-
-    return render_to_response(template, context, context_instance=RequestContext(request))
-
-@login_required(login_url=LOGIN_URL)
-@require_http_methods(["GET", "HEAD"])
-def my_download_statements(request):
-    stmts = Statement.objects.filter(user=request.user).order_by('-stored')
-    result = "[%s]" % ",".join([stmt.object_return() for stmt in stmts])
-
-    response = HttpResponse(result, mimetype='application/json', status=200)
-    response['Content-Length'] = len(result)
-    return response
-
-@login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET"])
 def my_activity_state(request):
     act_id = request.GET.get("act_id", None)
     state_id = request.GET.get("state_id", None)
@@ -255,6 +230,75 @@ def my_activity_state(request):
 
 @transaction.commit_on_success
 @login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET"])
+def me(request, template='me.html'):
+    client_apps = Consumer.objects.filter(user=request.user)
+    access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
+    client_apps2 = Client.objects.filter(user=request.user)
+    access_tokens2 = AccessToken.objects.filter(user=request.user)
+    access_token_scopes = []
+    for token in access_tokens2:
+        scopes = to_names(token.scope)
+        access_token_scopes.append((token, scopes))
+
+    context_dict = {
+                'client_apps':client_apps,
+                'access_tokens':access_tokens,
+                'client_apps2': client_apps2,
+                'access_tokens2':access_token_scopes
+            }    
+    return render_to_response(template, context_dict, context_instance=RequestContext(request))
+
+@transaction.commit_on_success
+@login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET", "POST"])
+def my_hooks(request, template="my_hooks.html"):
+    valid_message = False
+    error_message = False
+    if request.method == 'GET':
+        hook_form = HookRegistrationForm()
+    else:
+        hook_form = HookRegistrationForm(request.POST)
+        if hook_form.is_valid():
+            name = hook_form.cleaned_data['name']
+            secret = hook_form.cleaned_data['secret']
+            config = {}
+            config['endpoint'] = hook_form.cleaned_data['endpoint']
+            config['content_type'] = hook_form.cleaned_data['content_type']
+            if secret:
+                config['secret'] = secret
+            filters = json.loads(hook_form.cleaned_data['filters'])
+            try:
+                hook = Hook.objects.create(name=name, config=config, filters=filters, user=request.user)
+            except IntegrityError, ie:
+                error_message = "Hook with name %s already exists" % name
+                valid_message = False                
+            except Exception, e:
+                error_message = e.message
+                valid_message = False
+            else:
+                valid_message = "Successfully created hook"
+        else:
+            error_message = False
+            valid_message = False
+
+    user_hooks = Hook.objects.filter(user=request.user) 
+    context_dict = {'user_hooks': user_hooks, 'hook_form': hook_form}
+    return render_to_response(template, context_dict, context_instance=RequestContext(request))
+
+@login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET", "HEAD"])
+def my_download_statements(request):
+    stmts = Statement.objects.filter(user=request.user).order_by('-stored')
+    result = "[%s]" % ",".join([stmt.object_return() for stmt in stmts])
+
+    response = HttpResponse(result, mimetype='application/json', status=200)
+    response['Content-Length'] = len(result)
+    return response
+
+@transaction.commit_on_success
+@login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET", "POST"])
 def my_app_status(request):
     try:
         name = request.GET['app_name']
@@ -319,14 +363,17 @@ def delete_client(request):
         return HttpResponse(e.message, status=400)
     return HttpResponse("", status=204)
 
+@login_required(login_url=LOGIN_URL)
+@require_http_methods(["GET"])
 def logout_view(request):
     logout(request)
-    # Redirect to a success page.
     return HttpResponseRedirect(reverse('adl_lrs.views.home'))
 
+@transaction.commit_on_success
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["GET", "DELETE"])
-@Authorization.non_xapi_auth
-def my_statements_hook(request, hook_id):
+@authorization.non_xapi_auth
+def hook(request, hook_id):
     if not request.META['lrs-user'][0]:
         return HttpResponse(request.META['lrs-user'][1], status=401)
     user = request.META['lrs-user'][1]
@@ -345,9 +392,11 @@ def my_statements_hook(request, hook_id):
         else:
             return HttpResponse('', status=204)
 
+@transaction.commit_on_success
+@login_required(login_url=LOGIN_URL)
 @require_http_methods(["GET", "POST"])
-@Authorization.non_xapi_auth
-def my_statements_hooks(request):
+@authorization.non_xapi_auth
+def hooks(request):
     if not request.META['lrs-user'][0]:
         return HttpResponse(request.META['lrs-user'][1], status=401)
     user = request.META['lrs-user'][1]
@@ -377,7 +426,3 @@ def my_statements_hooks(request):
         hooks = Hook.objects.filter(user=user)
         resp_data = [h.to_dict() for h in hooks]
         return HttpResponse(json.dumps(resp_data), content_type="application/json", status=200)
-
-@login_required
-def user_profile(request):
-    return render_to_response('registration/profile.html')

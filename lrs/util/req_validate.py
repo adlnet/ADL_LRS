@@ -3,7 +3,7 @@ from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
 
 from util import get_agent_ifp
-from Authorization import auth
+from authorization import auth
 from StatementValidator import StatementValidator
 
 from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile

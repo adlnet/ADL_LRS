@@ -879,7 +879,7 @@ class AttachmentAndSignedTests(TestCase):
             "sha2":""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        img_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static','img', 'example.png'))
+        img_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'adl_lrs','static','img', 'example.png'))
         img = open(img_path, 'rb')
         img_data = img.read()
         img.close()

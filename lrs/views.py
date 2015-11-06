@@ -10,12 +10,13 @@ from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.http import require_http_methods
 
 from .exceptions import BadRequest, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
-from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, accept_middleware
+from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware
 
 # This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
+STATEMENTS_MORE_ENDPOINT = "/xapi/statements/more"
 
-@decorator_from_middleware(accept_middleware.AcceptMiddleware)
+@require_http_methods(["GET", "HEAD"])
 def about(request):
     lrs_data = { 
         "version": settings.XAPI_VERSIONS,
@@ -68,25 +69,14 @@ def about(request):
     }    
     return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)
 
-# Called when user queries GET statement endpoint and returned list is larger than server limit (10)
-@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 @require_http_methods(["GET", "HEAD"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements_more(request, more_id):
     return handle_request(request, more_id)
 
-@require_http_methods(["PUT","GET","POST", "HEAD"])
+@require_http_methods(["PUT", "GET", "POST", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
-    if request.method in ['GET', 'HEAD']:
-        return doget(request)
-    else:
-        return doputpost(request)
-
-def doget(request):
-    return handle_request(request)   
-
-@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
-def doputpost(request):
     return handle_request(request)
 
 @require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
@@ -94,7 +84,7 @@ def doputpost(request):
 def activity_state(request):
     return handle_request(request)  
 
-@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])
+@require_http_methods(["PUT", "POST", "GET", "DELETE", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def activity_profile(request):
     return handle_request(request)
@@ -104,12 +94,11 @@ def activity_profile(request):
 def activities(request):
     return handle_request(request)
 
-@require_http_methods(["PUT","POST","GET","DELETE", "HEAD"])    
+@require_http_methods(["PUT", "POST", "GET", "DELETE", "HEAD"])    
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agent_profile(request):
     return handle_request(request)
 
-# returns a 405 (Method Not Allowed) if not a GET
 @require_http_methods(["GET", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def agents(request):
@@ -151,7 +140,7 @@ validators = {
        "GET" : req_validate.agents_get,
        "HEAD" : req_validate.agents_get
    },
-   "/xapi/statements/more" : {
+   STATEMENTS_MORE_ENDPOINT : {
         "GET" : req_validate.statements_more_get,
         "HEAD" : req_validate.statements_more_get
    }
@@ -193,7 +182,7 @@ processors = {
        "GET" : req_process.agents_get,
        "HEAD" : req_process.agents_get
    },
-   "/xapi/statements/more" : {
+   STATEMENTS_MORE_ENDPOINT : {
         "GET" : req_process.statements_more_get,
         "HEAD" : req_process.statements_more_get
    }      

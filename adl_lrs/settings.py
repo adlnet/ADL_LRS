@@ -183,7 +183,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'lrs.util.AllowOriginMiddleware.AllowOriginMiddleware',
+    'adl_lrs.utils.AllowOriginMiddleware.AllowOriginMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -207,6 +207,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'adl_lrs',
     'lrs',
     'oauth_provider',
     'oauth2_provider.provider',
