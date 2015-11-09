@@ -28,7 +28,7 @@ class StatementManagerTests(TestCase):
 
     def test_minimum_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -42,13 +42,13 @@ class StatementManagerTests(TestCase):
 
         self.assertEqual(activity.activity_id, "http://example.adlnet.gov/tincan/example/simplestatement")
         self.assertEqual(actor.mbox, "mailto:tincan@adlnet.gov")
-        self.assertEqual(verb.verb_id, "http://adlnet.gov/expapi/verbs/created")
+        self.assertEqual(verb.verb_id, "http://example.com/verbs/created")
 
 
     def test_given_stmtID_stmt(self):
         st_id = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
@@ -69,7 +69,7 @@ class StatementManagerTests(TestCase):
         
         self.assertEqual(activity.activity_id, "http://example.adlnet.gov/tincan/example/simplestatement")
         self.assertEqual(actor.mbox, "mailto:tincan@adlnet.gov")
-        self.assertEqual(verb.verb_id, "http://adlnet.gov/expapi/verbs/created")
+        self.assertEqual(verb.verb_id, "http://example.com/verbs/created")
         
         st = Statement.objects.get(statement_id=st_id)
         self.assertEqual(st.object_activity.id, activity.id)
@@ -79,7 +79,7 @@ class StatementManagerTests(TestCase):
         st_id = str(uuid.uuid1())
 
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
@@ -87,7 +87,7 @@ class StatementManagerTests(TestCase):
         self.assertEqual(response.status_code, 204)
 
         stmt2 = json.dumps({"actor":{"name":"Example Admin", "mbox":"mailto:admin@example.com"},
-            'verb': {"id":"http://adlnet.gov/expapi/verbs/attempted"}, 'object': {'objectType':'StatementRef',
+            'verb': {"id":"http://example.com/verbs/attempted"}, 'object': {'objectType':'StatementRef',
             'id': st_id}})
         response = self.client.post(reverse(statements), stmt2, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)

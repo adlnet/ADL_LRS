@@ -25,7 +25,7 @@ class AgentManagerTests(TestCase):
 
     def test_agent_mbox_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -40,7 +40,7 @@ class AgentManagerTests(TestCase):
 
     def test_agent_mbox_sha1sum_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox_sha1sum":hashlib.sha1("mailto:bob@example.com").hexdigest()},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -58,7 +58,7 @@ class AgentManagerTests(TestCase):
 
     def test_agent_bogus_mbox_sha1sum_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox_sha1sum":"notarealsum"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -69,7 +69,7 @@ class AgentManagerTests(TestCase):
 
     def test_agent_openID_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "openid":"http://bob.openid.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -88,7 +88,7 @@ class AgentManagerTests(TestCase):
 
     def test_agent_account_create(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "account":{"homePage": "http://www.adlnet.gov", "name":"freakshow"}},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -173,7 +173,7 @@ class AgentManagerTests(TestCase):
 
     def test_agent_json_no_ids(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "name":"freakshow"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -184,7 +184,7 @@ class AgentManagerTests(TestCase):
 
     def test_agent_json_many_ids(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com", "openid":"bob.bobson.openid.org"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},
+            "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",

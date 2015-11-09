@@ -528,7 +528,7 @@ class AttachmentAndSignedTests(TestCase):
                     "objectType": "Agent"
                 },
                 "verb": {
-                    "id": "http://adlnet.gov/expapi/verbs/answered",
+                    "id": "http://example.com/verbs/answered",
                     "display": {
                         "en-US": "answered"
                     }

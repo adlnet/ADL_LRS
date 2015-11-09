@@ -195,7 +195,7 @@ class ActivityProfileTests(TestCase):
         actid = "test:activity"
         profid = "test://test/tz"
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id': actid}})
         st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -218,7 +218,7 @@ class ActivityProfileTests(TestCase):
         actid = "test:activity"
         profid = "test://test/tz"
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id': actid}})
         st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -264,7 +264,7 @@ class ActivityProfileTests(TestCase):
         path = path = '%s?%s' % (reverse(views.activity_profile), urllib.urlencode({"method":"PUT"}))
 
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id': activityid}})
         st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -285,7 +285,7 @@ class ActivityProfileTests(TestCase):
         aid = 'act:ie.cors.etag/test'
 
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id': aid}})
         st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -318,7 +318,7 @@ class ActivityProfileTests(TestCase):
         profile = {"test":"put profile 1","obj":{"activity":"test"}}
 
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id': "act:tetris.snafu"}})
         st_post = self.client.post(reverse(views.statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)

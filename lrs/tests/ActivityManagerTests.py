@@ -118,7 +118,7 @@ class ActivityManagerTests(TestCase):
                         TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner')    
     def test_activity_no_def_json_metadata(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample1/'}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -151,11 +151,11 @@ class ActivityManagerTests(TestCase):
         st_list = []
 
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample1/'}}
         
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample1/'}}
 
         st_list.append(stmt1)
@@ -177,7 +177,7 @@ class ActivityManagerTests(TestCase):
                         TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner')
     def test_activity_no_def_json_metadata_extensions(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': CURRENT_SITE + '/actexample2/'}})
 
         response = self.client.post(reverse(statements), stmt1, content_type="application/json",
@@ -206,7 +206,7 @@ class ActivityManagerTests(TestCase):
     # (should still use values from JSON)
     def test_activity_no_resolve(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity',
             'id':'act://var/www/adllrs/activity/example.json','definition': {'name': {'en-CH':'testname'},
             'description': {'en-US':'testdesc'}, 'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[]}}})
@@ -234,7 +234,7 @@ class ActivityManagerTests(TestCase):
     # Test an activity that has a def and the ID resolves (should use values from payload)
     def test_activity_id_resolve(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id': CURRENT_SITE + reverse(home),
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-GB':'testdesc1'},
                 'type': 'type:link','interactionType': 'other', 'correctResponsesPattern':[]}}})
@@ -272,7 +272,7 @@ class ActivityManagerTests(TestCase):
     #Test activity where given URL isn't IRI
     def test_activity_invalid_activity_id(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'id': 'foo',
                 'objectType':'Activity','definition': {'name': {'en-GB':'testname'},
                 'description': {'en-GB':'testdesc'}, 'type': 'type:link','interactionType': 'other'}}})
@@ -286,7 +286,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition - must retrieve activity object in order to test definition from DB
     def test_activity_definition(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'id':'act:fooc',
                 'definition': {'name': {'en-GB':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[]}}})
@@ -315,7 +315,7 @@ class ActivityManagerTests(TestCase):
     # in order to test extenstions
     def test_activity_definition_extensions(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:food',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[], 'extensions': {'ext:key1': 'value1',
@@ -346,7 +346,7 @@ class ActivityManagerTests(TestCase):
 
     def test_multiple_names_and_descs(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:food',
                 'definition': {'name': {'en-FR':'testname2','en-US': 'testnameEN'},'description': {'en-CH':'testdesc2',
                 'en-GB': 'testdescGB'},'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[], 'extensions': {'ext:key1': 'value1',
@@ -382,7 +382,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition given wrong interactionType (won't create one)
     def test_activity_definition_wrong_interactionType(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 
                 'id':'http://facebook.com','definition': {'name': {'en-US':'testname2'},
                 'description': {'en-GB':'testdesc2'}, 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -398,7 +398,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and true-false interactionType
     def test_activity_definition_cmiInteraction_true_false(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:fooe',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-US':'testdesc2'}, 
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'true-false',
@@ -434,7 +434,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and multiple choice interactionType
     def test_activity_definition_cmiInteraction_multiple_choice(self):    
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:foof',
                 'definition': {'name': {'en-US':'testname1'},'description': {'en-US':'testdesc1'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'choice',
@@ -480,7 +480,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and multiple choice but missing choices
     def test_activity_definition_cmiInteraction_multiple_choice_no_choices(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 
                 'id':'http://wikipedia.org','definition': {'name': {'en-US':'testname2'},
                 'description': {'en-US':'testdesc2'},'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -519,7 +519,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and fill in interactionType
     def test_activity_definition_cmiInteraction_fill_in(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:foog',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
@@ -556,7 +556,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and long fill in interactionType
     def test_activity_definition_cmiInteraction_long_fill_in(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:fooh',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
@@ -593,7 +593,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and likert interactionType
     def test_activity_definition_cmiInteraction_likert(self):    
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:fooi',
                 'definition': {'name': {'en-CH':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert',
@@ -637,7 +637,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and matching interactionType
     def test_activity_definition_cmiInteraction_matching(self):    
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:fooj',
                 'definition': {'name': {'en-CH':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'matching',
@@ -684,7 +684,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and performance interactionType
     def test_activity_definition_cmiInteraction_performance(self):    
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:fook',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'performance',
@@ -727,7 +727,7 @@ class ActivityManagerTests(TestCase):
     # Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and sequencing interactionType
     def test_activity_definition_cmiInteraction_sequencing(self):    
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:fool',
                 'definition': {'name': {'en-GB':'testname2'},'description': {'en-GB':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'sequencing',
@@ -766,7 +766,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and numeric interactionType
     def test_activity_definition_cmiInteraction_numeric(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:foom',
                 'definition': {'name': {'en-CH':'testname2'},'description': {'en-CH':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
@@ -802,7 +802,7 @@ class ActivityManagerTests(TestCase):
     #Test activity with definition that is http://adlnet.gov/expapi/activities/cmi.interaction and other interactionType
     def test_activity_definition_cmiInteraction_other(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id': 'act:foon',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
@@ -840,19 +840,19 @@ class ActivityManagerTests(TestCase):
     def test_multiple_activities(self):
         stmt_list = []
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob'}}
 
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob'}}
 
         stmt3 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob'}}
 
         stmt4 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foon'}}
         stmt_list.append(stmt1)
         stmt_list.append(stmt2)
@@ -880,7 +880,7 @@ class ActivityManagerTests(TestCase):
 
     def test_language_map_description_name(self):
         stmt1 = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id': 'act:foz',
                 'definition': {'name': {'en-US':'actname'},'description': {'en-US':'actdesc'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',
@@ -910,13 +910,13 @@ class ActivityManagerTests(TestCase):
     def test_multiple_activities_update_name(self):
         stmt_list = []
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-US':'actname'},'description': {'en-US':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-US':'actname2'},'description': {'en-US':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
@@ -968,13 +968,13 @@ class ActivityManagerTests(TestCase):
     def test_multiple_activities_update_desc(self):
         stmt_list = []
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foobe',
             'definition':{'name': {'en-US':'actname'},'description': {'en-US':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foobe',
             'definition':{'name': {'en-US':'actname'},'description': {'en-US':'actdesc2'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
@@ -1021,13 +1021,13 @@ class ActivityManagerTests(TestCase):
     def test_multiple_activities_update_both(self):
         stmt_list = []
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname2'},'description': {'en-FR':'actdesc2'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
@@ -1076,13 +1076,13 @@ class ActivityManagerTests(TestCase):
     def test_multiple_activities_update_both_and_add(self):
         stmt_list = []
         stmt1 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname'},'description': {'en-FR':'actdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
 
         stmt2 = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType':'Activity', 'id': 'act:foob',
             'definition':{'name': {'en-CH':'actname2', 'en-US': 'altname'},'description': {'en-FR':'actdesc2', 'en-GB': 'altdesc'}, 
             'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other','correctResponsesPattern': ['(35,-86)']}}}
