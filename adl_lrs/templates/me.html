@@ -232,10 +232,6 @@
                 timeout:5000
             });
         });
-        $('.show_filters').click(function(){
-            var filters = JSON.parse($(this).next('span').text());
-            alert(JSON.stringify(filters, null, 4));
-        });        
     });
 </script>
 {% endblock extra_js %}
