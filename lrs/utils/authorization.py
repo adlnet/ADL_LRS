@@ -6,14 +6,11 @@ from django.contrib.auth import authenticate
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
-from ..exceptions import Unauthorized, BadRequest, Forbidden, OauthUnauthorized, OauthBadRequest
+from ..exceptions import Unauthorized, BadRequest, Forbidden
 from ..models import Agent
 
 from oauth_provider.models import Consumer
-from oauth_provider.utils import get_oauth_request, require_params
-from oauth_provider.decorators import CheckOauth
-from oauth_provider.store import store
-from oauth2_provider.provider.oauth2.models import Client, AccessToken
+from oauth2_provider.provider.oauth2.models import Client
 
 # A decorator, that can be used to authenticate some requests at the site.
 def auth(func):
@@ -32,65 +29,6 @@ def auth(func):
         # There is an oauth auth_type request and oauth is not enabled
         elif (auth_type == 'oauth' or auth_type == 'oauth2') and not settings.OAUTH_ENABLED: 
             raise BadRequest("OAuth is not enabled. To enable, set the OAUTH_ENABLED flag to true in settings")
-        return func(request, *args, **kwargs)
-    return inner
-
-# Decorater used for non-xapi endpoints
-def non_xapi_auth(func):
-    @wraps(func)
-    def inner(request, *args, **kwargs):
-        auth = None
-        if 'HTTP_AUTHORIZATION' in request.META:
-            auth = request.META.get('HTTP_AUTHORIZATION')
-        elif 'Authorization' in request.META:
-            auth = request.META.get('Authorization')
-
-        if auth:
-            if auth[:6] == 'OAuth ':
-                oauth_request = get_oauth_request(request)
-                # Returns HttpBadRequest if missing any params
-                missing = require_params(oauth_request)            
-                if missing:
-                    raise missing
-
-                check = CheckOauth()
-                e_type, error = check.check_access_token(request)
-                if e_type and error:
-                    if e_type == 'auth':
-                        raise OauthUnauthorized(error)
-                    else:
-                        raise OauthBadRequest(error)
-                # Consumer and token should be clean by now
-                consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
-                token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
-                request.META['lrs-user'] = token.user        
-            elif auth[:7] == 'Bearer ':
-                try:
-                    access_token = AccessToken.objects.get(token=auth[7:])
-                except AccessToken.DoesNotExist:
-                    raise OauthUnauthorized("Access Token does not exist")
-                else:
-                    if access_token.get_expire_delta() <= 0:
-                        raise OauthUnauthorized('Access Token has expired')
-                    request.META['lrs-user'] = access_token.user
-            else:
-                auth = auth.split()
-                if len(auth) == 2:
-                    if auth[0].lower() == 'basic':
-                        uname, passwd = base64.b64decode(auth[1]).split(':')
-                        if uname and passwd:
-                            user = authenticate(username=uname, password=passwd)
-                            if not user:
-                                request.META['lrs-user'] = (False, "Unauthorized: Authorization failed, please verify your username and password")
-                            request.META['lrs-user'] = (True, user)
-                        else:
-                            request.META['lrs-user'] = (False, "Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect")
-                    else:
-                        request.META['lrs-user'] = (False, "Unauthorized: HTTP Basic Authorization Header must start with Basic")
-                else:
-                    request.META['lrs-user'] = (False, "Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect")
-        else:
-            request.META['lrs-user'] = (False, "Unauthorized: Authorization must be supplied")                            
         return func(request, *args, **kwargs)
     return inner
 

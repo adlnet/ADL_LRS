@@ -660,33 +660,3 @@ class AgentProfile(models.Model):
         if self.profile:
             self.profile.delete()
         super(AgentProfile, self).delete(*args, **kwargs)
-
-class Hook(models.Model):
-    hook_id = UUIDField(version=1, db_index=True, unique=True)
-    name = models.CharField(max_length=50, blank=False)
-    config = JSONField(blank=False)
-    filters = JSONField(blank=False)
-    user = models.ForeignKey(User, null=False)
-    created_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc))
-    updated_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc))
-
-    class Meta:
-        unique_together = (("name", "user"))
-
-    def save(self, *args, **kwargs):
-        if 'endpoint' not in self.config:
-            raise ValueError('Hook does not contain an endpoint')
-
-        if 'content_type' not in self.config:
-            self.config['content_type'] = 'json'
-        else:
-            if self.config['content_type'] != 'form' and self.config['content_type'] != 'json':
-                self.config['content_type'] = 'json'
-
-        if self.filters == {}:
-            raise ValueError('Hook does not have any filters')
-        super(Hook, self).save(*args, **kwargs)
-
-    def to_dict(self):
-        return {'id': self.hook_id, 'name': self.name, 'config': self.config, 'filters': self.filters, \
-        'created_at': self.created_at.isoformat(), 'updated_at': self.updated_at.isoformat()}

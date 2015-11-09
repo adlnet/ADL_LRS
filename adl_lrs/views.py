@@ -2,25 +2,22 @@ import json
 import urllib
 from base64 import b64decode
 
-from django.conf import settings
 from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db import transaction, IntegrityError
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from .forms import ValidatorForm, RegisterForm, RegClientForm, HookRegistrationForm
+from .forms import ValidatorForm, RegisterForm, RegClientForm
 
 from lrs.exceptions import ParamError
-from lrs.models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState, Hook
-from lrs.utils import convert_to_datatype
+from lrs.models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState
 from lrs.utils.StatementValidator import StatementValidator
-from lrs.utils.authorization import non_xapi_auth
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
@@ -248,40 +245,6 @@ def me(request, template='me.html'):
             }    
     return render_to_response(template, context_dict, context_instance=RequestContext(request))
 
-@transaction.commit_on_success
-@login_required()
-@require_http_methods(["GET", "POST"])
-def my_hooks(request, template="my_hooks.html"):
-    valid_message = False
-    error_message = False
-    if request.method == 'GET':
-        hook_form = HookRegistrationForm()
-    else:
-        hook_form = HookRegistrationForm(request.POST)
-        if hook_form.is_valid():
-            name = hook_form.cleaned_data['name']
-            secret = hook_form.cleaned_data['secret']
-            config = {}
-            config['endpoint'] = hook_form.cleaned_data['endpoint']
-            config['content_type'] = hook_form.cleaned_data['content_type']
-            if secret:
-                config['secret'] = secret
-            filters = json.loads(hook_form.cleaned_data['filters'])
-            try:
-                Hook.objects.create(name=name, config=config, filters=filters, user=request.user)
-            except IntegrityError:
-                error_message = "Hook with name %s already exists" % name
-                valid_message = False                
-            except Exception, e:
-                error_message = e.message
-                valid_message = False
-            else:
-                valid_message = "Successfully created hook"
-
-    user_hooks = Hook.objects.filter(user=request.user) 
-    context_dict = {'user_hooks': user_hooks, 'hook_form': hook_form, 'error_message': error_message, 'valid_message': valid_message}
-    return render_to_response(template, context_dict, context_instance=RequestContext(request))
-
 @login_required()
 @require_http_methods(["GET", "HEAD"])
 def my_download_statements(request):
@@ -364,61 +327,3 @@ def delete_client(request):
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse('adl_lrs.views.home'))
-
-@transaction.commit_on_success
-@login_required()
-@require_http_methods(["GET", "DELETE"])
-@non_xapi_auth
-def hook(request, hook_id):
-    if not request.META['lrs-user'][0]:
-        return HttpResponse(request.META['lrs-user'][1], status=401)
-    user = request.META['lrs-user'][1]
-    if request.method == "GET":
-        try:
-            hook = Hook.objects.get(hook_id=hook_id, user=user)
-        except Hook.DoesNotExist:
-            return HttpResponseBadRequest("Something went wrong: %s hook doesn't exist" % hook_id)
-        else:
-            return HttpResponse(json.dumps(hook.to_dict()), content_type="application/json", status=201) 
-    else:
-        try:
-            Hook.objects.get(hook_id=hook_id, user=user).delete()
-        except Hook.DoesNotExist:
-            return HttpResponseNotFound("The hook with ID: %s was not found" % hook_id)
-        else:
-            return HttpResponse('', status=204)
-
-@transaction.commit_on_success
-@login_required()
-@require_http_methods(["GET", "POST"])
-@non_xapi_auth
-def hooks(request):
-    if not request.META['lrs-user'][0]:
-        return HttpResponse(request.META['lrs-user'][1], status=401)
-    user = request.META['lrs-user'][1]
-    if request.method == "POST":
-        if request.body:
-            try:
-                body = convert_to_datatype(request.body)
-            except Exception:
-                return HttpResponseBadRequest("Could not parse request body")
-            try:
-                body['user'] = user
-                hook = Hook.objects.create(**body)
-            except IntegrityError, e:
-                return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
-            except Exception, e:
-                return HttpResponseBadRequest("Something went wrong: %s" % e.message)
-            else:
-                hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('adl_lrs.views.my_statements_hooks'), hook.hook_id)
-                resp_data = hook.to_dict()
-                resp_data['url'] = hook_location
-                resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
-                resp['Location'] = hook_location
-                return resp
-        else:
-            return HttpResponseBadRequest("No request body found")
-    else:
-        hooks = Hook.objects.filter(user=user)
-        resp_data = [h.to_dict() for h in hooks]
-        return HttpResponse(json.dumps(resp_data), content_type="application/json", status=200)

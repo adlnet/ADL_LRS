@@ -2,14 +2,11 @@ from __future__ import absolute_import
 
 import urllib2
 import json
-import hmac
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from hashlib import sha1
 
 from django.conf import settings
-from django.db.models import Q
 
 from .utils.StatementValidator import StatementValidator
 
@@ -28,139 +25,6 @@ def void_statements(stmts):
         Statement.objects.filter(statement_id__in=stmts).update(voided=True)
     except Exception, e:
         celery_logger.exception("Voiding Statement Error: " + e.message)
-
-@shared_task
-def check_statement_hooks(stmt_ids):
-    from lrs.models import Hook, Statement
-    hooks = Hook.objects.all()
-    for h in hooks:
-        filters = h.filters
-        config = h.config
-        secret = config['secret'] if config['secret'] else False
-        filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
-        found = Statement.objects.filter(filterQ)
-        if found:
-            if config['content_type'] == 'json':
-                data = '{"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
-                req = urllib2.Request(str(h.config['endpoint']))
-                req.add_header('Content-Type', 'application/json')
-            else:
-                data = 'payload={"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
-                req = urllib2.Request(str(h.config['endpoint']))
-                req.add_header('Content-Type', 'application/x-www-form-urlencoded')
-            try:
-                if secret:
-                    req.add_header('X-LRS-Signature', hmac.new(str(secret), str(data), sha1).hexdigest())
-                celery_logger.info("Sending statements to hook endpoint %s" % str(h.config['endpoint']))
-                resp = urllib2.urlopen(req, data)
-                resp.close()
-                celery_logger.info("Response code for sending statements to hook endpoint %s : %s" % (str(h.config['endpoint']), resp.getcode()))
-            except Exception, e:
-                celery_logger.exception("Could not send statements to hook %s: %s" % (str(h.config['endpoint']), e.message))
-
-def parse_filter(filters, filterQ):
-    from lrs.models import Agent
-    actorQ, verbQ, objectQ, filterQ = Q(), Q(), Q(), Q()
-    if isinstance(filters, dict):
-        if 'actor' in filters.keys():
-            actors = filters.pop('actor')
-            if isinstance(actors, list):
-                for a in actors:
-                    try:
-                        agent = Agent.objects.retrieve_or_create(**a)[0]
-                    except Exception:
-                        celery_logger.exception("Agent data was invalid for agent filter")
-                    else:
-                        actorQ = actorQ | Q(actor=agent)
-        if 'verb' in filters.keys():
-            verbs = filters.pop('verb')
-            if isinstance(verbs, list):
-                for v in verbs:
-                    if 'id' in v:
-                        verbQ = verbQ | Q(verb__verb_id=v['id'])
-        if 'object' in filters.keys():
-            objects = filters.pop('object')
-            if isinstance(objects, list):
-                for o in objects:
-                    if 'id' in o:
-                        objectQ = objectQ | Q(object_activity__activity_id=o['id'])
-        filterQ = actorQ & verbQ & objectQ
-
-        if 'related' in filters.keys():
-            related = filters.pop('related')
-            if isinstance(related, list):
-                filterQ = filterQ & parse_related_filter(related, True)
-    return filterQ
-
-def parse_related_filter(related, or_operand):
-    from lrs.models import Agent
-    innerQ = Q()
-    objectQ = Q()
-    for ob in related:
-        # Any or/and values should be a list
-        if 'or' in ob.keys():
-            ors = ob['or']
-            if isinstance(ors, list):
-                innerQ = innerQ | parse_related_filter(ors, True)
-        elif 'and' in ob.keys():
-            ands = ob['and']
-            if isinstance(ands, list):
-                innerQ = innerQ & parse_related_filter(ands, False)
-        # Any other values will be an object
-        else:
-            if 'id' in ob:
-                objectQ = set_object_activity_query(objectQ, ob['id'], or_operand)
-            else:
-                try:
-                    agent = Agent.objects.retrieve_or_create(**ob)[0]
-                except Exception:
-                    celery_logger.exception("Agent data was invalid for agent filter")
-                else:
-                    objectQ = set_object_agent_query(objectQ, agent, or_operand)
-    if or_operand:
-        return objectQ | innerQ
-    else:
-        return objectQ & innerQ
-
-def set_object_activity_query(q, act_id, or_operand):
-    if or_operand:
-        return q | (Q(object_activity__activity_id=act_id) \
-            | Q(context_ca_parent__activity_id=act_id) \
-            | Q(context_ca_grouping__activity_id=act_id) \
-            | Q(context_ca_category__activity_id=act_id) \
-            | Q(context_ca_other__activity_id=act_id) \
-            | Q(object_substatement__object_activity__activity_id=act_id) \
-            | Q(object_substatement__context_ca_parent__activity_id=act_id) \
-            | Q(object_substatement__context_ca_grouping__activity_id=act_id) \
-            | Q(object_substatement__context_ca_category__activity_id=act_id) \
-            | Q(object_substatement__context_ca_other__activity_id=act_id))        
-
-    return q & (Q(object_activity__activity_id=act_id) \
-        | Q(context_ca_parent__activity_id=act_id) \
-        | Q(context_ca_grouping__activity_id=act_id) \
-        | Q(context_ca_category__activity_id=act_id) \
-        | Q(context_ca_other__activity_id=act_id) \
-        | Q(object_substatement__object_activity__activity_id=act_id) \
-        | Q(object_substatement__context_ca_parent__activity_id=act_id) \
-        | Q(object_substatement__context_ca_grouping__activity_id=act_id) \
-        | Q(object_substatement__context_ca_category__activity_id=act_id) \
-        | Q(object_substatement__context_ca_other__activity_id=act_id))
-
-def set_object_agent_query(q, agent, or_operand):
-    if or_operand:
-        return q | (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) \
-              | Q(context_instructor=agent) | Q(context_team=agent) \
-              | Q(object_substatement__actor=agent) \
-              | Q(object_substatement__object_agent=agent) \
-              | Q(object_substatement__context_instructor=agent) \
-              | Q(object_substatement__context_team=agent))
-
-    return q & (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) \
-          | Q(context_instructor=agent) | Q(context_team=agent) \
-          | Q(object_substatement__actor=agent) \
-          | Q(object_substatement__object_agent=agent) \
-          | Q(object_substatement__context_instructor=agent) \
-          | Q(object_substatement__context_team=agent))
     
 # Retrieve JSON data from ID
 def get_activity_metadata(act_id):
