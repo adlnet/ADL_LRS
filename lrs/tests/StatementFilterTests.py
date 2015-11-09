@@ -19,7 +19,7 @@ from django.conf import settings
 
 from ..models import Statement
 from ..views import statements, statements_more
-from ..util.util import convert_to_utc
+from ..utils import convert_to_utc
 from adl_lrs.views import register
 
 class StatementFilterTests(TestCase):

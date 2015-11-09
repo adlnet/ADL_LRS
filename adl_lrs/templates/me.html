@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load jsonify %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+{% endblock extra_css %}
+{% block title %}{{user.username}}'s Account{% endblock title %}
+{% block heading %}{{user.username}}'s Account{% endblock heading %}
+{% block content %}
+<br>
+<br>
+<div class="content">
+    <div class="pure-g">
+        <div class="l-box pure-u-1 pure-u-md-1-5 pure-u-lg-1-5">
+            <div class="pure-menu custom-restricted-width custom-menu">
+                <ul class="pure-menu-list">
+                    <li class="pure-menu-item pure-menu-item-custom pure-menu-selected tab-content"><a href="#myaccount" id="showme" class="pure-menu-link custom-wrap">Account</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url adl_lrs.views.my_statements %}" class="pure-menu-link custom-wrap">Statements</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url adl_lrs.views.my_activity_states %}" class="pure-menu-link custom-wrap">Activity States</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url adl_lrs.views.my_hooks %}" class="pure-menu-link custom-wrap">Webhooks</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#clientapps" class="pure-menu-link custom-wrap">OAuth Client Apps</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#myaccesstokens" class="pure-menu-link custom-wrap">OAuth Access Tokens</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#clientapps2" class="pure-menu-link custom-wrap">OAuth2 Client Apps</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#myaccesstokens2" class="pure-menu-link custom-wrap">OAuth2 Access Tokens</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-4-5 pure-u-lg-4-5">
+            <div id="myaccount">
+                <strong>My Account</strong>
+                <div>
+                    <p>Welcome to the ADL LRS, {{user.username}}! ({{user.email}})</p>
+                    <P>When you first use your credentials as basic authority to access the LRS, it will automatically create an agent for you. For example,
+                        the agent created for you will be:<br>
+                        <span class="user-agent">{"name": "{{user.username}}", "mbox": "mailto:{{user.email}}", "objectType": "Agent"}</span>
+                    </p>
+                    <p>Please take a minute to read the descriptions below of the tabs available to help you visualize your xAPI information better.</p>
+                    <ul>
+                        <li><b>Statements</b> - Displays human-readable sentences for your stored statements. Expand them to view the raw JSON data</li>
+                        <li><b>Activity States</b> - Displays all of your activity states and recognizes if the state is part of the <a target="_blank" href="http://adlnet.github.io/xAPI-SCORM-Profile/index.html">ADL SCORM Profile</a> for further inspection</li>
+                        <li><b>OAuth Client Apps</b> - Displays your registered OAuth apps' information (you can activate/deactivate them here)</li>
+                        <li><b>OAuth Access Tokens</b> - Displays available access tokens for your registered OAuth apps</li>
+                        <li><b>OAuth2 Client Apps</b> - Displays your registered OAuth2 apps' information (you can delete them here)</li>
+                        <li><b>OAuth2 Access Tokens</b> - Displays available access tokens for your registered OAuth2 apps</li>
+                        <li><b>Webhooks</b> - Displays your registered webhooks</li>
+                    </ul>
+                </div>
+            </div>
+            <div id="clientapps" class="content">
+                <h2>OAuth Client Apps</h2>
+                <a class="pure-button" href="{% url adl_lrs.views.reg_client %}">Add</a>
+                {% if client_apps %}
+                    <div class="email-item">
+                        {% for app in client_apps %}
+                            <div class="pure-u appdiv">
+                                <h5 class="email-name"><span class="appname">{{ app.name }}</span> --- <a class="change_app_status" href='#'>{% if app.status == 2 %}Deactivate{% else %}Activate{% endif %}</a></h5>
+                                <h4 class="email-subject {% if app.get_status_display == 'Accepted' %}formvalid
+                                                         {% elif app.get_status_display == 'Canceled' %}errorlist
+                                                         {% endif %}">{{ app.get_status_display }}</h4>
+                                <p class="email-desc">
+                                    <strong>Key</strong>: {{ app.key }}<br>
+                                    <strong>Secret</strong>: {% if not app.rsa_signature %}{{ app.secret }}{% else %}Your RSA key pair{% endif %}<br>
+                                </p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div>No OAuth1 apps</div>
+                {% endif %}
+            </div>
+            <div id="myaccesstokens" class="content">
+                <h2>OAuth1 Access Tokens</h2>
+                {% if access_tokens %}
+                    <div class="email-item">
+                        {% for token in access_tokens %}
+                            <div class="pure-u appdiv">
+                                <h5 class="email-name"><span class="appname">{{ token.consumer.name }}</span></h5>
+                                <h4 class="email-subject">
+                                    <a class="delete_token" href='#myaccesstokens'>Delete</a>
+                                    <span class="hide-info">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
+                                </h4>
+                                <p class="email-desc">
+                                    <strong>Key</strong>: {{ token.key }}<br>
+                                    <strong>Secret</strong>: {{ token.secret }}<br>
+                                    <strong>Date Created</strong>: {{ token.timestamp_asdatetime|date:"j M Y H:i:s" }}<br>
+                                    <strong>Scopes Allowed</strong>: {{ token.scope_to_list|join:" " }}<br>
+                                </p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div>No OAuth1 access tokens</div>
+                {% endif %}
+            </div>
+            <div id="clientapps2" class="content">
+                <h2>OAuth2 Client Apps</h2>
+                <a class="pure-button" href="{% url adl_lrs.views.reg_client2 %}">Add</a>
+                {% if client_apps2 %}
+                    <div class="email-item">
+                        {% for app in client_apps2 %}
+                        <div class="pure-u appdiv">
+                            <h5 class="email-name"><span class="appname">{{ app.name }}</span></h5>
+                            <h4 class="email-subject">
+                                <a class="delete_client" href='#clientapps2'>Delete</a>
+                                <span class="hide-info">{{ app.client_id }}</span>
+                            </h4>
+                            <p class="email-desc">
+                                <strong>Key</strong>: {{ app.client_id }}<br>
+                                <strong>Secret</strong>: {{ app.client_secret }}<br>
+                                <strong>URL</strong>: {{ app.url }}<br>
+                                <strong>Redirect URL</strong>: {{ app.redirect_uri }}<br>
+                                <strong>Type</strong>: {% if app.client_type == 0 %}Confidential (Web applications){% else %}Public (Native and JS applications){% endif %}<br>
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div>No OAuth2 apps</div>
+                {% endif %}  
+            </div>
+            <div id="myaccesstokens2">
+                <h2>OAuth2 Access Tokens</h2>
+                {% if access_tokens2 %}
+                    <div class="email-item">
+                        {% for pair in access_tokens2 %}  
+                        <div class="pure-u appdiv">
+                            <h5 class="email-name"><span class="appname">{{ pair.0.client.name }}</span></h5>
+                            <h4 class="email-subject">
+                                <a class="delete_token2" href='#myaccesstokens2'>Delete</a>
+                                <span class="hide-info">{{ pair.0.token }}</span>
+                            </h4>
+                            <p class="email-desc">
+                                <strong>Access Token</strong>: {{ pair.0.token }}<br>
+                                <strong>Refresh Token</strong>: {{ pair.0.refresh_token }}<br>
+                                <strong>Date Expires</strong>: {{ pair.0.expires }}<br>
+                                <strong>Scopes Allowed</strong>: {{ pair.1|join:" " }}<br>
+                            </p>
+                        </div>
+                        {% endfor %}    
+                    </div> 
+                {% else %}
+                    <div class="span5">No OAuth2 access tokens</div>
+                {% endif %}
+            </div>                               
+        </div>
+    </div>
+</div>
+{% endblock content %}
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-menu.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        // These events stay inline so urls render correctly
+        $('.change_app_status').click(function(e){
+            e.preventDefault();
+            var appname = $(this).prev(".appname").text().trim();
+            var status = "";
+            cur_s = $(this).parent().next(".email-subject").text().trim();
+            if (cur_s == "Accepted"){
+                status = "Canceled";                
+            } 
+            else{
+                status = "Accepted";                
+            } 
+            $.ajax({
+                url: "{% url adl_lrs.views.my_app_status %}?app_name="+appname+"&status="+status,
+                type: "POST",
+                context: $(this),
+                success: function (data){
+                    var link, status;
+                    if (data['status'] == "Canceled"){
+                        link = "Activate";
+                        status = data['status'];
+                        $(this).parent().next(".email-subject").removeClass("formvalid").addClass("errorlist")
+                    }
+                    else {
+                        link = "Deactivate";
+                        status = data['status'];
+                        $(this).parent().next(".email-subject").removeClass("errorlist").addClass("formvalid")
+                    }
+                    $(this).text(link);
+                    $(this).parent().next(".email-subject").text(status);
+                },
+                error: function(xhr, ajaxOptions, thrownError){
+                    alert(thrownError);
+                },
+                timeout : 15000
+            });
+        });
+        $('.delete_token').click(function(){
+            var id = $(this).next('span').text();
+            $.ajax({
+                url: "{% url adl_lrs.views.delete_token %}?id="+id,
+                type: "DELETE",
+                context: $(this),
+                success: function(data){
+                    $(this).parent().parent().remove();
+                },
+                error: function(xhr, ajaxOptions, thrownError){
+                    alert(thrownError);
+                },
+                timeout:5000
+            });
+        });
+        $('.delete_token2').click(function(){
+            var id = $(this).next('span').text();
+            $.ajax({
+                url: "{% url adl_lrs.views.delete_token2 %}?id="+id,
+                type: "DELETE",
+                context: $(this),
+                success: function(data){
+                    $(this).parent().parent().remove();
+                },
+                error: function(xhr, ajaxOptions, thrownError){
+                    alert(thrownError);
+                },
+                timeout:5000
+            });
+        });
+        $('.delete_client').click(function(){
+            var id = $(this).next('span').text();
+            $.ajax({
+                url: "{% url adl_lrs.views.delete_client %}?id="+id,
+                type: "DELETE",
+                context: $(this),
+                success: function(data){
+                    $(this).parent().parent().remove();
+                },
+                error: function(xhr, ajaxOptions, thrownError){
+                    alert(thrownError);
+                },
+                timeout:5000
+            });
+        });
+        $('.show_filters').click(function(){
+            var filters = JSON.parse($(this).next('span').text());
+            alert(JSON.stringify(filters, null, 4));
+        });        
+    });
+</script>
+{% endblock extra_js %}

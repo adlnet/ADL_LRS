@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+<style>
+    pre {
+        border: 1px solid;
+        border-color: #004C1A;
+        padding: 5px;
+        margin: 5px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+    .string { 
+        color: green; 
+    }
+    .number { 
+        color: blue; 
+    }
+    .boolean { 
+        color: red; 
+    }
+    .null {
+     color: red; 
+    }
+    .key {
+     color: black; 
+    }
+</style>
+{% endblock extra_css %}
+{% block title %}{{user.username}}'s Activity States{% endblock title %}
+{% block heading %}{{user.username}}'s Activity States{% endblock heading %}
+{% block content %}
+<br>
+<br>
+<div class="content">
+    <div class="pure-g">
+        <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
+        <div class="pure-u-1-2 pure-u-md-1-2 pure-u-lg-1-2">
+            <div id="myactivitystates" class="content">
+                <h2>My Activity States</h2>
+                <p>All of your activity states will be displayed here. If you created any activity states using the stateID, <i>http://adlnet.gov/xapi/profile/scorm/activity-state<i/>, then you can drill deeper into it and look at all of the xAPI SCORM attempt states for that activity. For more information on this, please visit <a target="_blank" href="https://github.com/adlnet/xAPI-SCORM-Profile/blob/master/xapi-scorm-profile.md">here</a></p>
+                <br>
+                <br>
+                <div>
+                {% include page_template %}
+                </div>            
+            </div>
+        </div>
+        <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
+    </div>
+</div>        
+{% endblock content %}
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<!-- This script has to be placed in html file so url resolves correctly -->
+<script type="text/javascript">
+    // Appends the returned state to the given element
+    function getState(act_id, state_id, ele){
+        $.ajax({
+            url: "{% url adl_lrs.views.my_activity_state %}?act_id="+encodeURIComponent(act_id)+"&state_id="+encodeURIComponent(state_id),
+            type: "GET",
+            success: function (data){
+                $(ele).append(syntaxHighlight(data));
+            },
+            error: function(xhr, ajaxOptions, thrownError){
+                alert(thrownError);
+            }
+        });
+    }
+</script>
+<script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-data.js"></script>
+<script src="{{ STATIC_URL }}endless_pagination/js/endless-pagination.js"></script>
+<script>
+    $.endlessPaginate({
+        paginateOnScroll: true,
+        onCompleted: function(context, fragment){
+            styleData();
+        }
+    });
+</script>
+{% endblock extra_js %}

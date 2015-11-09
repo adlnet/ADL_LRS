@@ -4,8 +4,8 @@ from isodate.isoduration import parse_duration
 from rfc3987 import parse as iriparse
 from uuid import UUID
 
+from . import convert_to_datatype
 from ..exceptions import ParamError
-from util import convert_to_datatype
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']

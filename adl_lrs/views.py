@@ -11,7 +11,6 @@ from django.db import transaction, IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
@@ -19,15 +18,15 @@ from .forms import ValidatorForm, RegisterForm, RegClientForm, HookRegistrationF
 
 from lrs.exceptions import ParamError
 from lrs.models import Statement, Verb, Agent, Activity, StatementAttachment, ActivityState, Hook
-from lrs.util import StatementValidator, util, authorization
+from lrs.utils import convert_to_datatype
+from lrs.utils.StatementValidator import StatementValidator
+from lrs.utils.authorization import non_xapi_auth
 
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
 from oauth2_provider.provider.scope import to_names
 from oauth2_provider.provider.oauth2.forms import ClientForm
 from oauth2_provider.provider.oauth2.models import Client, AccessToken
-
-LOGIN_URL = "/accounts/login"
 
 @csrf_protect
 @require_http_methods(["GET"])
@@ -56,7 +55,7 @@ def stmt_validator(request):
         if form.is_valid():
             # Once know it's valid JSON, validate keys and fields
             try:
-                validator = StatementValidator.StatementValidator(form.cleaned_data['jsondata'])
+                validator = StatementValidator(form.cleaned_data['jsondata'])
                 valid = validator.validate()
             except ParamError, e:
                 clean_data = form.cleaned_data['jsondata']
@@ -112,7 +111,7 @@ def register(request):
         else:
             return render_to_response('register.html', {"form": form}, context_instance=context)
 
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET"])
 def admin_attachments(request, path):
     if request.user.is_superuser:
@@ -134,7 +133,7 @@ def admin_attachments(request, path):
         return response
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["POST", "GET"])
 def reg_client(request):
     if request.method == 'GET':
@@ -163,7 +162,7 @@ def reg_client(request):
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["POST", "GET"])
 def reg_client2(request):
     if request.method == 'GET':
@@ -180,7 +179,7 @@ def reg_client2(request):
         else:
             return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
 
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET"])
 def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
     context = {'statements': Statement.objects.filter(user=request.user).order_by('-timestamp'),'page_template': page_template}
@@ -189,7 +188,7 @@ def my_statements(request, template="my_statements.html", page_template="my_stat
         template = page_template
     return render_to_response(template, context, context_instance=RequestContext(request))
 
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET"])
 def my_activity_states(request, template="my_activity_states.html", page_template="my_activity_states_holder.html"):
     try:
@@ -205,7 +204,7 @@ def my_activity_states(request, template="my_activity_states.html", page_templat
         template = page_template
     return render_to_response(template, context, context_instance=RequestContext(request))
 
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET"])
 def my_activity_state(request):
     act_id = request.GET.get("act_id", None)
@@ -229,7 +228,7 @@ def my_activity_state(request):
     return HttpResponseBadRequest("Activity ID, State ID and are both required")
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET"])
 def me(request, template='me.html'):
     client_apps = Consumer.objects.filter(user=request.user)
@@ -250,7 +249,7 @@ def me(request, template='me.html'):
     return render_to_response(template, context_dict, context_instance=RequestContext(request))
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET", "POST"])
 def my_hooks(request, template="my_hooks.html"):
     valid_message = False
@@ -269,8 +268,8 @@ def my_hooks(request, template="my_hooks.html"):
                 config['secret'] = secret
             filters = json.loads(hook_form.cleaned_data['filters'])
             try:
-                hook = Hook.objects.create(name=name, config=config, filters=filters, user=request.user)
-            except IntegrityError, ie:
+                Hook.objects.create(name=name, config=config, filters=filters, user=request.user)
+            except IntegrityError:
                 error_message = "Hook with name %s already exists" % name
                 valid_message = False                
             except Exception, e:
@@ -278,15 +277,12 @@ def my_hooks(request, template="my_hooks.html"):
                 valid_message = False
             else:
                 valid_message = "Successfully created hook"
-        else:
-            error_message = False
-            valid_message = False
 
     user_hooks = Hook.objects.filter(user=request.user) 
-    context_dict = {'user_hooks': user_hooks, 'hook_form': hook_form}
+    context_dict = {'user_hooks': user_hooks, 'hook_form': hook_form, 'error_message': error_message, 'valid_message': valid_message}
     return render_to_response(template, context_dict, context_instance=RequestContext(request))
 
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET", "HEAD"])
 def my_download_statements(request):
     stmts = Statement.objects.filter(user=request.user).order_by('-stored')
@@ -297,7 +293,7 @@ def my_download_statements(request):
     return response
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET", "POST"])
 def my_app_status(request):
     try:
@@ -313,7 +309,7 @@ def my_app_status(request):
         return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["DELETE"])
 def delete_token(request):
     try:
@@ -334,7 +330,7 @@ def delete_token(request):
         return HttpResponse("Unknown token", status=400)
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["DELETE"])
 def delete_token2(request):
     try:
@@ -349,7 +345,7 @@ def delete_token2(request):
     return HttpResponse("", status=204)
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["DELETE"])
 def delete_client(request):
     try:
@@ -363,16 +359,16 @@ def delete_client(request):
         return HttpResponse(e.message, status=400)
     return HttpResponse("", status=204)
 
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET"])
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse('adl_lrs.views.home'))
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET", "DELETE"])
-@authorization.non_xapi_auth
+@non_xapi_auth
 def hook(request, hook_id):
     if not request.META['lrs-user'][0]:
         return HttpResponse(request.META['lrs-user'][1], status=401)
@@ -393,9 +389,9 @@ def hook(request, hook_id):
             return HttpResponse('', status=204)
 
 @transaction.commit_on_success
-@login_required(login_url=LOGIN_URL)
+@login_required()
 @require_http_methods(["GET", "POST"])
-@authorization.non_xapi_auth
+@non_xapi_auth
 def hooks(request):
     if not request.META['lrs-user'][0]:
         return HttpResponse(request.META['lrs-user'][1], status=401)
@@ -403,7 +399,7 @@ def hooks(request):
     if request.method == "POST":
         if request.body:
             try:
-                body = util.convert_to_datatype(request.body)
+                body = convert_to_datatype(request.body)
             except Exception:
                 return HttpResponseBadRequest("Could not parse request body")
             try:

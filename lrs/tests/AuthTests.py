@@ -12,7 +12,7 @@ from django.conf import settings
 
 from ..models import Statement, Agent, Verb, Activity, SubStatement
 from ..views import statements
-from ..util import retrieve_statement
+from ..utils import retrieve_statement
 from adl_lrs.views import register
 
 class AuthTests(TestCase):

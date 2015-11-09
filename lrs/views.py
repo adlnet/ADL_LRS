@@ -10,11 +10,10 @@ from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.http import require_http_methods
 
 from .exceptions import BadRequest, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
-from .util import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware
+from .utils import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware
 
 # This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
-STATEMENTS_MORE_ENDPOINT = "/xapi/statements/more"
 
 @require_http_methods(["GET", "HEAD"])
 def about(request):
@@ -140,7 +139,7 @@ validators = {
        "GET" : req_validate.agents_get,
        "HEAD" : req_validate.agents_get
    },
-   STATEMENTS_MORE_ENDPOINT : {
+   "%s/%s" % (reverse(statements).lower(), "more") : {
         "GET" : req_validate.statements_more_get,
         "HEAD" : req_validate.statements_more_get
    }
@@ -182,7 +181,7 @@ processors = {
        "GET" : req_process.agents_get,
        "HEAD" : req_process.agents_get
    },
-   STATEMENTS_MORE_ENDPOINT : {
+   "%s/%s" % (reverse(statements).lower(), "more") : {
         "GET" : req_process.statements_more_get,
         "HEAD" : req_process.statements_more_get
    }      
@@ -198,8 +197,8 @@ def handle_request(request, more_id=None):
             path = path.rstrip('/')
 
         # Cutoff more_id
-        if '/xapi/statements/more' in path:
-            path = '/xapi/statements/more'
+        if 'more' in path:
+            path = "%s/%s" % (reverse('lrs.views.statements').lower(), "more")
 
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)

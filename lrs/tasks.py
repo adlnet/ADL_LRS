@@ -11,7 +11,7 @@ from hashlib import sha1
 from django.conf import settings
 from django.db.models import Q
 
-from lrs.util import StatementValidator as SV
+from .utils.StatementValidator import StatementValidator
 
 celery_logger = get_task_logger('celery-task')
 
@@ -187,7 +187,7 @@ def get_activity_metadata(act_id):
             # Have to validate new data given from URL
             try:
                 fake_activity = {"id": act_id, "definition": act_url_data}
-                validator = SV.StatementValidator()
+                validator = StatementValidator()
                 validator.validate_activity(fake_activity)
             except Exception, e:
                 valid_url_data = False
