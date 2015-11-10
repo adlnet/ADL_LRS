@@ -14,13 +14,13 @@ celery_logger = get_task_logger('celery-task')
 
 @shared_task
 def check_activity_metadata(stmts):
-    from lrs.models import Activity
+    from .models import Activity
     activity_ids = list(Activity.objects.filter(object_of_statement__statement_id__in=stmts).values_list('activity_id', flat=True).distinct())
     [get_activity_metadata(a_id) for a_id in activity_ids]
 
 @shared_task
 def void_statements(stmts):
-    from lrs.models import Statement    
+    from .models import Statement    
     try:
         Statement.objects.filter(statement_id__in=stmts).update(voided=True)
     except Exception, e:
@@ -61,7 +61,7 @@ def get_activity_metadata(act_id):
                 update_activity_definition(fake_activity)
 
 def update_activity_definition(act):
-    from lrs.models import Activity
+    from .models import Activity
     # Try to get activity by id
     try:
         activity = Activity.objects.get(activity_id=act['id'])
