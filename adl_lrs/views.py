@@ -371,7 +371,10 @@ def logout_view(request):
 def hook(request, hook_id):
     if not request.META['lrs-user'][0]:
         return HttpResponse(request.META['lrs-user'][1], status=401)
-    user = request.META['lrs-user'][1]
+    if not request.META['lrs-user'][1]:
+        user = request.user
+    else:
+        user = request.META['lrs-user'][1]
     if request.method == "GET":
         try:
             hook = Hook.objects.get(hook_id=hook_id, user=user)
