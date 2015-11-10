@@ -5,7 +5,8 @@ from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from ..views import register, statements, activities
+from ..views import statements, activities
+from adl_lrs.views import register
 
 class ActivityTests(TestCase):
     @classmethod
@@ -22,7 +23,7 @@ class ActivityTests(TestCase):
 
     def test_get(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id':'act:foobar'}})
         st_post = self.client.post(reverse(statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -43,7 +44,7 @@ class ActivityTests(TestCase):
 
     def test_get_not_array(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id':'act:foobar'}})
         st_post = self.client.post(reverse(statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -58,7 +59,7 @@ class ActivityTests(TestCase):
 
     def test_head(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType':'Activity', 'id':'act:foobar'}})
         st_post = self.client.post(reverse(statements), st, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
@@ -70,7 +71,7 @@ class ActivityTests(TestCase):
 
     def test_get_def(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar1',
                 'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},
@@ -90,7 +91,7 @@ class ActivityTests(TestCase):
 
     def test_get_ext(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar2',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'type:course','interactionType': 'other', 'correctResponsesPattern':[],
@@ -114,7 +115,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_multiple_choice(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar3',
                 'definition': {'name': {'en-FR':'testname2'},
                 'description': {'en-FR':'testdesc2', 'en-CH': 'altdesc'},
@@ -148,7 +149,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_true_false(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar4',
         'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
         'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'true-false','correctResponsesPattern': ['true']}}})
@@ -170,7 +171,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_fill_in(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar5',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
@@ -193,7 +194,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_long_fill_in(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar6',
                 'definition': {'name': {'en-FR':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'fill-in',
@@ -217,7 +218,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_likert(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar7',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
@@ -245,7 +246,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_matching(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar8',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-FR':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'matching',
@@ -274,7 +275,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_performance(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar9',
                 'definition': {'name': {'en-US':'testname2', 'en-GB': 'altname'},
                 'description': {'en-US':'testdesc2'},'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
@@ -307,7 +308,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_sequencing(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar10',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'sequencing',
@@ -333,7 +334,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_numeric(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id':'act:foobar11',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'numeric','correctResponsesPattern': ['4'],
@@ -363,7 +364,7 @@ class ActivityTests(TestCase):
 
     def test_get_crp_other(self):
         st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{'objectType': 'Activity', 'id': 'act:foobar12',
                 'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'other',

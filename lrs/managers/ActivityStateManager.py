@@ -6,7 +6,7 @@ from django.utils.timezone import utc
 
 from ..models import ActivityState
 from ..exceptions import IDNotFoundError, ParamError
-from ..util import etag
+from ..utils import etag
 
 class ActivityStateManager():
     def __init__(self, agent):

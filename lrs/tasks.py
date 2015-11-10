@@ -8,23 +8,24 @@ from celery.utils.log import get_task_logger
 
 from django.conf import settings
 
-from lrs.models import Activity, Statement
-from lrs.util import StatementValidator as SV
+from .utils.StatementValidator import StatementValidator
 
 celery_logger = get_task_logger('celery-task')
 
 @shared_task
 def check_activity_metadata(stmts):
+    from .models import Activity
     activity_ids = list(Activity.objects.filter(object_of_statement__statement_id__in=stmts).values_list('activity_id', flat=True).distinct())
     [get_activity_metadata(a_id) for a_id in activity_ids]
 
 @shared_task
 def void_statements(stmts):
+    from .models import Statement    
     try:
         Statement.objects.filter(statement_id__in=stmts).update(voided=True)
     except Exception, e:
         celery_logger.exception("Voiding Statement Error: " + e.message)
-
+    
 # Retrieve JSON data from ID
 def get_activity_metadata(act_id):
     act_url_data = {}
@@ -50,7 +51,7 @@ def get_activity_metadata(act_id):
             # Have to validate new data given from URL
             try:
                 fake_activity = {"id": act_id, "definition": act_url_data}
-                validator = SV.StatementValidator()
+                validator = StatementValidator()
                 validator.validate_activity(fake_activity)
             except Exception, e:
                 valid_url_data = False
@@ -60,6 +61,7 @@ def get_activity_metadata(act_id):
                 update_activity_definition(fake_activity)
 
 def update_activity_definition(act):
+    from .models import Activity
     # Try to get activity by id
     try:
         activity = Activity.objects.get(activity_id=act['id'])

@@ -10,7 +10,8 @@ from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from ..views import activity_state, register
+from adl_lrs.views import register
+from ..views import activity_state 
 
 class ActivityStateTests(TestCase):
     url = reverse(activity_state)

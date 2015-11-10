@@ -11,7 +11,7 @@ def setup_env():
     # Bug fix for django 1.4 package (not patched in d/l for some reason now)
     try:
         line_140 = linecache.getline('../env/local/lib/python2.7/site-packages/django/utils/translation/trans_real.py', 140)
-    except Exception, e:
+    except Exception:
         line_140 = ""
 
     if not line_140 or line_140 == '\n':

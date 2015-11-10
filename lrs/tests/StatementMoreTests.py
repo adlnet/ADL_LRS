@@ -10,8 +10,10 @@ from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 
 from ..models import Statement
-from ..views import register, statements, statements_more
-from ..util import retrieve_statement
+from ..views import statements, statements_more
+from ..utils import retrieve_statement
+from adl_lrs.views import register
+
 
 class StatementMoreTests(TestCase):
 

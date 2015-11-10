@@ -285,7 +285,7 @@ class AccessTokenTest(OAuth2Tests):
     def test_get_statements_user_submitted(self):
         token = self._login_authorize_get_token()
 
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -301,7 +301,7 @@ class AccessTokenTest(OAuth2Tests):
     def test_get_statements_oauth_submitted(self):
         token = self._login_authorize_get_token()
 
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -316,14 +316,14 @@ class AccessTokenTest(OAuth2Tests):
     def test_get_statements_mix_submitted(self):
         token = self._login_authorize_get_token()
 
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -345,7 +345,7 @@ class AccessTokenTest(OAuth2Tests):
 
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}})
         param = {"statementId":put_guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
@@ -358,7 +358,7 @@ class AccessTokenTest(OAuth2Tests):
         token = self._login_authorize_get_token()
 
         stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}}
         stmt_json = json.dumps(stmt)
         
@@ -370,7 +370,7 @@ class AccessTokenTest(OAuth2Tests):
         token = self._login_authorize_get_token(scope=constants.SCOPES[2][1])
 
         stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}}
         stmt_json = json.dumps(stmt)
         
@@ -382,10 +382,10 @@ class AccessTokenTest(OAuth2Tests):
         token = self._login_authorize_get_token()
 
         stmt_data = [{"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}},
             {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}}]
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
@@ -407,7 +407,7 @@ class AccessTokenTest(OAuth2Tests):
                     "name":"bob"
                 },
                 "verb":{
-                    "id": "http://adlnet.gov/expapi/verbs/passed",
+                    "id": "http://example.com/verbs/passed",
                     "display": {"en-US":"passed"}
                 },
                 "object":{
@@ -432,7 +432,7 @@ class AccessTokenTest(OAuth2Tests):
                     "name":"bob"
                 },
                 "verb":{
-                    "id": "http://adlnet.gov/expapi/verbs/passed",
+                    "id": "http://example.com/verbs/passed",
                     "display": {"en-US":"passed"}
                 },
                 "object":{
@@ -464,7 +464,7 @@ class AccessTokenTest(OAuth2Tests):
                     "name":"bob"
                 },
                 "verb":{
-                    "id": "http://adlnet.gov/expapi/verbs/passed",
+                    "id": "http://example.com/verbs/passed",
                     "display": {"en-US":"passed"}
                 },
                 "object":{

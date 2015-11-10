@@ -14,8 +14,9 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from ..views import reg_client, register, statements
+from ..views import statements
 from ..models import Activity, Agent
+from adl_lrs.views import register, reg_client
 
 from oauth_provider.models import Consumer, Token, Nonce
 from oauth_provider.utils import SignatureMethod_RSA_SHA1
@@ -1824,7 +1825,7 @@ Lw03eHTNQghS0A==
 
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}})
         param = {"statementId":put_guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
@@ -1858,7 +1859,7 @@ Lw03eHTNQghS0A==
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}})
         param = {"statementId":put_guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
@@ -1891,7 +1892,7 @@ Lw03eHTNQghS0A==
 
     def test_stmt_post_no_scope(self):
         stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}}
         stmt_json = json.dumps(stmt)
 
@@ -1921,7 +1922,7 @@ Lw03eHTNQghS0A==
     def test_stmt_simple_get(self):
         guid = str(uuid.uuid1())
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -1954,7 +1955,7 @@ Lw03eHTNQghS0A==
 
     def test_stmt_complex_get(self):
         stmt_data = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -1987,7 +1988,7 @@ Lw03eHTNQghS0A==
     def test_stmt_get_then_wrong_scope(self):
         guid = str(uuid.uuid1())
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2022,7 +2023,7 @@ Lw03eHTNQghS0A==
 
         # Test POST (not allowed)
         post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}}
         post_stmt_json = json.dumps(post_stmt)
 
@@ -2082,7 +2083,7 @@ Lw03eHTNQghS0A==
         # Set up for Get
         guid = str(uuid.uuid1())
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2112,7 +2113,7 @@ Lw03eHTNQghS0A==
     def stmt_get_then_wrong_profile_scope(self):
         guid = str(uuid.uuid1())
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2167,7 +2168,7 @@ Lw03eHTNQghS0A==
 
     def test_consumer_state(self):
         stmt_data = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2216,7 +2217,7 @@ Lw03eHTNQghS0A==
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         put_resp = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2255,7 +2256,7 @@ Lw03eHTNQghS0A==
         guid = str(uuid.uuid1())
 
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.to_dict()}
         
         settings.ALLOW_EMPTY_HTTP_AUTH = True
@@ -2296,7 +2297,7 @@ Lw03eHTNQghS0A==
         # Put statement
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         put_response = self.client.put(path, stmt, content_type="application/json", Authorization=auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2356,7 +2357,7 @@ Lw03eHTNQghS0A==
         guid = str(uuid.uuid1())
 
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.to_dict()}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2455,7 +2456,7 @@ Lw03eHTNQghS0A==
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
         stmt_data = {"id":guid,"actor":{"objectType": "Agent",
-            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"},
             "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
@@ -2465,7 +2466,7 @@ Lw03eHTNQghS0A==
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
@@ -2526,7 +2527,7 @@ Lw03eHTNQghS0A==
 
         # START OF POST WITH ANOTHER HANDSHAKE
         post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:dom@dom.com", "name":"dom"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/tested","display": {"en-US":"tested"}},
+            "verb":{"id": "http://example.com/verbs/tested","display": {"en-US":"tested"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'definename', 'en-GB': 'definealtname'},
             'description': {'en-US':'definedesc', 'en-GB': 'definealtdesc'},'type': 'type:course',
@@ -2565,7 +2566,7 @@ Lw03eHTNQghS0A==
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
         stmt_data = {"id":guid,"actor":{"objectType": "Agent",
-            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/helped",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/helped",
             "display": {"en-US":"helped"}},"object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com",
             "name":"tim"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
@@ -2576,7 +2577,7 @@ Lw03eHTNQghS0A==
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/talked","display": {"en-US":"talked"}},
+            "verb":{"id": "http://example.com/verbs/talked","display": {"en-US":"talked"}},
             "object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com","name":"tim timson"}})
 
         param = {"statementId":put_guid}
@@ -2651,7 +2652,7 @@ Lw03eHTNQghS0A==
         kwargs1 = {"objectType":ot, "member": members, "name": "doe group"}
 
         post_stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:dom@dom.com", "name":"dom"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assisted","display": {"en-US":"assisted"}},
+            "verb":{"id": "http://example.com/verbs/assisted","display": {"en-US":"assisted"}},
             "object": kwargs1}
         stmt_json = json.dumps(post_stmt)
 
@@ -2698,7 +2699,7 @@ Lw03eHTNQghS0A==
     def test_default_scope_multiple_requests(self):
         oauth_header_resource_params, access_token = self.oauth_handshake(scope=False)
 
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         # from_token_and_callback takes a dictionary        
@@ -2722,7 +2723,7 @@ Lw03eHTNQghS0A==
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)        
         # ====================================================
-        stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/failed","display": {"en-US":"failed"}},
+        stmt2 = json.dumps({"verb":{"id": "http://example.com/verbs/failed","display": {"en-US":"failed"}},
             "object": {"id":"act:test_post"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         # Use same oauth headers, replace nonce
@@ -2744,7 +2745,7 @@ Lw03eHTNQghS0A==
         url = 'http://testserver/XAPI/statements'
         guid = str(uuid.uuid1())
         stmt_data = {"id":guid,"actor":{"objectType": "Agent",
-            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -2753,7 +2754,7 @@ Lw03eHTNQghS0A==
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
@@ -2798,7 +2799,7 @@ Lw03eHTNQghS0A==
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = {"actor":{"objectType": "Agent",
-            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
         param = {"statementId":put_guid}
         path = "%s?%s" % (url, urllib.urlencode(param))
@@ -2829,7 +2830,7 @@ Lw03eHTNQghS0A==
         # ==================================================================
 
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
@@ -2851,7 +2852,7 @@ Lw03eHTNQghS0A==
         # build stmt data and path
         put_guid = str(uuid.uuid1())
         stmt = {"actor":{"objectType": "Agent",
-            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
         param = {"statementId":put_guid}
         path = "%s?%s" % (url, urllib.urlencode(param))
@@ -2884,7 +2885,7 @@ Lw03eHTNQghS0A==
         # build stmt data and path
         put_guid2 = str(uuid.uuid1())
         stmt2 = {"actor":{"objectType": "Agent",
-            "mbox":"mailto:billbob@bob.com", "name":"bob"},"verb":{"id": "http://adlnet.gov/expapi/verbs/passed",
+            "mbox":"mailto:billbob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://mult-test"}}
         param2 = {"statementId":put_guid2}
         path2 = "%s?%s" % (url, urllib.urlencode(param2))
@@ -2916,7 +2917,7 @@ Lw03eHTNQghS0A==
 
 
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bill@bill.com", "name":"bill"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/accessed","display": {"en-US":"accessed"}},
+            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"test://test/define/scope",
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',

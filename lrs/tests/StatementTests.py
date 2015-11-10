@@ -14,8 +14,9 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from ..models import Statement, Activity, Agent, Verb, SubStatement
-from ..views import register, statements
-from ..util import retrieve_statement
+from ..views import statements
+from ..utils import retrieve_statement
+from adl_lrs.views import register
 
 class StatementTests(TestCase):
     @classmethod
@@ -59,7 +60,7 @@ class StatementTests(TestCase):
         self.cguid7 = str(uuid.uuid1())
         self.cguid8 = str(uuid.uuid1())
 
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "authority":{"objectType":"Agent","name":"tester1","mbox":"mailto:test1@tester.com"}})
@@ -70,7 +71,7 @@ class StatementTests(TestCase):
         self.existStmt = Statement.objects.get(statement_id=stmt_id)
         self.exist_stmt_id = self.existStmt.statement_id
 
-        self.existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        self.existStmt1 = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
@@ -83,7 +84,7 @@ class StatementTests(TestCase):
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
             "ext:ckey2": "cval2"}}})        
 
-        self.existStmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        self.existStmt2 = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@t.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname3", "en-GB": "altname"},
@@ -96,7 +97,7 @@ class StatementTests(TestCase):
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey11": "cval11",
             "ext:ckey22": "cval22"}}})        
 
-        self.existStmt3 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        self.existStmt3 = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogals",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
@@ -109,7 +110,7 @@ class StatementTests(TestCase):
             "instructor":{"objectType": "Agent", "name":"bob", "mbox":"mailto:bob@bob.com"}, 
             "extensions":{"ext:ckey111": "cval111","ext:ckey222": "cval222"}}})        
 
-        self.existStmt4 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        self.existStmt4 = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogal",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
@@ -122,23 +123,23 @@ class StatementTests(TestCase):
             "extensions":{"ext:ckey111": "cval111","ext:ckey222": "cval222"}}})
 
         self.existStmt5 = json.dumps({"object":{"objectType":"Agent","name":"jon","mbox":"mailto:jon@jon.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created"}},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
 
         self.existStmt6 = json.dumps({"actor": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"}, 
-                                      "object":{"id": "act:test_activity"},"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+                                      "object":{"id": "act:test_activity"},"verb":{"id": "http://example.com/verbs/created",
                                       "display": {"en-US":"created"}}})
 
         self.existStmt7 = json.dumps({"object": {"objectType":"Agent","name":"max","mbox":"mailto:max@max.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "verb": {"id": "http://example.com/verbs/created","display": {"en-US":"created"}},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
 
         self.existStmt8 = json.dumps({"object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/missed","display": {"en-US":"missed"}},
+            "verb": {"id": "http://example.com/verbs/missed","display": {"en-US":"missed"}},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
 
         self.existStmt9 = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:sub@sub.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"SubStatement",
+            "verb":{"id": "http://example.com/verbs/missed"},"object":{"objectType":"SubStatement",
             "actor":{"objectType":"Agent","mbox":"mailto:ss@ss.com"},"verb": {"id":"verb:verb/url/nested"},
             "object": {"objectType":"Activity", "id":"act:testex.com"}, "result":{"completion": True, "success": True,
             "response": "kicked"}, "context":{"registration": self.cguid6,
@@ -146,7 +147,7 @@ class StatementTests(TestCase):
             "language": "en-US", "extensions":{"ext:k1": "v1", "ext:k2": "v2"}}}})
 
         self.existStmt10 = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:ref@ref.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
+            "verb":{"id": "http://example.com/verbs/missed"},"object":{"objectType":"StatementRef",
             "id":str(self.exist_stmt_id)}})
 
         # Put statements
@@ -239,7 +240,7 @@ class StatementTests(TestCase):
         stmt = Statement.objects.filter(statement_id=self.guid10).update(stored=time)
 
     def test_invalid_result_fields(self):
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogie"}, 
             "result": {"bad":"fields","foo":"bar","score":{"scaled":.85}, "completion": True, "success": True,
@@ -254,7 +255,7 @@ class StatementTests(TestCase):
 
 
     def test_invalid_context_fields(self):
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogals",
             "definition": {"name": {"en-US":"testname3"},"description": {"en-US":"testdesc3"}, "type": "http://adlnet.gov/expapi/activities/cmi.interaction",
@@ -282,7 +283,7 @@ class StatementTests(TestCase):
 
     def test_post(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -294,7 +295,7 @@ class StatementTests(TestCase):
         self.assertEqual(agent.name, "bob")
 
     def test_post_wrong_crp_type(self):
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
             "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/http://adlnet.gov/expapi/activities/cmi.interaction",
@@ -308,7 +309,7 @@ class StatementTests(TestCase):
 
     def test_post_wrong_choice_type(self):
         stmt = json.dumps(
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
+            {"verb":{"id": "http://example.com/verbs/created"},
             "object": {"objectType": "Activity", "id":"act:foogie",
                 "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
                     "description": {"en-US":"testdesc2", "en-GB": "altdesc"},
@@ -336,7 +337,7 @@ class StatementTests(TestCase):
     def test_invalid_actor_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob", "bad": "blah",
             "foo":"bar"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -346,7 +347,7 @@ class StatementTests(TestCase):
 
     def test_invalid_activity_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post", "bad":"foo", "foo":"bar"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -356,7 +357,7 @@ class StatementTests(TestCase):
 
     def test_invalid_activity_def_fields(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {'objectType': 'Activity', 'id':'act:food',
                 'definition': {'bad':'foo','name': {'en-FR':'testname2','en-US': 'testnameEN'},'description': {'en-CH':'testdesc2',
                 'en-GB': 'testdescGB'},'type': 'type:course','interactionType': 'intType2', 'extensions': {'ext:key1': 'value1',
@@ -381,7 +382,7 @@ class StatementTests(TestCase):
 
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:ref@ref.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/missed"},"object":{"objectType":"StatementRef",
+            "verb":{"id": "http://example.com/verbs/missed"},"object":{"objectType":"StatementRef",
             "id":"12345678-1234-5678-1234-567812345678"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -389,7 +390,7 @@ class StatementTests(TestCase):
 
     def test_post_with_actor(self):
         stmt = json.dumps({"actor":{"mbox":"mailto:mr.t@example.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:i.pity.the.fool"}})
         
         response = self.client.post(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -397,9 +398,9 @@ class StatementTests(TestCase):
         Agent.objects.get(mbox="mailto:mr.t@example.com")
 
     def test_list_post(self):
-        stmts = json.dumps([{"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmts = json.dumps([{"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_list_post"}, "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/failed","display": {"en-GB":"failed"}},
+            {"verb":{"id": "http://example.com/verbs/failed","display": {"en-GB":"failed"}},
             "object": {"id":"act:test_list_post1"}, "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}}])
         
         response = self.client.post(reverse(statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -414,8 +415,8 @@ class StatementTests(TestCase):
         lang_map2 = verb2.display
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(stmt1.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
-        self.assertEqual(stmt2.verb.verb_id, "http://adlnet.gov/expapi/verbs/failed")
+        self.assertEqual(stmt1.verb.verb_id, "http://example.com/verbs/passed")
+        self.assertEqual(stmt2.verb.verb_id, "http://example.com/verbs/failed")
         
         self.assertEqual(lang_map1.keys()[0], "en-US")
         self.assertEqual(lang_map1.values()[0], "passed")
@@ -427,7 +428,7 @@ class StatementTests(TestCase):
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -442,14 +443,14 @@ class StatementTests(TestCase):
         self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
         
         self.assertEqual(stmt.version, settings.XAPI_VERSION)
-        self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
+        self.assertEqual(stmt.verb.verb_id, "http://example.com/verbs/passed")
 
     def test_put_1_0_0(self):
         guid = str(uuid.uuid1())
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0.0")
@@ -464,12 +465,12 @@ class StatementTests(TestCase):
         self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
         
         self.assertEqual(stmt.version, "1.0.0")
-        self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
+        self.assertEqual(stmt.verb.verb_id, "http://example.com/verbs/passed")
 
     def test_put_id_in_stmt(self):
         guid = str(uuid.uuid1())
 
-        stmt = json.dumps({"id": guid, "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"id": guid, "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -480,7 +481,7 @@ class StatementTests(TestCase):
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
-        stmt = json.dumps({"id": guid, "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"id": guid, "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -495,7 +496,7 @@ class StatementTests(TestCase):
         self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
         
         self.assertEqual(stmt.version, settings.XAPI_VERSION)
-        self.assertEqual(stmt.verb.verb_id, "http://adlnet.gov/expapi/verbs/passed")
+        self.assertEqual(stmt.verb.verb_id, "http://example.com/verbs/passed")
 
     def test_put_id_in_both_different(self):
         guid1 = str(uuid.uuid1())
@@ -503,7 +504,7 @@ class StatementTests(TestCase):
         
         param = {"statementId":guid1}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
-        stmt = json.dumps({"id": guid2, "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"id": guid2, "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -574,7 +575,7 @@ class StatementTests(TestCase):
     def test_existing_stmtID_put(self):
         guid = str(uuid.uuid1())
 
-        exist_stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        exist_stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:activity"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
         path = "%s?%s" % (reverse(statements), urllib.urlencode({"statementId":guid}))
         response = self.client.put(path, exist_stmt, content_type="application/json",
@@ -583,7 +584,7 @@ class StatementTests(TestCase):
 
         param = {"statementId":guid}
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))        
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object":{"id":"act:test_existing_put"}, "actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
         putResponse = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -591,7 +592,7 @@ class StatementTests(TestCase):
         self.assertEqual(putResponse.status_code, 409)        
 
     def test_missing_stmtID_put(self):        
-        stmt = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
         response = self.client.put(reverse(statements), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -676,7 +677,7 @@ class StatementTests(TestCase):
                 "objectType": "Agent"
             },
             "verb": {
-                "id": "http://adlnet.gov/expapi/verbs/experienced",
+                "id": "http://example.com/verbs/experienced",
                 "display": {
                     "en-US": "experienced"
                 }
@@ -717,7 +718,7 @@ class StatementTests(TestCase):
                 "objectType": "Agent"
             },
             "verb": {
-                "id": "http://adlnet.gov/expapi/verbs/answered",
+                "id": "http://example.com/verbs/answered",
                 "display": {
                     "en-US": "answered"
                 }
@@ -782,7 +783,7 @@ class StatementTests(TestCase):
         self.assertEqual(post_response.status_code, 200)
 
     def test_update_activity_wrong_auth(self):
-        existStmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        existStmt1 = json.dumps({"verb":{"id": "http://example.com/verbs/created",
             "display": {"en-US":"created"}},"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},"description": {"en-US":"testdesc2", "en-GB": "altdesc"},
@@ -1036,7 +1037,7 @@ class StatementTests(TestCase):
         nest_param = {"statementId":nested_st_id}
         nest_path = "%s?%s" % (reverse(statements), urllib.urlencode(nest_param))
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put_sub_stmt.status_code, 204)        
@@ -1046,7 +1047,7 @@ class StatementTests(TestCase):
         param = {"statementId":stmt_id} 
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
         stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"uniqueName"}},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created", "en-GB":"made"}},
             "object": {"objectType": "Activity", "id":"http:adlnet.gov/my/Activity/URL",
             "definition": {"name": {"en-US":"actName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
@@ -1081,7 +1082,7 @@ class StatementTests(TestCase):
         self.assertEqual(the_returned['actor']['account']['name'], 'uniqueName')
         self.assertEqual(the_returned['actor']['account']['homePage'], 'http://example.com')
 
-        self.assertEqual(the_returned['verb']['id'], 'http://adlnet.gov/expapi/verbs/created')
+        self.assertEqual(the_returned['verb']['id'], 'http://example.com/verbs/created')
         self.assertEqual(the_returned['verb']['display']['en-GB'], 'made')
         self.assertEqual(the_returned['verb']['display']['en-US'], 'created')
 
@@ -1150,7 +1151,7 @@ class StatementTests(TestCase):
         nest_param = {"statementId":nested_st_id}
         nest_path = "%s?%s" % (reverse(statements), urllib.urlencode(nest_param))
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincan@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put_sub_stmt.status_code, 204)        
@@ -1161,7 +1162,7 @@ class StatementTests(TestCase):
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
         msha = hashlib.sha1("mailto:tom@example.com").hexdigest()                
         stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/helped","display": {"en-US":"helped", "en-GB":"assisted"}},
+            "verb":{"id": "http://example.com/verbs/helped","display": {"en-US":"helped", "en-GB":"assisted"}},
             "object": {"objectType":"Agent","name": "Tom Creighton","mbox_sha1sum":msha}, 
             "result": {"score":{"scaled":.85, "raw": 85, "min":0, "max":100}, "completion": True, "success": True, "response": "Well done",
             "duration": "P3Y6M4DT12H30M5S", "extensions":{"ext:resultKey1": "resultValue1", "ext:resultKey2":"resultValue2"}},
@@ -1184,7 +1185,7 @@ class StatementTests(TestCase):
         self.assertEqual(the_returned['actor']['account']['name'], 'louUniqueName')
         self.assertEqual(the_returned['actor']['account']['homePage'], 'http://example.com')
 
-        self.assertEqual(the_returned['verb']['id'], 'http://adlnet.gov/expapi/verbs/helped')
+        self.assertEqual(the_returned['verb']['id'], 'http://example.com/verbs/helped')
         self.assertEqual(the_returned['verb']['display']['en-GB'], 'assisted')
         self.assertEqual(the_returned['verb']['display']['en-US'], 'helped')
 
@@ -1223,7 +1224,7 @@ class StatementTests(TestCase):
         nest_param = {"statementId":nested_st_id}
         nest_path = "%s?%s" % (reverse(statements), urllib.urlencode(nest_param))
         nested_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincannest@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB":"graded"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed", "en-GB":"graded"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement"}})
         put_sub_stmt = self.client.put(nest_path, nested_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put_sub_stmt.status_code, 204)        
@@ -1233,7 +1234,7 @@ class StatementTests(TestCase):
         nest_sub_param = {"statementId":nested_sub_st_id}
         nest_sub_path = "%s?%s" % (reverse(statements), urllib.urlencode(nest_sub_param))        
         nested_sub_stmt = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tincannestsub@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/verb","display": {"en-US":"verb", "en-GB":"altVerb"}},
+            "verb":{"id": "http://example.com/verbs/verb","display": {"en-US":"verb", "en-GB":"altVerb"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplenestedsubstatement"}})
         put_nest_sub_stmt = self.client.put(nest_sub_path, nested_sub_stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put_nest_sub_stmt.status_code, 204)
@@ -1246,9 +1247,9 @@ class StatementTests(TestCase):
         path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
         
         stmt = json.dumps({"actor":{"objectType":"Agent","name": "Lou Wolford","account":{"homePage":"http://example.com", "name":"louUniqueName"}},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
+            "verb":{"id": "http://example.com/verbs/said","display": {"en-US":"said", "en-GB":"talked"}},
             "object": {"objectType": "SubStatement", "actor":{"objectType":"Agent","name":"Tom Creighton","mbox": "mailto:tom@adlnet.gov"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/assess","display": {"en-US":"assessed", "en-GB": "Graded"}},
+            "verb":{"id": "http://example.com/verbs/assess","display": {"en-US":"assessed", "en-GB": "Graded"}},
             "object":{"id":"http://example.adlnet.gov/tincan/example/simplestatement",
             'definition': {'name': {'en-US':'SubStatement name'},
             'description': {'en-US':'SubStatement description'},
@@ -1287,7 +1288,7 @@ class StatementTests(TestCase):
         self.assertEqual(the_returned['actor']['account']['name'], 'louUniqueName')
         self.assertEqual(the_returned['actor']['account']['homePage'], 'http://example.com')
 
-        self.assertEqual(the_returned['verb']['id'], 'http://adlnet.gov/expapi/verbs/said')
+        self.assertEqual(the_returned['verb']['id'], 'http://example.com/verbs/said')
         self.assertEqual(the_returned['verb']['display']['en-GB'], 'talked')
         self.assertEqual(the_returned['verb']['display']['en-US'], 'said')
         
@@ -1347,7 +1348,7 @@ class StatementTests(TestCase):
         self.assertEqual(the_returned['object']['result']['score']['scaled'], 0.5)
         self.assertEqual(the_returned['object']['result']['success'], True)
         
-        self.assertEqual(the_returned['object']['verb']['id'], 'http://adlnet.gov/expapi/verbs/assess')
+        self.assertEqual(the_returned['object']['verb']['id'], 'http://example.com/verbs/assess')
         self.assertEqual(the_returned['object']['verb']['display']['en-GB'], 'Graded')
         self.assertEqual(the_returned['object']['verb']['display']['en-US'], 'assessed')
 
@@ -1379,11 +1380,11 @@ class StatementTests(TestCase):
         self.bunchostmts()
         cguid1 = str(uuid.uuid1())
         stmts = json.dumps([
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},
+            {"verb":{"id": "http://example.com/verbs/wrong-failed","display": {"en-US":"wrong-failed"}},
             "object": {"id":"act:test_wrong_list_post2"},"actor":{"objectType":"Agent",
             "mbox":"mailto:wrong-t@t.com"},"result": {"score":{"scaled":.99}, "completion": True, "success": True,
             "response": "wrong","extensions":{"ext:resultwrongkey1": "value1", "ext:resultwrongkey2":"value2"}}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},
+            {"verb":{"id": "http://example.com/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},
             "object": {"objectType": "Activity", "id":"act:test_wrong_list_post",
             "definition": {"name": {"en-US":"wrongactName", "en-GB": "anotherActName"},
             "description": {"en-US":"This is my activity description.", "en-GB": "This is another activity description."},
@@ -1396,12 +1397,12 @@ class StatementTests(TestCase):
             {"id":"wrongscrabble", "description": {"en-US": "Scrabble Example", "en-GB": "SCRABBLE"}}],
             "extensions": {"ext:wrongkey1": "wrongvalue1", "ext:wrongkey2": "wrongvalue2","ext:wrongkey3": "wrongvalue3"}}},
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-passed","display": {"en-US":"wrong-passed"}},"object": {"id":"act:test_wrong_list_post1"},
+            {"verb":{"id": "http://example.com/verbs/wrong-passed","display": {"en-US":"wrong-passed"}},"object": {"id":"act:test_wrong_list_post1"},
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"},"context":{"registration": cguid1, "contextActivities": {"other": {"id": "act:wrongActivityID2"}},
             "revision": "wrong", "platform":"wrong","language": "en-US", "extensions":{"ext:wrongkey1": "wrongval1",
             "ext:wrongkey2": "wrongval2"}}},            
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"act:test_wrong_list_post2"}},            
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"act:test_wrong_list_post4"}, "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}}])
+            {"verb":{"id": "http://example.com/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"act:test_wrong_list_post2"}},            
+            {"verb":{"id": "http://example.com/verbs/wrong-kicked","display": {"en-US":"wrong-kicked"}},"object": {"id":"act:test_wrong_list_post4"}, "actor":{"objectType":"Agent", "mbox":"wrong-t@t.com"}}])
         
         response = self.client.post(reverse(statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -1421,22 +1422,22 @@ class StatementTests(TestCase):
     def test_post_list_rollback_part_2(self):
         self.bunchostmts()
         stmts = json.dumps([{"object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"en-US":"wrong"}},
+            "verb": {"id": "http://example.com/verbs/wrong","display": {"en-US":"wrong"}},
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/created"},
+            {"verb":{"id": "http://example.com/verbs/created"},
             "object": {"objectType": "Activity", "id":"act:foogie",
             "definition": {"name": {"en-US":"testname2", "en-GB": "altname"},
             "description": {"en-US":"testdesc2", "en-GB": "altdesc"}, "type": "http://www.adlnet.gov/experienceapi/activity-types/http://adlnet.gov/expapi/activities/cmi.interaction",
             "interactionType": "fill-in","correctResponsesPattern": ["answer"]}},
             "actor":{"objectType":"Agent", "mbox":"mailto:wrong-t@t.com"}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
+            {"verb":{"id": "http://example.com/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
 
         response = self.client.post(reverse(statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
         self.assertIn('actor is missing in Statement', response.content)
 
-        created_verbs = Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/created')
-        wrong_verbs = Verb.objects.filter(verb_id__contains='http://adlnet.gov/expapi/verbs/wrong')
+        created_verbs = Verb.objects.filter(verb_id__contains='http://example.com/verbs/created')
+        wrong_verbs = Verb.objects.filter(verb_id__contains='http://example.com/verbs/wrong')
         
         activities = Activity.objects.filter(activity_id='act:foogie')
         
@@ -1465,7 +1466,7 @@ class StatementTests(TestCase):
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"mailto:only-s@s.com"},
             "object": {"objectType":"StatementRef","id":str(self.exist_stmt_id)},
             "verb": {"id": "http://adlnet.gov/expapi/verbs/voided","display": {"en-US":"voided"}}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
+            {"verb":{"id": "http://example.com/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
 
         response = self.client.post(reverse(statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -1484,17 +1485,17 @@ class StatementTests(TestCase):
         self.bunchostmts()
         sub_context_id = str(uuid.uuid1())
         stmts = json.dumps([{"actor":{"objectType":"Agent","mbox":"mailto:wrong-s@s.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"en-US":"wrong"}},
+            "verb": {"id": "http://example.com/verbs/wrong","display": {"en-US":"wrong"}},
             "object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"}},
             {"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"en-US":"wrong-next"}},
+            "verb": {"id": "http://example.com/verbs/wrong-next","display": {"en-US":"wrong-next"}},
             "object":{"objectType":"SubStatement",
-            "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},"verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
+            "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},"verb": {"id":"http://example.com/verbs/wrong-sub"},
             "object": {"objectType":"Activity", "id":"act:wrong-testex.com"}, "result":{"completion": True, "success": True,
             "response": "sub-wrong-kicked"}, "context":{"registration": sub_context_id,
             "contextActivities": {"other": {"id": "act:sub-wrong-ActivityID"}},"revision": "foo", "platform":"bar",
             "language": "en-US", "extensions":{"ext:wrong-k1": "v1", "ext:wrong-k2": "v2"}}}},
-            {"verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
+            {"verb":{"id": "http://example.com/verbs/wrong-kicked"},"object": {"id":"act:test_wrong_list_post2"}}])
         response = self.client.post(reverse(statements), stmts,  content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
         self.assertIn('actor is missing in Statement', response.content)
@@ -1523,15 +1524,15 @@ class StatementTests(TestCase):
         # Will throw error and need to rollback b/c last stmt is missing actor
         stmts = json.dumps([{
             "actor":{"objectType":"Agent","mbox":"mailto:wrong-s@s.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong","display": {"en-US":"wrong"}},
+            "verb": {"id": "http://example.com/verbs/wrong","display": {"en-US":"wrong"}},
             "object": {"objectType":"Agent","name":"john","mbox":"mailto:john@john.com"}},
             {
             "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "verb": {"id": "http://adlnet.gov/expapi/verbs/wrong-next","display": {"en-US":"wrong-next"}},
+            "verb": {"id": "http://example.com/verbs/wrong-next","display": {"en-US":"wrong-next"}},
             "object":{
                 "objectType":"SubStatement",
                     "actor":{"objectType":"Agent","mbox":"mailto:wrong-ss@ss.com"},
-                    "verb": {"id":"http://adlnet.gov/expapi/verbs/wrong-sub"},
+                    "verb": {"id":"http://example.com/verbs/wrong-sub"},
                     "object": {"objectType":"Activity", "id":"act:wrong-testex.com"},
                     "result":{"completion": True, "success": True,"response": "sub-wrong-kicked"},
                     "context":{
@@ -1543,7 +1544,7 @@ class StatementTests(TestCase):
                     }
             },
             {
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/wrong-kicked"},
+            "verb":{"id": "http://example.com/verbs/wrong-kicked"},
             "object": {"id":"act:test_wrong_list_post2"}}])
  
         response = self.client.post(reverse(statements), stmts,  content_type="application/json",
@@ -1573,7 +1574,7 @@ class StatementTests(TestCase):
 
     def test_unique_actor_authority(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:timmay@timmay.com", "name":"timmay"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/passed","display": {"en-US":"passed"}},
+            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_post"}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -1714,7 +1715,7 @@ class StatementTests(TestCase):
     def test_act_id_iri(self):
         act_id = "act:Flügel"
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created"}},
             "object": {"id":act_id}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -1727,7 +1728,7 @@ class StatementTests(TestCase):
     def test_invalid_act_id_iri(self):
         act_id = "Flügel"
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created"}},
             "object": {"id":act_id}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -1737,7 +1738,7 @@ class StatementTests(TestCase):
     def test_tag_act_id_uri(self):
         act_id = "tag:adlnet.gov,2013:expapi:0.9:activities"
         stmt = json.dumps({"actor":{"objectType":"Agent","mbox":"mailto:s@s.com"},
-            "verb":{"id": "http://adlnet.gov/expapi/verbs/created","display": {"en-US":"created"}},
+            "verb":{"id": "http://example.com/verbs/created","display": {"en-US":"created"}},
             "object": {"id":act_id}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
@@ -1757,7 +1758,7 @@ class StatementTests(TestCase):
         ctxs = ["http://ctx.com/one", "http://ctx.com/two"];
 
         for x in range(1, 500):
-            s = {"verb":{"id": "http://adlnet.gov/expapi/verbs/passed"},"object": {"id":""}, "actor":{"mbox":"mailto:t@t.com"},
+            s = {"verb":{"id": "http://example.com/verbs/passed"},"object": {"id":""}, "actor":{"mbox":"mailto:t@t.com"},
                 "context": {"contextActivities": {"grouping": [{"id": ""}]}}}
 
             s['object']['id'] = acts[random.randrange(0, len(acts)-1)]

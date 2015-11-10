@@ -7,7 +7,7 @@ from django.utils.timezone import utc
 
 from ..models import AgentProfile
 from ..exceptions import IDNotFoundError, ParamError
-from ..util import etag
+from ..utils import etag
 
 class AgentProfileManager():
     def __init__(self, agent):

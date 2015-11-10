@@ -88,7 +88,7 @@ XAPI_VERSION = '1.0.2'
 XAPI_VERSIONS = ['1.0.0', '1.0.1', '1.0.2']
 
 # Where to be redirected after logging in
-LOGIN_REDIRECT_URL = '/XAPI/me'
+LOGIN_REDIRECT_URL = '/me'
 
 # Me view has a tab of user's statements
 STMTS_PER_PAGE = 10
@@ -134,7 +134,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
 # One minute timeout to all celery tasks
-CELERYD_TASK_SOFT_TIME_LIMIT = 60
+CELERYD_TASK_TIME_LIMIT = 20
 # ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
 # Caches for /more endpoint and attachments
@@ -183,7 +183,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'lrs.util.AllowOriginMiddleware.AllowOriginMiddleware',
+    'adl_lrs.utils.AllowOriginMiddleware.AllowOriginMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -207,6 +207,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'adl_lrs',
     'lrs',
     'oauth_provider',
     'oauth2_provider.provider',

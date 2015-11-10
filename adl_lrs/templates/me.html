@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load jsonify %}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 {% endblock extra_css %}
@@ -13,8 +14,8 @@
             <div class="pure-menu custom-restricted-width custom-menu">
                 <ul class="pure-menu-list">
                     <li class="pure-menu-item pure-menu-item-custom pure-menu-selected tab-content"><a href="#myaccount" id="showme" class="pure-menu-link custom-wrap">Account</a></li>
-                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url lrs.views.my_statements %}" class="pure-menu-link custom-wrap">Statements</a></li>
-                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url lrs.views.my_activity_states %}" class="pure-menu-link custom-wrap">Activity States</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url adl_lrs.views.my_statements %}" class="pure-menu-link custom-wrap">Statements</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url adl_lrs.views.my_activity_states %}" class="pure-menu-link custom-wrap">Activity States</a></li>
                     <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#clientapps" class="pure-menu-link custom-wrap">OAuth Client Apps</a></li>
                     <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#myaccesstokens" class="pure-menu-link custom-wrap">OAuth Access Tokens</a></li>
                     <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#clientapps2" class="pure-menu-link custom-wrap">OAuth2 Client Apps</a></li>
@@ -44,7 +45,7 @@
             </div>
             <div id="clientapps" class="content">
                 <h2>OAuth Client Apps</h2>
-                <a class="pure-button" href="{% url lrs.views.reg_client %}">Add</a>
+                <a class="pure-button" href="{% url adl_lrs.views.reg_client %}">Add</a>
                 {% if client_apps %}
                     <div class="email-item">
                         {% for app in client_apps %}
@@ -73,7 +74,7 @@
                                 <h5 class="email-name"><span class="appname">{{ token.consumer.name }}</span></h5>
                                 <h4 class="email-subject">
                                     <a class="delete_token" href='#myaccesstokens'>Delete</a>
-                                    <span class="hide-token-info">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
+                                    <span class="hide-info">{{ token.key_partial }}-{{ token.consumer.id }}-{{ token.timestamp }}</span>
                                 </h4>
                                 <p class="email-desc">
                                     <strong>Key</strong>: {{ token.key }}<br>
@@ -90,7 +91,7 @@
             </div>
             <div id="clientapps2" class="content">
                 <h2>OAuth2 Client Apps</h2>
-                <a class="pure-button" href="{% url lrs.views.reg_client2 %}">Add</a>
+                <a class="pure-button" href="{% url adl_lrs.views.reg_client2 %}">Add</a>
                 {% if client_apps2 %}
                     <div class="email-item">
                         {% for app in client_apps2 %}
@@ -98,7 +99,7 @@
                             <h5 class="email-name"><span class="appname">{{ app.name }}</span></h5>
                             <h4 class="email-subject">
                                 <a class="delete_client" href='#clientapps2'>Delete</a>
-                                <span class="hide-token-info">{{ app.client_id }}</span>
+                                <span class="hide-info">{{ app.client_id }}</span>
                             </h4>
                             <p class="email-desc">
                                 <strong>Key</strong>: {{ app.client_id }}<br>
@@ -123,7 +124,7 @@
                             <h5 class="email-name"><span class="appname">{{ pair.0.client.name }}</span></h5>
                             <h4 class="email-subject">
                                 <a class="delete_token2" href='#myaccesstokens2'>Delete</a>
-                                <span class="hide-token-info">{{ pair.0.token }}</span>
+                                <span class="hide-info">{{ pair.0.token }}</span>
                             </h4>
                             <p class="email-desc">
                                 <strong>Access Token</strong>: {{ pair.0.token }}<br>
@@ -137,7 +138,7 @@
                 {% else %}
                     <div class="span5">No OAuth2 access tokens</div>
                 {% endif %}
-            </div>                        
+            </div>                               
         </div>
     </div>
 </div>
@@ -160,7 +161,7 @@
                 status = "Accepted";                
             } 
             $.ajax({
-                url: "{% url lrs.views.my_app_status %}?app_name="+appname+"&status="+status,
+                url: "{% url adl_lrs.views.my_app_status %}?app_name="+appname+"&status="+status,
                 type: "POST",
                 context: $(this),
                 success: function (data){
@@ -187,7 +188,7 @@
         $('.delete_token').click(function(){
             var id = $(this).next('span').text();
             $.ajax({
-                url: "{% url lrs.views.delete_token %}?id="+id,
+                url: "{% url adl_lrs.views.delete_token %}?id="+id,
                 type: "DELETE",
                 context: $(this),
                 success: function(data){
@@ -202,7 +203,7 @@
         $('.delete_token2').click(function(){
             var id = $(this).next('span').text();
             $.ajax({
-                url: "{% url lrs.views.delete_token2 %}?id="+id,
+                url: "{% url adl_lrs.views.delete_token2 %}?id="+id,
                 type: "DELETE",
                 context: $(this),
                 success: function(data){
@@ -217,7 +218,7 @@
         $('.delete_client').click(function(){
             var id = $(this).next('span').text();
             $.ajax({
-                url: "{% url lrs.views.delete_client %}?id="+id,
+                url: "{% url adl_lrs.views.delete_client %}?id="+id,
                 type: "DELETE",
                 context: $(this),
                 success: function(data){
