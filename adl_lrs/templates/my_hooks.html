@@ -20,10 +20,15 @@
                         <div class="pure-u appdiv">
                             <h5 class="email-name"><span class="appname">{{ h.name }}</span></h5>
                             <h4 class="email-subject">
-                                <a class="show_filters" href='#webhooks'>Filters</a>
-                                <span class="hide-info">{{ h.filters|jsonify }}</span>
+                                <a class="show_filters" href='#'>Filters</a>
+                                <span class="hide-info">{{ h.filters|jsonify }}</span>                               
+                            </h4>
+                            <h4 class="email-subject">
+                                <a class="delete_hook" href='#'>Delete</a>
+                                <span class="hide-info">{{ h.hook_id }}</span> 
                             </h4>
                             <p class="email-desc">
+                                <strong>Id</strong>: {{ h.hook_id }}<br>
                                 <strong>Endpoint</strong>: {{ h.config.endpoint }}<br>
                                 <strong>Content-Type</strong>: {{ h.config.content_type }}<br>
                                 <strong>Secret</strong>: {{ h.config.secret }}<br>
@@ -89,6 +94,21 @@
             var filters = JSON.parse($(this).next('span').text());
             alert(JSON.stringify(filters, null, 4));
         });
+        $('.delete_hook').click(function(){
+            var hookId = $(this).next('span').text();
+            $.ajax({
+                url: "{% url adl_lrs.views.hooks %}/"+hookId,
+                type: "DELETE",
+                context: $(this),
+                success: function(data){
+                    $(this).parent().parent().remove();
+                },
+                error: function(xhr, ajaxOptions, thrownError){
+                    alert(thrownError);
+                },
+                timeout:5000
+            });            
+        });        
     });
 </script>
 {% endblock extra_js %}
