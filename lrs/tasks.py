@@ -17,13 +17,13 @@ celery_logger = get_task_logger('celery-task')
 
 @shared_task
 def check_activity_metadata(stmts):
-    from lrs.models import Activity
+    from .models import Activity
     activity_ids = list(Activity.objects.filter(object_of_statement__statement_id__in=stmts).values_list('activity_id', flat=True).distinct())
     [get_activity_metadata(a_id) for a_id in activity_ids]
 
 @shared_task
 def void_statements(stmts):
-    from lrs.models import Statement    
+    from .models import Statement    
     try:
         Statement.objects.filter(statement_id__in=stmts).update(voided=True)
     except Exception, e:
@@ -31,12 +31,12 @@ def void_statements(stmts):
 
 @shared_task
 def check_statement_hooks(stmt_ids):
-    from lrs.models import Hook, Statement
+    from .models import Hook, Statement
     hooks = Hook.objects.all()
     for h in hooks:
         filters = h.filters
         config = h.config
-        secret = config['secret'] if config['secret'] else False
+        secret = config['secret'] if 'secret' in config else False
         filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
         found = Statement.objects.filter(filterQ)
         if found:
@@ -59,7 +59,7 @@ def check_statement_hooks(stmt_ids):
                 celery_logger.exception("Could not send statements to hook %s: %s" % (str(h.config['endpoint']), e.message))
 
 def parse_filter(filters, filterQ):
-    from lrs.models import Agent
+    from .models import Agent
     actorQ, verbQ, objectQ, filterQ = Q(), Q(), Q(), Q()
     if isinstance(filters, dict):
         if 'actor' in filters.keys():
@@ -93,7 +93,7 @@ def parse_filter(filters, filterQ):
     return filterQ
 
 def parse_related_filter(related, or_operand):
-    from lrs.models import Agent
+    from .models import Agent
     innerQ = Q()
     objectQ = Q()
     for ob in related:
@@ -197,7 +197,7 @@ def get_activity_metadata(act_id):
                 update_activity_definition(fake_activity)
 
 def update_activity_definition(act):
-    from lrs.models import Activity
+    from .models import Activity
     # Try to get activity by id
     try:
         activity = Activity.objects.get(activity_id=act['id'])
