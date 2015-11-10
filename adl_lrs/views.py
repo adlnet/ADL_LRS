@@ -366,7 +366,6 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('adl_lrs.views.home'))
 
 @transaction.commit_on_success
-@login_required()
 @require_http_methods(["GET", "DELETE"])
 @non_xapi_auth
 def hook(request, hook_id):
@@ -389,7 +388,6 @@ def hook(request, hook_id):
             return HttpResponse('', status=204)
 
 @transaction.commit_on_success
-@login_required()
 @require_http_methods(["GET", "POST"])
 @non_xapi_auth
 def hooks(request):
@@ -410,7 +408,7 @@ def hooks(request):
             except Exception, e:
                 return HttpResponseBadRequest("Something went wrong: %s" % e.message)
             else:
-                hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('adl_lrs.views.my_statements_hooks'), hook.hook_id)
+                hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('adl_lrs.views.my_hooks'), hook.hook_id)
                 resp_data = hook.to_dict()
                 resp_data['url'] = hook_location
                 resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
