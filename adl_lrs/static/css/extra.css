@@ -60,7 +60,7 @@ a:hover { text-decoration: none; }
 a:focus { text-decoration: none; }
 a:hover, a:active { text-decoration: none; }
 
-.hide-token-info{
+.hide-info{
 	visibility:hidden;	
 }
 

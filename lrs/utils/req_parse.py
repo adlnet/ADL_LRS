@@ -9,7 +9,7 @@ from isodate.isodatetime import parse_datetime
 from django.core.cache import get_cache
 from django.http import QueryDict
 
-from util import convert_to_datatype, convert_post_body_to_dict
+from . import convert_to_datatype, convert_post_body_to_dict
 from etag import get_etag_info
 from jws import JWS, JWSException
 from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest

@@ -10,7 +10,7 @@ from django.utils.timezone import utc
 
 from oauth_provider.consts import MAX_URL_LENGTH
 
-from .util import util
+from .utils import get_lang
 
 AGENT_PROFILE_UPLOAD_TO = "agent_profile"
 ACTIVITY_STATE_UPLOAD_TO = "activity_state"
@@ -25,7 +25,7 @@ class Verb(models.Model):
         ret = {}
         ret['id'] = self.verb_id
         if self.display:
-            ret['display'] = util.get_lang(self.display, lang)
+            ret['display'] = get_lang(self.display, lang)
         return ret
 
     # Just return one value for human-readable
@@ -250,7 +250,7 @@ class Activity(models.Model):
         elif i_type == 'target':
             interactions = self.activity_definition_targets
         for i in interactions:
-            i['description'] = util.get_lang(i['description'], lang)
+            i['description'] = get_lang(i['description'], lang)
             ret['definition'][i_type].append(i)        
 
     def to_dict(self, lang=None, format='exact'):
@@ -260,9 +260,9 @@ class Activity(models.Model):
             ret['objectType'] = self.objectType
             ret['definition'] = {}
             if self.activity_definition_name:
-                ret['definition']['name'] = util.get_lang(self.activity_definition_name, lang)
+                ret['definition']['name'] = get_lang(self.activity_definition_name, lang)
             if self.activity_definition_description:
-                ret['definition']['description'] = util.get_lang(self.activity_definition_description, lang)
+                ret['definition']['description'] = get_lang(self.activity_definition_description, lang)
             if self.activity_definition_type:
                 ret['definition']['type'] = self.activity_definition_type
             if self.activity_definition_moreInfo != '':
@@ -603,9 +603,9 @@ class StatementAttachment(models.Model):
         ret = {}
         ret['usageType'] = self.usageType
         if self.display:
-            ret['display'] = util.get_lang(self.display, lang)
+            ret['display'] = get_lang(self.display, lang)
         if self.description:
-            ret['description'] = util.get_lang(self.description, lang)
+            ret['description'] = get_lang(self.description, lang)
         ret['contentType'] = self.contentType
         ret['length'] = self.length
         if self.sha2:

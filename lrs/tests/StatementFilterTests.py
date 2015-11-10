@@ -18,8 +18,9 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from ..models import Statement
-from ..views import register, statements, statements_more
-from ..util.util import convert_to_utc
+from ..views import statements, statements_more
+from ..utils import convert_to_utc
+from adl_lrs.views import register
 
 class StatementFilterTests(TestCase):
 
@@ -73,7 +74,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             },
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "id": "http://example.com/verbs/passed", 
                 "display": {
                     "en-US": "passed"
                 }
@@ -99,7 +100,7 @@ class StatementFilterTests(TestCase):
         }
         resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
-        sid = Statement.objects.get(verb__verb_id="http://adlnet.gov/xapi/verbs/passed(to_go_beyond)").statement_id
+        sid = Statement.objects.get(verb__verb_id="http://example.com/verbs/passed").statement_id
         param = {"statementId":sid}
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -163,7 +164,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Agent"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/completed", 
+                "id": "http://example.com/verbs/completed", 
                 "display": {
                     "en-US": "finished"
                 }
@@ -416,7 +417,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "id": "http://example.com/verbs/attempted", 
                 "display": {"en-US": "started"}
             }
         }, 
@@ -430,7 +431,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "id": "http://example.com/verbs/attempted", 
                 "display": {"en-US": "started"}
             }
         }, 
@@ -444,7 +445,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "id": "http://example.com/verbs/attempted", 
                 "display": {"en-US": "started"}
             }
         }, 
@@ -458,7 +459,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "id": "http://example.com/verbs/passed", 
                 "display": {"en-US": "passed"}
             }
         }, 
@@ -472,7 +473,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             },
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "id": "http://example.com/verbs/passed", 
                 "display": {"en-US": "passed"}
             }
         }, 
@@ -486,7 +487,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             },
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "id": "http://example.com/verbs/passed", 
                 "display": {"en-US": "passed"}
             }
         }]
@@ -855,7 +856,7 @@ class StatementFilterTests(TestCase):
 
     def test_since_filter_tz(self):
         stmt1_guid = str(uuid.uuid1())
-        stmt1 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt1 = json.dumps({"verb":{"id": "http://example.com/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T12:00:00-05:00"})
 
@@ -868,7 +869,7 @@ class StatementFilterTests(TestCase):
         Statement.objects.filter(statement_id=stmt1_guid).update(stored=time)
 
         stmt2_guid = str(uuid.uuid1())
-        stmt2 = json.dumps({"verb":{"id": "http://adlnet.gov/expapi/verbs/created",
+        stmt2 = json.dumps({"verb":{"id": "http://example.com/verbs/created",
                 "display": {"en-US":"created"}}, "object": {"id":"act:activity2"},
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T20:00:00+05:00"})
 
@@ -1052,7 +1053,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/attempted", 
+                "id": "http://example.com/verbs/attempted", 
                 "display": {"en-US": "started"}
             },
             "context": {
@@ -1072,7 +1073,7 @@ class StatementFilterTests(TestCase):
             "name": "tom"
         }, 
         "verb": {
-            "id": "http://adlnet.gov/xapi/verbs/completed", 
+            "id": "http://example.com/verbs/completed", 
             "display": {"en-US": "finished"}
         }, 
         "result": {
@@ -1109,7 +1110,7 @@ class StatementFilterTests(TestCase):
         stmts = obj['statements']
         self.assertEqual(len(stmts), 0)
 
-        param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://adlnet.gov/xapi/verbs/completed"}
+        param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://example.com/verbs/completed"}
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -1117,7 +1118,7 @@ class StatementFilterTests(TestCase):
         stmts = obj['statements']
         self.assertEqual(len(stmts), 1)
 
-        param = {"agent":{"mbox":"mailto:tom@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://adlnet.gov/xapi/verbs/completed"}
+        param = {"agent":{"mbox":"mailto:tom@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://example.com/verbs/completed"}
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -1125,7 +1126,7 @@ class StatementFilterTests(TestCase):
         stmts = obj['statements']
         self.assertEqual(len(stmts), 1)
 
-        param = {"agent":{"mbox":"mailto:louo@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://adlnet.gov/xapi/verbs/completed"}
+        param = {"agent":{"mbox":"mailto:louo@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://example.com/verbs/completed"}
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -1145,7 +1146,7 @@ class StatementFilterTests(TestCase):
             "name": "tom",
         }, 
         "verb": {
-            "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+            "id": "http://example.com/verbs/passed", 
             "display": {"en-US": "passed"}
         }, 
         "context": {
@@ -1168,7 +1169,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "id": "http://example.com/verbs/passed", 
                 "display": {"en-US": "passed"}
             }, 
             "result": {
@@ -1206,7 +1207,7 @@ class StatementFilterTests(TestCase):
             "name": "tom"
         }, 
         "verb": {
-            "id": "http://adlnet.gov/xapi/verbs/completed", 
+            "id": "http://example.com/verbs/completed", 
             "display": {"en-US": "finished"}
         }, 
         "result": {
@@ -1274,7 +1275,7 @@ class StatementFilterTests(TestCase):
             "name": "tom",
         }, 
         "verb": {
-            "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+            "id": "http://example.com/verbs/passed", 
             "display": {"en-US": "passed"}
         }, 
         "context": {
@@ -1297,7 +1298,7 @@ class StatementFilterTests(TestCase):
                 "name": "tom"
             }, 
             "verb": {
-                "id": "http://adlnet.gov/xapi/verbs/passed(to_go_beyond)", 
+                "id": "http://example.com/verbs/passed", 
                 "display": {"en-US": "passed"}
             }, 
             "result": {

@@ -5,8 +5,9 @@ from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from ..views import register, agents
+from ..views import agents
 from ..models import Agent
+from adl_lrs.views import register
 
 class AgentTests(TestCase):
     @classmethod

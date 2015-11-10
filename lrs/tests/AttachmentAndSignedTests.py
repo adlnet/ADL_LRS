@@ -18,8 +18,9 @@ from django.utils.timezone import utc
 from django.conf import settings
 
 from ..models import Statement, StatementAttachment
-from ..views import register, statements
-from ..util.jws import JWS
+from ..views import statements
+from ..utils.jws import JWS
+from adl_lrs.views import register
 
 class AttachmentAndSignedTests(TestCase):
     @classmethod
@@ -527,7 +528,7 @@ class AttachmentAndSignedTests(TestCase):
                     "objectType": "Agent"
                 },
                 "verb": {
-                    "id": "http://adlnet.gov/expapi/verbs/answered",
+                    "id": "http://example.com/verbs/answered",
                     "display": {
                         "en-US": "answered"
                     }
@@ -878,7 +879,7 @@ class AttachmentAndSignedTests(TestCase):
             "sha2":""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        img_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static','img', 'example.png'))
+        img_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'adl_lrs','static','img', 'example.png'))
         img = open(img_path, 'rb')
         img_data = img.read()
         img.close()

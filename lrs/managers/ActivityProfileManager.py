@@ -7,7 +7,7 @@ from django.utils.timezone import utc
 
 from ..models import ActivityProfile
 from ..exceptions import IDNotFoundError, ParamError
-from ..util import etag
+from ..utils import etag
 
 class ActivityProfileManager():
     def save_non_json_profile(self, p, created, profile, request_dict):
