@@ -140,7 +140,7 @@ def create_stmt_result(stmt_set, stored, language, format):
     if stmt_set:
         stmt_set = Statement.objects.filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
         if format == 'exact':
-            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in stmt_set.order_by(stored)])
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in stmt_set.order_by(stored)])
         else:
             stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in \
                 stmt_set.order_by(stored)]
@@ -193,7 +193,7 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
 
     # Return first page of results
     if format == 'exact':
-        result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement) for stmt in \
+        result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
     else:
         result['statements'] = [stmt.to_dict(language, format) for stmt in \
@@ -239,10 +239,10 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
     current_page = start_page + 1
     # If that was the last page to display then just return the remaining stmts
     if current_page == total_pages:
-        stmt_pager = Paginator(stmt_list, limit)       
+        stmt_pager = Paginator(stmt_list, limit)
         # Return first page of results
         if format == 'exact':
-            result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.to_dict(language, format)) for stmt in \
+            result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.to_dict(language, format), sort_keys=False) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)])
         else:
             result['statements'] = [stmt.to_dict(language, format) for stmt in \
@@ -264,7 +264,7 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         cache_key = create_cache_key(stmt_list)
         # Return first page of results
         if format == 'exact':
-            result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(language, format)) for stmt in \
+            result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(language, format), sort_keys=False) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
         else:
             # Set result to have selected page of stmts and more endpoint

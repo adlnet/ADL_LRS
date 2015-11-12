@@ -186,7 +186,7 @@ def statements_get(req_dict):
         else:
             st = Statement.objects.get(statement_id=req_dict['statementId'])
             
-            stmt_result = json.dumps(st.to_dict(format=req_dict['params']['format']))
+            stmt_result = json.dumps(st.to_dict(format=req_dict['params']['format']), sort_keys=False)
             resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
             content_length = len(stmt_result)
     # Complex GET
@@ -372,7 +372,7 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
     act = Activity.objects.get(activity_id=activityId, authority__isnull=False)
-    return_act = json.dumps(act.to_dict('all'))    
+    return_act = json.dumps(act.to_dict('all'), sort_keys=False)    
     resp = HttpResponse(return_act, mimetype="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
     # If it's a HEAD request
@@ -436,7 +436,7 @@ def agent_profile_delete(req_dict):
 
 def agents_get(req_dict):
     a = Agent.objects.get(**req_dict['agent_ifp'])    
-    agent_data = json.dumps(a.to_dict_person())
+    agent_data = json.dumps(a.to_dict_person(), sort_keys=False)
     resp = HttpResponse(agent_data, mimetype="application/json")
     resp['Content-Length'] = str(len(agent_data))
     # If it's a HEAD request
