@@ -78,7 +78,7 @@ class ActivityManager():
                    (act.authority == self.auth) or \
                    (act.authority.objectType == 'Group' and self.auth in act.authority.member.all()) or \
                    (self.auth.objectType == 'Group' and act.authority in self.auth.member.all()):
-                    can_define = True                                                     
+                    can_define = True
                 else:
                     can_define = False
             # activity already exists but do not have define

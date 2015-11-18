@@ -133,8 +133,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
-# One minute timeout to all celery tasks
-CELERYD_TASK_TIME_LIMIT = 20
+# Fifteen second timeout to all celery tasks
+CELERYD_TASK_SOFT_TIME_LIMIT = 15
 # ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
 # Caches for /more endpoint and attachments

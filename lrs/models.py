@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 from datetime import datetime
 from jsonfield import JSONField
 
@@ -22,7 +23,7 @@ class Verb(models.Model):
     display = JSONField(default={}, blank=True)
 
     def to_dict(self, lang=None):
-        ret = {}
+        ret = OrderedDict()
         ret['id'] = self.verb_id
         if self.display:
             ret['display'] = get_lang(self.display, lang)
@@ -44,7 +45,7 @@ class Verb(models.Model):
         return self.display.values()[0]
 
     def __unicode__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), sort_keys=False)
 
 class AgentManager(models.Manager):
     def retrieve_or_create(self, **kwargs):
@@ -151,7 +152,7 @@ class Agent(models.Model):
         unique_together = ("account_homePage", "account_name")
 
     def to_dict(self, format='exact'):
-        ret = {}
+        ret = OrderedDict()
         if self.mbox:
             ret['mbox'] = self.mbox
         if self.mbox_sha1sum:
@@ -159,7 +160,7 @@ class Agent(models.Model):
         if self.openid:
             ret['openid'] = self.openid
         if self.account_name:
-            ret['account'] = {}
+            ret['account'] = OrderedDict()
             ret['account']['name'] = self.account_name
             ret['account']['homePage'] = self.account_homePage
         if self.objectType == 'Group':
@@ -176,7 +177,7 @@ class Agent(models.Model):
 
     # Used only for /agent GET endpoint (check spec)
     def to_dict_person(self):
-        ret = {}
+        ret = OrderedDict()
         ret['objectType'] = "Person"
         if self.name:
             ret['name'] = [self.name]
@@ -188,7 +189,7 @@ class Agent(models.Model):
             ret['openid'] = [self.openid]
         if self.account_name:
             ret['account'] = []
-            acc = {}
+            acc = OrderedDict()
             acc['name'] = self.account_name
             acc['homePage'] = self.account_homePage
             ret['account'].append(acc)
@@ -219,7 +220,7 @@ class Agent(models.Model):
         return None
 
     def __unicode__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), sort_keys=False)
 
 class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
@@ -254,11 +255,11 @@ class Activity(models.Model):
             ret['definition'][i_type].append(i)        
 
     def to_dict(self, lang=None, format='exact'):
-        ret = {}
+        ret = OrderedDict()
         ret['id'] = self.activity_id
         if format != 'ids':
             ret['objectType'] = self.objectType
-            ret['definition'] = {}
+            ret['definition'] = OrderedDict()
             if self.activity_definition_name:
                 ret['definition']['name'] = get_lang(self.activity_definition_name, lang)
             if self.activity_definition_description:
@@ -297,7 +298,7 @@ class Activity(models.Model):
         return self.activity_definition_name.get('en-US', self.activity_id)
 
     def __unicode__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), sort_keys=False)
 
 class SubStatement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
@@ -334,7 +335,7 @@ class SubStatement(models.Model):
     context_statement = models.CharField(max_length=40, blank=True)
     
     def to_dict(self, lang=None, format='exact'):
-        ret = {}
+        ret = OrderedDict()
         ret['actor'] = self.actor.to_dict(format)
         ret['verb'] = self.verb.to_dict()
         
@@ -345,7 +346,7 @@ class SubStatement(models.Model):
         else:
             ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
         
-        ret['result'] = {}
+        ret['result'] = OrderedDict()
         if self.result_success != None:
             ret['result']['success'] = self.result_success
         if self.result_completion != None:
@@ -355,7 +356,7 @@ class SubStatement(models.Model):
         if self.result_duration:
             ret['result']['duration'] = self.result_duration
         
-        ret['result']['score'] = {}
+        ret['result']['score'] = OrderedDict()
         if not self.result_score_scaled is None:
             ret['result']['score']['scaled'] = self.result_score_scaled
         if not self.result_score_raw is None:
@@ -373,7 +374,7 @@ class SubStatement(models.Model):
         if not ret['result']:
             del ret['result']
 
-        ret['context'] = {}
+        ret['context'] = OrderedDict()
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
         if self.context_instructor:
@@ -389,7 +390,7 @@ class SubStatement(models.Model):
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
 
-        ret['context']['contextActivities'] = {}
+        ret['context']['contextActivities'] = OrderedDict()
         if self.context_ca_parent.all():
             ret['context']['contextActivities']['parent'] = [cap.to_dict(lang, format) for cap in self.context_ca_parent.all()]
         if self.context_ca_grouping.all():
@@ -427,7 +428,7 @@ class SubStatement(models.Model):
         return stmt_object
 
     def __unicode__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), sort_keys=False)
 
 class Statement(models.Model):
     # If no statement_id is given, will create one automatically
@@ -476,9 +477,24 @@ class Statement(models.Model):
     full_statement = JSONField()
     
     def to_dict(self, lang=None, format='exact'):
+        ret = OrderedDict()
         if format == 'exact':
-            return self.full_statement
-        ret = {}
+            ret['id'] = self.full_statement['id']
+            ret['actor'] = self.full_statement['actor']
+            ret['verb'] = self.full_statement['verb']
+            ret['object'] = self.full_statement['object']
+            if 'result' in self.full_statement:
+                ret['result'] = self.full_statement['result']
+            if 'context' in self.full_statement:
+                ret['context'] = self.full_statement['context']
+            ret['timestamp'] = self.full_statement['timestamp']
+            ret['stored'] = self.full_statement['stored']
+            if 'authority' in self.full_statement:
+                ret['authority'] = self.full_statement['authority']            
+            ret['version'] = self.full_statement['version']
+            if 'attachments' in self.full_statement:
+                ret['attachments'] = self.full_statement['attachments']
+            return ret
         ret['id'] = self.statement_id
         ret['actor'] = self.actor.to_dict(format)
         ret['verb'] = self.verb.to_dict()
@@ -492,7 +508,7 @@ class Statement(models.Model):
         else:
             ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
 
-        ret['result'] = {}
+        ret['result'] = OrderedDict()
         if self.result_success != None:
             ret['result']['success'] = self.result_success
         if self.result_completion != None:
@@ -502,7 +518,7 @@ class Statement(models.Model):
         if self.result_duration:
             ret['result']['duration'] = self.result_duration
 
-        ret['result']['score'] = {}
+        ret['result']['score'] = OrderedDict()
         if not self.result_score_scaled is None:
             ret['result']['score']['scaled'] = self.result_score_scaled
         if not self.result_score_raw is None:
@@ -519,7 +535,7 @@ class Statement(models.Model):
         if not ret['result']:
             del ret['result']
 
-        ret['context'] = {}
+        ret['context'] = OrderedDict()
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
         if self.context_instructor:
@@ -535,7 +551,7 @@ class Statement(models.Model):
         if self.context_statement:
             ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
         
-        ret['context']['contextActivities'] = {}
+        ret['context']['contextActivities'] = OrderedDict()
         if self.context_ca_parent.all():
             ret['context']['contextActivities']['parent'] = [cap.to_dict(lang, format) for cap in self.context_ca_parent.all()]
         if self.context_ca_grouping.all():
@@ -553,12 +569,11 @@ class Statement(models.Model):
 
         ret['timestamp'] = self.timestamp.isoformat()
         ret['stored'] = self.stored.isoformat()
-        ret['version'] = self.version
         if not self.authority is None:
-            ret['authority'] = self.authority.to_dict(format)        
+            ret['authority'] = self.authority.to_dict(format)
+        ret['version'] = self.version       
         if self.stmt_attachments.all():
             ret['attachments'] = [a.to_dict(lang) for a in self.stmt_attachments.all()]
-
         return ret
 
     def get_a_name(self):
@@ -576,7 +591,7 @@ class Statement(models.Model):
         return stmt_object
 
     def __unicode__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), sort_keys=False)
 
 class AttachmentFileSystemStorage(FileSystemStorage):
     def get_available_name(self, name):
@@ -600,7 +615,7 @@ class StatementAttachment(models.Model):
     statement = models.ForeignKey(Statement, related_name="stmt_attachments", null=True)
 
     def to_dict(self, lang=None):
-        ret = {}
+        ret = OrderedDict()
         ret['usageType'] = self.usageType
         if self.display:
             ret['display'] = get_lang(self.display, lang)
@@ -615,7 +630,7 @@ class StatementAttachment(models.Model):
         return ret
 
     def __unicode__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), sort_keys=False)
 
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
