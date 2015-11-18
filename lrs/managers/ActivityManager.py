@@ -57,21 +57,14 @@ class ActivityManager():
         try:
             act = Activity.objects.get(activity_id=activity_id)
         except Activity.DoesNotExist:
+            act_created = True
             if self.define_permission:
-                can_define = True
                 # If activity DNE and can define - create activity with auth
-                try:
-                    self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, authority=self.auth)       
-                except IntegrityError:
-                    self.Activity = Activity.objects.get(activity_id=activity_id, authority=self.auth)
-                    act_created = False
+                self.Activity = Activity.objects.create(activity_id=activity_id, authority=self.auth)
+                can_define = True
             else:
                 # If activity DNE and cannot define - create activity without auth
-                try:
-                    self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id)
-                except IntegrityError:
-                    self.Activity = Activity.objects.get(activity_id=activity_id)
-                    act_created = False
+                self.Activity = Activity.objects.create(activity_id=activity_id)
         # activity already exists
         else:
             self.Activity = act

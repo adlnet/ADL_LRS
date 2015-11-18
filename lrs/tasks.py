@@ -3,8 +3,10 @@ from __future__ import absolute_import
 import urllib2
 import json
 import hmac
+import requests
 
 from celery import shared_task
+from celery.exceptions import SoftTimeLimitExceeded
 from celery.utils.log import get_task_logger
 from hashlib import sha1
 
@@ -31,32 +33,33 @@ def void_statements(stmts):
 
 @shared_task
 def check_statement_hooks(stmt_ids):
-    from .models import Hook, Statement
-    hooks = Hook.objects.all()
-    for h in hooks:
-        filters = h.filters
-        config = h.config
-        secret = config['secret'] if 'secret' in config else False
-        filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
-        found = Statement.objects.filter(filterQ)
-        if found:
-            if config['content_type'] == 'json':
-                data = '{"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
-                req = urllib2.Request(str(h.config['endpoint']))
-                req.add_header('Content-Type', 'application/json')
-            else:
-                data = 'payload={"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
-                req = urllib2.Request(str(h.config['endpoint']))
-                req.add_header('Content-Type', 'application/x-www-form-urlencoded')
-            try:
-                if secret:
-                    req.add_header('X-LRS-Signature', hmac.new(str(secret), str(data), sha1).hexdigest())
-                celery_logger.info("Sending statements to hook endpoint %s" % str(h.config['endpoint']))
-                resp = urllib2.urlopen(req, data)
-                resp.close()
-                celery_logger.info("Response code for sending statements to hook endpoint %s : %s" % (str(h.config['endpoint']), resp.getcode()))
-            except Exception, e:
-                celery_logger.exception("Could not send statements to hook %s: %s" % (str(h.config['endpoint']), e.message))
+    try:
+        from .models import Hook, Statement
+        hooks = Hook.objects.all()
+        for h in hooks:
+            filters = h.filters
+            config = h.config
+            secret = config['secret'] if 'secret' in config else False
+            filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
+            found = Statement.objects.filter(filterQ).distinct()
+            if found:
+                if config['content_type'] == 'json':
+                    data = '{"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
+                    headers = {'Content-Type': 'application/json'}
+                else:
+                    data = 'payload={"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h.hook_id)
+                    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+                try:
+                    if secret:
+                        headers['X-LRS-Signature'] = hmac.new(str(secret), str(data), sha1).hexdigest()
+                    headers['Connection'] = 'close'
+                    celery_logger.info("Sending statements to hook endpoint %s" % str(h.config['endpoint']))
+                    resp = requests.post(str(h.config['endpoint']), data=data, headers=headers, verify=False)
+                    celery_logger.info("Response code for sending statements to hook endpoint %s : %s - %s" % (str(h.config['endpoint']), resp.status_code, resp.content))
+                except Exception, e:
+                    celery_logger.exception("Could not send statements to hook %s: %s" % (str(h.config['endpoint']), e.message))
+    except SoftTimeLimitExceeded:
+        celery_logger.exception("Statement hook task timed out")
 
 def parse_filter(filters, filterQ):
     from .models import Agent
