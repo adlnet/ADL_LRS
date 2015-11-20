@@ -48,10 +48,10 @@ def complex_get(param_dict, limit, language, format, attachments):
         reffilter = True
         agent = None
         data = param_dict['agent']
-        related = 'related_agents' in param_dict and param_dict['related_agents']
-        
-        try:
-            agent = Agent.objects.retrieve_or_create(**data)[0]
+        related = 'related_agents' in param_dict and param_dict['related_agents']        
+
+        agent = Agent.objects.retrieve(**data)
+        if agent:
             # If agent is already a group, it can't be part of another group
             if agent.objectType == "Group":
                 groups = []
@@ -69,10 +69,8 @@ def complex_get(param_dict, limit, language, format, attachments):
                           | Q(object_substatement__actor=a) \
                           | Q(object_substatement__object_agent=a) \
                           | Q(object_substatement__context_instructor=a) \
-                          | Q(object_substatement__context_team=a)       
-        except IDNotFoundError:
-            return[]     
-    
+                          | Q(object_substatement__context_team=a)
+
     verbQ = Q()
     if 'verb' in param_dict:
         reffilter = True
@@ -104,7 +102,8 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority') \
+    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority', \
+        'context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
         .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
     
     stmtset = list(stmtset.values_list('statement_id', flat=True))
