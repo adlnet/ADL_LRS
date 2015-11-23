@@ -11,7 +11,7 @@ from django.db.models import Q
 
 from . import convert_to_utc
 from ..models import Statement, Agent
-from ..exceptions import NotFound, IDNotFoundError
+from ..exceptions import NotFound
 
 MORE_ENDPOINT = '/xapi/statements/more/'
 

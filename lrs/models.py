@@ -4,7 +4,7 @@ from datetime import datetime
 from jsonfield import JSONField
 
 from django_extensions.db.fields import UUIDField
-from django.db import models
+from django.db import models, IntegrityError
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 from django.utils.timezone import utc
@@ -104,8 +104,13 @@ class AgentManager(models.Manager):
                 created = False
             except IndexError:
                 # If DNE create the agent based off of kwargs (kwargs now includes account_homePage and account_name fields)
-                agent = Agent.objects.create(**kwargs)
-                created = True
+                try:
+                    agent = Agent.objects.create(**kwargs)
+                    created = True
+                except IntegrityError:
+                    # Try getting agent by IFP in ifp_dict
+                    agent = Agent.objects.filter(**ifp_dict)[0]
+                    created = False                    
 
             # For identified groups with members
             if is_group and has_member:
@@ -129,8 +134,12 @@ class AgentManager(models.Manager):
                     agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
                     created = False
                 except Agent.DoesNotExist:
-                    agent = Agent.objects.create(**kwargs)
-                    created = True
+                    try:
+                        agent = Agent.objects.create(**kwargs)
+                        created = True
+                    except IntegrityError:
+                        agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                        created = False
             # If oauth account is in second member
             elif 'account' in member[1] and 'OAuth' in member[1]['account']['homePage']:
                 created_oauth_identifier = "anongroup:%s-%s" % (member[1]['account']['name'], member[0]['mbox'])
@@ -138,8 +147,12 @@ class AgentManager(models.Manager):
                     agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
                     created = False
                 except Agent.DoesNotExist:
-                    agent = Agent.objects.create(**kwargs)
-                    created = True
+                    try:
+                        agent = Agent.objects.create(**kwargs)
+                        created = True
+                    except IntegrityError:
+                        agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                        created = False
             # Non-oauth anonymous group that has 2 members, one having an account
             else:
                 agent = Agent.objects.create(**kwargs)
