@@ -48,6 +48,30 @@ class Verb(models.Model):
         return json.dumps(self.to_dict(), sort_keys=False)
 
 class AgentManager(models.Manager):
+    def retrieve(self, **kwargs):
+        agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'account', 'openid']
+        ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]
+        if ifp_sent:
+            # Get IFP
+            ifp = ifp_sent[0]
+            ifp_dict = {}
+            # If IFP is account, have to set the kwargs keys differently since they have different
+            # field names
+            if not 'account' == ifp:
+                ifp_dict[ifp] = kwargs[ifp]
+            else:
+                # Set ifp_dict and kwargs
+                ifp_dict['account_homePage'] = kwargs['account']['homePage']
+                ifp_dict['account_name'] = kwargs['account']['name']
+            try:
+                # Try getting agent by IFP in ifp_dict
+                agent = Agent.objects.filter(**ifp_dict)[0]
+                return agent
+            except IndexError:
+                return None
+        else:
+            return None
+
     def retrieve_or_create(self, **kwargs):
         agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'account', 'openid']
         ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]        

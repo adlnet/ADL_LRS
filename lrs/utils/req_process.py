@@ -285,22 +285,25 @@ def activity_state_get(req_dict):
     state_id = req_dict['params'].get('stateId', None)
     activity_id = req_dict['params']['activityId']
     agent = req_dict['params']['agent']
-    a = Agent.objects.retrieve_or_create(**agent)[0]
-    registration = req_dict['params'].get('registration', None)
-    actstate = ActivityStateManager(a)
-    # state id means we want only 1 item
-    if state_id:
-        resource = actstate.get_state(activity_id, registration, state_id)
-        if resource.state:
-            response = HttpResponse(resource.state.read(), content_type=resource.content_type)
+    a = Agent.objects.retrieve(**agent)
+    if not a:
+        response = HttpResponseNotFound("No agent found for activity state")
+    else:    
+        registration = req_dict['params'].get('registration', None)
+        actstate = ActivityStateManager(a)
+        # state id means we want only 1 item
+        if state_id:
+            resource = actstate.get_state(activity_id, registration, state_id)
+            if resource.state:
+                response = HttpResponse(resource.state.read(), content_type=resource.content_type)
+            else:
+                response = HttpResponse(resource.json_state, content_type=resource.content_type)
+            response['ETag'] = '"%s"' % resource.etag
+        # no state id means we want an array of state ids
         else:
-            response = HttpResponse(resource.json_state, content_type=resource.content_type)
-        response['ETag'] = '"%s"' % resource.etag
-    # no state id means we want an array of state ids
-    else:
-        since = req_dict['params'].get('since', None)
-        resource = actstate.get_state_ids(activity_id, registration, since)
-        response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+            since = req_dict['params'].get('since', None)
+            resource = actstate.get_state_ids(activity_id, registration, since)
+            response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
@@ -310,11 +313,14 @@ def activity_state_get(req_dict):
 
 def activity_state_delete(req_dict):
     agent = req_dict['params']['agent']
-    a = Agent.objects.retrieve_or_create(**agent)[0]
-    actstate = ActivityStateManager(a)
-    # Delete state
-    actstate.delete_state(req_dict)
-    return HttpResponse('', status=204)
+    a = Agent.objects.retrieve(**agent)
+    if not a:
+        return HttpResponse('', status=204)
+    else:
+        actstate = ActivityStateManager(a)
+        # Delete state
+        actstate.delete_state(req_dict)
+        return HttpResponse('', status=204)
 
 def activity_profile_post(req_dict):
     #Instantiate ActivityProfile
@@ -402,22 +408,25 @@ def agent_profile_put(req_dict):
 def agent_profile_get(req_dict):
     # add ETag for concurrency
     agent = req_dict['params']['agent']
-    a = Agent.objects.retrieve_or_create(**agent)[0]
-    ap = AgentProfileManager(a)
+    a = Agent.objects.retrieve(**agent)
+    if not a:
+        response = HttpResponseNotFound("No agent found for agent profile get")
+    else:
+        ap = AgentProfileManager(a)
 
-    profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
-    if profileId:
-        resource = ap.get_profile(profileId)
-        if resource.profile:
-            response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
-        else:
-            response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
-        response['ETag'] = '"%s"' % resource.etag
-        return response
+        profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
+        if profileId:
+            resource = ap.get_profile(profileId)
+            if resource.profile:
+                response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
+            else:
+                response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
+            response['ETag'] = '"%s"' % resource.etag
+            return response
 
-    since = req_dict['params'].get('since', None) if 'params' in req_dict else None
-    resource = ap.get_profile_ids(since)
-    response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+        since = req_dict['params'].get('since', None) if 'params' in req_dict else None
+        resource = ap.get_profile_ids(since)
+        response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
     
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
@@ -427,7 +436,9 @@ def agent_profile_get(req_dict):
 
 def agent_profile_delete(req_dict):
     agent = req_dict['params']['agent']
-    a = Agent.objects.retrieve_or_create(**agent)[0]
+    a = Agent.objects.retrieve(**agent)
+    if not a:
+        return HttpResponse('', status=204)
     profileId = req_dict['params']['profileId']
     ap = AgentProfileManager(a)
     ap.delete_profile(profileId)

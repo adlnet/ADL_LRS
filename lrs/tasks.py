@@ -70,11 +70,12 @@ def parse_filter(filters, filterQ):
             if isinstance(actors, list):
                 for a in actors:
                     try:
-                        agent = Agent.objects.retrieve_or_create(**a)[0]
+                        agent = Agent.objects.retrieve(**a)
                     except Exception:
                         celery_logger.exception("Agent data was invalid for agent filter")
                     else:
-                        actorQ = actorQ | Q(actor=agent)
+                        if agent:
+                            actorQ = actorQ | Q(actor=agent)
         if 'verb' in filters.keys():
             verbs = filters.pop('verb')
             if isinstance(verbs, list):
@@ -115,11 +116,12 @@ def parse_related_filter(related, or_operand):
                 objectQ = set_object_activity_query(objectQ, ob['id'], or_operand)
             else:
                 try:
-                    agent = Agent.objects.retrieve_or_create(**ob)[0]
+                    agent = Agent.objects.retrieve_or_create(**ob)
                 except Exception:
                     celery_logger.exception("Agent data was invalid for agent filter")
                 else:
-                    objectQ = set_object_agent_query(objectQ, agent, or_operand)
+                    if agent:
+                        objectQ = set_object_agent_query(objectQ, agent, or_operand)
     if or_operand:
         return objectQ | innerQ
     else:

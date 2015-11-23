@@ -3,12 +3,11 @@
 <link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 <style>
     pre {
-        border: 1px solid;
-        border-color: #004C1A;
-        padding: 5px;
-        margin: 5px;
-        font-size: 13px;
-        border-radius: 10px;
+        white-space: pre-wrap;       /* CSS 3 */
+        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+        white-space: -pre-wrap;      /* Opera 4-6 */
+        white-space: -o-pre-wrap;    /* Opera 7 */
+        word-wrap: break-word;       /* Internet Explorer 5.5+ */
     }
     .string { 
         color: green; 
@@ -17,7 +16,7 @@
         color: blue; 
     }
     .boolean { 
-        color: red; 
+        color: purple; 
     }
     .null {
      color: red; 
@@ -34,8 +33,8 @@
 <br>
 <div class="content">
     <div class="pure-g">
-        <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
-        <div class="pure-u-1-2 pure-u-md-1-2 pure-u-lg-1-2">
+        <div class="pure-u-1-6 pure-u-md-1-6 pure-u-lg-1-6"></div>
+        <div class="pure-u-2-3 pure-u-md-2-3 pure-u-lg-2-3">
             <div id="myactivitystates" class="content">
                 <h2>My Activity States</h2>
                 <p>All of your activity states will be displayed here. If you created any activity states using the stateID, <i>http://adlnet.gov/xapi/profile/scorm/activity-state<i/>, then you can drill deeper into it and look at all of the xAPI SCORM attempt states for that activity. For more information on this, please visit <a target="_blank" href="https://github.com/adlnet/xAPI-SCORM-Profile/blob/master/xapi-scorm-profile.md">here</a></p>
@@ -46,7 +45,7 @@
                 </div>            
             </div>
         </div>
-        <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
+        <div class="pure-u-1-6 pure-u-md-1-6 pure-u-lg-1-6"></div>
     </div>
 </div>        
 {% endblock content %}
