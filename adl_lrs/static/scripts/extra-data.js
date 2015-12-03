@@ -33,7 +33,7 @@ function styleSCORMData(){
                 // Check if the pre element has been created already - if not add the attempt-state info to it
                 if (!($(this).next().next().is("pre"))){
                     var attpre = $("<pre class='attpre'></pre>");
-                    var state_id = "http://adlnet.gov/xapi/profile/scorm/attempt-state";
+                    var state_id = "https://w3id.org/xapi/adl/profiles/scorm/attempt-state";
                     getState($(this).text(), state_id, attpre);
                     attpre.insertAfter($(this).next());
                 }
