@@ -107,7 +107,7 @@ class AgentManager(models.Manager):
                 try:
                     agent = Agent.objects.create(**kwargs)
                     created = True
-                except IntegrityError:
+                except IntegrityError, ValidationError:
                     # Try getting agent by IFP in ifp_dict
                     agent = Agent.objects.filter(**ifp_dict)[0]
                     created = False                    
@@ -137,7 +137,7 @@ class AgentManager(models.Manager):
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
-                    except IntegrityError:
+                    except IntegrityError, ValidationError:
                         agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
                         created = False
             # If oauth account is in second member
@@ -150,7 +150,7 @@ class AgentManager(models.Manager):
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
-                    except IntegrityError:
+                    except IntegrityError, ValidationError:
                         agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
                         created = False
             # Non-oauth anonymous group that has 2 members, one having an account
