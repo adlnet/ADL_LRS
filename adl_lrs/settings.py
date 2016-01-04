@@ -59,6 +59,11 @@ USE_TZ = True
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
 MEDIA_ROOT = path.join(PROJECT_ROOT, 'media')
+# Paths for xapi media
+AGENT_PROFILE_UPLOAD_TO = "agent_profile"
+ACTIVITY_STATE_UPLOAD_TO = "activity_state"
+ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
+STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.

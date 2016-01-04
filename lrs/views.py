@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.http import require_http_methods
 
@@ -73,6 +73,11 @@ def about(request):
 def statements_more(request, more_id):
     return handle_request(request, more_id)
 
+@require_http_methods(["GET", "HEAD"])
+@decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
+def statements_more_placeholder(request):
+    return HttpResponseForbidden("Forbidden")
+
 @require_http_methods(["PUT", "GET", "POST", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
@@ -110,6 +115,10 @@ validators = {
         "PUT" : req_validate.statements_put,
         "HEAD" : req_validate.statements_get
     },
+    reverse(statements_more_placeholder).lower(): {
+        "GET" : req_validate.statements_more_get,
+        "HEAD" : req_validate.statements_more_get   
+    },    
     reverse(activity_state).lower() : {
         "POST": req_validate.activity_state_post,
         "PUT" : req_validate.activity_state_put,
@@ -138,10 +147,6 @@ validators = {
    reverse(agents).lower() : {
        "GET" : req_validate.agents_get,
        "HEAD" : req_validate.agents_get
-   },
-   "%s/%s" % (reverse(statements).lower(), "more") : {
-        "GET" : req_validate.statements_more_get,
-        "HEAD" : req_validate.statements_more_get
    }
 }
 
@@ -152,6 +157,10 @@ processors = {
         "HEAD" : req_process.statements_get,
         "PUT" : req_process.statements_put
     },
+    reverse(statements_more_placeholder).lower(): {
+        "GET" : req_process.statements_more_get,
+        "HEAD" : req_process.statements_more_get   
+    },     
     reverse(activity_state).lower() : {
         "POST": req_process.activity_state_post,
         "PUT" : req_process.activity_state_put,
@@ -180,11 +189,7 @@ processors = {
    reverse(agents).lower() : {
        "GET" : req_process.agents_get,
        "HEAD" : req_process.agents_get
-   },
-   "%s/%s" % (reverse(statements).lower(), "more") : {
-        "GET" : req_process.statements_more_get,
-        "HEAD" : req_process.statements_more_get
-   }      
+   }     
 }
 
 @transaction.commit_on_success
