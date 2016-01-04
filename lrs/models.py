@@ -340,7 +340,7 @@ class Activity(models.Model):
 class SubStatement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
-    object_statementref = models.CharField(max_length=40, blank=True, null=True, db_index=True)
+    object_statementref = models.CharField(max_length=40, blank=True, null=True)
     actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
@@ -472,7 +472,7 @@ class Statement(models.Model):
     statement_id = UUIDField(version=1, db_index=True, unique=True)
     object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
-    object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL)
     object_statementref = models.CharField(max_length=40, blank=True, null=True, db_index=True)    
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
@@ -674,9 +674,9 @@ class ActivityState(models.Model):
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
     json_state = models.TextField(blank=True)
-    agent = models.ForeignKey(Agent, db_index=True)
+    agent = models.ForeignKey(Agent)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    registration_id = models.CharField(max_length=40)
+    registration_id = models.CharField(max_length=40, db_index=True)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
 
@@ -701,8 +701,8 @@ class ActivityProfile(models.Model):
 
 class AgentProfile(models.Model):
     profileId = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    updated = models.DateTimeField(auto_now_add=True, blank=True)
-    agent = models.ForeignKey(Agent)
+    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
+    agent = models.ForeignKey(Agent, db_index=True)
     profile = models.FileField(upload_to=AGENT_PROFILE_UPLOAD_TO, null=True)
     json_profile = models.TextField(blank=True)
     content_type = models.CharField(max_length=255,blank=True)

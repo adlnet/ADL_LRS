@@ -8,7 +8,7 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.timezone import utc
 
-from retrieve_statement import complex_get, get_more_statement_request
+from retrieve_statement import complex_get, parse_more_request
 from ..models import Statement, Agent, Activity
 from ..managers.ActivityProfileManager import ActivityProfileManager
 from ..managers.ActivityStateManager import ActivityStateManager 
@@ -143,7 +143,7 @@ def statements_put(req_dict):
     return HttpResponse("No Content", status=204)
 
 def statements_more_get(req_dict):
-    stmt_result, attachments = get_more_statement_request(req_dict['more_id'])     
+    stmt_result, attachments = parse_more_request(req_dict['more_id'])     
 
     if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))

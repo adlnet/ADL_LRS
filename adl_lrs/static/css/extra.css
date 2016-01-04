@@ -53,6 +53,16 @@
 }
 /*End statement styles*/
 
+/*Activity State styles*/
+.as-actid{
+	color: #cc0000;
+}
+
+.as-stid{
+	color: #aa80ff;
+}
+/*Activity State styles*/
+
 /*Colors all links light blue - no other decoration*/
 a {color:#6FBEF3;}
 a:visited { text-decoration: none; }
