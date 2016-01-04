@@ -7,13 +7,12 @@ from itertools import chain
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.core.urlresolvers import reverse
 from django.db.models import Q
 
 from . import convert_to_utc
 from ..models import Statement, Agent
-from ..exceptions import NotFound, IDNotFoundError
-
-MORE_ENDPOINT = '/xapi/statements/more/'
+from ..exceptions import NotFound
 
 def complex_get(param_dict, limit, language, format, attachments):
     voidQ = Q(voided=False)
@@ -48,10 +47,10 @@ def complex_get(param_dict, limit, language, format, attachments):
         reffilter = True
         agent = None
         data = param_dict['agent']
-        related = 'related_agents' in param_dict and param_dict['related_agents']
-        
-        try:
-            agent = Agent.objects.retrieve_or_create(**data)[0]
+        related = 'related_agents' in param_dict and param_dict['related_agents']        
+
+        agent = Agent.objects.retrieve(**data)
+        if agent:
             # If agent is already a group, it can't be part of another group
             if agent.objectType == "Group":
                 groups = []
@@ -69,10 +68,8 @@ def complex_get(param_dict, limit, language, format, attachments):
                           | Q(object_substatement__actor=a) \
                           | Q(object_substatement__object_agent=a) \
                           | Q(object_substatement__context_instructor=a) \
-                          | Q(object_substatement__context_team=a)       
-        except IDNotFoundError:
-            return[]     
-    
+                          | Q(object_substatement__context_team=a)
+
     verbQ = Q()
     if 'verb' in param_dict:
         reffilter = True
@@ -104,14 +101,15 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority') \
+    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority', \
+        'context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
         .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
     
     stmtset = list(stmtset.values_list('statement_id', flat=True))
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
-        stmtset = stmtset + stmtrefsearch(stmtset, untilQ, sinceQ)
+        stmtset = stmtset + stmt_ref_search(stmtset, untilQ, sinceQ)
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
@@ -120,27 +118,31 @@ def complex_get(param_dict, limit, language, format, attachments):
 
     # If there are more stmts than the limit, need to break it up and return more id
     if actual_length > return_limit:
-        return initial_cache_return(stmtset, stored_param, return_limit, language, format, attachments)
+        return create_over_limit_stmt_result(stmtset, stored_param, return_limit, language, format, attachments)
     else:
-        return create_stmt_result(stmtset, stored_param, language, format)
+        return create_under_limit_stmt_result(stmtset, stored_param, language, format)
 
-def stmtrefsearch(stmt_list, untilQ, sinceQ):
+def stmt_ref_search(stmt_list, untilQ, sinceQ):
     # find statements where ids in list are used in other statements' objects, context, substatements, and substatement context
     stmtreflist = list(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True))
     if not stmtreflist:
         return stmt_list
 
     # get the statements that have a statement ref_id in the stmtreflist, recurse
-    return stmtreflist + list(stmtrefsearch(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True),
+    return stmtreflist + list(stmt_ref_search(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True),
         untilQ, sinceQ))
 
-def create_stmt_result(stmt_set, stored, language, format):
-    stmt_result = {}
+def set_limit(req_limit):
+    if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
+        req_limit = settings.SERVER_STMT_LIMIT
+    return req_limit
 
+def create_under_limit_stmt_result(stmt_set, stored, language, format):
+    stmt_result = {}
     if stmt_set:
         stmt_set = Statement.objects.filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
         if format == 'exact':
-            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement) for stmt in stmt_set.order_by(stored)])
+            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in stmt_set.order_by(stored)])
         else:
             stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in \
                 stmt_set.order_by(stored)]
@@ -160,7 +162,8 @@ def create_cache_key(stmt_list):
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
     return key
 
-def initial_cache_return(stmt_list, stored, limit, language, format, attachments):
+def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, attachments):
+    from ..views import statements_more_placeholder
     # First time someone queries POST/GET
     result = {}
     cache_list = []
@@ -172,7 +175,6 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     # Always start on first page
     current_page = 1
     total_pages = stmt_pager.num_pages
-
     # Create cache key from hashed data (always 32 digits)
     cache_key = create_cache_key(cache_list[0])
 
@@ -187,66 +189,60 @@ def initial_cache_return(stmt_list, stored, limit, language, format, attachments
     
     # Encode data
     encoded_info = json.dumps(cache_list)
-
     # Save encoded_dict in cache
     cache.set(cache_key,encoded_info)
 
     # Return first page of results
     if format == 'exact':
-        result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement) for stmt in \
-                Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
+        result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in \
+                Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]),
+                reverse(statements_more_placeholder).lower() + "/" + cache_key)
     else:
         result['statements'] = [stmt.to_dict(language, format) for stmt in \
                         Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
-        result['more'] = MORE_ENDPOINT + cache_key    
-                    
+        result['more'] = "%s/%s" % (reverse(statements_more_placeholder).lower(), cache_key) 
     return result
 
-def set_limit(req_limit):
-    if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
-        req_limit = settings.SERVER_STMT_LIMIT
-    return req_limit
-
-def get_more_statement_request(req_id):  
+def parse_more_request(req_id):  
     # Retrieve encoded info for statements
     encoded_info = cache.get(req_id)
-
     # Could have expired or never existed
     if not encoded_info:
         raise NotFound("List does not exist - may have expired after 24 hours")
-
     # Decode info
     decoded_info = json.loads(encoded_info)
 
+    data = {}
     # Info is always cached as [stmt_list, start_page, total_pages, limit, attachments, language, format]
-    stmt_list = decoded_info[0]
-    start_page = decoded_info[1]
-    total_pages = decoded_info[2]
-    limit = decoded_info[3]
-    attachments = decoded_info[4]
-    language = decoded_info[5]
-    format = decoded_info[6]
-    stored = decoded_info[7]
+    data["stmt_list"] = decoded_info[0]
+    data["start_page"] = decoded_info[1]
+    data["total_pages"] = decoded_info[2]
+    data["limit"] = decoded_info[3]
+    data["attachments"] = decoded_info[4]
+    data["language"] = decoded_info[5]
+    data["format"] = decoded_info[6]
+    data["stored"] = decoded_info[7]
 
     # Build statementResult
-    stmt_result = build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, stored, req_id)
-    return stmt_result, attachments
+    stmt_result = build_statement_result(req_id, **data)
+    return stmt_result, data["attachments"]
 
-# Gets called from req_process after complex_get with list of django objects and also gets called from get_more_statement_request when
+# Gets called from req_process after complex_get with list of django objects and also gets called from parse_more_request when
 # more_id is used so list will be serialized
-def build_statement_result(stmt_list, start_page, total_pages, limit, attachments, language, format, stored, more_id):
+def build_statement_result(more_id, **data):
+    from ..views import statements_more_placeholder
     result = {}
-    current_page = start_page + 1
+    current_page = data["start_page"] + 1
     # If that was the last page to display then just return the remaining stmts
-    if current_page == total_pages:
-        stmt_pager = Paginator(stmt_list, limit)       
+    if current_page == data["total_pages"]:
+        stmt_pager = Paginator(data["stmt_list"], data["limit"])
         # Return first page of results
-        if format == 'exact':
-            result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.to_dict(language, format)) for stmt in \
-                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)])
+        if data["format"] == 'exact':
+            result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in \
+                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])])
         else:
-            result['statements'] = [stmt.to_dict(language, format) for stmt in \
-                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
+            result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in \
+                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
             result['more'] = ""
         # Set current page back for when someone hits the URL again
         current_page -= 1
@@ -259,29 +255,30 @@ def build_statement_result(stmt_list, start_page, total_pages, limit, attachment
         cache.set(more_id, encoded_list)
     # There are more pages to display
     else:
-        stmt_pager = Paginator(stmt_list, limit)
+        stmt_pager = Paginator(data["stmt_list"], data["limit"])
         # Create cache key from hashed data (always 32 digits)
-        cache_key = create_cache_key(stmt_list)
+        cache_key = create_cache_key(data["stmt_list"])
         # Return first page of results
-        if format == 'exact':
-            result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(language, format)) for stmt in \
-                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]), MORE_ENDPOINT + cache_key)
+        if data["format"] == 'exact':
+            result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in \
+                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]),
+                reverse(statements_more_placeholder).lower() + "/" + cache_key)
         else:
             # Set result to have selected page of stmts and more endpoint
-            result['statements'] = [stmt.to_dict(language, format) for stmt in \
-                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(stored)]
-            result['more'] = MORE_ENDPOINT + cache_key
+            result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in \
+                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
+            result['more'] = "%s/%s" % (reverse(statements_more_placeholder).lower(), cache_key)
         more_cache_list = []
         # Increment next page
         start_page = current_page
-        more_cache_list.append(stmt_list)
+        more_cache_list.append(data["stmt_list"])
         more_cache_list.append(start_page)
-        more_cache_list.append(total_pages)
-        more_cache_list.append(limit)
-        more_cache_list.append(attachments)
-        more_cache_list.append(language)
-        more_cache_list.append(format)
-        more_cache_list.append(stored)
+        more_cache_list.append(data["total_pages"])
+        more_cache_list.append(data["limit"])
+        more_cache_list.append(data["attachments"])
+        more_cache_list.append(data["language"])
+        more_cache_list.append(data["format"])
+        more_cache_list.append(data["stored"])
         # Encode info
         encoded_list = json.dumps(more_cache_list)
         cache.set(cache_key, encoded_list)

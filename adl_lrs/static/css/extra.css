@@ -41,17 +41,27 @@
 
 /*Statement styles*/
 .actor{
-	color: #912CEE;
+	color: #aa80ff;
 }
 
 .verb{
-	color: #FF8000;
+	color: #cc0000;
 }
 
 .object{
-	color: #008000;
+	color: #b38600;
 }
 /*End statement styles*/
+
+/*Activity State styles*/
+.as-actid{
+	color: #cc0000;
+}
+
+.as-stid{
+	color: #aa80ff;
+}
+/*Activity State styles*/
 
 /*Colors all links light blue - no other decoration*/
 a {color:#6FBEF3;}
@@ -67,28 +77,4 @@ a:hover, a:active { text-decoration: none; }
 .user-agent{
 	font-size:13px;
 	color:#007F00;
-}
-
-pre {
-    border: 1px solid;
-    border-color: #004C1A;
-    padding: 5px;
-    margin: 5px;
-    font-size: 13px;
-    border-radius: 10px;
-}
-.string { 
-    color: green; 
-}
-.number { 
-    color: blue; 
-}
-.boolean { 
-    color: red; 
-}
-.null {
- color: red; 
-}
-.key {
- color: black; 
 }
