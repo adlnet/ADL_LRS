@@ -283,7 +283,7 @@ LOGGING = {
         'django.request': {
             'handlers': ['request_handler'],
             'level': 'WARNING',
-            'propagate': False
+            'propagate': True
         },
         'celery-task': {
             'handlers': ['celery_handler'],
