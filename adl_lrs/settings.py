@@ -59,6 +59,11 @@ USE_TZ = True
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
 MEDIA_ROOT = path.join(PROJECT_ROOT, 'media')
+# Paths for xapi media
+AGENT_PROFILE_UPLOAD_TO = "agent_profile"
+ACTIVITY_STATE_UPLOAD_TO = "activity_state"
+ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
+STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
@@ -133,8 +138,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
-# One minute timeout to all celery tasks
-CELERYD_TASK_TIME_LIMIT = 20
+# Fifteen second timeout to all celery tasks
+CELERYD_TASK_SOFT_TIME_LIMIT = 15
 # ActivityID resolve timeout (seconds)
 ACTIVITY_ID_RESOLVE_TIMEOUT = .2
 # Caches for /more endpoint and attachments
@@ -278,7 +283,7 @@ LOGGING = {
         'django.request': {
             'handlers': ['request_handler'],
             'level': 'WARNING',
-            'propagate': False
+            'propagate': True
         },
         'celery-task': {
             'handlers': ['celery_handler'],

@@ -180,7 +180,6 @@ def reg_client2(request):
 @require_http_methods(["GET"])
 def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
     context = {'statements': Statement.objects.filter(user=request.user).order_by('-timestamp'),'page_template': page_template}
-    
     if request.is_ajax():
         template = page_template
     return render_to_response(template, context, context_instance=RequestContext(request))

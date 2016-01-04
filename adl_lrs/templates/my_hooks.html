@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load jsonify %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+{% endblock extra_css %}
+{% block title %}{{user.username}}'s Hooks{% endblock title %}
+{% block heading %}{{user.username}}'s Hooks{% endblock heading %}
+{% block content %}
+<br>
+<br>
+<div class="content">
+    <div class="pure-g">
+        <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
+        <div class="pure-u-1-2 pure-u-md-1-2 pure-u-lg-1-2">
+            <h2>Webhooks</h2>
+            <p>Webhooks are a way to register client applications that are interested in certain sets of statements. Every webhook that is registered contains the client endpoint as well as filters that dictate what kind of statements the client wants and the LRS will send.</p>
+            {% if user_hooks %}
+                <div class="email-item">
+                    {% for h in user_hooks %}
+                        <div class="pure-u appdiv">
+                            <h5 class="email-name"><span class="appname">{{ h.name }}</span></h5>
+                            <h4 class="email-subject">
+                                <a class="show_filters" href='#'>Filters</a>
+                                <span class="hide-info" style="display:none">{{ h.filters|jsonify }}</span>                               
+                            </h4>
+                            <h4 class="email-subject">
+                                <a class="delete_hook" href='#'>Delete</a>
+                                <span class="hide-info">{{ h.hook_id }}</span> 
+                            </h4>
+                            <p class="email-desc">
+                                <strong>Id</strong>: {{ h.hook_id }}<br>
+                                <strong>Endpoint</strong>: {{ h.config.endpoint }}<br>
+                                <strong>Content-Type</strong>: {{ h.config.content_type }}<br>
+                                <strong>Secret</strong>: {{ h.config.secret }}<br>
+                                <strong>Created At</strong>: {{ h.created_at|date:"c" }}<br>
+                                <strong>Updated At</strong>: {{ h.updated_at|date:"c" }}<br>
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="span5">No registered webhooks</div>
+            {% endif %}
+            <br>
+            <hr>
+            <h3>Webhook Registration</h3>
+            <form class="pure-form pure-form-stacked" action="{% url adl_lrs.views.my_hooks %}" method="post">
+            {% if error_message %}
+                <ul class="errorlist">
+                    <li>{{ error_message }}</li>
+                </ul>
+            {% endif %}
+            {% if valid_message %}
+              <ul class="formvalid">
+                <li>{{ valid_message }}</li>
+              </ul>
+            {% endif %}
+            {% if hook_form.non_field_errors %}
+                {{ hook_form.non_field_errors }}
+            {% endif %}
+              <fieldset>
+                  {% for field in hook_form %}
+                    <label for="{{ field.auto_id }}">{{ field.label }}</label>            
+                    {% if field.name == 'name' %}
+                      <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input-1-2" type="text" required>
+                    {% elif field.name == 'secret' %}
+                      <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input-1-2" type="text">
+                    {% elif field.name == 'endpoint' %}
+                      <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input-1-2" type="url" required>                            
+                    {% elif field.name == 'content_type' %}
+                      <select id="{{ field.auto_id }}" name="{{ field.html_name }}" required>
+                        {% for choice in field.field.choices %}
+                            <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                        {% endfor %}
+                      </select>
+                    {% elif field.name == 'filters' %}
+                      <textarea id="{{ field.auto_id }}" name="{{ field.html_name }}" rows="10" class="pure-input-1"></textarea>
+                    {% endif %}
+                  {% endfor %}
+                  <button type="submit" class="pure-button pure-button-primary">Register</button>
+              </fieldset>
+            </form>
+
+        </div>
+        <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
+    </div>
+</div>
+{% endblock content %}
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.show_filters').click(function(){
+            var filters = JSON.parse($(this).next('span').text());
+            alert(JSON.stringify(filters, null, 4));
+        });
+        $('.delete_hook').click(function(){
+            var hookId = $(this).next('span').text();
+            $.ajax({
+                url: "{% url adl_lrs.views.hooks %}/"+hookId,
+                type: "DELETE",
+                context: $(this),
+                success: function(data){
+                    $(this).parent().parent().remove();
+                },
+                error: function(xhr, ajaxOptions, thrownError){
+                    alert(thrownError);
+                },
+                timeout:5000
+            });            
+        });        
+    });
+</script>
+{% endblock extra_js %}
