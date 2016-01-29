@@ -65,9 +65,9 @@ This version is stable, but only intended to support a small amount of users as 
     ...
     You just installed Django's auth system, which means you don't have any superusers defined.
 	Would you like to create one now? (yes/no): yes
-	Username (leave blank to use '<db_owner_name>'): 
+	Username (leave blank to use '<system_user_name>'): 
 	E-mail address:
-	Password: <this can be different than <db_owner_password> since this will just be for the LRS site>
+	Password: <this can be different than your system password since this will just be for the LRS site>
 	Password (again): 
 	Superuser created successfully.
 	...
