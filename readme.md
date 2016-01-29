@@ -9,31 +9,24 @@ This version is stable, but only intended to support a small amount of users as 
 **Install Prerequisites**
 
     admin:~$ sudo apt-get install git fabric postgresql python-setuptools \
-    	postgresql-server-dev-all python-dev libxml2-dev libxslt-dev
+        postgresql-server-dev-all python-dev libxml2-dev libxslt-dev
     admin:~$ sudo easy_install pip
     admin:~$ sudo pip install virtualenv
     
-**Create ADL LRS system user**
-
-    admin:~$ sudo useradd -c "ADL Learning Record Store System" -m -s "/bin/bash" <db_owner>
-    
 **Setup Postgres**
 
-    admin:~$ sudo -u postgres createuser -P -s <db_owner>
-    Enter password for new role: *****
-	Enter it again: *****
+    admin:~$ sudo -u postgres createuser -P -s <db_owner_name>
+    Enter password for new role: <db_owner_password>
+    Enter it again: <db_owner_password>
     admin:~$ sudo -u postgres psql template1
-    template1=# CREATE DATABASE lrs OWNER <db_owner>;
+    template1=# CREATE DATABASE lrs OWNER <db_owner_name>;
     template1=# \q (exits shell)
     
 **Clone the LRS repository**
 
-	admin:~$ sudo su <db_owner>
-	dbowner:~$ cd ~
-	dbowner:~$ mkdir <dir_name>
-	dbowner:~$ cd <dir_name>
-    dbowner:~$ git clone https://github.com/adlnet/ADL_LRS.git
-    dbowner:~$ cd ADL_LRS/
+    admin:~$ cd <wherever you want to put the LRS>
+    admin:~$ git clone https://github.com/adlnet/ADL_LRS.git
+    admin:~$ cd ADL_LRS/
     
 **Set the LRS configuration**
 
@@ -44,38 +37,37 @@ This version is stable, but only intended to support a small amount of users as 
     	'default': {
     	    'ENGINE': 'django.db.backends.postgresql_psycopg2',
 	        'NAME': 'lrs',
-	        'USER': '<db_owner>',
-	        'PASSWORD': '<password>',   # Comment out these lines if
-	        'HOST': 'localhost',      # using postgresql "peer" auth.
-	        'PORT': '',               # See pg_hba.conf for details
+	        'USER': '<db_owner_name>',
+	        'PASSWORD': '<db_owner_password>',
+	        'HOST': 'localhost',
+	        'PORT': '',
 	    }
 	}
 	
 	# Make this unique, and don't share it with anybody.
 	SECRET_KEY = 'Some long random string with numb3rs and $ymbol$'
 	
-	# set to 'https' if using SSL encryption
+	# set to 'https' if using SSL encryption - this is just for testing purposes and won't dictate if the LRS runs over http or https
 	SITE_SCHEME = 'http'
   
-  	# Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below)
+  	# Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below) - this is just for testing purposes and won't dictate the domain or port the LRS runs on
   	SITE_DOMAIN = 'localhost:8000'
 
 **Setup the environment**
 
-    dbowner:ADL_LRS$ fab setup_env
-    ...
-    dbowner:ADL_LRS$ source ../env/bin/activate
-    (env)dbowner:ADL_LRS$
+    admin:ADL_LRS$ fab setup_env
+    admin:ADL_LRS$ source ../env/bin/activate
+    (env)admin:ADL_LRS$
     
 **Setup the LRS**
 
-    (env)dbowner:ADL_LRS$ fab setup_lrs
+    (env)admin:ADL_LRS$ fab setup_lrs
     ...
     You just installed Django's auth system, which means you don't have any superusers defined.
 	Would you like to create one now? (yes/no): yes
-	Username (leave blank to use '<db_owner>'): 
+	Username (leave blank to use '<db_owner_name>'): 
 	E-mail address:
-	Password: 
+	Password: <this can be different than <db_owner_password> since this will just be for the LRS site>
 	Password (again): 
 	Superuser created successfully.
 	...
@@ -84,7 +76,7 @@ If you get some sort of authentication error here, make sure that Django and Pos
 using the same form of authentication (*adl_lrs/settings.py* and *pg_hba.conf*) and that the credentials
 given in *settings.py* are the same as those you created.
 
-You will also have to setup celery for retrieving the activity metadata from the ID as well as voiding statements that might have come in out of order. Vist the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for more information.
+<b>IMPORTANT:</b> You <b>MUST</b> setup celery for retrieving the activity metadata from the ID as well as voiding statements that might have come in out of order. Visit the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for installation instructions.
 
 ## Starting
 
@@ -97,7 +89,7 @@ This starts a lightweight development web server on the local machine. By defaul
 
 Set your site domain
 
-  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. This should be the same value as what you set SITE_DOMAIN as in the settings.py file. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Sync your database again to apply the change
+  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. This should be the same value as what you set SITE_DOMAIN as in the settings.py file. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Sync your database again to apply the change. Once again this does not change the domain it's running on...you want to set that up first then change this value to your domain name.
 
     (env)dbowner:ADL_LRS$ python manage.py syncdb
 
