@@ -89,14 +89,9 @@ This starts a lightweight development web server on the local machine. By defaul
 
 Set your site domain
 
-  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. This should be the same value as what you set SITE_DOMAIN as in the settings.py file. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Sync your database again to apply the change. Once again this does not change the domain it's running on...you want to set that up first then change this value to your domain name.
-
-    (env)dbowner:ADL_LRS$ python manage.py syncdb
-
-
+  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. This should be the same value as what you set SITE_DOMAIN as in the settings.py file. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Once again this does not change the domain it's running on...you want to set that up first then change this value to your domain name.
 
 Whenever you want to exit the virtual environment, just type `deactivate`
-
 
 For other ways to start and run the LRS, please visit our Wiki.
 
