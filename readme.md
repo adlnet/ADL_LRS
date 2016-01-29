@@ -59,6 +59,8 @@ This version is stable, but only intended to support a small amount of users as 
     admin:ADL_LRS$ source ../env/bin/activate
     (env)admin:ADL_LRS$
     
+This creates the top level folders, <b>logs</b> and <b>media</b> at the same level as the project folder, <b>ADL_LRS</b>. Throughout the readme and the other install guides for celery and nginx you will most likely want to direct any log files to the logs directory. Every log except for the uwsgi and nginx logs (covered later) will have the system user permissions. The other will have root permissions.
+    
 **Setup the LRS**
 
     (env)admin:ADL_LRS$ fab setup_lrs
