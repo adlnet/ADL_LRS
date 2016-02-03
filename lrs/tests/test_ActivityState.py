@@ -11,10 +11,9 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from adl_lrs.views import register
-from ..views import activity_state 
 
 class ActivityStateTests(TestCase):
-    url = reverse(activity_state)
+    url = reverse('lrs:activity_state')
     testagent = '{"name":"test","mbox":"mailto:test@example.com"}'
     otheragent = '{"name":"other","mbox":"mailto:other@example.com"}'
     activityId = "http://www.iana.org/domains/example/"
@@ -29,6 +28,7 @@ class ActivityStateTests(TestCase):
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
+        super(ActivityStateTests, cls).setUpClass()
 
     def setUp(self):
         self.username = "test"
@@ -648,10 +648,9 @@ class ActivityStateTests(TestCase):
         param = {"stateId": "test:postnewblankstate", "activityId": "act:test/post.new.blank.state", "agent": '{"mbox":"mailto:testagent@example.com"}'}
         path = '%s?%s' % (self.url, urllib.urlencode(param))
         state = ""
-
         r = self.client.post(path, state, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.content, 'No body in request')
+        self.assertEqual(r.content, 'Could not find the state')
 
     def test_post_update_state(self):
         param = {"stateId": "test:postupdatestate", "activityId": "act:test/post.update.state", "agent": '{"mbox":"mailto:test@example.com"}'}

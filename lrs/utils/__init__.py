@@ -4,10 +4,6 @@ import urllib
 import urlparse
 from isodate.isodatetime import parse_datetime
 
-from django.db.models import get_models, get_app
-from django.contrib import admin
-from django.contrib.admin.sites import AlreadyRegistered
-
 from ..exceptions import ParamError
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openid', 'account']
@@ -29,7 +25,7 @@ def get_agent_ifp(data):
         ifp_dict['account_name'] = account['name']
     return ifp_dict
 
-def convert_to_utc(timestr):
+def convert_to_datetime_object(timestr):
     try:
         date_object = parse_datetime(timestr)
     except ValueError as e:
@@ -66,12 +62,3 @@ def get_lang(langdict, lang):
                 pass
     first = langdict.iteritems().next()      
     return {first[0]:first[1]}
-
-def autoregister(*app_list):
-    for app_name in app_list:
-        app_models = get_app(app_name)
-        for model in get_models(app_models):
-            try:
-                admin.site.register(model)
-            except AlreadyRegistered:
-                pass    

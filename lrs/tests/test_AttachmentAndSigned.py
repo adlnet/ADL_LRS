@@ -18,14 +18,15 @@ from django.utils.timezone import utc
 from django.conf import settings
 
 from ..models import Statement, StatementAttachment
-from ..views import statements
 from ..utils.jws import JWS
+
 from adl_lrs.views import register
 
 class AttachmentAndSignedTests(TestCase):
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
+        super(AttachmentAndSignedTests, cls).setUpClass()
 
     def setUp(self):
         self.username = "tester1"
@@ -76,7 +77,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
 
-        r = self.client.post(reverse(statements), message.as_string(),
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
             content_type='multipart/mixed; boundary=myboundary', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -121,12 +122,13 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
         
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
         returned_ids = json.loads(r.content)
         stmt_id1 = returned_ids[0]
         stmt_id2 = returned_ids[1]
+
         saved_stmt1 = Statement.objects.get(statement_id=stmt_id1)
         saved_stmt2 = Statement.objects.get(statement_id=stmt_id2)
         stmts = Statement.objects.all()
@@ -173,7 +175,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
         
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
         
@@ -223,7 +225,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
         
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
         
@@ -309,7 +311,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata21)
         message.attach(textdata22)
         
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
         
@@ -356,7 +358,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
 
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(r.status_code, 400)
@@ -398,7 +400,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
 
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -440,7 +442,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
 
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
@@ -457,7 +459,7 @@ class AttachmentAndSignedTests(TestCase):
             "length": 27,
             "fileUrl": "http://my/file/url"}]}
         
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
@@ -475,7 +477,7 @@ class AttachmentAndSignedTests(TestCase):
             "length": 27,
             "fileUrl": "http://my/file/url"}]}
         
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'Invalid field(s) found in Attachment - bad')
@@ -503,7 +505,7 @@ class AttachmentAndSignedTests(TestCase):
                 "fileUrl": "http://my/file/url"}]}
             ]
         
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
@@ -558,7 +560,7 @@ class AttachmentAndSignedTests(TestCase):
                 ]
             }
 
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "Missing X-Experience-API-Hash field in header")
@@ -574,7 +576,7 @@ class AttachmentAndSignedTests(TestCase):
             "contentType": "text/plain; charset=utf-8",
             "length": 27}]}
         
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
         self.assertIn('Attachment sha2 is required when no fileUrl is given', response.content)
@@ -597,7 +599,7 @@ class AttachmentAndSignedTests(TestCase):
             "length": 28,
             "fileUrl":""}]}
 
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
         self.assertIn('Attachments fileUrl with value  was not a valid IRI', response.content)
@@ -628,7 +630,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type="multipart/mixed", Authorization=self.auth,
             X_Experience_API_Version=settings.XAPI_VERSION)
 
@@ -662,7 +664,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
@@ -708,7 +710,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata2)
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type="multipart/mixed" , Authorization=self.auth,
             X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 204)
@@ -754,7 +756,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata2)
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
@@ -775,7 +777,7 @@ class AttachmentAndSignedTests(TestCase):
             "fileUrl": "http://my/file/url"}]}
         
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))        
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -789,7 +791,7 @@ class AttachmentAndSignedTests(TestCase):
             "attachments": "wrong"}
         
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))        
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -809,7 +811,7 @@ class AttachmentAndSignedTests(TestCase):
             "length": 27}]}
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))        
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -830,7 +832,7 @@ class AttachmentAndSignedTests(TestCase):
             "fileUrl": "blah"}]}
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))        
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))        
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -860,7 +862,7 @@ class AttachmentAndSignedTests(TestCase):
             "fileUrl":""}]}
 
         param = {"statementId":stmt_id}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -893,12 +895,12 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(imgdata)
 
-        r = self.client.post(reverse(statements), message.as_string(),
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
         
         param= {"attachments":True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
@@ -939,7 +941,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(jwsdata)
         
-        r = self.client.post(reverse(statements), message.as_string(),
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -964,7 +966,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(jwsdata)
         
-        r = self.client.post(reverse(statements), message.as_string(),
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.content, 'The JSON Web Signature is not valid')
@@ -995,7 +997,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(jwsdata)
         
-        r = self.client.post(reverse(statements), message.as_string(),
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 

@@ -14,9 +14,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from ..views import statements
 from ..models import Activity, Agent
-from adl_lrs.views import register, reg_client
+from adl_lrs.views import register, regclient
 
 from oauth_provider.models import Consumer, Token, Nonce
 from oauth_provider.utils import SignatureMethod_RSA_SHA1
@@ -31,6 +30,7 @@ class OAuthTests(TestCase):
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
+        super(OAuthTests, cls).setUpClass()
 
     def setUp(self):
         if not settings.OAUTH_ENABLED:
@@ -44,13 +44,13 @@ class OAuthTests(TestCase):
         self.name = "test jane client"
         self.desc = "test jane client desc"
         form = {"name":self.name, "description":self.desc}
-        self.client.post(reverse(reg_client),form)
+        self.client.post(reverse(regclient),form)
         self.consumer = Consumer.objects.get(name=self.name)
 
         self.name2jane = "test jane client2"
         self.desc2jane = "test jane client desc2"
         form2jane = {"name":self.name2jane, "description":self.desc2jane}
-        self.client.post(reverse(reg_client),form2jane)
+        self.client.post(reverse(regclient),form2jane)
         self.consumer2jane = Consumer.objects.get(name=self.name2jane)
 
 
@@ -65,7 +65,7 @@ class OAuthTests(TestCase):
         self.name2 = "test client2"
         self.desc2 = "test desc2"
         form2 = {"name":self.name2, "description":self.desc2}
-        self.client.post(reverse(reg_client),form2)
+        self.client.post(reverse(regclient),form2)
         self.consumer2 = Consumer.objects.get(name=self.name2)
         self.client.logout()
         self.dick_auth = "Basic %s" % base64.b64encode("%s:%s" % ('dick','lassie'))
@@ -171,7 +171,8 @@ class OAuthTests(TestCase):
         # Try to hit auth path, made to login
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(request_token.is_approved, False)
@@ -331,7 +332,7 @@ class OAuthTests(TestCase):
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='dick', password='lassie')
         self.assertEqual(request_token.is_approved, False)
@@ -945,8 +946,8 @@ Lw03eHTNQghS0A==
 -----END PRIVATE KEY-----"""
 
         form = {"name":name, "description":desc, "rsa": True, "secret":rsa_key}
-        my_reg_client = self.client.post(reverse(reg_client),form)
-        self.assertEqual(my_reg_client.status_code, 200)
+        my_regclient = self.client.post(reverse(regclient),form)
+        self.assertEqual(my_regclient.status_code, 200)
         consumer = Consumer.objects.get(name=name)
         self.client.logout()
 
@@ -1000,7 +1001,7 @@ Lw03eHTNQghS0A==
         # Try to hit auth path, made to login
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(request_token.key, auth_resp['Location'])    
         self.client.login(username='mike', password='dino')
         self.assertEqual(request_token.is_approved, False)
@@ -1256,7 +1257,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1326,7 +1327,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1393,7 +1394,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])
         # Login with wrong user the client is associated with 
         self.client.login(username='dick', password='lassie')
@@ -1451,7 +1452,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1518,7 +1519,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1606,7 +1607,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1729,7 +1730,7 @@ Lw03eHTNQghS0A==
 
         auth_resp = self.client.get(authorize_path)
         self.assertEqual(auth_resp.status_code, 302)
-        self.assertIn('http://testserver/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
+        self.assertIn('/accounts/login?next=/XAPI/OAuth/authorize%3F', auth_resp['Location'])
         self.assertIn(token.key, auth_resp['Location'])    
         self.client.login(username='jane', password='toto')
         self.assertEqual(token.is_approved, False)
@@ -1924,7 +1925,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -1957,7 +1958,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -1990,7 +1991,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
         
@@ -2085,7 +2086,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2115,7 +2116,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_simple_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2170,7 +2171,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
             "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2216,7 +2217,7 @@ Lw03eHTNQghS0A==
         self.client.logout()
 
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
@@ -2261,7 +2262,7 @@ Lw03eHTNQghS0A==
         
         settings.ALLOW_EMPTY_HTTP_AUTH = True
 
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization="Basic %s" % base64.b64encode("%s:%s" % ('','')), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2296,7 +2297,7 @@ Lw03eHTNQghS0A==
 
         # Put statement
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         stmt = json.dumps({"verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
             "object": {"id":"act:test_put"},"actor":{"objectType":"Agent", "mbox":"mailto:t@t.com"}})
 
@@ -2359,7 +2360,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"id":guid,"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
             "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
             "object": {"id":"act:test_put"}, "authority":oauth_group.to_dict()}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2459,7 +2460,7 @@ Lw03eHTNQghS0A==
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"},
             "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2569,7 +2570,7 @@ Lw03eHTNQghS0A==
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/helped",
             "display": {"en-US":"helped"}},"object": {"objectType":"Agent", "mbox":"mailto:tim@tim.com",
             "name":"tim"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2747,7 +2748,7 @@ Lw03eHTNQghS0A==
         stmt_data = {"id":guid,"actor":{"objectType": "Agent",
             "mbox":"mailto:bob@bob.com", "name":"bob"},"verb":{"id": "http://example.com/verbs/passed",
             "display": {"en-US":"passed"}},"object": {"id":"test://test/define/scope"}}
-        stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), json.dumps(stmt_data), content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
@@ -2835,7 +2836,7 @@ Lw03eHTNQghS0A==
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
             'interactionType': 'other', 'correctResponsesPattern':[]}}})
-        stmt_post = self.client.post(reverse(statements), stmt, content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(stmt_post.status_code, 200)
@@ -2922,14 +2923,14 @@ Lw03eHTNQghS0A==
             'definition': {'name': {'en-US':'testname', 'en-GB': 'altname'},
             'description': {'en-US':'testdesc', 'en-GB': 'altdesc'},'type': 'type:course',
             'interactionType': 'other', 'correctResponsesPattern':[]}}})
-        stmt_post = self.client.post(reverse(statements), stmt, content_type="application/json",
+        stmt_post = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.jane_auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(stmt_post.status_code, 200)
         # ==================================================================
 
 
-        stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.jane_auth)
+        stmt_get = self.client.get(reverse('lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.jane_auth)
         self.assertEqual(stmt_get.status_code, 200)
         content = json.loads(stmt_get.content)
         self.assertEqual(len(content['statements']), 3)

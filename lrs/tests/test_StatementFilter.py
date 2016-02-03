@@ -18,8 +18,8 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from ..models import Statement
-from ..views import statements, statements_more
-from ..utils import convert_to_utc
+from ..utils import convert_to_datetime_object
+
 from adl_lrs.views import register
 
 class StatementFilterTests(TestCase):
@@ -27,6 +27,7 @@ class StatementFilterTests(TestCase):
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
+        super(StatementFilterTests, cls).setUpClass()
 
     def setUp(self):
         self.saved_stmt_limit=settings.SERVER_STMT_LIMIT
@@ -53,10 +54,10 @@ class StatementFilterTests(TestCase):
         # Test limit
         for i in range(1,4):
             stmt = {"actor":{"mbox":"mailto:test%s@mail.com" % i},"verb":{"id":"http://tom.com/tested"},"object":{"id":"act:activity%s" %i}}
-            resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+            resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
-        limitGetResponse = self.client.post(reverse(statements),{"limit":2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
+        limitGetResponse = self.client.post(reverse('lrs:statements'),{"limit":2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(limitGetResponse.status_code, 200)
         rsp = limitGetResponse.content
         respList = json.loads(rsp)
@@ -98,11 +99,11 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         sid = Statement.objects.get(verb__verb_id="http://example.com/verbs/passed").statement_id
         param = {"statementId":sid}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -110,7 +111,7 @@ class StatementFilterTests(TestCase):
 
     def test_agent_filter_does_not_exist(self):
         param = {"agent":{"mbox":"mailto:fail@faile.com"}}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0.1", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -150,7 +151,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Agent"
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "timestamp": "2013-04-08T21:07:20.392000+00:00", 
@@ -182,11 +183,11 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -229,7 +230,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "timestamp": "2013-04-10T21:25:59.583000+00:00", 
@@ -273,10 +274,10 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         param = {"agent":{"mbox":"mailto:adllrsdevs@example.com"}}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         count = len(Statement.objects.filter(actor__mbox=param['agent']['mbox']))
@@ -326,7 +327,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "verb": {
@@ -355,7 +356,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "verb": {
@@ -387,10 +388,10 @@ class StatementFilterTests(TestCase):
                 "name": "timmy"
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         param = {"agent":{"mbox":"mailto:louo@example.com"}}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -398,7 +399,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 1)
 
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -492,12 +493,12 @@ class StatementFilterTests(TestCase):
             }
         }]
 
-        response = self.client.post(reverse(statements), json.dumps(batch), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(batch), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -518,7 +519,7 @@ class StatementFilterTests(TestCase):
         since_until_cnt = int(math.floor(len(stmts)/1.5)) - int(math.ceil(len(stmts)/3))
         
         param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": since}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -534,7 +535,7 @@ class StatementFilterTests(TestCase):
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}, "until": until}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -552,7 +553,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(same), since_until_cnt)
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}, "since": since, "until": until}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -609,7 +610,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "verb": {
@@ -638,7 +639,7 @@ class StatementFilterTests(TestCase):
                 "objectType": "Group"
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "verb": {
@@ -670,10 +671,10 @@ class StatementFilterTests(TestCase):
                 "name": "timmy"
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -692,13 +693,13 @@ class StatementFilterTests(TestCase):
         cnt_all = len(stmts)
 
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents": True, "until": "2013-04-10T00:00Z"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
         self.assertTrue(len(stmts) < cnt_all)
-        until = convert_to_utc(param['until'])
+        until = convert_to_datetime_object(param['until'])
         for s in stmts:
             if param['agent']['mbox'] not in str(s['actor']):
                 if s['object']['objectType'] != "StatementRef":
@@ -709,7 +710,7 @@ class StatementFilterTests(TestCase):
                     self.assertTrue(param['agent']['mbox'] in str(refd))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
-            self.assertTrue(convert_to_utc(s['stored']) < until)
+            self.assertTrue(convert_to_datetime_object(s['stored']) < until)
 
     def test_related_agents_filter_since(self):
         stmts = [{
@@ -808,12 +809,12 @@ class StatementFilterTests(TestCase):
                 "name": "timmy"
             }
         }]
-        response = self.client.post(reverse(statements), json.dumps(stmts), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmts), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -834,13 +835,13 @@ class StatementFilterTests(TestCase):
         since_cnt = int(math.floor(cnt_all/2))
 
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents": True, "since": since}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
         self.assertEqual(len(stmts), since_cnt)
-        since = convert_to_utc(param['since'])
+        since = convert_to_datetime_object(param['since'])
         for s in stmts:
             if param['agent']['mbox'] not in str(s['actor']):
                 if s['object']['objectType'] != "StatementRef":
@@ -851,7 +852,7 @@ class StatementFilterTests(TestCase):
                     self.assertTrue(param['agent']['mbox'] in str(refd))
             else:
                 self.assertTrue(param['agent']['mbox'] in str(s['actor']))
-            self.assertTrue(convert_to_utc(s['stored']) > since)
+            self.assertTrue(convert_to_datetime_object(s['stored']) > since)
 
 
     def test_since_filter_tz(self):
@@ -861,7 +862,7 @@ class StatementFilterTests(TestCase):
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T12:00:00-05:00"})
 
         param = {"statementId":stmt1_guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         stmt_payload = stmt1
         resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
@@ -874,7 +875,7 @@ class StatementFilterTests(TestCase):
                 "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}, "timestamp":"2013-02-02T20:00:00+05:00"})
 
         param = {"statementId":stmt2_guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         stmt_payload = stmt2
         resp = self.client.put(path, stmt_payload, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
@@ -882,7 +883,7 @@ class StatementFilterTests(TestCase):
         Statement.objects.filter(statement_id=stmt2_guid).update(stored=time)
 
         param = {"since": "2013-02-02T14:00Z"}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))      
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))      
         sinceGetResponse = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
 
         self.assertEqual(sinceGetResponse.status_code, 200)
@@ -891,7 +892,7 @@ class StatementFilterTests(TestCase):
         self.assertIn(stmt2_guid, rsp)
 
         param2 = {"since": "2013-02-02T16:00Z"}
-        path2 = "%s?%s" % (reverse(statements), urllib.urlencode(param2))      
+        path2 = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param2))      
         sinceGetResponse2 = self.client.get(path2, X_Experience_API_Version="1.0", Authorization=self.auth)
 
         self.assertEqual(sinceGetResponse2.status_code, 200)
@@ -939,7 +940,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stman_id = str(uuid.uuid1())
         stmt = {"id": stman_id,
@@ -977,10 +978,10 @@ class StatementFilterTests(TestCase):
             "objectType": "Group"
         }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         param = {"verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -993,7 +994,7 @@ class StatementFilterTests(TestCase):
         self.assertFalse(diffs)
 
         param = {"agent":{"mbox":"mailto:drdre@example.com"},"verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1041,7 +1042,7 @@ class StatementFilterTests(TestCase):
             "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a92"
         }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "timestamp": "2013-04-08T17:51:38.118000+00:00", 
@@ -1060,7 +1061,7 @@ class StatementFilterTests(TestCase):
                 "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt =         {
         "timestamp": "2013-04-08T21:07:20.392000+00:00", 
@@ -1092,10 +1093,10 @@ class StatementFilterTests(TestCase):
             "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"
         }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1103,7 +1104,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 2)
 
         param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://special.adlnet.gov/xapi/verbs/high-fived"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1111,7 +1112,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 0)
 
         param = {"registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://example.com/verbs/completed"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1119,7 +1120,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 1)
 
         param = {"agent":{"mbox":"mailto:tom@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://example.com/verbs/completed"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1127,7 +1128,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 1)
 
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "registration":"05bb4c1a-9ddb-44a0-ba4f-52ff77811a91","verb":"http://example.com/verbs/completed"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1157,7 +1158,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "timestamp": "2013-04-08T21:07:11.459000+00:00", 
@@ -1186,7 +1187,7 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
         "timestamp": "2013-04-08T21:07:20.392000+00:00", 
@@ -1230,10 +1231,10 @@ class StatementFilterTests(TestCase):
             }
         }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         param = {"activity":"act:adlnet.gov/JsTetris_TCAPI"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1249,7 +1250,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(actcnt, 1)
 
         param = {"activity":"act:adlnet.gov/JsTetris_TCAPI", "related_activities":True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1286,7 +1287,7 @@ class StatementFilterTests(TestCase):
             }
         }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmt = {
             "timestamp": "2013-04-08T21:07:11.459000+00:00", 
@@ -1315,9 +1316,9 @@ class StatementFilterTests(TestCase):
                 }
             }
         }
-        resp = self.client.post(reverse(statements), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+        resp = self.client.post(reverse('lrs:statements'), json.dumps(stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
-        actorGetResponse = self.client.post(reverse(statements), 
+        actorGetResponse = self.client.post(reverse('lrs:statements'), 
             {"activity":"http://notarealactivity.com"},
              content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(actorGetResponse.status_code, 200)
@@ -1350,14 +1351,14 @@ class StatementFilterTests(TestCase):
                          })
         guid = str(uuid.uuid1())
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         resp = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
         
         agent_params = ['name', 'mbox', 'objectType']
 
         param = {"agent":{"mbox":"mailto:louwolford@example.com"}}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1385,7 +1386,7 @@ class StatementFilterTests(TestCase):
             self.assertItemsEqual(m.keys(), agent_params)
 
         param = {"agent":{"mbox":"mailto:louwolford@example.com"}, "format":"ids"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1422,12 +1423,12 @@ class StatementFilterTests(TestCase):
 
         guid = str(uuid.uuid1())
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         resp = self.client.put(path, stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
 
         param = {"agent":{"account":account}}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1464,12 +1465,12 @@ class StatementFilterTests(TestCase):
 
         guid = str(uuid.uuid1())
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         resp = self.client.put(path, json.dumps(stmt), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
 
         param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"exact"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1489,7 +1490,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(exact['context']['contextActivities']['parent'][0]['definition']['type'], stmt['context']['contextActivities']['parent'][0]['definition']['type'])
 
         param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"ids"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1506,7 +1507,7 @@ class StatementFilterTests(TestCase):
         self.assertNotIn('definition', ids['context']['contextActivities']['parent'][0])
         
         param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"canonical"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1530,7 +1531,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['type'], stmt['context']['contextActivities']['parent'][0]['definition']['type'])
 
         param = {"agent":{"mbox":"mailto:chair@example.com"}, "format":"canonical"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, Accept_Language="fr", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
@@ -1575,7 +1576,7 @@ class StatementFilterTests(TestCase):
 
         guid = str(uuid.uuid1())
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         resp = self.client.put(path, json.dumps(ex_stmt), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
 
@@ -1588,20 +1589,20 @@ class StatementFilterTests(TestCase):
         }
         
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         param["format"] = "canonical"
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         stmt_obj = json.loads(r.content)
         self.assertIn('definition', stmt_obj['object'])
 
         param["format"] = "exact"
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         stmt_obj = json.loads(r.content)
@@ -1616,12 +1617,12 @@ class StatementFilterTests(TestCase):
         }
         guid = str(uuid.uuid1())
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         resp = self.client.put(path, json.dumps(stmt), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(resp.status_code, 204)
 
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         
@@ -1636,12 +1637,12 @@ class StatementFilterTests(TestCase):
         }
         guidv = str(uuid.uuid1())
         paramv = {"statementId":guidv}
-        pathv = "%s?%s" % (reverse(statements), urllib.urlencode(paramv))
+        pathv = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(paramv))
         respv = self.client.put(pathv, json.dumps(stmtv), content_type="application/json", Authorization=self.auth, X_Experience_API_Version="1.0")
         self.assertEqual(respv.status_code, 204)
 
         paramv = {"statementId":guidv}
-        pathv = "%s?%s" % (reverse(statements),urllib.urlencode(paramv))
+        pathv = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(paramv))
         r = self.client.get(pathv, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         objv = json.loads(r.content)
@@ -1651,13 +1652,13 @@ class StatementFilterTests(TestCase):
 
         # first statement is voided now... should get a 404 if we try to request it
         param = {"statementId":guid}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 404)
 
         # but we can get it using the voidedStatementId param
         param = {"voidedStatementId":guid}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         
@@ -1735,12 +1736,12 @@ class StatementFilterTests(TestCase):
         message.attach(textdata21)
         message.attach(textdata22)
         
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
         param = {"attachments": True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
@@ -1757,12 +1758,12 @@ class StatementFilterTests(TestCase):
             "length": 27,
             "fileUrl": "http://my/file/url"}]}
         
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         param = {"attachments": True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/json')
@@ -1783,11 +1784,11 @@ class StatementFilterTests(TestCase):
             "length": 27,
             "fileUrl": "http://my/file/url"}]}
         
-        response = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
-        r = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
+        r = self.client.get(reverse('lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/json')
         obj_from_json = json.loads(r.content)
@@ -1810,13 +1811,13 @@ class StatementFilterTests(TestCase):
             "fileUrl": "http://my/file/url"}]}
         
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         param["attachments"] = True
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/json')
@@ -1849,13 +1850,13 @@ class StatementFilterTests(TestCase):
         message.attach(textdata11)
                 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         response = self.client.put(path, message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
         param["attachments"] = True
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary=======ADL_LRS======')
@@ -1928,11 +1929,11 @@ class StatementFilterTests(TestCase):
                 "length": 23,
                 "fileUrl":"http://my/test/url42"}]}
         ]
-        response = self.client.post(reverse(statements), json.dumps(stmts), content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), json.dumps(stmts), content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
-        r = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
+        r = self.client.get(reverse('lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/json')
         obj_from_json = json.loads(r.content)
@@ -1943,7 +1944,7 @@ class StatementFilterTests(TestCase):
         resp_url = obj_from_json['more']
         resp_id = resp_url[-32:]
 
-        more_get = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
+        more_get = self.client.get(reverse('lrs:statements_more',kwargs={'more_id':resp_id}),
             X_Experience_API_Version=settings.XAPI_VERSION,HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
         self.assertEqual(more_get['Content-Type'], 'application/json')
@@ -2030,12 +2031,12 @@ class StatementFilterTests(TestCase):
         message.attach(textdata3)
         message.attach(textdata4)
 
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
         param= {"attachments":True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
 
@@ -2066,7 +2067,7 @@ class StatementFilterTests(TestCase):
             self.assertEqual(part.get('Content-Type'), 'text/plain; charset=utf-8')
             self.assertEqual(part.get('Content-Transfer-Encoding'), 'binary')
 
-        path = "%s?%s" % (reverse(statements_more,kwargs={'more_id':resp_id}), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements_more',kwargs={'more_id':resp_id}), urllib.urlencode(param))
         more_get = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION,HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
 
@@ -2168,12 +2169,12 @@ class StatementFilterTests(TestCase):
         message.attach(textdata3)
         message.attach(textdata4)
 
-        r = self.client.post(reverse(statements), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
         param= {"attachments":False}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(param))
         r = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/json')
@@ -2182,7 +2183,7 @@ class StatementFilterTests(TestCase):
         resp_url = obj_from_json['more']
         resp_id = resp_url[-32:]
 
-        more_get = self.client.get(reverse(statements_more,kwargs={'more_id':resp_id}),
+        more_get = self.client.get(reverse('lrs:statements_more',kwargs={'more_id':resp_id}),
             X_Experience_API_Version=settings.XAPI_VERSION,HTTP_AUTHORIZATION=self.auth)
         self.assertEqual(more_get.status_code, 200)
         self.assertEqual(more_get['Content-Type'], 'application/json')
@@ -2326,13 +2327,13 @@ class StatementFilterTests(TestCase):
         stmt_list.append(stmt27)
 
         # Post statements
-        post_statements = self.client.post(reverse(statements), json.dumps(stmt_list),
+        post_statements = self.client.post(reverse('lrs:statements'), json.dumps(stmt_list),
             content_type="application/json",HTTP_AUTHORIZATION=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(post_statements.status_code, 200)
 
         # Get regular
         get_param = {"activity":"act://foobar"}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(get_param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(get_param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         returned = json.loads(r.content)
@@ -2342,7 +2343,7 @@ class StatementFilterTests(TestCase):
 
         # Get related
         get_param = {"activity":"act://foobar", "related_activities": True}
-        path = "%s?%s" % (reverse(statements),urllib.urlencode(get_param))
+        path = "%s?%s" % (reverse('lrs:statements'),urllib.urlencode(get_param))
         r = self.client.get(path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         returned = json.loads(r.content)

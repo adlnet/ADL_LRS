@@ -1,3 +1,4 @@
+import ast
 import email
 import urllib
 import json
@@ -6,7 +7,7 @@ from base64 import b64decode, b64encode
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
 
-from django.core.cache import get_cache
+from django.core.cache import caches
 from django.http import QueryDict
 
 from . import convert_to_datatype, convert_post_body_to_dict
@@ -17,9 +18,8 @@ from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequ
 from oauth_provider.utils import get_oauth_request, require_params
 from oauth_provider.decorators import CheckOauth
 from oauth_provider.store import store
-from oauth2_provider.provider.oauth2.models import AccessToken
 
-att_cache = get_cache('attachment_cache')  
+att_cache = caches['attachment_cache']  
 
 def parse(request, more_id=None):
     # Parse request into body, headers, and params
@@ -119,21 +119,12 @@ def set_normal_authorization(request, r_dict):
         r_dict['auth']['oauth_consumer'] = consumer
         r_dict['auth']['oauth_token'] = token
         r_dict['auth']['type'] = 'oauth'
-    elif auth_params[:7] == 'Bearer ':
-        try:
-            access_token = AccessToken.objects.get(token=auth_params[7:])
-        except AccessToken.DoesNotExist:
-            raise OauthUnauthorized("Access Token does not exist")
-        else:
-            if access_token.get_expire_delta() <= 0:
-                raise OauthUnauthorized('Access Token has expired')
-            r_dict['auth']['oauth_token'] = access_token
-            r_dict['auth']['type'] = 'oauth2'
     else:        
         r_dict['auth']['type'] = 'http'
 
-def parse_normal_body(request, r_dict):
-    if request.method == 'POST' or request.method == 'PUT':
+def parse_post_put_body(request, r_dict):
+    # If there is no body, django test client won't send a content type
+    if r_dict['headers']['CONTENT_TYPE']:
         # If it is multipart/mixed we're expecting attachment data (also for signed statements)
         if 'multipart/mixed' in r_dict['headers']['CONTENT_TYPE']: 
             parse_attachment(request, r_dict)
@@ -218,8 +209,12 @@ def parse_cors_request(request, r_dict):
     set_agent_param(r_dict)
 
 def parse_normal_request(request, r_dict):
-    r_dict = parse_normal_body(request, r_dict)
-    # Update dict with any GET data
+    if request.method == 'POST' or request.method == 'PUT':    
+        r_dict = parse_post_put_body(request, r_dict)
+    elif request.method == 'DELETE':
+        # Delete can have data which will be in parameter or get params
+        if request.body != '':
+            r_dict['params'].update(ast.literal_eval(request.body))
     r_dict['params'].update(request.GET.dict())
     set_agent_param(r_dict)
 
@@ -270,9 +265,11 @@ def parse_attachment(request, r_dict):
         for part in msg.get_payload():
             xhash = part.get('X-Experience-API-Hash')
             c_type = part['Content-Type']
-            # Payloads are base64 encoded implictly from email lib (except for plaintext)
+            # Plaintext payloads from email lib have extra newline appended
             if "text/plain" in c_type:
-                payload = b64encode(part.get_payload())
+                payload = part.get_payload()
+                if payload.endswith('\n'):
+                    payload = payload[:-1]
             else:
                 payload = part.get_payload()
             att_cache.set(xhash, payload)

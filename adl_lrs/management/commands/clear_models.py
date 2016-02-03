@@ -27,7 +27,6 @@ class Command(BaseCommand):
 		apps = []
 		apps.append(get_app('lrs'))
 		apps.append(get_app('oauth_provider'))
-		apps.append(get_app('oauth2'))
 
 		# Clear app(db) data
 		for app in apps:

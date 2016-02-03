@@ -1,6 +1,7 @@
 import json
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
+import uuid
 
 from . import get_agent_ifp
 from authorization import auth
@@ -125,8 +126,9 @@ def validate_statementId(req_dict):
 
     # Try to retrieve stmt, if DNE then return empty else return stmt info                
     try:
-        st = Statement.objects.get(statement_id=statementId)
-    except Statement.DoesNotExist:
+        uuidId = uuid.UUID(str(statementId))
+        st = Statement.objects.get(statement_id=uuidId)
+    except (Statement.DoesNotExist, ValueError):
         err_msg = 'There is no statement associated with the id: %s' % statementId
         raise IDNotFoundError(err_msg)
 

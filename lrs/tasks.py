@@ -4,6 +4,7 @@ import urllib2
 import json
 import hmac
 import requests
+from hashlib import sha1
 
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -24,7 +25,7 @@ def check_activity_metadata(stmts):
     [get_activity_metadata(a_id) for a_id in activity_ids]
 
 @shared_task
-@transaction.commit_on_success
+@transaction.atomic
 def void_statements(stmts):
     from .models import Statement    
     try:
@@ -205,7 +206,7 @@ def get_activity_metadata(act_id):
             if valid_url_data:
                 update_activity_definition(fake_activity)
 
-@transaction.commit_on_success
+@transaction.atomic
 def update_activity_definition(act):
     from .models import Activity
     # Try to get activity by id

@@ -1,11 +1,11 @@
 import json
+import uuid
 from collections import OrderedDict
 from datetime import datetime
-from jsonfield import JSONField
 
-from django_extensions.db.fields import UUIDField
 from django.db import models, IntegrityError
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 from django.core.files.storage import FileSystemStorage
 from django.utils.timezone import utc
 
@@ -20,7 +20,7 @@ STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
-    display = JSONField(default={}, blank=True)
+    display = JSONField(default=dict(), blank=True)
 
     def to_dict(self, lang=None):
         ret = OrderedDict()
@@ -180,7 +180,7 @@ class Agent(models.Model):
     mbox_sha1sum = models.CharField(max_length=40, db_index=True, null=True, unique=True)
     openid = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True, unique=True)
     oauth_identifier = models.CharField(max_length=192, db_index=True, null=True, unique=True)
-    member = models.ManyToManyField('self', related_name="agents", null=True)
+    member = models.ManyToManyField('self', related_name="agents")
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, null=True)
     account_name = models.CharField(max_length=50, null=True)
     objects = AgentManager()
@@ -262,18 +262,18 @@ class Agent(models.Model):
 class Activity(models.Model):
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     objectType = models.CharField(max_length=8,blank=True, default="Activity")
-    activity_definition_name = JSONField(default={}, blank=True)
-    activity_definition_description = JSONField(default={}, blank=True)
+    activity_definition_name = JSONField(default=dict(), blank=True)
+    activity_definition_description = JSONField(default=dict(), blank=True)
     activity_definition_type = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_interactionType = models.CharField(max_length=25, blank=True)
-    activity_definition_extensions = JSONField(default={}, blank=True)
-    activity_definition_crpanswers = JSONField(default={}, blank=True)
-    activity_definition_choices = JSONField(default={}, blank=True)
-    activity_definition_scales = JSONField(default={}, blank=True)
-    activity_definition_sources = JSONField(default={}, blank=True)
-    activity_definition_targets = JSONField(default={}, blank=True)
-    activity_definition_steps = JSONField(default={}, blank=True)
+    activity_definition_extensions = JSONField(default=dict(), blank=True)
+    activity_definition_crpanswers = JSONField(default=dict(), blank=True)
+    activity_definition_choices = JSONField(default=dict(), blank=True)
+    activity_definition_scales = JSONField(default=dict(), blank=True)
+    activity_definition_sources = JSONField(default=dict(), blank=True)
+    activity_definition_targets = JSONField(default=dict(), blank=True)
+    activity_definition_steps = JSONField(default=dict(), blank=True)
     authority = models.ForeignKey(Agent, null=True)
 
     def add_interaction_type(self, i_type, ret, lang):
@@ -340,7 +340,7 @@ class Activity(models.Model):
 class SubStatement(models.Model):
     object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
-    object_statementref = models.CharField(max_length=40, blank=True, null=True)
+    object_statementref = models.UUIDField(null=True, editable=False, db_index=True)
     actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
@@ -352,9 +352,8 @@ class SubStatement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
-    result_extensions = JSONField(default={}, blank=True)
-    timestamp = models.DateTimeField(blank=True, null=True,
-        default=lambda: datetime.utcnow().replace(tzinfo=utc).isoformat())
+    result_extensions = JSONField(default=dict(), blank=True)
+    timestamp = models.DateTimeField(null=True)
     context_registration = models.CharField(max_length=40, blank=True, db_index=True)
     context_instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
         db_index=True, related_name='substatement_context_instructor')
@@ -363,7 +362,7 @@ class SubStatement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
-    context_extensions = JSONField(default={}, blank=True)
+    context_extensions = JSONField(default=dict(), blank=True)
     context_ca_parent = models.ManyToManyField(Activity, related_name="sub_context_ca_parent")
     context_ca_grouping = models.ManyToManyField(Activity, related_name="sub_context_ca_grouping")
     context_ca_category = models.ManyToManyField(Activity, related_name="sub_context_ca_category")
@@ -381,7 +380,7 @@ class SubStatement(models.Model):
         elif self.object_activity:
             ret['object'] = self.object_activity.to_dict(lang, format)
         else:
-            ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
+            ret['object'] = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
         
         ret['result'] = OrderedDict()
         if self.result_success != None:
@@ -443,7 +442,8 @@ class SubStatement(models.Model):
         if not ret['context']:
             del ret['context']
 
-        ret['timestamp'] = str(self.timestamp)
+        if self.timestamp:
+            ret['timestamp'] = self.timestamp.isoformat()
         ret['objectType'] = "SubStatement"
         return ret
 
@@ -453,7 +453,7 @@ class SubStatement(models.Model):
         elif self.object_agent:
             return self.object_agent.get_a_name()
         else:
-            return self.object_statementref
+            return str(self.object_statementref)
 
     def get_object(self):
         if self.object_activity:
@@ -461,7 +461,7 @@ class SubStatement(models.Model):
         elif self.object_agent:
             stmt_object = self.object_agent
         else:
-            stmt_object = {'id': self.object_statementref, 'objectType': 'StatementRef'}
+            stmt_object = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
         return stmt_object
 
     def __unicode__(self):
@@ -469,11 +469,11 @@ class SubStatement(models.Model):
 
 class Statement(models.Model):
     # If no statement_id is given, will create one automatically
-    statement_id = UUIDField(version=1, db_index=True, unique=True)
+    statement_id = models.UUIDField(default=uuid.uuid4, db_index=True, editable=False)
     object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
     object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL)
-    object_statementref = models.CharField(max_length=40, blank=True, null=True, db_index=True)    
+    object_statementref = models.UUIDField(null=True, editable=False, db_index=True)
     actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
         on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
@@ -486,10 +486,10 @@ class Statement(models.Model):
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
-    result_extensions = JSONField(default={}, blank=True)
+    result_extensions = JSONField(default=dict(), blank=True)
     # If no stored or timestamp given - will create automatically (only happens if using StatementManager directly)
-    stored = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
-    timestamp = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc).isoformat(), db_index=True)
+    stored = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc), db_index=True)
+    timestamp = models.DateTimeField(db_index=True)
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
         on_delete=models.SET_NULL)
     voided = models.NullBooleanField(default=False)
@@ -501,7 +501,7 @@ class Statement(models.Model):
     context_revision = models.TextField(blank=True)
     context_platform = models.CharField(max_length=50,blank=True)
     context_language = models.CharField(max_length=50,blank=True)
-    context_extensions = JSONField(default={}, blank=True)
+    context_extensions = JSONField(default=dict(), blank=True)
     context_ca_parent = models.ManyToManyField(Activity, related_name="stmt_context_ca_parent")
     context_ca_grouping = models.ManyToManyField(Activity, related_name="stmt_context_ca_grouping")
     context_ca_category = models.ManyToManyField(Activity, related_name="stmt_context_ca_category")
@@ -516,7 +516,7 @@ class Statement(models.Model):
     def to_dict(self, lang=None, format='exact'):
         ret = OrderedDict()
         if format == 'exact':
-            ret['id'] = self.full_statement['id']
+            ret['id'] = str(self.full_statement['id'])
             ret['actor'] = self.full_statement['actor']
             ret['verb'] = self.full_statement['verb']
             ret['object'] = self.full_statement['object']
@@ -532,7 +532,7 @@ class Statement(models.Model):
             if 'attachments' in self.full_statement:
                 ret['attachments'] = self.full_statement['attachments']
             return ret
-        ret['id'] = self.statement_id
+        ret['id'] = str(self.statement_id)
         ret['actor'] = self.actor.to_dict(format)
         ret['verb'] = self.verb.to_dict()
 
@@ -543,7 +543,7 @@ class Statement(models.Model):
         elif self.object_substatement:
             ret['object'] = self.object_substatement.to_dict(lang, format)
         else:
-            ret['object'] = {'id': self.object_statementref, 'objectType': 'StatementRef'}
+            ret['object'] = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
 
         ret['result'] = OrderedDict()
         if self.result_success != None:
@@ -624,7 +624,7 @@ class Statement(models.Model):
         elif self.object_substatement:
             stmt_object = self.object_substatement
         else:
-            stmt_object = {'id': self.object_statementref, 'objectType': 'StatementRef'}
+            stmt_object = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
         return stmt_object
 
     def __unicode__(self):
@@ -647,8 +647,8 @@ class StatementAttachment(models.Model):
     sha2 = models.CharField(max_length=128, blank=True)
     fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, storage=AttachmentFileSystemStorage(), null=True)
-    display = JSONField(default={}, blank=True)
-    description = JSONField(default={}, blank=True)
+    display = JSONField(default=dict(), blank=True)
+    description = JSONField(default=dict(), blank=True)
     statement = models.ForeignKey(Statement, related_name="stmt_attachments", null=True)
 
     def to_dict(self, lang=None):

@@ -39,7 +39,7 @@ def process_statement(stmt, auth, version, payload_sha2s):
                     stmt['object']['context']['contextActivities'][k] = [v]
 
     # Add stored time
-    stmt['stored'] = str(datetime.utcnow().replace(tzinfo=utc).isoformat())
+    stmt['stored'] = datetime.utcnow().replace(tzinfo=utc).isoformat()
 
     # Add stored as timestamp if timestamp not present
     if not 'timestamp' in stmt:
@@ -127,7 +127,7 @@ def statements_post(req_dict):
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
         void_statements.delay(stmts_to_void)
-    return HttpResponse(json.dumps([st for st in stmt_ids]), mimetype="application/json", status=200)
+    return HttpResponse(json.dumps([st for st in stmt_ids]), content_type="application/json", status=200)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
@@ -377,7 +377,7 @@ def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
     act = Activity.objects.get(activity_id=activityId, authority__isnull=False)
     return_act = json.dumps(act.to_dict('all'), sort_keys=False)    
-    resp = HttpResponse(return_act, mimetype="application/json", status=200)
+    resp = HttpResponse(return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
@@ -446,7 +446,7 @@ def agent_profile_delete(req_dict):
 def agents_get(req_dict):
     a = Agent.objects.get(**req_dict['agent_ifp'])    
     agent_data = json.dumps(a.to_dict_person(), sort_keys=False)
-    resp = HttpResponse(agent_data, mimetype="application/json")
+    resp = HttpResponse(agent_data, content_type="application/json")
     resp['Content-Length'] = str(len(agent_data))
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':

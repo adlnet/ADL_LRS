@@ -17,7 +17,7 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'lrs',
         'USER': 'root',
         'PASSWORD': 'password',
@@ -130,8 +130,6 @@ OAUTH_SCOPES = (
         (ALL,'all')
     )
 
-SESSION_KEY = 'oauth2'
-
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -205,7 +203,9 @@ TEMPLATE_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
-INSTALLED_APPS = (
+ADMIN_REGISTER_APPS = ['adl_lrs', 'lrs', 'oauth_provider']
+
+INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -215,14 +215,10 @@ INSTALLED_APPS = (
     'adl_lrs',
     'lrs',
     'oauth_provider',
-    'oauth2_provider.provider',
-    'oauth2_provider.provider.oauth2',
     'django.contrib.admin',
-    'django_extensions',
     'jsonify',
-    'south',
-    'endless_pagination',
-)
+    'el_pagination',
+]
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
 DEFAULT_LOG_DIR = path.join(PROJECT_ROOT, 'logs/lrs.log')

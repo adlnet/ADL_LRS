@@ -1,10 +1,13 @@
 from django.core.files.base import ContentFile
-from django.core.cache import get_cache
+import uuid
+
+from django.core.cache import caches
 
 from .ActivityManager import ActivityManager
-from ..models import Verb, Statement, StatementAttachment, SubStatement, Agent 
+from ..models import Verb, Statement, StatementAttachment, SubStatement, Agent
+from ..utils import convert_to_datetime_object
 
-att_cache = get_cache('attachment_cache')
+att_cache = caches['attachment_cache']
 
 class StatementManager():
     def __init__(self, stmt_data, auth_info, payload_sha2s):
@@ -68,6 +71,7 @@ class StatementManager():
         return sub
 
     def build_statement(self, auth_info, stmt_data):
+        stmt_data['stored'] = convert_to_datetime_object(stmt_data['stored'])     
         # Pop off any context activities
         con_act_data = stmt_data.pop('context_contextActivities',{})
         stmt_data['user'] = auth_info['user']
@@ -155,7 +159,7 @@ class StatementManager():
         elif statement_object_data['objectType'] == 'SubStatement':
             stmt_data['object_substatement'] = SubStatementManager(statement_object_data, auth_info).model_object
         elif statement_object_data['objectType'] == 'StatementRef':
-            stmt_data['object_statementref'] = statement_object_data['id']
+            stmt_data['object_statementref'] = uuid.UUID(statement_object_data['id'])
         del stmt_data['object']
 
     def populate(self, auth_info, stmt_data, payload_sha2s):
@@ -164,9 +168,12 @@ class StatementManager():
         
         self.build_verb(stmt_data)
         self.build_statement_object(auth_info, stmt_data)
-        stmt_data['actor'] = Agent.objects.retrieve_or_create(**stmt_data['actor'])[0]
+        stmt_data['actor'] = Agent.objects.retrieve_or_create(**stmt_data['actor'])[0]   
         self.build_context(stmt_data)
         self.build_result(stmt_data)
+        # Substatement could not have timestamp
+        if 'timestamp' in stmt_data:
+            stmt_data['timestamp'] = convert_to_datetime_object(stmt_data['timestamp'])
         attachment_data = stmt_data.pop('attachments', None)
         
         if self.__class__.__name__ == 'StatementManager':

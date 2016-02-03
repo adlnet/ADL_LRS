@@ -5,14 +5,15 @@ from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from ..views import agents
 from ..models import Agent
+
 from adl_lrs.views import register
 
 class AgentTests(TestCase):
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
+        super(AgentTests, cls).setUpClass()
 
     def setUp(self):
         self.username = "tester"
@@ -24,14 +25,14 @@ class AgentTests(TestCase):
 
     def test_get_no_agents(self):
         agent = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
-        response = self.client.get(reverse(agents), {'agent':agent}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        response = self.client.get(reverse('lrs:agents'), {'agent':agent}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, "Error with Agent. The agent partial did not match any agents on record")
 
     def test_get(self):
         a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
         Agent.objects.retrieve_or_create(**json.loads(a))
-        response = self.client.get(reverse(agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        response = self.client.get(reverse('lrs:agents'), {'agent':a}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         r_data = json.loads(response.content)
         self.assertTrue(isinstance(r_data['mbox'], list))
         self.assertTrue(isinstance(r_data['name'], list))
@@ -42,22 +43,22 @@ class AgentTests(TestCase):
 
     def test_get_no_existing_agent(self):
         a = json.dumps({"mbox":"mailto:fail@fail.com"})
-        response = self.client.get(reverse(agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        response = self.client.get(reverse('lrs:agents'), {'agent':a}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.content, 'Error with Agent. The agent partial did not match any agents on record')
         self.assertEqual(response.status_code, 404)
 
     def test_head(self):
         a = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
         Agent.objects.retrieve_or_create(**json.loads(a))
-        response = self.client.head(reverse(agents), {'agent':a}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        response = self.client.head(reverse('lrs:agents'), {'agent':a}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.content, '')
         self.assertIn('content-length', response._headers)
 
     def test_get_no_agent(self):
-        response = self.client.get(reverse(agents), Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        response = self.client.get(reverse('lrs:agents'), Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
     
     def test_post(self):
         agent = json.dumps({"name":"me","mbox":"mailto:me@example.com"})
-        response = self.client.post(reverse(agents), {'agent':agent},content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        response = self.client.post(reverse('lrs:agents'), {'agent':agent},content_type='application/x-www-form-urlencoded', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 405)

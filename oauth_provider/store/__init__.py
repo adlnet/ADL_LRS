@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import importlib
+from importlib import import_module
 
 
 class Error(Exception):
@@ -164,7 +164,7 @@ def get_store(path='oauth_provider.store.db.ModelStore'):
 
     try:
         module, attr = path.rsplit('.', 1)
-        store_class = getattr(importlib.import_module(module), attr)
+        store_class = getattr(import_module(module), attr)
     except ValueError:
         raise ImproperlyConfigured('Invalid oauth store string: "%s"' % path)
     except ImportError, e:

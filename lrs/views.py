@@ -25,48 +25,48 @@ def about(request):
                 {
                     "name": "Statements",
                     "methods": ["GET", "POST", "PUT", "HEAD"],
-                    "endpoint": reverse('lrs.views.statements'),
+                    "endpoint": reverse('lrs:statements'),
                     "description": "Endpoint to submit and retrieve XAPI statements.",
                 },
                 "activities":
                 {
                     "name": "Activities",
                     "methods": ["GET", "HEAD"],
-                    "endpoint": reverse('lrs.views.activities'),
+                    "endpoint": reverse('lrs:activities'),
                     "description": "Endpoint to retrieve a complete activity object.",
                 },
                 "activities_state":
                 {
                     "name": "Activities State",
                     "methods": ["PUT","POST","GET","DELETE", "HEAD"],
-                    "endpoint": reverse('lrs.views.activity_state'),
+                    "endpoint": reverse('lrs:activity_state'),
                     "description": "Stores, fetches, or deletes the document specified by the given stateId that exists in the context of the specified activity, agent, and registration (if specified).",
                 },
                 "activities_profile":
                 {
                     "name": "Activities Profile",
                     "methods": ["PUT","POST","GET","DELETE", "HEAD"],
-                    "endpoint": reverse('lrs.views.activity_profile'),
+                    "endpoint": reverse('lrs:activity_profile'),
                     "description": "Saves/retrieves/deletes the specified profile document in the context of the specified activity.",
                 },
                 "agents":
                 {
                     "name": "Agents",
                     "methods": ["GET", "HEAD"],
-                    "endpoint": reverse('lrs.views.agents'),
+                    "endpoint": reverse('lrs:agents'),
                     "description": "Returns a special, Person object for a specified agent.",
                 },
                 "agents_profile":
                 {
                     "name": "Agent Profile",
                     "methods": ["PUT","POST","GET","DELETE", "HEAD"],
-                    "endpoint": reverse('lrs.views.agent_profile'),
+                    "endpoint": reverse('lrs:agent_profile'),
                     "description": "Saves/retrieves/deletes the specified profile document in the context of the specified agent.",
                 }
             }
         }
     }    
-    return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)  
+    return HttpResponse(json.dumps(lrs_data), content_type="application/json", status=200)  
 
 @require_http_methods(["GET", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
@@ -108,106 +108,101 @@ def agent_profile(request):
 def agents(request):
     return handle_request(request)
 
-validators = {
-    reverse(statements).lower() : {
-        "POST" : req_validate.statements_post,
-        "GET" : req_validate.statements_get,
-        "PUT" : req_validate.statements_put,
-        "HEAD" : req_validate.statements_get
-    },
-    reverse(statements_more_placeholder).lower(): {
-        "GET" : req_validate.statements_more_get,
-        "HEAD" : req_validate.statements_more_get   
-    },    
-    reverse(activity_state).lower() : {
-        "POST": req_validate.activity_state_post,
-        "PUT" : req_validate.activity_state_put,
-        "GET" : req_validate.activity_state_get,
-        "HEAD" : req_validate.activity_state_get,
-        "DELETE" : req_validate.activity_state_delete
-    },
-    reverse(activity_profile).lower() : {
-        "POST": req_validate.activity_profile_post,
-        "PUT" : req_validate.activity_profile_put,
-        "GET" : req_validate.activity_profile_get,
-        "HEAD" : req_validate.activity_profile_get,
-        "DELETE" : req_validate.activity_profile_delete
-    },
-    reverse(activities).lower() : {
-        "GET" : req_validate.activities_get,
-        "HEAD" : req_validate.activities_get
-    },
-    reverse(agent_profile).lower() : {
-        "POST": req_validate.agent_profile_post,
-        "PUT" : req_validate.agent_profile_put,
-        "GET" : req_validate.agent_profile_get,
-        "HEAD" : req_validate.agent_profile_get,
-        "DELETE" : req_validate.agent_profile_delete
-    },
-   reverse(agents).lower() : {
-       "GET" : req_validate.agents_get,
-       "HEAD" : req_validate.agents_get
-   }
-}
-
-processors = {
-    reverse(statements).lower() : {
-        "POST" : req_process.statements_post,
-        "GET" : req_process.statements_get,
-        "HEAD" : req_process.statements_get,
-        "PUT" : req_process.statements_put
-    },
-    reverse(statements_more_placeholder).lower(): {
-        "GET" : req_process.statements_more_get,
-        "HEAD" : req_process.statements_more_get   
-    },     
-    reverse(activity_state).lower() : {
-        "POST": req_process.activity_state_post,
-        "PUT" : req_process.activity_state_put,
-        "GET" : req_process.activity_state_get,
-        "HEAD" : req_process.activity_state_get,
-        "DELETE" : req_process.activity_state_delete
-    },
-    reverse(activity_profile).lower() : {
-        "POST": req_process.activity_profile_post,
-        "PUT" : req_process.activity_profile_put,
-        "GET" : req_process.activity_profile_get,
-        "HEAD" : req_process.activity_profile_get,
-        "DELETE" : req_process.activity_profile_delete
-    },
-    reverse(activities).lower() : {
-        "GET" : req_process.activities_get,
-        "HEAD" : req_process.activities_get
-    },
-    reverse(agent_profile).lower() : {
-        "POST": req_process.agent_profile_post,
-        "PUT" : req_process.agent_profile_put,
-        "GET" : req_process.agent_profile_get,
-        "HEAD" : req_process.agent_profile_get,
-        "DELETE" : req_process.agent_profile_delete
-    },
-   reverse(agents).lower() : {
-       "GET" : req_process.agents_get,
-       "HEAD" : req_process.agents_get
-   }     
-}
-
-@transaction.commit_on_success
+@transaction.atomic
 def handle_request(request, more_id=None):
+    validators = {
+        reverse('lrs:statements').lower() : {
+            "POST" : req_validate.statements_post,
+            "GET" : req_validate.statements_get,
+            "PUT" : req_validate.statements_put,
+            "HEAD" : req_validate.statements_get
+        },
+        reverse('lrs:statements_more_placeholder').lower(): {
+            "GET" : req_validate.statements_more_get,
+            "HEAD" : req_validate.statements_more_get   
+        },    
+        reverse('lrs:activity_state').lower() : {
+            "POST": req_validate.activity_state_post,
+            "PUT" : req_validate.activity_state_put,
+            "GET" : req_validate.activity_state_get,
+            "HEAD" : req_validate.activity_state_get,
+            "DELETE" : req_validate.activity_state_delete
+        },
+        reverse('lrs:activity_profile').lower() : {
+            "POST": req_validate.activity_profile_post,
+            "PUT" : req_validate.activity_profile_put,
+            "GET" : req_validate.activity_profile_get,
+            "HEAD" : req_validate.activity_profile_get,
+            "DELETE" : req_validate.activity_profile_delete
+        },
+        reverse('lrs:activities').lower() : {
+            "GET" : req_validate.activities_get,
+            "HEAD" : req_validate.activities_get
+        },
+        reverse('lrs:agent_profile').lower() : {
+            "POST": req_validate.agent_profile_post,
+            "PUT" : req_validate.agent_profile_put,
+            "GET" : req_validate.agent_profile_get,
+            "HEAD" : req_validate.agent_profile_get,
+            "DELETE" : req_validate.agent_profile_delete
+        },
+       reverse('lrs:agents').lower() : {
+           "GET" : req_validate.agents_get,
+           "HEAD" : req_validate.agents_get
+       }
+    }
+    processors = {
+        reverse('lrs:statements').lower() : {
+            "POST" : req_process.statements_post,
+            "GET" : req_process.statements_get,
+            "HEAD" : req_process.statements_get,
+            "PUT" : req_process.statements_put
+        },
+        reverse('lrs:statements_more_placeholder').lower(): {
+            "GET" : req_process.statements_more_get,
+            "HEAD" : req_process.statements_more_get   
+        },     
+        reverse('lrs:activity_state').lower() : {
+            "POST": req_process.activity_state_post,
+            "PUT" : req_process.activity_state_put,
+            "GET" : req_process.activity_state_get,
+            "HEAD" : req_process.activity_state_get,
+            "DELETE" : req_process.activity_state_delete
+        },
+        reverse('lrs:activity_profile').lower() : {
+            "POST": req_process.activity_profile_post,
+            "PUT" : req_process.activity_profile_put,
+            "GET" : req_process.activity_profile_get,
+            "HEAD" : req_process.activity_profile_get,
+            "DELETE" : req_process.activity_profile_delete
+        },
+        reverse('lrs:activities').lower() : {
+            "GET" : req_process.activities_get,
+            "HEAD" : req_process.activities_get
+        },
+        reverse('lrs:agent_profile').lower() : {
+            "POST": req_process.agent_profile_post,
+            "PUT" : req_process.agent_profile_put,
+            "GET" : req_process.agent_profile_get,
+            "HEAD" : req_process.agent_profile_get,
+            "DELETE" : req_process.agent_profile_delete
+        },
+       reverse('lrs:agents').lower() : {
+           "GET" : req_process.agents_get,
+           "HEAD" : req_process.agents_get
+       }     
+    }
+
     try:
         r_dict = req_parse.parse(request, more_id)
         path = request.path.lower()
-
         if path.endswith('/'):
             path = path.rstrip('/')
-
         # Cutoff more_id
         if 'more' in path:
-            path = "%s/%s" % (reverse('lrs.views.statements').lower(), "more")
-
+            path = "%s/%s" % (reverse('lrs:statements').lower(), "more")
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
-
     except BadRequest as err:
         log_exception(request.path, err)
         return HttpResponse(err.message, status=400)
@@ -241,9 +236,9 @@ def handle_request(request, more_id=None):
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br
-    except Exception as err:
-        log_exception(request.path, err)
-        return HttpResponse(err.message, status=500)
+    # except Exception as err:
+    #     log_exception(request.path, err)
+    #     return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)
