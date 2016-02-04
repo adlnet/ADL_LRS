@@ -6,11 +6,10 @@ django-el-pagination==2.1.1
 django-jsonify==0.3.0
 importlib==1.0.3
 isodate==0.5.4
-oauth2==1.9.0
+oauth2==1.9.0.post1
 psycopg2==2.6.1
 pycrypto==2.6.1
 pytz==2015.7
 requests==2.9.1
 rfc3987==1.3.4
-shortuuid==0.4.3
 supervisor==3.2.0

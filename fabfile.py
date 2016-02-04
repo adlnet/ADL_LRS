@@ -28,6 +28,22 @@ def setup_lrs():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
+    celery_log_dir = os.path.join(log_dir, '/celery')
+    if not os.path.exists(celery_log_dir):
+        os.makedirs(celery_log_dir)
+
+    supervisord_log_dir = os.path.join(log_dir, '/supervisord')
+    if not os.path.exists(supervisord_log_dir):
+        os.makedirs(supervisord_log_dir)
+
+    uwsgi_log_dir = os.path.join(log_dir, '/uwsgi')
+    if not os.path.exists(uwsgi_log_dir):
+        os.makedirs(uwsgi_log_dir)
+
+    nginx_log_dir = os.path.join(log_dir, '/nginx')
+    if not os.path.exists(nginx_log_dir):
+        os.makedirs(nginx_log_dir)
+
     # Add settings module so fab file can see it
     os.environ['DJANGO_SETTINGS_MODULE'] = "adl_lrs.settings"
     from django.conf import settings
@@ -48,7 +64,10 @@ def setup_lrs():
 
     # Create cache tables and sync the db
     local('./manage.py createcachetable')
-    local('./manage.py migrate --run-syncdb')
+    local('./manage.py migrate')
+    local('./manage.py makemigrations adl_lrs lrs oauth_provider')
+    local('./manage.py migrate')
+    local('./manage.py createsuperuser')
 
 def test_lrs():
-    local('./manage.py test lrs')
+    local('./manage.py test lrs.tests')
