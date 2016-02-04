@@ -222,7 +222,7 @@ INSTALLED_APPS = [
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
 DEFAULT_LOG_DIR = path.join(PROJECT_ROOT, 'logs/lrs.log')
-CELERY_TASKS_LOG_DIR =  path.join(PROJECT_ROOT, 'logs/celery_tasks.log')
+CELERY_TASKS_LOG_DIR =  path.join(PROJECT_ROOT, 'logs/celery/celery_tasks.log')
 
 CELERYD_HIJACK_ROOT_LOGGER = False
 

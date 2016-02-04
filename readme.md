@@ -25,7 +25,7 @@ This version is stable, but only intended to support a small amount of users as 
 **Install Prerequisites**
 
     admin:~$ sudo apt-get install git fabric python-setuptools python-dev\
-        libxml2-dev libxslt-dev
+        libxml2-dev libxslt1-dev
     admin:~$ sudo easy_install pip
     admin:~$ sudo pip install virtualenv
     
@@ -66,10 +66,10 @@ This version is stable, but only intended to support a small amount of users as 
     admin:ADL_LRS$ fab setup_env
     admin:ADL_LRS$ source ../env/bin/activate
     (env)admin:ADL_LRS$
-    
-This creates the top level folders, <b>logs</b> and <b>media</b> at the same level as the project folder, <b>ADL_LRS</b>. Throughout the readme and the other install guides for celery and nginx you will most likely want to direct any log files to the logs directory. Inside of <b>logs</b> there are directorys for <b>celery</b>, <b>supervisord</b>, <b>uwsgi</b> and <b>nginx</b>.
-    
+        
 **Setup the LRS**
+
+This creates the top level folders, <b>logs</b> and <b>media</b> at the same level as the project folder, <b>ADL_LRS</b>. Throughout the readme and the other install guides for celery and nginx you will most likely want to direct any log files to the logs directory. Inside of <b>logs</b> there are directorys for <b>celery</b>, <b>supervisord</b>, <b>uwsgi</b> and <b>nginx</b>.
 
     (env)admin:ADL_LRS$ fab setup_lrs
     ...
@@ -119,7 +119,7 @@ For other ways to start and run the LRS, please visit our Wiki.
 * [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
 
 ## License
-   Copyright &copy;2015 Advanced Distributed Learning
+   Copyright &copy;2016 Advanced Distributed Learning
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

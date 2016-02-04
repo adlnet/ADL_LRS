@@ -28,19 +28,19 @@ def setup_lrs():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    celery_log_dir = os.path.join(log_dir, '/celery')
+    celery_log_dir = os.path.join(log_dir, 'celery')
     if not os.path.exists(celery_log_dir):
         os.makedirs(celery_log_dir)
 
-    supervisord_log_dir = os.path.join(log_dir, '/supervisord')
+    supervisord_log_dir = os.path.join(log_dir, 'supervisord')
     if not os.path.exists(supervisord_log_dir):
         os.makedirs(supervisord_log_dir)
 
-    uwsgi_log_dir = os.path.join(log_dir, '/uwsgi')
+    uwsgi_log_dir = os.path.join(log_dir, 'uwsgi')
     if not os.path.exists(uwsgi_log_dir):
         os.makedirs(uwsgi_log_dir)
 
-    nginx_log_dir = os.path.join(log_dir, '/nginx')
+    nginx_log_dir = os.path.join(log_dir, 'nginx')
     if not os.path.exists(nginx_log_dir):
         os.makedirs(nginx_log_dir)
 
