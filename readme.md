@@ -38,6 +38,7 @@ This version is stable, but only intended to support a small amount of users as 
     
 **Set the LRS configuration**
 
+  ```
   ### File: ADL_LRS/adl_lrs/settings.py
   
   # configure the database
@@ -58,8 +59,9 @@ This version is stable, but only intended to support a small amount of users as 
   # set to 'https' if using SSL encryption - this is just for testing purposes and won't dictate if the LRS runs over http or https
   SITE_SCHEME = 'http'
   
-    # Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below) - this is just for testing purposes and won't dictate the domain or port the LRS runs on
-    SITE_DOMAIN = 'localhost:8000'
+  # Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below) - this is just for testing purposes and won't dictate the domain or port the LRS runs on
+  SITE_DOMAIN = 'localhost:8000'
+  ```
 
 **Setup the environment**
 
