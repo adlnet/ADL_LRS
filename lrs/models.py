@@ -8,7 +8,7 @@ from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.core.files.storage import FileSystemStorage
-from django.utils.timezone import utc
+from django.utils import timezone
 
 from oauth_provider.consts import MAX_URL_LENGTH
 
@@ -499,7 +499,7 @@ class Statement(models.Model):
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(default=dict(), blank=True)
     # If no stored or timestamp given - will create automatically (only happens if using StatementManager directly)
-    stored = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc), db_index=True)
+    stored = models.DateTimeField(default=timezone.now, db_index=True)
     timestamp = models.DateTimeField(db_index=True)
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
         on_delete=models.SET_NULL)
