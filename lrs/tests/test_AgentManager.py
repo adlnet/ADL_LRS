@@ -168,9 +168,11 @@ class AgentManagerTests(TestCase):
         self.assertTrue(created)
         self.assertEquals(gr1.name, "my group")
         agents = Agent.objects.all()
-        self.assertEquals(len(agents), 4)
+        # 5 total agents - an extra one for the user
+        self.assertEquals(len(agents), 5)
         self.assertEquals(len(agents.filter(objectType='Group')), 2)
-        self.assertEquals(len(agents.filter(objectType='Agent')), 2)
+        # 3 agents - an extra one for the user 
+        self.assertEquals(len(agents.filter(objectType='Agent')), 3)
 
     def test_agent_json_no_ids(self):
         stmt = json.dumps({"actor":{"objectType": "Agent", "name":"freakshow"},

@@ -37,8 +37,9 @@ class OAuthTests(TestCase):
             settings.OAUTH_ENABLED = True
 
         # Create a user
-        self.user = User.objects.create_user('jane', 'jane@example.com', 'toto')
-        self.client.login(username='jane', password='toto')
+        form = {"username":"jane", "email":"jane@example.com","password":"toto","password2":"toto"}
+        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)      
+        self.user = User.objects.get(username='jane')
 
         #Register a consumer
         self.name = "test jane client"
@@ -2608,8 +2609,8 @@ Lw03eHTNQghS0A==
             Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 204)
         agents = Agent.objects.all().values_list('name', flat=True)
-        # Jane, Anonymous agent for account, Group for jane and account, bill, bob, tim and tim timson should be same (no update to tim)
-        self.assertEqual(len(agents), 6)
+        # Jane, Bill, Tim, Bob, Dick, Anonymous Group and Account
+        self.assertEqual(len(agents), 7)
         self.assertIn('tim', agents)
         self.assertNotIn('tim timson', agents)
         # =================================================

@@ -4,6 +4,7 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.db import models, IntegrityError
+from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.core.files.storage import FileSystemStorage
@@ -17,6 +18,15 @@ AGENT_PROFILE_UPLOAD_TO = "agent_profile"
 ACTIVITY_STATE_UPLOAD_TO = "activity_state"
 ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
 STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
+
+# Called when a user is created, saved, or logging in
+def attach_user(sender, **kwargs):
+    user = kwargs["instance"]
+    if kwargs["created"]:
+        agent = Agent.objects.retrieve_or_create(**{'name':user.username, 'mbox':'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
+        agent.user = user
+        agent.save()
+post_save.connect(attach_user, sender=User)
 
 class Verb(models.Model):
     verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
@@ -183,6 +193,7 @@ class Agent(models.Model):
     member = models.ManyToManyField('self', related_name="agents")
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, null=True)
     account_name = models.CharField(max_length=50, null=True)
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True)
     objects = AgentManager()
 
     class Meta:
