@@ -100,13 +100,8 @@ def complex_get(param_dict, limit, language, format, attachments):
     stored_param = '-stored'
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
-
-    # stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority', \
-    #     'context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
-    #     .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
     
     stmtset = Statement.objects.filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
-
     stmtset = list(stmtset.values_list('statement_id', flat=True))
     # only find references when a filter other than
     # since, until, or limit was used 

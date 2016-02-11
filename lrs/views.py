@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.http import require_http_methods
 
@@ -66,7 +66,7 @@ def about(request):
             }
         }
     }    
-    return HttpResponse(json.dumps(lrs_data), content_type="application/json", status=200)  
+    return JsonResponse(lrs_data)  
 
 @require_http_methods(["GET", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)

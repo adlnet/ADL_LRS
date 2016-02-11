@@ -4,7 +4,7 @@ import copy
 from base64 import b64decode
 from datetime import datetime
 
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
@@ -19,7 +19,7 @@ from ..tasks import check_activity_metadata, void_statements
 def process_statement(stmt, auth, version, payload_sha2s):
     # Add id to statement if not present
     if not 'id' in stmt:
-        stmt['id'] = str(uuid.uuid1())
+        stmt['id'] = str(uuid.uuid4())
 
     # Add version to statement if not present
     if not 'version' in stmt:
@@ -109,7 +109,6 @@ def process_complex_get(req_dict):
     else:
         if isinstance(stmt_result, dict):
             stmt_result = json.dumps(stmt_result)
-
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)    
     return resp, content_length
 
@@ -127,7 +126,7 @@ def statements_post(req_dict):
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
         void_statements.delay(stmts_to_void)
-    return HttpResponse(json.dumps([st for st in stmt_ids]), content_type="application/json", status=200)
+    return JsonResponse([st for st in stmt_ids], safe=False)
 
 def statements_put(req_dict):
     auth = req_dict['auth']
@@ -202,7 +201,6 @@ def statements_get(req_dict):
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
         resp.body = ''
-
     return resp
 
 def build_response(stmt_result):
@@ -301,12 +299,11 @@ def activity_state_get(req_dict):
         else:
             since = req_dict['params'].get('since', None)
             resource = actstate.get_state_ids(activity_id, registration, since)
-            response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+            response = JsonResponse([k for k in resource], safe=False)
     
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
         response.body = ''
-
     return response
 
 def activity_state_delete(req_dict):
@@ -350,20 +347,19 @@ def activity_profile_get(req_dict):
             except IOError:
                 response = HttpResponseNotFound("Error reading file, could not find: %s" % profileId)
         else:
-            response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
+            response = HttpResponse(resource.json_profile, content_type=resource.content_type)
         response['ETag'] = '"%s"' % resource.etag
         return response
 
     #Return IDs of profiles stored since profileId was not submitted
     since = req_dict['params'].get('since', None) if 'params' in req_dict else None
     resource = ap.get_profile_ids(activityId, since)
-    response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+    response = JsonResponse([k for k in resource], safe=False)
     response['since'] = since
     
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
         response.body = ''
-
     return response
 
 def activity_profile_delete(req_dict):
@@ -382,7 +378,6 @@ def activities_get(req_dict):
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
         resp.body = ''
-
     return resp
 
 def agent_profile_post(req_dict):
@@ -418,18 +413,17 @@ def agent_profile_get(req_dict):
             if resource.profile:
                 response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
             else:
-                response = HttpResponse(resource.json_profile, content_type=resource.content_type)            
+                response = HttpResponse(resource.json_profile, content_type=resource.content_type)
             response['ETag'] = '"%s"' % resource.etag
             return response
 
         since = req_dict['params'].get('since', None) if 'params' in req_dict else None
         resource = ap.get_profile_ids(since)
-        response = HttpResponse(json.dumps([k for k in resource]), content_type="application/json")
+        response = JsonResponse([k for k in resource], safe=False)
     
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
         response.body = ''
-
     return response
 
 def agent_profile_delete(req_dict):
@@ -446,7 +440,7 @@ def agent_profile_delete(req_dict):
 def agents_get(req_dict):
     a = Agent.objects.get(**req_dict['agent_ifp'])    
     agent_data = json.dumps(a.to_dict_person(), sort_keys=False)
-    resp = HttpResponse(agent_data, content_type="application/json")
+    resp = HttpResponse(agent_data, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(agent_data))
     # If it's a HEAD request
     if req_dict['method'].lower() != 'get':
