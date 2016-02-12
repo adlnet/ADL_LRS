@@ -95,14 +95,19 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'registration' in param_dict:
         reffilter = True
         registrationQ = Q(context_registration=param_dict['registration'])
-
     # If want ordered by ascending
     stored_param = '-stored'
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
     
-    stmtset = Statement.objects.filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
-    stmtset = list(stmtset.values_list('statement_id', flat=True))
+    stmtset = Statement.objects.select_related('actor','verb','context_team','context_instructor','authority', \
+        'object_agent','object_activity','object_substatement') \
+        .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+    # Workaround since flat doesn't work with UUIDFields
+    st_ids = stmtset.values_list('statement_id')
+    stmtset = [st_id[0] for st_id in st_ids]
+    
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
@@ -110,7 +115,6 @@ def complex_get(param_dict, limit, language, format, attachments):
     
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
-
     actual_length = Statement.objects.filter(Q(statement_id__in=stmtset) & voidQ).distinct().count()
 
     # If there are more stmts than the limit, need to break it up and return more id
@@ -121,13 +125,12 @@ def complex_get(param_dict, limit, language, format, attachments):
 
 def stmt_ref_search(stmt_list, untilQ, sinceQ):
     # find statements where ids in list are used in other statements' objects, context, substatements, and substatement context
-    stmtreflist = list(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True))
+    stmtset = Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id')
+    stmtreflist = [st_id[0] for st_id in stmtset]
     if not stmtreflist:
         return stmt_list
-
     # get the statements that have a statement ref_id in the stmtreflist, recurse
-    return stmtreflist + list(stmt_ref_search(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True),
-        untilQ, sinceQ))
+    return stmtreflist + stmt_ref_search(stmtreflist, untilQ, sinceQ)
 
 def set_limit(req_limit):
     if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
@@ -137,7 +140,10 @@ def set_limit(req_limit):
 def create_under_limit_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
     if stmt_set:
-        stmt_set = Statement.objects.filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
+        stmt_set = Statement.objects.select_related('actor','verb','context_team','context_instructor','authority', \
+        'object_agent','object_activity','object_substatement') \
+        .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+        .filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
         if format == 'exact':
             stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in stmt_set.order_by(stored)])
         else:
@@ -196,7 +202,10 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, at
                 reverse('lrs:statements_more_placeholder').lower() + "/" + cache_key)
     else:
         result['statements'] = [stmt.to_dict(language, format) for stmt in \
-                        Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
+                        Statement.objects.select_related('actor','verb','context_team','context_instructor','authority', \
+                            'object_agent','object_activity','object_substatement') \
+                            .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+                            .filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
         result['more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key) 
     return result
 
@@ -235,10 +244,16 @@ def build_statement_result(more_id, **data):
         # Return first page of results
         if data["format"] == 'exact':
             result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in \
-                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])])
+                Statement.objects.select_related('actor','verb','context_team','context_instructor','authority', \
+                    'object_agent','object_activity','object_substatement') \
+                    .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+                    .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])])
         else:
             result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in \
-                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
+                    Statement.objects.select_related('actor','verb','context_team','context_instructor','authority', \
+                        'object_agent','object_activity','object_substatement') \
+                        .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+                        .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
             result['more'] = ""
         # Set current page back for when someone hits the URL again
         current_page -= 1
@@ -257,12 +272,18 @@ def build_statement_result(more_id, **data):
         # Return first page of results
         if data["format"] == 'exact':
             result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in \
-                Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]),
+                Statement.objects.select_related('actor','verb','context_team','context_instructor','authority', \
+                    'object_agent','object_activity','object_substatement') \
+                    .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+                    .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]),
                 reverse('lrs:statements_more_placeholder').lower() + "/" + cache_key)
         else:
             # Set result to have selected page of stmts and more endpoint
             result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in \
-                    Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
+                    Statement.objects.select_related('actor','verb','context_team','context_instructor','authority', \
+                        'object_agent','object_activity','object_substatement') \
+                        .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+                        .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
             result['more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key)
         more_cache_list = []
         # Increment next page

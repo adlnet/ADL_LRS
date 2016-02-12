@@ -279,12 +279,12 @@ class Activity(models.Model):
     activity_definition_moreInfo = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
     activity_definition_interactionType = models.CharField(max_length=25, blank=True)
     activity_definition_extensions = JSONField(default=dict(), blank=True)
-    activity_definition_crpanswers = JSONField(default=dict(), blank=True)
-    activity_definition_choices = JSONField(default=dict(), blank=True)
-    activity_definition_scales = JSONField(default=dict(), blank=True)
-    activity_definition_sources = JSONField(default=dict(), blank=True)
-    activity_definition_targets = JSONField(default=dict(), blank=True)
-    activity_definition_steps = JSONField(default=dict(), blank=True)
+    activity_definition_crpanswers = JSONField(default=list(), blank=True)
+    activity_definition_choices = JSONField(default=list(), blank=True)
+    activity_definition_scales = JSONField(default=list(), blank=True)
+    activity_definition_sources = JSONField(default=list(), blank=True)
+    activity_definition_targets = JSONField(default=list(), blank=True)
+    activity_definition_steps = JSONField(default=list(), blank=True)
     authority = models.ForeignKey(Agent, null=True)
 
     def add_interaction_type(self, i_type, ret, lang):

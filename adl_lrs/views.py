@@ -151,10 +151,7 @@ def regclient(request):
 @login_required()
 @require_http_methods(["GET"])
 def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
-    stmts = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team', \
-        'context_instructor','authority', 'context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')\
-        .filter(user=request.user).order_by('-timestamp')
-    
+    stmts = Statement.objects.filter(user=request.user).order_by('-timestamp')
     context = {'statements': stmts, 'page_template': page_template}
     if request.is_ajax():
         template = page_template

@@ -14,7 +14,7 @@ class ActivityManager():
         self.Activity.activity_definition_description = act_def.get('description', {})
         self.Activity.activity_definition_type = act_def.get('type', '')
         self.Activity.activity_definition_moreInfo = act_def.get('moreInfo', '')
-        self.Activity.activity_definition_crpanswers = act_def.get('correctResponsesPattern', {})
+        self.Activity.activity_definition_crpanswers = act_def.get('correctResponsesPattern', [])
         self.Activity.activity_definition_extensions = act_def.get('extensions', {})
         self.Activity.activity_definition_interactionType = interactionType
 
