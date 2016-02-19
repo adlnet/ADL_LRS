@@ -189,7 +189,7 @@ class Agent(models.Model):
     class Meta:
         unique_together = ("account_homePage", "account_name")
 
-    def to_dict(self, ret_format='exact'):
+    def to_dict(self, ids_only=False):
         ret = OrderedDict()
         if self.mbox:
             ret['mbox'] = self.mbox
@@ -203,13 +203,13 @@ class Agent(models.Model):
             ret['account']['homePage'] = self.account_homePage
         if self.objectType == 'Group':
             ret['objectType'] = self.objectType
-            # show members for groups if ret_format isn't 'ids'
-            # show members' ids for anon groups if ret_format is 'ids'
-            if not ret_format == 'ids' or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
-                ret['member'] = [a.to_dict(ret_format) for a in self.member.all()]
-        if self.objectType and not ret_format == 'ids':
+            # show members for groups if ids_only is false
+            # show members' ids for anon groups if ids_only is true
+            if not ids_only or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
+                ret['member'] = [a.to_dict(ids_only) for a in self.member.all()]
+        if self.objectType and not ids_only:
             ret['objectType'] = self.objectType
-        if self.name and not ret_format == 'ids':
+        if self.name and not ids_only:
             ret['name'] = self.name
         return ret
 
@@ -265,8 +265,8 @@ class Activity(models.Model):
     canonical_data = JSONField(default=dict)
     authority = models.ForeignKey(Agent, null=True) 
 
-    def return_activity_with_lang_format(self, lang=None, ret_format='canonical'):
-        if ret_format == 'ids':
+    def return_activity_with_lang_format(self, lang=None, ids_only=False):
+        if ids_only:
             return {'id': self.activity_id}
         ret = self.canonical_data
         if 'objectType' not in self.canonical_data:
@@ -310,7 +310,6 @@ class SubStatement(models.Model):
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
     result_response = models.TextField(blank=True)
-    # Made charfield since it would be stored in ISO8601 duration ret_format
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
     result_score_raw = models.FloatField(blank=True, null=True)
@@ -334,15 +333,15 @@ class SubStatement(models.Model):
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     
-    def to_dict(self, lang=None, ret_format='exact'):
+    def to_dict(self, lang=None, ids_only=False):
         ret = OrderedDict()
-        ret['actor'] = self.actor.to_dict(ret_format)
+        ret['actor'] = self.actor.to_dict(ids_only)
         ret['verb'] = self.verb.canonical_data
         
         if self.object_agent:
-            ret['object'] = self.object_agent.to_dict(ret_format)
+            ret['object'] = self.object_agent.to_dict(ids_only)
         elif self.object_activity:
-            ret['object'] = self.object_activity.return_activity_with_lang_format(lang, ret_format)
+            ret['object'] = self.object_activity.return_activity_with_lang_format(lang, ids_only)
         else:
             ret['object'] = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
         
@@ -378,9 +377,9 @@ class SubStatement(models.Model):
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
         if self.context_instructor:
-            ret['context']['instructor'] = self.context_instructor.to_dict(ret_format)
+            ret['context']['instructor'] = self.context_instructor.to_dict(ids_only)
         if self.context_team:
-            ret['context']['team'] = self.context_team.to_dict(ret_format)
+            ret['context']['team'] = self.context_team.to_dict(ids_only)
         if self.context_revision:
             ret['context']['revision'] = self.context_revision
         if self.context_platform:
@@ -392,13 +391,13 @@ class SubStatement(models.Model):
 
         ret['context']['contextActivities'] = OrderedDict()
         if self.context_ca_parent.all():
-            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(lang, ret_format) for cap in self.context_ca_parent.all()]
+            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(lang, ids_only) for cap in self.context_ca_parent.all()]
         if self.context_ca_grouping.all():
-            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(lang, ret_format) for cag in self.context_ca_grouping.all()]
+            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(lang, ids_only) for cag in self.context_ca_grouping.all()]
         if self.context_ca_category.all():
-            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(lang, ret_format) for cac in self.context_ca_category.all()]
+            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(lang, ids_only) for cac in self.context_ca_category.all()]
         if self.context_ca_other.all():
-            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(lang, ret_format) for cao in self.context_ca_other.all()]
+            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(lang, ids_only) for cao in self.context_ca_other.all()]
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
         if not ret['context']['contextActivities']:
@@ -444,14 +443,12 @@ class Statement(models.Model):
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
     result_response = models.TextField(blank=True)
-    # Made charfield since it would be stored in ISO8601 duration ret_format
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
     result_score_raw = models.FloatField(blank=True, null=True)
     result_score_min = models.FloatField(blank=True, null=True)
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(default=dict, blank=True)
-    # If no stored or timestamp given - will create automatically (only happens if using StatementManager directly)
     stored = models.DateTimeField(default=timezone.now, db_index=True)
     timestamp = models.DateTimeField(db_index=True)
     authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
@@ -480,32 +477,19 @@ class Statement(models.Model):
     def to_dict(self, lang=None, ret_format='exact'):
         ret = OrderedDict()
         if ret_format == 'exact':
-            ret['id'] = str(self.full_statement['id'])
-            ret['actor'] = self.full_statement['actor']
-            ret['verb'] = self.full_statement['verb']
-            ret['object'] = self.full_statement['object']
-            if 'result' in self.full_statement:
-                ret['result'] = self.full_statement['result']
-            if 'context' in self.full_statement:
-                ret['context'] = self.full_statement['context']
-            ret['timestamp'] = self.full_statement['timestamp']
-            ret['stored'] = self.full_statement['stored']
-            if 'authority' in self.full_statement:
-                ret['authority'] = self.full_statement['authority']            
-            ret['version'] = self.full_statement['version']
-            if 'attachments' in self.full_statement:
-                ret['attachments'] = self.full_statement['attachments']
-            return ret
+            return self.full_statement
+        
+        ids_only = True if ret_format == 'ids' else False
         ret['id'] = str(self.statement_id)
-        ret['actor'] = self.actor.to_dict(ret_format)
+        ret['actor'] = self.actor.to_dict(ids_only)
         ret['verb'] = self.verb.return_verb_with_lang('lang')
 
         if self.object_agent:
-            ret['object'] = self.object_agent.to_dict(ret_format)            
+            ret['object'] = self.object_agent.to_dict(ids_only)            
         elif self.object_activity:
-            ret['object'] = self.object_activity.return_activity_with_lang_format(lang, ret_format)
+            ret['object'] = self.object_activity.return_activity_with_lang_format(lang, ids_only)
         elif self.object_substatement:
-            ret['object'] = self.object_substatement.to_dict(lang, ret_format)
+            ret['object'] = self.object_substatement.to_dict(lang, ids_only)
         else:
             ret['object'] = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
 
@@ -540,9 +524,9 @@ class Statement(models.Model):
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
         if self.context_instructor:
-            ret['context']['instructor'] = self.context_instructor.to_dict(ret_format)
+            ret['context']['instructor'] = self.context_instructor.to_dict(ids_only)
         if self.context_team:
-            ret['context']['team'] = self.context_team.to_dict(ret_format)
+            ret['context']['team'] = self.context_team.to_dict(ids_only)
         if self.context_revision:
             ret['context']['revision'] = self.context_revision
         if self.context_platform:
@@ -554,13 +538,13 @@ class Statement(models.Model):
         
         ret['context']['contextActivities'] = OrderedDict()
         if self.context_ca_parent.all():
-            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(lang, ret_format) for cap in self.context_ca_parent.all()]
+            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(lang, ids_only) for cap in self.context_ca_parent.all()]
         if self.context_ca_grouping.all():
-            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(lang, ret_format) for cag in self.context_ca_grouping.all()]
+            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(lang, ids_only) for cag in self.context_ca_grouping.all()]
         if self.context_ca_category.all():
-            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(lang, ret_format) for cac in self.context_ca_category.all()]
+            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(lang, ids_only) for cac in self.context_ca_category.all()]
         if self.context_ca_other.all():
-            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(lang, ret_format) for cao in self.context_ca_other.all()]
+            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(lang, ids_only) for cao in self.context_ca_other.all()]
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
         if not ret['context']['contextActivities']:
@@ -571,7 +555,7 @@ class Statement(models.Model):
         ret['timestamp'] = self.timestamp.isoformat()
         ret['stored'] = self.stored.isoformat()
         if not self.authority is None:
-            ret['authority'] = self.authority.to_dict(ret_format)
+            ret['authority'] = self.authority.to_dict(ids_only)
         ret['version'] = self.version       
         if self.stmt_attachments.all():
             ret['attachments'] = [a.to_dict(lang) for a in self.stmt_attachments.all()]

@@ -268,7 +268,7 @@ class AgentManagerTests(TestCase):
         self.assertEquals(clark_exact['name'], name_s)
         self.assertEquals(clark_exact['mbox'], mbox_s)
 
-        clark_ids = clark.to_dict(ret_format='ids')
+        clark_ids = clark.to_dict(ids_only=True)
         self.assertFalse('objectType' in str(clark_ids), "object type was found in agent json")
         self.assertFalse('name' in str(clark_ids), "name was found in agent json")
         self.assertEquals(clark_ids['mbox'], mbox_s)
@@ -289,7 +289,7 @@ class AgentManagerTests(TestCase):
         self.assertEquals(diana_exact['name'], name_ww)
         self.assertEquals(diana_exact['mbox_sha1sum'], mbox_sha1sum_ww)
 
-        diana_ids = diana.to_dict(ret_format='ids')
+        diana_ids = diana.to_dict(ids_only=True)
         self.assertFalse('objectType' in str(diana_ids), "object type was found in agent json")
         self.assertFalse('name' in str(diana_ids), "name was found in agent json")
         self.assertFalse('mbox' in diana_ids.items(), "mbox was found in agent json")
@@ -311,7 +311,7 @@ class AgentManagerTests(TestCase):
         self.assertEquals(bruce_exact['name'], name_b)
         self.assertEquals(bruce_exact['openid'], openid_b)
 
-        bruce_ids = bruce.to_dict(ret_format='ids')
+        bruce_ids = bruce.to_dict(ids_only=True)
         self.assertFalse('objectType' in str(bruce_ids), "object type was found in agent json")
         self.assertFalse('name' in str(bruce_ids), "name was found in agent json")
         self.assertFalse('mbox' in str(bruce_ids), "mbox was found in agent json")
@@ -336,7 +336,7 @@ class AgentManagerTests(TestCase):
         self.assertEquals(barry_exact['account']['homePage'], account_f['homePage'])
         self.assertEquals(barry_exact['account']['name'], account_f['name'])
 
-        barry_ids = barry.to_dict(ret_format='ids')
+        barry_ids = barry.to_dict(ids_only=True)
         self.assertFalse('objectType' in str(barry_ids), "object type was found in agent json")
         self.assertFalse('name' in barry_ids.items(), "name was found in agent json")
         self.assertFalse('mbox' in barry_ids.items(), "mbox was found in agent json")
@@ -361,7 +361,7 @@ class AgentManagerTests(TestCase):
         self.assertEquals(justiceleague_exact['name'], name_j)
         self.assertEquals(justiceleague_exact['mbox'], mbox_j)
 
-        justiceleague_ids = justiceleague.to_dict(ret_format='ids')
+        justiceleague_ids = justiceleague.to_dict(ids_only=True)
         self.assertTrue('objectType' in str(justiceleague_ids), "object type was not found in group json")
         self.assertFalse('name' in str(justiceleague_ids), "name was found in agent json")
         self.assertEquals(justiceleague_ids['mbox'], mbox_j)
@@ -393,7 +393,7 @@ class AgentManagerTests(TestCase):
             else:
                 self.fail("got an unexpected name: " % m['name'])
 
-        badguys_ids = badguys.to_dict(ret_format='ids')
+        badguys_ids = badguys.to_dict(ids_only=True)
         self.assertTrue('objectType' in str(badguys_ids), "object type was not found in group json")
         for m in badguys_ids['member']:
             self.assertFalse('objectType' in str(m), "object type was found in member agent")

@@ -1111,3 +1111,109 @@ class AuthTests(TestCase):
         
         response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
+
+    def test_interaction_activity_update(self):
+        username_1 = "tester1"
+        email_1 = "test1@tester.com"
+        password_1 = "test"
+        auth_1 = "Basic %s" % base64.b64encode("%s:%s" % (username_1, password_1))
+        form_1 = {"username":username_1, "email":email_1,"password":password_1,"password2":password_1}
+        response_1 = self.client.post(reverse(register),form_1, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        username_2 = "tester2"
+        email_2 = "test2@tester.com"
+        password_2 = "test2"
+        auth_2 = "Basic %s" % base64.b64encode("%s:%s" % (username_2, password_2))
+        form_2 = {"username":username_2, "email":email_2,"password":password_2,"password2":password_2}
+        response_2 = self.client.post(reverse(register),form_2, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://example.com/verbs/assess"},
+            "object":{'objectType': 'Activity', 'id':'http://example/intupdate',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},
+                {'id':'likert_1','description':{'en-US': 'Its Pretty Cool'}},
+                {'id':'likert_2','description':{'en-US':'Its Cool Cool'}},
+                {'id':'likert_3','description': {'en-US': 'Its Gonna Change the World'}}]}}})
+        st_post = self.client.post(reverse('lrs:statements'), st, content_type="application/json", Authorization=auth_1,
+            X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(st_post.status_code, 200)
+
+        act = Activity.objects.get(activity_id="http://example/intupdate")
+        self.assertIn('scale', act.canonical_data['definition'])
+        scale_ids = [s['id'] for s in act.canonical_data['definition']['scale']]
+        self.assertIn('likert_0', scale_ids)        
+        self.assertIn('likert_1', scale_ids)
+        self.assertIn('likert_2', scale_ids)
+        self.assertIn('likert_3', scale_ids)                
+        scale_descs = [s['description'] for s in act.canonical_data['definition']['scale']]
+        scale_desc_keys = list(set().union(*(d.keys() for d in scale_descs)))
+        scale_desc_values = list(set().union(*(d.values() for d in scale_descs)))
+        self.assertEqual(len(scale_descs), 4)
+        self.assertIn('en-US', scale_desc_keys)
+        self.assertIn('Its OK', scale_desc_values)
+        self.assertIn('Its Pretty Cool', scale_desc_values)
+        self.assertIn('Its Cool Cool', scale_desc_values)
+        self.assertIn('Its Gonna Change the World', scale_desc_values)
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://example.com/verbs/assess"},
+            "object":{'objectType': 'Activity', 'id':'http://example/intupdate',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},
+                {'id':'likert_1','description':{'en-US': 'Its Pretty Coolio'}},
+                {'id':'likert_3','description': {'en-UK': 'Its Gonna Be Great'}}]}}})
+        st_post = self.client.post(reverse('lrs:statements'), st, content_type="application/json", Authorization=auth_2,
+            X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(st_post.status_code, 200)
+
+        # Shouldn't change, doesn't have permission
+        act = Activity.objects.get(activity_id="http://example/intupdate")
+        self.assertIn('scale', act.canonical_data['definition'])
+        scale_ids = [s['id'] for s in act.canonical_data['definition']['scale']]
+        self.assertIn('likert_0', scale_ids)        
+        self.assertIn('likert_1', scale_ids)
+        self.assertIn('likert_2', scale_ids)
+        self.assertIn('likert_3', scale_ids)                
+        scale_descs = [s['description'] for s in act.canonical_data['definition']['scale']]
+        scale_desc_keys = list(set().union(*(d.keys() for d in scale_descs)))
+        scale_desc_values = list(set().union(*(d.values() for d in scale_descs)))
+        self.assertEqual(len(scale_descs), 4)
+        self.assertIn('en-US', scale_desc_keys)
+        self.assertIn('Its OK', scale_desc_values)
+        self.assertIn('Its Pretty Cool', scale_desc_values)
+        self.assertIn('Its Cool Cool', scale_desc_values)
+        self.assertIn('Its Gonna Change the World', scale_desc_values)
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://example.com/verbs/assess"},
+            "object":{'objectType': 'Activity', 'id':'http://example/intupdate',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},
+                {'id':'likert_1','description':{'en-US': 'Its Pretty Coolio'}},
+                {'id':'likert_3','description': {'en-UK': 'Its Gonna Be Great'}}]}}})
+        st_post = self.client.post(reverse('lrs:statements'), st, content_type="application/json", Authorization=auth_1,
+            X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(st_post.status_code, 200)
+
+        # Should still keep same number of scales, only will update the descriptions
+        act = Activity.objects.get(activity_id="http://example/intupdate")
+        self.assertIn('scale', act.canonical_data['definition'])
+        scale_ids = [s['id'] for s in act.canonical_data['definition']['scale']]
+        self.assertIn('likert_0', scale_ids)
+        self.assertIn('likert_1', scale_ids)
+        self.assertIn('likert_2', scale_ids)
+        self.assertIn('likert_3', scale_ids)                
+        scale_descs = [s['description'] for s in act.canonical_data['definition']['scale']]
+        scale_desc_keys = list(set().union(*(d.keys() for d in scale_descs)))
+        scale_desc_values = list(set().union(*(d.values() for d in scale_descs)))
+        self.assertEqual(len(scale_descs), 4)
+        self.assertIn('en-US', scale_desc_keys)
+        self.assertIn('en-UK', scale_desc_keys)        
+        self.assertIn('Its OK', scale_desc_values)
+        self.assertIn('Its Pretty Coolio', scale_desc_values)
+        self.assertIn('Its Cool Cool', scale_desc_values)
+        self.assertIn('Its Gonna Be Great', scale_desc_values)
