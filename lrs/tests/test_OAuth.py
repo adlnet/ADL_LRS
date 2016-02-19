@@ -2562,7 +2562,7 @@ Lw03eHTNQghS0A==
         self.assertEqual(post.status_code, 200)
         acts = Activity.objects.all()
         self.assertEqual(len(acts), 1)
-        self.assertNotIn("definition", acts[0].to_dict().keys())
+        self.assertNotIn("definition", acts[0].return_activity_with_lang_format().keys())
 
     def test_define_scope_agent(self):
         url = 'http://testserver/XAPI/statements'
@@ -2791,7 +2791,7 @@ Lw03eHTNQghS0A==
         self.assertEqual(resp.status_code, 204)
         acts = Activity.objects.all()
         self.assertEqual(len(acts), 1)
-        act = acts[0].to_dict()
+        act = acts[0].return_activity_with_lang_format()
         self.assertEqual(act['id'], 'test://test/define/scope')
         self.assertIn('definition', act)
 
@@ -2844,7 +2844,7 @@ Lw03eHTNQghS0A==
 
         acts = Activity.objects.all()
         self.assertEqual(len(acts), 1)
-        act = acts[0].to_dict()
+        act = acts[0].return_activity_with_lang_format()
         self.assertEqual(act['id'], 'test://test/define/scope')
         self.assertIn('definition', act) 
 

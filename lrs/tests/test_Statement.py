@@ -410,8 +410,8 @@ class StatementTests(TestCase):
         stmt2 = Statement.objects.get(object_activity=activity2)
         verb1 = Verb.objects.get(id=stmt1.verb.id)
         verb2 = Verb.objects.get(id=stmt2.verb.id)
-        lang_map1 = verb1.display
-        lang_map2 = verb2.display
+        lang_map1 = verb1.canonical_data['display']
+        lang_map2 = verb2.canonical_data['display']
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb.verb_id, "http://example.com/verbs/passed")
@@ -838,16 +838,15 @@ class StatementTests(TestCase):
             "context":{"registration": self.cguid6, "contextActivities": {"other": {"id": "act:NewActivityID2"}},
             "revision": "food", "platform":"bard","language": "en-US", "extensions":{"ext:ckey1": "cval1",
             "ext:ckey2": "cval2"}}, "authority":{"objectType":"Agent","name":"auth","mbox":"mailto:auth@example.com"}})
-
+        
         post_response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post_response.status_code, 200)
 
         act = Activity.objects.get(activity_id="act:foogie")
 
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
-
+        name_set = act.canonical_data['definition']['name']
+        desc_set = act.canonical_data['definition']['description']
         self.assertEqual(name_set.keys()[1], "en-US")
         self.assertEqual(name_set.values()[1], "testname3")
         self.assertEqual(name_set.keys()[0], "en-GB")

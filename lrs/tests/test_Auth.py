@@ -284,8 +284,8 @@ class AuthTests(TestCase):
         stmt2 = Statement.objects.get(object_activity=activity2)
         verb1 = Verb.objects.get(id=stmt1.verb.id)
         verb2 = Verb.objects.get(id=stmt2.verb.id)
-        lang_map1 = verb1.display
-        lang_map2 = verb2.display
+        lang_map1 = verb1.canonical_data['display']
+        lang_map2 = verb2.canonical_data['display']
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb.verb_id, "http://example.com/verbs/passed")
@@ -457,8 +457,8 @@ class AuthTests(TestCase):
 
         act = Activity.objects.get(activity_id="act:foogie")
 
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
+        name_set = act.canonical_data['definition']['name']
+        desc_set = act.canonical_data['definition']['description']
 
         self.assertEqual(name_set.keys()[1], "en-US")
         self.assertEqual(name_set.values()[1], "testname3")
@@ -989,7 +989,7 @@ class AuthTests(TestCase):
             Authorization=auth_1, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_1.status_code, 200)
         user1_agent = Agent.objects.get(mbox="mailto:test1@tester.com")
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         with self.assertRaises(KeyError):
             act["definition"]
@@ -1005,18 +1005,18 @@ class AuthTests(TestCase):
         user2_agent = Agent.objects.get(mbox="mailto:test2@tester.com")
         self.assertEqual(response_2.status_code, 200)
         with self.assertRaises(Activity.DoesNotExist):
-            Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
+            Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).return_activity_with_lang_format()
 
         acts = Activity.objects.filter(activity_id="act:test_activity_change")
         self.assertEqual(acts.count(), 1)
         with self.assertRaises(KeyError):
-            acts[0].to_dict()["definition"]
+            acts[0].return_activity_with_lang_format()["definition"]
 
         # Should not update activity
         response_3 = self.client.post(reverse('lrs:statements'), stmt_1, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_3.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         with self.assertRaises(KeyError):
             act["definition"]
@@ -1030,7 +1030,7 @@ class AuthTests(TestCase):
         response_4 = self.client.post(reverse('lrs:statements'), stmt_3, content_type="application/json",
             Authorization=auth_1, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_4.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user1_agent).to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user1_agent).return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
 
@@ -1038,7 +1038,7 @@ class AuthTests(TestCase):
         response_5 = self.client.post(reverse('lrs:statements'), stmt_3, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_5.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
@@ -1051,7 +1051,7 @@ class AuthTests(TestCase):
         response_6 = self.client.post(reverse('lrs:statements'), stmt_4, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_6.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
@@ -1064,7 +1064,7 @@ class AuthTests(TestCase):
         response_7 = self.client.post(reverse('lrs:statements'), stmt_5, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_7.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertNotIn("fr", act['definition']['name'])
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
@@ -1074,7 +1074,7 @@ class AuthTests(TestCase):
         response_8 = self.client.post(reverse('lrs:statements'), stmt_1, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response_8.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertIn("definition", act.keys())
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()

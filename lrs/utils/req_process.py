@@ -182,8 +182,7 @@ def statements_get(req_dict):
             resp, content_length = process_complex_get(req_dict)
         else:
             st = Statement.objects.get(statement_id=req_dict['statementId'])
-            
-            stmt_result = json.dumps(st.to_dict(format=req_dict['params']['format']), sort_keys=False)
+            stmt_result = json.dumps(st.to_dict(ret_format=req_dict['params']['format']), sort_keys=False)
             resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
             content_length = len(stmt_result)
     # Complex GET
@@ -372,7 +371,7 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     activityId = req_dict['params']['activityId']
     act = Activity.objects.get(activity_id=activityId, authority__isnull=False)
-    return_act = json.dumps(act.to_dict('all'), sort_keys=False)    
+    return_act = json.dumps(act.return_activity_with_lang_format('all'), sort_keys=False)    
     resp = HttpResponse(return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
     # If it's a HEAD request
