@@ -100,11 +100,9 @@ class StatementManager():
     def build_attachments(self, user_info, attachment_data, payload_sha2s):
         # Iterate through each attachment
         for attach in attachment_data:
-            sha2 = attach.pop('sha2', None)
-            fileUrl = attach.pop('fileUrl', None)
-            attachment = StatementAttachment.objects.create(**attach)
+            sha2 = attach.get('sha2', None)
+            attachment = StatementAttachment.objects.create(canonical_data=attach)
             if sha2:
-                attachment.sha2 = sha2
                 if payload_sha2s and sha2 in payload_sha2s:
                     raw_payload = att_cache.get(sha2)
                     try:
@@ -112,8 +110,6 @@ class StatementManager():
                     except Exception, e:
                         raise e
                     attachment.payload.save(sha2, payload)
-            if fileUrl:
-                attachment.fileUrl = fileUrl
             attachment.statement = self.model_object
             attachment.save()
 

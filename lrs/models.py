@@ -33,9 +33,8 @@ class Verb(models.Model):
     canonical_data = JSONField(default=dict)
 
     def return_verb_with_lang(self, lang=None):
-        ret = OrderedDict()
-        ret['id'] = self.verb_id
-        if 'display' in self.canonical_data:
+        ret = OrderedDict(self.canonical_data)
+        if 'display' in ret:
             ret['display'] = get_lang(self.canonical_data['display'], lang)
         return ret
 
@@ -558,7 +557,7 @@ class Statement(models.Model):
             ret['authority'] = self.authority.to_dict(ids_only)
         ret['version'] = self.version       
         if self.stmt_attachments.all():
-            ret['attachments'] = [a.to_dict(lang) for a in self.stmt_attachments.all()]
+            ret['attachments'] = [a.return_attachment_with_lang(lang) for a in self.stmt_attachments.all()]
         return ret
 
     def get_a_name(self):
@@ -589,44 +588,32 @@ class AttachmentFileSystemStorage(FileSystemStorage):
         # if the file is new, DO call it
         return super(AttachmentFileSystemStorage, self)._save(name, content)    
 class StatementAttachment(models.Model):
-    usageType = models.CharField(max_length=MAX_URL_LENGTH)
-    contentType = models.CharField(max_length=128)
-    length = models.PositiveIntegerField()
-    sha2 = models.CharField(max_length=128, blank=True)
-    fileUrl = models.CharField(max_length=MAX_URL_LENGTH, blank=True)
+    canonical_data = JSONField(default=dict)
     payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, storage=AttachmentFileSystemStorage(), null=True)
-    display = JSONField(default=dict, blank=True)
-    description = JSONField(default=dict, blank=True)
     statement = models.ForeignKey(Statement, related_name="stmt_attachments", null=True)
 
-    def to_dict(self, lang=None):
-        ret = OrderedDict()
-        ret['usageType'] = self.usageType
-        if self.display:
-            ret['display'] = get_lang(self.display, lang)
-        if self.description:
-            ret['description'] = get_lang(self.description, lang)
-        ret['contentType'] = self.contentType
-        ret['length'] = self.length
-        if self.sha2:
-            ret['sha2'] = self.sha2
-        if self.fileUrl:
-            ret['fileUrl'] = self.fileUrl
+    def return_attachment_with_lang(self, lang=None):
+        ret = OrderedDict(self.canonical_data)
+        if 'display' in ret:
+            ret['display'] = get_lang(self.canonical_data['display'], lang)
+        if 'description' in ret:
+            ret['description'] = get_lang(self.canonical_data['description'], lang)
         return ret
 
     def __unicode__(self):
-        return json.dumps(self.to_dict(), sort_keys=False)
+        return json.dumps(self.canonical_data, sort_keys=False)
 
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
     updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
-    state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
     json_state = models.TextField(blank=True)
-    agent = models.ForeignKey(Agent)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     registration_id = models.CharField(max_length=40, db_index=True)
     content_type = models.CharField(max_length=255,blank=True)
     etag = models.CharField(max_length=50,blank=True)
+
+    state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
+    agent = models.ForeignKey(Agent)
 
     def delete(self, *args, **kwargs):
         if self.state:

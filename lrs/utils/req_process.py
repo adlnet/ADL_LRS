@@ -217,7 +217,7 @@ def build_response(stmt_result):
             if st_atts:
                 for att in st_atts.all():
                     if att.payload:
-                        sha2s.append((att.sha2, att.payload, att.contentType))
+                        sha2s.append((att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
     # If attachments have payloads
     if sha2s:
         # Create multipart message and attach json message to it

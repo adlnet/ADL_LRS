@@ -240,7 +240,7 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(attachments), 2)
 
         self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
-        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].canonical_data['fileUrl'], "http://my/file/url")
 
     def test_multiple_stmt_multipart_multiple_attachments_each(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -519,8 +519,8 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
-        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].canonical_data['fileUrl'], "http://my/file/url")
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].canonical_data['fileUrl'], "http://my/file/url")
 
     def tyler_attachment_snafu(self):
         stmt = {
