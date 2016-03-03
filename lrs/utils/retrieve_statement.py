@@ -103,9 +103,9 @@ def complex_get(param_dict, limit, language, format, attachments):
 
     stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority', \
         'context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
-        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ)
     
-    stmtset = list(stmtset.values_list('statement_id', flat=True))
+    stmtset = list(set(stmtset.values_list('statement_id', flat=True)))
     # only find references when a filter other than
     # since, until, or limit was used 
     if reffilter:
@@ -114,7 +114,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
 
-    actual_length = Statement.objects.filter(Q(statement_id__in=stmtset) & voidQ).distinct().count()
+    actual_length = len(list(set(Statement.objects.filter(Q(statement_id__in=stmtset) & voidQ))))
 
     # If there are more stmts than the limit, need to break it up and return more id
     if actual_length > return_limit:
@@ -124,13 +124,14 @@ def complex_get(param_dict, limit, language, format, attachments):
 
 def stmt_ref_search(stmt_list, untilQ, sinceQ):
     # find statements where ids in list are used in other statements' objects, context, substatements, and substatement context
-    stmtreflist = list(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True))
+    stmtreflist = list(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).values_list('statement_id', flat=True))
+    stmtreflist = list(set(stmtreflist))
     if not stmtreflist:
         return stmt_list
 
     # get the statements that have a statement ref_id in the stmtreflist, recurse
-    return stmtreflist + list(stmt_ref_search(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id', flat=True),
-        untilQ, sinceQ))
+    return stmtreflist + list(set(stmt_ref_search(Statement.objects.filter(Q(object_statementref__in=stmt_list) & untilQ & sinceQ).values_list('statement_id', flat=True),
+        untilQ, sinceQ)))
 
 def set_limit(req_limit):
     if not req_limit or req_limit > settings.SERVER_STMT_LIMIT:
@@ -140,7 +141,8 @@ def set_limit(req_limit):
 def create_under_limit_stmt_result(stmt_set, stored, language, format):
     stmt_result = {}
     if stmt_set:
-        stmt_set = Statement.objects.filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
+        stmt_ids = list(set(Statement.objects.filter(Q(statement_id__in=stmt_set) & Q(voided=False)).values_list('statement_id', flat=True)))
+        stmt_set = Statement.objects.filter(statement_id__in=stmt_ids)
         if format == 'exact':
             stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in stmt_set.order_by(stored)])
         else:
@@ -168,7 +170,8 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, at
     result = {}
     cache_list = []
 
-    stmt_list = Statement.objects.filter(Q(statement_id__in=stmt_list) & Q(voided=False)).distinct()
+    stmt_ids = list(set(Statement.objects.filter(Q(statement_id__in=stmt_list) & Q(voided=False)).values_list('statement_id', flat=True)))
+    stmt_list = Statement.objects.filter(statement_id__in=stmt_ids)
     cache_list.append([s for s in stmt_list.order_by(stored).values_list('id', flat=True)])
     stmt_pager = Paginator(cache_list[0], limit)
 
