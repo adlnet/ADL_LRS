@@ -395,7 +395,8 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertEqual(len(stmts), 1)
+        # I'm in a group for one statement and the object in another
+        self.assertEqual(len(stmts), 2)
 
         param = {"agent":{"mbox":"mailto:louo@example.com"}, "related_agents":True}
         path = "%s?%s" % (reverse(statements),urllib.urlencode(param))
