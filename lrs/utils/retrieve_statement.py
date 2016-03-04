@@ -57,9 +57,9 @@ def complex_get(param_dict, limit, language, format, attachments):
             # Since single agent, return all groups it is in
             else:
                 groups = agent.member.all()
-            agentQ = Q(actor=agent)
+            agentQ = Q(actor=agent) | Q(object_agent=agent)
             for g in groups:
-                agentQ = agentQ | Q(actor=g)
+                agentQ = agentQ | Q(actor=g) | Q(object_agent=g)
             if related:
                 me = chain([agent], groups)
                 for a in me:
