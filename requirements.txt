@@ -5,6 +5,7 @@ bencode==1.0
 psycopg2==2.5
 isodate==0.4.9
 pycrypto==2.5
+django-cors-headers==1.1.0
 django-extensions==1.1.1
 jsonfield==0.9.19
 oauth2==1.5.211

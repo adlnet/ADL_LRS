@@ -183,12 +183,41 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.contrib.messages.context_processors.messages"
 )
 
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = (
+    'HEAD',
+    'POST',
+    'GET',
+    'OPTIONS',
+    'DELETE',
+    'PUT'
+)
+CORS_ALLOW_HEADERS = (
+    'Content-Type',
+    'Content-Length',
+    'Authorization',
+    'If-Match',
+    'If-None-Match',
+    'X-Experience-API-Version',
+    'Accept-Language'
+)
+CORS_EXPOSE_HEADERS = (
+    'ETag',
+    'Last-Modified',
+    'Cache-Control',
+    'Content-Type',
+    'Content-Length',
+    'WWW-Authenticate',
+    'X-Experience-API-Version',
+    'Accept-Language'
+)
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'adl_lrs.utils.AllowOriginMiddleware.AllowOriginMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -222,6 +251,7 @@ INSTALLED_APPS = (
     'jsonify',
     'south',
     'endless_pagination',
+    'corsheaders',
 )
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
