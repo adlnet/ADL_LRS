@@ -65,7 +65,7 @@ def about(request):
                 }
             }
         }
-    }    
+    }  
     return HttpResponse(json.dumps(lrs_data), mimetype="application/json", status=200)  
 
 @require_http_methods(["GET", "HEAD"])
