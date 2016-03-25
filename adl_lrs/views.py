@@ -1,6 +1,5 @@
 import json
 import urllib
-from base64 import b64decode
 
 from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
@@ -110,8 +109,7 @@ def admin_attachments(request, path):
         try:
             # Default chunk size is 64kb
             for chunk in att_object.payload.chunks():
-                decoded_data = b64decode(chunk)
-                chunks.append(decoded_data)
+                chunks.append(chunk)
         except OSError:
             return HttpResponseNotFound("File not found")
 

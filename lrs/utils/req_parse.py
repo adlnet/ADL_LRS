@@ -3,7 +3,6 @@ import email
 import urllib
 import json
 import itertools
-from base64 import b64decode, b64encode
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
 
@@ -265,6 +264,9 @@ def parse_attachment(request, r_dict):
         for part in msg.get_payload():
             xhash = part.get('X-Experience-API-Hash')
             c_type = part['Content-Type']
+            encoding = part.get('Content-Transfer-Encoding', None)
+            if encoding != "binary":
+                raise BadRequest("Each attachment part should have 'binary' as Content-Transfer-Encoding")            
             # Plaintext payloads from email lib have extra newline appended
             if "text/plain" in c_type:
                 payload = part.get_payload()
@@ -287,7 +289,7 @@ def parse_attachment(request, r_dict):
         # find if any of those statements with attachments have a signed statement
         signed_stmts = [(s,a) for s in att_stmts for a in s.get('attachments', None) if a['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
         for ss in signed_stmts:
-            attmnt = b64decode(att_cache.get(ss[1]['sha2']))
+            attmnt = att_cache.get(ss[1]['sha2'])
             jws = JWS(jws=attmnt)
             try:
                 if not jws.verify() or not jws.validate(ss[0]):

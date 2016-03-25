@@ -1724,11 +1724,22 @@ class StatementFilterTests(TestCase):
         textdata12 = MIMEText(txt12, 'plain', 'utf-8')
         textdata21 = MIMEText(txt21, 'plain', 'utf-8')
         textdata22 = MIMEText(txt22, 'plain', 'utf-8')
- 
+        
+
         textdata11.add_header('X-Experience-API-Hash', txtsha11)
         textdata12.add_header('X-Experience-API-Hash', txtsha12)
         textdata21.add_header('X-Experience-API-Hash', txtsha21)
         textdata22.add_header('X-Experience-API-Hash', txtsha22)
+
+        textdata11.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata12.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata21.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata22.replace_header('Content-Transfer-Encoding', 'binary')
+
+        textdata11.set_payload(txt11, 'utf-8')
+        textdata12.set_payload(txt12, 'utf-8')
+        textdata21.set_payload(txt21, 'utf-8')
+        textdata22.set_payload(txt22, 'utf-8')
 
         message.attach(stmtdata)
         message.attach(textdata11)
@@ -1845,6 +1856,8 @@ class StatementFilterTests(TestCase):
         textdata11 = MIMEText(txt11, 'plain', 'utf-8')
 
         textdata11.add_header('X-Experience-API-Hash', txtsha11)
+        textdata11.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata11.set_payload(txt11, 'utf-8')
 
         message.attach(stmtdata)
         message.attach(textdata11)
@@ -2025,6 +2038,16 @@ class StatementFilterTests(TestCase):
         textdata3.add_header('X-Experience-API-Hash', txtsha3)
         textdata4.add_header('X-Experience-API-Hash', txtsha4)
 
+        textdata1.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata3.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata4.replace_header('Content-Transfer-Encoding', 'binary')
+
+        textdata1.set_payload(txt1, 'utf-8')
+        textdata2.set_payload(txt2, 'utf-8')
+        textdata3.set_payload(txt3, 'utf-8')
+        textdata4.set_payload(txt4, 'utf-8')
+
         message.attach(stmtdata)
         message.attach(textdata1)
         message.attach(textdata2)
@@ -2162,6 +2185,16 @@ class StatementFilterTests(TestCase):
         textdata2.add_header('X-Experience-API-Hash', txtsha2)
         textdata3.add_header('X-Experience-API-Hash', txtsha3)
         textdata4.add_header('X-Experience-API-Hash', txtsha4)
+
+        textdata1.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata3.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata4.replace_header('Content-Transfer-Encoding', 'binary')
+
+        textdata1.set_payload(txt1, 'utf-8')
+        textdata2.set_payload(txt2, 'utf-8')
+        textdata3.set_payload(txt3, 'utf-8')
+        textdata4.set_payload(txt4, 'utf-8')
 
         message.attach(stmtdata)
         message.attach(textdata1)

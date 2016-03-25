@@ -1,7 +1,6 @@
 import json
 import uuid
 import copy
-from base64 import b64decode
 from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
@@ -241,8 +240,7 @@ def build_response(stmt_result):
             try:
                 # Default chunk size is 64kb
                 for chunk in sha2[1].chunks():
-                    decoded_data = b64decode(chunk)
-                    chunks.append(decoded_data)
+                    chunks.append(chunk)                    
             except OSError:
                 raise OSError(2, "No such file or directory", sha2[1].name.split("/")[1])
             string_list.append("".join(chunks) + line_feed)
