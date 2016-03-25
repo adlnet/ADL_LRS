@@ -18,6 +18,7 @@ METHOD_URL_QUERY = 2
 
 
 class BaseOAuthTestCase(TestCase):
+
     def setUp(self):
         self.username = 'jane'
         self.password = 'toto'
@@ -29,7 +30,7 @@ class BaseOAuthTestCase(TestCase):
         self.CONSUMER_SECRET = 'kd94hf93k423kf44'
 
         consumer = self.consumer = Consumer(key=self.CONSUMER_KEY, secret=self.CONSUMER_SECRET,
-            name='printer.example.com', user=self.jane)
+                                            name='printer.example.com', user=self.jane)
         consumer.save()
 
         self.callback_token = self.callback = 'http://printer.example.com/request_token_ready'
@@ -51,12 +52,12 @@ class BaseOAuthTestCase(TestCase):
         }
         parameters.update(parameters_overriden)
 
-        if method==METHOD_AUTHORIZATION_HEADER:
+        if method == METHOD_AUTHORIZATION_HEADER:
             header = self._get_http_authorization_header(parameters)
             response = self.c.get("/oauth/request_token/", HTTP_AUTHORIZATION=header)
-        elif method==METHOD_URL_QUERY:
+        elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/request_token/", parameters)
-        elif method==METHOD_POST_REQUEST_BODY:
+        elif method == METHOD_POST_REQUEST_BODY:
             body = urllib.urlencode(parameters)
             response = self.c.post("/oauth/request_token/", body, content_type="application/x-www-form-urlencoded")
         else:
@@ -68,7 +69,7 @@ class BaseOAuthTestCase(TestCase):
 
         self.assert_(
             re.match(r'oauth_token_secret=[^&]+&oauth_token=[^&]+&oauth_callback_confirmed=true', response.content
-            ))
+                     ))
 
         token = self.request_token = list(Token.objects.all())[-1]
         self.assert_(token.key in response.content)
@@ -115,12 +116,12 @@ class BaseOAuthTestCase(TestCase):
         }
         parameters.update(parameters_overriden)
 
-        if method==METHOD_AUTHORIZATION_HEADER:
+        if method == METHOD_AUTHORIZATION_HEADER:
             header = self._get_http_authorization_header(parameters)
             response = self.c.get("/oauth/access_token/", HTTP_AUTHORIZATION=header)
-        elif method==METHOD_URL_QUERY:
+        elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/access_token/", parameters)
-        elif method==METHOD_POST_REQUEST_BODY:
+        elif method == METHOD_POST_REQUEST_BODY:
             body = urllib.urlencode(parameters)
             response = self.c.post("/oauth/access_token/", body, content_type="application/x-www-form-urlencoded")
         else:
@@ -137,6 +138,7 @@ class BaseOAuthTestCase(TestCase):
         # patch header with scope
         authorization_header += ", scope=%s" % self.scope.name
         return authorization_header
+
 
 class TestOAuthDifferentAuthorizationMethods(BaseOAuthTestCase):
 

@@ -10,10 +10,12 @@ from .forms import AuthorizationCodeGrantForm
 from .models import Client, RefreshToken, AccessToken
 from .backends import BasicClientBackend, RequestParamsClientBackend, PublicPasswordBackend
 
+
 class Capture(Capture):
     """
     Implementation of :class:`provider.views.Capture`.
     """
+
     def get_redirect_url(self, request):
         return reverse('oauth2:authorize')
 
@@ -22,6 +24,7 @@ class Authorize(Authorize):
     """
     Implementation of :class:`provider.views.Authorize`.
     """
+
     def get_request_form(self, client, data):
         return AuthorizationRequestForm(data, client=client)
 

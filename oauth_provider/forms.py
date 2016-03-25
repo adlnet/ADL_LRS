@@ -11,9 +11,12 @@ for p in settings.OAUTH_SCOPES:
     SCOPES_LIST.append((p[1], p[1]))
 FORM_SCOPES = tuple(SCOPES_LIST)
 
+
 class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
+
     def render(self, name, value, attrs=None, choices=()):
-        if value is None: value = []
+        if value is None:
+            value = []
         has_id = attrs and 'id' in attrs
         final_attrs = self.build_attrs(attrs, name=name)
         output = [u'<p class="checkboxes">']
@@ -36,11 +39,12 @@ class MyCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
         output.append(u'</p>')
         return mark_safe(u'\n'.join(output))
 
+
 class AuthorizeRequestTokenForm(forms.Form):
     scopes = forms.MultipleChoiceField(required=False, initial=FORM_SCOPES[0],
-        widget=MyCheckboxSelectMultiple(), choices=FORM_SCOPES)
-    authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)        
-    obj_id = forms.IntegerField(widget=forms.HiddenInput, initial=0)        
+                                       widget=MyCheckboxSelectMultiple(), choices=FORM_SCOPES)
+    authorize_access = forms.IntegerField(widget=forms.HiddenInput, initial=1)
+    obj_id = forms.IntegerField(widget=forms.HiddenInput, initial=0)
     oauth_token = forms.CharField(widget=forms.HiddenInput)
 
     def clean(self):
@@ -53,23 +57,23 @@ class AuthorizeRequestTokenForm(forms.Form):
 
         if "statements/read/mine" in scopes and "statements/read" in scopes:
             raise forms.ValidationError("'statements/read/mine' and 'statements/read' are conflicting scope values. choose one.")
-        
+
         # if all is in defaults scopes, any changes must just be limiting scope
         if "all" in default_scopes:
             return cleaned
-        elif "all" in scopes: 
+        elif "all" in scopes:
             # if all wasn't in default_scopes but it's in scopes, error
             raise forms.ValidationError("Can't raise permissions beyond what the consumer registered.")
-        
+
         # if scope and default aren't the same, see if any scope raises permissions
         if set(scopes) != set(default_scopes):
             # now we know all isn't in default scope and something changed from defaults
             # see if the change is ok
             nomatch = [k for k in scopes if k not in default_scopes]
 
-            if not ("all/read" in nomatch or 
-                    ("statements/read" in nomatch and "all/read" in default_scopes) or 
+            if not ("all/read" in nomatch or
+                    ("statements/read" in nomatch and "all/read" in default_scopes) or
                     ("statements/read/mine" in nomatch and ("all/read" in default_scopes or "statements/read" in default_scopes))):
                 raise forms.ValidationError("Can't raise permissions beyond what the consumer registered.")
-            
+
         return cleaned

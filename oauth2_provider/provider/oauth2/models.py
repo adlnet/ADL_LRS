@@ -38,7 +38,7 @@ class Client(models.Model):
     Clients are outlined in the :rfc:`2` and its subsections.
     """
     user = models.ForeignKey(AUTH_USER_MODEL, related_name='oauth2_client',
-        blank=True, null=True)
+                             blank=True, null=True)
     name = models.CharField(max_length=255, blank=True)
     url = models.URLField(help_text="Your application's URL.")
     redirect_uri = models.URLField(help_text="Your application's callback URL")
@@ -136,7 +136,7 @@ class AccessToken(models.Model):
     expires = models.DateTimeField()
     # LRS CHANGE - DEFAULT TO FIRST TWO VALUES IN SCOPES WHICH SHOULD BE SET AS STATEMENTS_WRITE AND STATEMENTS_READ_MINE IN settings.py
     scope = models.IntegerField(default=constants.SCOPES[0][0] | constants.SCOPES[1][0],
-            choices=constants.SCOPES)
+                                choices=constants.SCOPES)
 
     objects = AccessTokenManager()
 
@@ -165,10 +165,11 @@ class AccessToken(models.Model):
                 reference = timezone.make_aware(reference, timezone.utc)
 
         timedelta = expiration - reference
-        return timedelta.days*86400 + timedelta.seconds
+        return timedelta.days * 86400 + timedelta.seconds
 
     def scope_to_list(self):
         return to_names(self.scope)
+
 
 class RefreshToken(models.Model):
     """
@@ -186,7 +187,7 @@ class RefreshToken(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL)
     token = models.CharField(max_length=255, default=long_token)
     access_token = models.OneToOneField(AccessToken,
-            related_name='refresh_token')
+                                        related_name='refresh_token')
     client = models.ForeignKey(Client)
     expired = models.BooleanField(default=False)
 

@@ -15,12 +15,13 @@ User = get_user_model()
 class ProtocolExample(BaseOAuthTestCase):
     """Set of tests, based on ProtocolExample document
     """
+
     def _last_created_request_token(self):
         return list(Token.objects.filter(token_type=Token.REQUEST))[-1]
-    
+
     def _last_created_access_token(self):
         return list(Token.objects.filter(token_type=Token.ACCESS))[-1]
-    
+
     def _update_token_from_db(self, request_token):
         """Get fresh copy of the token from the DB"""
         return Token.objects.get(key=request_token.key)
@@ -34,7 +35,7 @@ class ProtocolExample(BaseOAuthTestCase):
             'oauth_nonce': 'requestnonce',
             'oauth_version': '1.0',
             'oauth_callback': 'http://printer.example.com/request_token_ready',
-            'scope': 'photos', # custom argument to specify Protected Resource
+            'scope': 'photos',  # custom argument to specify Protected Resource
         }
 
     def _make_access_token_parameters(self, token):
@@ -71,7 +72,7 @@ class ProtocolExample(BaseOAuthTestCase):
         self.assertEqual(response.content, 'Invalid request parameters.')
 
     def test_returns_401_wrong_callback(self):
-        #If you try to put a wrong callback, it will return an error
+        # If you try to put a wrong callback, it will return an error
         parameters = self._make_request_token_parameters()
         parameters['oauth_callback'] = 'wrongcallback'
         parameters['oauth_nonce'] = 'requestnoncewrongcallback'
@@ -374,8 +375,8 @@ class ProtocolExample(BaseOAuthTestCase):
         (using the Signature Base String as text and self.CONSUMER_SECRET as key)
         """
         oauth_request = oauth.Request.from_token_and_callback(access_token,
-            http_url='http://testserver/oauth/photo/',
-            parameters=parameters)
+                                                              http_url='http://testserver/oauth/photo/',
+                                                              parameters=parameters)
 
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, access_token)

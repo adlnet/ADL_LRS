@@ -25,6 +25,7 @@ from oauth2_provider.provider.scope import to_names
 from oauth2_provider.provider.oauth2.forms import ClientForm
 from oauth2_provider.provider.oauth2.models import Client, AccessToken
 
+
 @csrf_protect
 @require_http_methods(["GET"])
 def home(request):
@@ -37,7 +38,8 @@ def home(request):
     stats['activitycnt'] = Activity.objects.filter().count()
 
     form = RegisterForm()
-    return render_to_response('home.html', {'stats':stats, "form": form}, context_instance=context)
+    return render_to_response('home.html', {'stats': stats, "form": form}, context_instance=context)
+
 
 @csrf_protect
 @require_http_methods(["POST", "GET"])
@@ -56,21 +58,26 @@ def stmt_validator(request):
                 valid = validator.validate()
             except ParamError, e:
                 clean_data = form.cleaned_data['jsondata']
-                return render_to_response('validator.html', {"form": form, "error_message": e.message, "clean_data":clean_data},
-                    context_instance=context)
+                return render_to_response('validator.html', {"form": form, "error_message": e.message, "clean_data": clean_data},
+                                          context_instance=context)
             else:
                 clean_data = json.dumps(validator.data, indent=4, sort_keys=True)
-                return render_to_response('validator.html', {"form": form,"valid_message": valid, "clean_data":clean_data},
-                    context_instance=context)
+                return render_to_response('validator.html', {"form": form, "valid_message": valid, "clean_data": clean_data},
+                                          context_instance=context)
     return render_to_response('validator.html', {"form": form}, context_instance=context)
 
 # Hosted example activites for the tests
+
+
 @require_http_methods(["GET"])
 def actexample1(request):
     return render_to_response('actexample1.json', mimetype="application/json")
+
+
 @require_http_methods(["GET"])
 def actexample2(request):
     return render_to_response('actexample2.json', mimetype="application/json")
+
 
 @csrf_protect
 @require_http_methods(["POST", "GET"])
@@ -85,7 +92,7 @@ def register(request):
             name = form.cleaned_data['username']
             pword = form.cleaned_data['password']
             email = form.cleaned_data['email']
-            
+
             # If username doesn't already exist
             if not User.objects.filter(username__exact=name).count():
                 # if email doesn't already exist
@@ -93,11 +100,11 @@ def register(request):
                     User.objects.create_user(name, email, pword)
                 else:
                     return render_to_response('register.html', {"form": form, "error_message": "Email %s is already registered." % email},
-                        context_instance=context)                    
+                                              context_instance=context)
             else:
                 return render_to_response('register.html', {"form": form, "error_message": "User %s already exists." % name},
-                    context_instance=context)                
-            
+                                          context_instance=context)
+
             # If a user is already logged in, log them out
             if request.user.is_authenticated():
                 logout(request)
@@ -107,6 +114,7 @@ def register(request):
             return HttpResponseRedirect(reverse('adl_lrs.views.home'))
         else:
             return render_to_response('register.html', {"form": form}, context_instance=context)
+
 
 @login_required()
 @require_http_methods(["GET"])
@@ -129,6 +137,7 @@ def admin_attachments(request, path):
         response['Content-Disposition'] = 'attachment; filename="%s"' % path
         return response
 
+
 @transaction.commit_on_success
 @login_required()
 @require_http_methods(["POST", "GET"])
@@ -148,15 +157,16 @@ def reg_client(request):
                 client = Consumer.objects.get(name__exact=name)
             except Consumer.DoesNotExist:
                 client = Consumer.objects.create(name=name, description=description, user=request.user,
-                    status=ACCEPTED, secret=secret, rsa_signature=rsa_signature)
+                                                 status=ACCEPTED, secret=secret, rsa_signature=rsa_signature)
             else:
-                return render_to_response('regclient.html', {"form": form, "error_message": "Client %s already exists." % name}, context_instance=RequestContext(request))         
-            
+                return render_to_response('regclient.html', {"form": form, "error_message": "Client %s already exists." % name}, context_instance=RequestContext(request))
+
             client.generate_random_codes()
-            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "rsa":client.rsa_signature, "info_message": "Your Client Credentials"}
+            d = {"name": client.name, "app_id": client.key, "secret": client.secret, "rsa": client.rsa_signature, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
             return render_to_response('regclient.html', {"form": form}, context_instance=RequestContext(request))
+
 
 @transaction.commit_on_success
 @login_required()
@@ -167,22 +177,24 @@ def reg_client2(request):
         return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
     elif request.method == 'POST':
         form = ClientForm(request.POST)
-        if form.is_valid(): 
+        if form.is_valid():
             client = form.save(commit=False)
             client.user = request.user
             client.save()
-            d = {"name":client.name,"app_id":client.client_id, "secret":client.client_secret, "info_message": "Your Client Credentials"}
+            d = {"name": client.name, "app_id": client.client_id, "secret": client.client_secret, "info_message": "Your Client Credentials"}
             return render_to_response('reg_success.html', d, context_instance=RequestContext(request))
         else:
             return render_to_response('regclient2.html', {"form": form}, context_instance=RequestContext(request))
 
+
 @login_required()
 @require_http_methods(["GET"])
 def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
-    context = {'statements': Statement.objects.filter(user=request.user).order_by('-timestamp'),'page_template': page_template}
+    context = {'statements': Statement.objects.filter(user=request.user).order_by('-timestamp'), 'page_template': page_template}
     if request.is_ajax():
         template = page_template
     return render_to_response(template, context, context_instance=RequestContext(request))
+
 
 @login_required()
 @require_http_methods(["GET"])
@@ -195,10 +207,11 @@ def my_activity_states(request, template="my_activity_states.html", page_templat
         return HttpResponseBadRequest("More than one agent returned with email")
 
     context = {'activity_states': ActivityState.objects.filter(agent=ag).order_by('-updated', 'activity_id'), 'page_template': page_template}
-    
+
     if request.is_ajax():
         template = page_template
     return render_to_response(template, context, context_instance=RequestContext(request))
+
 
 @login_required()
 @require_http_methods(["GET"])
@@ -223,6 +236,7 @@ def my_activity_state(request):
         return HttpResponse(state.json_state, content_type=state.content_type, status=200)
     return HttpResponseBadRequest("Activity ID, State ID and are both required")
 
+
 @transaction.commit_on_success
 @login_required()
 @require_http_methods(["GET"])
@@ -237,12 +251,13 @@ def me(request, template='me.html'):
         access_token_scopes.append((token, scopes))
 
     context_dict = {
-                'client_apps':client_apps,
-                'access_tokens':access_tokens,
-                'client_apps2': client_apps2,
-                'access_tokens2':access_token_scopes
-            }    
+        'client_apps': client_apps,
+        'access_tokens': access_tokens,
+        'client_apps2': client_apps2,
+        'access_tokens2': access_token_scopes
+    }
     return render_to_response(template, context_dict, context_instance=RequestContext(request))
+
 
 @login_required()
 @require_http_methods(["GET", "HEAD"])
@@ -254,6 +269,7 @@ def my_download_statements(request):
     response['Content-Length'] = len(result)
     return response
 
+
 @transaction.commit_on_success
 @login_required()
 @require_http_methods(["GET", "POST"])
@@ -261,14 +277,15 @@ def my_app_status(request):
     try:
         name = request.GET['app_name']
         status = request.GET['status']
-        new_status = [s[0] for s in CONSUMER_STATES if s[1] == status][0] #should only be 1
+        new_status = [s[0] for s in CONSUMER_STATES if s[1] == status][0]  # should only be 1
         client = Consumer.objects.get(name__exact=name, user=request.user)
         client.status = new_status
         client.save()
-        ret = {"app_name":client.name, "status":client.get_status_display()}
+        ret = {"app_name": client.name, "status": client.get_status_display()}
         return HttpResponse(json.dumps(ret), mimetype="application/json", status=200)
     except:
-        return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), mimetype="application/json", status=400)
+        return HttpResponse(json.dumps({"error_message": "unable to fulfill request"}), mimetype="application/json", status=400)
+
 
 @transaction.commit_on_success
 @login_required()
@@ -280,16 +297,17 @@ def delete_token(request):
         consumer_id = ids[1]
         ts = ids[2]
         token = Token.objects.get(user=request.user,
-                                         key__startswith=token_key,
-                                         consumer__id=consumer_id,
-                                         timestamp=ts,
-                                         token_type=Token.ACCESS,
-                                         is_approved=True)
+                                  key__startswith=token_key,
+                                  consumer__id=consumer_id,
+                                  timestamp=ts,
+                                  token_type=Token.ACCESS,
+                                  is_approved=True)
         token.is_approved = False
         token.save()
         return HttpResponse("", status=204)
     except:
         return HttpResponse("Unknown token", status=400)
+
 
 @transaction.commit_on_success
 @login_required()
@@ -306,13 +324,14 @@ def delete_token2(request):
         return HttpResponse(e.message, status=400)
     return HttpResponse("", status=204)
 
+
 @transaction.commit_on_success
 @login_required()
 @require_http_methods(["DELETE"])
 def delete_client(request):
     try:
         client_id = request.GET['id']
-        client = Client.objects.get(user=request.user,client_id=client_id)
+        client = Client.objects.get(user=request.user, client_id=client_id)
     except:
         return HttpResponse("Unknown client", status=400)
     try:
@@ -320,6 +339,7 @@ def delete_client(request):
     except Exception, e:
         return HttpResponse(e.message, status=400)
     return HttpResponse("", status=204)
+
 
 @login_required()
 @require_http_methods(["GET"])

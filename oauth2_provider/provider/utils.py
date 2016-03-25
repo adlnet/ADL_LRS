@@ -4,7 +4,7 @@ from datetime import datetime
 from django.conf import settings
 from django.utils import dateparse
 from django.db.models.fields import (DateTimeField, DateField,
-                                      TimeField, FieldDoesNotExist)
+                                     TimeField, FieldDoesNotExist)
 from django.core.serializers.json import DjangoJSONEncoder
 from .constants import EXPIRE_DELTA, EXPIRE_DELTA_PUBLIC, EXPIRE_CODE_DELTA
 
@@ -17,6 +17,7 @@ try:
     from django.utils import timezone
 except ImportError:
     timezone = None
+
 
 def now():
     if timezone:

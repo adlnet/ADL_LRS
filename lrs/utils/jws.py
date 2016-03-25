@@ -9,11 +9,18 @@ from Crypto.Util.asn1 import DerSequence
 
 # https://www.dlitz.net/software/pycrypto/api/current/
 
-fixb64padding = lambda s: s if len(s) % 4 == 0 else s + '=' * (4 - (len(s) % 4))
-rmb64padding = lambda s: s.rstrip('=')
+
+def fixb64padding(s):
+    return s if len(s) % 4 == 0 else s + '=' * (4 - (len(s) % 4))
+
+
+def rmb64padding(s):
+    return s.rstrip('=')
+
 algs = {"RS256": SHA256,
         "RS384": SHA384,
         "RS512": SHA512}
+
 
 class JWS(object):
     """
@@ -22,14 +29,15 @@ class JWS(object):
     Only covers the requirements outlined in the Experience API spec.
     see: https://github.com/adlnet/xAPI-Spec/blob/master/xAPI.md#signature
     """
+
     def __init__(self, header=None, payload=None, jws=None):
         """
         Init for a JWS object.
 
-        If you want to create a JWS, pass in the header and payload and call 
+        If you want to create a JWS, pass in the header and payload and call
         :func:`JWS.create`.
 
-        If you want to parse and verify a JWS, pass in the JWS and call 
+        If you want to parse and verify a JWS, pass in the JWS and call
         :func:`JWS.verify`.
 
         :param header:
@@ -46,7 +54,7 @@ class JWS(object):
         self.jws = jws
         if self.jws:
             self._parsejws()
-        
+
     def verify(self):
         """
         Verifies the JWS Signature can be verified by the public key.
@@ -58,7 +66,7 @@ class JWS(object):
             pubkey = self._cert_to_key(self.headerobj['x5c'][0])
         except:
             raise JWSException("Error importing public key")
-        
+
         verifier = PKCS1_v1_5.new(pubkey)
         res = verifier.verify(self._hash(), self.jwssignature)
         if not res:
@@ -70,7 +78,7 @@ class JWS(object):
         """
         Creates a JWS using the privatekey string to sign.
 
-        :param privatekey: 
+        :param privatekey:
             String format of the private key to use to sign the JWS Signature Input.
         """
         if not self.jws:
@@ -84,15 +92,15 @@ class JWS(object):
             # encode signature
             self.encjwssignature = rmb64padding(base64.urlsafe_b64encode(self.jwssignature))
             # join 3
-            self.jws = '.'.join([self.encheader,self.encpayload,self.encjwssignature])
+            self.jws = '.'.join([self.encheader, self.encpayload, self.encjwssignature])
 
         return self.jws
 
     def sha2(self, jwsobj=None, alg=None):
         """
-        Hash (SHA256) the JWS according to xAPI attachment rules 
-        for the sha2 attribute. Returns the hexdigest value. If 
-        a parameter isn't provided, this will use the values provided 
+        Hash (SHA256) the JWS according to xAPI attachment rules
+        for the sha2 attribute. Returns the hexdigest value. If
+        a parameter isn't provided, this will use the values provided
         when creating this jws object.
 
         :param jwsobj:
@@ -121,7 +129,7 @@ class JWS(object):
             stmtobj = stmt
         atts = stmtobj.pop('attachments', None)
         if atts:
-            atts = [a for a in atts if a.get('usageType',None) != "http://adlnet.gov/expapi/attachments/signature"]
+            atts = [a for a in atts if a.get('usageType', None) != "http://adlnet.gov/expapi/attachments/signature"]
             if atts:
                 stmtobj['attachments'] = atts
 
@@ -161,13 +169,13 @@ class JWS(object):
         self.jwssignature = base64.urlsafe_b64decode(fixb64padding(jwsparts[2]))
 
     def _hash(self):
-        return algs[self.headerobj['alg']].new('.'.join([self.encheader,self.encpayload]).encode('ascii'))
-        
+        return algs[self.headerobj['alg']].new('.'.join([self.encheader, self.encpayload]).encode('ascii'))
+
     def _cert_to_key(self, cert):
         # Convert from PEM to DER
         if not cert.startswith('-----BEGIN CERTIFICATE-----') and not cert.endswith('-----END CERTIFICATE-----'):
             cert = "-----BEGIN CERTIFICATE-----\n%s\n-----END CERTIFICATE-----" % cert
-        lines = cert.replace(" ",'').split()
+        lines = cert.replace(" ", '').split()
         der = a2b_base64(''.join(lines[1:-1]))
 
         # Extract subjectPublicKeyInfo field from X.509 certificate (see RFC3280)
@@ -183,5 +191,6 @@ class JWS(object):
 
 class JWSException(Exception):
     """Generic exception class."""
+
     def __init__(self, message='JWS error occured.'):
         self.message = message

@@ -101,4 +101,4 @@ def to_int(*names, **kwargs):
     """
 
     return reduce(lambda prev, next: (prev | SCOPE_NAME_DICT.get(next, 0)),
-            names, kwargs.pop('default', 0))
+                  names, kwargs.pop('default', 0))

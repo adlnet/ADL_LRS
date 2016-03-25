@@ -19,6 +19,7 @@ from .backends import AccessTokenBackend
 
 @skipIfCustomUser
 class BaseOAuth2TestCase(TestCase):
+
     def login(self):
         self.client.login(username='test-user-1', password='test')
 
@@ -260,7 +261,7 @@ class AccessTokenTest(BaseOAuth2TestCase):
 
         for prop in required_props:
             self.assertIn(prop, token, "Access token response missing "
-                    "required property: %s" % prop)
+                          "required property: %s" % prop)
 
         return token
 
@@ -284,7 +285,7 @@ class AccessTokenTest(BaseOAuth2TestCase):
 
         self.assertEqual(400, response.status_code)
         self.assertEqual('unsupported_grant_type', json.loads(response.content)['error'],
-            response.content)
+                         response.content)
 
     def test_fetching_single_access_token(self):
         constants.SINGLE_ACCESS_TOKEN = True
@@ -362,11 +363,11 @@ class AccessTokenTest(BaseOAuth2TestCase):
 
         self.assertEqual(400, response.status_code)
         self.assertEqual('invalid_grant', json.loads(response.content)['error'],
-            response.content)
+                         response.content)
 
     def test_password_grant_public(self):
         c = self.get_client()
-        c.client_type = 1 # public
+        c.client_type = 1  # public
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -385,7 +386,7 @@ class AccessTokenTest(BaseOAuth2TestCase):
 
     def test_password_grant_confidential(self):
         c = self.get_client()
-        c.client_type = 0 # confidential
+        c.client_type = 0  # confidential
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -401,7 +402,7 @@ class AccessTokenTest(BaseOAuth2TestCase):
 
     def test_password_grant_confidential_no_secret(self):
         c = self.get_client()
-        c.client_type = 0 # confidential
+        c.client_type = 0  # confidential
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -415,7 +416,7 @@ class AccessTokenTest(BaseOAuth2TestCase):
 
     def test_password_grant_invalid_password_public(self):
         c = self.get_client()
-        c.client_type = 1 # public
+        c.client_type = 1  # public
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -430,7 +431,7 @@ class AccessTokenTest(BaseOAuth2TestCase):
 
     def test_password_grant_invalid_password_confidential(self):
         c = self.get_client()
-        c.client_type = 0 # confidential
+        c.client_type = 0  # confidential
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -476,7 +477,7 @@ class AuthBackendTest(BaseOAuth2TestCase):
         backend = AccessTokenBackend()
         token = AccessToken.objects.create(user=user, client=client)
         authenticated = backend.authenticate(access_token=token.token,
-                client=client)
+                                             client=client)
 
         self.assertIsNotNone(authenticated)
 
@@ -506,9 +507,10 @@ class EnforceSecureTest(BaseOAuth2TestCase):
 
 
 class ClientFormTest(TestCase):
+
     def test_client_form(self):
         form = ClientForm({'name': 'TestName', 'url': 'http://127.0.0.1:8000',
-            'redirect_uri': 'http://localhost:8000/'})
+                           'redirect_uri': 'http://localhost:8000/'})
 
         self.assertFalse(form.is_valid())
 
@@ -522,6 +524,7 @@ class ClientFormTest(TestCase):
 
 
 class ScopeTest(TestCase):
+
     def setUp(self):
         self._scopes = constants.SCOPES
         constants.SCOPES = constants.DEFAULT_SCOPES
