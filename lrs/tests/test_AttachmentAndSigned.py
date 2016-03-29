@@ -990,12 +990,12 @@ class AttachmentAndSignedTests(TestCase):
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
-    def test_example_signed_statement_bad(self):
+    def test_example_signed_statement_sha2s_no_match(self):
         stmt = json.loads(exstmt)
         stmt['actor'] = {"mbox": "mailto:sneaky@example.com", "name": "Cheater", "objectType": "Agent"}
         signature = jws.sign(stmt, privatekey, algorithm='RS384')
         self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS384']))
-        sha2 = hashlib.sha256(signature).hexdigest()
+        sha2 = hashlib.sha384(signature).hexdigest()
         stmt['attachments'][0]["sha2"] = sha2
         
         message = MIMEMultipart()
@@ -1012,6 +1012,33 @@ class AttachmentAndSignedTests(TestCase):
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.content, 'Signature attachment is missing from request')
+
+    def test_example_signed_statement_payloads_no_match(self):
+        bad_stmt = json.loads(exstmt)
+        bad_stmt['actor'] = {"mbox": "mailto:sneaky@example.com", "name": "Cheater", "objectType": "Agent"}
+        signature = jws.sign(bad_stmt, privatekey, algorithm='RS512')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS512']))
+        sha2 = hashlib.sha512(signature).hexdigest()
+        bad_stmt['attachments'][0]["sha2"] = sha2
+
+        good_stmt = json.loads(exstmt)
+        good_stmt['attachments'][0]["sha2"] = sha2
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(good_stmt), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
+        
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, 'The JWS is not valid - payload and body statements do not match')
+
 
 # JWS lib won't accept a list, dictionary only
     # def test_example_signed_statements(self):

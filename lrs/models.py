@@ -589,7 +589,7 @@ class AttachmentFileSystemStorage(FileSystemStorage):
         return super(AttachmentFileSystemStorage, self)._save(name, content)    
 class StatementAttachment(models.Model):
     canonical_data = JSONField(default=dict)
-    payload = models.FileField(upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, storage=AttachmentFileSystemStorage(), null=True)
+    payload = models.FileField(max_length=150, upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, storage=AttachmentFileSystemStorage(), null=True)
     statement = models.ForeignKey(Statement, related_name="stmt_attachments", null=True)
 
     def return_attachment_with_lang(self, lang=None):

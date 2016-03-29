@@ -11,7 +11,8 @@ from django.http import QueryDict
 
 from . import convert_to_datatype, convert_post_body_to_dict
 from etag import get_etag_info
-from jws import JWS, JWSException
+# from jws import JWS, JWSException
+from jose import jws
 from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
 
 from oauth_provider.utils import get_oauth_request, require_params
@@ -289,13 +290,21 @@ def parse_attachment(request, r_dict):
         # find if any of those statements with attachments have a signed statement
         signed_stmts = [(s,a) for s in att_stmts for a in s.get('attachments', None) if a['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
         for ss in signed_stmts:
-            attmnt = att_cache.get(ss[1]['sha2'])
-            jws = JWS(jws=attmnt)
-            try:
-                if not jws.verify() or not jws.validate(ss[0]):
-                    raise BadRequest("The JSON Web Signature is not valid")
-            except JWSException as jwsx:
-                raise BadRequest(jwsx)
+            signature = att_cache.get(ss[1]['sha2'])
+            algorithm = jws.get_unverified_headers(signature)['alg']
+            x5c = jws.get_unverified_headers(signature).get('x5c', None)
+            jws_payload = jws.get_unverified_claims(signature)
+            body_payload = ss[0]
+            # If x.509 was used to sign, the public key should be in the x5c header and you need to verify it
+            if x5c:
+                if jws.verify(signature, x5c, algorithm):
+                    if json.dumps(json.loads(jws_payload), sort_keys=True) != json.dumps(body_payload, sort_keys=True):
+                        raise BadRequest("The JWS is not valid - payload and body statements do not match")
+                else:
+                    raise BadRequest("The JWS is not valid - could not verify signature")
+            else:
+                if not json.dumps(json.loads(jws_payload), sort_keys=True) == json.dumps(body_payload, sort_keys=True):
+                    raise BadRequest("The JWS is not valid - payload and body statements do not match")
 
 def get_endpoint(request):
     # Used for OAuth scope
