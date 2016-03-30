@@ -1039,33 +1039,48 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.content, 'The JWS is not valid - payload and body statements do not match')
 
+    def test_example_signed_statement_with_x509_cert(self):
+        payload = json.loads(exstmt)
+        signature = jws.sign(payload, privatekey, {'x5c': [base64.b64encode(publickey)]}, 'RS256')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
 
-# JWS lib won't accept a list, dictionary only
-    # def test_example_signed_statements(self):
-    #     stmt1 = json.loads(exstmt)
-    #     stmt2 = {"actor": {"mbox" : "mailto:otherguy@example.com"},
-    #              "verb" : {"id":"http://verbs.com/did"},
-    #              "object" : {"id":"act:stuff"}}
-    #     stmts = [stmt1, stmt2]
-    #     signature = jws.sign(stmts, privatekey, algorithm='RS512')
-    #     self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS512']))
-    #     sha2 = hashlib.sha256(signature).hexdigest()        
-    #     stmt1['attachments'][0]["sha2"] = sha2
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
         
-    #     message = MIMEMultipart()
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 200)
 
-    #     stmtdata = MIMEApplication(json.dumps(stmts), _subtype="json", _encoder=json.JSONEncoder)
-    #     jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+    def test_example_signed_statement_with_x509_cert_wrong(self):
+        payload = json.loads(exstmt)
+        signature = jws.sign(payload, privatekey, {'x5c': [base64.b64encode(wrongpublickey)]}, 'RS256')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
 
-    #     jwsdata.add_header('X-Experience-API-Hash', sha2)
-    #     jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
-    #     jwsdata.set_payload(signature)
-    #     message.attach(stmtdata)
-    #     message.attach(jwsdata)
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
         
-    #     r = self.client.post(reverse('lrs:statements'), message.as_string(),
-    #         content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(r.status_code, 200)
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, 'The JWS is not valid: Signature verification failed.')
 
 exstmt = """{
     "version": "1.0.0",
@@ -1106,18 +1121,51 @@ exstmt = """{
     ]
 }"""
 
-privatekey = """-----BEGIN RSA PRIVATE KEY-----
-MIICXAIBAAKBgQDjxvZXF30WL4oKjZYXgR0ZyaX+u3y6+JqTqiNkFa/VTnet6Ly2
-OT6ZmmcJEPnq3UnewpHoOQ+GfhhTkW13j06j5iNn4obcCVWTL9yXNvJH+Ko+xu4Y
-l/ySPRrIPyTjtHdG0M2XzIlmmLqm+CAS+KCbJeH4tf543kIWC5pC5p3cVQIDAQAB
-AoGAOejdvGq2XKuddu1kWXl0Aphn4YmdPpPyCNTaxplU6PBYMRjY0aNgLQE6bO2p
-/HJiU4Y4PkgzkEgCu0xf/mOq5DnSkX32ICoQS6jChABAe20ErPfm5t8h9YKsTfn9
-40lAouuwD9ePRteizd4YvHtiMMwmh5PtUoCbqLefawNApAECQQD1mdBW3zL0okUx
-2pc4tttn2qArCG4CsEZMLlGRDd3FwPWJz3ZPNEEgZWXGSpA9F1QTZ6JYXIfejjRo
-UuvRMWeBAkEA7WvzDBNcv4N+xeUKvH8ILti/BM58LraTtqJlzjQSovek0srxtmDg
-5of+xrxN6IM4p7yvQa+7YOUOukrVXjG+1QJBAI2mBrjzxgm9xTa5odn97JD7UMFA
-/WHjlMe/Nx/35V52qaav1sZbluw+TvKMcqApYj5G2SUpSNudHLDGkmd2nQECQFfc
-lBRK8g7ZncekbGW3aRLVGVOxClnLLTzwOlamBKOUm8V6XxsMHQ6TE2D+fKJoNUY1
-2HGpk+FWwy2D1hRGuoUCQAXfaLSxtaWdPtlZTPVueF7ZikQDsVg+vtTFgpuHloR2
-6EVc1RbHHZm32yvGDY8IkcoMfJQqLONDdLfS/05yoNU=
------END RSA PRIVATE KEY-----"""
+publickey = """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAopcIphKtEI/Ong+kU0pm
+kR5ajkPlcoiRHcmRbLPIq5wvTQufwZ9oGhhXbsj/M7UMvvviBNCdecT21rK1ZCbh
+IHeobjYM0J7ZY7StZhPL7IPUaN1Mt77uR5Oowj3iZjXgG4jwpJ0O8xpqSRZFsR2d
+7qjvTTJLFQxNLEznrQshiO4da357T8XfWFsn5hqj1SibGzFnfktAbZ9B9BuMVJuT
+HDRgcgrIMf3Ct3/fstOKxo4rb25uXyqAdM24k6Rd+QJc3HZpOQ5Yfgk8DPR5X3YR
+Lx1YCLZKPeah0HCQiB3kGD4Wn/Pc4hU29O7c4YhwjCUJAgqiPEHYvuzLmiBcOGzz
+hQIDAQAB
+-----END PUBLIC KEY-----"""
+
+wrongpublickey = """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzO/eUZPksFpU6E0BBTbp
+F1T66Mnq3DJK06hKzyhLfI9L9bGzEQVCa7YNmHdDaGXgmmlT8hdbLeAspfeItKyI
+tIzkBLCElHZ1UdIA2ibs3DrH1OH9TWk+ANpVJULY5O73NDb7yx29mDbUdHeBD4kR
+R+eTc7HYHf5d5RbZLtZ17gpSf46PncPp+JkyRcAc895BboY7cpAWyGX1tlcWfizk
+tT0+h89PoJw8cbKG8hQQfzztCdEkKOgs+4LEAvBWPyhgYRxqFPUcxIxtukZpociD
+7i8ZuKIZP9ERCemi1Trniw6iot4DMhtwbT3/nhYGeG1dm011tX0ClKqhiIzJs7n0
+8QIDAQAB
+-----END PUBLIC KEY-----"""
+
+privatekey = """-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCilwimEq0Qj86e
+D6RTSmaRHlqOQ+VyiJEdyZFss8irnC9NC5/Bn2gaGFduyP8ztQy+++IE0J15xPbW
+srVkJuEgd6huNgzQntljtK1mE8vsg9Ro3Uy3vu5Hk6jCPeJmNeAbiPCknQ7zGmpJ
+FkWxHZ3uqO9NMksVDE0sTOetCyGI7h1rfntPxd9YWyfmGqPVKJsbMWd+S0Btn0H0
+G4xUm5McNGByCsgx/cK3f9+y04rGjitvbm5fKoB0zbiTpF35Alzcdmk5Dlh+CTwM
+9HlfdhEvHVgItko95qHQcJCIHeQYPhaf89ziFTb07tzhiHCMJQkCCqI8Qdi+7Mua
+IFw4bPOFAgMBAAECggEAUx6jbUNe9niOSH/2oh4HEWlTIifTxRnMFk5V6hx/Gjxe
+ciTfJz03GyAWkqxuyyBjw79BbPS5jOcEyf3SfcDilpaVpMI9CuoqeK6Fdwnn1qIO
+lQ2NiuIxLqZuP98jPt2MFIeNfppMaju22mZoeoOJmdkDfZOYjsobKeqnBfAK1NUV
+qpewRkgYLLlI/tM+H77ihpOVvQlNH2uuLtjtRP+EpbvkZ0hpH5Qk7wi4ODtQVKeq
+qJjUjSu16PrAOX40ce8Cjh7LF1GP1zaRYdfODVKSbFJNvmKReF/trGNOegjiLZP5
+pOWss4V7rop5dFdlt4MWRZ2gQi1eFPCnv+teDUBsAQKBgQDU9ZM7VQBaSxwd3uIt
+sOsdqWZnbGdc5KN+YyULftUjg/ELDO/hXINnAPXhnBYS/ToKdsYoW0KX24OOkNy9
+VLX0Lo+N+J0mhZDjYspg63uWBi+KUkeUWRcb2esjoZf4iT5ugIntpOddA4tZ7wNO
+vm7ELydnu1X1GQJWHvacQ026LQKBgQDDc18vnPBSCPTJidEO0GWSbjNu8xbp015w
+9t5Tne3499yQDXkoDngfii3B7rxsqVv1UxlCDqmJFSDFm5v/odO1uKZbsazM6/OD
+RGD9B2l9XnCpJ0VEewzZPwKnHR1Ms4Fvc4ehSvok2po4YaR5d9KGxkQCRKsXtfDX
+ZvekI9WtuQKBgGkWVfUtWOM1tUY4Ojx51Uvp0BKxN8BrQxKXMiyeBedksInXdHgt
+AtrNaohOUcZFF2MagWZgwlfVhvHPIl57ct5wK37PdB0SRBExKtTw3yeFHeiP+aqG
+3BRuUM5ga3HFp/03iNiwS0tm+FkEzQkKh/Zfnn5dv2kXUkPVO7SYsb5xAoGAJztq
+WOFUr/LSR/4c869LJChwtI2hBNCDvYMgP4KM+ROvt06tCihVXmdbJflo4xrftY+3
+mzXcPAL8sA27M4XlPC3TXsZ8XCnkmG3KVh/9wceKL7oNQmC8xILMYoUKk5HYoml7
+SRoGug0TNcwLusIdhSYZEqd7/Gdt757giJcU1ikCgYEAwZBBLEdF+oSDfEy5ixYb
+r9IsERRoDLD7f+C9vf1ilivVsAY8E9uTF+olHzESPhEndlNDwMU3NHzMUsqGf05d
+bNxWAKDGyKQSwyb9CbUBMl4ErfkduQAHaJXK7gTF8Pvgr9OehajDT4sQi3H6gg0a
+qjOL3XOZ+ZNpW0h9JM/jrF0=
+-----END PRIVATE KEY-----"""
