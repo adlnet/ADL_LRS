@@ -461,8 +461,8 @@ def activity_profile_post(req_dict):
     # Check the content type if the document already exists 
     exists = False
     try:
-        p = ActivityProfile.objects.get(activityId=req_dict['params']['activityId'], 
-            profileId=req_dict['params']['profileId'])
+        p = ActivityProfile.objects.get(activity_id=req_dict['params']['activityId'], 
+            profile_id=req_dict['params']['profileId'])
         exists = True
     except ActivityProfile.DoesNotExist:
         pass
@@ -548,16 +548,16 @@ def activities_get(req_dict):
         raise ParamError("The get activities request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
     try:
-        activityId = req_dict['params']['activityId']
+        activity_id = req_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activities - method = %s, but activityId parameter is missing" % req_dict['method']
         raise ParamError(err_msg)
 
     # Try to retrieve activity, if DNE then return empty else return activity info
     try:
-        Activity.objects.get(activity_id=activityId, authority__isnull=False)
+        Activity.objects.get(activity_id=activity_id, authority__isnull=False)
     except Activity.DoesNotExist:    
-        err_msg = "No activity found with ID %s" % activityId
+        err_msg = "No activity found with ID %s" % activity_id
         raise IDNotFoundError(err_msg)
 
     return req_dict
@@ -597,7 +597,7 @@ def agent_profile_post(req_dict):
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]   
     try:
-        p = AgentProfile.objects.get(profileId=req_dict['params']['profileId'],agent=a)
+        p = AgentProfile.objects.get(profile_id=req_dict['params']['profileId'],agent=a)
         exists = True
     except AgentProfile.DoesNotExist:
         pass

@@ -332,17 +332,17 @@ def activity_profile_get(req_dict):
     # Instantiate ActivityProfile
     ap = ActivityProfileManager()
     # Get profileId and activityId
-    profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
-    activityId = req_dict['params'].get('activityId', None) if 'params' in req_dict else None
+    profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
+    activity_id = req_dict['params'].get('activityId', None) if 'params' in req_dict else None
     
     #If the profileId exists, get the profile and return it in the response
-    if profileId:
-        resource = ap.get_profile(profileId, activityId)
+    if profile_id:
+        resource = ap.get_profile(profile_id, activity_id)
         if resource.profile:
             try:
                 response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
             except IOError:
-                response = HttpResponseNotFound("Error reading file, could not find: %s" % profileId)
+                response = HttpResponseNotFound("Error reading file, could not find: %s" % profile_id)
         else:
             response = HttpResponse(resource.json_profile, content_type=resource.content_type)
         response['ETag'] = '"%s"' % resource.etag
@@ -350,7 +350,7 @@ def activity_profile_get(req_dict):
 
     #Return IDs of profiles stored since profileId was not submitted
     since = req_dict['params'].get('since', None) if 'params' in req_dict else None
-    resource = ap.get_profile_ids(activityId, since)
+    resource = ap.get_profile_ids(activity_id, since)
     response = JsonResponse([k for k in resource], safe=False)
     response['since'] = since
     
@@ -367,8 +367,8 @@ def activity_profile_delete(req_dict):
     return HttpResponse('', status=204)
 
 def activities_get(req_dict):
-    activityId = req_dict['params']['activityId']
-    act = Activity.objects.get(activity_id=activityId, authority__isnull=False)
+    activity_id = req_dict['params']['activityId']
+    act = Activity.objects.get(activity_id=activity_id, authority__isnull=False)
     return_act = json.dumps(act.return_activity_with_lang_format('all'), sort_keys=False)    
     resp = HttpResponse(return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
@@ -404,9 +404,9 @@ def agent_profile_get(req_dict):
     else:
         ap = AgentProfileManager(a)
 
-        profileId = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
-        if profileId:
-            resource = ap.get_profile(profileId)
+        profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
+        if profile_id:
+            resource = ap.get_profile(profile_id)
             if resource.profile:
                 response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
             else:
@@ -428,9 +428,9 @@ def agent_profile_delete(req_dict):
     a = Agent.objects.retrieve(**agent)
     if not a:
         return HttpResponse('', status=204)
-    profileId = req_dict['params']['profileId']
+    profile_id = req_dict['params']['profileId']
     ap = AgentProfileManager(a)
-    ap.delete_profile(profileId)
+    ap.delete_profile(profile_id)
 
     return HttpResponse('', status=204)
 
