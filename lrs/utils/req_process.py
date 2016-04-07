@@ -121,7 +121,7 @@ def statements_post(req_dict):
 
     stmt_responses = process_body(body, auth, req_dict['headers']['X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
-    stmts_to_void = [stmt_tup[1] for stmt_tup in stmt_responses if stmt_tup[1]]
+    stmts_to_void = [str(stmt_tup[1]) for stmt_tup in stmt_responses if stmt_tup[1]]
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
         void_statements.delay(stmts_to_void)
@@ -132,7 +132,7 @@ def statements_put(req_dict):
     # Since it is single stmt put in list
     stmt_responses = process_body([req_dict['body']], auth, req_dict['headers']['X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
-    stmts_to_void = [stmt_tup[1] for stmt_tup in stmt_responses if stmt_tup[1]]
+    stmts_to_void = [str(stmt_tup[1]) for stmt_tup in stmt_responses if stmt_tup[1]]
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
         void_statements.delay(stmts_to_void)       
