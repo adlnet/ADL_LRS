@@ -44,7 +44,7 @@
             <br>
             <hr>
             <h3>Webhook Registration</h3>
-            <form class="pure-form pure-form-stacked" action="{% url adl_lrs.views.my_hooks %}" method="post">
+            <form class="pure-form pure-form-stacked" action="{% url 'my_hooks' %}" method="post">
             {% if error_message %}
                 <ul class="errorlist">
                     <li>{{ error_message }}</li>
@@ -97,7 +97,7 @@
         $('.delete_hook').click(function(){
             var hookId = $(this).next('span').text();
             $.ajax({
-                url: "{% url adl_lrs.views.hooks %}/"+hookId,
+                url: "{% url 'hooks' %}/"+hookId,
                 type: "DELETE",
                 context: $(this),
                 success: function(data){

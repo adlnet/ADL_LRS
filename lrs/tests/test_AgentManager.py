@@ -7,13 +7,14 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from ..models import Agent, Statement
-from ..views import statements
+
 from adl_lrs.views import register
 
 class AgentManagerTests(TestCase):
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
+        super(AgentManagerTests, cls).setUpClass()
 
     def setUp(self):
         self.username = "tester1"
@@ -28,7 +29,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
@@ -43,7 +44,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
@@ -61,7 +62,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
@@ -72,7 +73,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
@@ -91,7 +92,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 200)
@@ -176,7 +177,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)
@@ -187,7 +188,7 @@ class AgentManagerTests(TestCase):
             "verb":{"id": "http://example.com/verbs/passed"},
             "object": {'id': 'act://blah.com'}})
 
-        response = self.client.post(reverse(statements), stmt, content_type="application/json",
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         
         self.assertEqual(response.status_code, 400)

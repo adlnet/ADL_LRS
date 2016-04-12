@@ -22,7 +22,7 @@
 	            <li>{{ valid_message }}</li>
 	          </ul>
 			{% endif %}
-			<form class="pure-form pure-form-stacked" action="{% url adl_lrs.views.stmt_validator %}" method="post">
+			<form class="pure-form pure-form-stacked" action="{% url 'stmt_validator' %}" method="post">
 				{% csrf_token %}
                   <fieldset>
                       {% for field in form %}

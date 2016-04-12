@@ -15,7 +15,7 @@ class ConsumerAdmin(admin.ModelAdmin):
 class TokenAdmin(admin.ModelAdmin):
     raw_id_fields = ['user', 'consumer']
 
-
+# LRS CHANGE - THESE GET REGISTERED IN LRS APP
 # admin.site.register(Scope, ScopeAdmin)
-admin.site.register(Consumer, ConsumerAdmin)
-admin.site.register(Token, TokenAdmin)
+# admin.site.register(Consumer, ConsumerAdmin)
+# admin.site.register(Token, TokenAdmin)

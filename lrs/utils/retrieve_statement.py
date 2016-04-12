@@ -10,7 +10,7 @@ from django.core.paginator import Paginator
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 
-from . import convert_to_utc
+from . import convert_to_datetime_object
 from ..models import Statement, Agent
 from ..exceptions import NotFound
 
@@ -21,11 +21,11 @@ def complex_get(param_dict, limit, language, format, attachments):
 
     sinceQ = Q()
     if 'since' in param_dict:
-        sinceQ = Q(stored__gt=convert_to_utc(param_dict['since']))
+        sinceQ = Q(stored__gt=convert_to_datetime_object(param_dict['since']))
 
     untilQ = Q()
     if 'until' in param_dict:
-        untilQ = Q(stored__lte=convert_to_utc(param_dict['until']))
+        untilQ = Q(stored__lte=convert_to_datetime_object(param_dict['until']))
 
     # For statements/read/mine oauth scope
     authQ = Q()
@@ -101,10 +101,12 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
             stored_param = 'stored'
 
-    stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority', \
-        'context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
-        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+    # stmtset = Statement.objects.prefetch_related('object_agent','object_activity','object_substatement','actor','verb','context_team','context_instructor','authority', \
+    #     'context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
+    #     .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
     
+    stmtset = Statement.objects.filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+
     stmtset = list(stmtset.values_list('statement_id', flat=True))
     # only find references when a filter other than
     # since, until, or limit was used 
@@ -196,11 +198,11 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, at
     if format == 'exact':
         result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]),
-                reverse(statements_more_placeholder).lower() + "/" + cache_key)
+                reverse('lrs:statements_more_placeholder').lower() + "/" + cache_key)
     else:
         result['statements'] = [stmt.to_dict(language, format) for stmt in \
                         Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
-        result['more'] = "%s/%s" % (reverse(statements_more_placeholder).lower(), cache_key) 
+        result['more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key) 
     return result
 
 def parse_more_request(req_id):  
@@ -230,7 +232,6 @@ def parse_more_request(req_id):
 # Gets called from req_process after complex_get with list of django objects and also gets called from parse_more_request when
 # more_id is used so list will be serialized
 def build_statement_result(more_id, **data):
-    from ..views import statements_more_placeholder
     result = {}
     current_page = data["start_page"] + 1
     # If that was the last page to display then just return the remaining stmts
@@ -262,12 +263,12 @@ def build_statement_result(more_id, **data):
         if data["format"] == 'exact':
             result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in \
                 Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]),
-                reverse(statements_more_placeholder).lower() + "/" + cache_key)
+                reverse('lrs:statements_more_placeholder').lower() + "/" + cache_key)
         else:
             # Set result to have selected page of stmts and more endpoint
             result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in \
                     Statement.objects.filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
-            result['more'] = "%s/%s" % (reverse(statements_more_placeholder).lower(), cache_key)
+            result['more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key)
         more_cache_list = []
         # Increment next page
         start_page = current_page

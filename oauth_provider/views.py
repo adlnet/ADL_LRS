@@ -1,7 +1,7 @@
 import oauth2 as oauth
 import json
-
 from urllib import urlencode
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate
@@ -9,10 +9,12 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedire
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext as _
 from django.core.urlresolvers import get_callable
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext
+
 from oauth_provider.forms import AuthorizeRequestTokenForm
 from oauth_provider.compat import UnsafeRedirect
+
 from store import store, InvalidConsumerError, InvalidTokenError
 from utils import verify_oauth_request, get_oauth_request, require_params, send_oauth_error
 from utils import is_xauth_request
@@ -60,15 +62,21 @@ def request_token(request):
 # LRS CHANGE - CHANGED FORM_CLASS TO OUR CUSTOM FORM
 @login_required(login_url="/accounts/login")
 def user_authorization(request, form_class=AuthorizeRequestTokenForm):
-    if 'oauth_token' not in request.REQUEST:
-        return HttpResponseBadRequest('No request token specified.')
+    if request.method.lower() == 'get':
+        if 'oauth_token' not in request.GET:
+            return HttpResponseBadRequest('No request token specified.')
+        incoming_token = request.GET['oauth_token']
+    elif request.method.lower() == 'post':
+        if 'oauth_token' not in request.POST:
+            return HttpResponseBadRequest('No request token specified.')
+        incoming_token = request.POST['oauth_token']
 
     oauth_request = get_oauth_request(request)
 
     try:
-        request_token = store.get_request_token(request, oauth_request, request.REQUEST['oauth_token'])
+        request_token = store.get_request_token(request, oauth_request, incoming_token)
     except InvalidTokenError:
-        return HttpResponse('Invalid request token: %s' % request.REQUEST['oauth_token'], status=401)
+        return HttpResponse('Invalid request token: %s' % incoming_token, status=401)
 
     consumer = store.get_consumer_for_request_token(request, oauth_request, request_token)
 
@@ -226,7 +234,7 @@ def authorize_client(request, token=None, callback=None, params=None, form=None)
     d['description'] = token.consumer.description
     d['params'] = params
     d['oauth_token'] = token.key
-    return render_to_response('oauth_authorize_client.html', d, context_instance=RequestContext(request))
+    return render(request, 'oauth_authorize_client.html', d)
 
 @login_required(login_url="/accounts/login")
 def callback_view(request, **args):
@@ -241,4 +249,4 @@ def callback_view(request, **args):
     except Token.DoesNotExist, e:
         send_oauth_error(e)
     d['verifier'] = oauth_token.verifier
-    return render_to_response('oauth_verifier_pin.html', d, context_instance=RequestContext(request))
+    return render(request, 'oauth_verifier_pin.html', d)

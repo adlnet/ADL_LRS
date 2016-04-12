@@ -1,29 +1,11 @@
 import os
 import sys
-import linecache
 from fabric.api import local
 
 def setup_env():
     INSTALL_STEPS = ['virtualenv ../env;. ../env/bin/activate;pip install -r requirements.txt;deactivate']
     for step in INSTALL_STEPS:
         local(step)
-
-    # Bug fix for django 1.4 package (not patched in d/l for some reason now)
-    try:
-        line_140 = linecache.getline('../env/local/lib/python2.7/site-packages/django/utils/translation/trans_real.py', 140)
-    except Exception:
-        line_140 = ""
-
-    if not line_140 or line_140 == '\n':
-        with open('../env/local/lib/python2.7/site-packages/django/utils/translation/trans_real.py', 'r') as f:
-            data = f.readlines()
-    
-        data[139] = "        if res is None:\n"
-        data[140] = "            return gettext_module.NullTranslations()\n"
-    
-        with open('../env/local/lib/python2.7/site-packages/django/utils/translation/trans_real.py', 'w') as f:
-            data = f.writelines(data)
-
 
 def setup_lrs():
     # Media folder names
@@ -81,19 +63,11 @@ def setup_lrs():
         os.makedirs(os.path.join(adldir,statement_attachments))
 
     # Create cache tables and sync the db
-    local('./manage.py createcachetable cache_statement_list')
-    local('./manage.py createcachetable attachment_cache')
-    local('./manage.py syncdb')
-
-    print "If you see an error code 23 while running rync it's only because there were no files to sync in the django_extensions directory. \
-    That occurs when the files are where they are supposed to be in the first place."
-    # Fixes admin templates for django
-    local('rsync -av ../env/django_extensions/ ../env/local/lib/python2.7/site-packages/django_extensions/')
-    local('rm -rf ../env/django_extensions/')
-
-    local('rsync -av ../env/django/ ../env/local/lib/python2.7/site-packages/django/')
-    local('rm -rf ../env/django/')
-
+    local('./manage.py createcachetable')
+    local('./manage.py migrate')
+    local('./manage.py makemigrations adl_lrs lrs oauth_provider')
+    local('./manage.py migrate')
+    local('./manage.py createsuperuser')
 
 def test_lrs():
-    local('./manage.py test lrs')
+    local('./manage.py test lrs.tests')

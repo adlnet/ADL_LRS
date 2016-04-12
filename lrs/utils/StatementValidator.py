@@ -42,6 +42,9 @@ class StatementValidator():
 		# If incoming is a string, ast eval it (exception will be caught with whatever is calling validator)
 		if data:
 			try:
+				if isinstance(data, unicode):
+					data = str(data)
+					data = data.replace('\r', '').replace('\n', '')
 				self.data = convert_to_datatype(data)
 			except Exception, e:
 				self.return_error(e.message)
