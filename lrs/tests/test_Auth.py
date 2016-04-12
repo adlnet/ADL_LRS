@@ -284,8 +284,8 @@ class AuthTests(TestCase):
         stmt2 = Statement.objects.get(object_activity=activity2)
         verb1 = Verb.objects.get(id=stmt1.verb.id)
         verb2 = Verb.objects.get(id=stmt2.verb.id)
-        lang_map1 = verb1.display
-        lang_map2 = verb2.display
+        lang_map1 = verb1.canonical_data['display']
+        lang_map2 = verb2.canonical_data['display']
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(stmt1.verb.verb_id, "http://example.com/verbs/passed")
@@ -457,8 +457,8 @@ class AuthTests(TestCase):
 
         act = Activity.objects.get(activity_id="act:foogie")
 
-        name_set = act.activity_definition_name
-        desc_set = act.activity_definition_description
+        name_set = act.canonical_data['definition']['name']
+        desc_set = act.canonical_data['definition']['description']
 
         self.assertEqual(name_set.keys()[1], "en-US")
         self.assertEqual(name_set.values()[1], "testname3")
@@ -989,7 +989,7 @@ class AuthTests(TestCase):
             Authorization=auth_1, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_1.status_code, 200)
         user1_agent = Agent.objects.get(mbox="mailto:test1@tester.com")
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         with self.assertRaises(KeyError):
             act["definition"]
@@ -1005,18 +1005,18 @@ class AuthTests(TestCase):
         user2_agent = Agent.objects.get(mbox="mailto:test2@tester.com")
         self.assertEqual(response_2.status_code, 200)
         with self.assertRaises(Activity.DoesNotExist):
-            Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).to_dict()
+            Activity.objects.get(activity_id="act:test_activity_change", authority=user2_agent).return_activity_with_lang_format()
 
         acts = Activity.objects.filter(activity_id="act:test_activity_change")
         self.assertEqual(acts.count(), 1)
         with self.assertRaises(KeyError):
-            acts[0].to_dict()["definition"]
+            acts[0].return_activity_with_lang_format()["definition"]
 
         # Should not update activity
         response_3 = self.client.post(reverse('lrs:statements'), stmt_1, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_3.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         with self.assertRaises(KeyError):
             act["definition"]
@@ -1030,7 +1030,7 @@ class AuthTests(TestCase):
         response_4 = self.client.post(reverse('lrs:statements'), stmt_3, content_type="application/json",
             Authorization=auth_1, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_4.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user1_agent).to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change", authority=user1_agent).return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
 
@@ -1038,7 +1038,7 @@ class AuthTests(TestCase):
         response_5 = self.client.post(reverse('lrs:statements'), stmt_3, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_5.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
@@ -1051,7 +1051,7 @@ class AuthTests(TestCase):
         response_6 = self.client.post(reverse('lrs:statements'), stmt_4, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_6.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertEqual(act["definition"], {"name":{"en-US": "foo"}})
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
@@ -1064,7 +1064,7 @@ class AuthTests(TestCase):
         response_7 = self.client.post(reverse('lrs:statements'), stmt_5, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)        
         self.assertEqual(response_7.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertNotIn("fr", act['definition']['name'])
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
@@ -1074,7 +1074,7 @@ class AuthTests(TestCase):
         response_8 = self.client.post(reverse('lrs:statements'), stmt_1, content_type="application/json",
             Authorization=auth_2, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response_8.status_code, 200)
-        act = Activity.objects.get(activity_id="act:test_activity_change").to_dict()
+        act = Activity.objects.get(activity_id="act:test_activity_change").return_activity_with_lang_format()
         self.assertEqual(act["id"], "act:test_activity_change")
         self.assertIn("definition", act.keys())
         acts = Activity.objects.filter(activity_id="act:test_activity_change").count()
@@ -1111,3 +1111,109 @@ class AuthTests(TestCase):
         
         response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
+
+    def test_interaction_activity_update(self):
+        username_1 = "tester1"
+        email_1 = "test1@tester.com"
+        password_1 = "test"
+        auth_1 = "Basic %s" % base64.b64encode("%s:%s" % (username_1, password_1))
+        form_1 = {"username":username_1, "email":email_1,"password":password_1,"password2":password_1}
+        response_1 = self.client.post(reverse(register),form_1, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        username_2 = "tester2"
+        email_2 = "test2@tester.com"
+        password_2 = "test2"
+        auth_2 = "Basic %s" % base64.b64encode("%s:%s" % (username_2, password_2))
+        form_2 = {"username":username_2, "email":email_2,"password":password_2,"password2":password_2}
+        response_2 = self.client.post(reverse(register),form_2, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://example.com/verbs/assess"},
+            "object":{'objectType': 'Activity', 'id':'http://example/intupdate',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},
+                {'id':'likert_1','description':{'en-US': 'Its Pretty Cool'}},
+                {'id':'likert_2','description':{'en-US':'Its Cool Cool'}},
+                {'id':'likert_3','description': {'en-US': 'Its Gonna Change the World'}}]}}})
+        st_post = self.client.post(reverse('lrs:statements'), st, content_type="application/json", Authorization=auth_1,
+            X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(st_post.status_code, 200)
+
+        act = Activity.objects.get(activity_id="http://example/intupdate")
+        self.assertIn('scale', act.canonical_data['definition'])
+        scale_ids = [s['id'] for s in act.canonical_data['definition']['scale']]
+        self.assertIn('likert_0', scale_ids)        
+        self.assertIn('likert_1', scale_ids)
+        self.assertIn('likert_2', scale_ids)
+        self.assertIn('likert_3', scale_ids)                
+        scale_descs = [s['description'] for s in act.canonical_data['definition']['scale']]
+        scale_desc_keys = list(set().union(*(d.keys() for d in scale_descs)))
+        scale_desc_values = list(set().union(*(d.values() for d in scale_descs)))
+        self.assertEqual(len(scale_descs), 4)
+        self.assertIn('en-US', scale_desc_keys)
+        self.assertIn('Its OK', scale_desc_values)
+        self.assertIn('Its Pretty Cool', scale_desc_values)
+        self.assertIn('Its Cool Cool', scale_desc_values)
+        self.assertIn('Its Gonna Change the World', scale_desc_values)
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://example.com/verbs/assess"},
+            "object":{'objectType': 'Activity', 'id':'http://example/intupdate',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},
+                {'id':'likert_1','description':{'en-US': 'Its Pretty Coolio'}},
+                {'id':'likert_3','description': {'en-UK': 'Its Gonna Be Great'}}]}}})
+        st_post = self.client.post(reverse('lrs:statements'), st, content_type="application/json", Authorization=auth_2,
+            X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(st_post.status_code, 200)
+
+        # Shouldn't change, doesn't have permission
+        act = Activity.objects.get(activity_id="http://example/intupdate")
+        self.assertIn('scale', act.canonical_data['definition'])
+        scale_ids = [s['id'] for s in act.canonical_data['definition']['scale']]
+        self.assertIn('likert_0', scale_ids)        
+        self.assertIn('likert_1', scale_ids)
+        self.assertIn('likert_2', scale_ids)
+        self.assertIn('likert_3', scale_ids)                
+        scale_descs = [s['description'] for s in act.canonical_data['definition']['scale']]
+        scale_desc_keys = list(set().union(*(d.keys() for d in scale_descs)))
+        scale_desc_values = list(set().union(*(d.values() for d in scale_descs)))
+        self.assertEqual(len(scale_descs), 4)
+        self.assertIn('en-US', scale_desc_keys)
+        self.assertIn('Its OK', scale_desc_values)
+        self.assertIn('Its Pretty Cool', scale_desc_values)
+        self.assertIn('Its Cool Cool', scale_desc_values)
+        self.assertIn('Its Gonna Change the World', scale_desc_values)
+
+        st = json.dumps({"actor":{"objectType":"Agent","mbox": "mailto:tom@adlnet.gov"},
+            "verb":{"id": "http://example.com/verbs/assess"},
+            "object":{'objectType': 'Activity', 'id':'http://example/intupdate',
+                'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'},
+                'type': 'http://adlnet.gov/expapi/activities/cmi.interaction','interactionType': 'likert','correctResponsesPattern': ['likert_3'],
+                'scale':[{'id': 'likert_0', 'description': {'en-US':'Its OK'}},
+                {'id':'likert_1','description':{'en-US': 'Its Pretty Coolio'}},
+                {'id':'likert_3','description': {'en-UK': 'Its Gonna Be Great'}}]}}})
+        st_post = self.client.post(reverse('lrs:statements'), st, content_type="application/json", Authorization=auth_1,
+            X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(st_post.status_code, 200)
+
+        # Should still keep same number of scales, only will update the descriptions
+        act = Activity.objects.get(activity_id="http://example/intupdate")
+        self.assertIn('scale', act.canonical_data['definition'])
+        scale_ids = [s['id'] for s in act.canonical_data['definition']['scale']]
+        self.assertIn('likert_0', scale_ids)
+        self.assertIn('likert_1', scale_ids)
+        self.assertIn('likert_2', scale_ids)
+        self.assertIn('likert_3', scale_ids)                
+        scale_descs = [s['description'] for s in act.canonical_data['definition']['scale']]
+        scale_desc_keys = list(set().union(*(d.keys() for d in scale_descs)))
+        scale_desc_values = list(set().union(*(d.values() for d in scale_descs)))
+        self.assertEqual(len(scale_descs), 4)
+        self.assertIn('en-US', scale_desc_keys)
+        self.assertIn('en-UK', scale_desc_keys)        
+        self.assertIn('Its OK', scale_desc_values)
+        self.assertIn('Its Pretty Coolio', scale_desc_values)
+        self.assertIn('Its Cool Cool', scale_desc_values)
+        self.assertIn('Its Gonna Be Great', scale_desc_values)

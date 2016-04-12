@@ -39,7 +39,7 @@ class StatementManager():
             # Incoming contextActivities can either be a list or dict    
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
-                    act = ActivityManager(con_act, auth=auth_info['agent'], define=auth_info['define']).Activity
+                    act = ActivityManager(con_act, auth=auth_info['agent'], define=auth_info['define']).activity
                     if con_act_group[0] == 'parent':
                         stmt.context_ca_parent.add(act)
                     elif con_act_group[0] == 'grouping':
@@ -49,7 +49,7 @@ class StatementManager():
                     else:
                         stmt.context_ca_other.add(act)
             else:        
-                act = ActivityManager(con_act_group[1], auth=auth_info['agent'], define=auth_info['define']).Activity
+                act = ActivityManager(con_act_group[1], auth=auth_info['agent'], define=auth_info['define']).activity
                 if con_act_group[0] == 'parent':
                     stmt.context_ca_parent.add(act)
                 elif con_act_group[0] == 'grouping':
@@ -100,11 +100,9 @@ class StatementManager():
     def build_attachments(self, user_info, attachment_data, payload_sha2s):
         # Iterate through each attachment
         for attach in attachment_data:
-            sha2 = attach.pop('sha2', None)
-            fileUrl = attach.pop('fileUrl', None)
-            attachment = StatementAttachment.objects.create(**attach)
+            sha2 = attach.get('sha2', None)
+            attachment = StatementAttachment.objects.create(canonical_data=attach)
             if sha2:
-                attachment.sha2 = sha2
                 if payload_sha2s and sha2 in payload_sha2s:
                     raw_payload = att_cache.get(sha2)
                     try:
@@ -112,8 +110,6 @@ class StatementManager():
                     except Exception, e:
                         raise e
                     attachment.payload.save(sha2, payload)
-            if fileUrl:
-                attachment.fileUrl = fileUrl
             attachment.statement = self.model_object
             attachment.save()
 
@@ -137,13 +133,16 @@ class StatementManager():
         verb_object, created = Verb.objects.get_or_create(verb_id=verb_id)
         # If existing, get existing keys
         existing_lang_maps = {}
-        if not created and verb_object.display:
-            existing_lang_maps = verb_object.display    
+        if not created:
+            if 'display' in verb_object.canonical_data:
+                existing_lang_maps = verb_object.canonical_data['display']    
 
         # Save verb displays
         if 'display' in incoming_verb:
-            verb_object.display = dict(existing_lang_maps.items() + incoming_verb['display'].items())
-            verb_object.save()
+            verb_object.canonical_data['display'] = dict(existing_lang_maps.items() + incoming_verb['display'].items())
+
+        verb_object.canonical_data['id'] = verb_id
+        verb_object.save()        
         stmt_data['verb'] = verb_object
 
     def build_statement_object(self, auth_info, stmt_data):
@@ -153,7 +152,7 @@ class StatementManager():
         if not 'objectType' in statement_object_data or statement_object_data['objectType'] == 'Activity':
             statement_object_data['objectType'] = 'Activity'
             stmt_data['object_activity'] = ActivityManager(statement_object_data, auth=auth_info['agent'],
-                define=auth_info['define']).Activity
+                define=auth_info['define']).activity
         elif statement_object_data['objectType'] in valid_agent_objects:
             stmt_data['object_agent'] = Agent.objects.retrieve_or_create(**statement_object_data)[0]
         elif statement_object_data['objectType'] == 'SubStatement':

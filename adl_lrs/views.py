@@ -1,13 +1,12 @@
 import json
 import urllib
-from base64 import b64decode
 
 from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
@@ -110,8 +109,7 @@ def admin_attachments(request, path):
         try:
             # Default chunk size is 64kb
             for chunk in att_object.payload.chunks():
-                decoded_data = b64decode(chunk)
-                chunks.append(decoded_data)
+                chunks.append(chunk)
         except OSError:
             return HttpResponseNotFound("File not found")
 
@@ -151,7 +149,8 @@ def regclient(request):
 @login_required()
 @require_http_methods(["GET"])
 def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
-    context = {'statements': Statement.objects.filter(user=request.user).order_by('-timestamp'),'page_template': page_template}
+    stmts = Statement.objects.filter(user=request.user).order_by('-timestamp')
+    context = {'statements': stmts, 'page_template': page_template}
     if request.is_ajax():
         template = page_template
     return render(request, template, context)
@@ -230,9 +229,9 @@ def my_app_status(request):
         client.status = new_status
         client.save()
         ret = {"app_name":client.name, "status":client.get_status_display()}
-        return HttpResponse(json.dumps(ret), content_type="application/json", status=200)
+        return JsonResponse(ret)
     except:
-        return HttpResponse(json.dumps({"error_message":"unable to fulfill request"}), content_type="application/json", status=400)
+        return JsonResponse({"error_message":"unable to fulfill request"})
 
 @transaction.atomic
 @login_required()

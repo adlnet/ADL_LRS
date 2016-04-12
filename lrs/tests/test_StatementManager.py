@@ -60,7 +60,7 @@ class StatementManagerTests(TestCase):
         activity = Activity.objects.get(id=stmt.object_activity.id)
         verb = Verb.objects.get(id=stmt.verb.id)
         actor = Agent.objects.get(id=stmt.actor.id)
-        lang_maps = verb.display
+        lang_maps = verb.canonical_data['display']
 
         for k, v in lang_maps.iteritems():
             if k == 'en-GB':
@@ -771,17 +771,17 @@ class StatementManagerTests(TestCase):
             'definition': {'name': {'en-US':'testname'},'description': {'en-US':'testdesc'}, 
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'],
-                'extensions': {'ext:key1': 'value1'}}})
+                'extensions': {'ext:key1': 'value1'}}}).activity
 
         act2 = ActivityManager({
             'objectType': 'Activity', 'id':'act:baz',
             'definition': {'name': {'en-US':'testname2'},'description': {'en-US':'testdesc2'}, 
                 'type': 'http://adlnet.gov/expapi/activities/cmi.interaction',
                 'interactionType': 'true-false','correctResponsesPattern': ['true'],
-                'extensions': {'ext2:key1': 'value1'}}})
+                'extensions': {'ext2:key1': 'value1'}}}).activity
 
 
         acts = len(Activity.objects.all())
         self.assertEqual(acts, 2)
-        self.assertIn('true', act1.Activity.activity_definition_crpanswers)
-        self.assertIn('true', act2.Activity.activity_definition_crpanswers)
+        self.assertIn('true', act1.canonical_data['definition']['correctResponsesPattern'])
+        self.assertIn('true', act2.canonical_data['definition']['correctResponsesPattern'])

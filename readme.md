@@ -29,7 +29,6 @@ This version is stable, but only intended to support a small amount of users as 
     admin:~$ sudo easy_install pip
     admin:~$ sudo pip install virtualenv
     
-    
 **Clone the LRS repository**
 
     admin:~$ cd <wherever you want to put the LRS>
@@ -37,6 +36,7 @@ This version is stable, but only intended to support a small amount of users as 
     admin:~$ cd ADL_LRS/
     
 **Set the LRS configuration**
+
 
   ```
   ### File: ADL_LRS/adl_lrs/settings.py
@@ -68,6 +68,7 @@ This version is stable, but only intended to support a small amount of users as 
     admin:ADL_LRS$ fab setup_env
     admin:ADL_LRS$ source ../env/bin/activate
     (env)admin:ADL_LRS$
+    
         
 **Setup the LRS**
 
@@ -76,12 +77,12 @@ This creates the top level folders, <b>logs</b> and <b>media</b> at the same lev
     (env)admin:ADL_LRS$ fab setup_lrs
     ...
     You just installed Django's auth system, which means you don't have any superusers defined.
-  Would you like to create one now? (yes/no): yes
-  Username (leave blank to use '<system_user_name>'): 
-  E-mail address:
-  Password: <this can be different than your system password since this will just be for the LRS site>
-  Password (again): 
-  Superuser created successfully.
+    Would you like to create one now? (yes/no): yes
+    Username (leave blank to use '<system_user_name>'): 
+    E-mail address:
+    Password: <this can be different than your system password since this will just be for the LRS site>
+    Password (again): 
+    Superuser created successfully.
   ...
 
 If you get some sort of authentication error here, make sure that Django and PostgreSQL are both

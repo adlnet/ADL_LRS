@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.http import require_http_methods
 
@@ -66,7 +66,7 @@ def about(request):
             }
         }
     }    
-    return HttpResponse(json.dumps(lrs_data), content_type="application/json", status=200)  
+    return JsonResponse(lrs_data)  
 
 @require_http_methods(["GET", "HEAD"])
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
@@ -236,9 +236,9 @@ def handle_request(request, more_id=None):
     except HttpResponseBadRequest as br:
         log_exception(request.path, br)
         return br
-    # except Exception as err:
-    #     log_exception(request.path, err)
-    #     return HttpResponse(err.message, status=500)
+    except Exception as err:
+        log_exception(request.path, err)
+        return HttpResponse(err.message, status=500)
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

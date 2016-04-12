@@ -29,7 +29,7 @@ class AgentProfileManager():
      
     def post_profile(self, request_dict):
         # get/create profile
-        p, created = AgentProfile.objects.get_or_create(profileId=request_dict['params']['profileId'],agent=self.Agent)
+        p, created = AgentProfile.objects.get_or_create(profile_id=request_dict['params']['profileId'],agent=self.Agent)
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 post_profile = ContentFile(request_dict['profile'].read())
@@ -67,7 +67,7 @@ class AgentProfileManager():
 
     def put_profile(self, request_dict):
         # get/create profile
-        p, created = AgentProfile.objects.get_or_create(profileId=request_dict['params']['profileId'],agent=self.Agent)
+        p, created = AgentProfile.objects.get_or_create(profile_id=request_dict['params']['profileId'],agent=self.Agent)
 
         # Profile being PUT is not json
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
@@ -109,7 +109,7 @@ class AgentProfileManager():
     
     def get_profile(self, profile_id):
         try:
-            return self.Agent.agentprofile_set.get(profileId=profile_id)
+            return self.Agent.agentprofile_set.get(profile_id=profile_id)
         except:
             err_msg = 'There is no agent profile associated with the id: %s' % profile_id
             raise IDNotFoundError(err_msg)
@@ -123,14 +123,14 @@ class AgentProfileManager():
             except ValidationError:
                 err_msg = 'Since field is not in correct format for retrieval of agent profiles'
                 raise ParamError(err_msg)  
-            ids = [p.profileId for p in profs]
+            ids = [p.profile_id for p in profs]
         else:
-            ids = self.Agent.agentprofile_set.values_list('profileId', flat=True)
+            ids = self.Agent.agentprofile_set.values_list('profile_id', flat=True)
         return ids
 
-    def delete_profile(self, profileId):
+    def delete_profile(self, profile_id):
         try:
-            self.get_profile(profileId).delete()
+            self.get_profile(profile_id).delete()
         # we don't want it anyway
         except AgentProfile.DoesNotExist:
             pass 

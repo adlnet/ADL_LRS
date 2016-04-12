@@ -123,7 +123,7 @@ def http_auth_helper(request):
                         # If the user successfully logged in, then add/overwrite
                         # the user object of this request.
                         request['auth']['user'] = user
-                        request['auth']['agent'] = Agent.objects.retrieve_or_create(**{'name':user.username, 'mbox':'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
+                        request['auth']['agent'] = user.agent
                     else:
                         raise Unauthorized("Authorization failed, please verify your username and password")
                 request['auth']['define'] = True
