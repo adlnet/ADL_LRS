@@ -4,6 +4,7 @@ import urllib2
 import json
 import hmac
 import requests
+import uuid
 from hashlib import sha1
 
 from celery import shared_task
@@ -42,6 +43,7 @@ def check_statement_hooks(stmt_ids):
             filters = h[1]
             config = h[2]
             secret = config['secret'] if 'secret' in config else False
+            stmt_ids = [uuid.UUID(st) for st in stmt_ids]
             filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
             found = Statement.objects.filter(filterQ).distinct()
             if found:
@@ -217,21 +219,5 @@ def update_activity_definition(act):
         pass
     # If the activity already exists in the db
     else:
-        # If there is a name in the IRI act definition add it to what already exists
-        if 'name'in act['definition']:
-            activity.activity_definition_name = dict(activity.activity_definition_name.items() + act['definition']['name'].items())
-        # If there is a description in the IRI act definition add it to what already exists
-        if 'description' in act['definition']:
-            activity.activity_definition_description = dict(activity.activity_definition_description.items() + act['definition']['description'].items())
-
-        activity.activity_definition_type = act['definition'].get('type', '')
-        activity.activity_definition_moreInfo = act['definition'].get('moreInfo', '')
-        activity.activity_definition_interactionType = act['definition'].get('interactionType', '')
-        activity.activity_definition_extensions = act['definition'].get('extensions', {})
-        activity.activity_definition_crpanswers = act['definition'].get('correctResponsesPattern', {})
-        activity.activity_definition_choices = act['definition'].get('choices', {})
-        activity.activity_definition_sources = act['definition'].get('source', {}) 
-        activity.activity_definition_targets = act['definition'].get('target', {})
-        activity.activity_definition_steps = act['definition'].get('steps', {})
-        activity.activity_definition_scales = act['definition'].get('scale', {})
+        activity.canonical_data = dict(activity.canonical_data.items() + act.items())
         activity.save()

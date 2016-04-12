@@ -37,6 +37,7 @@ This version is stable, but only intended to support a small amount of users as 
     
 **Set the LRS configuration**
 
+
   ```
   ### File: ADL_LRS/adl_lrs/settings.py
   
@@ -76,12 +77,12 @@ This creates the top level folders, <b>logs</b> and <b>media</b> at the same lev
     (env)admin:ADL_LRS$ fab setup_lrs
     ...
     You just installed Django's auth system, which means you don't have any superusers defined.
-  Would you like to create one now? (yes/no): yes
-  Username (leave blank to use '<system_user_name>'): 
-  E-mail address:
-  Password: <this can be different than your system password since this will just be for the LRS site>
-  Password (again): 
-  Superuser created successfully.
+    Would you like to create one now? (yes/no): yes
+    Username (leave blank to use '<system_user_name>'): 
+    E-mail address:
+    Password: <this can be different than your system password since this will just be for the LRS site>
+    Password (again): 
+    Superuser created successfully.
   ...
 
 If you get some sort of authentication error here, make sure that Django and PostgreSQL are both

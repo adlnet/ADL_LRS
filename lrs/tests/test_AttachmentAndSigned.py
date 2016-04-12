@@ -4,6 +4,7 @@ import uuid
 import urllib
 import hashlib
 import os
+from jose import jws
 
 from datetime import datetime
 from email import message_from_string
@@ -18,7 +19,6 @@ from django.utils.timezone import utc
 from django.conf import settings
 
 from ..models import Statement, StatementAttachment
-from ..utils.jws import JWS
 
 from adl_lrs.views import register
 
@@ -74,6 +74,9 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
+
         message.attach(stmtdata)
         message.attach(textdata)
 
@@ -118,6 +121,10 @@ class AttachmentAndSignedTests(TestCase):
         
         textdata.add_header('X-Experience-API-Hash', txtsha)
         textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
+        textdata2.set_payload(txt2, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
         message.attach(textdata2)
@@ -137,8 +144,8 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(attachments), 2)
 
         
-        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
-        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].payload.read(), base64.b64encode("This is second attachment."))
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].payload.read(), "This is second attachment.")
 
     def test_multiple_stmt_multipart_same_attachment(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -172,6 +179,8 @@ class AttachmentAndSignedTests(TestCase):
         textdata = MIMEText(txt, 'plain', 'utf-8')
         
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
         
@@ -189,8 +198,8 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
-        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
 
     def test_multiple_stmt_multipart_one_attachment_one_fileurl(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -222,6 +231,8 @@ class AttachmentAndSignedTests(TestCase):
         textdata = MIMEText(txt, 'plain', 'utf-8')
         
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
         
@@ -239,8 +250,8 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), base64.b64encode("howdy.. this is a text attachment"))
-        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].payload.read(), "howdy.. this is a text attachment")
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].canonical_data['fileUrl'], "http://my/file/url")
 
     def test_multiple_stmt_multipart_multiple_attachments_each(self):
         stmt = [{"actor":{"mbox":"mailto:tom@example.com"},
@@ -305,6 +316,16 @@ class AttachmentAndSignedTests(TestCase):
         textdata21.add_header('X-Experience-API-Hash', txtsha21)
         textdata22.add_header('X-Experience-API-Hash', txtsha22)
 
+        textdata11.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata12.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata21.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata22.replace_header('Content-Transfer-Encoding', 'binary')
+
+        textdata11.set_payload(txt11, 'utf-8')
+        textdata12.set_payload(txt12, 'utf-8')
+        textdata21.set_payload(txt21, 'utf-8')
+        textdata22.set_payload(txt22, 'utf-8')
+
         message.attach(stmtdata)
         message.attach(textdata11)
         message.attach(textdata12)
@@ -328,10 +349,10 @@ class AttachmentAndSignedTests(TestCase):
 
         stmt1_contents = ["This is a text attachment11","This is a text attachment12"]
         stmt2_contents = ["This is a text attachment21","This is a text attachment22"]
-        self.assertIn(base64.b64decode(saved_stmt1.stmt_attachments.all()[0].payload.read()), stmt1_contents)
-        self.assertIn(base64.b64decode(saved_stmt1.stmt_attachments.all()[1].payload.read()), stmt1_contents)
-        self.assertIn(base64.b64decode(saved_stmt2.stmt_attachments.all()[0].payload.read()), stmt2_contents)
-        self.assertIn(base64.b64decode(saved_stmt2.stmt_attachments.all()[1].payload.read()), stmt2_contents)
+        self.assertIn(saved_stmt1.stmt_attachments.all()[0].payload.read(), stmt1_contents)
+        self.assertIn(saved_stmt1.stmt_attachments.all()[1].payload.read(), stmt1_contents)
+        self.assertIn(saved_stmt2.stmt_attachments.all()[0].payload.read(), stmt2_contents)
+        self.assertIn(saved_stmt2.stmt_attachments.all()[1].payload.read(), stmt2_contents)
 
     def test_multipart_wrong_sha(self):
         stmt = {"actor":{"mbox":"mailto:tom@example.com"},
@@ -355,6 +376,8 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
 
@@ -394,8 +417,12 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         textdata2 = MIMEText(txt2, 'plain', 'utf-8')
         textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        textdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata2.set_payload(txt2, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
         message.attach(textdata2)
@@ -436,8 +463,12 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         textdata2 = MIMEText(txt2, 'plain', 'utf-8')
         textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        textdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata2.set_payload(txt2, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
         message.attach(textdata2)
@@ -519,8 +550,8 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(len(stmts), 2)
         self.assertEqual(len(attachments), 2)
 
-        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
-        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].fileUrl, "http://my/file/url")
+        self.assertEqual(saved_stmt1.stmt_attachments.all()[0].canonical_data['fileUrl'], "http://my/file/url")
+        self.assertEqual(saved_stmt2.stmt_attachments.all()[0].canonical_data['fileUrl'], "http://my/file/url")
 
     def tyler_attachment_snafu(self):
         stmt = {
@@ -626,6 +657,9 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
+
         message.attach(stmtdata)
         message.attach(textdata)
 
@@ -660,6 +694,8 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
 
@@ -703,8 +739,12 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         textdata2 = MIMEText(txt2, 'plain', 'utf-8')
         textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        textdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata2.set_payload(txt2, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
         message.attach(textdata2)
@@ -749,8 +789,12 @@ class AttachmentAndSignedTests(TestCase):
         stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
         textdata = MIMEText(txt, 'plain', 'utf-8')
         textdata.add_header('X-Experience-API-Hash', txtsha)
+        textdata.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata.set_payload(txt, 'utf-8')
         textdata2 = MIMEText(txt2, 'plain', 'utf-8')
         textdata2.add_header('X-Experience-API-Hash', txtsha2)
+        textdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata2.set_payload(txt2, 'utf-8')
         message.attach(stmtdata)
         message.attach(textdata)
         message.attach(textdata2)
@@ -892,6 +936,9 @@ class AttachmentAndSignedTests(TestCase):
         imgdata = MIMEImage(img_data)
 
         imgdata.add_header('X-Experience-API-Hash', imgsha)
+        imgdata.replace_header('Content-Transfer-Encoding', 'binary')
+        imgdata.set_payload(img_data)
+
         message.attach(stmtdata)
         message.attach(imgdata)
 
@@ -922,22 +969,19 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(parts[2].get('Content-Transfer-Encoding'), 'binary')
 
     def test_example_signed_statement(self):
-        header = base64.urlsafe_b64decode(fixpad(encodedhead))
-        payload = base64.urlsafe_b64decode(fixpad(encodedpayload))
+        payload = json.loads(exstmt)
+        signature = jws.sign(payload, privatekey, algorithm='RS256')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
 
-        stmt = json.loads(exstmt)
-        
-        jwso = JWS(header, payload)
-        thejws = jwso.create(privatekey)
-        self.assertEqual(thejws,sig)
+        message = MIMEMultipart()        
+        stmtdata = MIMEApplication(json.dumps(payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
 
-        message = MIMEMultipart()
-        stmt['attachments'][0]["sha2"] = jwso.sha2(thejws)
-        
-        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
-        jwsdata = MIMEApplication(thejws, _subtype="octet-stream")
-
-        jwsdata.add_header('X-Experience-API-Hash', jwso.sha2(thejws))
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
         message.attach(stmtdata)
         message.attach(jwsdata)
         
@@ -945,55 +989,69 @@ class AttachmentAndSignedTests(TestCase):
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
-    def test_example_signed_statement_bad(self):
-        header = base64.urlsafe_b64decode(fixpad(encodedhead))
-        payload = base64.urlsafe_b64decode(fixpad(encodedpayload))
-
+    def test_example_signed_statement_sha2s_no_match(self):
         stmt = json.loads(exstmt)
         stmt['actor'] = {"mbox": "mailto:sneaky@example.com", "name": "Cheater", "objectType": "Agent"}
+        signature = jws.sign(stmt, privatekey, algorithm='RS384')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS384']))
+        sha2 = hashlib.sha384(signature).hexdigest()
+        stmt['attachments'][0]["sha2"] = sha2
         
-        jwso = JWS(header, payload)
-        thejws = jwso.create(privatekey)
-        self.assertEqual(thejws,sig)
-
         message = MIMEMultipart()
-        stmt['attachments'][0]["sha2"] = jwso.sha2(thejws)
-        
-        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
-        jwsdata = MIMEApplication(thejws, _subtype="octet-stream")
+        stmtdata = MIMEApplication(exstmt, _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
 
-        jwsdata.add_header('X-Experience-API-Hash', jwso.sha2(thejws))
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
         message.attach(stmtdata)
         message.attach(jwsdata)
         
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.content, 'The JSON Web Signature is not valid')
+        self.assertEqual(r.content, 'Signature attachment is missing from request')
 
-    def test_example_signed_statements(self):
-        header = base64.urlsafe_b64decode(fixpad(encodedhead))
-        payload = base64.urlsafe_b64decode(fixpad(encodedpayload))
+    def test_example_signed_statement_payloads_no_match(self):
+        bad_stmt = json.loads(exstmt)
+        bad_stmt['actor'] = {"mbox": "mailto:sneaky@example.com", "name": "Cheater", "objectType": "Agent"}
+        signature = jws.sign(bad_stmt, privatekey, algorithm='RS512')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS512']))
+        sha2 = hashlib.sha512(signature).hexdigest()
+        bad_stmt['attachments'][0]["sha2"] = sha2
 
-        stmt1 = json.loads(exstmt)
-
-        stmt2 = {"actor": {"mbox" : "mailto:otherguy@example.com"},
-                 "verb" : {"id":"http://verbs.com/did"},
-                 "object" : {"id":"act:stuff"} }
-
-        stmt = [stmt1, stmt2]
-        
-        jwso = JWS(header, payload)
-        thejws = jwso.create(privatekey)
-        self.assertEqual(thejws,sig)
+        good_stmt = json.loads(exstmt)
+        good_stmt['attachments'][0]["sha2"] = sha2
 
         message = MIMEMultipart()
-        stmt1['attachments'][0]["sha2"] = jwso.sha2()
-        
-        stmtdata = MIMEApplication(json.dumps(stmt), _subtype="json", _encoder=json.JSONEncoder)
-        jwsdata = MIMEApplication(thejws, _subtype="octet-stream")
+        stmtdata = MIMEApplication(json.dumps(good_stmt), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
 
-        jwsdata.add_header('X-Experience-API-Hash', jwso.sha2(thejws))
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
+        
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, 'The JWS is not valid - payload and body statements do not match')
+
+    def test_example_signed_statement_with_x509_cert(self):
+        payload = json.loads(exstmt)
+        signature = jws.sign(payload, privatekey, {'x5c': [base64.b64encode(publickey)]}, 'RS256')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
         message.attach(stmtdata)
         message.attach(jwsdata)
         
@@ -1001,7 +1059,27 @@ class AttachmentAndSignedTests(TestCase):
             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
-fixpad = lambda s: s if len(s) % 4 == 0 else s + '=' * (4 - (len(s) % 4))
+    def test_example_signed_statement_with_x509_cert_wrong(self):
+        payload = json.loads(exstmt)
+        signature = jws.sign(payload, privatekey, {'x5c': [base64.b64encode(wrongpublickey)]}, 'RS256')
+        self.assertTrue(jws.verify(signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
+        
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+            content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, 'The JWS is not valid: Signature verification failed.')
 
 exstmt = """{
     "version": "1.0.0",
@@ -1042,23 +1120,51 @@ exstmt = """{
     ]
 }"""
 
-sig = "ew0KICAgICJhbGciOiAiUlMyNTYiLA0KICAgICJ4NWMiOiBbDQogICAgICAgICJNSUlEQVRDQ0FtcWdBd0lCQWdJSkFNQjFjc051QTYra01BMEdDU3FHU0liM0RRRUJCUVVBTUhFeEN6QUpCZ05WQkFZVEFsVlRNUkl3RUFZRFZRUUlFd2xVWlc1dVpYTnpaV1V4R0RBV0JnTlZCQW9URDBWNFlXMXdiR1VnUTI5dGNHRnVlVEVRTUE0R0ExVUVBeE1IUlhoaGJYQnNaVEVpTUNBR0NTcUdTSWIzRFFFSkFSWVRaWGhoYlhCc1pVQmxlR0Z0Y0d4bExtTnZiVEFlRncweE16QTBNRFF4TlRJNE16QmFGdzB4TkRBME1EUXhOVEk0TXpCYU1JR1dNUXN3Q1FZRFZRUUdFd0pWVXpFU01CQUdBMVVFQ0JNSlZHVnVibVZ6YzJWbE1SRXdEd1lEVlFRSEV3aEdjbUZ1YTJ4cGJqRVlNQllHQTFVRUNoTVBSWGhoYlhCc1pTQkRiMjF3WVc1NU1SQXdEZ1lEVlFRTEV3ZEZlR0Z0Y0d4bE1SQXdEZ1lEVlFRREV3ZEZlR0Z0Y0d4bE1TSXdJQVlKS29aSWh2Y05BUWtCRmhObGVHRnRjR3hsUUdWNFlXMXdiR1V1WTI5dE1JR2ZNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0R05BRENCaVFLQmdRRGp4dlpYRjMwV0w0b0tqWllYZ1IwWnlhWCt1M3k2K0pxVHFpTmtGYS9WVG5ldDZMeTJPVDZabW1jSkVQbnEzVW5ld3BIb09RK0dmaGhUa1cxM2owNmo1aU5uNG9iY0NWV1RMOXlYTnZKSCtLbyt4dTRZbC95U1BScklQeVRqdEhkRzBNMlh6SWxtbUxxbStDQVMrS0NiSmVINHRmNTQza0lXQzVwQzVwM2NWUUlEQVFBQm8zc3dlVEFKQmdOVkhSTUVBakFBTUN3R0NXQ0dTQUdHK0VJQkRRUWZGaDFQY0dWdVUxTk1JRWRsYm1WeVlYUmxaQ0JEWlhKMGFXWnBZMkYwWlRBZEJnTlZIUTRFRmdRVVZzM3Y1YWZFZE9lb1llVmFqQVFFNHYwV1MxUXdId1lEVlIwakJCZ3dGb0FVeVZJYzN5dnJhNEVCejIwSTRCRjM5SUFpeEJrd0RRWUpLb1pJaHZjTkFRRUZCUUFEZ1lFQWdTL0ZGNUQwSG5qNDRydlQ2a2duM2tKQXZ2MmxqL2Z5anp0S0lyWVMzM2xqWEduNmdHeUE0cXRiWEEyM1ByTzR1Yy93WUNTRElDRHBQb2JoNjJ4VENkOXFPYktoZ3dXT2kwNVBTQkxxVXUzbXdmQWUxNUxKQkpCcVBWWjRLMGtwcGVQQlU4bTZhSVpvSDU3TC85dDRPb2FMOHlLcy9xaktGZUkxT0ZXWnh2QT0iLA0KICAgICAgICAiTUlJRE56Q0NBcUNnQXdJQkFnSUpBTUIxY3NOdUE2K2pNQTBHQ1NxR1NJYjNEUUVCQlFVQU1IRXhDekFKQmdOVkJBWVRBbFZUTVJJd0VBWURWUVFJRXdsVVpXNXVaWE56WldVeEdEQVdCZ05WQkFvVEQwVjRZVzF3YkdVZ1EyOXRjR0Z1ZVRFUU1BNEdBMVVFQXhNSFJYaGhiWEJzWlRFaU1DQUdDU3FHU0liM0RRRUpBUllUWlhoaGJYQnNaVUJsZUdGdGNHeGxMbU52YlRBZUZ3MHhNekEwTURReE5USTFOVE5hRncweU16QTBNREl4TlRJMU5UTmFNSEV4Q3pBSkJnTlZCQVlUQWxWVE1SSXdFQVlEVlFRSUV3bFVaVzV1WlhOelpXVXhHREFXQmdOVkJBb1REMFY0WVcxd2JHVWdRMjl0Y0dGdWVURVFNQTRHQTFVRUF4TUhSWGhoYlhCc1pURWlNQ0FHQ1NxR1NJYjNEUUVKQVJZVFpYaGhiWEJzWlVCbGVHRnRjR3hsTG1OdmJUQ0JuekFOQmdrcWhraUc5dzBCQVFFRkFBT0JqUUF3Z1lrQ2dZRUExc0JuQldQWjBmN1dKVUZUSnk1KzAxU2xTNVo2RERENlV5ZTl2SzlBeWNnVjVCMytXQzhIQzV1NWg5MU11akFDMUFSUFZVT3RzdlBSczQ1cUtORklnSUdSWEtQQXdaamF3RUkyc0NKUlNLVjQ3aTZCOGJEdjRXa3VHdlFhdmVaR0kwcWxtTjVSMUVpbTJnVUl0UmoxaGdjQzlyUWF2amxuRktEWTJybFhHdWtDQXdFQUFhT0IxakNCMHpBZEJnTlZIUTRFRmdRVXlWSWMzeXZyYTRFQnoyMEk0QkYzOUlBaXhCa3dnYU1HQTFVZEl3U0JtekNCbUlBVXlWSWMzeXZyYTRFQnoyMEk0QkYzOUlBaXhCbWhkYVJ6TUhFeEN6QUpCZ05WQkFZVEFsVlRNUkl3RUFZRFZRUUlFd2xVWlc1dVpYTnpaV1V4R0RBV0JnTlZCQW9URDBWNFlXMXdiR1VnUTI5dGNHRnVlVEVRTUE0R0ExVUVBeE1IUlhoaGJYQnNaVEVpTUNBR0NTcUdTSWIzRFFFSkFSWVRaWGhoYlhCc1pVQmxlR0Z0Y0d4bExtTnZiWUlKQU1CMWNzTnVBNitqTUF3R0ExVWRFd1FGTUFNQkFmOHdEUVlKS29aSWh2Y05BUUVGQlFBRGdZRUFEaHdUZWJHazczNXlLaG04RHFDeHZObkVaME54c1lFWU9qZ1JHMXlYVGxXNXBFNjkxZlNINUFaK1Q2ZnB3cFpjV1k1UVlrb042RG53ak94R2tTZlFDMy95R21jVURLQlB3aVo1TzJzOUMrZkUxa1VFbnJYMlhlYTRhZ1ZuZ016UjhEUTZvT2F1TFdxZWhEQitnMkVOV1JMb1ZnUyttYTUvWWNzMEdUeXJFQ1k9Ig0KICAgIF0NCn0.ew0KICAgICJ2ZXJzaW9uIjogIjEuMC4wIiwNCiAgICAiaWQiOiAiMzNjZmY0MTYtZTMzMS00YzlkLTk2OWUtNTM3M2ExNzU2MTIwIiwNCiAgICAiYWN0b3IiOiB7DQogICAgICAgICJtYm94IjogIm1haWx0bzpleGFtcGxlQGV4YW1wbGUuY29tIiwNCiAgICAgICAgIm5hbWUiOiAiRXhhbXBsZSBMZWFybmVyIiwNCiAgICAgICAgIm9iamVjdFR5cGUiOiAiQWdlbnQiDQogICAgfSwNCiAgICAidmVyYiI6IHsNCiAgICAgICAgImlkIjogImh0dHA6Ly9hZGxuZXQuZ292L2V4cGFwaS92ZXJicy9leHBlcmllbmNlZCIsDQogICAgICAgICJkaXNwbGF5Ijogew0KICAgICAgICAgICAgImVuLVVTIjogImV4cGVyaWVuY2VkIg0KICAgICAgICB9DQogICAgfSwNCiAgICAib2JqZWN0Ijogew0KICAgICAgICAiaWQiOiAiaHR0cHM6Ly93d3cueW91dHViZS5jb20vd2F0Y2g_dj14aDRrSWlIM1NtOCIsDQogICAgICAgICJvYmplY3RUeXBlIjogIkFjdGl2aXR5IiwNCiAgICAgICAgImRlZmluaXRpb24iOiB7DQogICAgICAgICAgICAibmFtZSI6IHsNCiAgICAgICAgICAgICAgICAiZW4tVVMiOiAiVGF4IFRpcHMgJiBJbmZvcm1hdGlvbiA6IEhvdyB0byBGaWxlIGEgVGF4IFJldHVybiAiDQogICAgICAgICAgICB9LA0KICAgICAgICAgICAgImRlc2NyaXB0aW9uIjogew0KICAgICAgICAgICAgICAgICJlbi1VUyI6ICJGaWxpbmcgYSB0YXggcmV0dXJuIHdpbGwgcmVxdWlyZSBmaWxsaW5nIG91dCBlaXRoZXIgYSAxMDQwLCAxMDQwQSBvciAxMDQwRVogZm9ybSINCiAgICAgICAgICAgIH0NCiAgICAgICAgfQ0KICAgIH0sDQogICAgInRpbWVzdGFtcCI6ICIyMDEzLTA0LTAxVDEyOjAwOjAwWiINCn0.FWuwaPhwUbkk7h9sKW5zSvjsYNugvxJ-TrVaEgt_DCUT0bmKhQScRrjMB6P9O50uznPwT66oF1NnU_G0HVhRzS5voiXE-y7tT3z0M3-8A6YK009Bk_digVUul-HA4Fpd5IjoBBGe3yzaQ2ZvzarvRuipvNEQCI0onpfuZZJQ0d8"
+publickey = """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAopcIphKtEI/Ong+kU0pm
+kR5ajkPlcoiRHcmRbLPIq5wvTQufwZ9oGhhXbsj/M7UMvvviBNCdecT21rK1ZCbh
+IHeobjYM0J7ZY7StZhPL7IPUaN1Mt77uR5Oowj3iZjXgG4jwpJ0O8xpqSRZFsR2d
+7qjvTTJLFQxNLEznrQshiO4da357T8XfWFsn5hqj1SibGzFnfktAbZ9B9BuMVJuT
+HDRgcgrIMf3Ct3/fstOKxo4rb25uXyqAdM24k6Rd+QJc3HZpOQ5Yfgk8DPR5X3YR
+Lx1YCLZKPeah0HCQiB3kGD4Wn/Pc4hU29O7c4YhwjCUJAgqiPEHYvuzLmiBcOGzz
+hQIDAQAB
+-----END PUBLIC KEY-----"""
 
-encodedhead = """ew0KICAgICJhbGciOiAiUlMyNTYiLA0KICAgICJ4NWMiOiBbDQogICAgICAgICJNSUlEQVRDQ0FtcWdBd0lCQWdJSkFNQjFjc051QTYra01BMEdDU3FHU0liM0RRRUJCUVVBTUhFeEN6QUpCZ05WQkFZVEFsVlRNUkl3RUFZRFZRUUlFd2xVWlc1dVpYTnpaV1V4R0RBV0JnTlZCQW9URDBWNFlXMXdiR1VnUTI5dGNHRnVlVEVRTUE0R0ExVUVBeE1IUlhoaGJYQnNaVEVpTUNBR0NTcUdTSWIzRFFFSkFSWVRaWGhoYlhCc1pVQmxlR0Z0Y0d4bExtTnZiVEFlRncweE16QTBNRFF4TlRJNE16QmFGdzB4TkRBME1EUXhOVEk0TXpCYU1JR1dNUXN3Q1FZRFZRUUdFd0pWVXpFU01CQUdBMVVFQ0JNSlZHVnVibVZ6YzJWbE1SRXdEd1lEVlFRSEV3aEdjbUZ1YTJ4cGJqRVlNQllHQTFVRUNoTVBSWGhoYlhCc1pTQkRiMjF3WVc1NU1SQXdEZ1lEVlFRTEV3ZEZlR0Z0Y0d4bE1SQXdEZ1lEVlFRREV3ZEZlR0Z0Y0d4bE1TSXdJQVlKS29aSWh2Y05BUWtCRmhObGVHRnRjR3hsUUdWNFlXMXdiR1V1WTI5dE1JR2ZNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0R05BRENCaVFLQmdRRGp4dlpYRjMwV0w0b0tqWllYZ1IwWnlhWCt1M3k2K0pxVHFpTmtGYS9WVG5ldDZMeTJPVDZabW1jSkVQbnEzVW5ld3BIb09RK0dmaGhUa1cxM2owNmo1aU5uNG9iY0NWV1RMOXlYTnZKSCtLbyt4dTRZbC95U1BScklQeVRqdEhkRzBNMlh6SWxtbUxxbStDQVMrS0NiSmVINHRmNTQza0lXQzVwQzVwM2NWUUlEQVFBQm8zc3dlVEFKQmdOVkhSTUVBakFBTUN3R0NXQ0dTQUdHK0VJQkRRUWZGaDFQY0dWdVUxTk1JRWRsYm1WeVlYUmxaQ0JEWlhKMGFXWnBZMkYwWlRBZEJnTlZIUTRFRmdRVVZzM3Y1YWZFZE9lb1llVmFqQVFFNHYwV1MxUXdId1lEVlIwakJCZ3dGb0FVeVZJYzN5dnJhNEVCejIwSTRCRjM5SUFpeEJrd0RRWUpLb1pJaHZjTkFRRUZCUUFEZ1lFQWdTL0ZGNUQwSG5qNDRydlQ2a2duM2tKQXZ2MmxqL2Z5anp0S0lyWVMzM2xqWEduNmdHeUE0cXRiWEEyM1ByTzR1Yy93WUNTRElDRHBQb2JoNjJ4VENkOXFPYktoZ3dXT2kwNVBTQkxxVXUzbXdmQWUxNUxKQkpCcVBWWjRLMGtwcGVQQlU4bTZhSVpvSDU3TC85dDRPb2FMOHlLcy9xaktGZUkxT0ZXWnh2QT0iLA0KICAgICAgICAiTUlJRE56Q0NBcUNnQXdJQkFnSUpBTUIxY3NOdUE2K2pNQTBHQ1NxR1NJYjNEUUVCQlFVQU1IRXhDekFKQmdOVkJBWVRBbFZUTVJJd0VBWURWUVFJRXdsVVpXNXVaWE56WldVeEdEQVdCZ05WQkFvVEQwVjRZVzF3YkdVZ1EyOXRjR0Z1ZVRFUU1BNEdBMVVFQXhNSFJYaGhiWEJzWlRFaU1DQUdDU3FHU0liM0RRRUpBUllUWlhoaGJYQnNaVUJsZUdGdGNHeGxMbU52YlRBZUZ3MHhNekEwTURReE5USTFOVE5hRncweU16QTBNREl4TlRJMU5UTmFNSEV4Q3pBSkJnTlZCQVlUQWxWVE1SSXdFQVlEVlFRSUV3bFVaVzV1WlhOelpXVXhHREFXQmdOVkJBb1REMFY0WVcxd2JHVWdRMjl0Y0dGdWVURVFNQTRHQTFVRUF4TUhSWGhoYlhCc1pURWlNQ0FHQ1NxR1NJYjNEUUVKQVJZVFpYaGhiWEJzWlVCbGVHRnRjR3hsTG1OdmJUQ0JuekFOQmdrcWhraUc5dzBCQVFFRkFBT0JqUUF3Z1lrQ2dZRUExc0JuQldQWjBmN1dKVUZUSnk1KzAxU2xTNVo2RERENlV5ZTl2SzlBeWNnVjVCMytXQzhIQzV1NWg5MU11akFDMUFSUFZVT3RzdlBSczQ1cUtORklnSUdSWEtQQXdaamF3RUkyc0NKUlNLVjQ3aTZCOGJEdjRXa3VHdlFhdmVaR0kwcWxtTjVSMUVpbTJnVUl0UmoxaGdjQzlyUWF2amxuRktEWTJybFhHdWtDQXdFQUFhT0IxakNCMHpBZEJnTlZIUTRFRmdRVXlWSWMzeXZyYTRFQnoyMEk0QkYzOUlBaXhCa3dnYU1HQTFVZEl3U0JtekNCbUlBVXlWSWMzeXZyYTRFQnoyMEk0QkYzOUlBaXhCbWhkYVJ6TUhFeEN6QUpCZ05WQkFZVEFsVlRNUkl3RUFZRFZRUUlFd2xVWlc1dVpYTnpaV1V4R0RBV0JnTlZCQW9URDBWNFlXMXdiR1VnUTI5dGNHRnVlVEVRTUE0R0ExVUVBeE1IUlhoaGJYQnNaVEVpTUNBR0NTcUdTSWIzRFFFSkFSWVRaWGhoYlhCc1pVQmxlR0Z0Y0d4bExtTnZiWUlKQU1CMWNzTnVBNitqTUF3R0ExVWRFd1FGTUFNQkFmOHdEUVlKS29aSWh2Y05BUUVGQlFBRGdZRUFEaHdUZWJHazczNXlLaG04RHFDeHZObkVaME54c1lFWU9qZ1JHMXlYVGxXNXBFNjkxZlNINUFaK1Q2ZnB3cFpjV1k1UVlrb042RG53ak94R2tTZlFDMy95R21jVURLQlB3aVo1TzJzOUMrZkUxa1VFbnJYMlhlYTRhZ1ZuZ016UjhEUTZvT2F1TFdxZWhEQitnMkVOV1JMb1ZnUyttYTUvWWNzMEdUeXJFQ1k9Ig0KICAgIF0NCn0"""
-encodedpayload = """ew0KICAgICJ2ZXJzaW9uIjogIjEuMC4wIiwNCiAgICAiaWQiOiAiMzNjZmY0MTYtZTMzMS00YzlkLTk2OWUtNTM3M2ExNzU2MTIwIiwNCiAgICAiYWN0b3IiOiB7DQogICAgICAgICJtYm94IjogIm1haWx0bzpleGFtcGxlQGV4YW1wbGUuY29tIiwNCiAgICAgICAgIm5hbWUiOiAiRXhhbXBsZSBMZWFybmVyIiwNCiAgICAgICAgIm9iamVjdFR5cGUiOiAiQWdlbnQiDQogICAgfSwNCiAgICAidmVyYiI6IHsNCiAgICAgICAgImlkIjogImh0dHA6Ly9hZGxuZXQuZ292L2V4cGFwaS92ZXJicy9leHBlcmllbmNlZCIsDQogICAgICAgICJkaXNwbGF5Ijogew0KICAgICAgICAgICAgImVuLVVTIjogImV4cGVyaWVuY2VkIg0KICAgICAgICB9DQogICAgfSwNCiAgICAib2JqZWN0Ijogew0KICAgICAgICAiaWQiOiAiaHR0cHM6Ly93d3cueW91dHViZS5jb20vd2F0Y2g_dj14aDRrSWlIM1NtOCIsDQogICAgICAgICJvYmplY3RUeXBlIjogIkFjdGl2aXR5IiwNCiAgICAgICAgImRlZmluaXRpb24iOiB7DQogICAgICAgICAgICAibmFtZSI6IHsNCiAgICAgICAgICAgICAgICAiZW4tVVMiOiAiVGF4IFRpcHMgJiBJbmZvcm1hdGlvbiA6IEhvdyB0byBGaWxlIGEgVGF4IFJldHVybiAiDQogICAgICAgICAgICB9LA0KICAgICAgICAgICAgImRlc2NyaXB0aW9uIjogew0KICAgICAgICAgICAgICAgICJlbi1VUyI6ICJGaWxpbmcgYSB0YXggcmV0dXJuIHdpbGwgcmVxdWlyZSBmaWxsaW5nIG91dCBlaXRoZXIgYSAxMDQwLCAxMDQwQSBvciAxMDQwRVogZm9ybSINCiAgICAgICAgICAgIH0NCiAgICAgICAgfQ0KICAgIH0sDQogICAgInRpbWVzdGFtcCI6ICIyMDEzLTA0LTAxVDEyOjAwOjAwWiINCn0"""
+wrongpublickey = """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzO/eUZPksFpU6E0BBTbp
+F1T66Mnq3DJK06hKzyhLfI9L9bGzEQVCa7YNmHdDaGXgmmlT8hdbLeAspfeItKyI
+tIzkBLCElHZ1UdIA2ibs3DrH1OH9TWk+ANpVJULY5O73NDb7yx29mDbUdHeBD4kR
+R+eTc7HYHf5d5RbZLtZ17gpSf46PncPp+JkyRcAc895BboY7cpAWyGX1tlcWfizk
+tT0+h89PoJw8cbKG8hQQfzztCdEkKOgs+4LEAvBWPyhgYRxqFPUcxIxtukZpociD
+7i8ZuKIZP9ERCemi1Trniw6iot4DMhtwbT3/nhYGeG1dm011tX0ClKqhiIzJs7n0
+8QIDAQAB
+-----END PUBLIC KEY-----"""
 
-privatekey = """-----BEGIN RSA PRIVATE KEY-----
-MIICXAIBAAKBgQDjxvZXF30WL4oKjZYXgR0ZyaX+u3y6+JqTqiNkFa/VTnet6Ly2
-OT6ZmmcJEPnq3UnewpHoOQ+GfhhTkW13j06j5iNn4obcCVWTL9yXNvJH+Ko+xu4Y
-l/ySPRrIPyTjtHdG0M2XzIlmmLqm+CAS+KCbJeH4tf543kIWC5pC5p3cVQIDAQAB
-AoGAOejdvGq2XKuddu1kWXl0Aphn4YmdPpPyCNTaxplU6PBYMRjY0aNgLQE6bO2p
-/HJiU4Y4PkgzkEgCu0xf/mOq5DnSkX32ICoQS6jChABAe20ErPfm5t8h9YKsTfn9
-40lAouuwD9ePRteizd4YvHtiMMwmh5PtUoCbqLefawNApAECQQD1mdBW3zL0okUx
-2pc4tttn2qArCG4CsEZMLlGRDd3FwPWJz3ZPNEEgZWXGSpA9F1QTZ6JYXIfejjRo
-UuvRMWeBAkEA7WvzDBNcv4N+xeUKvH8ILti/BM58LraTtqJlzjQSovek0srxtmDg
-5of+xrxN6IM4p7yvQa+7YOUOukrVXjG+1QJBAI2mBrjzxgm9xTa5odn97JD7UMFA
-/WHjlMe/Nx/35V52qaav1sZbluw+TvKMcqApYj5G2SUpSNudHLDGkmd2nQECQFfc
-lBRK8g7ZncekbGW3aRLVGVOxClnLLTzwOlamBKOUm8V6XxsMHQ6TE2D+fKJoNUY1
-2HGpk+FWwy2D1hRGuoUCQAXfaLSxtaWdPtlZTPVueF7ZikQDsVg+vtTFgpuHloR2
-6EVc1RbHHZm32yvGDY8IkcoMfJQqLONDdLfS/05yoNU=
------END RSA PRIVATE KEY-----"""
+privatekey = """-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCilwimEq0Qj86e
+D6RTSmaRHlqOQ+VyiJEdyZFss8irnC9NC5/Bn2gaGFduyP8ztQy+++IE0J15xPbW
+srVkJuEgd6huNgzQntljtK1mE8vsg9Ro3Uy3vu5Hk6jCPeJmNeAbiPCknQ7zGmpJ
+FkWxHZ3uqO9NMksVDE0sTOetCyGI7h1rfntPxd9YWyfmGqPVKJsbMWd+S0Btn0H0
+G4xUm5McNGByCsgx/cK3f9+y04rGjitvbm5fKoB0zbiTpF35Alzcdmk5Dlh+CTwM
+9HlfdhEvHVgItko95qHQcJCIHeQYPhaf89ziFTb07tzhiHCMJQkCCqI8Qdi+7Mua
+IFw4bPOFAgMBAAECggEAUx6jbUNe9niOSH/2oh4HEWlTIifTxRnMFk5V6hx/Gjxe
+ciTfJz03GyAWkqxuyyBjw79BbPS5jOcEyf3SfcDilpaVpMI9CuoqeK6Fdwnn1qIO
+lQ2NiuIxLqZuP98jPt2MFIeNfppMaju22mZoeoOJmdkDfZOYjsobKeqnBfAK1NUV
+qpewRkgYLLlI/tM+H77ihpOVvQlNH2uuLtjtRP+EpbvkZ0hpH5Qk7wi4ODtQVKeq
+qJjUjSu16PrAOX40ce8Cjh7LF1GP1zaRYdfODVKSbFJNvmKReF/trGNOegjiLZP5
+pOWss4V7rop5dFdlt4MWRZ2gQi1eFPCnv+teDUBsAQKBgQDU9ZM7VQBaSxwd3uIt
+sOsdqWZnbGdc5KN+YyULftUjg/ELDO/hXINnAPXhnBYS/ToKdsYoW0KX24OOkNy9
+VLX0Lo+N+J0mhZDjYspg63uWBi+KUkeUWRcb2esjoZf4iT5ugIntpOddA4tZ7wNO
+vm7ELydnu1X1GQJWHvacQ026LQKBgQDDc18vnPBSCPTJidEO0GWSbjNu8xbp015w
+9t5Tne3499yQDXkoDngfii3B7rxsqVv1UxlCDqmJFSDFm5v/odO1uKZbsazM6/OD
+RGD9B2l9XnCpJ0VEewzZPwKnHR1Ms4Fvc4ehSvok2po4YaR5d9KGxkQCRKsXtfDX
+ZvekI9WtuQKBgGkWVfUtWOM1tUY4Ojx51Uvp0BKxN8BrQxKXMiyeBedksInXdHgt
+AtrNaohOUcZFF2MagWZgwlfVhvHPIl57ct5wK37PdB0SRBExKtTw3yeFHeiP+aqG
+3BRuUM5ga3HFp/03iNiwS0tm+FkEzQkKh/Zfnn5dv2kXUkPVO7SYsb5xAoGAJztq
+WOFUr/LSR/4c869LJChwtI2hBNCDvYMgP4KM+ROvt06tCihVXmdbJflo4xrftY+3
+mzXcPAL8sA27M4XlPC3TXsZ8XCnkmG3KVh/9wceKL7oNQmC8xILMYoUKk5HYoml7
+SRoGug0TNcwLusIdhSYZEqd7/Gdt757giJcU1ikCgYEAwZBBLEdF+oSDfEy5ixYb
+r9IsERRoDLD7f+C9vf1ilivVsAY8E9uTF+olHzESPhEndlNDwMU3NHzMUsqGf05d
+bNxWAKDGyKQSwyb9CbUBMl4ErfkduQAHaJXK7gTF8Pvgr9OehajDT4sQi3H6gg0a
+qjOL3XOZ+ZNpW0h9JM/jrF0=
+-----END PRIVATE KEY-----"""

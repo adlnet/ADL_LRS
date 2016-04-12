@@ -4,7 +4,7 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
-from django.utils.timezone import utc
+from django.utils import timezone
 
 class Hook(models.Model):
     hook_id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_index=True, editable=False)
@@ -12,8 +12,8 @@ class Hook(models.Model):
     config = JSONField(blank=False)
     filters = JSONField(blank=False)
     user = models.ForeignKey(User, null=False)
-    created_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc))
-    updated_at = models.DateTimeField(default=datetime.utcnow().replace(tzinfo=utc))
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         unique_together = (("name", "user"))

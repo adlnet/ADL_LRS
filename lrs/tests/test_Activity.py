@@ -385,7 +385,6 @@ class ActivityTests(TestCase):
         self.assertIn('testdesc2', rsp)
         self.assertIn('correctResponsesPattern', rsp)
 
-
     def test_get_wrong_activity(self):
         response = self.client.get(reverse('lrs:activities'), {'activityId': 'act:act:foo'}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 404)

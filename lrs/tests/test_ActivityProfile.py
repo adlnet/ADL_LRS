@@ -82,9 +82,9 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(self.put5.status_code, 204)
 
         #Make sure profiles have correct activities
-        self.assertEqual(models.ActivityProfile.objects.filter(profileId=self.testprofileId1)[0].activityId, self.test_activityId1)
-        self.assertEqual(models.ActivityProfile.objects.filter(profileId=self.testprofileId2)[0].activityId, self.test_activityId2)
-        self.assertEqual(models.ActivityProfile.objects.filter(profileId=self.testprofileId3)[0].activityId, self.test_activityId3)
+        self.assertEqual(models.ActivityProfile.objects.filter(profile_id=self.testprofileId1)[0].activity_id, self.test_activityId1)
+        self.assertEqual(models.ActivityProfile.objects.filter(profile_id=self.testprofileId2)[0].activity_id, self.test_activityId2)
+        self.assertEqual(models.ActivityProfile.objects.filter(profile_id=self.testprofileId3)[0].activity_id, self.test_activityId3)
 
     def test_put_no_params(self):
         put = self.client.put(reverse('lrs:activity_profile'), content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
