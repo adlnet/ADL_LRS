@@ -15,10 +15,15 @@ class ActivityManager():
             self.activity.canonical_data['definition'] = incoming_act_def
         # Else there was existing canonical data, and there in an incoming one, only update lang maps (name, desc, interaction activities)
         elif 'definition' in self.activity.canonical_data and incoming_act_def:
-            if 'name' in incoming_act_def and not 'name' in self.activity.canonical_data['definition']:
+            if not 'name' in incoming_act_def:
+                incoming_act_def['name'] = {}
+            if not 'name' in self.activity.canonical_data['definition']:
                 self.activity.canonical_data['definition']['name'] = {}
-            if 'description' in incoming_act_def and not 'description' in self.activity.canonical_data['definition']:
+            if not 'description' in incoming_act_def:
+                incoming_act_def['description'] = {}
+            if not 'description' in self.activity.canonical_data['definition']:
                 self.activity.canonical_data['definition']['description'] = {}
+
             self.activity.canonical_data['definition']['name'] = dict(self.activity.canonical_data['definition']['name'].items() \
                 + incoming_act_def['name'].items())
             self.activity.canonical_data['definition']['description'] = dict(self.activity.canonical_data['definition']['description'].items() \
@@ -32,7 +37,7 @@ class ActivityManager():
                 trans = {x['id']: x['description'] for x in incoming_act_def['choices']}
                 for c in self.activity.canonical_data['definition']['choices']:
                     if c['id'] in trans:
-                        c['description'] = dict(s['description'].items() + trans[c['id']].items())
+                        c['description'] = dict(c['description'].items() + trans[c['id']].items())
             if 'steps' in incoming_act_def and 'steps' in self.activity.canonical_data['definition']:
                 trans = {x['id']: x['description'] for x in incoming_act_def['steps']}
                 for s in self.activity.canonical_data['definition']['steps']:
