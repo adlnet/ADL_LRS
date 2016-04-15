@@ -10,17 +10,17 @@ def create_tag(resource):
 
 def get_etag_info(headers, required=True):
     etag = {}
-    etag[IF_MATCH] = headers.get(IF_MATCH, None) 
+    etag[IF_MATCH] = headers.get(IF_MATCH, None)
     if not etag[IF_MATCH]:
         etag[IF_MATCH] = headers.get('If_Match', None)
-    if not etag[IF_MATCH] and 'If-Match' in headers:
-        etag[IF_MATCH] = headers['If-Match']
+    if not etag[IF_MATCH]:
+        etag[IF_MATCH] = headers.get('If-Match', None)
 
     etag[IF_NONE_MATCH] = headers.get(IF_NONE_MATCH, None)
     if not etag[IF_NONE_MATCH]:
         etag[IF_NONE_MATCH] = headers.get('If_None_Match', None)
-    if not etag[IF_NONE_MATCH] and 'If-None-Match' in headers:
-        etag[IF_NONE_MATCH] = headers['If-None-Match']
+    if not etag[IF_NONE_MATCH]:
+        etag[IF_NONE_MATCH] = headers.get('If-None-Match', None)
 
     if required and not etag[IF_MATCH] and not etag[IF_NONE_MATCH]:
         raise MissingEtagInfo("If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
