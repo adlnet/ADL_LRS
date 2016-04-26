@@ -183,30 +183,19 @@ class StatementValidator():
 		# If authority is included, validate it
 		if 'authority' in stmt:
 			self.validate_agent(stmt['authority'], 'authority')
-			self.validate_authority(stmt['authority'])
+			if 'objectType' in stmt['authority'] and stmt['authority']['objectType'] == 'Group':
+				self.validate_authority_group(stmt['authority'])
 
 		# If attachments is included, validate it
 		if 'attachments' in stmt:
 			self.validate_attachments(stmt['attachments'])
 
-	def validate_authority(self, authority):
-		if authority['objectType'] == 'Group':
-			contains_account = len([x for m in authority['member'] for x in m.keys() if 'account' in x]) > 0
-			if contains_account:
-				if len(authority['member']) == 2:
-					for agent in authority['member']:
-						if 'account' in agent:
-							if not 'oauth' in agent['account']['homePage'].lower():
-								self.return_error("Statements cannot have a non-OAuth group as the authority")
-							# Probably an oauth group
-							else:
-								if set(authority.keys()) != set(['objectType', 'member']):
-									self.return_error("Statements cannot have a non-OAuth group as the authority")
-				else:
-					self.return_error("OAuth authority must only contain 2 members")
-			# No members contain an account so that means it's not an Oauth group
-			else:
-				self.return_error("Statements cannot have a non-OAuth group as the authority")
+	def validate_authority_group(self, authority):
+		if len(authority['member']) != 2:
+			self.return_error("Groups representing authorities must only contain 2 members")
+
+		if list(set(agent_ifis_can_only_be_one) & set(authority.keys())):
+			self.return_error("Groups representing authorities must not contain an inverse functional identifier") 
 
 	def validate_attachments(self, attachments):
 		# Ensure attachments is a list
@@ -271,7 +260,7 @@ class StatementValidator():
 		# If the agent is not the object of a stmt and objectType is not given, set it to Agent 
 		elif placement != 'object' and not 'objectType' in agent:
 			agent['objectType'] = 'Agent'
-		# Agent must have only one inverse functionlal identifier (Group may be Anonymous Group where no IFI is
+		# Agent must have only one inverse functional identifier (Group may be Anonymous Group where no IFI is
 		# required)
 		ifis = [a for a in agent_ifis_can_only_be_one if agent.get(a, None) != None]
 		if agent['objectType'] == 'Agent' and len(ifis) != 1:

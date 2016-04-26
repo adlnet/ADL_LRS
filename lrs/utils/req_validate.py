@@ -47,17 +47,6 @@ def validate_void_statement(void_id):
         if stmts[0].voided:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
             raise BadRequest(err_msg)
-            
-def validate_stmt_authority(stmt, auth):
-    # If not validated yet - validate auth first since it supercedes any auth in stmt
-    if auth['agent']:
-        if auth['agent'].objectType == 'Group' and not auth['agent'].oauth_identifier:
-            err_msg = "Statements cannot have a non-Oauth group as the authority"
-            raise ParamError(err_msg)
-        elif auth['agent'].objectType == 'Group' and auth['agent'].oauth_identifier:
-            if auth['agent'].member.count() != 2:
-                err_msg = "OAuth authority must only contain 2 members"
-                raise ParamError(err_msg)
 
 def validate_body(body, auth, payload_sha2s, content_type):
         [server_validate_statement(stmt, auth, payload_sha2s, content_type) for stmt in body]
@@ -72,7 +61,6 @@ def server_validate_statement(stmt, auth, payload_sha2s, content_type):
     if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         validate_void_statement(stmt['object']['id'])
 
-    validate_stmt_authority(stmt, auth)
     if 'attachments' in stmt:
         attachment_data = stmt['attachments']
         validate_attachments(attachment_data, payload_sha2s, content_type)
