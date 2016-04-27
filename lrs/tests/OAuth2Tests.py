@@ -23,7 +23,9 @@ from oauth2_provider.provider.oauth2.backends import BasicClientBackend, Request
 
 DEFAULT_SCOPE = "%s %s" % (constants.SCOPES[0][1], constants.SCOPES[1][1])
 
+
 class OAuth2Tests(TestCase):
+
     @classmethod
     def setUpClass(cls):
         print "\n%s-%s" % (__name__, cls.__name__)
@@ -219,7 +221,7 @@ class AccessTokenTest(OAuth2Tests):
     fixtures = ['test_oauth2.json']
 
     def get_user_auth(self):
-        return  "Basic %s" % base64.b64encode("%s:%s" % ("test-user-1", "test"))
+        return "Basic %s" % base64.b64encode("%s:%s" % ("test-user-1", "test"))
 
     def test_access_token_get_expire_delta_value(self):
         user = self.get_user()
@@ -255,7 +257,6 @@ class AccessTokenTest(OAuth2Tests):
         self.assertEqual(400, response.status_code, response.content)
         self.assertEqual('invalid_grant', json.loads(response.content)['error'])
 
-
     def _login_authorize_get_token(self, scope=DEFAULT_SCOPE, cid=2):
         required_props = ['access_token', 'token_type']
 
@@ -278,20 +279,19 @@ class AccessTokenTest(OAuth2Tests):
 
         for prop in required_props:
             self.assertIn(prop, token, "Access token response missing "
-                    "required property: %s" % prop)
+                          "required property: %s" % prop)
 
         return token
 
     def test_get_statements_user_submitted(self):
         token = self._login_authorize_get_token()
 
-        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
-            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        stmt = json.dumps({"verb": {"id": "http://example.com/verbs/created",
+                                    "display": {"en-US": "created"}}, "object": {"id": "act:activity"},
+                           "actor": {"objectType": "Agent", "mbox": "mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
+                                    Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
-
 
         stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization="Bearer " + token['access_token'], content_type="application/json")
         self.assertEqual(stmt_get.status_code, 200)
@@ -301,11 +301,11 @@ class AccessTokenTest(OAuth2Tests):
     def test_get_statements_oauth_submitted(self):
         token = self._login_authorize_get_token()
 
-        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
-            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        stmt = json.dumps({"verb": {"id": "http://example.com/verbs/created",
+                                    "display": {"en-US": "created"}}, "object": {"id": "act:activity"},
+                           "actor": {"objectType": "Agent", "mbox": "mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
+                                    Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization="Bearer " + token['access_token'], content_type="application/json")
@@ -316,18 +316,18 @@ class AccessTokenTest(OAuth2Tests):
     def test_get_statements_mix_submitted(self):
         token = self._login_authorize_get_token()
 
-        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
-            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        stmt = json.dumps({"verb": {"id": "http://example.com/verbs/created",
+                                    "display": {"en-US": "created"}}, "object": {"id": "act:activity"},
+                           "actor": {"objectType": "Agent", "mbox": "mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
+                                    Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
-        stmt = json.dumps({"verb":{"id": "http://example.com/verbs/created",
-            "display": {"en-US":"created"}}, "object": {"id":"act:activity"},
-            "actor":{"objectType":"Agent","mbox":"mailto:s@s.com"}})
+        stmt = json.dumps({"verb": {"id": "http://example.com/verbs/created",
+                                    "display": {"en-US": "created"}}, "object": {"id": "act:activity"},
+                           "actor": {"objectType": "Agent", "mbox": "mailto:s@s.com"}})
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
+                                    Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 200)
 
         stmt_get = self.client.get(reverse(statements), X_Experience_API_Version=settings.XAPI_VERSION, Authorization="Bearer " + token['access_token'], content_type="application/json")
@@ -344,141 +344,141 @@ class AccessTokenTest(OAuth2Tests):
         token = self._login_authorize_get_token(scope=constants.SCOPES[0][1])
 
         put_guid = str(uuid.uuid1())
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bill"},
-            "verb":{"id": "http://example.com/verbs/accessed","display": {"en-US":"accessed"}},
-            "object": {"id":"act:test_put"}})
-        param = {"statementId":put_guid}
+        stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bill"},
+                           "verb": {"id": "http://example.com/verbs/accessed", "display": {"en-US": "accessed"}},
+                           "object": {"id": "act:test_put"}})
+        param = {"statementId": put_guid}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
         resp = self.client.put(path, data=stmt, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(resp.status_code, 204)        
+                               Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(resp.status_code, 204)
 
     def test_post_statements(self):
         token = self._login_authorize_get_token()
 
-        stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"act:test_post"}}
+        stmt = {"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
+                "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                "object": {"id": "act:test_post"}}
         stmt_json = json.dumps(stmt)
-        
+
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
+                                Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
 
     def test_write_statements_wrong_scope(self):
         token = self._login_authorize_get_token(scope=constants.SCOPES[2][1])
 
-        stmt = {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"act:test_post"}}
+        stmt = {"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
+                "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                "object": {"id": "act:test_post"}}
         stmt_json = json.dumps(stmt)
-        
+
         post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
+                                Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 403)
 
     def test_complex_statement_get(self):
         token = self._login_authorize_get_token()
 
-        stmt_data = [{"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"act:test_complex_get"}, "authority":{"objectType":"Agent", "mbox":"mailto:jane@example.com"}},
-            {"actor":{"objectType": "Agent", "mbox":"mailto:t@t.com", "name":"bob"},
-            "verb":{"id": "http://example.com/verbs/passed","display": {"en-US":"passed"}},
-            "object": {"id":"act:test_post"}}]
+        stmt_data = [{"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
+                      "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                      "object": {"id": "act:test_complex_get"}, "authority": {"objectType": "Agent", "mbox": "mailto:jane@example.com"}},
+                     {"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
+                      "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                      "object": {"id": "act:test_post"}}]
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt_data), content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
+                                     Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
-        param = {"activity":"act:test_complex_get"}
+        param = {"activity": "act:test_complex_get"}
         path = "%s?%s" % ('http://testserver/XAPI/statements', urllib.urlencode(param))
 
-        resp = self.client.get(path,Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)        
+        resp = self.client.get(path, Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
         stmts = json.loads(resp.content)['statements']
         self.assertEqual(len(stmts), 1)
 
     def test_define(self):
         stmt = {
-                "actor":{
-                    "objectType": "Agent",
-                    "mbox":"mailto:t@t.com",
-                    "name":"bob"
-                },
-                "verb":{
-                    "id": "http://example.com/verbs/passed",
-                    "display": {"en-US":"passed"}
-                },
-                "object":{
-                    "id":"act:test_define",
-                    'definition': {
-                        'name': {'en-US':'testname'},
-                        'description': {'en-US':'testdesc'},
-                        'type': 'type:course'
-                    }
+            "actor": {
+                "objectType": "Agent",
+                "mbox": "mailto:t@t.com",
+                "name": "bob"
+            },
+            "verb": {
+                "id": "http://example.com/verbs/passed",
+                "display": {"en-US": "passed"}
+            },
+            "object": {
+                "id": "act:test_define",
+                'definition': {
+                    'name': {'en-US': 'testname'},
+                    'description': {'en-US': 'testdesc'},
+                    'type': 'type:course'
                 }
             }
+        }
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
+                                     Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         token = self._login_authorize_get_token()
 
         stmt2 = {
-                "actor":{
-                    "objectType": "Agent",
-                    "mbox":"mailto:t@t.com",
-                    "name":"bob"
-                },
-                "verb":{
-                    "id": "http://example.com/verbs/passed",
-                    "display": {"en-US":"passed"}
-                },
-                "object":{
-                    "id":"act:test_define",
-                    'definition': {
-                        'name': {'en-US':'testname differ'},
-                        'description': {'en-US':'testdesc differ'},
-                        'type': 'type:course'
-                    }
+            "actor": {
+                "objectType": "Agent",
+                "mbox": "mailto:t@t.com",
+                "name": "bob"
+            },
+            "verb": {
+                "id": "http://example.com/verbs/passed",
+                "display": {"en-US": "passed"}
+            },
+            "object": {
+                "id": "act:test_define",
+                'definition': {
+                    'name': {'en-US': 'testname differ'},
+                    'description': {'en-US': 'testdesc differ'},
+                    'type': 'type:course'
                 }
             }
+        }
         # Doesn't have define permission
         stmt_post2 = self.client.post(reverse(statements), json.dumps(stmt2), content_type="application/json",
-            Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
+                                      Authorization="Bearer " + token['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post2.status_code, 200)
         acts = Activity.objects.filter(activity_id="act:test_define")
         self.assertEqual(len(acts), 1)
 
         stmt_post = self.client.post(reverse(statements), json.dumps(stmt), content_type="application/json",
-            Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
+                                     Authorization=self.get_user_auth(), X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post.status_code, 200)
 
         token2 = self._login_authorize_get_token(scope="%s %s" % (constants.SCOPES[0][1], constants.SCOPES[4][1]), cid=1)
 
         stmt3 = {
-                "actor":{
-                    "objectType": "Agent",
-                    "mbox":"mailto:t@t.com",
-                    "name":"bob"
-                },
-                "verb":{
-                    "id": "http://example.com/verbs/passed",
-                    "display": {"en-US":"passed"}
-                },
-                "object":{
-                    "id":"act:test_define",
-                    'definition': {
-                        'name': {'en-US':'testname i define!'},
-                        'description': {'en-US':'testdesc i define!'},
-                        'type': 'type:course'
-                    }
+            "actor": {
+                "objectType": "Agent",
+                "mbox": "mailto:t@t.com",
+                "name": "bob"
+            },
+            "verb": {
+                "id": "http://example.com/verbs/passed",
+                "display": {"en-US": "passed"}
+            },
+            "object": {
+                "id": "act:test_define",
+                'definition': {
+                    'name': {'en-US': 'testname i define!'},
+                    'description': {'en-US': 'testdesc i define!'},
+                    'type': 'type:course'
                 }
             }
+        }
         # Has define perission
         stmt_post3 = self.client.post(reverse(statements), json.dumps(stmt3), content_type="application/json",
-            Authorization="Bearer " + token2['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
+                                      Authorization="Bearer " + token2['access_token'], X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(stmt_post3.status_code, 200)
         act_names = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_name', flat=True)
         act_descs = Activity.objects.filter(activity_id="act:test_define").values_list('activity_definition_description', flat=True)
@@ -507,7 +507,7 @@ class AccessTokenTest(OAuth2Tests):
 
         self.assertEqual(400, response.status_code)
         self.assertEqual('unsupported_grant_type', json.loads(response.content)['error'],
-            response.content)
+                         response.content)
 
     def test_fetching_single_access_token(self):
         constants.SINGLE_ACCESS_TOKEN = True
@@ -587,11 +587,11 @@ class AccessTokenTest(OAuth2Tests):
 
         self.assertEqual(400, response.status_code)
         self.assertEqual('invalid_grant', json.loads(response.content)['error'],
-            response.content)
+                         response.content)
 
     def test_password_grant_public(self):
         c = self.get_client()
-        c.client_type = 1 # public
+        c.client_type = 1  # public
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -610,7 +610,7 @@ class AccessTokenTest(OAuth2Tests):
 
     def test_password_grant_confidential(self):
         c = self.get_client()
-        c.client_type = 0 # confidential
+        c.client_type = 0  # confidential
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -626,7 +626,7 @@ class AccessTokenTest(OAuth2Tests):
 
     def test_password_grant_confidential_no_secret(self):
         c = self.get_client()
-        c.client_type = 0 # confidential
+        c.client_type = 0  # confidential
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -640,7 +640,7 @@ class AccessTokenTest(OAuth2Tests):
 
     def test_password_grant_invalid_password_public(self):
         c = self.get_client()
-        c.client_type = 1 # public
+        c.client_type = 1  # public
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -655,7 +655,7 @@ class AccessTokenTest(OAuth2Tests):
 
     def test_password_grant_invalid_password_confidential(self):
         c = self.get_client()
-        c.client_type = 0 # confidential
+        c.client_type = 0  # confidential
         c.save()
 
         response = self.client.post(self.access_token_url(), {
@@ -701,7 +701,7 @@ class AuthBackendTest(OAuth2Tests):
         backend = AccessTokenBackend()
         token = AccessToken.objects.create(user=user, client=client)
         authenticated = backend.authenticate(access_token=token.token,
-                client=client)
+                                             client=client)
 
         self.assertIsNotNone(authenticated)
 
@@ -729,10 +729,12 @@ class EnforceSecureTest(OAuth2Tests):
         self.assertEqual(400, response.status_code)
         self.assertTrue("A secure connection is required." in response.content)
 
+
 class ClientFormTest(TestCase):
+
     def test_client_form(self):
         form = ClientForm({'name': 'TestName', 'url': 'http://127.0.0.1:8000',
-            'redirect_uri': 'http://localhost:8000/'})
+                           'redirect_uri': 'http://localhost:8000/'})
 
         self.assertFalse(form.is_valid())
 
@@ -744,10 +746,11 @@ class ClientFormTest(TestCase):
         self.assertTrue(form.is_valid())
         form.save()
 
+
 class DeleteExpiredTest(OAuth2Tests):
     fixtures = ['test_oauth2']
 
-    def setUp(self):     
+    def setUp(self):
         self._delete_expired = constants.DELETE_EXPIRED
         constants.DELETE_EXPIRED = True
 
@@ -797,7 +800,7 @@ class DeleteExpiredTest(OAuth2Tests):
             'grant_type': 'refresh_token',
             'refresh_token': token['refresh_token'],
             'client_id': self.get_client().client_id,
-            'client_secret': self.get_client().client_secret,      
+            'client_secret': self.get_client().client_secret,
         })
         self.assertEqual(200, response.status_code)
         token = json.loads(response.content)

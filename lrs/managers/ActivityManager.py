@@ -2,7 +2,9 @@ from django.db import IntegrityError
 
 from ..models import Activity
 
+
 class ActivityManager():
+
     def __init__(self, data, auth=None, define=True):
         self.auth = auth
         self.define_permission = define
@@ -18,23 +20,23 @@ class ActivityManager():
         self.Activity.activity_definition_extensions = act_def.get('extensions', {})
         self.Activity.activity_definition_interactionType = interactionType
 
-        #Multiple choice and sequencing must have choices
-        if (interactionType == 'choice' or \
-            interactionType == 'sequencing') and \
-            ('choices' in act_def):
+        # Multiple choice and sequencing must have choices
+        if (interactionType == 'choice' or
+                interactionType == 'sequencing') and \
+                ('choices' in act_def):
             self.Activity.activity_definition_choices = act_def['choices']
-        #Matching must have both source and target
+        # Matching must have both source and target
         elif (interactionType == 'matching') and \
-            ('source' in act_def and 'target' in act_def):
-            self.Activity.activity_definition_sources = act_def['source'] 
+                ('source' in act_def and 'target' in act_def):
+            self.Activity.activity_definition_sources = act_def['source']
             self.Activity.activity_definition_targets = act_def['target']
-        #Performance must have steps
+        # Performance must have steps
         elif (interactionType == 'performance') and \
-            ('steps' in act_def):
+                ('steps' in act_def):
             self.Activity.activity_definition_steps = act_def['steps']
-        #Likert must have scale
+        # Likert must have scale
         elif (interactionType == 'likert') and \
-            ('scale' in act_def):
+                ('scale' in act_def):
             self.Activity.activity_definition_scales = act_def['scale']
         self.Activity.save()
 
@@ -43,7 +45,7 @@ class ActivityManager():
             if self.Activity.activity_definition_name:
                 self.Activity.activity_definition_name = dict(self.Activity.activity_definition_name.items() + act_def['name'].items())
             else:
-                self.Activity.activity_definition_name = act_def['name']       
+                self.Activity.activity_definition_name = act_def['name']
 
         if 'description' in act_def:
             if self.Activity.activity_definition_description:
@@ -63,7 +65,7 @@ class ActivityManager():
                 can_define = True
                 # If activity DNE and can define - create activity with auth
                 try:
-                    self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, authority=self.auth)       
+                    self.Activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, authority=self.auth)
                 except IntegrityError:
                     self.Activity = Activity.objects.get(activity_id=activity_id, authority=self.auth)
                     act_created = False
@@ -82,7 +84,7 @@ class ActivityManager():
             if self.define_permission:
                 # Act exists but it was created by someone who didn't have define permissions so it's up for grabs
                 # for first user with define permission or...
-                # Act exists - if it has same auth set it, else do nothing    
+                # Act exists - if it has same auth set it, else do nothing
                 if (not act.authority) or \
                    (act.authority == self.auth) or \
                    (act.authority.objectType == 'Group' and self.auth in act.authority.member.all()) or \

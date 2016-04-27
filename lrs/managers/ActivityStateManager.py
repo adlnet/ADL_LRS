@@ -8,7 +8,9 @@ from ..models import ActivityState
 from ..exceptions import IDNotFoundError, ParamError
 from ..utils import etag
 
+
 class ActivityStateManager():
+
     def __init__(self, agent):
         self.Agent = agent
 
@@ -20,7 +22,7 @@ class ActivityStateManager():
             s.updated = request_dict['headers']['updated']
         else:
             s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-        
+
         # Go to beginning of file
         state.seek(0)
         fn = "%s_%s_%s" % (s.agent_id, s.activity_id, request_dict.get('filename', s.id))
@@ -49,11 +51,11 @@ class ActivityStateManager():
         registration = request_dict['params'].get('registration', None)
         if registration:
             s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
-                activity_id=request_dict['params']['activityId'], registration_id=request_dict['params']['registration'])
+                                                             activity_id=request_dict['params']['activityId'], registration_id=request_dict['params']['registration'])
         else:
             s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
-                activity_id=request_dict['params']['activityId'])
-        
+                                                             activity_id=request_dict['params']['activityId'])
+
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 post_state = ContentFile(request_dict['state'].read())
@@ -80,23 +82,23 @@ class ActivityStateManager():
                     merged = json.dumps(dict(orig_state.items() + post_state.items()))
                 s.json_state = merged
                 s.etag = etag.create_tag(merged)
-    
-                #Set updated
+
+                # Set updated
             if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
                 s.updated = request_dict['headers']['updated']
             else:
                 s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
             s.save()
-        
+
     def put_state(self, request_dict):
         registration = request_dict['params'].get('registration', None)
         if registration:
             s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
-                activity_id=request_dict['params']['activityId'], registration_id=request_dict['params']['registration'])
+                                                             activity_id=request_dict['params']['activityId'], registration_id=request_dict['params']['registration'])
         else:
             s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
-                activity_id=request_dict['params']['activityId'])
-        
+                                                             activity_id=request_dict['params']['activityId'])
+
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 post_state = ContentFile(request_dict['state'].read())
@@ -105,7 +107,7 @@ class ActivityStateManager():
                     post_state = ContentFile(request_dict['state'])
                 except:
                     post_state = ContentFile(str(request_dict['state']))
-            
+
             # If a state already existed with the profileId and activityId
             if not created:
                 etag.check_preconditions(request_dict, s)
@@ -125,7 +127,7 @@ class ActivityStateManager():
             s.content_type = request_dict['headers']['CONTENT_TYPE']
             s.etag = etag.create_tag(the_state)
 
-            #Set updated
+            # Set updated
             if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
                 s.updated = request_dict['headers']['updated']
             else:
@@ -157,7 +159,7 @@ class ActivityStateManager():
             if not state_id:
                 states = self.get_state_set(activity_id, registration, None)
                 for s in states:
-                    s.delete() # bulk delete skips the custom delete function
+                    s.delete()  # bulk delete skips the custom delete function
             # Single delete
             else:
                 self.get_state(activity_id, registration, state_id).delete()

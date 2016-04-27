@@ -9,6 +9,7 @@ from .. import utils
 
 
 class UtilsTestCase(TestCase):
+
     def test_serialization(self):
         class SomeModel(models.Model):
             dt = models.DateTimeField()
@@ -31,5 +32,5 @@ class UtilsTestCase(TestCase):
             # AssertionError:
             #   datetime.time(10, 6, 28, 705776) !=
             #   datetime.time(10, 6, 28, 705000)
-            self.assertEqual(int(t1.microsecond/1000),
-                             int(t2.microsecond/1000))
+            self.assertEqual(int(t1.microsecond / 1000),
+                             int(t2.microsecond / 1000))

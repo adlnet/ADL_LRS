@@ -19,6 +19,7 @@ class OAuthTestsBug10(BaseOAuthTestCase):
     """
     See https://code.welldev.org/django-oauth-plus/issue/10/malformed-callback-url-when-user-denies
     """
+
     def test_Request_token_request_succeeds_with_valid_request_token_parameters(self):
         self._request_token()
         token = self.request_token
@@ -47,7 +48,9 @@ class OAuthTestsBug10(BaseOAuthTestCase):
         self.assertEqual('http://printer.example.com/request_token_ready?error=Access+not+granted+by+user.', response['Location'])
         self.c.logout()
 
+
 class OAuthOutOfBoundTests(BaseOAuthTestCase):
+
     def test_Requesting_user_authorization_succeeds_when_oob(self):
         self._request_token(oauth_callback="oob")
 
@@ -59,14 +62,16 @@ class OAuthOutOfBoundTests(BaseOAuthTestCase):
             response.status_code,
             200)
 
+
 class OauthTestIssue24(BaseOAuthTestCase):
     """
     See https://bitbucket.org/david/django-oauth-plus/issue/24/utilspy-initialize_server_request-should
     """
+
     def setUp(self):
         super(OauthTestIssue24, self).setUp()
 
-        #setting the access key/secret to made-up strings
+        # setting the access key/secret to made-up strings
         self.access_token = Token(
             key="key",
             secret="secret",
@@ -77,7 +82,6 @@ class OauthTestIssue24(BaseOAuthTestCase):
         )
         self.access_token.save()
 
-
     def __make_querystring_with_HMAC_SHA1(self, http_method, path, data, content_type):
         """
         Utility method for creating a request which is signed using HMAC_SHA1 method
@@ -87,10 +91,10 @@ class OauthTestIssue24(BaseOAuthTestCase):
 
         url = "http://testserver:80" + path
 
-        #if data is json, we want it in the body, else as parameters (i.e. queryparams on get)
-        parameters=None
+        # if data is json, we want it in the body, else as parameters (i.e. queryparams on get)
+        parameters = None
         body = ""
-        if content_type=="application/json":
+        if content_type == "application/json":
             body = data
         else:
             parameters = data
@@ -119,11 +123,11 @@ class OauthTestIssue24(BaseOAuthTestCase):
         content_type = "application/json"
         querystring = self.__make_querystring_with_HMAC_SHA1("POST", "/path/to/post", data, content_type)
 
-        #we're just using the request, don't bother faking sending it
+        # we're just using the request, don't bother faking sending it
         rf = RequestFactory()
         request = rf.post(querystring, data, content_type)
 
-        #this is basically a "remake" of the relevant parts of OAuthAuthentication in django-rest-framework
+        # this is basically a "remake" of the relevant parts of OAuthAuthentication in django-rest-framework
         oauth_request = utils.get_oauth_request(request)
 
         consumer_key = oauth_request.get_parameter('oauth_consumer_key')
@@ -134,7 +138,7 @@ class OauthTestIssue24(BaseOAuthTestCase):
 
         oauth_server, oauth_request = utils.initialize_server_request(request)
 
-        #check that this does not throw an oauth.Error
+        # check that this does not throw an oauth.Error
         oauth_server.verify_request(oauth_request, consumer, token)
 
     def test_post_using_in_authorization_header_and_PLAINTEXT(self):
@@ -147,9 +151,9 @@ class OauthTestIssue24(BaseOAuthTestCase):
             'oauth_version': "1.0",
             'oauth_token': self.ACCESS_TOKEN_KEY,
             'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': str(int(time.time()))+"nonce",
+            'oauth_nonce': str(int(time.time())) + "nonce",
             'oauth_signature': "%s&%s" % (self.CONSUMER_SECRET, self.ACCESS_TOKEN_SECRET),
-            }
+        }
         header = self._get_http_authorization_header(parameters)
         response = self.c.post("/oauth/photo/", HTTP_AUTHORIZATION=header)
 
@@ -168,12 +172,12 @@ class OauthTestIssue24(BaseOAuthTestCase):
             'oauth_version': "1.0",
             'oauth_token': self.ACCESS_TOKEN_KEY,
             'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': str(int(time.time()))+"nonce",
+            'oauth_nonce': str(int(time.time())) + "nonce",
             'oauth_signature': "%s&%s" % (self.CONSUMER_SECRET, self.ACCESS_TOKEN_SECRET),
-            "additional_data": "whoop" # additional data
-            }
+            "additional_data": "whoop"  # additional data
+        }
         response = self.c.post("/oauth/photo/", urllib.urlencode(parameters, True),
-            content_type="application/x-www-form-urlencoded")
+                               content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 200)
 
     def test_post_using_auth_in_header_with_content_type_json_and_PLAINTEXT(self):
@@ -186,9 +190,9 @@ class OauthTestIssue24(BaseOAuthTestCase):
             'oauth_version': "1.0",
             'oauth_token': self.ACCESS_TOKEN_KEY,
             'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': str(int(time.time()))+"nonce",
+            'oauth_nonce': str(int(time.time())) + "nonce",
             'oauth_signature': "%s&%s" % (self.CONSUMER_SECRET, self.ACCESS_TOKEN_SECRET),
-            }
+        }
 
         header = self._get_http_authorization_header(parameters)
         response = self.c.post("/oauth/photo/", HTTP_AUTHORIZATION=header, CONTENT_TYPE="application/json")
@@ -203,15 +207,15 @@ class OauthTestIssue24(BaseOAuthTestCase):
         self._request_token()
         self._authorize_and_access_token_using_form()
 
-        data={"foo": "bar"}
+        data = {"foo": "bar"}
         content_type = "application/x-www-form-urlencoded"
         querystring = self.__make_querystring_with_HMAC_SHA1("POST", "/path/to/post", data, content_type)
 
-        #we're just using the request, don't bother faking sending it
+        # we're just using the request, don't bother faking sending it
         rf = RequestFactory()
         request = rf.post(querystring, urllib.urlencode(data), content_type)
 
-        #this is basically a "remake" of the relevant parts of OAuthAuthentication in django-rest-framework
+        # this is basically a "remake" of the relevant parts of OAuthAuthentication in django-rest-framework
         oauth_request = utils.get_oauth_request(request)
 
         consumer_key = oauth_request.get_parameter('oauth_consumer_key')
@@ -222,11 +226,12 @@ class OauthTestIssue24(BaseOAuthTestCase):
 
         oauth_server, oauth_request = utils.initialize_server_request(request)
 
-        #check that this does not throw an oauth.Error
+        # check that this does not throw an oauth.Error
         oauth_server.verify_request(oauth_request, consumer, token)
 
 
 class OAuthTestsBug2UrlParseNonHttpScheme(BaseOAuthTestCase):
+
     def test_non_http_url_callback_scheme(self):
 
         # @vmihailenco callback example
@@ -244,6 +249,7 @@ class OAuthTestsBug2UrlParseNonHttpScheme(BaseOAuthTestCase):
 
         # assert query part of url is not malformed
         assert "?q=1&" in response["Location"]
+
 
 class OAuthTestIssue41XForwardedProto(BaseOAuthTestCase):
 
@@ -288,7 +294,6 @@ class OAuthTestIssue41XForwardedProto(BaseOAuthTestCase):
         response = self.c.get(url, **kwargs)
         self.assertEqual(response.status_code, 200)
 
-
     def test_when_protocol_mismatch(self):
         """Test that signature does not vierifies when protocol is diffrent from that which was used for signing request
         """
@@ -323,7 +328,6 @@ class OAuthTestIssue41XForwardedProto(BaseOAuthTestCase):
         response = self.c.get(url.replace('https', 'http'), **kwargs)
         self.assertEqual(response.status_code, 200)
 
-
         url = "http://testserver/oauth/none/"
         kwargs = {
             'wsgi.url_scheme': "https",
@@ -336,6 +340,7 @@ class OAuthTestIssue41XForwardedProto(BaseOAuthTestCase):
 
 
 class OAuthTestIssue16NoncesCheckedAgainstTimestamp(BaseOAuthTestCase):
+
     def test_timestamp_ok(self):
         self._request_token()
         self._authorize_and_access_token_using_form()
@@ -346,9 +351,9 @@ class OAuthTestIssue16NoncesCheckedAgainstTimestamp(BaseOAuthTestCase):
             'oauth_version': "1.0",
             'oauth_token': self.ACCESS_TOKEN_KEY,
             'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': str(int(time.time()))+"nonce1",
+            'oauth_nonce': str(int(time.time())) + "nonce1",
             'oauth_signature': "%s&%s" % (self.CONSUMER_SECRET, self.ACCESS_TOKEN_SECRET),
-            }
+        }
 
         response = self.c.get("/oauth/photo/", parameters)
 
@@ -368,7 +373,7 @@ class OAuthTestIssue16NoncesCheckedAgainstTimestamp(BaseOAuthTestCase):
             'oauth_timestamp': timestamp,
             'oauth_nonce': nonce,
             'oauth_signature': "%s&%s" % (self.CONSUMER_SECRET, self.ACCESS_TOKEN_SECRET),
-            }
+        }
 
         response = self.c.get("/oauth/photo/", parameters)
         self.assertEqual(response.status_code, 200)
@@ -380,7 +385,7 @@ class OAuthTestIssue16NoncesCheckedAgainstTimestamp(BaseOAuthTestCase):
         self._request_token()
         self._authorize_and_access_token_using_form()
 
-        #make this nonce older
+        # make this nonce older
         timestamp = str(int(datetime.datetime.now().strftime("%s")) - (settings.OAUTH_NONCE_VALID_PERIOD + 1))
         nonce = timestamp + "nonce"
         parameters = {
@@ -391,7 +396,7 @@ class OAuthTestIssue16NoncesCheckedAgainstTimestamp(BaseOAuthTestCase):
             'oauth_timestamp': timestamp,
             'oauth_nonce': nonce,
             'oauth_signature': "%s&%s" % (self.CONSUMER_SECRET, self.ACCESS_TOKEN_SECRET),
-            }
+        }
 
         response = self.c.get("/oauth/photo/", parameters)
         self.assertEqual(response.status_code, 401)
@@ -401,6 +406,7 @@ class OAuthTestIssue39(BaseOAuthTestCase):
     """
     See https://bitbucket.org/david/django-oauth-plus/issue/39/request-token-scope-unused.
     """
+
     def setUp(self):
         super(OAuthTestIssue39, self).setUp()
         Scope.objects.create(name='scope1')
@@ -433,6 +439,7 @@ class OAuthTestIssue39(BaseOAuthTestCase):
 
 
 class OAuthTestIssue44PostRequestBodyInSignature(BaseOAuthTestCase):
+
     def test_POST_with_x_www_form_urlencoded_body_params_and_auth_header(self):
         """Test issue when user's request has authorization header and uses
         application/x-www-form-urlencoded content type with some
@@ -463,7 +470,6 @@ class OAuthTestIssue44PostRequestBodyInSignature(BaseOAuthTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-
 
     def test_POST_with_x_www_form_urlencoded_body_params_and_auth_header_unauthorized(self):
         """Test issue when user's request has authorization header and uses

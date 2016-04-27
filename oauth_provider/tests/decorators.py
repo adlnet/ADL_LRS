@@ -1,4 +1,4 @@
-## -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import time
 import urllib
 from oauth_provider.models import Scope
@@ -6,6 +6,7 @@ from oauth_provider.tests.auth import BaseOAuthTestCase, METHOD_POST_REQUEST_BOD
 
 
 class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
+
     def setUp(self):
         # create Scope 'all' for all requests without scope specified
         super(OAuthTestOauthRequiredDecorator, self).setUp()
@@ -17,17 +18,17 @@ class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
             'oauth_version': "1.0",
             'oauth_token': self.ACCESS_TOKEN_KEY,
             'oauth_timestamp': str(int(time.time())),
-            'oauth_nonce': str(int(time.time()))+"nonce",
+            'oauth_nonce': str(int(time.time())) + "nonce",
             'oauth_signature': "%s&%s" % (self.CONSUMER_SECRET, self.ACCESS_TOKEN_SECRET),
             "additional_data": "whoop",  # some additional data
-            }
+        }
 
-        if method==METHOD_AUTHORIZATION_HEADER:
+        if method == METHOD_AUTHORIZATION_HEADER:
             header = self._get_http_authorization_header(parameters)
             response = self.c.get(url, HTTP_AUTHORIZATION=header)
-        elif method==METHOD_URL_QUERY:
+        elif method == METHOD_URL_QUERY:
             response = self.c.get(url, parameters)
-        elif method==METHOD_POST_REQUEST_BODY:
+        elif method == METHOD_POST_REQUEST_BODY:
             body = urllib.urlencode(parameters)
             response = self.c.post(url, body, content_type="application/x-www-form-urlencoded")
         else:
@@ -38,9 +39,9 @@ class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
     def test_resource_some_scope_view_authorized(self):
         """Tests view that was created using @oauth_required("some") decorator
         """
-        #ensure there is a Scope object for this scope
+        # ensure there is a Scope object for this scope
         self.scope = Scope.objects.create(name="some")
-        #set scope for requested token
+        # set scope for requested token
         self._request_token(scope=self.scope.name)
         self._authorize_and_access_token_using_form()
 
@@ -61,7 +62,7 @@ class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
         """Tests that view created using @oauth_required decorator gives access
         when requested using token without scope specified
         """
-        #request token without setting scope
+        # request token without setting scope
         self._request_token()
         self._authorize_and_access_token_using_form()
 
@@ -72,7 +73,7 @@ class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
         """Tests that view created with @oauth_required decorator won't give access
         when requested using token with scope!="all"
         """
-        #ensure there is a Scope object for this scope
+        # ensure there is a Scope object for this scope
         self.scope = Scope.objects.create(name="some_new_scope")
         self._request_token(scope=self.scope.name)
         self._authorize_and_access_token_using_form()
@@ -81,7 +82,7 @@ class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_get_with_header_auth(self):
-        #request token without setting scope
+        # request token without setting scope
         self._request_token()
         self._authorize_and_access_token_using_form()
 
@@ -89,7 +90,7 @@ class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_get_with_url_query_auth(self):
-        #request token without setting scope
+        # request token without setting scope
         self._request_token()
         self._authorize_and_access_token_using_form()
 
@@ -97,7 +98,7 @@ class OAuthTestOauthRequiredDecorator(BaseOAuthTestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_get_with_request_body_auth(self):
-        #request token without setting scope
+        # request token without setting scope
         self._request_token()
         self._authorize_and_access_token_using_form()
 

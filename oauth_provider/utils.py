@@ -15,8 +15,9 @@ from django.contrib.auth import authenticate
 from consts import MAX_URL_LENGTH
 
 OAUTH_REALM_KEY_NAME = getattr(settings, 'OAUTH_REALM_KEY_NAME', '')
-OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', ['plaintext', 'hmac-sha1','rsa-sha1'])
+OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', ['plaintext', 'hmac-sha1', 'rsa-sha1'])
 OAUTH_BLACKLISTED_HOSTNAMES = getattr(settings, 'OAUTH_BLACKLISTED_HOSTNAMES', [])
+
 
 def initialize_server_request(request):
     """Shortcut for initialization."""
@@ -34,6 +35,7 @@ def initialize_server_request(request):
         oauth_server = None
     return oauth_server, oauth_request
 
+
 def send_oauth_error(err=None):
     """Shortcut for sending an error."""
     # send a 401 error
@@ -43,13 +45,14 @@ def send_oauth_error(err=None):
         response = HttpResponse(err, mimetype="text/plain")
     else:
         response = HttpResponse(err.message.encode('utf-8'), mimetype="text/plain")
-    
+
     response.status_code = 401
     # return the authenticate header
     header = oauth.build_authenticate_header(realm=OAUTH_REALM_KEY_NAME)
     for k, v in header.iteritems():
         response[k] = v
     return response
+
 
 def get_oauth_request(request):
     """ Converts a Django request object into an `oauth2.Request` object. """
@@ -59,8 +62,7 @@ def get_oauth_request(request):
     if 'Authorization' in request.META:
         auth_header = {'Authorization': request.META['Authorization']}
     elif 'HTTP_AUTHORIZATION' in request.META:
-        auth_header =  {'Authorization': request.META['HTTP_AUTHORIZATION']}
-
+        auth_header = {'Authorization': request.META['HTTP_AUTHORIZATION']}
 
     # include POST parameters if content type is
     # 'application/x-www-form-urlencoded' and request
@@ -83,11 +85,12 @@ def get_oauth_request(request):
         absolute_uri = urlunparse((scheme, ) + urlparse(absolute_uri)[1:])
 
     return oauth.Request.from_request(request.method,
-        absolute_uri,
-        headers=auth_header,
-        parameters=parameters,
-        query_string=request.META.get('QUERY_STRING', '')
-    )
+                                      absolute_uri,
+                                      headers=auth_header,
+                                      parameters=parameters,
+                                      query_string=request.META.get('QUERY_STRING', '')
+                                      )
+
 
 def verify_oauth_request(request, oauth_request, consumer, token=None):
     """ Helper function to verify requests. """
@@ -115,8 +118,10 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
 
     return True
 
+
 def is_xauth_request(request):
-    return request.get('x_auth_password') and request.get('x_auth_username') 
+    return request.get('x_auth_password') and request.get('x_auth_username')
+
 
 def verify_xauth_request(request, oauth_request):
     """
@@ -133,6 +138,7 @@ def verify_xauth_request(request, oauth_request):
     if user:
         request.user = user
     return user
+
 
 def require_params(oauth_request, parameters=None):
     """ Ensures that the request contains all required parameters. """
@@ -152,19 +158,23 @@ def require_params(oauth_request, parameters=None):
 
     return None
 
+
 def check_valid_callback(callback):
     """
     Checks the size and nature of the callback.
     """
     callback_url = urlparse(callback)
-    return (callback_url.scheme
-            and callback_url.hostname not in OAUTH_BLACKLISTED_HOSTNAMES
-            and len(callback) < MAX_URL_LENGTH)
+    return (callback_url.scheme and
+            callback_url.hostname not in OAUTH_BLACKLISTED_HOSTNAMES and
+            len(callback) < MAX_URL_LENGTH)
 
 # LRS CHANGE - ADDED ESCAPE FUNCTION AND RSA_SHA1 CLASS (MISSING BEFORE)
+
+
 def escape(s):
     """Escape a URL including any /."""
     return urllib.quote(s, safe='~')
+
 
 class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):
     name = 'RSA-SHA1'
@@ -177,7 +187,7 @@ class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):
             escape(request.method),
             escape(request.normalized_url),
             escape(request.get_normalized_parameters()),
-            )
+        )
 
         # If incoming consumer is Consumer model
         if hasattr(consumer, 'id'):
@@ -185,7 +195,7 @@ class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):
         # If incoming consumer is consumer object from verify
         else:
             key = RSA.importKey(consumer.secret)
-        
+
         raw = '&'.join(sig)
         return key, raw
 

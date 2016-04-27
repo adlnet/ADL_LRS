@@ -10,7 +10,9 @@ from ..models import Agent, Statement
 from ..views import statements
 from adl_lrs.views import register
 
+
 class AgentManagerTests(TestCase):
+
     @classmethod
     def setUpClass(cls):
         print "\n%s" % __name__
@@ -20,34 +22,34 @@ class AgentManagerTests(TestCase):
         self.email = "test1@tester.com"
         self.password = "test"
         self.auth = "Basic %s" % base64.b64encode("%s:%s" % (self.username, self.password))
-        form = {"username":self.username, "email":self.email,"password":self.password,"password2":self.password}
-        self.client.post(reverse(register),form, X_Experience_API_Version=settings.XAPI_VERSION)           
+        form = {"username": self.username, "email": self.email, "password": self.password, "password2": self.password}
+        self.client.post(reverse(register), form, X_Experience_API_Version=settings.XAPI_VERSION)
 
     def test_agent_mbox_create(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com"},
-            "verb":{"id": "http://example.com/verbs/passed"},
-            "object": {'id': 'act://blah.com'}})
+        stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:bob@example.com"},
+                           "verb": {"id": "http://example.com/verbs/passed"},
+                           "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)        
+        st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
         self.assertEquals(bob.objectType, "Agent")
         self.assertFalse(bob.name)
 
     def test_agent_mbox_sha1sum_create(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox_sha1sum":hashlib.sha1("mailto:bob@example.com").hexdigest()},
-            "verb":{"id": "http://example.com/verbs/passed"},
-            "object": {'id': 'act://blah.com'}})
+        stmt = json.dumps({"actor": {"objectType": "Agent", "mbox_sha1sum": hashlib.sha1("mailto:bob@example.com").hexdigest()},
+                           "verb": {"id": "http://example.com/verbs/passed"},
+                           "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)        
+        st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
 
@@ -57,26 +59,26 @@ class AgentManagerTests(TestCase):
         self.assertFalse(bob.mbox)
 
     def test_agent_bogus_mbox_sha1sum_create(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox_sha1sum":"notarealsum"},
-            "verb":{"id": "http://example.com/verbs/passed"},
-            "object": {'id': 'act://blah.com'}})
+        stmt = json.dumps({"actor": {"objectType": "Agent", "mbox_sha1sum": "notarealsum"},
+                           "verb": {"id": "http://example.com/verbs/passed"},
+                           "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "mbox_sha1sum value [notarealsum] is not a valid sha1sum")
 
     def test_agent_openID_create(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "openid":"http://bob.openid.com"},
-            "verb":{"id": "http://example.com/verbs/passed"},
-            "object": {'id': 'act://blah.com'}})
+        stmt = json.dumps({"actor": {"objectType": "Agent", "openid": "http://bob.openid.com"},
+                           "verb": {"id": "http://example.com/verbs/passed"},
+                           "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)        
+        st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
 
@@ -87,15 +89,15 @@ class AgentManagerTests(TestCase):
         self.assertFalse(bob.mbox_sha1sum)
 
     def test_agent_account_create(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "account":{"homePage": "http://www.adlnet.gov", "name":"freakshow"}},
-            "verb":{"id": "http://example.com/verbs/passed"},
-            "object": {'id': 'act://blah.com'}})
+        stmt = json.dumps({"actor": {"objectType": "Agent", "account": {"homePage": "http://www.adlnet.gov", "name": "freakshow"}},
+                           "verb": {"id": "http://example.com/verbs/passed"},
+                           "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(response.status_code, 200)
-        st_id = json.loads(response.content)        
+        st_id = json.loads(response.content)
         st = Statement.objects.get(statement_id=st_id[0])
         bob = st.actor
 
@@ -110,7 +112,7 @@ class AgentManagerTests(TestCase):
         ot = "Agent"
         name = "bob bobson"
         mbox = "mailto:bobbobson@example.com"
-        kwargs = {"objectType":ot,"name":name,"mbox":mbox}
+        kwargs = {"objectType": ot, "name": name, "mbox": mbox}
         bob, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
         bob.save()
@@ -129,11 +131,11 @@ class AgentManagerTests(TestCase):
         bob3.save()
         self.assertNotEqual(bob.pk, bob3.pk)
 
-    def test_agent_kwargs_basic_account(self):        
+    def test_agent_kwargs_basic_account(self):
         ot = "Agent"
         name = "bob bobson"
-        account = {"homePage":"http://www.adlnet.gov","name":"freakshow"}
-        kwargs = {"objectType":ot,"name":name,"account":account}
+        account = {"homePage": "http://www.adlnet.gov", "name": "freakshow"}
+        kwargs = {"objectType": ot, "name": name, "account": account}
         bob, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
         self.assertEquals(bob.objectType, ot)
@@ -144,24 +146,24 @@ class AgentManagerTests(TestCase):
     def test_group_kwargs(self):
         ot = "Agent"
         name = "bob bobson"
-        kwargs = {"objectType":ot,"name":name, "mbox": "mailto:bob@example.com"}
+        kwargs = {"objectType": ot, "name": name, "mbox": "mailto:bob@example.com"}
         bob, created = Agent.objects.retrieve_or_create(**kwargs)
 
         ot = "Agent"
         name = "john johnson"
-        kwargs = {"objectType":ot,"name":name, "mbox": "mailto:john@example.com"}
+        kwargs = {"objectType": ot, "name": name, "mbox": "mailto:john@example.com"}
         john, created = Agent.objects.retrieve_or_create(**kwargs)
-        
+
         ot = "Group"
-        members = [{"name":"bob bobson","mbox":"mailto:bob@example.com"},
-                    {"name":"john johnson","mbox":"mailto:john@example.com"}]
-        
-        kwargs = {"objectType":ot, "member": members}
+        members = [{"name": "bob bobson", "mbox": "mailto:bob@example.com"},
+                   {"name": "john johnson", "mbox": "mailto:john@example.com"}]
+
+        kwargs = {"objectType": ot, "member": members}
         gr, created = Agent.objects.retrieve_or_create(**kwargs)
         # Already created from above
         self.assertTrue(created)
 
-        kwargs1 = {"objectType":ot, "member": members, "name": "my group"}
+        kwargs1 = {"objectType": ot, "member": members, "name": "my group"}
         gr1, created = Agent.objects.retrieve_or_create(**kwargs1)
         # creates another one b/c of adding a name
         self.assertTrue(created)
@@ -172,24 +174,24 @@ class AgentManagerTests(TestCase):
         self.assertEquals(len(agents.filter(objectType='Agent')), 2)
 
     def test_agent_json_no_ids(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "name":"freakshow"},
-            "verb":{"id": "http://example.com/verbs/passed"},
-            "object": {'id': 'act://blah.com'}})
+        stmt = json.dumps({"actor": {"objectType": "Agent", "name": "freakshow"},
+                           "verb": {"id": "http://example.com/verbs/passed"},
+                           "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'One and only one of mbox, mbox_sha1sum, openid, account may be supplied with an Agent')
 
     def test_agent_json_many_ids(self):
-        stmt = json.dumps({"actor":{"objectType": "Agent", "mbox":"mailto:bob@example.com", "openid":"bob.bobson.openid.org"},
-            "verb":{"id": "http://example.com/verbs/passed"},
-            "object": {'id': 'act://blah.com'}})
+        stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:bob@example.com", "openid": "bob.bobson.openid.org"},
+                           "verb": {"id": "http://example.com/verbs/passed"},
+                           "object": {'id': 'act://blah.com'}})
 
         response = self.client.post(reverse(statements), stmt, content_type="application/json",
-            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, 'One and only one of mbox, mbox_sha1sum, openid, account may be supplied with an Agent')
 
@@ -197,9 +199,9 @@ class AgentManagerTests(TestCase):
         ot = "Group"
         name = "the group"
         mbox = "mailto:the.group@example.com"
-        members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
-                    {"name":"agent2","mbox":"mailto:agent2@example.com"}]
-        kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
+        members = [{"name": "agent1", "mbox": "mailto:agent1@example.com"},
+                   {"name": "agent2", "mbox": "mailto:agent2@example.com"}]
+        kwargs = {"objectType": ot, "name": name, "mbox": mbox, "member": members}
         g, created = Agent.objects.retrieve_or_create(**kwargs)
         self.assertTrue(created)
         self.assertEquals(g.name, name)
@@ -209,8 +211,8 @@ class AgentManagerTests(TestCase):
         self.assertIn('agent1', mems)
         self.assertIn('agent2', mems)
         gr_dict = g.to_dict()
-        self.assertEquals(gr_dict['objectType'],'Group')
-        
+        self.assertEquals(gr_dict['objectType'], 'Group')
+
         for member in gr_dict['member']:
             self.assertEquals(member['objectType'], 'Agent')
             if member['name'] == 'agent1':
@@ -222,9 +224,9 @@ class AgentManagerTests(TestCase):
         ot = "Group"
         name = "the group"
         mbox = "mailto:the.group@example.com"
-        members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
-                    {"name":"agent2","mbox":"mailto:agent2@example.com"}]
-        kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
+        members = [{"name": "agent1", "mbox": "mailto:agent1@example.com"},
+                   {"name": "agent2", "mbox": "mailto:agent2@example.com"}]
+        kwargs = {"objectType": ot, "name": name, "mbox": mbox, "member": members}
         g = Agent.objects.retrieve_or_create(**kwargs)[0]
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
@@ -237,9 +239,9 @@ class AgentManagerTests(TestCase):
         ot = "Group"
         name = "the group"
         mbox = "mailto:the.group@example.com"
-        members = [{"name":"agent1","mbox":"mailto:agent1@example.com"},
-                    {"name":"agent2","mbox":"mailto:agent2@example.com"}]
-        kwargs = {"objectType":ot, "name":name, "mbox":mbox,"member":members}
+        members = [{"name": "agent1", "mbox": "mailto:agent1@example.com"},
+                   {"name": "agent2", "mbox": "mailto:agent2@example.com"}]
+        kwargs = {"objectType": ot, "name": name, "mbox": mbox, "member": members}
         g = Agent.objects.retrieve_or_create(**kwargs)[0]
         self.assertEquals(g.name, name)
         self.assertEquals(g.mbox, mbox)
@@ -252,7 +254,7 @@ class AgentManagerTests(TestCase):
         ot_s = "Agent"
         name_s = "superman"
         mbox_s = "mailto:superman@example.com"
-        kwargs_s = {"objectType":ot_s,"name":name_s,"mbox":mbox_s}
+        kwargs_s = {"objectType": ot_s, "name": name_s, "mbox": mbox_s}
         clark, created = Agent.objects.retrieve_or_create(**kwargs_s)
         self.assertTrue(created)
         clark.save()
@@ -273,7 +275,7 @@ class AgentManagerTests(TestCase):
         ot_ww = "Agent"
         name_ww = "wonder woman"
         mbox_sha1sum_ww = hashlib.sha1("mailto:wonderwoman@example.com").hexdigest()
-        kwargs_ww = {"objectType":ot_ww,"name":name_ww,"mbox_sha1sum":mbox_sha1sum_ww}
+        kwargs_ww = {"objectType": ot_ww, "name": name_ww, "mbox_sha1sum": mbox_sha1sum_ww}
         diana, created = Agent.objects.retrieve_or_create(**kwargs_ww)
         self.assertTrue(created)
         diana.save()
@@ -295,7 +297,7 @@ class AgentManagerTests(TestCase):
         ot_b = "Agent"
         name_b = "batman"
         openid_b = "id:batman"
-        kwargs_b = {"objectType":ot_b,"name":name_b,"openid":openid_b}
+        kwargs_b = {"objectType": ot_b, "name": name_b, "openid": openid_b}
         bruce, created = Agent.objects.retrieve_or_create(**kwargs_b)
         self.assertTrue(created)
         bruce.save()
@@ -317,8 +319,8 @@ class AgentManagerTests(TestCase):
 
         ot_f = "Agent"
         name_f = "the flash"
-        account_f = {"homePage":"http://ultrasecret.justiceleague.com/accounts/", "name":"theflash"}
-        kwargs_f = {"objectType":ot_f,"name":name_f,"account":account_f}
+        account_f = {"homePage": "http://ultrasecret.justiceleague.com/accounts/", "name": "theflash"}
+        kwargs_f = {"objectType": ot_f, "name": name_f, "account": account_f}
         barry, created = Agent.objects.retrieve_or_create(**kwargs_f)
         self.assertTrue(created)
         barry.save()
@@ -345,7 +347,7 @@ class AgentManagerTests(TestCase):
         ot_j = "Group"
         name_j = "Justice League"
         mbox_j = "mailto:justiceleague@example.com"
-        kwargs_j = {"objectType":ot_j,"name":name_j,"mbox":mbox_j, "member":[kwargs_s,kwargs_ww,kwargs_f,kwargs_b]}
+        kwargs_j = {"objectType": ot_j, "name": name_j, "mbox": mbox_j, "member": [kwargs_s, kwargs_ww, kwargs_f, kwargs_b]}
         justiceleague, created = Agent.objects.retrieve_or_create(**kwargs_j)
         self.assertTrue(created)
         justiceleague.save()
@@ -363,12 +365,12 @@ class AgentManagerTests(TestCase):
         self.assertFalse('name' in str(justiceleague_ids), "name was found in agent json")
         self.assertEquals(justiceleague_ids['mbox'], mbox_j)
 
-        badguy_ds = {"objectType":"Agent", "mbox":"mailto:darkseid@example.com", "name":"Darkseid"}
-        badguy_m = {"objectType":"Agent", "mbox":"mailto:mantis@example.com", "name":"Mantis"}
+        badguy_ds = {"objectType": "Agent", "mbox": "mailto:darkseid@example.com", "name": "Darkseid"}
+        badguy_m = {"objectType": "Agent", "mbox": "mailto:mantis@example.com", "name": "Mantis"}
 
         ot_bg = "Group"
         members_bg = [badguy_ds, badguy_m]
-        kwargs_bg = {"objectType":ot_bg,"member":members_bg}
+        kwargs_bg = {"objectType": ot_bg, "member": members_bg}
         badguys, created = Agent.objects.retrieve_or_create(**kwargs_bg)
         self.assertTrue(created)
         badguys.save()

@@ -19,7 +19,8 @@ from oauth_provider.decorators import CheckOauth
 from oauth_provider.store import store
 from oauth2_provider.provider.oauth2.models import AccessToken
 
-att_cache = get_cache('attachment_cache')  
+att_cache = get_cache('attachment_cache')
+
 
 def parse(request, more_id=None):
     # Parse request into body, headers, and params
@@ -30,7 +31,7 @@ def parse(request, more_id=None):
     r_dict['auth'] = {}
     if 'Authorization' in r_dict['headers']:
         # OAuth will always be dict, not http auth. Set required fields for oauth module and type for authentication module
-        set_normal_authorization(request, r_dict)     
+        set_normal_authorization(request, r_dict)
     elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
         # Authorization could be passed into body if cross origin request
         # CORS OAuth not currently supported...
@@ -46,7 +47,7 @@ def parse(request, more_id=None):
     # Just parse body for all non IE CORS stuff
     else:
         parse_normal_request(request, r_dict)
-    
+
     # Set method if not already set
     # CORS request will already be set - don't reset
     if 'method' not in r_dict:
@@ -61,7 +62,7 @@ def parse(request, more_id=None):
                 if not ('actor' in r_dict['body'] and 'verb' in r_dict['body'] and 'object' in r_dict['body']):
                     # If body keys are in get params - GET - else invalid request
                     if set(r_dict['body'].keys()).issubset(['statementId', 'voidedStatementId', 'agent', 'verb', 'activity', 'registration',
-                        'related_activities', 'related_agents', 'since', 'until', 'limit', 'format', 'attachments', 'ascending']):
+                                                            'related_activities', 'related_agents', 'since', 'until', 'limit', 'format', 'attachments', 'ascending']):
                         r_dict['method'] = 'GET'
                     else:
                         raise BadRequest("Statement is missing actor, verb, or object")
@@ -72,7 +73,7 @@ def parse(request, more_id=None):
         else:
             r_dict['method'] = 'GET'
     else:
-        # CORS request will already be set - don't reset        
+        # CORS request will already be set - don't reset
         if 'method' not in r_dict:
             r_dict['method'] = request.method
     # Set if someone is hitting the statements/more endpoint
@@ -80,10 +81,11 @@ def parse(request, more_id=None):
         r_dict['more_id'] = more_id
     return r_dict
 
+
 def set_cors_authorization(request, r_dict):
     # Not allowed to set request body so this is just a copy
     body = convert_post_body_to_dict(request.body)
-    if 'HTTP_AUTHORIZATION' not in r_dict['headers'] and 'HTTP_AUTHORIZATION' not in r_dict['headers']: 
+    if 'HTTP_AUTHORIZATION' not in r_dict['headers'] and 'HTTP_AUTHORIZATION' not in r_dict['headers']:
         if 'HTTP_AUTHORIZATION' in body:
             r_dict['headers']['Authorization'] = body.pop('HTTP_AUTHORIZATION')
         elif 'Authorization' in body:
@@ -93,6 +95,7 @@ def set_cors_authorization(request, r_dict):
     r_dict['auth']['endpoint'] = get_endpoint(request)
     r_dict['auth']['type'] = 'http'
 
+
 def set_normal_authorization(request, r_dict):
     auth_params = r_dict['headers']['Authorization']
     # OAuth1 and basic http auth come in as string
@@ -100,7 +103,7 @@ def set_normal_authorization(request, r_dict):
     if auth_params[:6] == 'OAuth ':
         oauth_request = get_oauth_request(request)
         # Returns HttpBadRequest if missing any params
-        missing = require_params(oauth_request)            
+        missing = require_params(oauth_request)
         if missing:
             raise missing
 
@@ -114,7 +117,7 @@ def set_normal_authorization(request, r_dict):
         # Consumer and token should be clean by now
         consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
         token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
-        
+
         # Set consumer and token for authentication piece
         r_dict['auth']['oauth_consumer'] = consumer
         r_dict['auth']['oauth_token'] = token
@@ -129,13 +132,14 @@ def set_normal_authorization(request, r_dict):
                 raise OauthUnauthorized('Access Token has expired')
             r_dict['auth']['oauth_token'] = access_token
             r_dict['auth']['type'] = 'oauth2'
-    else:        
+    else:
         r_dict['auth']['type'] = 'http'
+
 
 def parse_normal_body(request, r_dict):
     if request.method == 'POST' or request.method == 'PUT':
         # If it is multipart/mixed we're expecting attachment data (also for signed statements)
-        if 'multipart/mixed' in r_dict['headers']['CONTENT_TYPE']: 
+        if 'multipart/mixed' in r_dict['headers']['CONTENT_TYPE']:
             parse_attachment(request, r_dict)
         # If it's any other content-type try parsing it out
         else:
@@ -155,12 +159,13 @@ def parse_normal_body(request, r_dict):
                             # QueryDict will create {'foo':''} key for any string - does not care if valid query string or not
                             for k, v in r_dict['body'].items():
                                 if not v:
-                                    raise BadRequest("Could not parse request body, no value for: %s" % k)       
+                                    raise BadRequest("Could not parse request body, no value for: %s" % k)
                 else:
                     r_dict['body'] = request.body
             else:
                 raise BadRequest("No body in request")
     return r_dict
+
 
 def parse_cors_request(request, r_dict):
     # Convert body to dict
@@ -180,18 +185,18 @@ def parse_cors_request(request, r_dict):
                     # Convert to dict if data is in form format (foo=bar)
                     r_dict['body'] = QueryDict(str_body).dict()
                 except Exception:
-                    raise BadRequest("Could not parse request body in CORS request")           
+                    raise BadRequest("Could not parse request body in CORS request")
                 else:
                     # QueryDict will create {'foo':''} key for any string - does not care if valid query string or not
                     for k, v in r_dict['body'].items():
                         if not v:
-                            raise BadRequest("Could not parse request body in CORS request, no value for: %s" % k) 
+                            raise BadRequest("Could not parse request body in CORS request, no value for: %s" % k)
         else:
             r_dict['body'] = str_body
         # Catch attachments early
         if 'attachments' in r_dict['body']:
             raise BadRequest(("Attachments are not supported in cross origin requests since they require a "
-                            "multipart/mixed Content-Type"))
+                              "multipart/mixed Content-Type"))
 
     # Remove extra headers from body that we already captured in get_headers
     body.pop('X-Experience-API-Version', None)
@@ -205,23 +210,25 @@ def parse_cors_request(request, r_dict):
     r_dict['params'].update(body)
     # Add query string params
     for k in request.GET:
-        # make sure the method param goes in the special method spot        
+        # make sure the method param goes in the special method spot
         if k == 'method':
             r_dict[k] = request.GET[k].upper()
         else:
             r_dict['params'][k] = request.GET[k]
 
-    #If it is a CORS PUT OR POST make sure it has content
+    # If it is a CORS PUT OR POST make sure it has content
     if (r_dict['method'] == 'PUT' or r_dict['method'] == 'POST') \
-        and 'body' not in r_dict:
+            and 'body' not in r_dict:
         raise BadRequest("CORS PUT or POST both require content parameter")
     set_agent_param(r_dict)
+
 
 def parse_normal_request(request, r_dict):
     r_dict = parse_normal_body(request, r_dict)
     # Update dict with any GET data
     r_dict['params'].update(request.GET.dict())
     set_agent_param(r_dict)
+
 
 def parse_attachment(request, r_dict):
     # Email library insists on having the multipart header in the body - workaround
@@ -247,7 +254,7 @@ def parse_attachment(request, r_dict):
         # Find the signature sha2 from the list attachment values in the statements (there should only be one)
         if isinstance(r_dict['body'], list):
             signature_att = list(itertools.chain(*[[a.get('sha2', None) for a in s['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"] for s in r_dict['body'] if 'attachments' in s]))
-        else:        
+        else:
             signature_att = [a.get('sha2', None) for a in r_dict['body']['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and 'attachments' in r_dict['body']]
 
         # Get all sha2s from the request
@@ -263,7 +270,7 @@ def parse_attachment(request, r_dict):
                 if sig not in payload_sha2s:
                     raise BadRequest("Signature attachment is missing from request")
             else:
-                raise BadRequest("Signature attachment is missing from request")   
+                raise BadRequest("Signature attachment is missing from request")
 
         # We know all sha2s are there so set it and loop through each payload
         r_dict['payload_sha2s'] = payload_sha2s
@@ -288,7 +295,7 @@ def parse_attachment(request, r_dict):
         att_stmts.append(r_dict['body'])
     if att_stmts:
         # find if any of those statements with attachments have a signed statement
-        signed_stmts = [(s,a) for s in att_stmts for a in s.get('attachments', None) if a['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
+        signed_stmts = [(s, a) for s in att_stmts for a in s.get('attachments', None) if a['usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
         for ss in signed_stmts:
             attmnt = b64decode(att_cache.get(ss[1]['sha2']))
             jws = JWS(jws=attmnt)
@@ -298,13 +305,15 @@ def parse_attachment(request, r_dict):
             except JWSException as jwsx:
                 raise BadRequest(jwsx)
 
+
 def get_endpoint(request):
     # Used for OAuth scope
     endpoint = request.path[5:]
     # Since we accept with or without / on end
     if endpoint.endswith("/"):
         return endpoint[:-1]
-    return endpoint   
+    return endpoint
+
 
 def get_headers(headers):
     header_dict = {}
@@ -313,7 +322,7 @@ def get_headers(headers):
         try:
             header_dict['updated'] = parse_datetime(headers.pop('HTTP_UPDATED'))
         except (Exception, ISO8601Error):
-            raise ParamError("Updated header was not a valid ISO8601 timestamp")        
+            raise ParamError("Updated header was not a valid ISO8601 timestamp")
     elif 'updated' in headers:
         try:
             header_dict['updated'] = parse_datetime(headers.pop('updated'))
@@ -347,8 +356,9 @@ def get_headers(headers):
 
     # Get xapi version
     if 'X-Experience-API-Version' in headers:
-            header_dict['X-Experience-API-Version'] = headers.pop('X-Experience-API-Version')
+        header_dict['X-Experience-API-Version'] = headers.pop('X-Experience-API-Version')
     return header_dict
+
 
 def set_agent_param(r_dict):
     # Convert agent to dict if get param for statements

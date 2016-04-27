@@ -40,6 +40,7 @@ class Store(object):
     Token itself, `get_consumer_for_request_token` can simply return
     `request_token.consumer`.
     """
+
     def get_consumer(self, request, oauth_request, consumer_key):
         """
         Return the Consumer for `consumer_key` or raise `InvalidConsumerError`.
@@ -137,7 +138,7 @@ class Store(object):
     def get_user_for_consumer(self, request, oauth_request, consumer):
         """
         Return the associated User for `consumer`.
-        
+
         `request`: The Django request object.
         `oauth_request`: The `oauth2.Request` object.
         `consumer`: The Consumer that made the request.
