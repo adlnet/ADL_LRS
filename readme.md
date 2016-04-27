@@ -1,17 +1,18 @@
 ﻿# ADL LRS 
 
-#### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04</b> is recommended. Updated to be compliant with the 1.0.2 xAPI spec.
+#### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the (soon to be completed) 1.0.3 xAPI spec.
 
 This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
 
 ## Installation
 
-**Install Postgres**
+**Install Postgres** (The apt-get upgrade is only needed if you're running Ubuntu 14. If running 15+ you can skip to installing postgresql)
 
     admin:~$ wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
     admin:~$ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" >> /etc/apt/sources.list.d/postgresql.list'
     admin:~$ sudo apt-get update
-    admin:~$ sudo apt-get upgrade    
+    admin:~$ sudo apt-get upgrade
+
     admin:~$ sudo apt-get install postgresql-9.4 postgresql-server-dev-9.4 postgresql-contrib-9.4
 
     admin:~$ sudo -u postgres createuser -P -s <db_owner_name>
@@ -116,7 +117,6 @@ For other ways to start and run the LRS, please visit our Wiki.
     
 * [Test Coverage](https://github.com/adlnet/ADL_LRS/wiki/Code-Coverage)
 * [Code Profiling](https://github.com/adlnet/ADL_LRS/wiki/Code-Profiling-with-cProfile)
-* [Sending Attachments](https://github.com/adlnet/ADL_LRS/wiki/Sending-Statements-with-Attachments)
 * [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production)
 * [OAuth Help](https://github.com/adlnet/ADL_LRS/wiki/Using-OAuth)
 * [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
