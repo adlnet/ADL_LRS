@@ -14,6 +14,7 @@ This version is stable, but only intended to support a small amount of users as 
     admin:~$ sudo apt-get upgrade
 
     admin:~$ sudo apt-get install postgresql-9.4 postgresql-server-dev-9.4 postgresql-contrib-9.4
+    (can install 9.5 if on Ubuntu 16)
 
     admin:~$ sudo -u postgres createuser -P -s <db_owner_name>
     Enter password for new role: <db_owner_password>
