@@ -37,7 +37,8 @@ def void_statements(stmts):
 @shared_task
 def check_statement_hooks(stmt_ids):
     try:
-        from .models import Hook, Statement
+        from .models import Statement
+        from adl_lrs.models import Hook
         hooks = Hook.objects.all().values_list('hook_id', 'filters', 'config')
         for h in hooks:
             filters = h[1]
@@ -48,10 +49,10 @@ def check_statement_hooks(stmt_ids):
             found = Statement.objects.filter(filterQ).distinct()
             if found:
                 if config['content_type'] == 'json':
-                    data = '{"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h[0])
+                    data = '{"statements": [%s], "id": "%s"}' % (",".join(json.dumps(stmt) for stmt in found.values_list('full_statement', flat=True)), str(h[0]))
                     headers = {'Content-Type': 'application/json'}
                 else:
-                    data = 'payload={"statements": [%s], "id": "%s"}' % (",".join(stmt for stmt in found.values_list('full_statement', flat=True)), h[0])
+                    data = 'payload={"statements": [%s], "id": "%s"}' % (",".join(json.dumps(stmt) for stmt in found.values_list('full_statement', flat=True)), str(h[0]))
                     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
                 try:
                     if secret:
