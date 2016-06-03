@@ -16,6 +16,7 @@
                     <li class="pure-menu-item pure-menu-item-custom pure-menu-selected tab-content"><a href="#myaccount" id="showme" class="pure-menu-link custom-wrap">Account</a></li>
                     <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url 'my_statements' %}" class="pure-menu-link custom-wrap">Statements</a></li>
                     <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url 'my_activity_states' %}" class="pure-menu-link custom-wrap">Activity States</a></li>
+                    <li class="pure-menu-item pure-menu-item-custom"><a target="_blank" href="{% url 'my_hooks' %}" class="pure-menu-link custom-wrap">Webhooks</a></li>
                     <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#clientapps" class="pure-menu-link custom-wrap">OAuth Client Apps</a></li>
                     <li class="pure-menu-item pure-menu-item-custom tab-content"><a href="#myaccesstokens" class="pure-menu-link custom-wrap">OAuth Access Tokens</a></li>
                 </ul>
@@ -34,10 +35,9 @@
                     <ul>
                         <li><b>Statements</b> - Displays human-readable sentences for your stored statements. Expand them to view the raw JSON data</li>
                         <li><b>Activity States</b> - Displays all of your activity states and recognizes if the state is part of the <a target="_blank" href="http://adlnet.github.io/xAPI-SCORM-Profile/index.html">ADL SCORM Profile</a> for further inspection</li>
+                        <li><b>Webhooks</b> - Displays your registered webhooks</li>
                         <li><b>OAuth Client Apps</b> - Displays your registered OAuth apps' information (you can activate/deactivate them here)</li>
                         <li><b>OAuth Access Tokens</b> - Displays available access tokens for your registered OAuth apps</li>
-                        <li><b>OAuth2 Client Apps</b> - Displays your registered OAuth2 apps' information (you can delete them here)</li>
-                        <li><b>OAuth2 Access Tokens</b> - Displays available access tokens for your registered OAuth2 apps</li>
                     </ul>
                 </div>
             </div>

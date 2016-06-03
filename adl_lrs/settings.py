@@ -56,6 +56,9 @@ USE_L10N = True
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
+# check for hooks
+USE_HOOKS = True
+
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
 MEDIA_ROOT = path.join(PROJECT_ROOT, 'media')
@@ -264,7 +267,7 @@ CELERYD_HIJACK_ROOT_LOGGER = False
 # django.request logger logs warning and error server requests
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
             'format': u'%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
