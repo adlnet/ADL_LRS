@@ -8,7 +8,6 @@ PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 
 # If you want to debug
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -56,7 +55,7 @@ USE_L10N = True
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
-# Set this to True if you would like to utilize the webhooks functionality
+# check for hooks
 USE_HOOKS = False
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
@@ -135,7 +134,9 @@ OAUTH_SCOPES = (
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
+
+CELERY_STORE_ERRORS_EVEN_IF_IGNORED=True
+CELERY_IGNORE_RESULT=True
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
@@ -167,22 +168,27 @@ STATICFILES_FINDERS = (
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'v+m%^r0x)$_x8i3trn*duc6vd-yju0kx2b#9lk0sn2k^7cgyp5'
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    "django.contrib.auth.context_processors.auth",
-    "django.core.context_processors.request",
-    "django.core.context_processors.debug",
-    "django.core.context_processors.i18n",
-    "django.core.context_processors.media",
-    "django.core.context_processors.static",
-    "django.core.context_processors.tz",
-    "django.contrib.messages.context_processors.messages"
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            # insert your TEMPLATE_DIRS here
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.request',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 
 USE_ETAGS = True
 CORS_ORIGIN_ALLOW_ALL = True
@@ -230,12 +236,6 @@ ROOT_URLCONF = 'adl_lrs.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'adl_lrs.wsgi.application'
-
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-)
 
 ADMIN_REGISTER_APPS = ['adl_lrs', 'lrs', 'oauth_provider']
 
