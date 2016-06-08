@@ -55,7 +55,7 @@ USE_L10N = True
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
-# check for hooks
+# Set this to True if you would like to utilize the webhooks functionality
 USE_HOOKS = False
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
