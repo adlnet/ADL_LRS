@@ -318,6 +318,15 @@ def compare_payloads(jws_payload, body_payload):
     jws_placeholder.pop("timestamp", None)
     jws_placeholder.pop("version", None)
     jws_placeholder.pop("attachments", None)
+    # JWT specific standard fields
+    jws_placeholder.pop("iss", None)
+    jws_placeholder.pop("sub", None)
+    jws_placeholder.pop("aud", None)
+    jws_placeholder.pop("exp", None)
+    jws_placeholder.pop("nbf", None)
+    jws_placeholder.pop("iat", None)
+    jws_placeholder.pop("jti", None)
+
     body_placeholder = dict(body_payload)
     body_placeholder.pop("id", None)
     body_placeholder.pop("authority", None)
