@@ -1,7 +1,6 @@
 import json
 import uuid
 from collections import OrderedDict
-from datetime import datetime
 
 from django.db import models, IntegrityError
 from django.db.models.signals import post_save
@@ -58,7 +57,7 @@ class AgentManager(models.Manager):
         agent_ifps_can_only_be_one = [
             'mbox', 'mbox_sha1sum', 'account', 'openid']
         ifp_sent = [
-            a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]
+            a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) is not None]
         if ifp_sent:
             # Get IFP
             ifp = ifp_sent[0]
@@ -84,7 +83,7 @@ class AgentManager(models.Manager):
         agent_ifps_can_only_be_one = [
             'mbox', 'mbox_sha1sum', 'account', 'openid']
         ifp_sent = [
-            a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]
+            a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) is not None]
         is_group = kwargs.get('objectType', None) == "Group"
         has_member = False
         # Set member if incoming group
@@ -389,9 +388,9 @@ class SubStatement(models.Model):
                 'id': str(self.object_statementref), 'objectType': 'StatementRef'}
 
         ret['result'] = OrderedDict()
-        if self.result_success != None:
+        if self.result_success is not None:
             ret['result']['success'] = self.result_success
-        if self.result_completion != None:
+        if self.result_completion is not None:
             ret['result']['completion'] = self.result_completion
         if self.result_response:
             ret['result']['response'] = self.result_response
@@ -558,9 +557,9 @@ class Statement(models.Model):
                 'id': str(self.object_statementref), 'objectType': 'StatementRef'}
 
         ret['result'] = OrderedDict()
-        if self.result_success != None:
+        if self.result_success is not None:
             ret['result']['success'] = self.result_success
-        if self.result_completion != None:
+        if self.result_completion is not None:
             ret['result']['completion'] = self.result_completion
         if self.result_response:
             ret['result']['response'] = self.result_response

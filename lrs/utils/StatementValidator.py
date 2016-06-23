@@ -301,7 +301,7 @@ class StatementValidator():
         # Agent must have only one inverse functional identifier (Group may be Anonymous Group where no IFI is
         # required)
         ifis = [a for a in agent_ifis_can_only_be_one if agent.get(
-            a, None) != None]
+            a, None) is not None]
         if agent['objectType'] == 'Agent' and len(ifis) != 1:
             self.return_error("One and only one of %s may be supplied with an Agent" % ", ".join(
                 agent_ifis_can_only_be_one))

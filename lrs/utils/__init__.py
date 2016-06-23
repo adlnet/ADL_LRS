@@ -11,7 +11,7 @@ agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openid', 'account']
 
 def get_agent_ifp(data):
     ifp_sent = [
-        a for a in agent_ifps_can_only_be_one if data.get(a, None) != None]
+        a for a in agent_ifps_can_only_be_one if data.get(a, None) is not None]
 
     ifp = ifp_sent[0]
     ifp_dict = {}
