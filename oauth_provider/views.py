@@ -114,7 +114,7 @@ def user_authorization(request, form_class=AuthorizeRequestTokenForm):
                 try:
                     view_callable = get_callable(callback_view_str)
                 except AttributeError:
-                    raise Exception, "%s view doesn't exist." % callback_view_str
+                    raise Exception("%s view doesn't exist." % callback_view_str)
 
                 # try to treat it as Class Based View (CBV)
                 try:
@@ -133,7 +133,7 @@ def user_authorization(request, form_class=AuthorizeRequestTokenForm):
         try:
             view_callable = get_callable(authorize_view_str)
         except AttributeError:
-            raise Exception, "%s view doesn't exist." % authorize_view_str
+            raise Exception("%s view doesn't exist." % authorize_view_str)
 
         # try to treat it as Class Based View (CBV)
         try:
@@ -225,7 +225,7 @@ def access_token(request):
                 request, oauth_request, consumer, OUT_OF_BAND)
             request_token = store.authorize_request_token(
                 request, oauth_request, request_token)
-        except oauth.Error, err:
+        except oauth.Error as err:
             return send_oauth_error(err)
 
     access_token = store.create_access_token(
@@ -264,9 +264,9 @@ def callback_view(request, **args):
 
     try:
         oauth_token = Token.objects.get(key=args['oauth_token'])
-    except AttributeError, e:
+    except AttributeError as e:
         send_oauth_error(e)
-    except Token.DoesNotExist, e:
+    except Token.DoesNotExist as e:
         send_oauth_error(e)
     d['verifier'] = oauth_token.verifier
     return render(request, 'oauth_verifier_pin.html', d)

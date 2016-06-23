@@ -115,7 +115,7 @@ class StatementManager():
                     raw_payload = att_cache.get(sha2)
                     try:
                         payload = ContentFile(raw_payload)
-                    except Exception, e:
+                    except Exception as e:
                         raise e
                     attachment.payload.save(sha2, payload)
             attachment.statement = self.model_object

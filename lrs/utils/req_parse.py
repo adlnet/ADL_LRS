@@ -336,7 +336,7 @@ def validate_signatures(body):
                 try:
                     verified = jws.verify(
                         signature, cert_to_key(x5c[0]), algorithm)
-                except Exception, e:
+                except Exception as e:
                     att_cache.delete(sha2_key)
                     raise BadRequest("The JWS is not valid: %s" % e.message)
                 else:

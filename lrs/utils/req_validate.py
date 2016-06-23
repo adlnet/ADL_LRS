@@ -85,9 +85,9 @@ def statements_post(req_dict):
     try:
         validator = StatementValidator(req_dict['body'])
         validator.validate()
-    except Exception, e:
+    except Exception as e:
         raise BadRequest(e.message)
-    except ParamError, e:
+    except ParamError as e:
         raise ParamError(e.message)
 
     if isinstance(req_dict['body'], dict):
@@ -221,7 +221,7 @@ def statements_put(req_dict):
     # Try to get id if in body
     try:
         statement_body_id = req_dict['body']['id']
-    except Exception, e:
+    except Exception as e:
         statement_body_id = None
 
     # If ids exist in both places, check if they are equal
@@ -242,9 +242,9 @@ def statements_put(req_dict):
     try:
         validator = StatementValidator(req_dict['body'])
         validator.validate()
-    except Exception, e:
+    except Exception as e:
         raise BadRequest(e.message)
-    except ParamError, e:
+    except ParamError as e:
         raise ParamError(e.message)
     validate_body([req_dict['body']], req_dict['auth'], req_dict.get(
         'payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])

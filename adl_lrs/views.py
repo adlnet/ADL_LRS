@@ -54,7 +54,7 @@ def stmt_validator(request):
             try:
                 validator = StatementValidator(form.cleaned_data['jsondata'])
                 valid = validator.validate()
-            except ParamError, e:
+            except ParamError as e:
                 clean_data = form.cleaned_data['jsondata']
                 return render(request, 'validator.html', {"form": form, "error_message": e.message, "clean_data": clean_data})
             else:
@@ -256,7 +256,7 @@ def my_hooks(request, template="my_hooks.html"):
             except IntegrityError:
                 error_message = "Hook with name %s already exists" % name
                 valid_message = False
-            except Exception, e:
+            except Exception as e:
                 error_message = e.message
                 valid_message = False
             else:
@@ -369,9 +369,9 @@ def hooks(request):
             try:
                 body['user'] = user
                 hook = Hook.objects.create(**body)
-            except IntegrityError, e:
+            except IntegrityError as e:
                 return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
-            except Exception, e:
+            except Exception as e:
                 return HttpResponseBadRequest("Something went wrong: %s" % e.message)
             else:
                 hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse(
