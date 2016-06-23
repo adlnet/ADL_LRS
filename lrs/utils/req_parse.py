@@ -67,7 +67,8 @@ def parse(request, more_id=None):
                     # If body keys are in get params - GET - else invalid
                     # request
                     if set(r_dict['body'].keys()).issubset(['statementId', 'voidedStatementId', 'agent', 'verb', 'activity', 'registration',
-                                                            'related_activities', 'related_agents', 'since', 'until', 'limit', 'format', 'attachments', 'ascending']):
+                                                            'related_activities', 'related_agents', 'since', 'until', 'limit', 'format',
+                                                            'attachments', 'ascending']):
                         r_dict['method'] = 'GET'
                     else:
                         raise BadRequest(
@@ -267,10 +268,12 @@ def parse_attachment(request, r_dict):
         # Find the signature sha2 from the list attachment values in the
         # statements (there should only be one)
         if isinstance(r_dict['body'], list):
-            signature_att = list(itertools.chain(*[[a.get('sha2', None) for a in s['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"]
+            signature_att = list(itertools.chain(*[[a.get('sha2', None) for a in s['attachments']
+                                                    if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"]
                                                    for s in r_dict['body'] if 'attachments' in s]))
         else:
-            signature_att = [a.get('sha2', None) for a in r_dict['body']['attachments'] if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and
+            signature_att = [a.get('sha2', None) for a in r_dict['body']['attachments']
+                             if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and
                              'attachments' in r_dict['body']]
 
         # Get all sha2s from the request

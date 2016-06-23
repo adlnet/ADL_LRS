@@ -265,9 +265,11 @@ def build_statement_result(more_id, **data):
         # Return first page of results
         if data["format"] == 'exact':
             result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in
-                                                                    Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
-                                                                                                     'object_agent', 'object_activity', 'object_substatement')
-                                                                    .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
+                                                                    Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor',
+                                                                                                     'authority', 'object_agent', 'object_activity',
+                                                                                                     'object_substatement')
+                                                                    .prefetch_related('context_ca_parent', 'context_ca_grouping',
+                                                                                      'context_ca_category', 'context_ca_other')
                                                                     .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])])
         else:
             result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in
@@ -293,9 +295,11 @@ def build_statement_result(more_id, **data):
         # Return first page of results
         if data["format"] == 'exact':
             result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in
-                                                                       Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
-                                                                                                        'object_agent', 'object_activity', 'object_substatement')
-                                                                       .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
+                                                                       Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor',
+                                                                                                        'authority', 'object_agent', 'object_activity',
+                                                                                                        'object_substatement')
+                                                                       .prefetch_related('context_ca_parent', 'context_ca_grouping',
+                                                                                         'context_ca_category', 'context_ca_other')
                                                                        .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]),
                                                              reverse('lrs:statements_more_placeholder').lower() + "/" + cache_key)
         else:
