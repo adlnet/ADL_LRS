@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
-from ..exceptions import Unauthorized, BadRequest, Forbidden
+from ..exceptions import Unauthorized, BadRequest, Forbidden, OauthUnauthorized, OauthBadRequest
 from ..models import Agent
 
 from oauth_provider.models import Consumer
