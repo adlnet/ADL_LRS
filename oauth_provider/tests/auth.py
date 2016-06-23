@@ -18,18 +18,20 @@ METHOD_URL_QUERY = 2
 
 
 class BaseOAuthTestCase(TestCase):
+
     def setUp(self):
         self.username = 'jane'
         self.password = 'toto'
         self.email = 'jane@example.com'
-        self.jane = User.objects.create_user(self.username, self.email, self.password)
+        self.jane = User.objects.create_user(
+            self.username, self.email, self.password)
         self.scope = Scope.objects.create(name='photos', url='/oauth/photo/')
 
         self.CONSUMER_KEY = 'dpf43f3p2l4k3l03'
         self.CONSUMER_SECRET = 'kd94hf93k423kf44'
 
         consumer = self.consumer = Consumer(key=self.CONSUMER_KEY, secret=self.CONSUMER_SECRET,
-            name='printer.example.com', user=self.jane)
+                                            name='printer.example.com', user=self.jane)
         consumer.save()
 
         self.callback_token = self.callback = 'http://printer.example.com/request_token_ready'
@@ -51,14 +53,16 @@ class BaseOAuthTestCase(TestCase):
         }
         parameters.update(parameters_overriden)
 
-        if method==METHOD_AUTHORIZATION_HEADER:
+        if method == METHOD_AUTHORIZATION_HEADER:
             header = self._get_http_authorization_header(parameters)
-            response = self.c.get("/oauth/request_token/", HTTP_AUTHORIZATION=header)
-        elif method==METHOD_URL_QUERY:
+            response = self.c.get("/oauth/request_token/",
+                                  HTTP_AUTHORIZATION=header)
+        elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/request_token/", parameters)
-        elif method==METHOD_POST_REQUEST_BODY:
+        elif method == METHOD_POST_REQUEST_BODY:
             body = urllib.urlencode(parameters)
-            response = self.c.post("/oauth/request_token/", body, content_type="application/x-www-form-urlencoded")
+            response = self.c.post(
+                "/oauth/request_token/", body, content_type="application/x-www-form-urlencoded")
         else:
             raise NotImplementedError
 
@@ -68,7 +72,7 @@ class BaseOAuthTestCase(TestCase):
 
         self.assert_(
             re.match(r'oauth_token_secret=[^&]+&oauth_token=[^&]+&oauth_callback_confirmed=true', response.content
-            ))
+                     ))
 
         token = self.request_token = list(Token.objects.all())[-1]
         self.assert_(token.key in response.content)
@@ -78,7 +82,8 @@ class BaseOAuthTestCase(TestCase):
 
     def _authorize_and_access_token_using_form(self, method=METHOD_URL_QUERY):
         self.c.login(username=self.username, password=self.password)
-        parameters = self.authorization_parameters = {'oauth_token': self.request_token.key}
+        parameters = self.authorization_parameters = {
+            'oauth_token': self.request_token.key}
         response = self.c.get("/oauth/authorize/", parameters)
         self.assertEqual(response.status_code, 200)
 
@@ -88,17 +93,20 @@ class BaseOAuthTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
 
         # finally access authorized access_token
-        oauth_verifier = parse_qs(urlparse(response['Location']).query)['oauth_verifier'][0]
+        oauth_verifier = parse_qs(urlparse(response['Location']).query)[
+            'oauth_verifier'][0]
 
         # logout to ensure that will not authorize with session
         self.c.logout()
 
-        self._access_token(oauth_verifier=oauth_verifier, oauth_token=self.request_token.key)
+        self._access_token(oauth_verifier=oauth_verifier,
+                           oauth_token=self.request_token.key)
 
     def _access_token(self, method=METHOD_URL_QUERY, **parameters_overriden):
 
         if hasattr(self, 'request_token'):
-            oauth_signature = "%s&%s" % (self.CONSUMER_SECRET, self.request_token.secret)
+            oauth_signature = "%s&%s" % (
+                self.CONSUMER_SECRET, self.request_token.secret)
         else:
             oauth_signature = "%s&" % (self.CONSUMER_SECRET)
 
@@ -115,14 +123,16 @@ class BaseOAuthTestCase(TestCase):
         }
         parameters.update(parameters_overriden)
 
-        if method==METHOD_AUTHORIZATION_HEADER:
+        if method == METHOD_AUTHORIZATION_HEADER:
             header = self._get_http_authorization_header(parameters)
-            response = self.c.get("/oauth/access_token/", HTTP_AUTHORIZATION=header)
-        elif method==METHOD_URL_QUERY:
+            response = self.c.get("/oauth/access_token/",
+                                  HTTP_AUTHORIZATION=header)
+        elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/access_token/", parameters)
-        elif method==METHOD_POST_REQUEST_BODY:
+        elif method == METHOD_POST_REQUEST_BODY:
             body = urllib.urlencode(parameters)
-            response = self.c.post("/oauth/access_token/", body, content_type="application/x-www-form-urlencoded")
+            response = self.c.post(
+                "/oauth/access_token/", body, content_type="application/x-www-form-urlencoded")
         else:
             raise NotImplementedError
 
@@ -138,6 +148,7 @@ class BaseOAuthTestCase(TestCase):
         authorization_header += ", scope=%s" % self.scope.name
         return authorization_header
 
+
 class TestOAuthDifferentAuthorizationMethods(BaseOAuthTestCase):
 
     def test_request_token_with_authorization_header(self):
@@ -151,7 +162,8 @@ class TestOAuthDifferentAuthorizationMethods(BaseOAuthTestCase):
 
     def test_access_token_with_authorization_header(self):
         self._request_token(METHOD_AUTHORIZATION_HEADER)
-        self._authorize_and_access_token_using_form(METHOD_AUTHORIZATION_HEADER)
+        self._authorize_and_access_token_using_form(
+            METHOD_AUTHORIZATION_HEADER)
 
     def test_access_token_with_url_query(self):
         self._request_token(METHOD_URL_QUERY)

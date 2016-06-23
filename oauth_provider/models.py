@@ -18,7 +18,7 @@ class Nonce(models.Model):
     token_key = models.CharField(max_length=KEY_SIZE)
     consumer_key = models.CharField(max_length=CONSUMER_KEY_SIZE)
     key = models.CharField(max_length=255)
-    timestamp = models.PositiveIntegerField(db_index=True)   
+    timestamp = models.PositiveIntegerField(db_index=True)
 
     def __unicode__(self):
         return u"Nonce %s for %s" % (self.key, self.consumer_key)
@@ -46,7 +46,7 @@ class Nonce(models.Model):
 class Consumer(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    
+
     # LRS CHANGE - ADDED DEFAULT SCOPES FOR CONSUMER WHEN FIRST REGISTERED
     # default_scopes = models.CharField(max_length=100, default="statements/write statements/read/mine")
 
@@ -56,8 +56,8 @@ class Consumer(models.Model):
 
     status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
     user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True)
-    xauth_allowed = models.BooleanField("Allow xAuth", default = False)
-        
+    xauth_allowed = models.BooleanField("Allow xAuth", default=False)
+
     def __unicode__(self):
         return u"Consumer %s with key %s" % (self.name, self.key)
 
@@ -67,7 +67,8 @@ class Consumer(models.Model):
         Use this after you've added the other data in place of save().
         """
         self.key = uuid.uuid4().hex
-        # LRS CHANGE - KEPT THE SECRET KEY AT 16 LIKE BEFORE (WHEN NOT USING RSA)
+        # LRS CHANGE - KEPT THE SECRET KEY AT 16 LIKE BEFORE (WHEN NOT USING
+        # RSA)
         if not self.rsa_signature:
             self.secret = get_random_string(length=REGULAR_SECRET_SIZE)
         self.save()
@@ -77,23 +78,27 @@ class Consumer(models.Model):
             return None
         return RSA.importKey(self.secret)
 
+
 class Token(models.Model):
     REQUEST = 1
     ACCESS = 2
     TOKEN_TYPES = ((REQUEST, u'Request'), (ACCESS, u'Access'))
-    
+
     key = models.CharField(max_length=KEY_SIZE, null=True, blank=True)
-    secret = models.CharField(max_length=RSA_SECRET_SIZE, null=True, blank=True)
+    secret = models.CharField(
+        max_length=RSA_SECRET_SIZE, null=True, blank=True)
     token_type = models.SmallIntegerField(choices=TOKEN_TYPES)
     timestamp = models.IntegerField(default=long(time()))
     is_approved = models.BooleanField(default=False)
-    
-    user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True, related_name='tokens')
+
+    user = models.ForeignKey(AUTH_USER_MODEL, null=True,
+                             blank=True, related_name='tokens')
     consumer = models.ForeignKey(Consumer)
     # LRS CHANGE - LRS SCOPES AREN'T RESOURCES
     # scope = models.ForeignKey(Scope, null=True, blank=True)
-    scope = models.CharField(max_length=100, default="statements/write statements/read/mine")
-    
+    scope = models.CharField(
+        max_length=100, default="statements/write statements/read/mine")
+
     @property
     def resource(self):
         return self.scope
@@ -102,19 +107,20 @@ class Token(models.Model):
     def resource(self, value):
         self.scope = value
 
-    ## OAuth 1.0a stuff
+    # OAuth 1.0a stuff
     verifier = models.CharField(max_length=VERIFIER_SIZE)
-    callback = models.CharField(max_length=MAX_URL_LENGTH, null=True, blank=True)
+    callback = models.CharField(
+        max_length=MAX_URL_LENGTH, null=True, blank=True)
     callback_confirmed = models.BooleanField(default=False)
-    
+
     objects = TokenManager()
-    
+
     def __unicode__(self):
         return u"%s Token %s for %s" % (self.get_token_type_display(), self.key, self.consumer)
 
     def to_string(self, only_key=False):
         token_dict = {
-            'oauth_token': self.key, 
+            'oauth_token': self.key,
             'oauth_token_secret': self.secret,
             'oauth_callback_confirmed': self.callback_confirmed and 'true' or 'error'
         }
@@ -129,8 +135,8 @@ class Token(models.Model):
 
     def generate_random_codes(self):
         """
-        Used to generate random key/secret pairings. 
-        Use this after you've added the other data in place of save(). 
+        Used to generate random key/secret pairings.
+        Use this after you've added the other data in place of save().
         """
         self.key = uuid.uuid4().hex
         if not self.consumer.rsa_signature:
@@ -149,7 +155,8 @@ class Token(models.Model):
             else:
                 query = 'oauth_verifier=%s' % self.verifier
 
-            # workaround for non-http scheme urlparse problem in py2.6 (issue #2)
+            # workaround for non-http scheme urlparse problem in py2.6 (issue
+            # #2)
             if "?" in path:
                 query = "%s&%s" % (path.split("?")[-1], query)
                 path = "?".join(path[:-1])
@@ -157,19 +164,19 @@ class Token(models.Model):
             if args is not None:
                 query += "&%s" % urllib.urlencode(args)
             return urlparse.urlunparse((scheme, netloc, path, params,
-                query, fragment))
+                                        query, fragment))
         args = args is not None and "?%s" % urllib.urlencode(args) or ""
         return self.callback and self.callback + args
 
     def set_callback(self, callback):
-        if callback != OUT_OF_BAND: # out of band, says "we can't do this!"
+        if callback != OUT_OF_BAND:  # out of band, says "we can't do this!"
             if check_valid_callback(callback):
                 self.callback = callback
                 self.callback_confirmed = True
                 self.save()
             else:
                 raise oauth.Error('Invalid callback URL.')
-        
+
     # LRS CHANGE - ADDED HELPER FUNCTIONS
     def scope_to_list(self):
         return self.scope.split(" ")

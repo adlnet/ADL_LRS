@@ -35,7 +35,8 @@ def home(request):
     stats['activitycnt'] = Activity.objects.filter().count()
 
     form = RegisterForm()
-    return render(request, 'home.html', {'stats':stats, "form": form})
+    return render(request, 'home.html', {'stats': stats, "form": form})
+
 
 @csrf_protect
 @require_http_methods(["POST", "GET"])
@@ -45,7 +46,8 @@ def stmt_validator(request):
         return render(request, 'validator.html', {"form": form})
     elif request.method == 'POST':
         form = ValidatorForm(request.POST)
-        # Form should always be valid - only checks if field is required and that's handled client side
+        # Form should always be valid - only checks if field is required and
+        # that's handled client side
         if form.is_valid():
             # Once know it's valid JSON, validate keys and fields
             try:
@@ -53,19 +55,25 @@ def stmt_validator(request):
                 valid = validator.validate()
             except ParamError, e:
                 clean_data = form.cleaned_data['jsondata']
-                return render(request, 'validator.html', {"form": form, "error_message": e.message, "clean_data":clean_data})
+                return render(request, 'validator.html', {"form": form, "error_message": e.message, "clean_data": clean_data})
             else:
-                clean_data = json.dumps(validator.data, indent=4, sort_keys=True)
-                return render(request, 'validator.html', {"form": form,"valid_message": valid, "clean_data":clean_data})
+                clean_data = json.dumps(
+                    validator.data, indent=4, sort_keys=True)
+                return render(request, 'validator.html', {"form": form, "valid_message": valid, "clean_data": clean_data})
     return render(request, 'validator.html', {"form": form})
 
 # Hosted example activites for the tests
+
+
 @require_http_methods(["GET"])
 def actexample1(request):
     return render(request, 'actexample1.json', content_type="application/json")
+
+
 @require_http_methods(["GET"])
 def actexample2(request):
     return render(request, 'actexample2.json', content_type="application/json")
+
 
 @csrf_protect
 @require_http_methods(["POST", "GET"])
@@ -79,17 +87,17 @@ def register(request):
             name = form.cleaned_data['username']
             pword = form.cleaned_data['password']
             email = form.cleaned_data['email']
-            
+
             # If username doesn't already exist
             if not User.objects.filter(username__exact=name).count():
                 # if email doesn't already exist
                 if not User.objects.filter(email__exact=email).count():
                     User.objects.create_user(name, email, pword)
                 else:
-                    return render(request, 'register.html', {"form": form, "error_message": "Email %s is already registered." % email})                    
+                    return render(request, 'register.html', {"form": form, "error_message": "Email %s is already registered." % email})
             else:
-                return render(request, 'register.html', {"form": form, "error_message": "User %s already exists." % name})                
-            
+                return render(request, 'register.html', {"form": form, "error_message": "User %s already exists." % name})
+
             # If a user is already logged in, log them out
             if request.user.is_authenticated():
                 logout(request)
@@ -99,6 +107,7 @@ def register(request):
             return HttpResponseRedirect(reverse('home'))
         else:
             return render(request, 'register.html', {"form": form})
+
 
 @login_required()
 @require_http_methods(["GET"])
@@ -116,9 +125,11 @@ def admin_attachments(request, path):
         except OSError:
             return HttpResponseNotFound("File not found")
 
-        response = HttpResponse(chunks, content_type=str(att_object.contentType))
+        response = HttpResponse(
+            chunks, content_type=str(att_object.contentType))
         response['Content-Disposition'] = 'attachment; filename="%s"' % path
         return response
+
 
 @transaction.atomic
 @login_required()
@@ -139,15 +150,17 @@ def regclient(request):
                 client = Consumer.objects.get(name__exact=name)
             except Consumer.DoesNotExist:
                 client = Consumer.objects.create(name=name, description=description, user=request.user,
-                    status=ACCEPTED, secret=secret, rsa_signature=rsa_signature)
+                                                 status=ACCEPTED, secret=secret, rsa_signature=rsa_signature)
             else:
-                return render(request, 'regclient.html', {"form": form, "error_message": "Client %s already exists." % name})         
-            
+                return render(request, 'regclient.html', {"form": form, "error_message": "Client %s already exists." % name})
+
             client.generate_random_codes()
-            d = {"name":client.name,"app_id":client.key, "secret":client.secret, "rsa":client.rsa_signature, "info_message": "Your Client Credentials"}
+            d = {"name": client.name, "app_id": client.key, "secret": client.secret,
+                 "rsa": client.rsa_signature, "info_message": "Your Client Credentials"}
             return render(request, 'reg_success.html', d)
         else:
             return render(request, 'regclient.html', {"form": form})
+
 
 @login_required()
 @require_http_methods(["GET"])
@@ -157,6 +170,7 @@ def my_statements(request, template="my_statements.html", page_template="my_stat
     if request.is_ajax():
         template = page_template
     return render(request, template, context)
+
 
 @login_required()
 @require_http_methods(["GET"])
@@ -168,11 +182,13 @@ def my_activity_states(request, template="my_activity_states.html", page_templat
     except Agent.MultipleObjectsReturned:
         return HttpResponseBadRequest("More than one agent returned with email")
 
-    context = {'activity_states': ActivityState.objects.filter(agent=ag).order_by('-updated', 'activity_id'), 'page_template': page_template}
-    
+    context = {'activity_states': ActivityState.objects.filter(agent=ag).order_by(
+        '-updated', 'activity_id'), 'page_template': page_template}
+
     if request.is_ajax():
         template = page_template
     return render(request, template, context)
+
 
 @login_required()
 @require_http_methods(["GET"])
@@ -188,7 +204,8 @@ def my_activity_state(request):
             return HttpResponseBadRequest("More than one agent returned with email")
 
         try:
-            state = ActivityState.objects.get(activity_id=urllib.unquote(act_id), agent=ag, state_id=urllib.unquote(state_id))
+            state = ActivityState.objects.get(activity_id=urllib.unquote(
+                act_id), agent=ag, state_id=urllib.unquote(state_id))
         except ActivityState.DoesNotExist:
             return HttpResponseNotFound("Activity state does not exist")
         except ActivityState.MultipleObjectsReturned:
@@ -197,18 +214,21 @@ def my_activity_state(request):
         return HttpResponse(state.json_state, content_type=state.content_type, status=200)
     return HttpResponseBadRequest("Activity ID, State ID and are both required")
 
+
 @transaction.atomic
 @login_required()
 @require_http_methods(["GET"])
 def me(request, template='me.html'):
     client_apps = Consumer.objects.filter(user=request.user)
-    access_tokens = Token.objects.filter(user=request.user, token_type=Token.ACCESS, is_approved=True)
+    access_tokens = Token.objects.filter(
+        user=request.user, token_type=Token.ACCESS, is_approved=True)
 
     context = {
-                'client_apps':client_apps,
-                'access_tokens':access_tokens
-            }    
+        'client_apps': client_apps,
+        'access_tokens': access_tokens
+    }
     return render(request, template, context)
+
 
 @transaction.atomic
 @login_required()
@@ -230,7 +250,8 @@ def my_hooks(request, template="my_hooks.html"):
                 config['secret'] = secret
             filters = json.loads(hook_form.cleaned_data['filters'])
             try:
-                Hook.objects.create(name=name, config=config, filters=filters, user=request.user)
+                Hook.objects.create(name=name, config=config,
+                                    filters=filters, user=request.user)
             except IntegrityError:
                 error_message = "Hook with name %s already exists" % name
                 valid_message = False
@@ -241,8 +262,10 @@ def my_hooks(request, template="my_hooks.html"):
                 valid_message = "Successfully created hook"
 
     user_hooks = Hook.objects.filter(user=request.user)
-    context = {'user_hooks': user_hooks, 'hook_form': hook_form, 'error_message': error_message, 'valid_message': valid_message}
+    context = {'user_hooks': user_hooks, 'hook_form': hook_form,
+               'error_message': error_message, 'valid_message': valid_message}
     return render(request, template, context)
+
 
 @login_required()
 @require_http_methods(["GET", "HEAD"])
@@ -250,9 +273,11 @@ def my_download_statements(request):
     stmts = Statement.objects.filter(user=request.user).order_by('-stored')
     result = "[%s]" % ",".join([stmt.object_return() for stmt in stmts])
 
-    response = HttpResponse(result, content_type='application/json', status=200)
+    response = HttpResponse(
+        result, content_type='application/json', status=200)
     response['Content-Length'] = len(result)
     return response
+
 
 @transaction.atomic
 @login_required()
@@ -261,14 +286,16 @@ def my_app_status(request):
     try:
         name = request.GET['app_name']
         status = request.GET['status']
-        new_status = [s[0] for s in CONSUMER_STATES if s[1] == status][0] #should only be 1
+        new_status = [s[0] for s in CONSUMER_STATES if s[
+            1] == status][0]  # should only be 1
         client = Consumer.objects.get(name__exact=name, user=request.user)
         client.status = new_status
         client.save()
-        ret = {"app_name":client.name, "status":client.get_status_display()}
+        ret = {"app_name": client.name, "status": client.get_status_display()}
         return JsonResponse(ret)
     except:
-        return JsonResponse({"error_message":"unable to fulfill request"})
+        return JsonResponse({"error_message": "unable to fulfill request"})
+
 
 @transaction.atomic
 @login_required()
@@ -280,22 +307,24 @@ def delete_token(request):
         consumer_id = ids[1]
         ts = ids[2]
         token = Token.objects.get(user=request.user,
-                                         key__startswith=token_key,
-                                         consumer__id=consumer_id,
-                                         timestamp=ts,
-                                         token_type=Token.ACCESS,
-                                         is_approved=True)
+                                  key__startswith=token_key,
+                                  consumer__id=consumer_id,
+                                  timestamp=ts,
+                                  token_type=Token.ACCESS,
+                                  is_approved=True)
         token.is_approved = False
         token.save()
         return HttpResponse("", status=204)
     except:
         return HttpResponse("Unknown token", status=400)
 
+
 @login_required()
 @require_http_methods(["GET"])
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse('home'))
+
 
 @transaction.atomic
 @require_http_methods(["GET", "DELETE"])
@@ -322,6 +351,7 @@ def hook(request, hook_id):
         else:
             return HttpResponse('', status=204)
 
+
 @transaction.atomic
 @require_http_methods(["GET", "POST"])
 @non_xapi_auth
@@ -343,10 +373,12 @@ def hooks(request):
             except Exception, e:
                 return HttpResponseBadRequest("Something went wrong: %s" % e.message)
             else:
-                hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse('adl_lrs.views.my_hooks'), hook.hook_id)
+                hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse(
+                    'adl_lrs.views.my_hooks'), hook.hook_id)
                 resp_data = hook.to_dict()
                 resp_data['url'] = hook_location
-                resp = HttpResponse(json.dumps(resp_data), content_type="application/json", status=201)
+                resp = HttpResponse(json.dumps(resp_data),
+                                    content_type="application/json", status=201)
                 resp['Location'] = hook_location
                 return resp
         else:

@@ -6,8 +6,10 @@ from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.utils import timezone
 
+
 class Hook(models.Model):
-    hook_id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_index=True, editable=False)
+    hook_id = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, db_index=True, editable=False)
     name = models.CharField(max_length=50, blank=False)
     config = JSONField(blank=False)
     filters = JSONField(blank=False)
@@ -33,5 +35,5 @@ class Hook(models.Model):
         super(Hook, self).save(*args, **kwargs)
 
     def to_dict(self):
-        return {'id': self.hook_id, 'name': self.name, 'config': self.config, 'filters': self.filters, \
-        'created_at': self.created_at.isoformat(), 'updated_at': self.updated_at.isoformat()}
+        return {'id': self.hook_id, 'name': self.name, 'config': self.config, 'filters': self.filters,
+                'created_at': self.created_at.isoformat(), 'updated_at': self.updated_at.isoformat()}

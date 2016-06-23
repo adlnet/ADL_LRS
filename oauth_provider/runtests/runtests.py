@@ -13,6 +13,7 @@ from django.conf import settings
 from django.test.utils import get_runner
 from south.management.commands import patch_for_test_db_setup
 
+
 def usage():
     return """
     Usage: python runtests.py [UnitTestClass].[method]

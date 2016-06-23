@@ -3,6 +3,7 @@ from django.test import TestCase
 
 
 class Issue45ErrorLoadingOauthStoreModule(TestCase):
+
     def test_store_import(self):
         from oauth_provider.store import store
         self.assertIsNotNone(store)

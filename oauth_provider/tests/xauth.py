@@ -7,6 +7,7 @@ from oauth_provider.tests.auth import BaseOAuthTestCase, METHOD_URL_QUERY, METHO
 
 
 class XAuthTestCase(BaseOAuthTestCase):
+
     def setUp(self):
         super(XAuthTestCase, self).setUp()
         self.consumer.xauth_allowed = True
@@ -27,14 +28,16 @@ class XAuthTestCase(BaseOAuthTestCase):
             'x_auth_username': self.username,
         }
 
-        if method==METHOD_AUTHORIZATION_HEADER:
+        if method == METHOD_AUTHORIZATION_HEADER:
             header = self._get_http_authorization_header(parameters)
-            response = self.c.get("/oauth/access_token/", HTTP_AUTHORIZATION=header)
-        elif method==METHOD_URL_QUERY:
+            response = self.c.get("/oauth/access_token/",
+                                  HTTP_AUTHORIZATION=header)
+        elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/access_token/", parameters)
-        elif method==METHOD_POST_REQUEST_BODY:
+        elif method == METHOD_POST_REQUEST_BODY:
             body = urllib.urlencode(parameters)
-            response = self.c.post("/oauth/access_token/", body, content_type="application/x-www-form-urlencoded")
+            response = self.c.post(
+                "/oauth/access_token/", body, content_type="application/x-www-form-urlencoded")
         else:
             raise NotImplementedError
 
