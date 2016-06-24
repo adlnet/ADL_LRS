@@ -1,15 +1,14 @@
-from oauth_provider.compat import url, patterns
+from oauth_provider.compat import url
+from django.views.generic import RedirectView
 
 from views import request_token, user_authorization, access_token
 
 # LRS CHANGE - ADDED SPEC COMPLIANT ENDPOINTS
-urlpatterns = patterns('',
-    url(r'^initiate',    request_token,      name='oauth_request_token'),
-    url(r'^authorize',        user_authorization, name='oauth_user_authorization'),
-    url(r'^token',     access_token,       name='oauth_access_token'),
-)
-# urlpatterns = patterns('',
-#     url(r'^request_token/$',    request_token,      name='oauth_request_token'),
-#     url(r'^authorize/$',        user_authorization, name='oauth_user_authorization'),
-#     url(r'^access_token/$',     access_token,       name='oauth_access_token'),
-# )
+urlpatterns = [
+    # redirect for just /xapi/OAuth
+    url(r'^$', RedirectView.as_view(url='/')),
+
+    url(r'^initiate', request_token, name='request_token'),
+    url(r'^authorize', user_authorization, name='user_authorization'),
+    url(r'^token', access_token, name='access_token'),
+]

@@ -14,37 +14,35 @@
         <div class="pure-u-1-2 pure-u-md-1-2 pure-u-lg-1-2">
             <h2>Webhooks</h2>
             <p>Webhooks are a way to register client applications that are interested in certain sets of statements. Every webhook that is registered contains the client endpoint as well as filters that dictate what kind of statements the client wants and the LRS will send.</p>
-            {% if user_hooks %}
-                <div class="email-item">
-                    {% for h in user_hooks %}
-                        <div class="pure-u appdiv">
-                            <h5 class="email-name"><span class="appname">{{ h.name }}</span></h5>
-                            <h4 class="email-subject">
-                                <a class="show_filters" href='#'>Filters</a>
-                                <span class="hide-info" style="display:none">{{ h.filters|jsonify }}</span>                               
-                            </h4>
-                            <h4 class="email-subject">
-                                <a class="delete_hook" href='#'>Delete</a>
-                                <span class="hide-info">{{ h.hook_id }}</span> 
-                            </h4>
-                            <p class="email-desc">
-                                <strong>Id</strong>: {{ h.hook_id }}<br>
-                                <strong>Endpoint</strong>: {{ h.config.endpoint }}<br>
-                                <strong>Content-Type</strong>: {{ h.config.content_type }}<br>
-                                <strong>Secret</strong>: {{ h.config.secret }}<br>
-                                <strong>Created At</strong>: {{ h.created_at|date:"c" }}<br>
-                                <strong>Updated At</strong>: {{ h.updated_at|date:"c" }}<br>
-                            </p>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="span5">No registered webhooks</div>
-            {% endif %}
+            <div class="email-item">
+                {% for h in user_hooks %}
+                    <div class="pure-u appdiv">
+                        <h5 class="email-name"><span class="appname">{{ h.name }}</span></h5>
+                        <h4 class="email-subject">
+                            <a class="show_filters" href='#'>Filters</a>
+                            <span class="hide-info" style="display:none">{{ h.filters|jsonify }}</span>                               
+                        </h4>
+                        <h4 class="email-subject">
+                            <a class="delete_hook" href='#'>Delete</a>
+                            <span class="hide-info">{{ h.hook_id }}</span> 
+                        </h4>
+                        <p class="email-desc">
+                            <strong>Id</strong>: {{ h.hook_id }}<br>
+                            <strong>Endpoint</strong>: {{ h.config.endpoint }}<br>
+                            <strong>Content-Type</strong>: {{ h.config.content_type }}<br>
+                            <strong>Secret</strong>: {{ h.config.secret }}<br>
+                            <strong>Created At</strong>: {{ h.created_at|date:"D d M Y P" }}<br>
+                            <strong>Updated At</strong>: {{ h.updated_at|date:"D d M Y P" }}<br>
+                        </p>
+                    </div>
+                {% empty %}
+                    <div class="span5">No registered webhooks</div>
+                {% endfor %}
+            </div>
             <br>
             <hr>
             <h3>Webhook Registration</h3>
-            <form class="pure-form pure-form-stacked" action="{% url adl_lrs.views.my_hooks %}" method="post">
+            <form class="pure-form pure-form-stacked" action="{% url 'my_hooks' %}" method="post">
             {% if error_message %}
                 <ul class="errorlist">
                     <li>{{ error_message }}</li>
@@ -97,7 +95,7 @@
         $('.delete_hook').click(function(){
             var hookId = $(this).next('span').text();
             $.ajax({
-                url: "{% url adl_lrs.views.hooks %}/"+hookId,
+                url: "{% url 'hooks' %}/"+hookId,
                 type: "DELETE",
                 context: $(this),
                 success: function(data){

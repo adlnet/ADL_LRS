@@ -9,10 +9,12 @@ from oauth_provider.models import Nonce, Token, Consumer, VERIFIER_SIZE
 NONCE_VALID_PERIOD = getattr(settings, "OAUTH_NONCE_VALID_PERIOD", None)
 SCOPES = [x[1] for x in settings.OAUTH_SCOPES]
 
+
 class ModelStore(Store):
     """
     Store implementation using the Django models defined in `piston.models`.
     """
+
     def get_consumer(self, request, oauth_request, consumer_key):
         try:
             # LRS CHANGE - ADDED STATUS OF CONSUMER TO BE ACCEPTED
@@ -43,7 +45,8 @@ class ModelStore(Store):
 
         token = Token.objects.create_token(
             token_type=Token.REQUEST,
-            consumer=Consumer.objects.get(key=oauth_request['oauth_consumer_key']),
+            consumer=Consumer.objects.get(
+                key=oauth_request['oauth_consumer_key']),
             timestamp=oauth_request['oauth_timestamp'],
             scope=scope,
         )

@@ -10,8 +10,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'adl_lrs.settings')
 from django.conf import settings
 
 app = Celery('lrs',
-         broker='amqp://<username_for_rabbitmq>:<password_for_rabbitmq>@localhost:5672/<vhost_name>',
-         include=['lrs.tasks'])
+             broker='amqp://<username_for_rabbitmq>:<password_for_rabbitmq>@localhost:5672/<vhost_name>',
+             include=['lrs.tasks'])
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.

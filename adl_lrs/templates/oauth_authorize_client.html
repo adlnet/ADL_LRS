@@ -20,7 +20,7 @@
             {% if form.non_field_errors %}
                 {{ form.non_field_errors }}
             {% endif %} 
-            <form class="pure-form pure-form-stacked" action="{% url oauth:oauth_provider.views.user_authorization %}{% if params %}?{{ params }}{% endif %}" method="post">
+            <form class="pure-form pure-form-stacked" action="{% url 'lrs:oauth:user_authorization' %}{% if params %}?{{ params }}{% endif %}" method="post">
                 <fieldset>
                     <legend>{{ form.authorize_access }}{{ form.obj_id }}</legend>
                     <label for="name">Application</label>

@@ -18,6 +18,7 @@ class CheckOauth(object):
     CheckOAuth object is used as a method decorator, the view function
     is properly bound to its instance.
     """
+
     def __init__(self, scope_name=None):
         self.scope_name = scope_name
 
@@ -25,7 +26,7 @@ class CheckOauth(object):
         if not callable(arg):
             return super(CheckOauth, cls).__new__(cls)
         else:
-            obj =  super(CheckOauth, cls).__new__(cls)
+            obj = super(CheckOauth, cls).__new__(cls)
             obj.__init__()
             return obj(arg)
 
@@ -38,20 +39,22 @@ class CheckOauth(object):
                 return INVALID_PARAMS_RESPONSE
 
             try:
-                consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
+                consumer = store.get_consumer(
+                    request, oauth_request, oauth_request['oauth_consumer_key'])
             except InvalidConsumerError:
                 return INVALID_CONSUMER_RESPONSE
 
             try:
-                token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
+                token = store.get_access_token(
+                    request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
             except InvalidTokenError:
                 return send_oauth_error(oauth.Error(_('Invalid access token: %s') % oauth_request.get_parameter('oauth_token')))
 
             if not verify_oauth_request(request, oauth_request, consumer, token):
                 return COULD_NOT_VERIFY_OAUTH_REQUEST_RESPONSE
 
-            if self.scope_name and (not token.scope
-                                    or token.scope.name != self.scope_name):
+            if self.scope_name and (not token.scope or
+                                    token.scope.name != self.scope_name):
                 return INVALID_SCOPE_RESPONSE
 
             if token.user:
@@ -68,12 +71,14 @@ class CheckOauth(object):
             return ('params', 'Invalid request parameters.')
 
         try:
-            consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
+            consumer = store.get_consumer(
+                request, oauth_request, oauth_request['oauth_consumer_key'])
         except InvalidConsumerError:
             return ('auth', 'Invalid Consumer.')
 
         try:
-            token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
+            token = store.get_access_token(
+                request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
         except InvalidTokenError:
             return ('auth', 'Invalid access token: %s' % oauth_request.get_parameter('oauth_token'))
         # LRS CHANGE - RETURN BETTER ERROR MESSAGE
@@ -81,12 +86,12 @@ class CheckOauth(object):
             return ('params', 'Could not verify OAuth request.')
 
         # LRS CHANGE - SCOPE IS JUST A CHARFIELD NOW - JUST COMPARE THE VALUES
-        if self.scope_name and (not token.scope
-                                or token.scope != self.scope_name):
+        if self.scope_name and (not token.scope or
+                                token.scope != self.scope_name):
             return ('params', 'You are not allowed to access this resource.')
 
         if token.user:
-            request.user = token.user      
+            request.user = token.user
 
         return (None, None)
 oauth_required = CheckOauth
