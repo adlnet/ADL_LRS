@@ -1,141 +1,118 @@
-﻿# ADL LRS
+﻿# ADL LRS Ansible & Vagrant Documentation
 
-#### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the (soon to be completed) 1.0.3 xAPI spec.
-
-This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
-
-## Installation
-
-**Install Postgres** (The apt-get upgrade is only needed if you're running Ubuntu 14. If running 15+ you can skip to installing postgresql)
-
-    admin:~$ wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-    admin:~$ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" >> /etc/apt/sources.list.d/postgresql.list'
-    admin:~$ sudo apt-get update
-    admin:~$ sudo apt-get upgrade
-
-    admin:~$ sudo apt-get install postgresql-9.4 postgresql-server-dev-9.4 postgresql-contrib-9.4
-    (can install 9.5 if on Ubuntu 16)
-
-    admin:~$ sudo -u postgres createuser -P -s <db_owner_name>
-    Enter password for new role: <db_owner_password>
-    Enter it again: <db_owner_password>
-    admin:~$ sudo -u postgres psql template1
-    template1=# CREATE DATABASE lrs OWNER <db_owner_name>;
-    template1=# \q (exits shell)
+This document outlines how to get the ADL LRS installed locally using
+Vagrant as well as how to deploy it to a remote server using Ansible.
 
 
-**Install Prerequisites**
+## Prerequisites
 
-    admin:~$ sudo apt-get install git fabric python-setuptools python-dev\
-        libxml2-dev libxslt1-dev
-    admin:~$ sudo easy_install pip
-    admin:~$ sudo pip install virtualenv
-
-**Clone the LRS repository**
-
-    admin:~$ cd <wherever you want to put the LRS>
-    admin:~$ git clone https://github.com/adlnet/ADL_LRS.git
-    admin:~$ cd ADL_LRS/
-
-**Set the LRS configuration**
-
+### Ansible
+Both local and remote installations require the installation of
+[Ansible](https://www.ansible.com/get-started). You will want it install
+in your local python environment.
 
   ```
-  ### File: ADL_LRS/adl_lrs/settings.py
-
-  # configure the database
-  DATABASES = {
-      'default': {
-          'ENGINE': 'django.db.backends.postgresql',
-          'NAME': 'lrs',
-          'USER': '<db_owner_name>',
-          'PASSWORD': '<db_owner_password>',
-          'HOST': 'localhost',
-          'PORT': '',
-      }
-  }
-
-  # Make this unique, and don't share it with anybody.
-  SECRET_KEY = 'Some long random string with numb3rs and $ymbol$'
-
-  # set to 'https' if using SSL encryption - this is just for testing purposes and won't dictate if the LRS runs over http or https
-  SITE_SCHEME = 'http'
-
-  # Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below) - this is just for testing purposes and won't dictate the domain or port the LRS runs on
-  SITE_DOMAIN = 'localhost:8000'
+  $ pip install -r requirements_ansible.txt
   ```
 
-**Setup the environment**
+## Configure
+This Ansible project has many default values set, but you may want to take a moment to configure your installation for your own needs.
 
-    admin:ADL_LRS$ fab setup_env
-    admin:ADL_LRS$ source ../env/bin/activate
-    (env)admin:ADL_LRS$
+You will find the primary default values in ``ansible/group_vars/all``.
+Additional defaults can be found in the ``defaults/main.yml`` file
+located within each ``ansible/roles/`` subdirectory.
 
-
-**Setup the LRS**
-
-This creates the top level folders, <b>logs</b> and <b>media</b> at the same level as the project folder, <b>ADL_LRS</b>. Throughout the readme and the other install guides for celery and nginx you will most likely want to direct any log files to the logs directory. Inside of <b>logs</b> there are directorys for <b>celery</b>, <b>supervisord</b>, <b>uwsgi</b> and <b>nginx</b>.
-
-    (env)admin:ADL_LRS$ fab setup_lrs
-    ...
-    You just installed Django's auth system, which means you don't have any superusers defined.
-    Would you like to create one now? (yes/no): yes
-    Username (leave blank to use '<system_user_name>'):
-    E-mail address:
-    Password: <this can be different than your system password since this will just be for the LRS site>
-    Password (again):
-    Superuser created successfully.
-  ...
-
-If you get some sort of authentication error here, make sure that Django and PostgreSQL are both
-using the same form of authentication (*adl_lrs/settings.py* and *pg_hba.conf*) and that the credentials
-given in *settings.py* are the same as those you created.
-
-<b>IMPORTANT:</b> You <b>MUST</b> setup celery for retrieving the activity metadata from the ID as well as voiding statements that might have come in out of order. Visit the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for installation instructions.
-
-## Starting
-
-While still in the ADL_LRS directory, run
-
-    (env)dbowner:ADL_LRS$ ./manage.py runserver
-
-This starts a lightweight development web server on the local machine. By default, the server runs on port 8000 on the IP address 127.0.0.1. You can pass in an IP address and port number explicitly. This will serve your static files without setting up Nginx but must NOT be used for production purposes. Press `CTRL + C` to stop the server
+To override these values, locally simply copy ``ansible/password.yml.tmpl`` to
+``ansible/password.yml``. Update and/or override the variables here and they will
+not be checked into source control.
 
 
-Set your site domain
+## Local Vagrant Installation
 
-  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. This should be the same value as what you set SITE_DOMAIN as in the settings.py file. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Once again this does not change the domain it's running on...you want to set that up first then change this value to your domain name.
+This default configuration installs deploys the ADL LRS project to an Ubuntu 14.04 amd64 server.
 
-Whenever you want to exit the virtual environment, just type `deactivate`
+### Prerequisites
 
-For other ways to start and run the LRS, please visit our Wiki.
+#### Virtualbox
 
-## Test LRS
+Install [Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 
-    (env)dbowner:ADL_LRS$ fab test_lrs
+#### Vagrant
 
-## Helpful Information
+Install [Vagrant](https://www.vagrantup.com/downloads.html)
 
-* [Test Coverage](https://github.com/adlnet/ADL_LRS/wiki/Code-Coverage)
-* [Code Profiling](https://github.com/adlnet/ADL_LRS/wiki/Code-Profiling-with-cProfile)
-* [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production)
-* [OAuth Help](https://github.com/adlnet/ADL_LRS/wiki/Using-OAuth)
-* [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
 
-## Contributing to the project
-We welcome contributions to this project. Fork this repository, make changes, and submit pull requests. If you're not comfortable with editing the code, please [submit an issue](https://github.com/adlnet/ADL_LRS/issues) and we'll be happy to address it.
+### Provisioning and Installation
 
-## License
-   Copyright &copy;2016 Advanced Distributed Learning
+You can begin the provisioning and installation process by issuing the
+following command:
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+    ```
+    $ vagrant up
+    ```
 
-       http://www.apache.org/licenses/LICENSE-2.0
+**Note** If you run into issues with guest additions during ``vagrant up`` running the following command will install a vagrant plugin that will update the necessary guest files:
+``vagrant plugin install vagrant-vbguest``
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+You can now access the server via:
+
+    ```
+    $ vagrant ssh
+    ```
+
+### Starting the Server
+
+    ```
+    vagrant ssh
+    $ python manage.py createsuperuser
+    $ python manage.py runserver 0.0.0.0:8000
+    ```
+
+### Destroy the Server
+
+    ```
+    $ vagrant destroy
+    ```
+
+## Remote Installations
+
+**NOTE** This process will install ADL LRS on a server by means of nginx + uwsgi.
+**THE RESULTING INSTALLATION IS NOT SECURED**
+
+### Prerequisites
+
+This method assumes you have created an Ubuntu server and have root access.
+
+### Configuration
+#### Inventory
+
+The inventory file specifies the server to which you will be connecting.
+
+You can use the example inventory as a template. Copy ``ansible/inventory_example.yml`` to ``ansible/dev.yml`` and edit the values to reflect your server and credentials.
+
+### Installation
+
+  ```
+  $ ansible-playbook --private-key=<private_key_file> -K -i <inventory_file> deploy.yml
+  ```
+
+This command will run the ``deploy.yml`` script on the servers specified
+in ``<inventory_file>``. You can specify a non-default ssh key using
+``--private-key`` if necessary. The ``-K`` flag will prompt you for your
+sudo password.
+
+
+### Starting the Server
+
+The server and its services should now be running and accessible at the
+domain you specified during installation.
+
+Connect to your server via ssh and create your superuser account. The
+example code below may vary based on your configuration values:
+
+    ```
+    $ sudo su - lrs
+    $ . ~/.virtualenvs/lrs/bin/activate
+    (lrs) $ cd ~/ADL_LRS
+    (lrs) $ python manage.py createsuperuser
+    ```

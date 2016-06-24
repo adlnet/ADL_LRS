@@ -8,7 +8,15 @@ runtests
 404.html
 500.html
 media/
+logs/
 federated-analytics.js
+
+.vagrant
+
+# Local Configuration Files
 *.conf
+celeryd.conf
+supervisord.conf
 lrs/celery.py
+adl_lrs/settings.py
 ansible/secure
