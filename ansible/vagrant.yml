@@ -1,0 +1,14 @@
+---
+# Ansible playbook for deploying this project into an Vagrant environment
+
+- hosts: all
+  become: yes
+  roles:
+    - common
+    - postgres
+    - rabbitmq
+
+- hosts: all
+  become: no
+  roles:
+    - lrs_app

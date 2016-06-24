@@ -1,0 +1,9 @@
+description    "supervisor for lrs-celery"
+start on runlevel    [2345]
+stop on runlevel    [!2345]
+
+respawn
+
+setuid {{REMOTE_USER}}
+chdir {{PROJECT_ROOT}}
+exec {{VENV_PATH}}bin/supervisord --nodaemon

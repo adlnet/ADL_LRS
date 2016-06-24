@@ -1,0 +1,5 @@
+---
+
+RABBITMQ_USER: adllrs
+RABBITMQ_PASSWORD: adllrs
+RABBITMQ_VHOST: lrs

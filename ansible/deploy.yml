@@ -1,0 +1,18 @@
+---
+# Ansible playbook for deploying this project
+
+- hosts: lrs
+  become: yes
+  roles:
+    - common
+    - postgres
+    - rabbitmq
+  vars_files:
+    - secure/password.yml
+
+- hosts: lrs
+  become: yes
+  roles:
+    - lrs_app
+  vars_files:
+    - secure/password.yml

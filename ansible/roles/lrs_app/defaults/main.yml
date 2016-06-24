@@ -1,0 +1,30 @@
+---
+
+# Log Dirs
+LRS_LOG_DIR_ROOT: "{{PROJECT_ROOT}}logs/"
+LRS_CELERY_LOG_DIR: "{{LRS_LOG_DIR_ROOT}}celery/"
+LRS_SUPERVISORD_LOG_DIR: "{{LRS_LOG_DIR_ROOT}}supervisord/"
+LRS_UWSGI_LOG_DIR: "{{LRS_LOG_DIR_ROOT}}uwsgi/"
+LRS_NGINX_LOG_DIR: "{{LRS_LOG_DIR_ROOT}}nginx/"
+
+# Media Dirs
+LRS_MEDIA_ROOT: "{{PROJECT_ROOT}}media/"
+#   Media folder names
+agent_profile: agent_profile
+activity_profile: activity_profile
+activity_state: activity_state
+statement_attachments: attachment_payloads
+
+# Folder paths
+LRS_MEDIA_AGENT_PROFILE_DIR: "{{LRS_MEDIA_ROOT}}{{agent_profile}}/"
+LRS_MEDIA_ACTIVITY_PROFILE_DIR: "{{LRS_MEDIA_ROOT}}{{activity_profile}}/"
+LRS_MEDIA_ACTIVITY_STATE_DIR: "{{LRS_MEDIA_ROOT}}{{activity_state}}/"
+LRS_MEDIA_STATEMENT_ATTACHMENTS_DIR: "{{LRS_MEDIA_ROOT}}{{statement_attachments}}/"
+
+# Git-related
+project_root_local: /tmp/_ansible_adl_lrs_tmp_/
+project_local_export: /tmp/_ansible_adl_lrs_tmp_export.zip
+project_branch: master
+
+# Nginx-related
+server_name: localhost

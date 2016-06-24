@@ -1,0 +1,5 @@
+---
+
+postgresql_version: 9.4
+postgresql_etc_dir: "/etc/postgresql/{{postgresql_version}}/main/"
+postgresql_conf: "{{postgresql_etc_dir}}postgresql.conf"

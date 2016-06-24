@@ -1,0 +1,62 @@
+---
+
+# Setup env packages and path (?)
+
+# Directory setup
+- name: Ensure log directories exist
+  file: path="{{item}}" state=directory
+  with_items:
+    - "{{LRS_LOG_DIR_ROOT}}"
+    - "{{LRS_CELERY_LOG_DIR}}"
+    - "{{LRS_SUPERVISORD_LOG_DIR}}"
+    - "{{LRS_UWSGI_LOG_DIR}}"
+    - "{{LRS_NGINX_LOG_DIR}}"
+  tags:
+    - _setup_lrs
+
+- name: Ensure media directories exist
+  file: path="{{item}}" state=directory
+  with_items:
+    - "{{LRS_MEDIA_ROOT}}"
+    - "{{LRS_MEDIA_AGENT_PROFILE_DIR}}"
+    - "{{LRS_MEDIA_ACTIVITY_PROFILE_DIR}}"
+    - "{{LRS_MEDIA_ACTIVITY_STATE_DIR}}"
+    - "{{LRS_MEDIA_STATEMENT_ATTACHMENTS_DIR}}"
+  tags:
+    - _setup_lrs
+
+- name: Cache Tables-- Create cache tables
+  django_manage:
+    virtualenv="{{VENV_PATH}}"
+    app_path="{{PROJECT_ROOT}}"
+    command=" createcachetable"
+  tags:
+    - _setup_lrs
+    - django
+
+- name: Cache Tables-- manage.py migrate
+  django_manage:
+    virtualenv="{{VENV_PATH}}"
+    app_path="{{PROJECT_ROOT}}"
+    command=migrate
+  tags:
+    - _setup_lrs
+    - django
+
+- name: Cache Tables-- manage.py makemigrations
+  django_manage:
+    virtualenv="{{VENV_PATH}}"
+    app_path="{{PROJECT_ROOT}}"
+    command="makemigrations adl_lrs lrs oauth_provider"
+  tags:
+    - _setup_lrs
+    - django
+
+- name: Cache Tables-- manage.py migrate
+  django_manage:
+    virtualenv="{{VENV_PATH}}"
+    app_path="{{PROJECT_ROOT}}"
+    command=migrate
+  tags:
+    - _setup_lrs
+    - django

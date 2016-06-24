@@ -1,0 +1,25 @@
+---
+
+- name: Install uwsgi (system-wide)
+  pip: name=uwsgi
+  tags:
+    - python
+    - django
+    - uwsgi
+
+- name: Create uwsgi vassals directory
+  file: path=/etc/uwsgi/vassals state=directory
+  tags:
+    - uwsgi
+
+- name: Install LRS uwsgi ini
+  template: src=lrs_uwsgi.ini.j2 dest=/etc/uwsgi/vassals/lrs_uwsgi.ini
+  tags:
+    - uwsgi
+
+- name: Install LRS uwsgi upstart record
+  template: src=lrs.conf.j2 dest=/etc/init/lrs.conf
+  tags:
+    - uwsgi
+    - upstart
+  notify: lrs restart

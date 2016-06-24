@@ -1,0 +1,28 @@
+---
+
+- name: uwsgi restart
+  service: name=uwsgi state=restarted
+
+- name: uwsgi stop
+  service: name=uwsgi state=stopped
+
+- name: uwsgi start
+  service: name=uwsgi state=started
+
+- name: lrs restart
+  service: name=lrs state=restarted
+
+- name: lrs stop
+  service: name=lrs state=stopped
+
+- name: lrs start
+  service: name=lrs state=started
+
+- name: nginx restart
+  service: name=nginx state=restarted
+
+- name: nginx stop
+  service: name=nginx state=stopped
+
+- name: nginx start
+  service: name=nginx state=started

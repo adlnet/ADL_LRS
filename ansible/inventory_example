@@ -1,0 +1,7 @@
+[lrs]
+example.com nickname=dev server_name=example.com
+
+[lrs:vars]
+project_branch=develop
+ansible_ssh_user=root
+ansible_user=root

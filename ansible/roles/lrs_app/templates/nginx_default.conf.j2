@@ -1,0 +1,59 @@
+# The default server
+#
+upstream lrs_server {
+    server localhost:8000 fail_timeout=0;
+    ip_hash;
+}
+server {
+    listen 80;
+    add_header Strict-Transport-Security max-age=31536000;
+    charset utf-8;
+    server_name {{server_name}};
+    # full path to the project dir - the dir that contains the urls.py file
+    root {{PROJECT_ROOT}}adl_lrs;
+    access_log {{LRS_NGINX_LOG_DIR}}nginx_access.log;
+    error_log {{LRS_NGINX_LOG_DIR}}nginx_error.log;
+
+    ## compression
+    gzip on;
+    gzip_buffers 16 8k;
+    gzip_comp_level 4;
+    gzip_http_version 1.0;
+    gzip_min_length 1280;
+    gzip_types text/plain text/css application/x-javascript application/json text/javascript image/jpeg image/bmp;
+    gzip_vary on;
+
+    location / {
+        client_max_body_size 1M;
+        proxy_pass_header Server;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Scheme $scheme;
+        proxy_connect_timeout 10;
+        proxy_read_timeout 10;
+        proxy_pass http://lrs_server;
+        #proxy_buffering off;
+        #proxy_pass http://lrs_server;
+    }
+
+    location /static/ {
+        autoindex on;
+        expires 1w;
+        root {{PROJECT_ROOT}}adl_lrs;
+    }
+
+    location /static/endless_pagination {
+        autoindex on;
+        expires 1w;
+        # TODO: move this via collectstatic
+        alias {{SITE_PACKAGES_DIR}}endless_pagination/static/endless_pagination;
+    }
+
+    location /static/admin {
+        autoindex on;
+        expires 1w;
+        # TODO: move this via collectstatic
+        alias {{SITE_PACKAGES_DIR}}django/contrib/admin/static/admin;
+    }
+}

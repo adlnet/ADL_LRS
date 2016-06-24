@@ -1,0 +1,23 @@
+---
+
+- name: Configure lrs/celery.py
+  template: src=celery.py.j2 dest="{{PROJECT_ROOT}}lrs/celery.py"
+  become_user: "{{APP_USER}}"
+  tags:
+    - django
+    - celery
+
+- name: Configure celeryd.conf
+  template: src=celeryd.conf.j2 dest="{{PROJECT_ROOT}}celeryd.conf"
+  become_user: "{{APP_USER}}"
+  tags:
+    - django
+    - celery
+
+- name: Install Celery supervisor upstart
+  template: src=celerylrs.conf.j2 dest=/etc/init/celerylrs.conf
+  become: yes
+  tags:
+    - celery
+    - supervisord
+    - upstart

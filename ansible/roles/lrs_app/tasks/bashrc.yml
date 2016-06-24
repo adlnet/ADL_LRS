@@ -1,0 +1,12 @@
+---
+
+- name: Update .bashrc for easier use- virtualenv & virtualenvwrapper
+  lineinfile: dest="{{USER_HOME}}.bashrc" line="{{item}}"
+  with_items:
+    - "export WORKON_HOME={{WORKON_HOME}}"
+    - "export PROJECT_HOME={{PROJECT_ROOT}}"
+    - "source {{VIRTUALENVWRAPPER_LOCATION}}"
+    - "workon {{VIRTUALENV_NAME}}"
+    - "cd {{PROJECT_ROOT}}"
+  tags:
+    - bashrc
