@@ -1,4 +1,4 @@
-﻿# ADL LRS 
+﻿# ADL LRS
 
 #### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the (soon to be completed) 1.0.3 xAPI spec.
 
@@ -30,19 +30,19 @@ This version is stable, but only intended to support a small amount of users as 
         libxml2-dev libxslt1-dev
     admin:~$ sudo easy_install pip
     admin:~$ sudo pip install virtualenv
-    
+
 **Clone the LRS repository**
 
     admin:~$ cd <wherever you want to put the LRS>
     admin:~$ git clone https://github.com/adlnet/ADL_LRS.git
     admin:~$ cd ADL_LRS/
-    
+
 **Set the LRS configuration**
 
 
   ```
   ### File: ADL_LRS/adl_lrs/settings.py
-  
+
   # configure the database
   DATABASES = {
       'default': {
@@ -54,13 +54,13 @@ This version is stable, but only intended to support a small amount of users as 
           'PORT': '',
       }
   }
-  
+
   # Make this unique, and don't share it with anybody.
   SECRET_KEY = 'Some long random string with numb3rs and $ymbol$'
-  
+
   # set to 'https' if using SSL encryption - this is just for testing purposes and won't dictate if the LRS runs over http or https
   SITE_SCHEME = 'http'
-  
+
   # Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below) - this is just for testing purposes and won't dictate the domain or port the LRS runs on
   SITE_DOMAIN = 'localhost:8000'
   ```
@@ -70,8 +70,8 @@ This version is stable, but only intended to support a small amount of users as 
     admin:ADL_LRS$ fab setup_env
     admin:ADL_LRS$ source ../env/bin/activate
     (env)admin:ADL_LRS$
-    
-        
+
+
 **Setup the LRS**
 
 This creates the top level folders, <b>logs</b> and <b>media</b> at the same level as the project folder, <b>ADL_LRS</b>. Throughout the readme and the other install guides for celery and nginx you will most likely want to direct any log files to the logs directory. Inside of <b>logs</b> there are directorys for <b>celery</b>, <b>supervisord</b>, <b>uwsgi</b> and <b>nginx</b>.
@@ -80,10 +80,10 @@ This creates the top level folders, <b>logs</b> and <b>media</b> at the same lev
     ...
     You just installed Django's auth system, which means you don't have any superusers defined.
     Would you like to create one now? (yes/no): yes
-    Username (leave blank to use '<system_user_name>'): 
+    Username (leave blank to use '<system_user_name>'):
     E-mail address:
     Password: <this can be different than your system password since this will just be for the LRS site>
-    Password (again): 
+    Password (again):
     Superuser created successfully.
   ...
 
@@ -111,11 +111,11 @@ Whenever you want to exit the virtual environment, just type `deactivate`
 For other ways to start and run the LRS, please visit our Wiki.
 
 ## Test LRS
-    
+
     (env)dbowner:ADL_LRS$ fab test_lrs
 
 ## Helpful Information
-    
+
 * [Test Coverage](https://github.com/adlnet/ADL_LRS/wiki/Code-Coverage)
 * [Code Profiling](https://github.com/adlnet/ADL_LRS/wiki/Code-Profiling-with-cProfile)
 * [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production)
@@ -123,7 +123,7 @@ For other ways to start and run the LRS, please visit our Wiki.
 * [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
 
 ## Contributing to the project
-We welcome contributions to this project. Fork this repository, make changes, and submit pull requests. If you're not comfortable with editing the code, please [submit an issue](https://github.com/adlnet/ADL_LRS/issues) and we'll be happy to address it. 
+We welcome contributions to this project. Fork this repository, make changes, and submit pull requests. If you're not comfortable with editing the code, please [submit an issue](https://github.com/adlnet/ADL_LRS/issues) and we'll be happy to address it.
 
 ## License
    Copyright &copy;2016 Advanced Distributed Learning

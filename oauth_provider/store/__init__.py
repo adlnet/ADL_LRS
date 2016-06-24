@@ -40,6 +40,7 @@ class Store(object):
     Token itself, `get_consumer_for_request_token` can simply return
     `request_token.consumer`.
     """
+
     def get_consumer(self, request, oauth_request, consumer_key):
         """
         Return the Consumer for `consumer_key` or raise `InvalidConsumerError`.
@@ -137,7 +138,7 @@ class Store(object):
     def get_user_for_consumer(self, request, oauth_request, consumer):
         """
         Return the associated User for `consumer`.
-        
+
         `request`: The Django request object.
         `oauth_request`: The `oauth2.Request` object.
         `consumer`: The Consumer that made the request.
@@ -168,9 +169,11 @@ def get_store(path='oauth_provider.store.db.ModelStore'):
     except ValueError:
         raise ImproperlyConfigured('Invalid oauth store string: "%s"' % path)
     except ImportError, e:
-        raise ImproperlyConfigured('Error loading oauth store module "%s": "%s"' % (module, e))
+        raise ImproperlyConfigured(
+            'Error loading oauth store module "%s": "%s"' % (module, e))
     except AttributeError:
-        raise ImproperlyConfigured('Module "%s" does not define an oauth store named "%s"' % (module, attr))
+        raise ImproperlyConfigured(
+            'Module "%s" does not define an oauth store named "%s"' % (module, attr))
 
     return store_class()
 

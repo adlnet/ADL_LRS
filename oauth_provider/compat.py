@@ -4,7 +4,6 @@ import django
 from django.conf.urls import patterns, url, include
 
 
-
 # in Django>=1.5 CustomUser models can be specified
 if django.VERSION >= (1, 5):
     from django.contrib.auth import get_user_model
@@ -21,7 +20,7 @@ except ImportError:
     import random
     # fallback for older versions of django (<=1.3). You shouldn't use them
     get_random_string = lambda length: ''.join([random.choice('abcdefghijklmnopqrstuvwxyz'
-                                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for i in range(length)])
+                                                              'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for i in range(length)])
 
 try:
     from django.utils.timezone import now
@@ -42,6 +41,7 @@ if django.VERSION >= (1, 4):
     from django.http import HttpResponse
 
     class UnsafeRedirect(HttpResponse):
+
         def __init__(self, url, *args, **kwargs):
             super(UnsafeRedirect, self).__init__(*args, status=302, **kwargs)
             self["Location"] = url

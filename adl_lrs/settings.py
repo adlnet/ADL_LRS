@@ -22,7 +22,7 @@ DATABASES = {
         'PASSWORD': '<db_owner_password>',
         'HOST': 'localhost',
         'PORT': '',
-    }    
+    }
 }
 
 # Local time zone for this installation. Choices can be found here:
@@ -107,7 +107,7 @@ OAUTH_ENABLED = True
 # OAuth1 callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
-OAUTH_SIGNATURE_METHODS = ['plaintext','hmac-sha1','rsa-sha1']
+OAUTH_SIGNATURE_METHODS = ['plaintext', 'hmac-sha1', 'rsa-sha1']
 OAUTH_REALM_KEY_NAME = '%s://%s/xAPI' % (SITE_SCHEME, SITE_DOMAIN)
 
 # THIS IS OAUTH2 STUFF
@@ -120,23 +120,24 @@ STATEMENTS_WRITE = 1 << 5
 ALL_READ = 1 << 6
 ALL = 1 << 7
 
-# List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get defaulted in oauth2/forms.py
+# List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get
+# defaulted in oauth2/forms.py
 OAUTH_SCOPES = (
-        (STATEMENTS_WRITE,'statements/write'),
-        (STATEMENTS_READ_MINE,'statements/read/mine'),
-        (STATEMENTS_READ,'statements/read'),
-        (STATE,'state'),
-        (DEFINE,'define'),
-        (PROFILE,'profile'),
-        (ALL_READ,'all/read'),
-        (ALL,'all')
-    )
+    (STATEMENTS_WRITE, 'statements/write'),
+    (STATEMENTS_READ_MINE, 'statements/read/mine'),
+    (STATEMENTS_READ, 'statements/read'),
+    (STATE, 'state'),
+    (DEFINE, 'define'),
+    (PROFILE, 'profile'),
+    (ALL_READ, 'all/read'),
+    (ALL, 'all')
+)
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
-CELERY_STORE_ERRORS_EVEN_IF_IGNORED=True
-CELERY_IGNORE_RESULT=True
+CELERY_STORE_ERRORS_EVEN_IF_IGNORED = True
+CELERY_IGNORE_RESULT = True
 
 # Limit on number of statements the server will return
 SERVER_STMT_LIMIT = 100
@@ -151,10 +152,10 @@ CACHES = {
         'LOCATION': 'cache_statement_list',
         'TIMEOUT': 86400,
     },
-    'attachment_cache':{
-        'BACKEND':'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION':'attachment_cache',
-        'TIMEOUT': 86400,        
+    'attachment_cache': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'attachment_cache',
+        'TIMEOUT': 86400,
     },
 }
 
@@ -257,7 +258,7 @@ INSTALLED_APPS = [
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
 DEFAULT_LOG_DIR = path.join(PROJECT_ROOT, 'logs/lrs.log')
-CELERY_TASKS_LOG_DIR =  path.join(PROJECT_ROOT, 'logs/celery/celery_tasks.log')
+CELERY_TASKS_LOG_DIR = path.join(PROJECT_ROOT, 'logs/celery/celery_tasks.log')
 
 CELERYD_HIJACK_ROOT_LOGGER = False
 
@@ -281,29 +282,29 @@ LOGGING = {
     },
     'handlers': {
         'default': {
-            'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': DEFAULT_LOG_DIR,
-            'maxBytes': 1024*1024*5, # 5 MB
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
-            'formatter':'standard',
-        },  
+            'formatter': 'standard',
+        },
         'request_handler': {
-                'level':'DEBUG',
-                'class':'logging.handlers.RotatingFileHandler',
-                'filename': REQUEST_HANDLER_LOG_DIR,
-                'maxBytes': 1024*1024*5, # 5 MB
-                'backupCount': 5,
-                'formatter':'standard',
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': REQUEST_HANDLER_LOG_DIR,
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'standard',
         },
         'celery_handler': {
-            'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': CELERY_TASKS_LOG_DIR,
-            'maxBytes': 1024*1024*5, # 5 MB
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
-            'formatter':'standard',
-        },        
+            'formatter': 'standard',
+        },
     },
     'loggers': {
         'lrs': {
@@ -320,6 +321,6 @@ LOGGING = {
             'handlers': ['celery_handler'],
             'level': 'DEBUG',
             'propagate': True
-        },   
+        },
     }
 }

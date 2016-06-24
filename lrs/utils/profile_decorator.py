@@ -3,6 +3,7 @@ import datetime
 
 PROFILE_LOG_BASE = '/home/ubuntu/Desktop/profiling/profiles/'
 
+
 def profile_func(filename):
     """Function/method decorator that will cause only the decorated callable
         to be profiled and saved to the specified file.
@@ -11,6 +12,7 @@ def profile_func(filename):
         @param filename: The filename to write the profile to."""
     if not os.path.isabs(filename):
         filename = os.path.join(PROFILE_LOG_BASE, filename)
+
     def proffunc(f):
         def profiled_func(*args, **kwargs):
             import cProfile
@@ -28,7 +30,8 @@ def profile_func(filename):
                 profiler.getstats()
                 profiler.dump_stats(final_log_file)
             except IOError:
-                logging.exception("Could not open profile file '%(filename)s'" % {"filename": final_log_file})
+                logging.exception("Could not open profile file '%(filename)s'" % {
+                                  "filename": final_log_file})
 
             return retval
 

@@ -1,7 +1,6 @@
 import json
 import uuid
 from collections import OrderedDict
-from datetime import datetime
 
 from django.db import models, IntegrityError
 from django.db.models.signals import post_save
@@ -20,16 +19,21 @@ ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
 STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
 # Called when a user is created, saved, or logging in
+
+
 def attach_user(sender, **kwargs):
     user = kwargs["instance"]
     if kwargs["created"]:
-        agent = Agent.objects.retrieve_or_create(**{'name':user.username, 'mbox':'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
+        agent = Agent.objects.retrieve_or_create(
+            **{'name': user.username, 'mbox': 'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
         agent.user = user
         agent.save()
 post_save.connect(attach_user, sender=User)
 
+
 class Verb(models.Model):
-    verb_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
+    verb_id = models.CharField(
+        max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     canonical_data = JSONField(default=dict)
 
     def return_verb_with_lang(self, lang=None):
@@ -46,10 +50,14 @@ class Verb(models.Model):
     def __unicode__(self):
         return json.dumps(self.canonical_data, sort_keys=False)
 
+
 class AgentManager(models.Manager):
+
     def retrieve(self, **kwargs):
-        agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'account', 'openid']
-        ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]
+        agent_ifps_can_only_be_one = [
+            'mbox', 'mbox_sha1sum', 'account', 'openid']
+        ifp_sent = [
+            a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) is not None]
         if ifp_sent:
             # Get IFP
             ifp = ifp_sent[0]
@@ -72,8 +80,10 @@ class AgentManager(models.Manager):
             return None
 
     def retrieve_or_create(self, **kwargs):
-        agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'account', 'openid']
-        ifp_sent = [a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) != None]        
+        agent_ifps_can_only_be_one = [
+            'mbox', 'mbox_sha1sum', 'account', 'openid']
+        ifp_sent = [
+            a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) is not None]
         is_group = kwargs.get('objectType', None) == "Group"
         has_member = False
         # Set member if incoming group
@@ -102,25 +112,28 @@ class AgentManager(models.Manager):
                 agent = Agent.objects.filter(**ifp_dict)[0]
                 created = False
             except IndexError:
-                # If DNE create the agent based off of kwargs (kwargs now includes account_homePage and account_name fields)
+                # If DNE create the agent based off of kwargs (kwargs now
+                # includes account_homePage and account_name fields)
                 try:
                     agent = Agent.objects.create(**kwargs)
                     created = True
                 except IntegrityError, ValidationError:
                     # Try getting agent by IFP in ifp_dict
                     agent = Agent.objects.filter(**ifp_dict)[0]
-                    created = False                    
+                    created = False
 
             # For identified groups with members
             if is_group and has_member:
-                # If newly created identified group add all of the incoming members
+                # If newly created identified group add all of the incoming
+                # members
                 if created:
                     members = [self.retrieve_or_create(**a) for a in member]
                     agent.member.add(*(a for a, c in members))
                     agent.save()
         # Only way it doesn't have IFP is if anonymous group
         else:
-            agent, created = self.retrieve_or_create_anonymous_group(member, kwargs)
+            agent, created = self.retrieve_or_create_anonymous_group(
+                member, kwargs)
         return agent, created
 
     def retrieve_or_create_anonymous_group(self, member, kwargs):
@@ -128,31 +141,38 @@ class AgentManager(models.Manager):
         if len(member) == 2 and ('account' in member[0] or 'account' in member[1]):
             # If oauth account is in first member
             if 'account' in member[0] and 'OAuth' in member[0]['account']['homePage']:
-                created_oauth_identifier = "anongroup:%s-%s" % (member[0]['account']['name'], member[1]['mbox'])
+                created_oauth_identifier = "anongroup:%s-%s" % (
+                    member[0]['account']['name'], member[1]['mbox'])
                 try:
-                    agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                    agent = Agent.objects.get(
+                        oauth_identifier=created_oauth_identifier)
                     created = False
                 except Agent.DoesNotExist:
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
                     except IntegrityError, ValidationError:
-                        agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                        agent = Agent.objects.get(
+                            oauth_identifier=created_oauth_identifier)
                         created = False
             # If oauth account is in second member
             elif 'account' in member[1] and 'OAuth' in member[1]['account']['homePage']:
-                created_oauth_identifier = "anongroup:%s-%s" % (member[1]['account']['name'], member[0]['mbox'])
+                created_oauth_identifier = "anongroup:%s-%s" % (
+                    member[1]['account']['name'], member[0]['mbox'])
                 try:
-                    agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                    agent = Agent.objects.get(
+                        oauth_identifier=created_oauth_identifier)
                     created = False
                 except Agent.DoesNotExist:
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
                     except IntegrityError, ValidationError:
-                        agent = Agent.objects.get(oauth_identifier=created_oauth_identifier)
+                        agent = Agent.objects.get(
+                            oauth_identifier=created_oauth_identifier)
                         created = False
-            # Non-oauth anonymous group that has 2 members, one having an account
+            # Non-oauth anonymous group that has 2 members, one having an
+            # account
             else:
                 agent = Agent.objects.create(**kwargs)
                 created = True
@@ -163,7 +183,7 @@ class AgentManager(models.Manager):
         # If it is a newly created anonymous group, add the members
         if created:
             members = [self.retrieve_or_create(**a) for a in member]
-            agent.member.add(*(a for a, c in members))        
+            agent.member.add(*(a for a, c in members))
         return agent, created
 
     def oauth_group(self, **kwargs):
@@ -172,13 +192,19 @@ class AgentManager(models.Manager):
             return g, False
         except Agent.DoesNotExist:
             return Agent.objects.retrieve_or_create(**kwargs)
+
+
 class Agent(models.Model):
     objectType = models.CharField(max_length=6, blank=True, default="Agent")
     name = models.CharField(max_length=100, blank=True)
-    mbox = models.CharField(max_length=128, db_index=True, null=True, unique=True)
-    mbox_sha1sum = models.CharField(max_length=40, db_index=True, null=True, unique=True)
-    openid = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, null=True, unique=True)
-    oauth_identifier = models.CharField(max_length=192, db_index=True, null=True, unique=True)
+    mbox = models.CharField(
+        max_length=128, db_index=True, null=True, unique=True)
+    mbox_sha1sum = models.CharField(
+        max_length=40, db_index=True, null=True, unique=True)
+    openid = models.CharField(
+        max_length=MAX_URL_LENGTH, db_index=True, null=True, unique=True)
+    oauth_identifier = models.CharField(
+        max_length=192, db_index=True, null=True, unique=True)
     member = models.ManyToManyField('self', related_name="agents")
     account_homePage = models.CharField(max_length=MAX_URL_LENGTH, null=True)
     account_name = models.CharField(max_length=50, null=True)
@@ -204,8 +230,9 @@ class Agent(models.Model):
             ret['objectType'] = self.objectType
             # show members for groups if ids_only is false
             # show members' ids for anon groups if ids_only is true
-            if not ids_only or not (set(['mbox','mbox_sha1sum','openid','account']) & set(ret.keys())):
-                ret['member'] = [a.to_dict(ids_only) for a in self.member.all()]
+            if not ids_only or not (set(['mbox', 'mbox_sha1sum', 'openid', 'account']) & set(ret.keys())):
+                ret['member'] = [a.to_dict(ids_only)
+                                 for a in self.member.all()]
         if self.objectType and not ids_only:
             ret['objectType'] = self.objectType
         if self.name and not ids_only:
@@ -259,10 +286,12 @@ class Agent(models.Model):
     def __unicode__(self):
         return json.dumps(self.to_dict(), sort_keys=False)
 
+
 class Activity(models.Model):
-    activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
+    activity_id = models.CharField(
+        max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     canonical_data = JSONField(default=dict)
-    authority = models.ForeignKey(Agent, null=True) 
+    authority = models.ForeignKey(Agent, null=True)
 
     def return_activity_with_lang_format(self, lang=None, ids_only=False):
         if ids_only:
@@ -272,9 +301,11 @@ class Activity(models.Model):
             ret['objectType'] = 'Activity'
         if 'definition' in self.canonical_data:
             if 'name' in ret['definition']:
-                ret['definition']['name'] = get_lang(ret['definition']['name'], lang)
+                ret['definition']['name'] = get_lang(
+                    ret['definition']['name'], lang)
             if 'description' in ret['definition']:
-                ret['definition']['description'] = get_lang(ret['definition']['description'], lang)
+                ret['definition']['description'] = get_lang(
+                    ret['definition']['description'], lang)
             if 'scale' in ret['definition']:
                 for s in ret['definition']['scale']:
                     s['description'] = get_lang(s['description'], lang)
@@ -300,11 +331,16 @@ class Activity(models.Model):
     def __unicode__(self):
         return json.dumps(self.canonical_data, sort_keys=False)
 
+
 class SubStatement(models.Model):
-    object_agent = models.ForeignKey(Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
-    object_activity = models.ForeignKey(Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
-    object_statementref = models.UUIDField(null=True, editable=False, db_index=True)
-    actor = models.ForeignKey(Agent,related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
+    object_agent = models.ForeignKey(
+        Agent, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
+    object_activity = models.ForeignKey(
+        Activity, related_name="object_of_substatement", on_delete=models.SET_NULL, null=True, db_index=True)
+    object_statementref = models.UUIDField(
+        null=True, editable=False, db_index=True)
+    actor = models.ForeignKey(
+        Agent, related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
@@ -316,52 +352,59 @@ class SubStatement(models.Model):
     result_score_max = models.FloatField(blank=True, null=True)
     result_extensions = JSONField(default=dict, blank=True)
     timestamp = models.DateTimeField(null=True)
-    context_registration = models.CharField(max_length=40, blank=True, db_index=True)
-    context_instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
-        db_index=True, related_name='substatement_context_instructor')
-    context_team = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
-        related_name="substatement_context_team")
+    context_registration = models.CharField(
+        max_length=40, blank=True, db_index=True)
+    context_instructor = models.ForeignKey(Agent, blank=True, null=True, on_delete=models.SET_NULL,
+                                           db_index=True, related_name='substatement_context_instructor')
+    context_team = models.ForeignKey(Agent, blank=True, null=True, on_delete=models.SET_NULL,
+                                     related_name="substatement_context_team")
     context_revision = models.TextField(blank=True)
-    context_platform = models.CharField(max_length=50,blank=True)
-    context_language = models.CharField(max_length=50,blank=True)
+    context_platform = models.CharField(max_length=50, blank=True)
+    context_language = models.CharField(max_length=50, blank=True)
     context_extensions = JSONField(default=dict, blank=True)
-    context_ca_parent = models.ManyToManyField(Activity, related_name="sub_context_ca_parent")
-    context_ca_grouping = models.ManyToManyField(Activity, related_name="sub_context_ca_grouping")
-    context_ca_category = models.ManyToManyField(Activity, related_name="sub_context_ca_category")
-    context_ca_other = models.ManyToManyField(Activity, related_name="sub_context_ca_other")
+    context_ca_parent = models.ManyToManyField(
+        Activity, related_name="sub_context_ca_parent")
+    context_ca_grouping = models.ManyToManyField(
+        Activity, related_name="sub_context_ca_grouping")
+    context_ca_category = models.ManyToManyField(
+        Activity, related_name="sub_context_ca_category")
+    context_ca_other = models.ManyToManyField(
+        Activity, related_name="sub_context_ca_other")
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
-    
+
     def to_dict(self, lang=None, ids_only=False):
         ret = OrderedDict()
         ret['actor'] = self.actor.to_dict(ids_only)
         ret['verb'] = self.verb.canonical_data
-        
+
         if self.object_agent:
             ret['object'] = self.object_agent.to_dict(ids_only)
         elif self.object_activity:
-            ret['object'] = self.object_activity.return_activity_with_lang_format(lang, ids_only)
+            ret['object'] = self.object_activity.return_activity_with_lang_format(
+                lang, ids_only)
         else:
-            ret['object'] = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
-        
+            ret['object'] = {
+                'id': str(self.object_statementref), 'objectType': 'StatementRef'}
+
         ret['result'] = OrderedDict()
-        if self.result_success != None:
+        if self.result_success is not None:
             ret['result']['success'] = self.result_success
-        if self.result_completion != None:
+        if self.result_completion is not None:
             ret['result']['completion'] = self.result_completion
         if self.result_response:
             ret['result']['response'] = self.result_response
         if self.result_duration:
             ret['result']['duration'] = self.result_duration
-        
+
         ret['result']['score'] = OrderedDict()
-        if not self.result_score_scaled is None:
+        if self.result_score_scaled is not None:
             ret['result']['score']['scaled'] = self.result_score_scaled
-        if not self.result_score_raw is None:
+        if self.result_score_raw is not None:
             ret['result']['score']['raw'] = self.result_score_raw
-        if not self.result_score_min is None:
+        if self.result_score_min is not None:
             ret['result']['score']['min'] = self.result_score_min
-        if not self.result_score_max is None:
+        if self.result_score_max is not None:
             ret['result']['score']['max'] = self.result_score_max
         # If there is no score, delete from dict
         if not ret['result']['score']:
@@ -376,7 +419,8 @@ class SubStatement(models.Model):
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
         if self.context_instructor:
-            ret['context']['instructor'] = self.context_instructor.to_dict(ids_only)
+            ret['context'][
+                'instructor'] = self.context_instructor.to_dict(ids_only)
         if self.context_team:
             ret['context']['team'] = self.context_team.to_dict(ids_only)
         if self.context_revision:
@@ -386,17 +430,22 @@ class SubStatement(models.Model):
         if self.context_language:
             ret['context']['language'] = self.context_language
         if self.context_statement:
-            ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
+            ret['context']['statement'] = {
+                'id': self.context_statement, 'objectType': 'StatementRef'}
 
         ret['context']['contextActivities'] = OrderedDict()
         if self.context_ca_parent.all():
-            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(lang, ids_only) for cap in self.context_ca_parent.all()]
+            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(
+                lang, ids_only) for cap in self.context_ca_parent.all()]
         if self.context_ca_grouping.all():
-            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(lang, ids_only) for cag in self.context_ca_grouping.all()]
+            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(
+                lang, ids_only) for cag in self.context_ca_grouping.all()]
         if self.context_ca_category.all():
-            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(lang, ids_only) for cac in self.context_ca_category.all()]
+            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(
+                lang, ids_only) for cac in self.context_ca_category.all()]
         if self.context_ca_other.all():
-            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(lang, ids_only) for cao in self.context_ca_other.all()]
+            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(
+                lang, ids_only) for cao in self.context_ca_other.all()]
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
         if not ret['context']['contextActivities']:
@@ -423,21 +472,28 @@ class SubStatement(models.Model):
         elif self.object_agent:
             stmt_object = self.object_agent
         else:
-            stmt_object = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
+            stmt_object = {
+                'id': str(self.object_statementref), 'objectType': 'StatementRef'}
         return stmt_object
 
     def __unicode__(self):
         return json.dumps(self.to_dict(), sort_keys=False)
 
+
 class Statement(models.Model):
     # If no statement_id is given, will create one automatically
-    statement_id = models.UUIDField(default=uuid.uuid4, db_index=True, editable=False)
-    object_agent = models.ForeignKey(Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
-    object_activity = models.ForeignKey(Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
-    object_substatement = models.ForeignKey(SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL)
-    object_statementref = models.UUIDField(null=True, editable=False, db_index=True)
-    actor = models.ForeignKey(Agent,related_name="actor_statement", db_index=True, null=True,
-        on_delete=models.SET_NULL)
+    statement_id = models.UUIDField(
+        default=uuid.uuid4, db_index=True, editable=False)
+    object_agent = models.ForeignKey(
+        Agent, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_activity = models.ForeignKey(
+        Activity, related_name="object_of_statement", null=True, on_delete=models.SET_NULL, db_index=True)
+    object_substatement = models.ForeignKey(
+        SubStatement, related_name="object_of_statement", null=True, on_delete=models.SET_NULL)
+    object_statementref = models.UUIDField(
+        null=True, editable=False, db_index=True)
+    actor = models.ForeignKey(Agent, related_name="actor_statement", db_index=True, null=True,
+                              on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
     result_success = models.NullBooleanField()
     result_completion = models.NullBooleanField()
@@ -450,52 +506,60 @@ class Statement(models.Model):
     result_extensions = JSONField(default=dict, blank=True)
     stored = models.DateTimeField(default=timezone.now, db_index=True)
     timestamp = models.DateTimeField(db_index=True)
-    authority = models.ForeignKey(Agent, blank=True,null=True,related_name="authority_statement", db_index=True,
-        on_delete=models.SET_NULL)
+    authority = models.ForeignKey(Agent, blank=True, null=True, related_name="authority_statement", db_index=True,
+                                  on_delete=models.SET_NULL)
     voided = models.NullBooleanField(default=False)
-    context_registration = models.CharField(max_length=40, blank=True, db_index=True)
-    context_instructor = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
-        db_index=True, related_name='statement_context_instructor')
-    context_team = models.ForeignKey(Agent,blank=True, null=True, on_delete=models.SET_NULL,
-        related_name="statement_context_team")
+    context_registration = models.CharField(
+        max_length=40, blank=True, db_index=True)
+    context_instructor = models.ForeignKey(Agent, blank=True, null=True, on_delete=models.SET_NULL,
+                                           db_index=True, related_name='statement_context_instructor')
+    context_team = models.ForeignKey(Agent, blank=True, null=True, on_delete=models.SET_NULL,
+                                     related_name="statement_context_team")
     context_revision = models.TextField(blank=True)
-    context_platform = models.CharField(max_length=50,blank=True)
-    context_language = models.CharField(max_length=50,blank=True)
+    context_platform = models.CharField(max_length=50, blank=True)
+    context_language = models.CharField(max_length=50, blank=True)
     context_extensions = JSONField(default=dict, blank=True)
-    context_ca_parent = models.ManyToManyField(Activity, related_name="stmt_context_ca_parent")
-    context_ca_grouping = models.ManyToManyField(Activity, related_name="stmt_context_ca_grouping")
-    context_ca_category = models.ManyToManyField(Activity, related_name="stmt_context_ca_category")
-    context_ca_other = models.ManyToManyField(Activity, related_name="stmt_context_ca_other")
+    context_ca_parent = models.ManyToManyField(
+        Activity, related_name="stmt_context_ca_parent")
+    context_ca_grouping = models.ManyToManyField(
+        Activity, related_name="stmt_context_ca_grouping")
+    context_ca_category = models.ManyToManyField(
+        Activity, related_name="stmt_context_ca_category")
+    context_ca_other = models.ManyToManyField(
+        Activity, related_name="stmt_context_ca_other")
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7)
     # Used in views
-    user = models.ForeignKey(User, null=True, blank=True, db_index=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(User, null=True, blank=True,
+                             db_index=True, on_delete=models.SET_NULL)
     full_statement = JSONField()
-    
+
     def to_dict(self, lang=None, ret_format='exact'):
         ret = OrderedDict()
         if ret_format == 'exact':
             return self.full_statement
-        
+
         ids_only = True if ret_format == 'ids' else False
         ret['id'] = str(self.statement_id)
         ret['actor'] = self.actor.to_dict(ids_only)
         ret['verb'] = self.verb.return_verb_with_lang('lang')
 
         if self.object_agent:
-            ret['object'] = self.object_agent.to_dict(ids_only)            
+            ret['object'] = self.object_agent.to_dict(ids_only)
         elif self.object_activity:
-            ret['object'] = self.object_activity.return_activity_with_lang_format(lang, ids_only)
+            ret['object'] = self.object_activity.return_activity_with_lang_format(
+                lang, ids_only)
         elif self.object_substatement:
             ret['object'] = self.object_substatement.to_dict(lang, ids_only)
         else:
-            ret['object'] = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
+            ret['object'] = {
+                'id': str(self.object_statementref), 'objectType': 'StatementRef'}
 
         ret['result'] = OrderedDict()
-        if self.result_success != None:
+        if self.result_success is not None:
             ret['result']['success'] = self.result_success
-        if self.result_completion != None:
+        if self.result_completion is not None:
             ret['result']['completion'] = self.result_completion
         if self.result_response:
             ret['result']['response'] = self.result_response
@@ -503,13 +567,13 @@ class Statement(models.Model):
             ret['result']['duration'] = self.result_duration
 
         ret['result']['score'] = OrderedDict()
-        if not self.result_score_scaled is None:
+        if self.result_score_scaled is not None:
             ret['result']['score']['scaled'] = self.result_score_scaled
-        if not self.result_score_raw is None:
+        if self.result_score_raw is not None:
             ret['result']['score']['raw'] = self.result_score_raw
-        if not self.result_score_min is None:
+        if self.result_score_min is not None:
             ret['result']['score']['min'] = self.result_score_min
-        if not self.result_score_max is None:
+        if self.result_score_max is not None:
             ret['result']['score']['max'] = self.result_score_max
         # If there is no score, delete from dict
         if not ret['result']['score']:
@@ -523,7 +587,8 @@ class Statement(models.Model):
         if self.context_registration:
             ret['context']['registration'] = self.context_registration
         if self.context_instructor:
-            ret['context']['instructor'] = self.context_instructor.to_dict(ids_only)
+            ret['context'][
+                'instructor'] = self.context_instructor.to_dict(ids_only)
         if self.context_team:
             ret['context']['team'] = self.context_team.to_dict(ids_only)
         if self.context_revision:
@@ -533,17 +598,22 @@ class Statement(models.Model):
         if self.context_language:
             ret['context']['language'] = self.context_language
         if self.context_statement:
-            ret['context']['statement'] = {'id': self.context_statement, 'objectType': 'StatementRef'}
-        
+            ret['context']['statement'] = {
+                'id': self.context_statement, 'objectType': 'StatementRef'}
+
         ret['context']['contextActivities'] = OrderedDict()
         if self.context_ca_parent.all():
-            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(lang, ids_only) for cap in self.context_ca_parent.all()]
+            ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(
+                lang, ids_only) for cap in self.context_ca_parent.all()]
         if self.context_ca_grouping.all():
-            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(lang, ids_only) for cag in self.context_ca_grouping.all()]
+            ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(
+                lang, ids_only) for cag in self.context_ca_grouping.all()]
         if self.context_ca_category.all():
-            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(lang, ids_only) for cac in self.context_ca_category.all()]
+            ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(
+                lang, ids_only) for cac in self.context_ca_category.all()]
         if self.context_ca_other.all():
-            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(lang, ids_only) for cao in self.context_ca_other.all()]
+            ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(
+                lang, ids_only) for cao in self.context_ca_other.all()]
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
         if not ret['context']['contextActivities']:
@@ -553,11 +623,12 @@ class Statement(models.Model):
 
         ret['timestamp'] = self.timestamp.isoformat()
         ret['stored'] = self.stored.isoformat()
-        if not self.authority is None:
+        if self.authority is not None:
             ret['authority'] = self.authority.to_dict(ids_only)
-        ret['version'] = self.version       
+        ret['version'] = self.version
         if self.stmt_attachments.all():
-            ret['attachments'] = [a.return_attachment_with_lang(lang) for a in self.stmt_attachments.all()]
+            ret['attachments'] = [a.return_attachment_with_lang(
+                lang) for a in self.stmt_attachments.all()]
         return ret
 
     def get_a_name(self):
@@ -571,13 +642,16 @@ class Statement(models.Model):
         elif self.object_substatement:
             stmt_object = self.object_substatement
         else:
-            stmt_object = {'id': str(self.object_statementref), 'objectType': 'StatementRef'}
+            stmt_object = {
+                'id': str(self.object_statementref), 'objectType': 'StatementRef'}
         return stmt_object
 
     def __unicode__(self):
         return json.dumps(self.to_dict(), sort_keys=False)
 
+
 class AttachmentFileSystemStorage(FileSystemStorage):
+
     def get_available_name(self, name, max_length=None):
         return name
 
@@ -586,30 +660,37 @@ class AttachmentFileSystemStorage(FileSystemStorage):
             # if the file exists, do not call the superclasses _save method
             return name
         # if the file is new, DO call it
-        return super(AttachmentFileSystemStorage, self)._save(name, content)    
+        return super(AttachmentFileSystemStorage, self)._save(name, content)
+
+
 class StatementAttachment(models.Model):
     canonical_data = JSONField(default=dict)
-    payload = models.FileField(max_length=150, upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO, storage=AttachmentFileSystemStorage(), null=True)
-    statement = models.ForeignKey(Statement, related_name="stmt_attachments", null=True)
+    payload = models.FileField(max_length=150, upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO,
+                               storage=AttachmentFileSystemStorage(), null=True)
+    statement = models.ForeignKey(
+        Statement, related_name="stmt_attachments", null=True)
 
     def return_attachment_with_lang(self, lang=None):
         ret = OrderedDict(self.canonical_data)
         if 'display' in ret:
             ret['display'] = get_lang(self.canonical_data['display'], lang)
         if 'description' in ret:
-            ret['description'] = get_lang(self.canonical_data['description'], lang)
+            ret['description'] = get_lang(
+                self.canonical_data['description'], lang)
         return ret
 
     def __unicode__(self):
         return json.dumps(self.canonical_data, sort_keys=False)
 
+
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
-    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)    
+    updated = models.DateTimeField(
+        auto_now_add=True, blank=True, db_index=True)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     registration_id = models.CharField(max_length=40, db_index=True)
-    content_type = models.CharField(max_length=255,blank=True)
-    etag = models.CharField(max_length=50,blank=True)
+    content_type = models.CharField(max_length=255, blank=True)
+    etag = models.CharField(max_length=50, blank=True)
     agent = models.ForeignKey(Agent)
     json_state = JSONField(default=dict)
     state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
@@ -619,12 +700,14 @@ class ActivityState(models.Model):
             self.state.delete()
         super(ActivityState, self).delete(*args, **kwargs)
 
+
 class ActivityProfile(models.Model):
     profile_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
+    updated = models.DateTimeField(
+        auto_now_add=True, blank=True, db_index=True)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    content_type = models.CharField(max_length=255,blank=True)
-    etag = models.CharField(max_length=50,blank=True)
+    content_type = models.CharField(max_length=255, blank=True)
+    etag = models.CharField(max_length=50, blank=True)
     json_profile = JSONField(default=dict)
     profile = models.FileField(upload_to=ACTIVITY_PROFILE_UPLOAD_TO, null=True)
 
@@ -633,11 +716,13 @@ class ActivityProfile(models.Model):
             self.profile.delete()
         super(ActivityProfile, self).delete(*args, **kwargs)
 
+
 class AgentProfile(models.Model):
     profile_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
-    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
-    content_type = models.CharField(max_length=255,blank=True)
-    etag = models.CharField(max_length=50,blank=True)
+    updated = models.DateTimeField(
+        auto_now_add=True, blank=True, db_index=True)
+    content_type = models.CharField(max_length=255, blank=True)
+    etag = models.CharField(max_length=50, blank=True)
     agent = models.ForeignKey(Agent, db_index=True)
     json_profile = JSONField(default=dict)
     profile = models.FileField(upload_to=AGENT_PROFILE_UPLOAD_TO, null=True)
