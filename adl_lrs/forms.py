@@ -1,5 +1,13 @@
 import json
 from django import forms
+from django.forms import URLField as DefaultUrlField
+from django.core.validators import URLValidator
+
+
+class URLField(DefaultUrlField):
+    myregex = ('(http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a'
+               '-fA-F][0-9a-fA-F]))+)')
+    default_validators = [URLValidator(regex=myregex)]
 
 
 class ValidatorForm(forms.Form):
@@ -36,7 +44,7 @@ class RegClientForm(forms.Form):
 
 class HookRegistrationForm(forms.Form):
     name = forms.CharField(max_length=50, label='Name', required=True)
-    endpoint = forms.URLField(label='Endpoint', required=True)
+    endpoint = URLField(label='Endpoint', required=True)
     content_type = forms.ChoiceField(choices=(
         ("json", "json"), ("form", "form")), label='Content-Type', required=True)
     secret = forms.CharField(max_length=200, label="Secret", required=False)

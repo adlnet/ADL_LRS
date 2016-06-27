@@ -56,6 +56,9 @@
             {% if hook_form.non_field_errors %}
                 {{ hook_form.non_field_errors }}
             {% endif %}
+            {% if hook_form.errors %}
+                {{ hook_form.errors }}
+            {% endif %}            
               <fieldset>
                   {% for field in hook_form %}
                     <label for="{{ field.auto_id }}">{{ field.label }}</label>            
