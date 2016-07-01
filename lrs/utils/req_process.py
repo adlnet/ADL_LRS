@@ -186,10 +186,6 @@ def statements_more_get(req_dict):
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     resp['Content-Length'] = str(content_length)
 
-    # If it's a HEAD request
-    if req_dict['method'].lower() != 'get':
-        resp.body = ''
-
     return resp
 
 
@@ -221,9 +217,6 @@ def statements_get(req_dict):
 
     resp['Content-Length'] = str(content_length)
 
-    # If it's a HEAD request
-    if req_dict['method'].lower() != 'get':
-        resp.body = ''
     return resp
 
 
@@ -334,9 +327,6 @@ def activity_state_get(req_dict):
             resource = actstate.get_state_ids(activity_id, registration, since)
             response = JsonResponse([k for k in resource], safe=False)
 
-    # If it's a HEAD request
-    if req_dict['method'].lower() != 'get':
-        response.body = ''
     return response
 
 
@@ -400,9 +390,6 @@ def activity_profile_get(req_dict):
     response = JsonResponse([k for k in resource], safe=False)
     response['since'] = since
 
-    # If it's a HEAD request
-    if req_dict['method'].lower() != 'get':
-        response.body = ''
     return response
 
 
@@ -423,9 +410,7 @@ def activities_get(req_dict):
     resp = HttpResponse(
         return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
-    # If it's a HEAD request
-    if req_dict['method'].lower() != 'get':
-        resp.body = ''
+
     return resp
 
 
@@ -476,9 +461,6 @@ def agent_profile_get(req_dict):
         resource = ap.get_profile_ids(since)
         response = JsonResponse([k for k in resource], safe=False)
 
-    # If it's a HEAD request
-    if req_dict['method'].lower() != 'get':
-        response.body = ''
     return response
 
 
@@ -500,7 +482,5 @@ def agents_get(req_dict):
     resp = HttpResponse(
         agent_data, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(agent_data))
-    # If it's a HEAD request
-    if req_dict['method'].lower() != 'get':
-        resp.body = ''
+
     return resp
