@@ -195,14 +195,17 @@ def statements_get(req_dict):
     # If statementId is in req_dict then it is a single get - can still include attachments
     # or have a different format
     if 'statementId' in req_dict:
+        st = Statement.objects.get(statement_id=req_dict['statementId'])
+        stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
         if req_dict['params']['attachments']:
-            resp, content_length = process_complex_get(req_dict)
+            stmt_result, mime_type, content_length = build_response(
+                {"statements": [stmt_dict]})
+            resp = HttpResponse(stmt_result, content_type=mime_type,
+                                status=200)
         else:
-            st = Statement.objects.get(statement_id=req_dict['statementId'])
-            stmt_result = json.dumps(st.to_dict(
-                ret_format=req_dict['params']['format']), sort_keys=False)
             resp = HttpResponse(
-                stmt_result, content_type=mime_type, status=200)
+                json.dumps(stmt_dict, sort_keys=False),
+                content_type=mime_type, status=200)
             content_length = len(stmt_result)
     # Complex GET
     else:
@@ -214,7 +217,6 @@ def statements_get(req_dict):
             Statement.objects.latest('stored').stored)
     except:
         resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
-
     resp['Content-Length'] = str(content_length)
 
     return resp
@@ -223,11 +225,7 @@ def statements_get(req_dict):
 def build_response(stmt_result):
     sha2s = []
     mime_type = "application/json"
-    if isinstance(stmt_result, dict):
-        statements = stmt_result['statements']
-    else:
-        statements = json.loads(stmt_result)['statements']
-
+    statements = stmt_result['statements']
     # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
@@ -248,7 +246,8 @@ def build_response(stmt_result):
         string_list.append(
             "Content-Type:application/json" + line_feed + line_feed)
         if isinstance(stmt_result, dict):
-            string_list.append(json.dumps(stmt_result) + line_feed)
+            string_list.append(
+                json.dumps(stmt_result, sort_keys=False) + line_feed)
         else:
             string_list.append(stmt_result + line_feed)
 
@@ -276,7 +275,7 @@ def build_response(stmt_result):
     # Has attachments but no payloads so just dump the stmt_result
     else:
         if isinstance(stmt_result, dict):
-            res = json.dumps(stmt_result)
+            res = json.dumps(stmt_result, sort_keys=False)
             return res, mime_type, len(res)
         else:
             return stmt_result, mime_type, len(stmt_result)
