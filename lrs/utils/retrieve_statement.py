@@ -155,13 +155,10 @@ def create_under_limit_stmt_result(stmt_set, stored, language, format):
                                                     'object_agent', 'object_activity', 'object_substatement') \
             .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
             .filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
-        if format == 'exact':
-            stmt_result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(
-                stmt.full_statement, sort_keys=False) for stmt in stmt_set.order_by(stored)])
-        else:
-            stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in
-                                         stmt_set.order_by(stored)]
-            stmt_result['more'] = ""
+
+        stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in
+                                     stmt_set.order_by(stored)]
+        stmt_result['more'] = ""
     else:
         stmt_result['statements'] = []
         stmt_result['more'] = ""
@@ -211,19 +208,12 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, at
     # Save encoded_dict in cache
     cache.set(cache_key, encoded_info)
 
-    # Return first page of results
-    if format == 'exact':
-        result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.full_statement, sort_keys=False) for stmt in
-                                                                   Statement.objects.filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]),
-                                                         reverse('lrs:statements_more_placeholder').lower() + "/" + cache_key)
-    else:
-        result['statements'] = [stmt.to_dict(language, format) for stmt in
-                                Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
-                                                                 'object_agent', 'object_activity', 'object_substatement')
-                                .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
-                                .filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
-        result[
-            'more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key)
+    result['statements'] = [stmt.to_dict(language, format) for stmt in
+                            Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
+                                                             'object_agent', 'object_activity', 'object_substatement')
+                            .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
+                            .filter(id__in=stmt_pager.page(1).object_list).order_by(stored)]
+    result['more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key)
     return result
 
 
@@ -259,25 +249,16 @@ def parse_more_request(req_id):
 def build_statement_result(more_id, **data):
     result = {}
     current_page = data["start_page"] + 1
+    stmt_pager = Paginator(data["stmt_list"], data["limit"])
+    result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in
+                            Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
+                                                             'object_agent', 'object_activity', 'object_substatement')
+                            .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
+                            .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
+
     # If that was the last page to display then just return the remaining stmts
     if current_page == data["total_pages"]:
-        stmt_pager = Paginator(data["stmt_list"], data["limit"])
-        # Return first page of results
-        if data["format"] == 'exact':
-            result = '{"statements": [%s], "more": ""}' % ",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in
-                                                                    Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor',
-                                                                                                     'authority', 'object_agent', 'object_activity',
-                                                                                                     'object_substatement')
-                                                                    .prefetch_related('context_ca_parent', 'context_ca_grouping',
-                                                                                      'context_ca_category', 'context_ca_other')
-                                                                    .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])])
-        else:
-            result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in
-                                    Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
-                                                                     'object_agent', 'object_activity', 'object_substatement')
-                                    .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
-                                    .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
-            result['more'] = ""
+        result['more'] = ""
         # Set current page back for when someone hits the URL again
         current_page -= 1
         # Retrieve list stored in cache
@@ -289,28 +270,10 @@ def build_statement_result(more_id, **data):
         cache.set(more_id, encoded_list)
     # There are more pages to display
     else:
-        stmt_pager = Paginator(data["stmt_list"], data["limit"])
         # Create cache key from hashed data (always 32 digits)
         cache_key = create_cache_key(data["stmt_list"])
-        # Return first page of results
-        if data["format"] == 'exact':
-            result = '{"statements": [%s], "more": "%s"}' % (",".join([json.dumps(stmt.to_dict(data["language"], data["format"]), sort_keys=False) for stmt in
-                                                                       Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor',
-                                                                                                        'authority', 'object_agent', 'object_activity',
-                                                                                                        'object_substatement')
-                                                                       .prefetch_related('context_ca_parent', 'context_ca_grouping',
-                                                                                         'context_ca_category', 'context_ca_other')
-                                                                       .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]),
-                                                             reverse('lrs:statements_more_placeholder').lower() + "/" + cache_key)
-        else:
-            # Set result to have selected page of stmts and more endpoint
-            result['statements'] = [stmt.to_dict(data["language"], data["format"]) for stmt in
-                                    Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
-                                                                     'object_agent', 'object_activity', 'object_substatement')
-                                    .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
-                                    .filter(id__in=stmt_pager.page(current_page).object_list).order_by(data["stored"])]
-            result[
-                'more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key)
+        result['more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key)
+
         more_cache_list = []
         # Increment next page
         start_page = current_page
