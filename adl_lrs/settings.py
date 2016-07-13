@@ -104,6 +104,7 @@ STMTS_PER_PAGE = 10
 ALLOW_EMPTY_HTTP_AUTH = False
 OAUTH_ENABLED = True
 
+AUTH_USER_MODEL = "auth.User"
 # OAuth1 callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
@@ -252,7 +253,6 @@ INSTALLED_APPS = [
     'oauth_provider',
     'django.contrib.admin',
     'jsonify',
-    'el_pagination',
     'corsheaders',
 ]
 

@@ -4,6 +4,7 @@ import urllib
 from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.db import transaction, IntegrityError
@@ -165,17 +166,25 @@ def regclient(request):
 
 @login_required()
 @require_http_methods(["GET"])
-def my_statements(request, template="my_statements.html", page_template="my_statements_holder.html"):
-    stmts = Statement.objects.filter(user=request.user).order_by('-timestamp')
-    context = {'statements': stmts, 'page_template': page_template}
-    if request.is_ajax():
-        template = page_template
+def my_statements(request, template="my_statements.html"):
+    stmt_list = Statement.objects.filter(user=request.user).order_by('-timestamp')
+    paginator = Paginator(stmt_list, 25)
+    page = request.GET.get('page')
+
+    try:
+        stmts = paginator.page(page)
+    except PageNotAnInteger:
+        stmts = paginator.page(1)
+    except EmptyPage:
+        stmts = paginator.page(paginator.num_pages)
+
+    context = {'statements': stmts}
     return render(request, template, context)
 
 
 @login_required()
 @require_http_methods(["GET"])
-def my_activity_states(request, template="my_activity_states.html", page_template="my_activity_states_holder.html"):
+def my_activity_states(request, template="my_activity_states.html"):
     try:
         ag = Agent.objects.get(mbox="mailto:" + request.user.email)
     except Agent.DoesNotExist:
@@ -183,11 +192,19 @@ def my_activity_states(request, template="my_activity_states.html", page_templat
     except Agent.MultipleObjectsReturned:
         return HttpResponseBadRequest("More than one agent returned with email")
 
-    context = {'activity_states': ActivityState.objects.filter(agent=ag).order_by(
-        '-updated', 'activity_id'), 'page_template': page_template}
+    as_list = ActivityState.objects.filter(agent=ag).order_by(
+        '-updated', 'activity_id')
+    paginator = Paginator(as_list, 25)
+    page = request.GET.get('page')
 
-    if request.is_ajax():
-        template = page_template
+    try:
+        act_sts = paginator.page(page)
+    except PageNotAnInteger:
+        act_sts = paginator.page(1)
+    except EmptyPage:
+        act_sts = paginator.page(paginator.num_pages)
+
+    context = {'activity_states': act_sts}
     return render(request, template, context)
 
 
