@@ -44,11 +44,11 @@ def check_statement_hooks(stmt_ids):
         from .models import Statement
         from adl_lrs.models import Hook
         hooks = Hook.objects.all().values_list('hook_id', 'filters', 'config')
+        stmt_ids = [uuid.UUID(st) for st in stmt_ids]        
         for h in hooks:
             filters = h[1]
             config = h[2]
             secret = config['secret'] if 'secret' in config else False
-            stmt_ids = [uuid.UUID(st) for st in stmt_ids]
             filterQ = parse_filter(filters, Q()) & Q(statement_id__in=stmt_ids)
             found = Statement.objects.filter(filterQ).distinct()
             if found:
