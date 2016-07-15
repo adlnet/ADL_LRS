@@ -256,8 +256,8 @@ def parse_attachment(request, r_dict):
                 "Could not find the boundary for the multipart content")
     msg = email.message_from_string(message)
     if msg.is_multipart():
-        parts = msg.get_payload()
-        stmt_part = parts.pop(0)
+        # Stmt part will always be first
+        stmt_part = msg.get_payload().pop(0)
         if stmt_part['Content-Type'] != "application/json":
             raise ParamError(
                 "Content-Type of statement was not application/json")
@@ -265,101 +265,111 @@ def parse_attachment(request, r_dict):
             r_dict['body'] = json.loads(stmt_part.get_payload())
         except Exception:
             raise ParamError("Statement was not valid JSON")
-        # Find the signature sha2 from the list attachment values in the
-        # statements (there should only be one)
-        if isinstance(r_dict['body'], list):
-            signature_att = list(itertools.chain(*[[a.get('sha2', None) for a in s['attachments']
-                                                    if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"]
-                                                   for s in r_dict['body'] if 'attachments' in s]))
-        else:
-            signature_att = [a.get('sha2', None) for a in r_dict['body']['attachments']
-                             if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and
-                             'attachments' in r_dict['body']]
-
-        # Get all sha2s from the request
-        payload_sha2s = [p.get('X-Experience-API-Hash', None)
-                         for p in msg.get_payload()]
-        # Check each sha2 in payload, if even one of them is None then there is
-        # a missing hash
-        for sha2 in payload_sha2s:
-            if not sha2:
+        # Each attachment in msg must have binary encoding and hash in header
+        part_dict = {}
+        for part in msg.get_payload():
+            encoding = part.get('Content-Transfer-Encoding', None)
+            if encoding != "binary":
+                raise BadRequest(
+                    "Each attachment part should have 'binary' as Content-Transfer-Encoding")
+            if 'X-Experience-API-Hash' not in part:
                 raise BadRequest(
                     "X-Experience-API-Hash header was missing from attachment")
-
-        # Check the sig sha2 in statements if it not in the payload sha2s then
-        # the sig sha2 is missing
-        for sig in signature_att:
-            if sig:
-                if sig not in payload_sha2s:
-                    raise BadRequest(
-                        "Signature attachment is missing from request")
-            else:
-                raise BadRequest(
-                    "Signature attachment is missing from request")
-        # We know all sha2s are there so set it and loop through each payload
-        # and save to cache
-        r_dict['payload_sha2s'] = payload_sha2s
-        temp_save_attachments(msg)
+            part_dict[part.get('X-Experience-API-Hash')] = part
+        r_dict['payload_sha2s'] = [p['X-Experience-API-Hash']
+                         for p in msg.get_payload()]
+        parse_signature_attachments(r_dict, part_dict)
     else:
         raise ParamError(
             "This content was not multipart for the multipart request.")
-    # See if the posted statements have signatures
-    validate_signatures(r_dict['body'])
+    # Saves all attachments (including signatures) to memory temporarily
+    # for further processing
+    temp_save_attachments(msg)
 
 
-def validate_signatures(body):
-    att_stmts = []
-    if isinstance(body, list):
-        for s in body:
-            if 'attachments' in s:
-                att_stmts.append(s)
-    elif 'attachments' in body:
-        att_stmts.append(body)
-    if att_stmts:
-        # find if any of those statements with attachments have a signed
-        # statement
-        signed_stmts = [(s, a) for s in att_stmts for a in s.get('attachments', None) if a[
-            'usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
-        for ss in signed_stmts:
-            sha2_key = ss[1]['sha2']
-            signature = att_cache.get(sha2_key)
-            algorithm = jws.get_unverified_headers(signature).get('alg', None)
-            x5c = jws.get_unverified_headers(signature).get('x5c', None)
-            jws_payload = jws.get_unverified_claims(signature)
-            body_payload = ss[0]
-            # If x.509 was used to sign, the public key should be in the x5c header and you need to verify it
-            # If using RS256, RS384, or RS512 some JWS libs require a real private key to create JWS - xAPI spec
-            # only has SHOULD - need to look into. If x.509 is necessary then
-            # if no x5c header is found this should fail
-            if x5c:
-                verified = False
-                try:
-                    verified = jws.verify(
-                        signature, cert_to_key(x5c[0]), algorithm)
-                except Exception as e:
-                    att_cache.delete(sha2_key)
-                    raise BadRequest("The JWS is not valid: %s" % e.message)
-                else:
-                    if not verified:
-                        att_cache.delete(sha2_key)
-                        raise BadRequest(
-                            "The JWS is not valid - could not verify signature")
-                    # Compare statements
-                    if not compare_payloads(jws_payload, body_payload):
-                        att_cache.delete(sha2_key)
-                        raise BadRequest(
-                            "The JWS is not valid - payload and body statements do not match")
-            else:
-                # Compare statements
-                if not compare_payloads(jws_payload, body_payload):
-                    att_cache.delete(sha2_key)
-                    raise BadRequest(
-                        "The JWS is not valid - payload and body statements do not match")
+def parse_signature_attachments(r_dict, part_dict):
+    # Find the signature sha2 from the list attachment values in the
+    # statements (there should only be one)
+    stmt_sig_tuples = []
+    if isinstance(r_dict['body'], list):
+        stmt_sig_tuples = [(s, a.get('sha2', None)) for s in r_dict['body'] for a in s.get('attachments', None) if a[
+                            'usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
+        stmt_sig_tuples = [sst for sst in stmt_sig_tuples if sst[1]]
+    else:
+        stmt_sig_tuples = [(r_dict['body'], [a.get('sha2', None) for a in r_dict['body']['attachments']
+                         if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and
+                         'attachments' in r_dict['body']])]
+        stmt_sig_tuples = [sst for sst in stmt_sig_tuples if sst[1]]
+    if stmt_sig_tuples:
+        for tup in stmt_sig_tuples:
+            if len(tup[1]) > 1:
+                raise BadRequest(
+                    "A single statement should only have one signature attachment")
+        handle_signatures(stmt_sig_tuples, r_dict['payload_sha2s'], part_dict)
 
 
-def compare_payloads(jws_payload, body_payload):
+def handle_signatures(stmt_tuples, sha2s, part_dict):
+    for tup in stmt_tuples:
+        sha2 = tup[1][0]
+        # Should be listed in sha2s - sha2s couldn't not match
+        if sha2 not in sha2s:
+            raise BadRequest(
+                "Signature attachment is missing from request")                    
+        # If there are multiple attachments, have to find the signature one here - TODO
+        part = part_dict[sha2]
+        # Content type must be set to octet/stream
+        if part['Content-Type'] != 'application/octet-stream':
+            raise BadRequest(
+                "Signature attachment must have Content-Type of "\
+                "'application/octet-stream'")
+        validate_signature(tup, part)
+
+
+def validate_signature(tup, part):
+    sha2_key = tup[1][0]
+    signature = get_part_payload(part)
+    algorithm = jws.get_unverified_headers(signature).get('alg', None)
+    if algorithm != 'RS256' and algorithm != 'RS384' and algorithm != 'RS512':
+        raise BadRequest(
+            "JWS signature must be calculated with SHA-256, SHA-384 or" \
+            "SHA-512 algorithms")
+    x5c = jws.get_unverified_headers(signature).get('x5c', None)
+    jws_payload = jws.get_unverified_claims(signature)
+    body_payload = tup[0]
+    # If x.509 was used to sign, the public key should be in the x5c header and you need to verify it
+    # If using RS256, RS384, or RS512 some JWS libs require a real private key to create JWS - xAPI spec
+    # only has SHOULD - need to look into. If x.509 is necessary then
+    # if no x5c header is found this should fail
+    if x5c:
+        verified = False
+        try:
+            verified = jws.verify(
+                signature, cert_to_key(x5c[0]), algorithm)
+        except Exception as e:
+            raise BadRequest("The JWS is not valid: %s" % e.message)
+        else:
+            if not verified:
+                raise BadRequest(
+                    "The JWS is not valid - could not verify signature")
+            # Compare statements
+            if not compare_payloads(jws_payload, body_payload, sha2_key):
+                raise BadRequest(
+                    "The JWS is not valid - payload and body statements do not match")
+    else:
+        # Compare statements
+        if not compare_payloads(jws_payload, body_payload, sha2_key):
+            raise BadRequest(
+                "The JWS is not valid - payload and body statements do not match")
+
+
+def compare_payloads(jws_payload, body_payload, sha2_key):
     # Need to copy the dict so use dict()
-    jws_placeholder = dict(json.loads(jws_payload))
+    try:
+        jws_placeholder = dict(json.loads(jws_payload))
+    except Exception, e:
+        raise BadRequest(
+            "Invalid JSON serialization of signature payload")
+
     jws_placeholder.pop("id", None)
     jws_placeholder.pop("authority", None)
     jws_placeholder.pop("stored", None)
@@ -389,19 +399,20 @@ def compare_payloads(jws_payload, body_payload):
 def temp_save_attachments(msg):
     for part in msg.get_payload():
         xhash = part.get('X-Experience-API-Hash')
-        c_type = part['Content-Type']
-        encoding = part.get('Content-Transfer-Encoding', None)
-        if encoding != "binary":
-            raise BadRequest(
-                "Each attachment part should have 'binary' as Content-Transfer-Encoding")
-        # Plaintext payloads from email lib have extra newline appended
-        if "text/plain" in c_type:
-            payload = part.get_payload()
-            if payload.endswith('\n'):
-                payload = payload[:-1]
-        else:
-            payload = part.get_payload()
-        att_cache.set(xhash, payload)
+        att_cache.set(xhash, get_part_payload(part))
+
+
+def get_part_payload(part):
+    c_type = part['Content-Type']
+    # Email class adds newline for text/plain
+    # workaround
+    if "text/plain" in c_type:
+        payload = part.get_payload()
+        if payload.endswith('\n'):
+            payload = payload[:-1]
+    else:
+        payload = part.get_payload()    
+    return payload
 
 
 def cert_to_key(cert):

@@ -1038,6 +1038,106 @@ class AttachmentAndSignedTests(TestCase):
                              content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
+    def test_example_signed_statement_non_json_payload(self):
+        payload = json.loads(exstmt)
+        wrong_payload = exstmt.replace('"', "'")
+        signature = jws.sign(wrong_payload, privatekey, algorithm='RS256')
+        self.assertTrue(jws.verify(
+            signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2      
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(
+            payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
+
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, "Invalid JSON serialization of signature payload")
+
+    def test_example_signed_statement_wrong_usageType(self):
+        payload = json.loads(exstmt)
+        payload['attachments'][0]['usageType'] = 'http://adlnet.gov/this/is/wrong'
+        signature = jws.sign(payload, privatekey, algorithm='RS256')
+        self.assertTrue(jws.verify(
+            signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(
+            payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
+
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when" \
+                "signing statements")
+
+    def test_example_signed_statement_wrong_algorithm(self):
+        payload = json.loads(exstmt)
+        signature = jws.sign(payload, privatekey, algorithm='HS256')
+        self.assertTrue(jws.verify(
+            signature, privatekey, algorithms=['HS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(
+            payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="octet-stream")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
+
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, "JWS signature must be calculated with SHA-256, SHA-384 or" \
+                    "SHA-512 algorithms")
+
+    def test_example_signed_statement_wrong_content_type(self):
+        payload = json.loads(exstmt)
+        signature = jws.sign(payload, privatekey, algorithm='RS256')
+        self.assertTrue(jws.verify(
+            signature, privatekey, algorithms=['RS256']))
+        sha2 = hashlib.sha256(signature).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(
+            payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata = MIMEApplication(signature, _subtype="foobar")
+
+        jwsdata.add_header('X-Experience-API-Hash', sha2)
+        jwsdata.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata.set_payload(signature)
+        message.attach(stmtdata)
+        message.attach(jwsdata)
+
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content, "Signature attachment must have Content-Type of 'application/octet-stream'")
+
     def test_example_signed_statement_sha2s_no_match(self):
         stmt = json.loads(exstmt)
         stmt['actor'] = {"mbox": "mailto:sneaky@example.com",
