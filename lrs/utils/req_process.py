@@ -203,9 +203,9 @@ def statements_get(req_dict):
             resp = HttpResponse(stmt_result, content_type=mime_type,
                                 status=200)
         else:
+            stmt_result = json.dumps(stmt_dict, sort_keys=False)
             resp = HttpResponse(
-                json.dumps(stmt_dict, sort_keys=False),
-                content_type=mime_type, status=200)
+                stmt_result, content_type=mime_type, status=200)
             content_length = len(stmt_result)
     # Complex GET
     else:
