@@ -259,11 +259,7 @@ def validate_attachments(attachment_data, payload_sha2s, content_type):
             if 'sha2' in attachment:
                 sha2 = attachment['sha2']
                 # Check if the sha2 field is a key in the payload dict
-                if payload_sha2s:
-                    if sha2 not in payload_sha2s and 'fileUrl' not in attachment:
-                        err_msg = "Could not find attachment payload with sha: %s" % sha2
-                        raise ParamError(err_msg)
-                else:
+                if not payload_sha2s:
                     if 'fileUrl' not in attachment:
                         raise BadRequest(
                             "Missing X-Experience-API-Hash field in header")
