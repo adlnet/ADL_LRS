@@ -290,22 +290,53 @@ def parse_attachment(request, r_dict):
 def parse_signature_attachments(r_dict, part_dict):
     # Find the signature sha2 from the list attachment values in the
     # statements (there should only be one)
-    stmt_sig_tuples = []
+    signed_stmts = []
+    unsigned_stmts = []
     if isinstance(r_dict['body'], list):
-        stmt_sig_tuples = [(s, a.get('sha2', None)) for s in r_dict['body'] for a in s.get('attachments', None) if a[
+        stmt_attachment_pairs = [(s, a.get('sha2', None)) for s in r_dict['body'] for a in s.get('attachments', None) if a[
                             'usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
-        stmt_sig_tuples = [sst for sst in stmt_sig_tuples if sst[1]]
-    else:
-        stmt_sig_tuples = [(r_dict['body'], [a.get('sha2', None) for a in r_dict['body']['attachments']
+        signed_stmts = [sap for sap in stmt_attachment_pairs if sap[1]]
+        unsigned_stmts = [sap for sap in stmt_attachment_pairs if not sap[1]]
+    else:        
+        stmt_attachment_pairs = [(r_dict['body'], [a.get('sha2', None) for a in r_dict['body']['attachments']
                          if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and
                          'attachments' in r_dict['body']])]
-        stmt_sig_tuples = [sst for sst in stmt_sig_tuples if sst[1]]
-    if stmt_sig_tuples:
-        for tup in stmt_sig_tuples:
+        signed_stmts = [sap for sap in stmt_attachment_pairs if sap[1]]
+        unsigned_stmts = [sap for sap in stmt_attachment_pairs if not sap[1]]
+
+    if unsigned_stmts:
+        for tup in unsigned_stmts:
+            validate_non_signature_attachment(unsigned_stmts, r_dict['payload_sha2s'], part_dict)
+
+    if signed_stmts:
+        for tup in signed_stmts:
             if len(tup[1]) > 1:
                 raise BadRequest(
                     "A single statement should only have one signature attachment")
-        handle_signatures(stmt_sig_tuples, r_dict['payload_sha2s'], part_dict)
+        handle_signatures(signed_stmts, r_dict['payload_sha2s'], part_dict)
+
+
+def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
+    for tup in unsigned_stmts:
+        atts = tup[0]['attachments']
+        for att in atts:
+            sha2 = att['sha2']
+            # Should be listed in sha2s - sha2s couldn't not match
+            if sha2 not in sha2s:
+                raise BadRequest(
+                    "Could not find attachment payload with sha: %s" % sha2)                    
+            part = part_dict[sha2]
+            signature = get_part_payload(part)
+            try:
+                jws.get_unverified_headers(signature)
+            except Exception, e:
+                # If there is an error that means the payload is not a JWS
+                # signature which is what we expected
+                pass
+            else:
+                raise BadRequest(
+                    "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when "\
+                    "signing statements")
 
 
 def handle_signatures(stmt_tuples, sha2s, part_dict):
@@ -314,8 +345,7 @@ def handle_signatures(stmt_tuples, sha2s, part_dict):
         # Should be listed in sha2s - sha2s couldn't not match
         if sha2 not in sha2s:
             raise BadRequest(
-                "Signature attachment is missing from request")                    
-        # If there are multiple attachments, have to find the signature one here - TODO
+                "Could not find attachment payload with sha: %s" % sha2)                    
         part = part_dict[sha2]
         # Content type must be set to octet/stream
         if part['Content-Type'] != 'application/octet-stream':
@@ -329,6 +359,9 @@ def validate_signature(tup, part):
     sha2_key = tup[1][0]
     signature = get_part_payload(part)
     algorithm = jws.get_unverified_headers(signature).get('alg', None)
+    if not algorithm:
+        raise BadRequest(
+            "No signing algorithm found for JWS signature")
     if algorithm != 'RS256' and algorithm != 'RS384' and algorithm != 'RS512':
         raise BadRequest(
             "JWS signature must be calculated with SHA-256, SHA-384 or" \
@@ -411,7 +444,7 @@ def get_part_payload(part):
         if payload.endswith('\n'):
             payload = payload[:-1]
     else:
-        payload = part.get_payload()    
+        payload = part.get_payload()
     return payload
 
 

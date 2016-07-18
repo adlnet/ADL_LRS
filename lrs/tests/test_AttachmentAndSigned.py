@@ -1086,7 +1086,7 @@ class AttachmentAndSignedTests(TestCase):
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
                              content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.content, "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when" \
+        self.assertEqual(r.content, "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when " \
                 "signing statements")
 
     def test_example_signed_statement_wrong_algorithm(self):
@@ -1162,8 +1162,8 @@ class AttachmentAndSignedTests(TestCase):
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
                              content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
-        self.assertEqual(
-            r.content, 'Signature attachment is missing from request')
+        self.assertIn(
+            "Could not find attachment payload with sha:", r.content)
 
     def test_example_signed_statement_payloads_no_match(self):
         bad_stmt = json.loads(exstmt)
