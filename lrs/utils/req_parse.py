@@ -293,16 +293,16 @@ def parse_signature_attachments(r_dict, part_dict):
     signed_stmts = []
     unsigned_stmts = []
     if isinstance(r_dict['body'], list):
-        stmt_attachment_pairs = [(s, a.get('sha2', None)) for s in r_dict['body'] for a in s.get('attachments', None) if a[
-                            'usageType'] == "http://adlnet.gov/expapi/attachments/signature"]
-        signed_stmts = [sap for sap in stmt_attachment_pairs if sap[1]]
-        unsigned_stmts = [sap for sap in stmt_attachment_pairs if not sap[1]]
+        stmt_attachment_pairs = []
+        for stmt in r_dict['body']:
+            if 'attachments' in stmt:
+                stmt_attachment_pairs.append((stmt, [a.get('sha2', None) for a in stmt['attachments']
+                                if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"]))
     else:        
         stmt_attachment_pairs = [(r_dict['body'], [a.get('sha2', None) for a in r_dict['body']['attachments']
-                         if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature" and
-                         'attachments' in r_dict['body']])]
-        signed_stmts = [sap for sap in stmt_attachment_pairs if sap[1]]
-        unsigned_stmts = [sap for sap in stmt_attachment_pairs if not sap[1]]
+                         if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"])]
+    signed_stmts = [sap for sap in stmt_attachment_pairs if sap[1]]
+    unsigned_stmts = [sap for sap in stmt_attachment_pairs if not sap[1]]
 
     if unsigned_stmts:
         for tup in unsigned_stmts:
@@ -320,27 +320,29 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
     for tup in unsigned_stmts:
         atts = tup[0]['attachments']
         for att in atts:
-            sha2 = att['sha2']
-            # Should be listed in sha2s - sha2s couldn't not match
-            if sha2 not in sha2s:
-                raise BadRequest(
-                    "Could not find attachment payload with sha: %s" % sha2)                    
-            part = part_dict[sha2]
-            signature = get_part_payload(part)
-            try:
-                jws.get_unverified_headers(signature)
-            except Exception, e:
-                # If there is an error that means the payload is not a JWS
-                # signature which is what we expected
-                pass
-            else:
-                raise BadRequest(
-                    "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when "\
-                    "signing statements")
+            sha2 = att.get('sha2', None)
+            # Doesn't have to be there if fileUrl
+            if sha2:
+                # Should be listed in sha2s - sha2s couldn't not match
+                if sha2 not in sha2s:
+                    raise BadRequest(
+                        "Could not find attachment payload with sha: %s" % sha2)                    
+                part = part_dict[sha2]
+                signature = get_part_payload(part)
+                try:
+                    jws.get_unverified_headers(signature)
+                except Exception, e:
+                    # If there is an error that means the payload is not a JWS
+                    # signature which is what we expected
+                    pass
+                else:
+                    raise BadRequest(
+                        "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when "\
+                        "signing statements")
 
 
 def handle_signatures(stmt_tuples, sha2s, part_dict):
-    for tup in stmt_tuples:
+    for tup in stmt_tuples:      
         sha2 = tup[1][0]
         # Should be listed in sha2s - sha2s couldn't not match
         if sha2 not in sha2s:
