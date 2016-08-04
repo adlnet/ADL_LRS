@@ -129,17 +129,13 @@ def complex_get(param_dict, limit, language, format, attachments):
         return create_under_limit_stmt_result(stmtset, stored_param, language, format)
 
 
-def stmt_ref_search(stmt_list, untilQ, sinceQ):
-    # find statements where ids in list are used in other statements' objects,
-    # context, substatements, and substatement context
-    stmtset = Statement.objects.filter(
-        Q(object_statementref__in=stmt_list) & untilQ & sinceQ).distinct().values_list('statement_id')
-    stmtreflist = [st_id[0] for st_id in stmtset]
-    if not stmtreflist:
-        return stmt_list
-    # get the statements that have a statement ref_id in the stmtreflist,
-    # recurse
-    return stmtreflist + stmt_ref_search(stmtreflist, untilQ, sinceQ)
+def stmt_ref_search(stmt_list, untilQ, sinceQ, acc=[]):
+    while stmt_list:
+        ref_list = [sid for sid in Statement.objects.filter(
+            Q(object_statementref__in=stmt_list) & untilQ & sinceQ)
+            .distinct().values_list('statement_id', flat=True)]
+        (acc, stmt_list) = (acc + stmt_list, ref_list)
+    return acc
 
 
 def set_limit(req_limit):
@@ -239,14 +235,14 @@ def parse_more_request(req_id):
     data["stored"] = decoded_info[7]
 
     # Build statementResult
-    stmt_result = build_statement_result(req_id, **data)
+    stmt_result = build_more_statement_result(req_id, **data)
     return stmt_result, data["attachments"]
 
 # Gets called from req_process after complex_get with list of django objects and also gets called from parse_more_request when
 # more_id is used so list will be serialized
 
 
-def build_statement_result(more_id, **data):
+def build_more_statement_result(more_id, **data):
     result = {}
     current_page = data["start_page"] + 1
     stmt_pager = Paginator(data["stmt_list"], data["limit"])

@@ -177,13 +177,6 @@ def statements_more_get(req_dict):
         else:
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
-
-    # Add consistent header and set content-length
-    try:
-        resp['X-Experience-API-Consistent-Through'] = str(
-            Statement.objects.latest('stored').stored)
-    except:
-        resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     resp['Content-Length'] = str(content_length)
 
     return resp
@@ -210,13 +203,6 @@ def statements_get(req_dict):
     # Complex GET
     else:
         resp, content_length = process_complex_get(req_dict)
-
-    # Set consistent through and content length headers for all responses
-    try:
-        resp['X-Experience-API-Consistent-Through'] = str(
-            Statement.objects.latest('stored').stored)
-    except:
-        resp['X-Experience-API-Consistent-Through'] = str(datetime.now())
     resp['Content-Length'] = str(content_length)
 
     return resp
