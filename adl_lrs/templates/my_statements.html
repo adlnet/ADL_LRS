@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load jsonify %}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 <style>
@@ -39,7 +40,37 @@
                 <h2>My Statements</h2>
                 <br>
                 <br>
-                {% include page_template %}            
+                {% if statements %}
+                    <div class="email-item">
+                        {% for stmt in statements %}
+                            <div class="datacontainer pure-u">
+                                <h4 class="email-name"><span class="actor">{{ stmt.actor.get_a_name }}</span> <span class="verb">{{ stmt.verb.get_a_name }}</span> <span class="object">{% if stmt.object_statementref %}{{ stmt.get_object.id }}{% else %}{{ stmt.get_object.get_a_name }}{% endif %}</span></h4>
+                                <h5 class="email-subject">{{ stmt.timestamp }}</h5>
+                                <h5 class="email-subject">{{ stmt.statement_id }}</h5>
+                                <p class="email-desc">
+                                    <pre id="stmt" class="jsonpre">{{ stmt.to_dict|jsonify }}</pre>
+                                </p>
+                            </div>
+                            <br>
+                            <br>
+                        {% endfor %}
+                    </div>
+                    <div class="pagination">
+                        <span class="step-links">
+                            {% if statements.has_previous %}
+                                <a href="?page={{ statements.previous_page_number }}">Previous</a>
+                            {% endif %}
+                            <span class="current">
+                                Page {{ statements.number }} of {{ statements.paginator.num_pages }}
+                            </span>
+                            {% if statements.has_next %}
+                                <a href="?page={{ statements.next_page_number }}">Next</a>
+                            {% endif %}                            
+                        </span>
+                    </div>
+                {% else %}
+                    No statements to display
+                {% endif %}            
             </div>
         </div>
         <div class="pure-u-1-6 pure-u-md-1-6 pure-u-lg-1-6"></div>
@@ -49,13 +80,4 @@
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-data.js"></script>
-<script src="{{ STATIC_URL }}el-pagination/js/el-pagination.js"></script>
-<script>
-    $.endlessPaginate({
-        paginateOnScroll: true,
-        onCompleted: function(context, fragment){
-            styleData();
-        }
-    });
-</script>
 {% endblock extra_js %}

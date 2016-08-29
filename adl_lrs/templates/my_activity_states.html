@@ -41,7 +41,54 @@
                 <br>
                 <br>
                 <div>
-                {% include page_template %}
+                    {% if activity_states %}
+                        <div class="email-item">
+                            {% for as in activity_states %}
+                                <div class="datacontainer pure-u">
+                                    <h4 class="email-name"><span class="as-actid">{{ as.activity_id }}</span> - <span class="as-stid">{{ as.state_id }}</span></h4>
+                                    <h5 class="email-subject"><i>Last Updated: {{ as.updated }}</i></h5>
+                                    <p class="email-desc">
+                                        {% if as.json_state %}
+                                            <pre class="jsonpre">{{ as.json_state }}</pre>
+                                            <input class="hidden" type="hidden" value="{{ as.json_state }}">
+                                        {% else %}
+                                            {% if as.content_type == "application/octect-stream" or as.content_type == "text/plain" %}
+                                                <pre class="jsonpre">Non-JSON</pre>
+                                                <input class="hidden" type="hidden" value="Not JSON">
+                                            {% else %}
+                                                Cannot display state (non-text and non-JSON)
+                                                <input class="hidden" type="hidden" value="">
+                                            {% endif %}
+                                        {% endif %}
+                                        {% if as.state_id == "https://w3id.org/xapi/adl/profiles/scorm/activity-state" %}
+                                            <br>
+                                            <button class="scormbutton pure-button pure-button-primary" type="button">Show Attempts</button>
+                                            <br>
+                                            <br>
+                                            <div class="attemptarray"></div>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <br>
+                                <br>
+                            {% endfor %}
+                        </div>
+                        <div class="pagination">
+                            <span class="step-links">
+                                {% if activity_states.has_previous %}
+                                    <a href="?page={{ activity_states.previous_page_number }}">Previous</a>
+                                {% endif %}
+                                <span class="current">
+                                    Page {{ activity_states.number }} of {{ activity_states.paginator.num_pages }}
+                                </span>
+                                {% if activity_states.has_next %}
+                                    <a href="?page={{ activity_states.next_page_number }}">Next</a>
+                                {% endif %}                            
+                            </span>
+                        </div>
+                    {% else %}
+                        No activity states to display
+                    {% endif %}               
                 </div>            
             </div>
         </div>
@@ -68,13 +115,4 @@
     }
 </script>
 <script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-data.js"></script>
-<script src="django-el-pagination-2.1.1"></script>
-<script>
-    $.endlessPaginate({
-        paginateOnScroll: true,
-        onCompleted: function(context, fragment){
-            styleData();
-        }
-    });
-</script>
 {% endblock extra_js %}

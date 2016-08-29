@@ -1,7 +1,7 @@
+from datetime import datetime
 import logging
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
@@ -9,7 +9,7 @@ from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.http import require_http_methods
 
 from .exceptions import BadRequest, Unauthorized, Forbidden, NotFound, Conflict, PreconditionFail, OauthUnauthorized, OauthBadRequest
-from .utils import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware
+from .utils import req_validate, req_parse, req_process, XAPIVersionHeaderMiddleware, XAPIConsistentThroughMiddleware
 
 # This uses the lrs logger for LRS specific information
 logger = logging.getLogger(__name__)
@@ -82,6 +82,7 @@ def statements_more_placeholder(request):
 
 
 @require_http_methods(["PUT", "GET", "POST", "HEAD"])
+@decorator_from_middleware(XAPIConsistentThroughMiddleware.XAPIConsistentThrough)
 @decorator_from_middleware(XAPIVersionHeaderMiddleware.XAPIVersionHeader)
 def statements(request):
     return handle_request(request)
@@ -212,43 +213,29 @@ def handle_request(request, more_id=None):
             path = "%s/%s" % (reverse('lrs:statements').lower(), "more")
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
-    except BadRequest as err:
+    except (BadRequest, OauthBadRequest, HttpResponseBadRequest)  as err:
         log_exception(request.path, err)
-        return HttpResponse(err.message, status=400)
-    except ValidationError as ve:
-        log_exception(request.path, ve)
-        return HttpResponse(ve.messages[0], status=400)
-    except OauthBadRequest as oauth_err:
-        log_exception(request.path, oauth_err)
-        return HttpResponse(oauth_err.message, status=400)
-    except Unauthorized as autherr:
+        response = HttpResponse(err.message, status=400)
+    except (Unauthorized, OauthUnauthorized) as autherr:
         log_exception(request.path, autherr)
-        r = HttpResponse(autherr, status=401)
-        r['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
-        return r
-    except OauthUnauthorized as oauth_err:
-        log_exception(request.path, oauth_err)
-        return HttpResponse(oauth_err.message, status=401)
+        response = HttpResponse(autherr, status=401)
+        response['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
     except Forbidden as forb:
         log_exception(request.path, forb)
-        return HttpResponse(forb.message, status=403)
+        response = HttpResponse(forb.message, status=403)
     except NotFound as nf:
         log_exception(request.path, nf)
-        return HttpResponse(nf.message, status=404)
+        response = HttpResponse(nf.message, status=404)
     except Conflict as c:
         log_exception(request.path, c)
-        return HttpResponse(c.message, status=409)
+        response = HttpResponse(c.message, status=409)
     except PreconditionFail as pf:
         log_exception(request.path, pf)
-        return HttpResponse(pf.message, status=412)
-    # Added BadResponse for OAuth validation
-    except HttpResponseBadRequest as br:
-        log_exception(request.path, br)
-        return br
+        response = HttpResponse(pf.message, status=412)
     except Exception as err:
         log_exception(request.path, err)
-        return HttpResponse(err.message, status=500)
-
+        response = HttpResponse(err.message, status=500)   
+    return response
 
 def log_exception(path, ex):
     logger.info("\nException while processing: %s" % path)

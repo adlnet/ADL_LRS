@@ -1914,6 +1914,65 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r['Content-Type'],
                          'multipart/mixed; boundary=======ADL_LRS======')
 
+    def test_attachments_with_statementId(self):
+        stmt = json.dumps([{"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
+                           "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                            "object": {"id": "act:test_post"}},
+                            {"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
+                            "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                            "object": {"id": "act:test_post"}}])
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(response.status_code, 200)
+        existing_ids = json.loads(response.content)
+        existing_id1 = existing_ids[0]
+        existing_id2 = existing_ids[1]
+
+        st_id = str(uuid.uuid1())
+        stmt = {"actor": {"mbox": "mailto:tom@example.com"},
+                 "verb": {"id": "http://tom.com/verb/butted"},
+                 "object": {"id": "act:tom.com/objs/heads"},
+                 "attachments": [
+                {"usageType": "http://example.com/attachment-usage/test11",
+                 "display": {"en-US": "A test attachment11"},
+                 "description": {"en-US": "A test attachment (description)11"},
+                 "contentType": "text/plain; charset=utf-8",
+                 "length": 27,
+                 "sha2": ""}]}
+
+        message = MIMEMultipart(boundary="myboundary")
+        txt11 = u"This is a text attachment11"
+        txtsha11 = hashlib.sha256(txt11).hexdigest()
+        stmt['attachments'][0]["sha2"] = str(txtsha11)
+
+        stmtdata = MIMEApplication(json.dumps(
+            stmt), _subtype="json", _encoder=json.JSONEncoder)
+
+        textdata11 = MIMEText(txt11, 'plain', 'utf-8')
+        textdata11.add_header('X-Experience-API-Hash', txtsha11)
+        textdata11.replace_header('Content-Transfer-Encoding', 'binary')
+        textdata11.set_payload(txt11, 'utf-8')
+
+        message.attach(stmtdata)
+        message.attach(textdata11)
+
+        put_param = {"statementId": st_id}
+        put_path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(put_param))
+        r = self.client.put(put_path, message.as_string(), content_type="multipart/mixed",
+                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 204)
+
+        param = {"attachments": True, "statementId": st_id}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        r = self.client.get(
+            path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'],
+                         'multipart/mixed; boundary=======ADL_LRS======')
+        self.assertIn(st_id, r.content)
+        self.assertNotIn(existing_id1, r.content)
+        self.assertNotIn(existing_id2, r.content)
+
     def test_attachments_no_payload(self):
         stmt = {"actor": {"mbox": "mailto:tom@example.com"},
                 "verb": {"id": "http://tom.com/verb/butted"},

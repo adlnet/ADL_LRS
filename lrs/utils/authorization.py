@@ -188,7 +188,10 @@ def http_auth_helper(request):
         if len(auth) == 2:
             if auth[0].lower() == 'basic':
                 # Currently, only basic http auth is used.
-                uname, passwd = base64.b64decode(auth[1]).split(':')
+                try:
+                    uname, passwd = base64.b64decode(auth[1]).split(':')
+                except Exception, e:
+                    raise BadRequest("Authorization failure: %s" % e.message)
                 # Sent in empty auth - now allowed when not allowing empty auth
                 # in settings
                 if not uname and not passwd and not settings.ALLOW_EMPTY_HTTP_AUTH:
