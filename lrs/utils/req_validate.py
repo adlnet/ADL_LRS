@@ -54,7 +54,9 @@ def validate_void_statement(void_id):
         if stmts[0].voided:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
             raise BadRequest(err_msg)
-
+        if stmts[0].verb.verb_id == "http://adlnet.gov/expapi/verbs/voided":
+            err_msg = "Statement with ID: %s is a voiding statement and cannot be voided." % void_id
+            raise BadRequest(err_msg)
 
 def validate_body(body, auth, payload_sha2s, content_type):
     [server_validate_statement(
