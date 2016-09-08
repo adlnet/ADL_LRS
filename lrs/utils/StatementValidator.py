@@ -499,6 +499,8 @@ class StatementValidator():
             interactionType = definition['interactionType']
         # If crp included, ensure they are strings in a list
         if 'correctResponsesPattern' in definition:
+            if not interactionType:
+                self.return_error("interactionType must be given when correctResponsesPattern is used")
             self.check_if_list(definition[
                                'correctResponsesPattern'], "Activity definition correctResponsesPattern")
             for answer in definition['correctResponsesPattern']:
@@ -506,6 +508,10 @@ class StatementValidator():
                 if not isinstance(answer, basestring):
                     self.return_error(
                         "Activity definition correctResponsesPattern answers must all be strings")
+
+        if ('choices' in definition or 'scale' in definition or 'source' in definition \
+            or 'target' in definition or 'steps' in definition) and not interactionType:
+            self.return_error("interactionType must be given when using interaction components")
 
         self.validate_interaction_types(interactionType, definition)
 
