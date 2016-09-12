@@ -308,119 +308,599 @@ class StatementFilterTests(TestCase):
             self.assertEqual(s['actor']['mbox'], param['agent']['mbox'])
 
     def test_related_agents_filter(self):
-        stmt = {
-            "timestamp": "2013-04-10T21:25:59.583000+00:00",
-            "object": {
-                "mbox": "mailto:louo@example.com",
-                "name": "louo",
-                "objectType": "Agent"
-            },
-            "actor": {
-                "member": [
-                    {
-                        "mbox": "mailto:blobby@example.com",
-                        "name": "blobby"
-                    },
-                    {
-                        "mbox": "mailto:timmy@example.com",
-                        "name": "timmy"
-                    },
-                    {
-                        "mbox": "mailto:tom@example.com",
-                        "name": "tom"
+        stmts = [
+            # Agent as object
+            {
+                "timestamp": "2013-04-10T21:25:59.583000+00:00",
+                "object": {
+                    "mbox": "mailto:louo@example.com",
+                    "name": "louo",
+                    "objectType": "Agent"
+                },
+                "actor": {
+                    "member": [
+                        {
+                            "mbox": "mailto:blobby@example.com",
+                            "name": "blobby"
+                        },
+                        {
+                            "mbox": "mailto:timmy@example.com",
+                            "name": "timmy"
+                        },
+                        {
+                            "mbox": "mailto:tom@example.com",
+                            "name": "tom"
+                        }
+                    ],
+                    "name": "the tourists",
+                    "objectType": "Group"
+                },
+                "verb": {
+                    "id": "http://imaginarium.adlnet.org/xapi/verbs/sighted",
+                    "display": {
+                        "en-US": "sighted"
                     }
-                ],
-                "name": "the tourists",
-                "objectType": "Group"
-            },
-            "verb": {
-                "id": "http://imaginarium.adlnet.org/xapi/verbs/sighted",
-                "display": {
-                    "en-US": "sighted"
-                }
-            },
-            "context": {
-                "contextActivities": {
-                    "parent": {
-                        "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                },
+                "context": {
+                    "contextActivities": {
+                        "parent": {
+                            "id": "act:imaginarium.adlnet.org/xapi/imaginarium"
+                        }
                     }
                 }
-            }
-        }
-        resp = self.client.post(reverse('lrs:statements'), json.dumps(
-            stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(resp.status_code, 200)
-        stmt = {
-            "verb": {
-                "id": "http://special.adlnet.gov/xapi/verbs/started",
-                "display": {
-                    "en-US": "started"
+            },
+            # Agent in group as actor
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/started",
+                    "display": {
+                        "en-US": "started"
+                    }
+                },
+                "timestamp": "2013-04-11T14:49:25.376782+00:00",
+                "object": {
+                    "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
+                },
+                "actor": {
+                    "member": [
+                        {
+                            "mbox": "mailto:louo@example.com",
+                            "name": "louo"
+                        },
+                        {
+                            "mbox": "mailto:tom@example.com",
+                            "name": "tom"
+                        }
+                    ],
+                    "mbox": "mailto:adllrsdevs@example.com",
+                    "name": "adl lrs developers",
+                    "objectType": "Group"
                 }
             },
-            "timestamp": "2013-04-11T14:49:25.376782+00:00",
-            "object": {
-                "id": "act:github.com/adlnet/ADL_LRS/tree/1.0dev"
-            },
-            "actor": {
-                "member": [
-                    {
+            # Agent as actor in substatement
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
                         "mbox": "mailto:louo@example.com",
                         "name": "louo"
                     },
-                    {
-                        "mbox": "mailto:tom@example.com",
-                        "name": "tom"
-                    }
-                ],
-                "mbox": "mailto:adllrsdevs@example.com",
-                "name": "adl lrs developers",
-                "objectType": "Group"
-            }
-        }
-        resp = self.client.post(reverse('lrs:statements'), json.dumps(
-            stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(resp.status_code, 200)
-        stmt = {
-            "verb": {
-                "id": "http://special.adlnet.gov/xapi/verbs/stopped",
-                "display": {
-                    "en-US": "nixed"
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:timmy@example.com",
+                    "name": "timmy"
                 }
             },
-            "timestamp": "2013-04-11T23:24:03.603184+00:00",
-            "object": {
-                "timestamp": "2013-04-11T23:24:03.578795+00:00",
+            # Agent as actor
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
                 "object": {
-                    "id": "act:adlnet.gov/website"
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
                 },
                 "actor": {
                     "mbox": "mailto:louo@example.com",
                     "name": "louo"
-                },
+                }
+            },
+            # Agent as auth
+            {
                 "verb": {
-                    "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
                     "display": {
-                        "en-US": "hax0r5"
+                        "en-US": "nixed"
                     }
                 },
-                "objectType": "SubStatement"
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+                "authority": {
+                    "mbox": "mailto:louo@example.com",
+                    "name": "louo"
+                }
             },
-            "actor": {
-                "mbox": "mailto:timmy@example.com",
-                "name": "timmy"
-            }
-        }
+            # Agent as instructor 
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+                "context": {
+                    "instructor": {
+                        "mbox": "mailto:louo@example.com",
+                        "name": "louo"
+                    }
+                }
+            },
+            # Agent in group as instructor
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+                "context": {
+                    "instructor": {
+                        "member": [
+                            {
+                                "mbox": "mailto:louo@example.com",
+                                "name": "louo"
+                            },
+                            {
+                                "mbox": "mailto:tom@example.com",
+                                "name": "tom"
+                            }
+                        ],
+                        "mbox": "mailto:adllrsdevs@example.com",
+                        "name": "adl lrs developers",
+                        "objectType": "Group"
+                    }
+                }
+            },
+            # Agent in group as team
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+                "context": {
+                    "team": {
+                        "member": [
+                            {
+                                "mbox": "mailto:louo@example.com",
+                                "name": "louo"
+                            },
+                            {
+                                "mbox": "mailto:tom@example.com",
+                                "name": "tom"
+                            }
+                        ],
+                        "mbox": "mailto:adllrsdevs@example.com",
+                        "name": "adl lrs developers",
+                        "objectType": "Group"
+                    }
+                }
+            },
+            # Agent in group as object
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                        "member": [
+                            {
+                                "mbox": "mailto:louo@example.com",
+                                "name": "louo"
+                            },
+                            {
+                                "mbox": "mailto:tom@example.com",
+                                "name": "tom"
+                            }
+                        ],
+                        "mbox": "mailto:adllrsdevs@example.com",
+                        "name": "adl lrs developers",
+                        "objectType": "Group"
+                    },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                }
+            },
+            # Agent in group as team in sub
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "context": {
+                        "team": {
+                            "member": [
+                                {
+                                    "mbox": "mailto:louo@example.com",
+                                    "name": "louo"
+                                },
+                                {
+                                    "mbox": "mailto:tom@example.com",
+                                    "name": "tom"
+                                }
+                            ],
+                            "mbox": "mailto:adllrsdevs@example.com",
+                            "name": "adl lrs developers",
+                            "objectType": "Group"
+                        },
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+            },
+            # Agent in group as instructor in sub  
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "context": {
+                        "instructor": {
+                            "member": [
+                                {
+                                    "mbox": "mailto:louo@example.com",
+                                    "name": "louo"
+                                },
+                                {
+                                    "mbox": "mailto:tom@example.com",
+                                    "name": "tom"
+                                }
+                            ],
+                            "mbox": "mailto:adllrsdevs@example.com",
+                            "name": "adl lrs developers",
+                            "objectType": "Group"
+                        },
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+            },
+            # Agent as instructor in sub
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "act:adlnet.gov/website"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "context": {
+                        "instructor": {
+                            "mbox": "mailto:louo@example.com",
+                            "name": "louo"
+                        },
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+            },
+            # Agent as object in sub
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                            "mbox": "mailto:louo@example.com",
+                            "name": "louo",
+                            "objectType": "Agent"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+            },
+            # Agent in group as object in sub
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                            "member": [
+                                {
+                                    "mbox": "mailto:louo@example.com",
+                                    "name": "louo"
+                                },
+                                {
+                                    "mbox": "mailto:tom@example.com",
+                                    "name": "tom"
+                                }
+                            ],
+                            "mbox": "mailto:adllrsdevs@example.com",
+                            "name": "adl lrs developers",
+                            "objectType": "Group"
+                    },
+                    "actor": {
+                        "mbox": "mailto:madeup@example.com",
+                        "name": "madeup"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+            },
+            # Agent in group as actor in sub
+            {
+                "verb": {
+                    "id": "http://special.adlnet.gov/xapi/verbs/stopped",
+                    "display": {
+                        "en-US": "nixed"
+                    }
+                },
+                "timestamp": "2013-04-11T23:24:03.603184+00:00",
+                "object": {
+                    "timestamp": "2013-04-11T23:24:03.578795+00:00",
+                    "object": {
+                        "id": "http://some.act.id.com"
+                    },
+                    "actor": {
+                            "member": [
+                                {
+                                    "mbox": "mailto:louo@example.com",
+                                    "name": "louo"
+                                },
+                                {
+                                    "mbox": "mailto:tom@example.com",
+                                    "name": "tom"
+                                }
+                            ],
+                            "mbox": "mailto:adllrsdevs@example.com",
+                            "name": "adl lrs developers",
+                            "objectType": "Group"
+                    },
+                    "verb": {
+                        "id": "http://special.adlnet.gov/xapi/verbs/hacked",
+                        "display": {
+                            "en-US": "hax0r5"
+                        }
+                    },
+                    "objectType": "SubStatement"
+                },
+                "actor": {
+                    "mbox": "mailto:madeup@example.com",
+                    "name": "madeup"
+                },
+            },                                 
+        ]
         resp = self.client.post(reverse('lrs:statements'), json.dumps(
-            stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+            stmts), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
+
         param = {"agent": {"mbox": "mailto:louo@example.com"}}
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+
         r = self.client.get(
             path, X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertEqual(len(stmts), 1)
+        self.assertEqual(len(stmts), 4)
 
         param = {"agent": {"mbox": "mailto:louo@example.com"},
                  "related_agents": True}
@@ -430,7 +910,9 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r.status_code, 200)
         obj = json.loads(r.content)
         stmts = obj['statements']
-        self.assertEqual(len(stmts), 3)
+        # Statment with auth won't be picked up since this LRS overwrites
+        # the authority with the http creds
+        self.assertEqual(len(stmts), 14)
 
     def test_agent_filter_since_and_until(self):
         batch = [
