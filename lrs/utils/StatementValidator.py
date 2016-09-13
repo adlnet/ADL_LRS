@@ -7,7 +7,7 @@ from uuid import UUID
 from . import convert_to_datatype
 from ..exceptions import ParamError
 
-statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result',
+statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'stored',
                             'context', 'timestamp', 'authority', 'version', 'attachments']
 statement_required_fields = ['actor', 'verb', 'object']
 
@@ -184,6 +184,15 @@ class StatementValidator():
             except Exception as e:
                 self.return_error(
                     "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
+
+        # If stored included, make sure a valid date can be parsed from it
+        if 'stored' in stmt:
+            stored = stmt['stored']
+            try:
+                parse_datetime(stored)
+            except Exception as e:
+                self.return_error(
+                    "Stored error - There was an error while parsing the date from %s -- Error: %s" % (stored, e.message))
 
         # Validate the actor and verb
         self.validate_agent(stmt['actor'], 'actor')
