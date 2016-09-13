@@ -54,19 +54,18 @@ def complex_get(param_dict, limit, language, format, attachments):
 
         agent = Agent.objects.retrieve(**data)
         if agent:
+            agentQ = Q(actor=agent) | Q(object_agent=agent)
+            groups = []
             # If agent is already a group, it can't be part of another group
-            if agent.objectType == "Group":
-                groups = []
-            # Since single agent, return all groups it is in
-            else:
+            if agent.objectType != "Group":
+                # Since single agent, return all groups it is in
                 groups = agent.member.all()
-            agentQ = Q(actor=agent)
             for g in groups:
-                agentQ = agentQ | Q(actor=g)
+                agentQ = agentQ | Q(actor=g) | Q(object_agent=g)
             if related:
                 me = chain([agent], groups)
                 for a in me:
-                    agentQ = agentQ | Q(object_agent=a) | Q(authority=a) \
+                    agentQ = agentQ | Q(authority=a) \
                         | Q(context_instructor=a) | Q(context_team=a) \
                         | Q(object_substatement__actor=a) \
                         | Q(object_substatement__object_agent=a) \
