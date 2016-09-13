@@ -106,7 +106,7 @@ def complex_get(param_dict, limit, language, format, attachments):
     stmtset = Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
                                                'object_agent', 'object_activity', 'object_substatement') \
         .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
-        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ & voidQ).distinct()
     # Workaround since flat doesn't work with UUIDFields
     st_ids = stmtset.values_list('statement_id')
     stmtset = [st_id[0] for st_id in st_ids]
@@ -118,8 +118,9 @@ def complex_get(param_dict, limit, language, format, attachments):
 
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
-    actual_length = Statement.objects.filter(
-        Q(statement_id__in=stmtset) & voidQ).distinct().count()
+    actual_length = len(stmtset)
+    # actual_length = Statement.objects.filter(
+    #     Q(statement_id__in=stmtset)).distinct().count()
 
     # If there are more stmts than the limit, need to break it up and return
     # more id
