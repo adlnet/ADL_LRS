@@ -1,0 +1,7 @@
+---
+
+- name: Configure app supervisord.conf
+  template: src=supervisord.conf.j2 dest="{{PROJECT_ROOT}}supervisord.conf"
+  tags:
+    - django
+    - supervisord

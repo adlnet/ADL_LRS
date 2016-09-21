@@ -1,0 +1,59 @@
+---
+
+- name: Retrieve Postgres 9.4 for Ubuntu < 15.04
+  include: compat.yml
+  when: is_ubuntu|bool and ansible_lsb.major_release|int < 15
+
+- name: Install Postgres & Dependencies
+  apt: name="{{item}}" state=present update_cache=yes
+  with_items:
+    - postgresql-9.4
+    - postgresql-server-dev-9.4
+    - postgresql-contrib-9.4
+    - python-psycopg2
+  tags:
+    - apt
+    - postgres
+
+- name: Allow REMOTE_USER to use postgres user [VAGRANT]
+  lineinfile:
+    line: "%{{REMOTE_USER}} ALL = (postgres) NOPASSWD: ALL"
+    dest: "/etc/sudoers.d/{{REMOTE_USER}}"
+    create: yes
+  become: yes
+  tags:
+    - postgres
+    - vagrant_only
+  when: is_vagrant
+
+- name: Allow postgres to listen on all ports (developer mode)[VAGRANT]
+  replace:
+    dest: "{{postgresql_conf}}"
+    regexp: "#listen_addresses = 'localhost'"
+    replace: "listen_addresses = '*'"
+    backup: yes
+  notify: postgres restart
+  tags:
+    - postgres
+    - vagrant_only
+  when: is_vagrant
+
+- name: Create database
+  postgresql_db: name="{{DB_NAME}}"
+  become: yes
+  become_user: postgres
+  tags:
+    - postgres
+
+- name: Create db user
+  postgresql_user:
+    db: "{{DB_NAME}}"
+    name: "{{DB_USER}}"
+    password: "{{DB_PASSWORD}}"
+    role_attr_flags: CREATEDB
+    state: present
+  become: yes
+  become_user: postgres
+  tags:
+    - postgres
+

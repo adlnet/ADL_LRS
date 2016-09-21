@@ -1,0 +1,35 @@
+---
+
+- name: Install App dependencies
+  apt: name="{{item}}" state=present
+  with_items:
+    - git
+    - python-setuptools
+    - python-dev
+    - libxml2-dev
+    - libxslt-dev
+    - python-pip
+    - unzip
+  become: yes
+  tags:
+    - apt
+    - python
+    - git
+    - pip
+
+- name: Install Virtualenv Tools via pip
+  pip: name=virtualenv state=present
+  become: yes
+  tags:
+    - pip
+    - python
+    - virtualenv
+
+- name: Install virtualenvwrapper
+  pip: name=virtualenvwrapper state=present
+  become: yes
+  tags:
+    - pip
+    - python
+    - virtualenv
+    - virtualenvwrapper

@@ -1,0 +1,26 @@
+---
+- name: (local) pull sources from repository
+  local_action: git repo={{project_repo}} dest={{project_root_local}} update=yes version={{project_branch}} force=yes
+  become: no
+  tags: git
+
+- name: (local) Packge (zip) repo
+  local_action: shell git archive --format=zip -o {{project_local_export}} {{project_branch}} chdir={{project_root_local}}
+  become: no
+  tags: git
+
+- name: Delete existing application
+  file: path={{PROJECT_ROOT}} state=absent
+  become_user: "{{APP_USER}}"
+  tags: app
+
+- name: Create project root
+  file: path={{PROJECT_ROOT}} state=directory
+  become_user: "{{APP_USER}}"
+  tags: app
+
+- name: Unzip archive
+  #shell: unzip -o -d {{PROJECT_ROOT}} {{project_archive}}
+  unarchive: src="{{project_local_export}}" dest="{{PROJECT_ROOT}}"
+  become_user: "{{APP_USER}}"
+  tags: app

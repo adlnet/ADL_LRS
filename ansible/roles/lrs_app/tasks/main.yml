@@ -1,0 +1,37 @@
+---
+
+- include: create_user.yml
+  when: not is_vagrant
+
+- include: prereqs.yml
+
+- include: get_source.yml
+  when: not is_vagrant
+  become_user: "{{APP_USER}}"
+
+- include: bashrc.yml
+  become_user: "{{APP_USER}}"
+
+- name: Configure Django settings.py file
+  template: src=settings.py.j2 dest="{{PROJECT_ROOT}}/adl_lrs/settings.py" force=yes
+  tags:
+    - django
+    - _setup_lrs_config
+  become_user: "{{APP_USER}}"
+
+- include: celery.yml
+
+- include: setup_env.yml
+  become_user: "{{APP_USER}}"
+
+- include: setup_lrs.yml
+  become_user: "{{APP_USER}}"
+
+- include: supervisord.yml
+  become_user: "{{APP_USER}}"
+
+- include: uwsgi.yml
+  when: not is_vagrant
+
+- include: nginx.yml
+  when: not is_vagrant

@@ -1,0 +1,18 @@
+[uwsgi]
+
+# Django-related settings
+# the base directory of django project
+chdir = {{PROJECT_ROOT}}
+# Django's wsgi file
+module = adl_lrs.wsgi:application
+env = DJANGO_SETTINGS_MODULE = adl_lrs.settings
+# virtualenv path
+home = {{VENV_PATH}}
+enable-threads = true
+workers = 5
+processes = 5
+harakiri = 10
+vacuum = true
+master = true
+http-socket = :8000
+daemonize = {{LRS_UWSGI_LOG_DIR}}lrs_uwsgi.log

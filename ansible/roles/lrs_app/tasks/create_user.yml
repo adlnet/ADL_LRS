@@ -1,0 +1,6 @@
+---
+
+- name: Create an app-level hosting user without sudo powers
+  user: name="{{APP_USER}}" groups=www-data append=yes state=present
+  become: yes
+  tags: user

@@ -1,0 +1,28 @@
+---
+
+- name: Install RabbitMQ
+  apt: name=rabbitmq-server state=present
+  tags:
+    - apt
+    - rabbitmq
+
+- name: Create default RabbitMQ vhost
+  rabbitmq_vhost: name="{{RABBITMQ_VHOST}}" state=present
+  tags:
+    - rabbitmq
+
+# TODO update once fixed   https://github.com/ansible/ansible-modules-extras/issues/1794
+#    permissions="[{vhost='{{RABBITMQ_VHOST}}', configure_priv='.*', read_priv='.*', write_priv='.*'}]"
+- name: Create default RabbitMQ user for app
+  rabbitmq_user:
+    user="{{RABBITMQ_USER}}"
+    password="{{RABBITMQ_PASSWORD}}"
+    state=present
+  tags:
+    - rabbitmq
+
+- name: grant rabbitmq permissions to user
+  command: 'rabbitmqctl set_permissions -p {{RABBITMQ_VHOST}} {{RABBITMQ_USER}} ".*" ".*" ".*"'
+  become: yes
+  tags:
+    - rabbitmq

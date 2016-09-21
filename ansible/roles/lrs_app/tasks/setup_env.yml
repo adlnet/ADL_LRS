@@ -1,0 +1,8 @@
+---
+
+- name: Install Python requirements
+  pip: virtualenv="{{VENV_PATH}}" requirements="{{PROJECT_ROOT}}requirements.txt"
+  tags:
+    - python
+    - django
+    - _setup_env
