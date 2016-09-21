@@ -16,7 +16,6 @@ from ..exceptions import NotFound
 
 
 def complex_get(param_dict, limit, language, format, attachments):
-    voidQ = Q(voided=False)
     # keep track if a filter other than time or sequence is used
     reffilter = False
 
@@ -102,24 +101,24 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'ascending' in param_dict and param_dict['ascending']:
         stored_param = 'stored'
 
+    voidQ = Q(voided=False)
     stmtset = Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
                                                'object_agent', 'object_activity', 'object_substatement') \
         .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
-        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ & voidQ).distinct()
+        .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
     # Workaround since flat doesn't work with UUIDFields
     st_ids = stmtset.values_list('statement_id')
     stmtset = [st_id[0] for st_id in st_ids]
 
-    # only find references when a filter other than
-    # since, until, or limit was used
     if reffilter:
         stmtset = stmtset + stmt_ref_search(stmtset, untilQ, sinceQ)
+        actual_length = Statement.objects.filter(
+            Q(statement_id__in=stmtset) & voidQ).distinct().count()        
+    else:
+        actual_length = len(stmtset)
 
     # Calculate limit of stmts to return
     return_limit = set_limit(limit)
-    actual_length = len(stmtset)
-    # actual_length = Statement.objects.filter(
-    #     Q(statement_id__in=stmtset)).distinct().count()
 
     # If there are more stmts than the limit, need to break it up and return
     # more id
