@@ -118,7 +118,7 @@ For other ways to start and run the LRS, please visit our Wiki.
 
 * [Test Coverage](https://github.com/adlnet/ADL_LRS/wiki/Code-Coverage)
 * [Code Profiling](https://github.com/adlnet/ADL_LRS/wiki/Code-Profiling-with-cProfile)
-* [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-Nginx-for-Production)
+* [Setting up Nginx and uWSGI](https://github.com/adlnet/ADL_LRS/wiki/Using-uWSGI-with-Nginx)
 * [OAuth Help](https://github.com/adlnet/ADL_LRS/wiki/Using-OAuth)
 * [Clearing the Database](https://github.com/adlnet/ADL_LRS/wiki/Clearing-the-Database)
 
