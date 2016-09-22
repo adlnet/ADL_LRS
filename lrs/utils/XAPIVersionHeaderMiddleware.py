@@ -31,7 +31,7 @@ class XAPIVersionHeader(object):
                     request.META.pop('X_Experience_API_Version', None)
 
         if version:
-            regex = re.compile("^1\.0(\.[0-2])?$")
+            regex = re.compile("^1\.0(\.[0-3])?$")
             if regex.match(version):
                 return None
             else:
