@@ -9,6 +9,7 @@ from isodate.isodatetime import parse_datetime
 from Crypto.PublicKey import RSA
 from jose import jws
 
+from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import caches
 from django.http import QueryDict
 
@@ -86,6 +87,9 @@ def parse(request, more_id=None):
     # Set if someone is hitting the statements/more endpoint
     if more_id:
         r_dict['more_id'] = more_id
+
+    r_dict['domain'] = get_current_site(request).domain
+    r_dict['scheme'] = 'https' if request.is_secure() else 'http'
     return r_dict
 
 

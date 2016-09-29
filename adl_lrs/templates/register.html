@@ -27,12 +27,14 @@
               {% csrf_token %}
               <fieldset>
                   {% for field in form %}
-                    <label for="{{ field.auto_id }}">{{ field.label }}</label>
                     {% if field.name == 'username' %}
+                      <label for="{{ field.auto_id }}">Username</label>
                       <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="text" placeholder="Your Username" required>
                     {% elif field.name == 'email' %}
+                      <label for="{{ field.auto_id }}">{{ field.label }}</label>
                       <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="email" placeholder="Your Email" required>
                     {% else %}
+                      <label for="{{ field.auto_id }}">{{ field.label }}</label>
                       <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="password" placeholder="Your Password" required>
                     {% endif %}
                   {% endfor %}

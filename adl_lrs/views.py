@@ -4,6 +4,7 @@ import urllib
 from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.sites.shortcuts import get_current_site
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -63,18 +64,6 @@ def stmt_validator(request):
                     validator.data, indent=4, sort_keys=True)
                 return render(request, 'validator.html', {"form": form, "valid_message": valid, "clean_data": clean_data})
     return render(request, 'validator.html', {"form": form})
-
-# Hosted example activites for the tests
-
-
-@require_http_methods(["GET"])
-def actexample1(request):
-    return render(request, 'actexample1.json', content_type="application/json")
-
-
-@require_http_methods(["GET"])
-def actexample2(request):
-    return render(request, 'actexample2.json', content_type="application/json")
 
 
 @csrf_protect
@@ -391,8 +380,8 @@ def hooks(request):
             except Exception as e:
                 return HttpResponseBadRequest("Something went wrong: %s" % e.message)
             else:
-                hook_location = "%s://%s%s/%s" % (settings.SITE_SCHEME, settings.SITE_DOMAIN, reverse(
-                    'adl_lrs.views.my_hooks'), hook.hook_id)
+                hook_location = "%s://%s%s/%s" % ('https' if request.is_secure() else 'http',
+                    get_current_site(request).domain, reverse('adl_lrs.views.my_hooks'), hook.hook_id)
                 resp_data = hook.to_dict()
                 resp_data['url'] = hook_location
                 resp = HttpResponse(json.dumps(resp_data),
