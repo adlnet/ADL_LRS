@@ -6,10 +6,17 @@ import oauth2 as oauth
 
 from oauth_provider.utils import send_oauth_error
 
-INVALID_PARAMS_RESPONSE = send_oauth_error(
-    oauth.Error(_('Invalid request parameters.')))
+
 INVALID_CONSUMER_RESPONSE = HttpResponseBadRequest('Invalid Consumer.')
-INVALID_SCOPE_RESPONSE = send_oauth_error(oauth.Error(
-    _('You are not allowed to access this resource.')))
-COULD_NOT_VERIFY_OAUTH_REQUEST_RESPONSE = send_oauth_error(
-    oauth.Error(_('Could not verify OAuth request.')))
+
+def invalid_params_response(scheme, domain):
+	send_oauth_error(
+    	oauth.Error(scheme, domain, _('Invalid request parameters.')))
+
+def invalid_scope_response(scheme, domain):
+	send_oauth_error(scheme, domain,
+		oauth.Error(_('You are not allowed to access this resource.')))
+
+def could_not_verify_oauth_request_response(scheme, domain):
+	send_oauth_error(scheme, domain,
+		oauth.Error(_('Could not verify OAuth request.')))

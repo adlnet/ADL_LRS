@@ -58,11 +58,15 @@ This version is stable, but only intended to support a small amount of users as 
   # Make this unique, and don't share it with anybody.
   SECRET_KEY = 'Some long random string with numb3rs and $ymbol$'
 
-  # set to 'https' if using SSL encryption - this is just for testing purposes and won't dictate if the LRS runs over http or https
-  SITE_SCHEME = 'http'
+  # Set these values to send reset password emails to your users
+  # More details instructions in settings.py
+  EMAIL_HOST = '<email_host>'
+  EMAIL_PORT = 465
+  EMAIL_HOST_USER = '<email_host_user>'
+  EMAIL_HOST_PASSWORD = '<email_host_user_password>'
+  EMAIL_USE_SSL = True
+  EMAIL_TIMEOUT = 10
 
-  # Keep as localhost if running dev or change it to your planned domain. Should be the same in /admin site (see below) - this is just for testing purposes and won't dictate the domain or port the LRS runs on
-  SITE_DOMAIN = 'localhost:8000'
   ```
 
 **Setup the environment**
@@ -104,7 +108,7 @@ This starts a lightweight development web server on the local machine. By defaul
 
 Set your site domain
 
-  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. This should be the same value as what you set SITE_DOMAIN as in the settings.py file. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here, that should be set in settings.py already). Once again this does not change the domain it's running on...you want to set that up first then change this value to your domain name.
+  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here). Once again this does not change the domain it's running on...you want to set that up first then change this value to your domain name.
 
 Whenever you want to exit the virtual environment, just type `deactivate`
 

@@ -5,6 +5,7 @@ from urllib import urlencode
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate
+from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext as _
@@ -125,7 +126,9 @@ def user_authorization(request, form_class=AuthorizeRequestTokenForm):
 
                 response = callback_view(request, **args)
         else:
-            response = send_oauth_error(oauth.Error(_('Action not allowed.')))
+            response = send_oauth_error('https' if request.is_secure() else 'http',
+                get_current_site(request).domain,
+                oauth.Error(_('Action not allowed.')))
     else:
         # try to get custom authorize view
         authorize_view_str = getattr(settings, OAUTH_AUTHORIZE_VIEW,
@@ -226,7 +229,8 @@ def access_token(request):
             request_token = store.authorize_request_token(
                 request, oauth_request, request_token)
         except oauth.Error as err:
-            return send_oauth_error(err)
+            return send_oauth_error('https' if request.is_secure() else 'http',
+                get_current_site(request).domain, err)
 
     access_token = store.create_access_token(
         request, oauth_request, consumer, request_token)
@@ -265,8 +269,10 @@ def callback_view(request, **args):
     try:
         oauth_token = Token.objects.get(key=args['oauth_token'])
     except AttributeError as e:
-        send_oauth_error(e)
+        send_oauth_error('https' if request.is_secure() else 'http',
+            get_current_site(request).domain, e)
     except Token.DoesNotExist as e:
-        send_oauth_error(e)
+        send_oauth_error('https' if request.is_secure() else 'http',
+            get_current_site(request).domain, e)
     d['verifier'] = oauth_token.verifier
     return render(request, 'oauth_verifier_pin.html', d)

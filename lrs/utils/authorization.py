@@ -3,7 +3,6 @@ from functools import wraps
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
 from ..exceptions import Unauthorized, BadRequest, Forbidden, OauthUnauthorized, OauthBadRequest
@@ -235,7 +234,8 @@ def oauth_helper(request):
         {
             "account": {
                 "name": consumer.key,
-                "homePage": "%s://%s/XAPI/OAuth/token/" % (settings.SITE_SCHEME, str(Site.objects.get_current().domain))
+                "homePage": "%s://%s/XAPI/OAuth/token/" % (request['scheme'],
+                    request['domain'])
             },
             "objectType": "Agent",
             "oauth_identifier": "anonoauth:%s" % consumer.key

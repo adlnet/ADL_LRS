@@ -9,10 +9,16 @@ PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 # If you want to debug
 DEBUG = True
 
-ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
-)
-MANAGERS = ADMINS
+# Set these email values to send the reset password link
+# If you do not want this functionality just comment out the
+# Forgot Password? link in templates/registration/login.html
+EMAIL_HOST = '<email_host>'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = '<email_host_user>'
+EMAIL_HOST_PASSWORD = '<email_host_user_password>'
+EMAIL_USE_SSL = True
+EMAIL_TIMEOUT = 10
+
 
 DATABASES = {
     'default': {
@@ -42,8 +48,7 @@ LANGUAGE_CODE = 'en-US'
 # This is used so that application data can hook into specific sites and a single database can manage
 # content for multiple sites.
 SITE_ID = 1
-SITE_SCHEME = 'http'
-SITE_DOMAIN = 'localhost:8000'
+
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
@@ -109,7 +114,6 @@ AUTH_USER_MODEL = "auth.User"
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext', 'hmac-sha1', 'rsa-sha1']
-OAUTH_REALM_KEY_NAME = '%s://%s/xAPI' % (SITE_SCHEME, SITE_DOMAIN)
 
 # THIS IS OAUTH2 STUFF
 STATE = 1

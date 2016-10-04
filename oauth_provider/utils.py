@@ -40,7 +40,7 @@ def initialize_server_request(request):
     return oauth_server, oauth_request
 
 
-def send_oauth_error(err=None):
+def send_oauth_error(scheme, domain, err=None):
     """Shortcut for sending an error."""
     # send a 401 error
     # LRS CHANGE - BE ABLE TO SEND PLAIN TEXT ERROR MESSAGES
@@ -53,7 +53,7 @@ def send_oauth_error(err=None):
 
     response.status_code = 401
     # return the authenticate header
-    header = oauth.build_authenticate_header(realm=OAUTH_REALM_KEY_NAME)
+    header = oauth.build_authenticate_header(realm='%s://%s/xAPI' % (scheme, domain))
     for k, v in header.iteritems():
         response[k] = v
     return response
