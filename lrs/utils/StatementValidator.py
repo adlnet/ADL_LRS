@@ -253,7 +253,7 @@ class StatementValidator():
 
             if 'sha2' not in attach:
                 self.return_error(
-                    "Attachment sha2 is required when no fileUrl is given")
+                    "Attachment sha2 is required")
             else:
                 # Ensure sha2 is submitted as string
                 if not isinstance(attach['sha2'], basestring):
