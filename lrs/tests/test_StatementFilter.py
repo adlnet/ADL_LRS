@@ -2465,6 +2465,7 @@ class StatementFilterTests(TestCase):
              "description": {"en-US": "A test attachment (description)"},
              "contentType": "text/plain; charset=utf-8",
              "length": 27,
+             "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
              "fileUrl": "http://my/file/url"}]}
 
         response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
@@ -2492,6 +2493,7 @@ class StatementFilterTests(TestCase):
              "description": {"en-US": "A test attachment (description)"},
              "contentType": "text/plain; charset=utf-8",
              "length": 27,
+             "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
              "fileUrl": "http://my/file/url"}]}
 
         response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
@@ -2519,6 +2521,7 @@ class StatementFilterTests(TestCase):
                      "description": {"en-US": "A test attachment (description)"},
                      "contentType": "text/plain; charset=utf-8",
                      "length": 27,
+                     "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                      "fileUrl": "http://my/file/url"}]}
 
         param = {"statementId": stmt_id}
@@ -2590,12 +2593,14 @@ class StatementFilterTests(TestCase):
                  "description": {"en-US": "A test attachment (description)11"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 27,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url11"},
                 {"usageType": "http://example.com/attachment-usage/test12",
                  "display": {"en-US": "A test attachment12"},
                  "description": {"en-US": "A test attachment (description)12"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 27,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url12"}]},
             {"actor": {"mbox": "mailto:tom2@example.com"},
              "verb": {"id": "http://tom.com/verb/butted"},
@@ -2606,12 +2611,14 @@ class StatementFilterTests(TestCase):
                  "description": {"en-US": "A test attachment (description)21"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 23,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url21"},
                 {"usageType": "http://example.com/attachment-usage/test22",
                  "display": {"en-US": "A test attachment22"},
                  "description": {"en-US": "A test attachment (description)22"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 23,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url22"}]},
             {"actor": {"mbox": "mailto:tom@example.com"},
              "verb": {"id": "http://tom.com/verb/butted"},
@@ -2622,12 +2629,14 @@ class StatementFilterTests(TestCase):
                  "description": {"en-US": "A test attachment (description)31"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 27,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url31"},
                 {"usageType": "http://example.com/attachment-usage/test32",
                  "display": {"en-US": "A test attachment32"},
                  "description": {"en-US": "A test attachment (description)32"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 27,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url32"}]},
             {"actor": {"mbox": "mailto:tom2@example.com"},
              "verb": {"id": "http://tom.com/verb/butted"},
@@ -2638,12 +2647,14 @@ class StatementFilterTests(TestCase):
                  "description": {"en-US": "A test attachment (description)41"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 23,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url41"},
                 {"usageType": "http://example.com/attachment-usage/test42",
                  "display": {"en-US": "A test attachment42"},
                  "description": {"en-US": "A test attachment (description)42"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 23,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/test/url42"}]}
         ]
         response = self.client.post(reverse('lrs:statements'), json.dumps(stmts), content_type="application/json",

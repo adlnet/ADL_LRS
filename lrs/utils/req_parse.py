@@ -320,9 +320,9 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
     for tup in unsigned_stmts:
         atts = tup[0]['attachments']
         for att in atts:
-            sha2 = att.get('sha2', None)
+            sha2 = att.get('sha2')
             # Doesn't have to be there if fileUrl
-            if sha2:
+            if 'fileUrl' not in att:
                 # Should be listed in sha2s - sha2s couldn't not match
                 if sha2 not in sha2s:
                     raise BadRequest(

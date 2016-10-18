@@ -237,6 +237,7 @@ class AttachmentAndSignedTests(TestCase):
                  "description": {"en-US": "A test attachment (description)"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 27,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/file/url"}]}]
 
         message = MIMEMultipart(boundary="myboundary")
@@ -517,6 +518,7 @@ class AttachmentAndSignedTests(TestCase):
              "description": {"en-US": "A test attachment (description)"},
              "contentType": "text/plain; charset=utf-8",
              "length": 27,
+             "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
              "fileUrl": "http://my/file/url"}]}
 
         response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
@@ -552,6 +554,7 @@ class AttachmentAndSignedTests(TestCase):
                  "description": {"en-US": "A test attachment (description)"},
                  "contentType": "text/plain; charset=utf-8",
                  "length": 27,
+                 "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                  "fileUrl": "http://my/file/url"}]},
                 {"actor": {"mbox": "mailto:tom1@example.com"},
                  "verb": {"id": "http://tom.com/verb/butted"},
@@ -562,6 +565,7 @@ class AttachmentAndSignedTests(TestCase):
                      "description": {"en-US": "A test attachment (description)"},
                      "contentType": "text/plain; charset=utf-8",
                      "length": 27,
+                     "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                      "fileUrl": "http://my/file/url"}]}
                 ]
 
@@ -655,12 +659,14 @@ class AttachmentAndSignedTests(TestCase):
              "description": {"en-US": "A test attachment (description)"},
              "contentType": "text/plain; charset=utf-8",
              "length": 27,
+             "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
              "fileUrl": "http://some/url"},
             {"usageType": "http://example.com/attachment-usage/test",
              "display": {"en-US": "A test attachment2"},
              "description": {"en-US": "A test attachment (description)2"},
              "contentType": "text/plain; charset=utf-8",
              "length": 28,
+             "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
              "fileUrl": ""}]}
 
         response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
@@ -856,6 +862,7 @@ class AttachmentAndSignedTests(TestCase):
                      "description": {"en-US": "A test attachment (description)"},
                      "contentType": "text/plain; charset=utf-8",
                      "length": 27,
+                     "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                      "fileUrl": "http://my/file/url"}]}
 
         param = {"statementId": stmt_id}
@@ -936,12 +943,14 @@ class AttachmentAndSignedTests(TestCase):
                      "description": {"en-US": "A test attachment (description)"},
                      "contentType": "text/plain; charset=utf-8",
                      "length": 27,
+                     "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                      "fileUrl": "http://some/url"},
                     {"usageType": "http://example.com/attachment-usage/test",
                      "display": {"en-US": "A test attachment2"},
                      "description": {"en-US": "A test attachment (description)2"},
                      "contentType": "text/plain; charset=utf-8",
                      "length": 28,
+                     "sha2": "672fa5fa658017f1b72d65036f13379c6ab05d4ab3b6664908d8acf0b6a0c634",
                      "fileUrl": ""}]}
 
         param = {"statementId": stmt_id}

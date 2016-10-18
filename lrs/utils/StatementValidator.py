@@ -250,16 +250,17 @@ class StatementValidator():
             # If fileUrl included, validate it
             if 'fileUrl' in attach:
                 self.validate_iri(attach['fileUrl'], 'Attachments fileUrl')
-            else:
-                # If fileUrl is not included, sha2 must be - only time sha2 is
-                # required
-                if 'sha2' not in attach:
-                    self.return_error(
-                        "Attachment sha2 is required when no fileUrl is given")
 
+            if 'sha2' not in attach:
+                self.return_error(
+                    "Attachment sha2 is required when no fileUrl is given")
+            else:
                 # Ensure sha2 is submitted as string
                 if not isinstance(attach['sha2'], basestring):
                     self.return_error("Attachment sha2 must be a string")
+                sha2_re =  re.compile("^[a-f0-9]{64}$")
+                if not sha2_re.match(attach['sha2']):
+                    self.return_error("Not a valid sha2 inside the statement")
 
             # Ensure length is an int
             if not isinstance(attach['length'], int):
