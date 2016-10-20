@@ -646,8 +646,7 @@ class AttachmentAndSignedTests(TestCase):
         response = self.client.post(reverse('lrs:statements'), json.dumps(stmt), content_type="application/json",
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertIn(
-            'Attachment sha2 is required when no fileUrl is given', response.content)
+        self.assertIn('Attachment sha2 is required', response.content)
 
     def test_multiple_app_json_multipart_no_fileUrl(self):
         stmt = {"actor": {"mbox": "mailto:tom@example.com"},
@@ -905,8 +904,7 @@ class AttachmentAndSignedTests(TestCase):
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
-        self.assertIn(
-            'Attachment sha2 is required when no fileUrl is given', response.content)
+        self.assertIn('Attachment sha2 is required', response.content)
 
     def test_app_json_invalid_fileUrl(self):
         stmt_id = str(uuid.uuid1())

@@ -44,6 +44,9 @@ score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities',
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
+lang_tag_re = re.compile(
+    '^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
+
 
 class StatementValidator():
 
@@ -87,8 +90,6 @@ class StatementValidator():
 
     def validate_lang_tag(self, tag, field):
         if tag:
-            lang_tag_re = re.compile(
-                '^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
             for lang in tag:
                 if not lang_tag_re.match(lang) or tag == 'test':
                     self.return_error(
@@ -777,6 +778,9 @@ class StatementValidator():
         if 'language' in context:
             if not isinstance(context['language'], basestring):
                 self.return_error("Context language must be a string")
+            else:               
+                if not lang_tag_re.match(context['language']):
+                    self.return_error("Context language is not valid")
 
         # If statement given, ensure it is a valid StatementRef
         if 'statement' in context:
