@@ -436,6 +436,16 @@ class StatementTests(TestCase):
         self.assertEqual(response.status_code, 200)
         Agent.objects.get(mbox="mailto:mr.t@example.com")
 
+    def test_context_bad_language(self):
+        stmt = json.dumps({"actor": {"mbox": "mailto:mr.t@example.com"},
+                           "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                           "object": {"id": "act:i.pity.the.fool"},
+                           "context":{"language": "thisisnotalanguage"}})
+
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(response.status_code, 400)
+
     def test_list_post(self):
         stmts = json.dumps([{"verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
                              "object": {"id": "act:test_list_post"}, "actor": {"objectType": "Agent", "mbox": "mailto:t@t.com"}},
