@@ -45,7 +45,7 @@ context_allowed_fields = ['registration', 'instructor', 'team', 'contextActiviti
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
 lang_tag_re = re.compile(
-    '^[a-z]{2,3}(?:-[A-Z]{2,3}(?:-[a-zA-Z]{4})?)?$')
+    '^[a-z]{2,3}(?:-[a-zA-Z]{4})?(?:-[A-Z]{2,3})?$')
 
 
 class StatementValidator():
