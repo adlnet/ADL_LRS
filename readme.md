@@ -27,7 +27,7 @@ This version is stable, but only intended to support a small amount of users as 
 **Install Prerequisites**
 
     admin:~$ sudo apt-get install git fabric python-setuptools python-dev\
-        libxml2-dev libxslt1-dev
+        libxml2-dev libxslt1-dev gcc
     admin:~$ sudo easy_install pip
     admin:~$ sudo pip install virtualenv
 
