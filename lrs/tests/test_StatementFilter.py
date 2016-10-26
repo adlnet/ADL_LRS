@@ -64,7 +64,7 @@ class StatementFilterTests(TestCase):
                 stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
-        limitGetResponse = self.client.post(reverse('lrs:statements'), {
+        limitGetResponse = self.client.get(reverse('lrs:statements'), {
                                             "limit": 2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(limitGetResponse.status_code, 200)
         rsp = limitGetResponse.content
@@ -1884,7 +1884,7 @@ class StatementFilterTests(TestCase):
         resp = self.client.post(reverse('lrs:statements'), json.dumps(
             stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
-        actorGetResponse = self.client.post(reverse('lrs:statements'),
+        actorGetResponse = self.client.get(reverse('lrs:statements'),
                                             {"activity": "http://notarealactivity.com"},
                                             content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
         self.assertEqual(actorGetResponse.status_code, 200)

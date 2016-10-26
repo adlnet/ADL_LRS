@@ -51,38 +51,6 @@ def parse(request, more_id=None):
     else:
         parse_normal_request(request, r_dict)
 
-    # Set method if not already set
-    # CORS request will already be set - don't reset
-    if 'method' not in r_dict:
-        r_dict['method'] = request.method
-    # Differentiate GET and POST
-    if r_dict['method'] == "POST" and r_dict['auth']['endpoint'] == '/statements':
-        # Can have empty body for POST (acts like GET)
-        if 'body' in r_dict:
-            # If body is a list, it's a post
-            if not isinstance(r_dict['body'], list):
-                # If actor verb and object not in body - means it's a GET or
-                # invalid POST
-                if not ('actor' in r_dict['body'] and 'verb' in r_dict['body'] and 'object' in r_dict['body']):
-                    # If body keys are in get params - GET - else invalid
-                    # request
-                    if set(r_dict['body'].keys()).issubset(['statementId', 'voidedStatementId', 'agent', 'verb', 'activity', 'registration',
-                                                            'related_activities', 'related_agents', 'since', 'until', 'limit', 'format',
-                                                            'attachments', 'ascending']):
-                        r_dict['method'] = 'GET'
-                    else:
-                        raise BadRequest(
-                            "Statement is missing actor, verb, or object")
-                else:
-                    r_dict['method'] = 'POST'
-            else:
-                r_dict['method'] = 'POST'
-        else:
-            r_dict['method'] = 'GET'
-    else:
-        # CORS request will already be set - don't reset
-        if 'method' not in r_dict:
-            r_dict['method'] = request.method
     # Set if someone is hitting the statements/more endpoint
     if more_id:
         r_dict['more_id'] = more_id
@@ -240,6 +208,7 @@ def parse_normal_request(request, r_dict):
         if request.body != '':
             r_dict['params'].update(ast.literal_eval(request.body))
     r_dict['params'].update(request.GET.dict())
+    r_dict['method'] = request.method
     set_agent_param(r_dict)
 
 

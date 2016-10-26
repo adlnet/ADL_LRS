@@ -387,11 +387,11 @@ class StatementMoreTests(TestCase):
         self.assertEqual(moreURLGet.status_code, 404)
 
     def test_not_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse('lrs:statements'), {"until": self.secondTime},
+        sinceGetResponse = self.client.get(reverse('lrs:statements'), {"until": self.secondTime},
                                              content_type="application/x-www-form-urlencoded", X_Experience_API_Version=settings.XAPI_VERSION, HTTP_AUTHORIZATION=self.auth)
 
-        self.assertEqual(sincePostResponse.status_code, 200)
-        rsp = sincePostResponse.content
+        self.assertEqual(sinceGetResponse.status_code, 200)
+        rsp = sinceGetResponse.content
         self.assertIn(self.guid5, rsp)
         self.assertIn(self.guid4, rsp)
         self.assertIn(self.guid3, rsp)
@@ -420,11 +420,11 @@ class StatementMoreTests(TestCase):
         self.assertNotIn(self.guid6, rsp)
 
     def test_single_full_page_stmts(self):
-        sincePostResponse = self.client.post(reverse('lrs:statements'),
+        sinceGetResponse = self.client.get(reverse('lrs:statements'),
                                              {"until": self.thirdTime},
                                              content_type="application/x-www-form-urlencoded", X_Experience_API_Version=settings.XAPI_VERSION, HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(sincePostResponse.status_code, 200)
-        rsp = sincePostResponse.content
+        self.assertEqual(sinceGetResponse.status_code, 200)
+        rsp = sinceGetResponse.content
         self.assertIn(self.guid10, rsp)
         self.assertIn(self.guid9, rsp)
         self.assertIn(self.guid8, rsp)
@@ -453,10 +453,10 @@ class StatementMoreTests(TestCase):
         self.assertNotIn(self.guid11, rsp)
 
     def test_single_full_second_not_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse('lrs:statements'), {"until": self.fourthTime},
+        sinceGetResponse = self.client.get(reverse('lrs:statements'), {"until": self.fourthTime},
                                              content_type="application/x-www-form-urlencoded", X_Experience_API_Version=settings.XAPI_VERSION, HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(sincePostResponse.status_code, 200)
-        rsp = sincePostResponse.content
+        self.assertEqual(sinceGetResponse.status_code, 200)
+        rsp = sinceGetResponse.content
         resp_json = json.loads(rsp)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]
@@ -522,10 +522,10 @@ class StatementMoreTests(TestCase):
         self.assertNotIn(self.guid25, more_rsp)
 
     def test_two_pages_full_more_stmts_url(self):
-        sincePostResponse = self.client.post(reverse('lrs:statements'), {"until": self.fifthTime},
+        sinceGetResponse = self.client.get(reverse('lrs:statements'), {"until": self.fifthTime},
                                              content_type="application/x-www-form-urlencoded", X_Experience_API_Version=settings.XAPI_VERSION, HTTP_AUTHORIZATION=self.auth)
-        self.assertEqual(sincePostResponse.status_code, 200)
-        rsp = sincePostResponse.content
+        self.assertEqual(sinceGetResponse.status_code, 200)
+        rsp = sinceGetResponse.content
         resp_json = json.loads(rsp)
         resp_url = resp_json['more']
         resp_id = resp_url[-32:]

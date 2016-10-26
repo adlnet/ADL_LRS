@@ -122,7 +122,7 @@ class StatementManagerTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content,
-                         'Statement is missing actor, verb, or object')
+                         'verb is missing in Statement')
 
     def test_no_object_stmt(self):
         stmt = json.dumps({"actor": {"objectType": "Agent",
@@ -132,7 +132,7 @@ class StatementManagerTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content,
-                         'Statement is missing actor, verb, or object')
+                         'object is missing in Statement')
 
     def test_no_actor_stmt(self):
         stmt = json.dumps(
@@ -142,7 +142,7 @@ class StatementManagerTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content,
-                         'Statement is missing actor, verb, or object')
+                         'actor is missing in Statement')
 
     def test_voided_true_stmt(self):
         stmt = json.dumps({'actor': {'objectType': 'Agent', 'mbox': 'mailto:l@l.com'}, 'verb': {
