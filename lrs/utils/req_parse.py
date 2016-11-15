@@ -220,6 +220,9 @@ def parse_attachment(request, r_dict):
     # Email library insists on having the multipart header in the body -
     # workaround
     message = request.body
+    if '--' not in message:
+        raise BadRequest(
+            "Multipart boundary missing")
     if 'boundary' not in message[:message.index("--")]:
         if 'boundary' in r_dict['headers']['CONTENT_TYPE']:
             message = "Content-Type:" + \
