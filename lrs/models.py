@@ -1,3 +1,4 @@
+import ast
 import json
 import uuid
 from collections import OrderedDict
@@ -702,14 +703,16 @@ class ActivityState(models.Model):
         super(ActivityState, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if 'json_state' in kwargs:
+        if self.json_state and isinstance(self.json_state, basestring):
             try:
-                kwargs['json_state'] = json.loads(kwargs['json_state'])
+                json.loads(self.json_state)
             except Exception:
                 try:
-                    kwargs['json_state'] = ast.literal_eval(kwargs['json_state'])
+                    ast.literal_eval(self.json_state)
                 except Exception:
                     raise BadRequest("The Activity State body is not valid JSON")
+        elif self.json_state and not isinstance(self.json_state, basestring):
+            raise BadRequest("The Activity State body is not valid JSON")
         super(ActivityState, self).save(*args, **kwargs)
 
 class ActivityProfile(models.Model):
@@ -728,14 +731,16 @@ class ActivityProfile(models.Model):
         super(ActivityProfile, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if 'json_profile' in kwargs:
+        if self.json_profile and isinstance(self.json_profile, basestring):
             try:
-                kwargs['json_profile'] = json.loads(kwargs['json_profile'])
+                json.loads(self.json_profile)
             except Exception:
                 try:
-                    kwargs['json_profile'] = ast.literal_eval(kwargs['json_profile'])
+                    ast.literal_eval(self.json_profile)
                 except Exception:
                     raise BadRequest("The Activity Profile body is not valid JSON")
+        elif self.json_profile and not isinstance(self.json_profile, basestring):
+            raise BadRequest("The Activity Profile body is not valid JSON")
         super(ActivityProfile, self).save(*args, **kwargs)
 
 class AgentProfile(models.Model):
@@ -754,12 +759,14 @@ class AgentProfile(models.Model):
         super(AgentProfile, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if 'json_profile' in kwargs:
+        if self.json_profile and isinstance(self.json_profile, basestring):
             try:
-                kwargs['json_profile'] = json.loads(kwargs['json_profile'])
+                json.loads(self.json_profile)
             except Exception:
                 try:
-                    kwargs['json_profile'] = ast.literal_eval(kwargs['json_profile'])
+                    ast.literal_eval(self.json_profile)
                 except Exception:
                     raise BadRequest("The Agent Profile body is not valid JSON")
+        elif self.json_profile and not isinstance(self.json_profile, basestring):
+            raise BadRequest("The Agent Profile body is not valid JSON")
         super(AgentProfile, self).save(*args, **kwargs)  
