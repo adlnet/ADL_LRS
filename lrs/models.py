@@ -380,7 +380,7 @@ class SubStatement(models.Model):
     def to_dict(self, lang=None, ids_only=False):
         ret = OrderedDict()
         ret['actor'] = self.actor.to_dict(ids_only)
-        ret['verb'] = self.verb.canonical_data
+        ret['verb'] = self.verb.return_verb_with_lang(lang, ids_only)
 
         if self.object_agent:
             ret['object'] = self.object_agent.to_dict(ids_only)
