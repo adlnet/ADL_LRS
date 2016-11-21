@@ -38,7 +38,9 @@ class Verb(models.Model):
         max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     canonical_data = JSONField(default=dict)
 
-    def return_verb_with_lang(self, lang=None):
+    def return_verb_with_lang(self, lang=None, ids_only=False):
+        if ids_only:
+            return {'id': self.verb_id}
         ret = OrderedDict(self.canonical_data)
         if 'display' in ret:
             ret['display'] = get_lang(self.canonical_data['display'], lang)
@@ -545,7 +547,7 @@ class Statement(models.Model):
         ids_only = True if ret_format == 'ids' else False
         ret['id'] = str(self.statement_id)
         ret['actor'] = self.actor.to_dict(ids_only)
-        ret['verb'] = self.verb.return_verb_with_lang('lang')
+        ret['verb'] = self.verb.return_verb_with_lang(lang, ids_only)
 
         if self.object_agent:
             ret['object'] = self.object_agent.to_dict(ids_only)

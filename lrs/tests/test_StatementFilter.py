@@ -2094,7 +2094,7 @@ class StatementFilterTests(TestCase):
         self.assertNotIn('name', ids['actor'])
         self.assertEqual(ids['actor']['mbox'], stmt['actor']['mbox'])
         self.assertEqual(ids['verb']['id'], stmt['verb']['id'])
-        self.assertEqual(len(ids['verb']['display'].keys()), 1)
+        self.assertNotIn('display', ids['verb'])
         self.assertNotIn('objectType', ids['object'])
         self.assertEqual(ids['object']['id'], stmt['object']['id'])
         self.assertNotIn('definition', ids['object'])
