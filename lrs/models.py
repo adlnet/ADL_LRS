@@ -235,8 +235,9 @@ class Agent(models.Model):
             # show members for groups if ids_only is false
             # show members' ids for anon groups if ids_only is true
             if not ids_only or not (set(['mbox', 'mbox_sha1sum', 'openid', 'account']) & set(ret.keys())):
-                ret['member'] = [a.to_dict(ids_only)
-                                 for a in self.member.all()]
+                if self.member.all():
+                    ret['member'] = [a.to_dict(ids_only)
+                                     for a in self.member.all()]
         if self.objectType and not ids_only:
             ret['objectType'] = self.objectType
         if self.name and not ids_only:
