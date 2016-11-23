@@ -2153,7 +2153,8 @@ class StatementFilterTests(TestCase):
         self.assertEqual(canon_fr['actor']['mbox'], stmt['actor']['mbox'])
         self.assertEqual(canon_fr['verb']['id'], stmt['verb']['id'])
         self.assertIn('fr', canon_fr['verb']['display'])
-        self.assertEqual(canon_fr['verb']['display']['fr'], stmt['verb']['display']['fr'])
+        self.assertEqual(canon_fr['verb']['display']['fr'].encode('utf-8'),
+            stmt['verb']['display']['fr'])
         self.assertEqual(canon_fr['object']['objectType'], stmt[
                          'object']['objectType'])
         self.assertEqual(canon_fr['object']['id'], stmt['object']['id'])
