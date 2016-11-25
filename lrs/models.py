@@ -38,7 +38,9 @@ class Verb(models.Model):
         max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     canonical_data = JSONField(default=dict)
 
-    def return_verb_with_lang(self, lang=None):
+    def return_verb_with_lang(self, lang=None, ids_only=False):
+        if ids_only:
+            return {'id': self.verb_id}
         ret = OrderedDict(self.canonical_data)
         if 'display' in ret:
             ret['display'] = get_lang(self.canonical_data['display'], lang)
@@ -233,8 +235,9 @@ class Agent(models.Model):
             # show members for groups if ids_only is false
             # show members' ids for anon groups if ids_only is true
             if not ids_only or not (set(['mbox', 'mbox_sha1sum', 'openid', 'account']) & set(ret.keys())):
-                ret['member'] = [a.to_dict(ids_only)
-                                 for a in self.member.all()]
+                if self.member.all():
+                    ret['member'] = [a.to_dict(ids_only)
+                                     for a in self.member.all()]
         if self.objectType and not ids_only:
             ret['objectType'] = self.objectType
         if self.name and not ids_only:
@@ -378,7 +381,7 @@ class SubStatement(models.Model):
     def to_dict(self, lang=None, ids_only=False):
         ret = OrderedDict()
         ret['actor'] = self.actor.to_dict(ids_only)
-        ret['verb'] = self.verb.canonical_data
+        ret['verb'] = self.verb.return_verb_with_lang(lang, ids_only)
 
         if self.object_agent:
             ret['object'] = self.object_agent.to_dict(ids_only)
@@ -545,7 +548,7 @@ class Statement(models.Model):
         ids_only = True if ret_format == 'ids' else False
         ret['id'] = str(self.statement_id)
         ret['actor'] = self.actor.to_dict(ids_only)
-        ret['verb'] = self.verb.return_verb_with_lang('lang')
+        ret['verb'] = self.verb.return_verb_with_lang(lang, ids_only)
 
         if self.object_agent:
             ret['object'] = self.object_agent.to_dict(ids_only)

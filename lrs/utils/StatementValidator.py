@@ -1,6 +1,5 @@
 import re
 from isodate.isodatetime import parse_datetime
-from isodate.isoduration import parse_duration
 from rfc3987 import parse as iriparse
 from uuid import UUID
 
@@ -659,14 +658,13 @@ class StatementValidator():
         # Ensure incoming result is dict and check allowed fields
         self.check_if_dict(result, "Result")
         self.check_allowed_fields(result_allowed_fields, result, "Result")
-
+        duration_re = re.compile(
+            '^(-?)P(?=\d|T\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)([DW]))?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$')
         # If duration included, ensure valid duration can be parsed from it
         if 'duration' in result:
-            try:
-                parse_duration(result['duration'])
-            except Exception as e:
+            if not duration_re.match(result['duration']):
                 self.return_error(
-                    "Error with result duration - %s" % e.message)
+                    "Error with result duration")
 
         # If success or completion included, ensure they are boolean
         if 'success' in result:

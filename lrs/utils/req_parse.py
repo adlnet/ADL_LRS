@@ -482,6 +482,8 @@ def get_headers(headers):
         header_dict['language'] = headers.pop('Accept_Language')
     elif 'Accept-Language' in headers:
         header_dict['language'] = headers.pop('Accept-Language')
+    elif 'HTTP_ACCEPT_LANGUAGE' in headers:
+        header_dict['language'] = headers.pop('HTTP_ACCEPT_LANGUAGE')
 
     # Get xapi version
     if 'X-Experience-API-Version' in headers:

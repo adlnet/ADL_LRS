@@ -2094,7 +2094,7 @@ class StatementFilterTests(TestCase):
         self.assertNotIn('name', ids['actor'])
         self.assertEqual(ids['actor']['mbox'], stmt['actor']['mbox'])
         self.assertEqual(ids['verb']['id'], stmt['verb']['id'])
-        self.assertEqual(len(ids['verb']['display'].keys()), 1)
+        self.assertNotIn('display', ids['verb'])
         self.assertNotIn('objectType', ids['object'])
         self.assertEqual(ids['object']['id'], stmt['object']['id'])
         self.assertNotIn('definition', ids['object'])
@@ -2152,7 +2152,9 @@ class StatementFilterTests(TestCase):
         self.assertEqual(canon_fr['actor']['name'], stmt['actor']['name'])
         self.assertEqual(canon_fr['actor']['mbox'], stmt['actor']['mbox'])
         self.assertEqual(canon_fr['verb']['id'], stmt['verb']['id'])
-        self.assertEqual(len(canon_fr['verb']['display'].keys()), 1)
+        self.assertIn('fr', canon_fr['verb']['display'])
+        self.assertEqual(canon_fr['verb']['display']['fr'].encode('utf-8'),
+            stmt['verb']['display']['fr'])
         self.assertEqual(canon_fr['object']['objectType'], stmt[
                          'object']['objectType'])
         self.assertEqual(canon_fr['object']['id'], stmt['object']['id'])
@@ -2224,6 +2226,7 @@ class StatementFilterTests(TestCase):
 
         param["format"] = "canonical"
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        
         r = self.client.get(
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)

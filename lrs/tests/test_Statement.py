@@ -416,7 +416,7 @@ class StatementTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.content, "Error with result duration - Unable to parse duration string u'wrongduration'")
+            response.content, "Error with result duration")
 
     def test_post_stmt_ref_no_existing_stmt(self):
         stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:ref@ref.com"},
