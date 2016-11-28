@@ -134,9 +134,12 @@ def validate_statementId(req_dict):
     try:
         uuidId = uuid.UUID(str(statementId))
         st = Statement.objects.get(statement_id=uuidId)
-    except (Statement.DoesNotExist, ValueError):
+    except (Statement.DoesNotExist):
         err_msg = 'There is no statement associated with the id: %s' % statementId
         raise IDNotFoundError(err_msg)
+    except (ValueError):
+        err_msg = 'Not a valid id for query: %s' % statementId
+        raise BadRequest(err_msg)
 
     auth = req_dict.get('auth', None)
     mine_only = auth and 'statements_mine_only' in auth
