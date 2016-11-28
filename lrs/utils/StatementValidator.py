@@ -528,7 +528,7 @@ class StatementValidator():
         # If extensions, validate it
         if 'extensions' in definition:
             self.validate_extensions(
-                definition['extensions'], 'activity definition')
+                definition['extensions'], 'activity definition extensions')
 
     def check_other_interaction_component_fields(self, allowed, definition):
         interaction_components = set(
@@ -681,7 +681,7 @@ class StatementValidator():
 
         # If extensions, validate
         if 'extensions' in result:
-            self.validate_extensions(result['extensions'], 'result')
+            self.validate_extensions(result['extensions'], 'result extensions')
 
         # If score included, validate it
         if 'score' in result:
@@ -790,7 +790,7 @@ class StatementValidator():
 
         # If extensions, validate
         if 'extensions' in context:
-            self.validate_extensions(context['extensions'], 'context')
+            self.validate_extensions(context['extensions'], 'context extensions')
 
     def validate_context_activities(self, conacts):
         # Ensure incoming conact is dict

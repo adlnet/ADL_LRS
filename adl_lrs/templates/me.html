@@ -26,7 +26,9 @@
             <div id="myaccount">
                 <strong>My Account</strong>
                 <div>
-                    <p>Welcome to the ADL LRS, {{user.username}}! ({{user.email}})</p>
+                    <p>Welcome to the ADL LRS, {{user.username}}! ({{user.email}}) The endpoint for this LRS is:<br>
+                        <span class="user-agent">{"endpoint" : "http{% if request.is_secure %}s{% endif %}://{{ request.META.HTTP_HOST }}/xAPI/"}</span>
+                    </p>
                     <P>When you first use your credentials as basic authority to access the LRS, it will automatically create an agent for you. For example,
                         the agent created for you will be:<br>
                         <span class="user-agent">{"name": "{{user.username}}", "mbox": "mailto:{{user.email}}", "objectType": "Agent"}</span>
