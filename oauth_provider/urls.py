@@ -8,7 +8,7 @@ urlpatterns = [
     # redirect for just /xapi/OAuth
     url(r'^$', RedirectView.as_view(url='/')),
 
-    url(r'^initiate', request_token, name='request_token'),
-    url(r'^authorize', user_authorization, name='user_authorization'),
-    url(r'^token', access_token, name='access_token'),
+    url(r'^initiate$', request_token, name='request_token'),
+    url(r'^authorize$', user_authorization, name='user_authorization'),
+    url(r'^token$', access_token, name='access_token'),
 ]

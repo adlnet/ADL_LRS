@@ -2174,13 +2174,13 @@ Lw03eHTNQghS0A==
 
         # Create oauth_request and apply signature
         oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='POST',
-                                                              http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params_dict)
+                                                              http_url='http://testserver/XAPI/statements', parameters=oauth_header_resource_params_dict)
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(
             oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % signature
 
-        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+        post = self.client.post(reverse('lrs:statements'), data=stmt_json, content_type="application/json",
                                 Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
 
@@ -2313,7 +2313,7 @@ Lw03eHTNQghS0A==
 
         # create another oauth request
         oauth_request2 = oauth.Request.from_token_and_callback(access_token, http_method='POST',
-                                                               http_url='http://testserver/XAPI/statements/', parameters=oauth_header_resource_params_dict)
+                                                               http_url='http://testserver/XAPI/statements', parameters=oauth_header_resource_params_dict)
         signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
         signature2 = signature_method2.sign(
             oauth_request2, self.consumer, access_token)
@@ -2325,7 +2325,7 @@ Lw03eHTNQghS0A==
         oauth_header_resource_params = oauth_header_resource_params.replace(
             'oauth_nonce="resource_nonce"', 'oauth_nonce="another_nonce"')
 
-        post = self.client.post('/XAPI/statements/', data=post_stmt_json, content_type="application/json",
+        post = self.client.post(reverse('lrs:statements'), data=post_stmt_json, content_type="application/json",
                                 Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 403)
         self.assertEqual(
@@ -2914,7 +2914,7 @@ Lw03eHTNQghS0A==
 
         # Create oauth request and add signature
         post_oauth_request = oauth.Request.from_token_and_callback(post_access_token, http_method='POST',
-                                                                   http_url='http://testserver/XAPI/statements/',
+                                                                   http_url='http://testserver/XAPI/statements',
                                                                    parameters=post_oauth_header_resource_params_dict)
         post_signature_method = oauth.SignatureMethod_HMAC_SHA1()
         post_signature = post_signature_method.sign(
@@ -2923,7 +2923,7 @@ Lw03eHTNQghS0A==
 
         # Even though dick has define scope, he didn't create the activity so
         # he can't update it
-        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+        post = self.client.post(reverse('lrs:statements'), data=stmt_json, content_type="application/json",
                                 Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
         acts = Activity.objects.all()
@@ -3050,14 +3050,14 @@ Lw03eHTNQghS0A==
 
         # Create oauth request and add signature
         post_oauth_request = oauth.Request.from_token_and_callback(post_access_token, http_method='POST',
-                                                                   http_url='http://testserver/XAPI/statements/',
+                                                                   http_url='http://testserver/XAPI/statements',
                                                                    parameters=post_oauth_header_resource_params_dict)
         post_signature_method = oauth.SignatureMethod_HMAC_SHA1()
         post_signature = post_signature_method.sign(post_oauth_request, self.consumer2,
                                                     post_access_token)
         post_oauth_header_resource_params += ',oauth_signature="%s"' % post_signature
 
-        post = self.client.post('/XAPI/statements/', data=stmt_json, content_type="application/json",
+        post = self.client.post(reverse('lrs:statements'), data=stmt_json, content_type="application/json",
                                 Authorization=post_oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
         agents = Agent.objects.all().values_list('name', flat=True)
@@ -3097,13 +3097,13 @@ Lw03eHTNQghS0A==
 
         # Create oauth request and add signature
         post_oauth_request = oauth.Request.from_token_and_callback(access_token, http_method='POST',
-                                                                   http_url=TEST_SERVER + '/XAPI/statements/', parameters=post_oauth_header_resource_params_dict)
+                                                                   http_url=TEST_SERVER + '/XAPI/statements', parameters=post_oauth_header_resource_params_dict)
         post_signature_method = oauth.SignatureMethod_HMAC_SHA1()
         post_signature = post_signature_method.sign(
             post_oauth_request, self.consumer, access_token)
         oauth_header_resource_params += ',oauth_signature="%s"' % post_signature
 
-        post = self.client.post(TEST_SERVER + '/XAPI/statements/', data=stmt, content_type="application/json",
+        post = self.client.post(TEST_SERVER + '/XAPI/statements', data=stmt, content_type="application/json",
                                 Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 200)
         # ====================================================
@@ -3116,7 +3116,7 @@ Lw03eHTNQghS0A==
 
         # Create oauth request and add signature
         post_oauth_request2 = oauth.Request.from_token_and_callback(access_token, http_method='POST',
-                                                                    http_url=TEST_SERVER + '/XAPI/statements/', parameters=post_oauth_header_resource_params_dict)
+                                                                    http_url=TEST_SERVER + '/XAPI/statements', parameters=post_oauth_header_resource_params_dict)
         post_signature_method2 = oauth.SignatureMethod_HMAC_SHA1()
         post_signature2 = post_signature_method2.sign(
             post_oauth_request2, self.consumer, access_token)
@@ -3125,7 +3125,7 @@ Lw03eHTNQghS0A==
         new_oauth_headers = sig.replace(
             'oauth_nonce="resource_nonce"', 'oauth_nonce="post_differ_nonce"')
 
-        resp = self.client.post(TEST_SERVER + '/XAPI/statements/', data=stmt2, content_type="application/json",
+        resp = self.client.post(TEST_SERVER + '/XAPI/statements', data=stmt2, content_type="application/json",
                                 Authorization=new_oauth_headers, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(resp.status_code, 200)
 
