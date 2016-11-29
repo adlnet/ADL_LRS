@@ -13,7 +13,7 @@ from ..managers.ActivityProfileManager import ActivityProfileManager
 from ..managers.ActivityStateManager import ActivityStateManager
 from ..managers.AgentProfileManager import AgentProfileManager
 from ..managers.StatementManager import StatementManager
-from ..tasks import check_activity_metadata, void_statements, check_statement_hooks
+from ..tasks import check_activity_metadata, check_statement_hooks
 
 
 def process_statement(stmt, auth, version, payload_sha2s):
@@ -134,7 +134,7 @@ def statements_post(req_dict):
                      for stmt_tup in stmt_responses if stmt_tup[1]]
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
-        void_statements.delay(stmts_to_void)
+        Statement.objects.filter(statement_id__in=stmts_to_void).update(voided=True)
     if settings.USE_HOOKS:
         check_statement_hooks.delay(stmt_ids)
     return JsonResponse([st for st in stmt_ids], safe=False)
@@ -150,7 +150,7 @@ def statements_put(req_dict):
                      for stmt_tup in stmt_responses if stmt_tup[1]]
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
-        void_statements.delay(stmts_to_void)
+        Statement.objects.filter(statement_id__in=stmts_to_void).update(voided=True)
     if settings.USE_HOOKS:
         check_statement_hooks.delay(stmt_ids)
     return HttpResponse("No Content", status=204)

@@ -29,16 +29,6 @@ def check_activity_metadata(stmts):
 
 
 @shared_task
-@transaction.atomic
-def void_statements(stmts):
-    from .models import Statement
-    try:
-        Statement.objects.filter(statement_id__in=stmts).update(voided=True)
-    except Exception, e:
-        celery_logger.exception("Voiding Statement Error: " + e.message)
-
-
-@shared_task
 def check_statement_hooks(stmt_ids):
     try:
         from .models import Statement
