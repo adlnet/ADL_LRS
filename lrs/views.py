@@ -213,30 +213,37 @@ def handle_request(request, more_id=None):
             path = "%s/%s" % (reverse('lrs:statements').lower(), "more")
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
-    except (BadRequest, OauthBadRequest, HttpResponseBadRequest)  as err:
-        log_exception(request.path, err)
-        response = HttpResponse(err.message, status=400)
+    except (BadRequest, OauthBadRequest, HttpResponseBadRequest) as err:
+        status = 400
+        log_exception(status, request.path)
+        response = HttpResponse(err.message, status=status)
     except (Unauthorized, OauthUnauthorized) as autherr:
-        log_exception(request.path, autherr)
-        response = HttpResponse(autherr, status=401)
+        status = 401
+        log_exception(status, request.path)
+        response = HttpResponse(autherr, status=status)
         response['WWW-Authenticate'] = 'Basic realm="ADLLRS"'
     except Forbidden as forb:
-        log_exception(request.path, forb)
-        response = HttpResponse(forb.message, status=403)
+        status = 403
+        log_exception(status, request.path)
+        response = HttpResponse(forb.message, status=status)
     except NotFound as nf:
-        log_exception(request.path, nf)
-        response = HttpResponse(nf.message, status=404)
+        status = 404
+        log_exception(status, request.path)
+        response = HttpResponse(nf.message, status=status)
     except Conflict as c:
-        log_exception(request.path, c)
-        response = HttpResponse(c.message, status=409)
+        status = 409
+        log_exception(status, request.path)
+        response = HttpResponse(c.message, status=status)
     except PreconditionFail as pf:
-        log_exception(request.path, pf)
-        response = HttpResponse(pf.message, status=412)
+        status = 412
+        log_exception(status, request.path)
+        response = HttpResponse(pf.message, status=status)
     except Exception as err:
-        log_exception(request.path, err)
-        response = HttpResponse(err.message, status=500)   
+        status = 500
+        log_exception(status, request.path)
+        response = HttpResponse(err.message, status=status)   
     return response
 
-def log_exception(path, ex):
-    logger.info("\nException while processing: %s" % path)
-    logger.exception(ex)
+def log_exception(status, path):
+    info = "%s === %s" % (status, path)
+    logger.exception(info)

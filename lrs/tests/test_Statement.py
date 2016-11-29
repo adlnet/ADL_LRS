@@ -696,7 +696,7 @@ class StatementTests(TestCase):
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
         getResponse = self.client.get(
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
-        self.assertEqual(getResponse.status_code, 404)
+        self.assertEqual(getResponse.status_code, 400)
 
     def test_get_no_statementid(self):
         self.bunchostmts()
