@@ -813,9 +813,14 @@ def agents_get(req_dict):
         err_msg = "Error -- agents url, but no agent parameter.. the agent parameter is required"
         raise ParamError(err_msg)
 
-    agent = json.loads(req_dict['params']['agent'])
-    params = get_agent_ifp(agent)
+    validator = StatementValidator()
+    try:
+        agent = json.loads(req_dict['params']['agent'])
+    except Exception:
+        raise ParamError("agent param for agent resource is not valid")
+    validator.validate_agent(agent, "agent param for agent resource")
 
+    params = get_agent_ifp(agent)
     if not Agent.objects.filter(**params).exists():
         raise IDNotFoundError(
             "Error with Agent. The agent partial did not match any agents on record")

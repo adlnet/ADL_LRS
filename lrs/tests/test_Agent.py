@@ -57,6 +57,14 @@ class AgentTests(TestCase):
             response.content, 'Error with Agent. The agent partial did not match any agents on record')
         self.assertEqual(response.status_code, 404)
 
+    def test_get_bad_agent(self):
+        a = json.dumps({})
+        response = self.client.get(reverse('lrs:agents'), {
+                                   'agent': a}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(
+            response.content, 'One and only one of mbox, mbox_sha1sum, openid, account may be supplied with an Agent')
+        self.assertEqual(response.status_code, 400)
+
     def test_head(self):
         a = json.dumps({"name": "me", "mbox": "mailto:me@example.com"})
         Agent.objects.retrieve_or_create(**json.loads(a))
