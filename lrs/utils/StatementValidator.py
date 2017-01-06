@@ -482,8 +482,8 @@ class StatementValidator():
         self.check_if_dict(definition, "Activity definition")
 
         # Make sure it's not an empty definition
-        if not definition:
-            self.return_error("Definition is empty")
+        #if not definition:
+        #    self.return_error("Definition is empty")
 
         self.check_allowed_fields(
             act_def_allowed_fields, definition, "Activity definition")

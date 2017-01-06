@@ -391,6 +391,23 @@ class StatementTests(TestCase):
         self.assertEqual(response.content,
                          "Invalid field(s) found in Activity - bad, foo")
 
+    def test_blank_object_definition(self):
+        stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:def@def.com", "name": "D"},
+                           "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
+                           "object": {
+                            "definition": {  },
+                            "id": "http://object.com/",
+                            "objectType": "Activity"
+                        }})
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
+                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        self.assertEqual(response.status_code, 200)
+        act = Activity.objects.get(activity_id="http://object.com/")
+        self.assertEqual(act.activity_id, "http://object.com/")
+        agent = Agent.objects.get(mbox="mailto:def@def.com")
+        self.assertEqual(agent.name, "D")
+
     def test_invalid_activity_def_fields(self):
         stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
                            "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
