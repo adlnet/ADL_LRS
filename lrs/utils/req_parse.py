@@ -285,10 +285,6 @@ def parse_signature_attachments(r_dict, part_dict):
             validate_non_signature_attachment(unsigned_stmts, r_dict['payload_sha2s'], part_dict)
 
     if signed_stmts:
-        for tup in signed_stmts:
-            if len(tup[1]) > 1:
-                raise BadRequest(
-                    "A single statement should only have one signature attachment")
         handle_signatures(signed_stmts, r_dict['payload_sha2s'], part_dict)
 
 
@@ -318,19 +314,19 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
 
 
 def handle_signatures(stmt_tuples, sha2s, part_dict):
-    for tup in stmt_tuples:      
-        sha2 = tup[1][0]
-        # Should be listed in sha2s - sha2s couldn't not match
-        if sha2 not in sha2s:
-            raise BadRequest(
-                "Could not find attachment payload with sha: %s" % sha2)                    
-        part = part_dict[sha2]
-        # Content type must be set to octet/stream
-        if part['Content-Type'] != 'application/octet-stream':
-            raise BadRequest(
-                "Signature attachment must have Content-Type of "\
-                "'application/octet-stream'")
-        validate_signature(tup, part)
+    for tup in stmt_tuples:
+        for sha2 in tup[1]:           
+            # Should be listed in sha2s - sha2s couldn't not match
+            if sha2 not in sha2s:
+                raise BadRequest(
+                    "Could not find attachment payload with sha: %s" % sha2)                    
+            part = part_dict[sha2]
+            # Content type must be set to octet/stream
+            if part['Content-Type'] != 'application/octet-stream':
+                raise BadRequest(
+                    "Signature attachment must have Content-Type of "\
+                    "'application/octet-stream'")
+            validate_signature(tup, part)
 
 
 def validate_signature(tup, part):

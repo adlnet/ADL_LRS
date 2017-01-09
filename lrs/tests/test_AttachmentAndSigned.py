@@ -1045,6 +1045,55 @@ class AttachmentAndSignedTests(TestCase):
                              content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
+    def test_example_multiple_signed_statement(self):
+        payload = json.loads(exstmt)
+        payload['attachments'].append(        {
+            "usageType": "http://adlnet.gov/expapi/attachments/signature",
+            "display": { "en-US": "Signature 2" },
+            "description": { "en-US": "Another test signature" },
+            "contentType": "application/octet-stream",
+            "length": 4235,
+            "sha2": "dc9589e454ff375dd5dfd6f556d2583e231e8cafe55ef40102ddd988b79f86f0"
+        })
+
+        signature1 = jws.sign(payload, privatekey, algorithm='RS256')
+        signature2 = jws.sign(payload, privatekey2, algorithm='RS256')
+
+        self.assertTrue(jws.verify(
+            signature1, privatekey, algorithms=['RS256']))
+
+        self.assertTrue(jws.verify(
+            signature2, privatekey2, algorithms=['RS256']))
+
+
+        sha2_1 = hashlib.sha256(signature1).hexdigest()
+        payload['attachments'][0]["sha2"] = sha2_1
+
+        sha2_2 = hashlib.sha256(signature2).hexdigest()
+        payload['attachments'][1]["sha2"] = sha2_2
+
+        message = MIMEMultipart()
+        stmtdata = MIMEApplication(json.dumps(
+            payload), _subtype="json", _encoder=json.JSONEncoder)
+        jwsdata1 = MIMEApplication(signature1, _subtype="octet-stream")
+        jwsdata2 = MIMEApplication(signature2, _subtype="octet-stream")
+
+        jwsdata1.add_header('X-Experience-API-Hash', sha2_1)
+        jwsdata1.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata1.set_payload(signature1)
+
+        jwsdata2.add_header('X-Experience-API-Hash', sha2_2)
+        jwsdata2.replace_header('Content-Transfer-Encoding', 'binary')
+        jwsdata2.set_payload(signature2)
+
+        message.attach(stmtdata)
+
+        message.attach(jwsdata1)
+        message.attach(jwsdata2)
+
+        r = self.client.post(reverse('lrs:statements'), message.as_string(),
+                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 200)
 
     def test_example_signed_statement_batch(self):
         payload = json.loads(exstmt)
@@ -1453,6 +1502,12 @@ Lx1YCLZKPeah0HCQiB3kGD4Wn/Pc4hU29O7c4YhwjCUJAgqiPEHYvuzLmiBcOGzz
 hQIDAQAB
 -----END PUBLIC KEY-----"""
 
+publickey2 = """-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCqGKukO1De7zhZj6+H0qtjTkVxwTCpvKe4eCZ0
+FPqri0cb2JZfXJ/DgYSF6vUpwmJG8wVQZKjeGcjDOL5UlsuusFncCzWBQ7RKNUSesmQRMSGkVb1/
+3j+skZ6UtW+5u09lHNsj6tQ51s1SPrCBkedbNf0Tp0GbMJDyR4e9T04ZZwIDAQAB
+-----END PUBLIC KEY-----"""
+
 wrongpublickey = """-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzO/eUZPksFpU6E0BBTbp
 F1T66Mnq3DJK06hKzyhLfI9L9bGzEQVCa7YNmHdDaGXgmmlT8hdbLeAspfeItKyI
@@ -1491,3 +1546,17 @@ r9IsERRoDLD7f+C9vf1ilivVsAY8E9uTF+olHzESPhEndlNDwMU3NHzMUsqGf05d
 bNxWAKDGyKQSwyb9CbUBMl4ErfkduQAHaJXK7gTF8Pvgr9OehajDT4sQi3H6gg0a
 qjOL3XOZ+ZNpW0h9JM/jrF0=
 -----END PRIVATE KEY-----"""
+
+privatekey2 = """-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQCqGKukO1De7zhZj6+H0qtjTkVxwTCpvKe4eCZ0FPqri0cb2JZfXJ/DgYSF6vUp
+wmJG8wVQZKjeGcjDOL5UlsuusFncCzWBQ7RKNUSesmQRMSGkVb1/3j+skZ6UtW+5u09lHNsj6tQ5
+1s1SPrCBkedbNf0Tp0GbMJDyR4e9T04ZZwIDAQABAoGAFijko56+qGyN8M0RVyaRAXz++xTqHBLh
+3tx4VgMtrQ+WEgCjhoTwo23KMBAuJGSYnRmoBZM3lMfTKevIkAidPExvYCdm5dYq3XToLkkLv5L2
+pIIVOFMDG+KESnAFV7l2c+cnzRMW0+b6f8mR1CJzZuxVLL6Q02fvLi55/mbSYxECQQDeAw6fiIQX
+GukBI4eMZZt4nscy2o12KyYner3VpoeE+Np2q+Z3pvAMd/aNzQ/W9WaI+NRfcxUJrmfPwIGm63il
+AkEAxCL5HQb2bQr4ByorcMWm/hEP2MZzROV73yF41hPsRC9m66KrheO9HPTJuo3/9s5p+sqGxOlF
+L0NDt4SkosjgGwJAFklyR1uZ/wPJjj611cdBcztlPdqoxssQGnh85BzCj/u3WqBpE2vjvyyvyI5k
+X6zk7S0ljKtt2jny2+00VsBerQJBAJGC1Mg5Oydo5NwD6BiROrPxGo2bpTbu/fhrT8ebHkTz2epl
+U9VQQSQzY1oZMVX8i1m5WUTLPz2yLJIBQVdXqhMCQBGoiuSoSjafUhV7i1cEGpb88h5NBYZzWXGZ
+37sJ5QsW+sJyoNde3xH8vdXhzU7eT82D6X/scw9RZz+/6rCJ4p0=
+-----END RSA PRIVATE KEY-----"""
