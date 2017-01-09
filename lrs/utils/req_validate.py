@@ -3,7 +3,7 @@ from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
 import uuid
 
-from . import get_agent_ifp
+from . import get_agent_ifp, convert_to_datatype
 from authorization import auth
 from StatementValidator import StatementValidator
 
@@ -325,6 +325,20 @@ def activity_state_post(req_dict):
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(req_dict, "state")
 
+    # Check json for incoming POSTed document
+    if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
+        raise ParamError(
+            "Activity state document to be posted does not has a Content-Type of 'application/json'")
+
+    # expected to be json
+    try:
+        raw_state = req_dict.pop('raw_body', req_dict.pop('body', None))
+        convert_to_datatype(raw_state)
+    except Exception:
+        raise ParamError("Activity state document is not valid JSON")
+    else:
+        req_dict['state'] = raw_state
+
     # Check the content type if the document already exists
     registration = req_dict['params'].get('registration', None)
     agent = req_dict['params']['agent']
@@ -344,14 +358,9 @@ def activity_state_post(req_dict):
             exists = True
         except ActivityState.DoesNotExist:
             pass
-    if exists:
-        if str(s.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or
-                                                         req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-            raise ParamError(
-                "Neither original document or document to be posted has a Content-Type of 'application/json'")
-
-    # Set state
-    req_dict['state'] = req_dict.pop('raw_body', req_dict.pop('body', None))
+    
+    if exists and str(s.content_type) != "application/json":
+        raise ParamError("Activity state already exists but is not JSON, cannot update it with new JSON document")
     return req_dict
 
 
@@ -517,6 +526,20 @@ def activity_profile_post(req_dict):
         err_msg = "Could not find the profile document"
         raise ParamError(err_msg)
 
+    # Check json for incoming POSTed document
+    if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
+        raise ParamError(
+            "Activity profile document to be posted does not has a Content-Type of 'application/json'")
+
+    # expected to be json
+    try:
+        raw_profile = req_dict.pop('raw_body', req_dict.pop('body', None))
+        convert_to_datatype(raw_profile)
+    except Exception:
+        raise ParamError("Activity profile document is not valid JSON")
+    else:
+        req_dict['profile'] = raw_profile
+
     # Check the content type if the document already exists
     exists = False
     try:
@@ -526,13 +549,9 @@ def activity_profile_post(req_dict):
     except ActivityProfile.DoesNotExist:
         pass
 
-    if exists:
-        if str(p.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or
-                                                         req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-            raise ParamError(
-                "Neither original document or document to be posted has a Content-Type of 'application/json'")
-
-    req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
+    # Since document to be POSTed has to be json, so does the existing document
+    if exists and str(p.content_type) != "application/json":
+        raise ParamError("Activity profile already exists but is not JSON, cannot update it with new JSON document")
     return req_dict
 
 
@@ -676,6 +695,20 @@ def agent_profile_post(req_dict):
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_state_or_profile_agent(req_dict, "profile")
 
+    # Check json for incoming POSTed document
+    if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
+        raise ParamError(
+            "Agent profile document to be posted does not has a Content-Type of 'application/json'")
+
+    # expected to be json
+    try:
+        raw_profile = req_dict.pop('raw_body', req_dict.pop('body', None))
+        convert_to_datatype(raw_profile)
+    except Exception:
+        raise ParamError("Agent profile document is not valid JSON")
+    else:
+        req_dict['profile'] = raw_profile
+
     # Check the content type if the document already exists
     exists = False
     agent = req_dict['params']['agent']
@@ -687,15 +720,9 @@ def agent_profile_post(req_dict):
     except AgentProfile.DoesNotExist:
         pass
 
-    if exists:
-        if str(p.content_type) != "application/json" or ("application/json" not in req_dict['headers']['CONTENT_TYPE'] or
-                                                         req_dict['headers']['CONTENT_TYPE'] != "application/json"):
-            raise ParamError(
-                "Neither original document or document to be posted has a Content-Type of 'application/json'")
-
-    # Set profile
-    req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
-
+    # Since document to be POSTed has to be json, so does the existing document
+    if exists and str(p.content_type) != "application/json":
+        raise ParamError("Agent profile already exists but is not JSON, cannot update it with new JSON document")
     return req_dict
 
 
