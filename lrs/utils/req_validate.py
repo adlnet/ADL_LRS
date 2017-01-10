@@ -8,7 +8,7 @@ from authorization import auth
 from StatementValidator import StatementValidator
 
 from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile
-from ..exceptions import ParamConflict, ParamError, Forbidden, NotFound, BadRequest, IDNotFoundError
+from ..exceptions import ParamConflict, ParamError, Forbidden, BadRequest, IDNotFoundError
 
 
 def check_for_existing_statementId(stmtID):
@@ -24,22 +24,20 @@ def check_for_no_other_params_supplied(query_dict):
 # Extra agent validation for state and profile
 
 
-def validate_oauth_state_or_profile_agent(req_dict, endpoint):
+def validate_oauth_for_documents(req_dict, endpoint): 
     ag = req_dict['params']['agent']
     token = req_dict['auth']['oauth_token']
     scopes = token.scope_to_list()
     if 'all' not in scopes:
-        if not isinstance(ag, dict):
-            ag = json.loads(ag)
         try:
             agent = Agent.objects.get(**ag)
         except Agent.DoesNotExist:
-            err_msg = "Agent in %s cannot be found to match user in authorization" % endpoint
-            raise NotFound(err_msg)
-
-        if agent not in req_dict['auth']['agent'].member.all():
-            err_msg = "Authorization doesn't match agent in %s" % endpoint
-            raise Forbidden(err_msg)
+            # if agent DNE, profile/state scope should still be able to create one
+            pass
+        else:
+            if agent not in req_dict['auth']['agent'].member.all():
+                err_msg = "Agent for %s is out of scope" % endpoint
+                raise Forbidden(err_msg)
 
 
 def validate_void_statement(void_id):
@@ -258,16 +256,15 @@ def statements_put(req_dict):
 
 def validate_attachments(attachment_data, payload_sha2s, content_type):
     if "multipart/mixed" in content_type:
-        for attachment in attachment_data:
-            # If the attachment data has a sha2 field, must validate it against
-            # the payload data
-            if 'sha2' in attachment:
-                sha2 = attachment['sha2']
-                # Check if the sha2 field is a key in the payload dict
-                if not payload_sha2s:
-                    if 'fileUrl' not in attachment:
-                        raise BadRequest(
-                            "Missing X-Experience-API-Hash field in header")
+        if not payload_sha2s:
+            fileUrls = [att.get('fileUrl', None) for att in attachment_data]
+            sha2s = [att.get('sha2', None) for att in attachment_data]
+            if set(sha2s) != set(payload_sha2s):
+                raise BadRequest(
+                    "sha2 values in statement do not match sha2 headers")
+            if None in fileUrls:
+                raise BadRequest(
+                    "Missing X-Experience-API-Hash field in header")
     elif "application/json" == content_type:
         for attachment in attachment_data:
             if 'fileUrl' not in attachment:
@@ -323,7 +320,7 @@ def activity_state_post(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "state")
+        validate_oauth_for_documents(req_dict, "state")
 
     # Check json for incoming POSTed document
     if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
@@ -409,7 +406,7 @@ def activity_state_put(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "state")
+        validate_oauth_for_documents(req_dict, "state")
 
     # Set state
     req_dict['state'] = req_dict.pop('raw_body', req_dict.pop('body', None))
@@ -458,7 +455,7 @@ def activity_state_get(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "state")
+        validate_oauth_for_documents(req_dict, "state")
     return req_dict
 
 
@@ -497,7 +494,7 @@ def activity_state_delete(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "state")
+        validate_oauth_for_documents(req_dict, "state")
     return req_dict
 
 
@@ -693,7 +690,7 @@ def agent_profile_post(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "profile")
+        validate_oauth_for_documents(req_dict, "agent profile")
 
     # Check json for incoming POSTed document
     if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
@@ -757,7 +754,7 @@ def agent_profile_put(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "profile")
+        validate_oauth_for_documents(req_dict, "agent profile")
     req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
     return req_dict
 
@@ -792,7 +789,7 @@ def agent_profile_get(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "profile")
+        validate_oauth_for_documents(req_dict, "agent profile")
     return req_dict
 
 
@@ -823,7 +820,7 @@ def agent_profile_delete(req_dict):
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
-        validate_oauth_state_or_profile_agent(req_dict, "profile")
+        validate_oauth_for_documents(req_dict, "agent profile")
     return req_dict
 
 

@@ -172,7 +172,6 @@ def create_cache_key(stmt_list):
 
 
 def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, attachments):
-    from ..views import statements_more_placeholder
     # First time someone queries POST/GET
     result = {}
     cache_list = []

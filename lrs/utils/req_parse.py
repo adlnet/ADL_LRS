@@ -3,7 +3,6 @@ import base64
 import email
 import urllib
 import json
-import itertools
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
 from Crypto.PublicKey import RSA
@@ -303,7 +302,7 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
                 signature = get_part_payload(part)
                 try:
                     jws.get_unverified_headers(signature)
-                except Exception, e:
+                except Exception:
                     # If there is an error that means the payload is not a JWS
                     # signature which is what we expected
                     pass
@@ -373,7 +372,7 @@ def compare_payloads(jws_payload, body_payload, sha2_key):
     # Need to copy the dict so use dict()
     try:
         jws_placeholder = dict(json.loads(jws_payload))
-    except Exception, e:
+    except Exception:
         raise BadRequest(
             "Invalid JSON serialization of signature payload")
 

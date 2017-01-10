@@ -2730,7 +2730,7 @@ Lw03eHTNQghS0A==
     def test_state_wrong_auth(self):
         # This test agent is not in this auth
         url = 'http://testserver/XAPI/activities/state'
-        testagent = '{"name":"joe","mbox":"mailto:joe@example.com"}'
+        testagent = '{"name":"dick","mbox":"mailto:dick@example.com"}'
         activityId = "http://www.iana.org/domains/example/"
         stateId = "id:the_state_id"
         activity = Activity(activity_id=activityId)
@@ -2764,9 +2764,9 @@ Lw03eHTNQghS0A==
 
         put = self.client.put(path, data=teststate, content_type="application/json",
                               Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(put.status_code, 404)
+        self.assertEqual(put.status_code, 403)
         self.assertEqual(
-            put.content, "Agent in state cannot be found to match user in authorization")
+            put.content, "Agent for state is out of scope")
 
     def test_profile_wrong_auth(self):
         agent = Agent(name="joe", mbox="mailto:joe@example.com")
@@ -2804,7 +2804,7 @@ Lw03eHTNQghS0A==
                               Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(get.status_code, 403)
         self.assertEqual(
-            get.content, "Authorization doesn't match agent in profile")
+            get.content, "Agent for agent profile is out of scope")
 
     def test_define_scope_activity(self):
         url = 'http://testserver/XAPI/statements'

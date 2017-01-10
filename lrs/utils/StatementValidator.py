@@ -55,8 +55,12 @@ class StatementValidator():
         if data:
             try:
                 if isinstance(data, unicode):
-                    data = str(data)
-                    data = data.replace('\r', '').replace('\n', '')
+                    try:
+                        data = str(data)
+                    except Exception:
+                        self.return_error("There is an encoding problem with the statement")
+                    else:
+                        data = data.replace('\r', '').replace('\n', '')
                 self.data = convert_to_datatype(data)
             except Exception as e:
                 self.return_error(e.message)
