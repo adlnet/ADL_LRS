@@ -43,8 +43,6 @@ score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities',
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
-lang_tag_re = re.compile(
-    '^[a-z]{2,3}(?:-[a-zA-Z]{4})?(?:-[A-Z]{2,3})?$')
 
 
 class StatementValidator():
@@ -91,15 +89,28 @@ class StatementValidator():
         else:
             self.return_error("mbox value must be a string type")
 
-    def validate_lang_tag(self, tag, field):
-        if tag:
-            for lang in tag:
-                if not lang_tag_re.match(lang) or tag == 'test':
+    def validate_language(self, lang, field):
+        if not isinstance(lang, basestring):
+            self.return_error(
+                "language %s is not valid in %s" % (map, field))
+        lang_parts = lang.split('-')
+        for idx, part in enumerate(lang_parts):
+            # If part exists and is only alpha/numeric
+            if part and re.match("^[A-Za-z0-9]*$", part):
+                if len(part) > 8:
                     self.return_error(
-                        "language %s is not valid in %s" % (tag, field))
+                        "language %s is not valid in %s" % (map, field))
+            else:
+                self.return_error(
+                    "language %s is not valid in %s" % (map, field))        
+
+    def validate_lang_map(self, map, field):
+        if map:
+            for lang in map:
+                self.validate_language(lang, field)
         else:
             self.return_error(
-                "language tags must contain at least one key/value pair in %s" % field)
+                "language maps must contain at least one key/value pair in %s" % field)
 
     def validate_dict_values(self, values, field):
         for v in values:
@@ -276,14 +287,14 @@ class StatementValidator():
 
             # Ensure display is a dict (language map)
             self.check_if_dict(attach['display'], "Attachment display")
-            self.validate_lang_tag(
+            self.validate_lang_map(
                 attach['display'].keys(), "attachment display")
 
             # If description included, ensure it is a dict (language map)
             if 'description' in attach:
                 self.check_if_dict(
                     attach['description'], "Attachment description")
-                self.validate_lang_tag(
+                self.validate_lang_map(
                     attach['description'].keys(), "attachment description")
 
     def validate_extensions(self, extensions, field):
@@ -412,7 +423,7 @@ class StatementValidator():
         # If display given, ensure it's a dict (language map)
         if 'display' in verb:
             self.check_if_dict(verb['display'], "Verb display")
-            self.validate_lang_tag(verb['display'].keys(), "verb display")
+            self.validate_lang_map(verb['display'].keys(), "verb display")
             self.validate_dict_values(verb['display'].values(), "verb display")
 
     def validate_object(self, stmt_object):
@@ -480,12 +491,12 @@ class StatementValidator():
         # If name or description included, ensure it is a dict (language map)
         if 'name' in definition:
             self.check_if_dict(definition['name'], "Activity definition name")
-            self.validate_lang_tag(
+            self.validate_lang_map(
                 definition['name'].keys(), "activity definition name")
         if 'description' in definition:
             self.check_if_dict(
                 definition['description'], "Activity definition description")
-            self.validate_lang_tag(
+            self.validate_lang_map(
                 definition['description'].keys(), "activity definition description")
 
         # If type or moreInfo included, ensure it is valid IRI
@@ -610,7 +621,7 @@ class StatementValidator():
                 # Ensure description is a dict (language map)
                 self.check_if_dict(
                     act['description'], "%s interaction component description" % field)
-                self.validate_lang_tag(act['description'].keys(
+                self.validate_lang_map(act['description'].keys(
                 ), "%s interaction component description" % field)
 
         # Check and make sure all ids being listed are unique
@@ -780,9 +791,8 @@ class StatementValidator():
         if 'language' in context:
             if not isinstance(context['language'], basestring):
                 self.return_error("Context language must be a string")
-            else:               
-                if not lang_tag_re.match(context['language']):
-                    self.return_error("Context language is not valid")
+            else:
+                self.validate_language(context['language'], "context language")
 
         # If statement given, ensure it is a valid StatementRef
         if 'statement' in context:
