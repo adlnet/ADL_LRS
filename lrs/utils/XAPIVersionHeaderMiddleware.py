@@ -1,7 +1,7 @@
 import re
 import urllib
 from django.conf import settings
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponse
 
 
 class XAPIVersionHeader(object):
@@ -35,9 +35,14 @@ class XAPIVersionHeader(object):
             if regex.match(version):
                 return None
             else:
-                return HttpResponseBadRequest("X-Experience-API-Version is not supported")
+                resp = HttpResponse("X-Experience-API-Version is not supported", status=400)
+                resp['X-Experience-API-Version'] = settings.XAPI_VERSION
+                return resp
         else:
-            return HttpResponseBadRequest("X-Experience-API-Version header missing")
+            resp = HttpResponse("X-Experience-API-Version header missing", status=400)
+            resp['X-Experience-API-Version'] = settings.XAPI_VERSION
+            return resp
+
 
     def process_response(self, request, response):
         response['X-Experience-API-Version'] = settings.XAPI_VERSION

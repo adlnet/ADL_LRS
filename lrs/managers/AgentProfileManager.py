@@ -33,45 +33,30 @@ class AgentProfileManager():
         # get/create profile
         p, created = AgentProfile.objects.get_or_create(
             profile_id=request_dict['params']['profileId'], agent=self.Agent)
-        if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
-            try:
-                post_profile = ContentFile(request_dict['profile'].read())
-            except:
-                try:
-                    post_profile = ContentFile(request_dict['profile'])
-                except:
-                    post_profile = ContentFile(str(request_dict['profile']))
-            self.save_non_json_profile(p, post_profile, request_dict)
-        else:
-            post_profile = request_dict['profile']
-            # If incoming profile is application/json and if a profile didn't
-            # already exist with the same agent and profileId
-            if created:
-                p.json_profile = post_profile
-                p.content_type = request_dict['headers']['CONTENT_TYPE']
-                p.etag = etag.create_tag(post_profile)
-            # If incoming profile is application/json and if a profile already
-            # existed with the same agent and profileId
-            else:
-                orig_prof = json.loads(p.json_profile)
-                post_profile = json.loads(post_profile)
-                if not isinstance(post_profile, dict):
-                    raise ParamError(
-                        "The document was not able to be parsed into a JSON object.")
-                else:
-                    # json.dumps changes the format of the string rep of the
-                    # dict
-                    merged = json.dumps(
-                        dict(orig_prof.items() + post_profile.items()))
-                p.json_profile = merged
-                p.etag = etag.create_tag(merged)
 
-            # Set updated
-            if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
-                p.updated = request_dict['headers']['updated']
-            else:
-                p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-            p.save()
+        post_profile = request_dict['profile']
+        # If incoming profile is application/json and if a profile didn't
+        # already exist with the same agent and profileId
+        if created:
+            p.json_profile = post_profile
+            p.content_type = "application/json"
+            p.etag = etag.create_tag(post_profile)
+        # If incoming profile is application/json and if a profile already
+        # existed with the same agent and profileId
+        else:
+            orig_prof = json.loads(p.json_profile)
+            post_profile = json.loads(post_profile)
+            merged = json.dumps(
+                dict(orig_prof.items() + post_profile.items()))
+            p.json_profile = merged
+            p.etag = etag.create_tag(merged)
+
+        # Set updated
+        if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
+            p.updated = request_dict['headers']['updated']
+        else:
+            p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+        p.save()
 
     def put_profile(self, request_dict):
         # get/create profile

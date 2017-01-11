@@ -61,45 +61,30 @@ class ActivityStateManager():
         else:
             s, created = ActivityState.objects.get_or_create(state_id=request_dict['params']['stateId'], agent=self.Agent,
                                                              activity_id=request_dict['params']['activityId'])
-
-        if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
-            try:
-                post_state = ContentFile(request_dict['state'].read())
-            except:
-                try:
-                    post_state = ContentFile(request_dict['state'])
-                except:
-                    post_state = ContentFile(str(request_dict['state']))
-            self.save_non_json_state(s, post_state, request_dict)
+        post_state = request_dict['state']
+        # If incoming state is application/json and if a state didn't
+        # already exist with the same agent, stateId, actId, and/or
+        # registration
+        if created:
+            s.json_state = post_state
+            s.content_type = "application/json"
+            s.etag = etag.create_tag(post_state)
+        # If incoming state is application/json and if a state already
+        # existed with the same agent, stateId, actId, and/or registration
         else:
-            post_state = request_dict['state']
-            # If incoming state is application/json and if a state didn't
-            # already exist with the same agent, stateId, actId, and/or
-            # registration
-            if created:
-                s.json_state = post_state
-                s.content_type = request_dict['headers']['CONTENT_TYPE']
-                s.etag = etag.create_tag(post_state)
-            # If incoming state is application/json and if a state already
-            # existed with the same agent, stateId, actId, and/or registration
-            else:
-                orig_state = json.loads(s.json_state)
-                post_state = json.loads(post_state)
-                if not isinstance(post_state, dict):
-                    raise ParamError(
-                        "The document was not able to be parsed into a JSON object.")
-                else:
-                    merged = json.dumps(
-                        dict(orig_state.items() + post_state.items()))
-                s.json_state = merged
-                s.etag = etag.create_tag(merged)
+            orig_state = json.loads(s.json_state)
+            post_state = json.loads(post_state)
+            merged = json.dumps(
+                dict(orig_state.items() + post_state.items()))
+            s.json_state = merged
+            s.etag = etag.create_tag(merged)
 
-                # Set updated
-            if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
-                s.updated = request_dict['headers']['updated']
-            else:
-                s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
-            s.save()
+            # Set updated
+        if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
+            s.updated = request_dict['headers']['updated']
+        else:
+            s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+        s.save()
 
     def put_state(self, request_dict):
         registration = request_dict['params'].get('registration', None)

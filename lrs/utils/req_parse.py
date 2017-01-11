@@ -3,7 +3,6 @@ import base64
 import email
 import urllib
 import json
-import itertools
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
 from Crypto.PublicKey import RSA
@@ -285,10 +284,6 @@ def parse_signature_attachments(r_dict, part_dict):
             validate_non_signature_attachment(unsigned_stmts, r_dict['payload_sha2s'], part_dict)
 
     if signed_stmts:
-        for tup in signed_stmts:
-            if len(tup[1]) > 1:
-                raise BadRequest(
-                    "A single statement should only have one signature attachment")
         handle_signatures(signed_stmts, r_dict['payload_sha2s'], part_dict)
 
 
@@ -307,7 +302,7 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
                 signature = get_part_payload(part)
                 try:
                     jws.get_unverified_headers(signature)
-                except Exception, e:
+                except Exception:
                     # If there is an error that means the payload is not a JWS
                     # signature which is what we expected
                     pass
@@ -318,19 +313,19 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
 
 
 def handle_signatures(stmt_tuples, sha2s, part_dict):
-    for tup in stmt_tuples:      
-        sha2 = tup[1][0]
-        # Should be listed in sha2s - sha2s couldn't not match
-        if sha2 not in sha2s:
-            raise BadRequest(
-                "Could not find attachment payload with sha: %s" % sha2)                    
-        part = part_dict[sha2]
-        # Content type must be set to octet/stream
-        if part['Content-Type'] != 'application/octet-stream':
-            raise BadRequest(
-                "Signature attachment must have Content-Type of "\
-                "'application/octet-stream'")
-        validate_signature(tup, part)
+    for tup in stmt_tuples:
+        for sha2 in tup[1]:           
+            # Should be listed in sha2s - sha2s couldn't not match
+            if sha2 not in sha2s:
+                raise BadRequest(
+                    "Could not find attachment payload with sha: %s" % sha2)                    
+            part = part_dict[sha2]
+            # Content type must be set to octet/stream
+            if part['Content-Type'] != 'application/octet-stream':
+                raise BadRequest(
+                    "Signature attachment must have Content-Type of "\
+                    "'application/octet-stream'")
+            validate_signature(tup, part)
 
 
 def validate_signature(tup, part):
@@ -377,7 +372,7 @@ def compare_payloads(jws_payload, body_payload, sha2_key):
     # Need to copy the dict so use dict()
     try:
         jws_placeholder = dict(json.loads(jws_payload))
-    except Exception, e:
+    except Exception:
         raise BadRequest(
             "Invalid JSON serialization of signature payload")
 
