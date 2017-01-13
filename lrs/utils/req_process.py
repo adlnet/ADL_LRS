@@ -74,9 +74,24 @@ def process_complex_get(req_dict):
     language = None
     if 'headers' in req_dict and ('format' in param_dict and param_dict['format'] == "canonical"):
         if 'language' in req_dict['headers']:
-            language = req_dict['headers']['language']
+            lang_list = req_dict['headers']['language'].split(',')
+            if len(lang_list) > 1:
+                for idx, lang in enumerate(lang_list):
+                    parts = lang.split(';')
+                    if len(parts) == 1:
+                        if parts[0] == '*':
+                            lang_list[idx] = "anylanguage;q=0.1"
+                        else:
+                            lang_list[idx] = parts[0] + ";q=1.0"          
+                lang_list = sorted(lang_list, key=lambda x : float(x[-3:]), reverse=True)
+                language = [x[:x.index(';')].strip() for x in lang_list]
+            else:
+                if lang_list[0] == '*':
+                    language = ["anylanguage"]
+                else:
+                    language = [req_dict['headers']['language']]
         else:
-            language = settings.LANGUAGE_CODE
+            language = [settings.LANGUAGE_CODE]
 
     # If auth is in req dict, add it to param dict
     if 'auth' in req_dict:
@@ -391,7 +406,7 @@ def activities_get(req_dict):
     act = Activity.objects.get(
         activity_id=activity_id, authority__isnull=False)
     return_act = json.dumps(
-        act.return_activity_with_lang_format('all'), sort_keys=False)
+        act.return_activity_with_lang_format(['all']), sort_keys=False)
     resp = HttpResponse(
         return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))

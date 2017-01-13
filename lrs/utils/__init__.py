@@ -3,6 +3,7 @@ import json
 import urllib
 import urlparse
 from isodate.isodatetime import parse_datetime
+from django.conf import settings
 
 from ..exceptions import ParamError
 
@@ -60,13 +61,28 @@ def convert_post_body_to_dict(incoming_data):
 
 def get_lang(langdict, lang):
     if lang:
-        if lang == 'all':
+        if 'all' in lang:
             return langdict
         else:
-            # Return where key = lang
-            try:
-                return {lang: langdict[lang]}
-            except KeyError:
-                pass
+            for la in lang:
+                if la == "anylanguage":
+                    try:
+                        return {settings.LANGUAGE_CODE: langdict[settings.LANGUAGE_CODE]}
+                    except KeyError:
+                        first = langdict.iteritems().next()
+                        return {first[0]: first[1]} 
+                # Return where key = lang
+                try:
+                    return {la: langdict[la]}
+                except KeyError:
+                    # if the language header does match any exactly, then if it is only a 2 character
+                    # header, try matching it against the keys again ('en' would match 'en-US')
+                    if not '-' in la:
+                        # get all keys from langdict...get all first parts of them..if la is in it, return it
+                        for k in langdict.keys():
+                            if '-' in k:
+                                if la == k.split('-')[0]:
+                                    return {la: langdict[k]}                    
+                    pass
     first = langdict.iteritems().next()
     return {first[0]: first[1]}

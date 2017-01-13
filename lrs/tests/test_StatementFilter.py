@@ -2188,6 +2188,84 @@ class StatementFilterTests(TestCase):
         self.assertNotEqual(canon_enus['context']['contextActivities']['parent'][0]['definition']['description'].keys()[
                             0], canon_fr['context']['contextActivities']['parent'][0]['definition']['description'].keys()[0])
 
+    def language_test(self):
+        email = "mailto:chair%s@example.com" % str(uuid.uuid1())
+        stmt = {
+            "actor": {"name": "chair", "mbox": email},
+            "verb": {"id": "http://tom.com/tested", "display": {"en-US": "tested", "es-US": "probado", "fr": "testé"}},
+            "object": {"objectType": "Activity", "id": "act:tom.com/objs/heads",
+                       "definition": {"name": {"en-GB": "format", "fr": "format"},
+                                      "description": {"en-US": "format used to return statement",
+                                                      "fr": "format utilisé pour cette statement"
+                                                      },
+                                      "type": "type:thing"
+                                      }
+                       }
+        }
+
+        guid = str(uuid.uuid1())
+        param = {"statementId": guid}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        resp = self.client.put(path, json.dumps(stmt), content_type="application/json",
+                               Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+
+        param = {"agent": {"mbox": email},
+                 "format": "canonical"}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        r = self.client.get(path, Accept_Language="es-US, en-GB;q=0.8, en;q=0.7",
+                            X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)        
+        content = json.loads(r.content)['statements'][0]
+
+        self.assertEqual(content['verb']['display'].keys()[0], 'es-US')
+        self.assertEqual(content['verb']['display'].values()[0], 'probado')
+
+        self.assertEqual(content['object']['definition']['name'].keys()[0], 'en-GB')
+        self.assertEqual(content['object']['definition']['name'].values()[0], 'format')
+
+        self.assertIn('en', content['object']['definition']['description'].keys()[0], 'en-US')
+        self.assertEqual(content['object']['definition']['description'].values()[0], 'format used to return statement')
+
+    def language_wildcard(self):
+        email = "mailto:chair%s@example.com" % str(uuid.uuid1())
+        stmt = {
+            "actor": {"name": "chair", "mbox": email},
+            "verb": {"id": "http://tom.com/tested", "display": {"en-US": "tested", "es-US": "probado", "fr": "testé"}},
+            "object": {"objectType": "Activity", "id": "act:tom.com/objs/heads",
+                       "definition": {"name": {"en-GB": "format", "fr": "format"},
+                                      "description": {"en-US": "format used to return statement",
+                                                      "fr": "format utilisé pour cette statement"
+                                                      },
+                                      "type": "type:thing"
+                                      }
+                       }
+        }
+
+        guid = str(uuid.uuid1())
+        param = {"statementId": guid}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        resp = self.client.put(path, json.dumps(stmt), content_type="application/json",
+                               Authorization=self.auth, X_Experience_API_Version="1.0")
+        self.assertEqual(resp.status_code, 204)
+
+        param = {"agent": {"mbox": email},
+                 "format": "canonical"}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        r = self.client.get(path, Accept_Language="*",
+                            X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)        
+        content = json.loads(r.content)['statements'][0]
+
+        self.assertEqual(content['verb']['display'].keys()[0], 'en-US')
+        self.assertEqual(content['verb']['display'].values()[0], 'tested')
+
+        self.assertEqual(len(content['object']['definition']['name'].keys()), 1)
+        self.assertIn(content['object']['definition']['name'].keys()[0], ['en-GB', 'fr'])
+
+        self.assertIn('en', content['object']['definition']['description'].keys()[0], 'en-US')
+        self.assertEqual(content['object']['definition']['description'].values()[0], 'format used to return statement')
+
     def single_stmt_get_canonical(self):
         ex_stmt = {
             "actor": {"name": "chair", "mbox": "mailto:chair@example.com"},
