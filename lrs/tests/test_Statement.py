@@ -395,18 +395,112 @@ class StatementTests(TestCase):
         stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:def@def.com", "name": "D"},
                            "verb": {"id": "http://example.com/verbs/passed", "display": {"en-US": "passed"}},
                            "object": {
-                            "definition": {  },
+                            "definition": { },
                             "id": "http://object.com/",
                             "objectType": "Activity"
                         }})
         response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-
         self.assertEqual(response.status_code, 200)
-        act = Activity.objects.get(activity_id="http://object.com/")
-        self.assertEqual(act.activity_id, "http://object.com/")
         agent = Agent.objects.get(mbox="mailto:def@def.com")
         self.assertEqual(agent.name, "D")
+        
+        get_response = self.client.get(reverse('lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        rsp = get_response.content
+        self.assertIn("definition", rsp)
+        json_object = json.loads(rsp)
+        jdef = json_object['statements'][0]['object']['definition']
+        self.assertEqual(jdef, {})
+
+        param = {"format": 'canonical'}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+
+        get_response = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertNotIn('definition', get_response.content)
+
+    def test_blank_score(self):
+        stmt = json.dumps({"verb": {"id": "http://example.com/verbs/created",
+                                    "display": {"en-US": "created"}}, "actor": {"objectType": "Agent", "mbox": "mailto:s@s.com"},
+                           "object": {"objectType": "Activity", "id": "act:foogie2"},
+                           "result": {"score": {}, "completion": True, "success": True,
+                                      "response": "kicked", "duration": "P3Y6M4DT12H30M5S", "extensions": {"ext:key1": "value1",
+                                                                                                           "ext:key2": "value2"}}})
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
+                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        self.assertEqual(response.status_code, 200)
+        get_response = self.client.get(reverse('lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        rsp = get_response.content
+        self.assertIn("score", rsp)
+        json_object = json.loads(rsp)
+        jscore = json_object['statements'][0]['result']['score']
+        self.assertEqual(jscore, {})
+
+        param = {"format": 'canonical'}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+
+        get_response = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertNotIn('score', get_response.content)
+        
+    def test_blank_result(self):
+        stmt = json.dumps({"verb": {"id": "http://example.com/verbs/created",
+                                    "display": {"en-US": "created"}}, "actor": {"objectType": "Agent", "mbox": "mailto:foo@foo.com"},
+                           "object": {"objectType": "Activity", "id": "act:foop"},
+                           "result": {}})
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
+                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        self.assertEqual(response.status_code, 200)
+        get_response = self.client.get(reverse('lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        rsp = get_response.content
+        self.assertIn("result", rsp)
+        json_object = json.loads(rsp)
+        jresult = json_object['statements'][0]['result']
+        self.assertEqual(jresult, {})
+
+        param = {"format": 'canonical'}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+
+        get_response = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertNotIn('result', get_response.content)
+
+    def test_blank_context(self):
+        stmt = json.dumps({"verb": {"id": "http://example.com/verbs/created",
+                                    "display": {"en-US": "created"}}, "actor": {"objectType": "Agent", "mbox": "mailto:s@s.com"},
+                           "object": {"objectType": "Activity", "id": "act:foobaz"},
+                           "context": {}})
+        response = self.client.post(reverse('lrs:statements'), stmt, content_type="application/json",
+                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        self.assertEqual(response.status_code, 200)
+        get_response = self.client.get(reverse('lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        rsp = get_response.content
+        self.assertIn("context", rsp)
+        json_object = json.loads(rsp)
+        jcontext = json_object['statements'][0]['context']
+        self.assertEqual(jcontext, {})
+
+        param = {"format": 'canonical'}
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+
+        get_response = self.client.get(path, X_Experience_API_Version=settings.XAPI_VERSION,
+                                      Authorization=self.auth)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertNotIn('result', get_response.content)
 
     def test_invalid_activity_def_fields(self):
         stmt = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
