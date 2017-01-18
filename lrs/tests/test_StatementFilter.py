@@ -1973,7 +1973,7 @@ class StatementFilterTests(TestCase):
         obj = json.loads(r.content)
         stmts = obj['statements']
 
-        agent_id_param = ['mbox']
+        agent_id_param = ['objectType', 'mbox']
         group_id_params = ['objectType', "mbox"]
         anon_id_params = ['objectType', "member"]
 

@@ -238,8 +238,8 @@ class Agent(models.Model):
                 if self.member.all():
                     ret['member'] = [a.to_dict(ids_only)
                                      for a in self.member.all()]
-        if self.objectType and not ids_only:
-            ret['objectType'] = self.objectType
+
+        ret['objectType'] = self.objectType
         if self.name and not ids_only:
             ret['name'] = self.name
         return ret

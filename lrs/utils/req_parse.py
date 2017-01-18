@@ -154,6 +154,14 @@ def parse_cors_request(request, r_dict):
         # Only for statements since document API bodies don't have to be JSON
         if r_dict['auth']['endpoint'] == '/statements':
             try:
+                content_type = urllib.unquote(body.pop('Content-Type'))
+            except Exception, e:
+                raise BadRequest('Content-Type not found in body')
+            else:
+                if content_type != "application/json":
+                    raise BadRequest(("Attachments are not supported in cross origin requests since they require a "
+                                      "multipart/mixed Content-Type"))
+            try:
                 # Should convert to dict if data is in JSON format
                 r_dict['body'] = convert_to_datatype(str_body)
             except Exception:
@@ -172,10 +180,6 @@ def parse_cors_request(request, r_dict):
                                 "Could not parse request body in CORS request, no value for: %s" % k)
         else:
             r_dict['body'] = str_body
-        # Catch attachments early
-        if 'attachments' in r_dict['body']:
-            raise BadRequest(("Attachments are not supported in cross origin requests since they require a "
-                              "multipart/mixed Content-Type"))
 
     # Remove extra headers from body that we already captured in get_headers
     body.pop('X-Experience-API-Version', None)
