@@ -381,14 +381,14 @@ class AgentProfileTests(TestCase):
         self.client.delete(reverse('lrs:agent_profile'), params2,
                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
-    def test_post_put_delete(self):
+    def test_cors_post_put_delete(self):
         prof_id = "http://deleteme.too"
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode({"method": "PUT"}))
         content = {"test": "delete profile", "obj": {
             "actor": "test", "testcase": "ie cors post for put and delete"}}
         thedata = "profileId=%s&agent=%s&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=1.0.0" % (
-            prof_id, self.testagent, content, self.auth)
+            prof_id, self.testagent, urllib.quote(str(content)), self.auth)
         response = self.client.post(
             path, thedata, content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 204)

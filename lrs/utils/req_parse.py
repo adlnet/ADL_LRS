@@ -26,7 +26,7 @@ att_cache = caches['attachment_cache']
 def parse(request, more_id=None):
     # Parse request into body, headers, and params
     r_dict = {}
-    # Start building headers from request.META
+    # Start building headers from request.META (cors headers get added later)
     r_dict['headers'] = get_headers(request.META)
     # Traditional authorization should be passed in headers
     r_dict['auth'] = {}
@@ -62,7 +62,7 @@ def parse(request, more_id=None):
 
 def set_cors_authorization(request, r_dict):
     # Not allowed to set request body so this is just a copy
-    body = convert_post_body_to_dict(request.body)
+    body, encoded = convert_post_body_to_dict(request.body)
     if 'HTTP_AUTHORIZATION' not in r_dict['headers'] and 'HTTP_AUTHORIZATION' not in r_dict['headers']:
         if 'HTTP_AUTHORIZATION' in body:
             r_dict['headers']['Authorization'] = body.pop('HTTP_AUTHORIZATION')
@@ -143,31 +143,34 @@ def parse_post_put_body(request, r_dict):
 
 
 def parse_cors_request(request, r_dict):
+    # Query string must only have method param
+    try:
+        r_dict['method'] = request.GET['method'].upper()
+    except Exception:
+        raise BadRequest("Could not find method parameter for CORS request")
+    if len(request.GET.keys()) > 1:
+        raise BadRequest("CORS must only include method in query string parameters") 
+
     # Convert body to dict
-    body = convert_post_body_to_dict(request.body)
+    body, encoded = convert_post_body_to_dict(request.body)
+    if not encoded:
+        raise BadRequest("content in CORS was not URL encoded")
+
     # 'content' is in body for the IE cors POST
     if 'content' in body:
-        # Grab what the normal body would be since it's in content (unquote if
-        # necessary)
-        str_body = urllib.unquote(body.pop('content'))
-        r_dict['raw_body'] = str_body
-        # Only for statements since document API bodies don't have to be JSON
+        # Grab what the normal body would be since it's in content
+        decoded_body = body.pop('content')
+        r_dict['raw_body'] = decoded_body
+
+        # Only for statements since document API bodies don't have to be JSON (can be text)
         if r_dict['auth']['endpoint'] == '/statements':
             try:
-                content_type = urllib.unquote(body.pop('Content-Type'))
-            except Exception, e:
-                raise BadRequest('Content-Type not found in body')
-            else:
-                if content_type != "application/json":
-                    raise BadRequest(("Attachments are not supported in cross origin requests since they require a "
-                                      "multipart/mixed Content-Type"))
-            try:
                 # Should convert to dict if data is in JSON format
-                r_dict['body'] = convert_to_datatype(str_body)
+                r_dict['body'] = convert_to_datatype(decoded_body)
             except Exception:
                 try:
                     # Convert to dict if data is in form format (foo=bar)
-                    r_dict['body'] = QueryDict(str_body).dict()
+                    r_dict['body'] = QueryDict(decoded_body).dict()
                 except Exception:
                     raise BadRequest(
                         "Could not parse request body in CORS request")
@@ -179,31 +182,24 @@ def parse_cors_request(request, r_dict):
                             raise BadRequest(
                                 "Could not parse request body in CORS request, no value for: %s" % k)
         else:
-            r_dict['body'] = str_body
+            r_dict['body'] = decoded_body
+    else:
+        # If it is a CORS PUT OR POST make sure it has content
+        if (r_dict['method'] == 'PUT' or r_dict['method'] == 'POST'):
+            raise BadRequest("content form parameter required when sending content via CORS")
 
-    # Remove extra headers from body that we already captured in get_headers
-    body.pop('X-Experience-API-Version', None)
-    body.pop('Content-Type', None)
-    body.pop('If-Match', None)
-    body.pop('If-None-Match', None)
-    body.pop('HTTP_AUTHORIZATION', None)
-    body.pop('Authorization', None)
+    # treat these form params as headers
+    header_list = ['X-Experience-API-Version', 'Content-Type', 'If-Match', \
+        'If-None-Match', 'Authorization', 'Content-Length']
+    header_dict = {k:body[k] for k in body if k in header_list}
+    r_dict['headers'].update(header_dict)
+    # pop these headers out of body
+    for h in header_list:
+        body.pop(h, None)
 
     # all that should be left are params for the request, we add them to the
     # params object
     r_dict['params'].update(body)
-    # Add query string params
-    for k in request.GET:
-        # make sure the method param goes in the special method spot
-        if k == 'method':
-            r_dict[k] = request.GET[k].upper()
-        else:
-            r_dict['params'][k] = request.GET[k]
-
-    # If it is a CORS PUT OR POST make sure it has content
-    if (r_dict['method'] == 'PUT' or r_dict['method'] == 'POST') \
-            and 'body' not in r_dict:
-        raise BadRequest("CORS PUT or POST both require content parameter")
     set_agent_param(r_dict)
 
 

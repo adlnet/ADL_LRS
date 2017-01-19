@@ -929,15 +929,16 @@ class StatementTests(TestCase):
         self.assertEqual(desc_set.values()[0], "altdesc")
 
     def test_cors_post_put(self):
-        content = {"verb": {"id": "verb:verb/url"}, "actor": {"objectType": "Agent", "mbox": "mailto:r@r.com"},
-                   "object": {"id": "act:test_cors_post_put"}}
+        content = ('{"verb": {"id": "verb:verb/url"}, "actor": {"objectType": "Agent", "mbox": "mailto:r@r.com"},' 
+                   '"object": {"id": "act:test_cors_post_put"}}')
 
         bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5d&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=%s" % (
-            content, self.auth, settings.XAPI_VERSION)
+            urllib.quote(content), self.auth, settings.XAPI_VERSION)
         path = "%s?%s" % (reverse('lrs:statements'),
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(
             path, bdy, content_type="application/x-www-form-urlencoded")
+        print response.content
         self.assertEqual(response.status_code, 204)
 
         act = Activity.objects.get(activity_id="act:test_cors_post_put")
@@ -952,7 +953,7 @@ class StatementTests(TestCase):
                    "object": {"id": "act:test_cors_post_put"}}
 
         bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5d&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=1.0.0" % (
-            content, self.auth)
+            urllib.quote(str(content)), self.auth)
         path = "%s?%s" % (reverse('lrs:statements'),
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(
@@ -985,7 +986,7 @@ class StatementTests(TestCase):
                    "object": {"id": "act:test_cors_post_put"}}
 
         bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5a&content=%s&Authorization=%s&X-Experience-API-Version=1.0.1&Content-Type=application/json" % (
-            content, self.auth)
+            urllib.quote(str(content)), self.auth)
         path = "%s?%s" % (reverse('lrs:statements'),
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(

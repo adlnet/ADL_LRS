@@ -534,7 +534,7 @@ class AuthTests(TestCase):
                    "object": {"id": "act:test_cors_post_put"}}
 
         bdy = "statementId=%s&content=%s&Content-Type=application/json&X-Experience-API-Version=1.0.0" % (
-            st_id, content)
+            st_id, urllib.quote(str(content)))
         path = "%s?%s" % (reverse('lrs:statements'),
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(

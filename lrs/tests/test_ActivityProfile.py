@@ -352,7 +352,7 @@ class ActivityProfileTests(TestCase):
         testparams1 = {"profileId": profileid, "activityId": activityid}
         content = {"test": "put profile 1", "obj": {"activity": "act:test"}}
         params = "profileId=%s&activityId=%s&Authorization=%s&content=%s&X-Experience-API-Version=1.0" % (
-            profileid, activityid, self.auth, content)
+            profileid, activityid, self.auth, urllib.quote(str(content)))
 
         path = path = '%s?%s' % (
             reverse('lrs:activity_profile'), urllib.urlencode({"method": "PUT"}))
@@ -364,7 +364,7 @@ class ActivityProfileTests(TestCase):
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(st_post.status_code, 200)
 
-        thedata = urllib.quote_plus(params)
+        thedata = params
         put1 = self.client.post(
             path, thedata, content_type="application/x-www-form-urlencoded")
         self.assertEqual(put1.status_code, 204)
@@ -405,11 +405,10 @@ class ActivityProfileTests(TestCase):
                    "obj": {"activity": "test IE cors etag"}}
         thehash = '"%s"' % hashlib.sha1('%s' % tp).hexdigest()
         thedata = "profileId=%s&activityId=%s&If-Match=%s&Authorization=%s&Content-Type=application/x-www-form-urlencoded&content=%s&X-Experience-API-Version=1.0.0" % (
-            pid, aid, thehash, self.auth, content)
+            pid, aid, thehash, self.auth, urllib.quote(str(content)))
 
         response = self.client.post(
             path, thedata, content_type="application/x-www-form-urlencoded")
-
         self.assertEqual(response.status_code, 204)
         r = self.client.get(reverse('lrs:activity_profile'), {
                             'activityId': aid, 'profileId': pid}, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)

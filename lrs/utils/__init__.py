@@ -55,8 +55,16 @@ def convert_to_datatype(incoming_data):
 
 
 def convert_post_body_to_dict(incoming_data):
-    qs = urlparse.parse_qsl(urllib.unquote_plus(incoming_data))
-    return dict((k, v) for k, v in qs)
+    encoded = True
+    pairs = [s2 for s1 in incoming_data.split('&') for s2 in s1.split(';')]
+    for p in pairs:
+        # this is checked for cors requests
+        if p.startswith('content='):
+            if p == urllib.unquote_plus(p):
+                encoded = False
+            break
+    qs = urlparse.parse_qsl(incoming_data)
+    return dict((k, v) for k, v in qs), encoded
 
 
 def get_lang(langdict, lang):

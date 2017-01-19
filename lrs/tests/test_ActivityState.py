@@ -728,8 +728,8 @@ class ActivityStateTests(TestCase):
 
         content = {"test": "test_ie_cors_put_delete",
                    "obj": {"actor": "another test"}}
-        param = "stateId=%s&activityId=%s&agent=%s&content=%s&Content-Type=application/x-www-form-urlencoded&Authorization=%s&X-Experience-API-Version=1.0.0" % (sid, self.activityId,
-                                                                                                                                                                 testagent, content, auth)
+        param = "stateId=%s&activityId=%s&agent=%s&content=%s&Content-Type=application/x-www-form-urlencoded&Authorization=%s&X-Experience-API-Version=1.0.0" \
+            % (sid, self.activityId, testagent, urllib.quote(str(content)), auth)
 
         put1 = self.client.post(
             path, param, content_type='application/x-www-form-urlencoded')
