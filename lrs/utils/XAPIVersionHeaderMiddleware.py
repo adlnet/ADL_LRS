@@ -7,32 +7,33 @@ from django.http import HttpResponse
 class XAPIVersionHeader(object):
 
     def process_request(self, request):
-        try:
-            version = request.META['X-Experience-API-Version']
-        except:
+        if 'CONTENT_TYPE' in request.META:
+            content_type = request.META['CONTENT_TYPE']
+        elif 'Content-Type' in request.META:
+            content_type = request.META['Content-Type']
+        else:
+            content_type = None
+
+        if content_type == "application/x-www-form-urlencoded":
+            bdy_parts = urllib.unquote_plus(request.body).split('&')
+            for part in bdy_parts:
+                v = re.search(
+                    'X[-_]Experience[-_]API[-_]Version=(?P<num>.*)', part)
+                if v:
+                    version = v.group('num')
+                    break            
+        else:
             try:
-                version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
-                request.META['X-Experience-API-Version'] = version
-                request.META.pop('HTTP_X_EXPERIENCE_API_VERSION', None)
+                version = request.META['X-Experience-API-Version']
             except:
-                version = request.META.get('X_Experience_API_Version', None)
-                if not version:
-                    bdy = urllib.unquote_plus(request.body)
-                    bdy_parts = bdy.split('&')
-                    for part in bdy_parts:
-                        v = re.search(
-                            'X[-_]Experience[-_]API[-_]Version=(?P<num>.*)', part)
-                        if v:
-                            version = v.group('num')
-                            request.META['X-Experience-API-Version'] = version
-                            break
-                else:
-                    request.META['X-Experience-API-Version'] = version
-                    request.META.pop('X_Experience_API_Version', None)
+                try:
+                    version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
+                except:
+                    version = request.META.get('X_Experience_API_Version', None)
 
         if version:
-            regex = re.compile("^1\.0(\.[0-3])?$")
-            if regex.match(version):
+            if version == '1.0' or (version.startswith('1.0') and \
+                version in settings.XAPI_VERSIONS):
                 return None
             else:
                 resp = HttpResponse("X-Experience-API-Version is not supported", status=400)

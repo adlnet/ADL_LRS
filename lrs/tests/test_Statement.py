@@ -493,7 +493,7 @@ class StatementTests(TestCase):
         self.assertEqual(stmt.authority.name, "tester1")
         self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
 
-        self.assertEqual(stmt.version, settings.XAPI_VERSION)
+        self.assertEqual(stmt.version, '1.0.0')
         self.assertEqual(stmt.verb.verb_id, "http://example.com/verbs/passed")
 
     def test_put_1_0_0(self):
@@ -549,7 +549,7 @@ class StatementTests(TestCase):
         self.assertEqual(stmt.authority.name, "tester1")
         self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
 
-        self.assertEqual(stmt.version, settings.XAPI_VERSION)
+        self.assertEqual(stmt.version, '1.0.0')
         self.assertEqual(stmt.verb.verb_id, "http://example.com/verbs/passed")
 
     def test_put_id_in_both_different(self):
@@ -938,7 +938,6 @@ class StatementTests(TestCase):
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(
             path, bdy, content_type="application/x-www-form-urlencoded")
-        print response.content
         self.assertEqual(response.status_code, 204)
 
         act = Activity.objects.get(activity_id="act:test_cors_post_put")
@@ -1182,7 +1181,7 @@ class StatementTests(TestCase):
 
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
-        self.assertEqual(the_returned['version'], settings.XAPI_VERSION)
+        self.assertEqual(the_returned['version'], '1.0.0')
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor'][
@@ -1316,7 +1315,7 @@ class StatementTests(TestCase):
 
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
-        self.assertEqual(the_returned['version'], settings.XAPI_VERSION)
+        self.assertEqual(the_returned['version'], '1.0.0')
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor']['account'][
@@ -1434,7 +1433,7 @@ class StatementTests(TestCase):
 
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
-        self.assertEqual(the_returned['version'], settings.XAPI_VERSION)
+        self.assertEqual(the_returned['version'], '1.0.0')
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor']['account'][
