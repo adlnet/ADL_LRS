@@ -7,6 +7,14 @@ from django.http import HttpResponse
 class XAPIVersionHeader(object):
 
     def process_request(self, request):
+        try:
+            version = request.META['X-Experience-API-Version']
+        except:
+            try:
+                version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
+            except:
+                version = request.META.get('X_Experience_API_Version', None)
+
         if 'CONTENT_TYPE' in request.META:
             content_type = request.META['CONTENT_TYPE']
         elif 'Content-Type' in request.META:
@@ -21,15 +29,7 @@ class XAPIVersionHeader(object):
                     'X[-_]Experience[-_]API[-_]Version=(?P<num>.*)', part)
                 if v:
                     version = v.group('num')
-                    break            
-        else:
-            try:
-                version = request.META['X-Experience-API-Version']
-            except:
-                try:
-                    version = request.META['HTTP_X_EXPERIENCE_API_VERSION']
-                except:
-                    version = request.META.get('X_Experience_API_Version', None)
+                    break
 
         if version:
             if version == '1.0' or (version.startswith('1.0') and \
