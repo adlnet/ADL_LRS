@@ -22,7 +22,7 @@ class XAPIVersionHeader(object):
         else:
             content_type = None
 
-        if content_type.startswith("application/x-www-form-urlencoded"):
+        if content_type and content_type.startswith("application/x-www-form-urlencoded"):
             bdy_parts = urllib.unquote_plus(request.body).split('&')
             for part in bdy_parts:
                 v = re.search(
