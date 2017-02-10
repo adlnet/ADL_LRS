@@ -37,7 +37,7 @@
         <div class="pure-u-2-3 pure-u-md-2-3 pure-u-lg-2-3">
             <div id="myactivitystates" class="content">
                 <h2>My Activity States</h2>
-                <p>All of your activity states will be displayed here. If you created any activity states using the stateID, <i>https://w3id.org/xapi/adl/profiles/scorm/activity-state<i/>, then you can drill deeper into it and look at all of the xAPI SCORM attempt states for that activity. For more information on this, please visit <a target="_blank" href="https://github.com/adlnet/xAPI-SCORM-Profile/blob/master/xapi-scorm-profile.md">here</a></p>
+                <p>All of your activity states will be displayed here. If you created any activity states using the stateID, <i>https://w3id.org/xapi/scorm/activity-state<i/>, then you can drill deeper into it and look at all of the xAPI SCORM attempt states for that activity. For more information on this, please visit <a target="_blank" href="https://github.com/adlnet/xAPI-SCORM-Profile/blob/master/xapi-scorm-profile.md">here</a></p>
                 <br>
                 <br>
                 <div>
@@ -60,7 +60,7 @@
                                                 <input class="hidden" type="hidden" value="">
                                             {% endif %}
                                         {% endif %}
-                                        {% if as.state_id == "https://w3id.org/xapi/adl/profiles/scorm/activity-state" %}
+                                        {% if as.state_id == "https://w3id.org/xapi/scorm/activity-state" %}
                                             <br>
                                             <button class="scormbutton pure-button pure-button-primary" type="button">Show Attempts</button>
                                             <br>
