@@ -193,6 +193,10 @@ def parse_cors_request(request, r_dict):
         'If-None-Match', 'Authorization', 'Content-Length']
     header_dict = {k:body[k] for k in body if k in header_list}
     r_dict['headers'].update(header_dict)
+    if 'If-Match' in r_dict['headers']:
+        r_dict['headers']['ETAG']['HTTP_IF_MATCH'] = r_dict['headers']['If-Match']
+    if 'If-None-Match' in r_dict['headers']:
+        r_dict['headers']['ETAG']['HTTP_IF_NONE_MATCH'] = r_dict['headers']['If-None-Match']
     # pop these headers out of body
     for h in header_list:
         body.pop(h, None)
@@ -464,7 +468,7 @@ def get_headers(headers):
                 0]
 
     # Get etag
-    header_dict['ETAG'] = get_etag_info(headers, required=False)
+    header_dict['ETAG'] = get_etag_info(headers)
 
     # Get authorization - don't pop off - needed for setting authorization
     if 'HTTP_AUTHORIZATION' in headers:

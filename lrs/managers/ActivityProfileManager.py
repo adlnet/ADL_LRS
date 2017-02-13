@@ -75,10 +75,9 @@ class ActivityProfileManager():
                 except:
                     profile = ContentFile(str(request_dict['profile']))
 
+            etag.check_preconditions(request_dict, p, created)
             # If a profile already existed with the profileId and activityId
             if not created:
-                # If it already exists delete it
-                etag.check_preconditions(request_dict, p, required=True)
                 if p.profile:
                     try:
                         p.profile.delete()
@@ -89,10 +88,9 @@ class ActivityProfileManager():
             self.save_non_json_profile(p, created, profile, request_dict)
         # Profile being PUT is json
         else:
+            etag.check_preconditions(request_dict, p, created)
             # If a profile already existed with the profileId and activityId
             # (overwrite existing profile data)
-            if not created:
-                etag.check_preconditions(request_dict, p, required=True)
             the_profile = request_dict['profile']
             p.json_profile = the_profile
             p.content_type = request_dict['headers']['CONTENT_TYPE']

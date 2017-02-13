@@ -107,9 +107,9 @@ class ActivityStateManager():
                 except:
                     post_state = ContentFile(str(request_dict['state']))
 
+            etag.check_preconditions(request_dict, s, created, False)
             # If a state already existed with the profileId and activityId
             if not created:
-                etag.check_preconditions(request_dict, s)
                 if s.state:
                     try:
                         s.state.delete()
@@ -119,8 +119,7 @@ class ActivityStateManager():
             self.save_non_json_state(s, post_state, request_dict)
         # State being PUT is json
         else:
-            if not created:
-                etag.check_preconditions(request_dict, s)
+            etag.check_preconditions(request_dict, s, created, False)
             the_state = request_dict['state']
             s.json_state = the_state
             s.content_type = request_dict['headers']['CONTENT_TYPE']

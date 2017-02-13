@@ -134,6 +134,7 @@ class ActivityStateTests(TestCase):
         path = '%s?%s' % (self.url, urllib.urlencode(testparamsregid))
         teststateregid = {
             "test": "put activity state w/ registration", "obj": {"agent": "test"}}
+
         put1 = self.client.put(path, teststateregid, content_type=self.content_type,
                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
@@ -165,81 +166,6 @@ class ActivityStateTests(TestCase):
                                X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(put1.status_code, 400)
-
-    def test_put_etag_conflict_if_none_match(self):
-        teststateetaginm = {
-            "test": "etag conflict - if none match *", "obj": {"agent": "test"}}
-        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetaginm, content_type=self.content_type, If_None_Match='*',
-                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(r.status_code, 412)
-        self.assertEqual(r.content, 'Resource detected')
-
-        r = self.client.get(self.url, self.testparams1,
-                            X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
-        self.assertEqual(r.status_code, 200)
-        robj = ast.literal_eval(r.content)
-        self.assertEqual(robj['test'], self.teststate1['test'])
-        self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' %
-                         hashlib.sha1(r.content).hexdigest())
-
-    def test_put_etag_conflict_if_match(self):
-        teststateetagim = {
-            "test": "etag conflict - if match wrong hash", "obj": {"agent": "test"}}
-        new_etag = '"%s"' % hashlib.sha1('wrong etag value').hexdigest()
-        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetagim, content_type=self.content_type, If_Match=new_etag,
-                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(r.status_code, 412)
-        self.assertIn('No resources matched', r.content)
-
-        r = self.client.get(self.url, self.testparams1,
-                            X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
-        self.assertEqual(r.status_code, 200)
-        robj = ast.literal_eval(r.content)
-        self.assertEqual(robj['test'], self.teststate1['test'])
-        self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' %
-                         hashlib.sha1(r.content).hexdigest())
-
-    def test_put_etag_no_conflict_if_match(self):
-        teststateetagim = {
-            "test": "etag no conflict - if match good hash", "obj": {"agent": "test"}}
-        new_etag = '"%s"' % hashlib.sha1(
-            json.dumps(self.teststate1)).hexdigest()
-        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetagim, content_type=self.content_type, If_Match=new_etag,
-                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(r.status_code, 204)
-        self.assertEqual(r.content, '')
-
-        r = self.client.get(self.url, self.testparams1,
-                            X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
-        self.assertEqual(r.status_code, 200)
-        robj = ast.literal_eval(r.content)
-        self.assertEqual(robj['test'], teststateetagim['test'])
-        self.assertEqual(robj['obj']['agent'], teststateetagim['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' %
-                         hashlib.sha1(r.content).hexdigest())
-
-    def test_put_etag_missing_on_change(self):
-        teststateetagim = {'test': 'etag no need for etag',
-                           'obj': {'agent': 'test'}}
-        path = '%s?%s' % (self.url, urllib.urlencode(self.testparams1))
-        r = self.client.put(path, teststateetagim, content_type=self.content_type,
-                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(r.status_code, 204)
-
-        r = self.client.get(self.url, self.testparams1,
-                            X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
-        self.assertEqual(r.status_code, 200)
-
-        robj = ast.literal_eval(r.content)
-        self.assertEqual(robj['test'], teststateetagim['test'])
-        self.assertEqual(robj['obj']['agent'], self.teststate1['obj']['agent'])
-        self.assertEqual(r['etag'], '"%s"' %
-                         hashlib.sha1('%s' % teststateetagim).hexdigest())
 
     def test_put_without_activityid(self):
         testparamsbad = {"stateId": "bad_state", "agent": self.testagent}
