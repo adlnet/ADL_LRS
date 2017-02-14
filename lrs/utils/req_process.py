@@ -205,7 +205,7 @@ def statements_get(req_dict):
         stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
         if req_dict['params']['attachments']:
             stmt_result, mime_type, content_length = build_response(
-                {"statements": [stmt_dict]})
+                stmt_dict, True)
             resp = HttpResponse(stmt_result, content_type=mime_type,
                                 status=200)
         else:
@@ -221,10 +221,13 @@ def statements_get(req_dict):
     return resp
 
 
-def build_response(stmt_result):
+def build_response(stmt_result, single=False):
     sha2s = []
     mime_type = "application/json"
-    statements = stmt_result['statements']
+    if single:
+        statements = [stmt_result]
+    else:
+        statements = stmt_result['statements']
     # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
