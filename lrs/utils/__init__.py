@@ -44,6 +44,10 @@ def convert_to_datatype(incoming_data):
     # GET data will be non JSON string-have to try literal_eval
     if isinstance(incoming_data, dict) or isinstance(incoming_data, list):
         return incoming_data
+    # could get weird values that json lib will parse
+    # ex: '"this is not json but would not fail"'
+    if incoming_data.startswith('"'):
+        incoming_data = incoming_data[1:-1]
     try:
         data = json.loads(incoming_data)
     except Exception:

@@ -15,41 +15,56 @@ function styleData(){
 function styleSCORMData(){
     $('.attemptarray').each(function(){
         // Get attempt data from hidden field
-        var attempt_data = JSON.parse($(this).prevAll('.hidden:first').val());
-        var new_container_div = $("<div></div>");
-        if(!('attempts' in attempt_data)){
-            $(this).text("Does not contain any attempts");
-            $(this).hide();
-            return false;
+        var attempt_data = $(this).prevAll('.hidden:first').val();
+        if (attempt_data) {
+            try {
+                attempt_data = JSON.parse(attempt_data);
+            } catch (e) {
+                console.log("No JSON could be parsed from " + attempt_data);
+            }
+
+            if (attempt_data !== null && typeof attempt_data === 'object') {
+                var new_container_div = $("<div></div>");
+                if(!('attempts' in attempt_data)){
+                    $(this).text("Does not contain any attempts");
+                    $(this).hide();
+                    return false;
+                }
+                // For each attempt in the activity state
+                $.each(attempt_data["attempts"], function(i, v){
+                    // Create link for each attempt
+                    var new_a = $("<a href='javascript:;' class='attempt-a'></a>");
+                    new_a.text(v);
+                    // Bind click function to each link
+                    new_a.click(function(e){
+                        e.stopPropagation();
+                        // Check if the pre element has been created already - if not add the attempt-state info to it
+                        if (!($(this).next().next().is("pre"))){
+                            var attpre = $("<pre class='attpre'></pre>");
+                            var state_id = "https://w3id.org/xapi/scorm/attempt-state";
+                            getState($(this).text(), state_id, attpre);
+                            attpre.insertAfter($(this).next());
+                        }
+                        // If pre element has been created just toggle it
+                        else{
+                            $(this).nextAll('.attpre:first').toggle();
+                            $(this).nextAll('.att-br:first').toggle();
+                        }
+                    });
+                    // Append the link to the new div
+                    new_container_div.append(new_a);
+                    new_container_div.append("<br>")
+                });
+                // Append new container to the attempt array element
+                $(this).append(new_container_div);
+                $(this).hide();
+            } else if (attempt_data !== null && typeof attempt_data === 'string') {
+                var new_container_div = $("<div></div>");
+                new_container_div.append(attempt_data);
+                $(this).append(new_container_div);
+                $(this).hide();
+            }
         }
-        // For each attempt in the activity state
-        $.each(attempt_data["attempts"], function(i, v){
-            // Create link for each attempt
-            var new_a = $("<a href='javascript:;' class='attempt-a'></a>");
-            new_a.text(v);
-            // Bind click function to each link
-            new_a.click(function(e){
-                e.stopPropagation();
-                // Check if the pre element has been created already - if not add the attempt-state info to it
-                if (!($(this).next().next().is("pre"))){
-                    var attpre = $("<pre class='attpre'></pre>");
-                    var state_id = "https://w3id.org/xapi/adl/profiles/scorm/attempt-state";
-                    getState($(this).text(), state_id, attpre);
-                    attpre.insertAfter($(this).next());
-                }
-                // If pre element has been created just toggle it
-                else{
-                    $(this).nextAll('.attpre:first').toggle();
-                    $(this).nextAll('.att-br:first').toggle();
-                }
-            });
-            // Append the link to the new div
-            new_container_div.append(new_a);
-            new_container_div.append("<br>")
-        });
-        // Append new container to the attempt array element
-        $(this).append(new_container_div);
-        $(this).hide();
     });
 }
 
