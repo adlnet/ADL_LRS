@@ -1,6 +1,6 @@
 import hashlib
 
-from ..exceptions import BadRequest, PreconditionFail
+from ..exceptions import BadRequest, Conflict, PreconditionFail
 
 IF_MATCH = "HTTP_IF_MATCH"
 IF_NONE_MATCH = "HTTP_IF_NONE_MATCH"
@@ -35,11 +35,17 @@ def check_preconditions(request, contents, created, required=True):
         try:
             request_etag = request['headers']['ETAG']
             if not request_etag[IF_MATCH] and not request_etag[IF_NONE_MATCH]:
+                if exists:
+                    raise MissingEtagInfoExists(
+                        "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
                 raise MissingEtagInfo(
                     "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
         except KeyError:
+            if exists:
+                raise MissingEtagInfoExists(
+                    "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
             raise MissingEtagInfo(
-                "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")        
+                "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
         else:
             # If there are both, if none match takes precendence 
             if request_etag[IF_NONE_MATCH]:
@@ -72,6 +78,13 @@ class MissingEtagInfo(BadRequest):
     def __str__(self):
         return repr(self.message)
 
+class MissingEtagInfoExists(Conflict):
+
+    def __init__(self, msg):
+        self.message = msg
+
+    def __str__(self):
+        return repr(self.message)
 
 class EtagPreconditionFail(PreconditionFail):
 

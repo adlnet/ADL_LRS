@@ -129,7 +129,7 @@ class AgentProfileTests(TestCase):
         response = self.client.put(path, profile, content_type=self.content_type,
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 409)
         self.assertIn(
             'If-Match and If-None-Match headers were missing. One of these headers is required for this request.',
                 response.content)
