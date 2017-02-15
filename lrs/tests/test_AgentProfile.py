@@ -148,7 +148,9 @@ class AgentProfileTests(TestCase):
         profile = {"test": "good - trying to put new profile w/ etag header",
                    "obj": {"agent": "test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
-        response = self.client.put(path, profile, content_type=self.content_type, If_Match=thehash,
+        thehash2 = '"%s"' % hashlib.sha1('%s' % profile).hexdigest()
+        hashes = '%s, %s' % (thehash, thehash2)
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match=hashes,
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.content, '')
@@ -202,12 +204,54 @@ class AgentProfileTests(TestCase):
         r = self.client.delete(reverse('lrs:agent_profile'), params,
                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
+    def test_put_etag_if_none_match_good_value(self):
+        path = '%s?%s' % (reverse('lrs:agent_profile'),
+                          urllib.urlencode(self.testparams1))
+        profile = {"test": "good - trying to put updated profile w/ if none match etag header",
+                   "obj": {"agent": "test"}}
+        thehash = "fa76b3e4d77adf6795d914a3d00d8949b95aa803"          
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match=thehash,
+                                   Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '')
+
+        r = self.client.get(reverse('lrs:agent_profile'), self.testparams1,
+                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 200)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], profile['test'])
+        self.assertEqual(robj['obj']['agent'], profile['obj']['agent'])
+
+        r = self.client.delete(reverse('lrs:agent_profile'), self.testparams1,
+                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode(self.testparams1))
         profile = {"test": "error - trying to put new profile w/ if none match etag but one exists",
                    "obj": {"agent": "test"}}
         response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*',
+                                   Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        self.assertEqual(response.status_code, 412)
+        self.assertEqual(response.content, 'Resource detected')
+
+        r = self.client.get(reverse('lrs:agent_profile'), self.testparams1,
+                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 200)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], self.testprofile1['test'])
+        self.assertEqual(robj['obj']['agent'],
+                         self.testprofile1['obj']['agent'])
+
+    def test_put_etag_if_none_match_bad_value(self):
+        path = '%s?%s' % (reverse('lrs:agent_profile'),
+                          urllib.urlencode(self.testparams1))
+        profile = {"test": "error - trying to put new profile w/ if none match etag but one exists",
+                   "obj": {"activity": "test"}}
+        thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match=thehash,
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(response.status_code, 412)
@@ -495,41 +539,6 @@ class AgentProfileTests(TestCase):
         self.assertEqual(post.status_code, 400)
         self.assertEqual(post.content, 'Could not find the profile document')
 
-    # def test_post_update_profile(self):
-    #     params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
-    #     path = '%s?%s' % (reverse('lrs:agent_profile'), urllib.urlencode(params))
-    #     prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com"}}
-
-    #     post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(post.status_code, 204)
-
-    #     get = self.client.get(path, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(get.status_code, 200)
-    #     self.assertEqual(json.loads(get.content), prof)
-    #     etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
-    #     self.assertEqual(get.get('etag'), etag)
-
-    #     params = {"profileId": "prof:test_post_update_profile", "agent": self.testagent}
-    #     path = '%s?%s' % (reverse('lrs:agent_profile'), urllib.urlencode(params))
-    #     prof = {"obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
-
-    #     post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(post.status_code, 409)
-
-    #     post = self.client.post(path, json.dumps(prof), content_type="application/json",If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(post.status_code, 204)
-
-    #     get = self.client.get(path, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(get.status_code, 200)
-    #     ret_json = json.loads(get.content)
-    #     self.assertEqual(ret_json['added'], prof['added'])
-    #     self.assertEqual(ret_json['test'], "post updated profile")
-    #     self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
-    #     self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
-    #     self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
-
-    #     self.client.delete(path, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-
     def test_post_and_put_profile(self):
         params = {"profileId": "prof:test_post_and_put_profile",
                   "agent": self.testagent}
@@ -566,26 +575,6 @@ class AgentProfileTests(TestCase):
         self.assertEqual(json.loads(get.content), prof)
         etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
         self.assertEqual(get.get('etag'), etag)
-
-        # params = {"profileId": "prof:test_post_and_put_profile", "agent": self.testagent}
-        # path = '%s?%s' % (reverse('lrs:agent_profile'), urllib.urlencode(params))
-        # prof = {"test":"post updated profile","obj":{"agent":"mailto:test@example.com", "new":"thing"}, "added":"yes"}
-
-        # post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        # self.assertEqual(post.status_code, 409)
-
-        # post = self.client.post(path, json.dumps(prof), content_type="application/json", If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        # self.assertEqual(post.status_code, 204)
-
-        # get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        # self.assertEqual(get.status_code, 200)
-        # ret_json = json.loads(get.content)
-        # self.assertEqual(ret_json['wipe'], "new data")
-        # self.assertEqual(ret_json['added'], prof['added'])
-        # self.assertEqual(ret_json['test'], prof['test'])
-        # self.assertEqual(ret_json['obj']['agent'], prof['obj']['agent'])
-        # self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
-        # self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         self.client.delete(path, Authorization=self.auth,
                            X_Experience_API_Version=settings.XAPI_VERSION)

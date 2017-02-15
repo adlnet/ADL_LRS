@@ -46,7 +46,7 @@ class ActivityProfileTests(TestCase):
                           urllib.urlencode(self.testparams1))
         self.testprofile1 = {"test": "put profile 1",
                              "obj": {"activity": "test"}}
-        self.post1 = self.client.post(path, json.dumps(self.testprofile1), content_type=self.content_type,
+        self.post1 = self.client.post(path, self.testprofile1, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams2 = {"profileId": self.testprofileId2,
@@ -55,7 +55,7 @@ class ActivityProfileTests(TestCase):
                           urllib.urlencode(self.testparams2))
         self.testprofile2 = {"test": "put profile 2",
                              "obj": {"activity": "test"}}
-        self.post2 = self.client.post(path, json.dumps(self.testprofile2), content_type=self.content_type,
+        self.post2 = self.client.post(path, self.testprofile2, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams3 = {"profileId": self.testprofileId3,
@@ -64,7 +64,7 @@ class ActivityProfileTests(TestCase):
                           urllib.urlencode(self.testparams3))
         self.testprofile3 = {"test": "put profile 3",
                              "obj": {"activity": "test"}}
-        self.post3 = self.client.post(path, json.dumps(self.testprofile3), content_type=self.content_type,
+        self.post3 = self.client.post(path, self.testprofile3, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams4 = {"profileId": self.otherprofileId1,
@@ -73,7 +73,7 @@ class ActivityProfileTests(TestCase):
                           urllib.urlencode(self.testparams4))
         self.otherprofile1 = {
             "test": "put profile other", "obj": {"activity": "other"}}
-        self.post4 = self.client.post(path, json.dumps(self.otherprofile1), content_type=self.content_type,
+        self.post4 = self.client.post(path, self.otherprofile1, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams5 = {"profileId": self.otherprofileId1,
@@ -82,7 +82,7 @@ class ActivityProfileTests(TestCase):
                           urllib.urlencode(self.testparams5))
         self.anotherprofile1 = {
             "test": "put another profile 1", "obj": {"activity": "other"}}
-        self.post5 = self.client.post(path, json.dumps(self.anotherprofile1), content_type=self.content_type,
+        self.post5 = self.client.post(path, self.anotherprofile1, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
     def tearDown(self):
@@ -136,7 +136,6 @@ class ActivityProfileTests(TestCase):
                                    If_Match="*", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
-
     def test_put_no_params(self):
         put = self.client.put(reverse('lrs:activity_profile'), content_type=self.content_type,
                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -182,8 +181,7 @@ class ActivityProfileTests(TestCase):
                           urllib.urlencode(self.testparams1))
         profile = {"test": "good - trying to put new profile w/ etag header",
                    "obj": {"activity": "act:test"}}
-        thehash = '"%s"' % hashlib.sha1(
-            json.dumps(self.testprofile1)).hexdigest()
+        thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
         response = self.client.put(path, json.dumps(profile), content_type=self.content_type,
                                    If_Match=thehash, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -231,6 +229,29 @@ class ActivityProfileTests(TestCase):
         r = self.client.delete(reverse('lrs:activity_profile'), params,
                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
+    def test_put_etag_if_none_match_good_value(self):
+        path = '%s?%s' % (reverse('lrs:activity_profile'),
+                          urllib.urlencode({"profileId": self.testprofileId1,
+                  "activityId": self.test_activityId1}))
+        profile = {"test": "good - trying to put updated profile w/ if none match etag header",
+                   "obj": {"activity": "test"}}
+        thehash = "fa76b3e4d77adf6795d914a3d00d8949b95aa803"          
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match=thehash,
+                                   Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '')
+
+        r = self.client.get(reverse('lrs:activity_profile'), {"profileId": self.testprofileId1,"activityId": self.test_activityId1},
+                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(r.status_code, 200)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], profile['test'])
+        self.assertEqual(robj['obj']['activity'], profile['obj']['activity'])
+
+        r = self.client.delete(reverse('lrs:agent_profile'), {"profileId": self.testprofileId1,"activityId": self.test_activityId1},
+                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
                           urllib.urlencode(self.testparams1))
@@ -238,6 +259,26 @@ class ActivityProfileTests(TestCase):
                    "obj": {"activity": "act:test"}}
         response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*',
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(response.status_code, 412)
+        self.assertEqual(response.content, 'Resource detected')
+
+        r = self.client.get(reverse('lrs:activity_profile'), self.testparams1,
+                            X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
+        self.assertEqual(r.status_code, 200)
+        robj = ast.literal_eval(r.content)
+        self.assertEqual(robj['test'], self.testprofile1['test'])
+        self.assertEqual(robj['obj']['activity'],
+                         self.testprofile1['obj']['activity'])
+
+    def test_put_etag_if_none_match_bad_value(self):
+        path = '%s?%s' % (reverse('lrs:activity_profile'),
+                          urllib.urlencode(self.testparams1))
+        profile = {"test": "error - trying to put new profile w/ if none match etag but one exists",
+                   "obj": {"agent": "test"}}        
+        thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match=thehash,
+                                   Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+
         self.assertEqual(response.status_code, 412)
         self.assertEqual(response.content, 'Resource detected')
 
@@ -413,8 +454,7 @@ class ActivityProfileTests(TestCase):
                           urllib.urlencode(self.testparams1))
         tp = {"test": "put example profile for test_cors_put_etag", "obj": {
             "activity": "this should be replaced -- ie cors post/put"}}
-        thehash = '"%s"' % hashlib.sha1(
-            json.dumps(self.testprofile1)).hexdigest()
+        thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
         put1 = self.client.put(path, tp, content_type=self.content_type, If_Match=thehash,
                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put1.status_code, 204)
@@ -500,42 +540,6 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(post.status_code, 400)
         self.assertEqual(post.content, 'Could not find the profile document')
 
-    # def test_post_update_profile(self):
-    #     params = {"profileId": "prof:test_post_update_profile", "activityId": "act:test.post.update.prof"}
-    #     path = '%s?%s' % (reverse('lrs:activity_profile'), urllib.urlencode(params))
-    #     prof = {"test":"post updated profile","obj":{"activity":"act:test.post.update.prof"}}
-
-    #     post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(post.status_code, 204)
-
-    #     get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(get.status_code, 200)
-    #     what = ast.literal_eval(get.content)
-    #     self.assertEqual(what, prof)
-    #     etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
-    #     self.assertEqual(get.get('etag'), etag)
-
-    #     params = {"profileId": "prof:test_post_update_profile", "activityId": "act:test.post.update.prof"}
-    #     path = '%s?%s' % (reverse('lrs:activity_profile'), urllib.urlencode(params))
-    #     prof = {"obj":{"activity":"act:test.post.update.prof_changed", "new":"thing"}, "added":"yes"}
-
-    #     post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(post.status_code, 204)
-
-    #     post = self.client.post(path, json.dumps(prof), content_type="application/json", If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(post.status_code, 204)
-
-    #     get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-    #     self.assertEqual(get.status_code, 200)
-    #     ret_json = ast.literal_eval(get.content)
-    #     self.assertEqual(ret_json['added'], prof['added'])
-    #     self.assertEqual(ret_json['test'], "post updated profile")
-    #     self.assertEqual(ret_json['obj']['activity'], prof['obj']['activity'])
-    #     self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
-    #     self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
-
-    #     self.client.delete(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-
     def test_post_and_put_profile(self):
         params = {"profileId": "prof:test_post_and_put_profile",
                   "activityId": "act:test.post.put.prof"}
@@ -572,26 +576,6 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(ast.literal_eval(get.content), prof)
         etag = '"%s"' % hashlib.sha1(get.content).hexdigest()
         self.assertEqual(get.get('etag'), etag)
-
-        # params = {"profileId": "prof:test_post_and_put_profile", "activityId": "act:test.post.put.prof"}
-        # path = '%s?%s' % (reverse('lrs:activity_profile'), urllib.urlencode(params))
-        # prof = {"test":"post updated profile","obj":{"activity":"act:test.post.update.prof_changed", "new":"thing"}, "added":"yes"}
-
-        # post = self.client.post(path, json.dumps(prof), content_type="application/json", Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        # self.assertEqual(post.status_code, 409)
-
-        # post = self.client.post(path, json.dumps(prof), content_type="application/json", If_Match=etag, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        # self.assertEqual(post.status_code, 204)
-
-        # get = self.client.get(path, Authorization=self.auth,  X_Experience_API_Version=settings.XAPI_VERSION)
-        # self.assertEqual(get.status_code, 200)
-        # ret_json = ast.literal_eval(get.content)
-        # self.assertEqual(ret_json['wipe'], "new data")
-        # self.assertEqual(ret_json['added'], prof['added'])
-        # self.assertEqual(ret_json['test'], prof['test'])
-        # self.assertEqual(ret_json['obj']['activity'], prof['obj']['activity'])
-        # self.assertEqual(ret_json['obj']['new'], prof['obj']['new'])
-        # self.assertEqual(get.get('etag'), '"%s"' % hashlib.sha1(get.content).hexdigest())
 
         self.client.delete(path, Authorization=self.auth,
                            X_Experience_API_Version=settings.XAPI_VERSION)
