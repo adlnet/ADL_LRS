@@ -49,7 +49,7 @@ def check_preconditions(request, contents, created, required=True):
                     if request_etag[IF_NONE_MATCH] == "*":
                         raise EtagPreconditionFail("Resource detected")
                     else:
-                        if contents.etag in request_etag[IF_NONE_MATCH]:
+                        if '"%s"' % contents.etag in request_etag[IF_NONE_MATCH]:
                             raise EtagPreconditionFail("Resource detected")
             else:
                 if not exists:
@@ -58,10 +58,9 @@ def check_preconditions(request, contents, created, required=True):
                         "Resource does not exist")
                 else:
                     if request_etag[IF_MATCH] != "*":    
-                        if contents.etag not in request_etag[IF_MATCH]:
+                        if '"%s"' % contents.etag not in request_etag[IF_MATCH]:
                             raise EtagPreconditionFail(
-                                "No resources matched your etag precondition: %s" \
-                                    % request_etag[IF_MATCH])
+                                "No resources matched your etag precondition")
             
 
 
