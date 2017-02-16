@@ -40,24 +40,24 @@ class AgentProfileTests(TestCase):
             "profileId": self.testprofileId1, "agent": self.testagent}
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode(self.testparams1))
-        self.testprofile1 = {"test": "put profile 1", "obj": {"agent": "test"}}
-        self.put1 = self.client.put(path, self.testprofile1, content_type=self.content_type,
+        self.testprofile1 = {"test": "post profile 1", "obj": {"agent": "test"}}
+        self.post1 = self.client.post(path, self.testprofile1, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams2 = {
             "profileId": self.testprofileId2, "agent": self.testagent}
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode(self.testparams2))
-        self.testprofile2 = {"test": "put profile 2", "obj": {"agent": "test"}}
-        self.put2 = self.client.put(path, self.testprofile2, content_type=self.content_type,
+        self.testprofile2 = {"test": "post profile 2", "obj": {"agent": "test"}}
+        self.post2 = self.client.post(path, self.testprofile2, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams3 = {
             "profileId": self.testprofileId3, "agent": self.testagent}
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode(self.testparams3))
-        self.testprofile3 = {"test": "put profile 3", "obj": {"agent": "test"}}
-        self.put3 = self.client.put(path, self.testprofile3, content_type=self.content_type,
+        self.testprofile3 = {"test": "post profile 3", "obj": {"agent": "test"}}
+        self.post3 = self.client.post(path, self.testprofile3, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.testparams4 = {
@@ -65,8 +65,8 @@ class AgentProfileTests(TestCase):
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode(self.testparams4))
         self.otherprofile1 = {
-            "test": "put profile 1", "obj": {"agent": "other"}}
-        self.put4 = self.client.put(path, self.otherprofile1, content_type=self.content_type,
+            "test": "post profile 1", "obj": {"agent": "other"}}
+        self.post4 = self.client.post(path, self.otherprofile1, content_type=self.content_type,
                                     Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
     def tearDown(self):
@@ -87,18 +87,39 @@ class AgentProfileTests(TestCase):
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 404)
 
+    def test_post(self):
+        self.assertEqual(self.post1.status_code, 204)
+        self.assertEqual(self.post1.content, '')
+
+        self.assertEqual(self.post2.status_code, 204)
+        self.assertEqual(self.post2.content, '')
+
+        self.assertEqual(self.post3.status_code, 204)
+        self.assertEqual(self.post3.content, '')
+
+        self.assertEqual(self.post4.status_code, 204)
+        self.assertEqual(self.post4.content, '')
+
     def test_put(self):
-        self.assertEqual(self.put1.status_code, 204)
-        self.assertEqual(self.put1.content, '')
+        path = '%s?%s' % (reverse('lrs:agent_profile'),
+                          urllib.urlencode({
+            "profileId": "http://simple.put/test/none", "agent": self.testagent}))
+        profile = {"test": "good - simple test w/ etag header",
+                   "obj": {"agent": "test"}}
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match="*",
+                                   Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '')        
 
-        self.assertEqual(self.put2.status_code, 204)
-        self.assertEqual(self.put2.content, '')
-
-        self.assertEqual(self.put3.status_code, 204)
-        self.assertEqual(self.put3.content, '')
-
-        self.assertEqual(self.put4.status_code, 204)
-        self.assertEqual(self.put4.content, '')
+        path = '%s?%s' % (reverse('lrs:agent_profile'),
+                          urllib.urlencode({
+            "profileId": "http://simple.put/test/none", "agent": self.testagent}))
+        profile = {"test": "good - simple test w/ etag header",
+                   "obj": {"agent": "test"}}
+        response = self.client.put(path, profile, content_type=self.content_type, If_Match="*",
+                                   Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, '') 
 
     def test_put_etag_missing_on_change(self):
         path = '%s?%s' % (reverse('lrs:agent_profile'),
@@ -108,9 +129,10 @@ class AgentProfileTests(TestCase):
         response = self.client.put(path, profile, content_type=self.content_type,
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.status_code, 400)
         self.assertIn(
-            'If-Match and If-None-Match headers were missing', response.content)
+            'If-Match and If-None-Match headers were missing. One of these headers is required for this request.',
+                response.content)
 
         r = self.client.get(reverse('lrs:agent_profile'), self.testparams1,
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -217,7 +239,6 @@ class AgentProfileTests(TestCase):
         r = self.client.get(reverse('lrs:agent_profile'), self.testparams1,
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
-
         robj = ast.literal_eval(r.content)
         self.assertEqual(robj['test'], self.testprofile1['test'])
         self.assertEqual(robj['obj']['agent'],
@@ -280,7 +301,7 @@ class AgentProfileTests(TestCase):
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode(params))
         profile = {"test": "delete profile", "obj": {"agent": "test"}}
-        response = self.client.put(path, profile, content_type=self.content_type,
+        response = self.client.put(path, profile, content_type=self.content_type, If_None_Match="*",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
@@ -308,7 +329,7 @@ class AgentProfileTests(TestCase):
 
         profile = {"test1": "agent profile since time: %s" %
                    updated, "obj": {"agent": "test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, updated=updated,
+        response = self.client.put(path, profile, content_type=self.content_type, updated=updated, If_None_Match="*",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
@@ -337,7 +358,7 @@ class AgentProfileTests(TestCase):
 
         profile = {"test2": "agent profile since time: %s" %
                    updated, "obj": {"agent": "test"}}
-        response = self.client.put(path, profile, content_type=self.content_type, updated=updated,
+        response = self.client.put(path, profile, content_type=self.content_type, updated=updated, If_None_Match="*",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         r = self.client.get(reverse('lrs:agent_profile'), params,
@@ -356,7 +377,7 @@ class AgentProfileTests(TestCase):
 
         profile2 = {"test3": "agent profile since time: %s" %
                     updated2, "obj": {"agent": "test"}}
-        response = self.client.put(path2, profile2, content_type=self.content_type, updated=updated2,
+        response = self.client.put(path2, profile2, content_type=self.content_type, updated=updated2, If_None_Match="*",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
@@ -381,14 +402,14 @@ class AgentProfileTests(TestCase):
         self.client.delete(reverse('lrs:agent_profile'), params2,
                            Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
-    def test_post_put_delete(self):
+    def test_cors_post_put_delete(self):
         prof_id = "http://deleteme.too"
         path = '%s?%s' % (reverse('lrs:agent_profile'),
                           urllib.urlencode({"method": "PUT"}))
         content = {"test": "delete profile", "obj": {
             "actor": "test", "testcase": "ie cors post for put and delete"}}
-        thedata = "profileId=%s&agent=%s&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=1.0.0" % (
-            prof_id, self.testagent, content, self.auth)
+        thedata = "profileId=%s&agent=%s&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=1.0.0&If-None-Match=*" % (
+            prof_id, self.testagent, urllib.quote(str(content)), self.auth)
         response = self.client.post(
             path, thedata, content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 204)
@@ -425,7 +446,7 @@ class AgentProfileTests(TestCase):
                           urllib.urlencode(testparams1))
         testprofile = {"test": "put profile - group as agent",
                        "obj": {"agent": "group"}}
-        put1 = self.client.put(path, testprofile, content_type=self.content_type,
+        put1 = self.client.put(path, testprofile, content_type=self.content_type, If_None_Match="*",
                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(put1.status_code, 204)

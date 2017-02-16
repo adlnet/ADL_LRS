@@ -16,14 +16,14 @@ from ..managers.StatementManager import StatementManager
 from ..tasks import check_activity_metadata, check_statement_hooks
 
 
-def process_statement(stmt, auth, version, payload_sha2s):
+def process_statement(stmt, auth, payload_sha2s):
     # Add id to statement if not present
     if 'id' not in stmt:
         stmt['id'] = str(uuid.uuid4())
 
     # Add version to statement if not present
     if 'version' not in stmt:
-        stmt['version'] = version
+        stmt['version'] = settings.XAPI_VERSIONS[0]
 
     # Convert context activities to list if dict
     if 'context' in stmt and 'contextActivities' in stmt['context']:
@@ -54,8 +54,8 @@ def process_statement(stmt, auth, version, payload_sha2s):
     return st.statement_id, None
 
 
-def process_body(stmts, auth, version, payload_sha2s):
-    return [process_statement(st, auth, version, payload_sha2s) for st in stmts]
+def process_body(stmts, auth, payload_sha2s):
+    return [process_statement(st, auth, payload_sha2s) for st in stmts]
 
 
 def process_complex_get(req_dict):
@@ -74,9 +74,24 @@ def process_complex_get(req_dict):
     language = None
     if 'headers' in req_dict and ('format' in param_dict and param_dict['format'] == "canonical"):
         if 'language' in req_dict['headers']:
-            language = req_dict['headers']['language']
+            lang_list = req_dict['headers']['language'].split(',')
+            if len(lang_list) > 1:
+                for idx, lang in enumerate(lang_list):
+                    parts = lang.split(';')
+                    if len(parts) == 1:
+                        if parts[0] == '*':
+                            lang_list[idx] = "anylanguage;q=0.1"
+                        else:
+                            lang_list[idx] = parts[0] + ";q=1.0"          
+                lang_list = sorted(lang_list, key=lambda x : float(x[-3:]), reverse=True)
+                language = [x[:x.index(';')].strip() for x in lang_list]
+            else:
+                if lang_list[0] == '*':
+                    language = ["anylanguage"]
+                else:
+                    language = [req_dict['headers']['language']]
         else:
-            language = settings.LANGUAGE_CODE
+            language = [settings.LANGUAGE_CODE]
 
     # If auth is in req dict, add it to param dict
     if 'auth' in req_dict:
@@ -127,8 +142,7 @@ def statements_post(req_dict):
     else:
         body = req_dict['body']
 
-    stmt_responses = process_body(body, auth, req_dict['headers'][
-                                  'X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
+    stmt_responses = process_body(body, auth, req_dict.get('payload_sha2s', None))
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
     stmts_to_void = [str(stmt_tup[1])
                      for stmt_tup in stmt_responses if stmt_tup[1]]
@@ -143,8 +157,7 @@ def statements_post(req_dict):
 def statements_put(req_dict):
     auth = req_dict['auth']
     # Since it is single stmt put in list
-    stmt_responses = process_body([req_dict['body']], auth, req_dict['headers'][
-                                  'X-Experience-API-Version'], req_dict.get('payload_sha2s', None))
+    stmt_responses = process_body([req_dict['body']], auth, req_dict.get('payload_sha2s', None))
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
     stmts_to_void = [str(stmt_tup[1])
                      for stmt_tup in stmt_responses if stmt_tup[1]]
@@ -391,7 +404,7 @@ def activities_get(req_dict):
     act = Activity.objects.get(
         activity_id=activity_id, authority__isnull=False)
     return_act = json.dumps(
-        act.return_activity_with_lang_format('all'), sort_keys=False)
+        act.return_activity_with_lang_format(['all']), sort_keys=False)
     resp = HttpResponse(
         return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))

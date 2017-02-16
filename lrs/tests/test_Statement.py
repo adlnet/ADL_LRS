@@ -604,7 +604,7 @@ class StatementTests(TestCase):
         self.assertEqual(stmt.authority.name, "tester1")
         self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
 
-        self.assertEqual(stmt.version, settings.XAPI_VERSION)
+        self.assertEqual(stmt.version, '1.0.0')
         self.assertEqual(stmt.verb.verb_id, "http://example.com/verbs/passed")
 
     def test_put_1_0_0(self):
@@ -660,7 +660,7 @@ class StatementTests(TestCase):
         self.assertEqual(stmt.authority.name, "tester1")
         self.assertEqual(stmt.authority.mbox, "mailto:test1@tester.com")
 
-        self.assertEqual(stmt.version, settings.XAPI_VERSION)
+        self.assertEqual(stmt.version, '1.0.0')
         self.assertEqual(stmt.verb.verb_id, "http://example.com/verbs/passed")
 
     def test_put_id_in_both_different(self):
@@ -1040,11 +1040,11 @@ class StatementTests(TestCase):
         self.assertEqual(desc_set.values()[0], "altdesc")
 
     def test_cors_post_put(self):
-        content = {"verb": {"id": "verb:verb/url"}, "actor": {"objectType": "Agent", "mbox": "mailto:r@r.com"},
-                   "object": {"id": "act:test_cors_post_put"}}
+        content = ('{"verb": {"id": "verb:verb/url"}, "actor": {"objectType": "Agent", "mbox": "mailto:r@r.com"},' 
+                   '"object": {"id": "act:test_cors_post_put"}}')
 
         bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5d&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=%s" % (
-            content, self.auth, settings.XAPI_VERSION)
+            urllib.quote(content), self.auth, settings.XAPI_VERSION)
         path = "%s?%s" % (reverse('lrs:statements'),
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(
@@ -1063,7 +1063,7 @@ class StatementTests(TestCase):
                    "object": {"id": "act:test_cors_post_put"}}
 
         bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5d&content=%s&Authorization=%s&Content-Type=application/json&X-Experience-API-Version=1.0.0" % (
-            content, self.auth)
+            urllib.quote(str(content)), self.auth)
         path = "%s?%s" % (reverse('lrs:statements'),
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(
@@ -1096,7 +1096,7 @@ class StatementTests(TestCase):
                    "object": {"id": "act:test_cors_post_put"}}
 
         bdy = "statementId=886313e1-3b8a-5372-9b90-0c9aee199e5a&content=%s&Authorization=%s&X-Experience-API-Version=1.0.1&Content-Type=application/json" % (
-            content, self.auth)
+            urllib.quote(str(content)), self.auth)
         path = "%s?%s" % (reverse('lrs:statements'),
                           urllib.urlencode({"method": "PUT"}))
         response = self.client.post(
@@ -1292,7 +1292,7 @@ class StatementTests(TestCase):
 
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
-        self.assertEqual(the_returned['version'], settings.XAPI_VERSION)
+        self.assertEqual(the_returned['version'], '1.0.0')
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor'][
@@ -1426,7 +1426,7 @@ class StatementTests(TestCase):
 
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
-        self.assertEqual(the_returned['version'], settings.XAPI_VERSION)
+        self.assertEqual(the_returned['version'], '1.0.0')
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor']['account'][
@@ -1544,7 +1544,7 @@ class StatementTests(TestCase):
 
         the_returned = json.loads(get_response.content)
         self.assertEqual(the_returned['id'], stmt_id)
-        self.assertEqual(the_returned['version'], settings.XAPI_VERSION)
+        self.assertEqual(the_returned['version'], '1.0.0')
         self.assertEqual(the_returned['actor']['objectType'], 'Agent')
         self.assertEqual(the_returned['actor']['name'], 'Lou Wolford')
         self.assertEqual(the_returned['actor']['account'][

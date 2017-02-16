@@ -42,7 +42,7 @@ class Verb(models.Model):
         if ids_only:
             return {'id': self.verb_id}
         ret = OrderedDict(self.canonical_data)
-        if 'display' in ret:
+        if 'display' in ret and ret['display'].items():
             ret['display'] = get_lang(self.canonical_data['display'], lang)
         return ret
 
@@ -238,8 +238,8 @@ class Agent(models.Model):
                 if self.member.all():
                     ret['member'] = [a.to_dict(ids_only)
                                      for a in self.member.all()]
-        if self.objectType and not ids_only:
-            ret['objectType'] = self.objectType
+
+        ret['objectType'] = self.objectType
         if self.name and not ids_only:
             ret['name'] = self.name
         return ret
@@ -305,26 +305,31 @@ class Activity(models.Model):
         if 'objectType' not in self.canonical_data:
             ret['objectType'] = 'Activity'
         if 'definition' in self.canonical_data:
-            if 'name' in ret['definition']:
+            if 'name' in ret['definition'] and ret['definition'].items():
                 ret['definition']['name'] = get_lang(
                     ret['definition']['name'], lang)
-            if 'description' in ret['definition']:
+            if 'description' in ret['definition'] and ret['definition']['description'].items():
                 ret['definition']['description'] = get_lang(
                     ret['definition']['description'], lang)
             if 'scale' in ret['definition']:
                 for s in ret['definition']['scale']:
-                    s['description'] = get_lang(s['description'], lang)
+                    if s.items():
+                        s['description'] = get_lang(s['description'], lang)
             if 'choices' in ret['definition']:
                 for c in ret['definition']['choices']:
-                    c['description'] = get_lang(c['description'], lang)
+                    if c.items():
+                        c['description'] = get_lang(c['description'], lang)
             if 'steps' in ret['definition']:
                 for st in ret['definition']['steps']:
-                    st['description'] = get_lang(st['description'], lang)
+                    if st.items:
+                        st['description'] = get_lang(st['description'], lang)
             if 'source' in ret['definition']:
                 for so in ret['definition']['source']:
-                    so['description'] = get_lang(so['description'], lang)
+                    if so.items:
+                        so['description'] = get_lang(so['description'], lang)
                 for t in ret['definition']['target']:
-                    t['description'] = get_lang(t['description'], lang)
+                    if t.items():
+                        t['description'] = get_lang(t['description'], lang)
         return ret
 
     def get_a_name(self):
@@ -677,9 +682,9 @@ class StatementAttachment(models.Model):
 
     def return_attachment_with_lang(self, lang=None):
         ret = OrderedDict(self.canonical_data)
-        if 'display' in ret:
+        if 'display' in ret and ret['display'].items():
             ret['display'] = get_lang(self.canonical_data['display'], lang)
-        if 'description' in ret:
+        if 'description' in ret and ret['description'].items():
             ret['description'] = get_lang(
                 self.canonical_data['description'], lang)
         return ret

@@ -3,6 +3,7 @@ import json
 import urllib
 import urlparse
 from isodate.isodatetime import parse_datetime
+from django.conf import settings
 
 from ..exceptions import ParamError
 
@@ -43,6 +44,10 @@ def convert_to_datatype(incoming_data):
     # GET data will be non JSON string-have to try literal_eval
     if isinstance(incoming_data, dict) or isinstance(incoming_data, list):
         return incoming_data
+    # could get weird values that json lib will parse
+    # ex: '"this is not json but would not fail"'
+    if incoming_data.startswith('"'):
+        incoming_data = incoming_data[1:-1]
     try:
         data = json.loads(incoming_data)
     except Exception:
@@ -54,19 +59,42 @@ def convert_to_datatype(incoming_data):
 
 
 def convert_post_body_to_dict(incoming_data):
-    qs = urlparse.parse_qsl(urllib.unquote_plus(incoming_data))
-    return dict((k, v) for k, v in qs)
+    encoded = True
+    pairs = [s2 for s1 in incoming_data.split('&') for s2 in s1.split(';')]
+    for p in pairs:
+        # this is checked for cors requests
+        if p.startswith('content='):
+            if p == urllib.unquote_plus(p):
+                encoded = False
+            break
+    qs = urlparse.parse_qsl(incoming_data)
+    return dict((k, v) for k, v in qs), encoded
 
 
 def get_lang(langdict, lang):
     if lang:
-        if lang == 'all':
+        if 'all' in lang:
             return langdict
         else:
-            # Return where key = lang
-            try:
-                return {lang: langdict[lang]}
-            except KeyError:
-                pass
+            for la in lang:
+                if la == "anylanguage":
+                    try:
+                        return {settings.LANGUAGE_CODE: langdict[settings.LANGUAGE_CODE]}
+                    except KeyError:
+                        first = langdict.iteritems().next()
+                        return {first[0]: first[1]} 
+                # Return where key = lang
+                try:
+                    return {la: langdict[la]}
+                except KeyError:
+                    # if the language header does match any exactly, then if it is only a 2 character
+                    # header, try matching it against the keys again ('en' would match 'en-US')
+                    if not '-' in la:
+                        # get all keys from langdict...get all first parts of them..if la is in it, return it
+                        for k in langdict.keys():
+                            if '-' in k:
+                                if la == k.split('-')[0]:
+                                    return {la: langdict[k]}                    
+                    pass
     first = langdict.iteritems().next()
     return {first[0]: first[1]}

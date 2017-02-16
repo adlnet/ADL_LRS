@@ -755,6 +755,7 @@ def agent_profile_put(req_dict):
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_for_documents(req_dict, "agent profile")
+
     req_dict['profile'] = req_dict.pop('raw_body', req_dict.pop('body', None))
     return req_dict
 

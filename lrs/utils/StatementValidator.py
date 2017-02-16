@@ -92,25 +92,22 @@ class StatementValidator():
     def validate_language(self, lang, field):
         if not isinstance(lang, basestring):
             self.return_error(
-                "language %s is not valid in %s" % (map, field))
+                "language %s is not valid in %s" % (lang, field))
         lang_parts = lang.split('-')
         for idx, part in enumerate(lang_parts):
             # If part exists and is only alpha/numeric
             if part and re.match("^[A-Za-z0-9]*$", part):
                 if len(part) > 8:
                     self.return_error(
-                        "language %s is not valid in %s" % (map, field))
+                        "language %s is not valid in %s" % (lang, field))
             else:
                 self.return_error(
-                    "language %s is not valid in %s" % (map, field))        
+                    "language %s is not valid in %s" % (lang, field))        
 
-    def validate_lang_map(self, map, field):
-        if map:
-            for lang in map:
-                self.validate_language(lang, field)
-        else:
-            self.return_error(
-                "language maps must contain at least one key/value pair in %s" % field)
+    def validate_lang_map(self, lang_map, field):
+        for lang in lang_map:
+            self.validate_language(lang, field)
+
 
     def validate_dict_values(self, values, field):
         for v in values:
@@ -806,21 +803,17 @@ class StatementValidator():
         # Ensure incoming conact is dict
         self.check_if_dict(conacts, "Context activity")
         context_activity_types = ['parent', 'grouping', 'category', 'other']
-        if conacts:
-            for conact in conacts.items():
-                # Check if conact is a valid type
-                if not conact[0] in context_activity_types:
-                    self.return_error("Context activity type is not valid - %s - must be %s" %
-                                      (conact[0], ', '.join(context_activity_types)))
-                # Ensure conact is a list or dict
-                if isinstance(conact[1], list):
-                    for act in conact[1]:
-                        self.validate_activity(act)
-                elif isinstance(conact[1], dict):
-                    self.validate_activity(conact[1])
-                else:
-                    self.return_error(
-                        "contextActivities is not formatted correctly")
-        else:
-            self.return_error(
-                "contextActivities must contain at least one key/value pair")
+        for conact in conacts.items():
+            # Check if conact is a valid type
+            if not conact[0] in context_activity_types:
+                self.return_error("Context activity type is not valid - %s - must be %s" %
+                                  (conact[0], ', '.join(context_activity_types)))
+            # Ensure conact is a list or dict
+            if isinstance(conact[1], list):
+                for act in conact[1]:
+                    self.validate_activity(act)
+            elif isinstance(conact[1], dict):
+                self.validate_activity(conact[1])
+            else:
+                self.return_error(
+                    "contextActivities is not formatted correctly")
