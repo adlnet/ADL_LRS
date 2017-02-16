@@ -301,19 +301,7 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
                 # Should be listed in sha2s - sha2s couldn't not match
                 if sha2 not in sha2s:
                     raise BadRequest(
-                        "Could not find attachment payload with sha: %s" % sha2)                    
-                part = part_dict[sha2]
-                signature = get_part_payload(part)
-                try:
-                    jws.get_unverified_headers(signature)
-                except Exception:
-                    # If there is an error that means the payload is not a JWS
-                    # signature which is what we expected
-                    pass
-                else:
-                    raise BadRequest(
-                        "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when "\
-                        "signing statements")
+                        "Could not find attachment payload with sha: %s" % sha2)
 
 
 def handle_signatures(stmt_tuples, sha2s, part_dict):

@@ -1293,9 +1293,9 @@ class AttachmentAndSignedTests(TestCase):
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
                              content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.content, "usageType must be 'http://adlnet.gov/expapi/attachments/signature' when " \
-                "signing statements")
+        # should still save as regular attachment
+        self.assertEqual(r.status_code, 200)
+
 
     def test_example_signed_statement_wrong_algorithm(self):
         payload = json.loads(exstmt)
