@@ -6,6 +6,7 @@ import uuid
 import math
 import urllib
 import hashlib
+import time
 
 from email import message_from_string
 from email.mime.multipart import MIMEMultipart
@@ -62,7 +63,7 @@ class StatementFilterTests(TestCase):
                 "id": "http://tom.com/tested"}, "object": {"id": "act:activity%s" % i}}
             resp = self.client.post(reverse('lrs:statements'), json.dumps(
                 stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.status_code, 200)
 
         limitGetResponse = self.client.get(reverse('lrs:statements'), {
                                             "limit": 2}, content_type="application/x-www-form-urlencoded", X_Experience_API_Version="1.0", Authorization=self.auth)
@@ -71,6 +72,56 @@ class StatementFilterTests(TestCase):
         respList = json.loads(rsp)
         stmts = respList["statements"]
         self.assertEqual(len(stmts), 2)
+
+    def test_ascending_filter(self):
+        stored_ids = []
+
+        for i in range(1, 5):
+            stmt = {"actor": {"mbox": "mailto:test%s@mail.com" % i}, "verb": {
+                "id": "http://tom.com/tested"}, "object": {"id": "act:activity%s" % i}}
+            resp = self.client.post(reverse('lrs:statements'), json.dumps(
+                stmt), Authorization=self.auth, content_type="application/json", X_Experience_API_Version=settings.XAPI_VERSION)
+            self.assertEqual(resp.status_code, 200)
+            stored_ids.append(json.loads(resp.content)[0])
+            time.sleep(1)
+
+        # Test default first
+        ascGetResponse = self.client.get(reverse('lrs:statements'), 
+            content_type="application/json", X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(ascGetResponse.status_code, 200)
+        rsp = ascGetResponse.content
+        respList = json.loads(rsp)
+        stmts = respList["statements"]
+        self.assertEqual(len(stmts), 4)
+
+        times = [convert_to_datetime_object(st['stored']) for st in stmts]
+        for i in range(0, len(times)-1):
+            self.assertGreater(times[i], times[i+1])
+
+        ascGetResponse = self.client.get(reverse('lrs:statements'), {'ascending': False},
+            content_type="application/json", X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(ascGetResponse.status_code, 200)
+        rsp = ascGetResponse.content
+        respList = json.loads(rsp)
+        stmts = respList["statements"]
+        self.assertEqual(len(stmts), 4)
+
+        times = [convert_to_datetime_object(st['stored']) for st in stmts]
+        for i in range(0, len(times)-1):
+            self.assertGreater(times[i], times[i+1])
+
+        ascGetResponse = self.client.get(reverse('lrs:statements'), {'ascending': True},
+            content_type="application/json", X_Experience_API_Version="1.0", Authorization=self.auth)
+        self.assertEqual(ascGetResponse.status_code, 200)
+        rsp = ascGetResponse.content
+        respList = json.loads(rsp)
+        stmts = respList["statements"]
+        self.assertEqual(len(stmts), 4)
+
+        times = [convert_to_datetime_object(st['stored']) for st in stmts]
+        for i in range(0, len(times)-1):
+            self.assertLess(times[i], times[i+1])
+
 
     def test_get_id(self):
         stmt = {
