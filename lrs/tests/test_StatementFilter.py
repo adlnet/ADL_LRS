@@ -95,6 +95,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 4)
 
         times = [convert_to_datetime_object(st['stored']) for st in stmts]
+        # should sort by decending time
         for i in range(0, len(times)-1):
             self.assertGreater(times[i], times[i+1])
 
@@ -107,6 +108,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 4)
 
         times = [convert_to_datetime_object(st['stored']) for st in stmts]
+        # should sort by decending time
         for i in range(0, len(times)-1):
             self.assertGreater(times[i], times[i+1])
 
@@ -119,6 +121,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(len(stmts), 4)
 
         times = [convert_to_datetime_object(st['stored']) for st in stmts]
+        # should sort by ascending time
         for i in range(0, len(times)-1):
             self.assertLess(times[i], times[i+1])
 

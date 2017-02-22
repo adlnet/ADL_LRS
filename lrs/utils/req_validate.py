@@ -167,7 +167,7 @@ def statements_get(req_dict):
             "The get statements request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
     formats = ['exact', 'canonical', 'ids']
-    if 'format' in req_dict['params']:
+    if 'params' in req_dict and 'format' in req_dict['params']:
         if req_dict['params']['format'] not in formats:
             raise ParamError("The format filter value (%s) was not one of the known values: %s" % (
                 req_dict['params']['format'], ','.join(formats)))
@@ -175,7 +175,7 @@ def statements_get(req_dict):
         req_dict['params']['format'] = 'exact'
 
     # StatementId could be for voided statement as well
-    if 'statementId' in req_dict['params'] or 'voidedStatementId' in req_dict['params']:
+    if 'params' in req_dict and ('statementId' in req_dict['params'] or 'voidedStatementId' in req_dict['params']):
         req_dict['statementId'] = validate_statementId(req_dict)
 
     if 'since' in req_dict['params']:
@@ -224,7 +224,7 @@ def statements_get(req_dict):
     else:
         req_dict['params']['limit'] = 0
 
-    if 'attachments' in req_dict['params']:
+    if 'params' in req_dict and 'attachments' in req_dict['params']:
         if req_dict['params']['attachments'].lower() == 'true':
             req_dict['params']['attachments'] = True
         else:
