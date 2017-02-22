@@ -98,7 +98,7 @@ def complex_get(param_dict, limit, language, format, attachments):
         registrationQ = Q(context_registration=param_dict['registration'])
     # If want ordered by ascending
     stored_param = '-stored'
-    if 'ascending' in param_dict and param_dict['ascending'] == True:
+    if 'ascending' in param_dict and param_dict['ascending']:
         stored_param = 'stored'
 
     voidQ = Q(voided=False)
