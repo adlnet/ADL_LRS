@@ -167,7 +167,7 @@ def statements_get(req_dict):
             "The get statements request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
     formats = ['exact', 'canonical', 'ids']
-    if 'params' in req_dict and 'format' in req_dict['params']:
+    if 'format' in req_dict['params']:
         if req_dict['params']['format'] not in formats:
             raise ParamError("The format filter value (%s) was not one of the known values: %s" % (
                 req_dict['params']['format'], ','.join(formats)))
@@ -175,7 +175,7 @@ def statements_get(req_dict):
         req_dict['params']['format'] = 'exact'
 
     # StatementId could be for voided statement as well
-    if 'params' in req_dict and ('statementId' in req_dict['params'] or 'voidedStatementId' in req_dict['params']):
+    if 'statementId' in req_dict['params'] or 'voidedStatementId' in req_dict['params']:
         req_dict['statementId'] = validate_statementId(req_dict)
 
     if 'since' in req_dict['params']:
@@ -192,10 +192,39 @@ def statements_get(req_dict):
             raise ParamError(
                 "Until parameter was not a valid ISO8601 timestamp")
 
-    # Django converts all query values to string - make boolean depending on if client wants attachments or not
-    # Only need to do this in GET b/c GET/more will have it saved in pickle
-    # information
-    if 'params' in req_dict and 'attachments' in req_dict['params']:
+    if 'ascending' in req_dict['params']:
+        if req_dict['params']['ascending'].lower() == 'true':
+            req_dict['params']['ascending'] = True
+        else:
+            req_dict['params']['ascending'] = False
+    else:
+        req_dict['params']['ascending'] = False
+
+    if 'related_agents' in req_dict['params']:
+        if req_dict['params']['related_agents'].lower() == 'true':
+            req_dict['params']['related_agents'] = True
+        else:
+            req_dict['params']['related_agents'] = False
+    else:
+        req_dict['params']['related_agents'] = False
+
+    if 'related_activities' in req_dict['params']:
+        if req_dict['params']['related_activities'].lower() == 'true':
+            req_dict['params']['related_activities'] = True
+        else:
+            req_dict['params']['related_activities'] = False
+    else:
+        req_dict['params']['related_activities'] = False
+
+    if 'limit' in req_dict['params']:
+        try:
+            req_dict['params']['limit'] = int(req_dict['params']['limit'])
+        except Exception, e:
+            req_dict['params']['limit'] = 0
+    else:
+        req_dict['params']['limit'] = 0
+
+    if 'attachments' in req_dict['params']:
         if req_dict['params']['attachments'].lower() == 'true':
             req_dict['params']['attachments'] = True
         else:
