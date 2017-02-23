@@ -305,7 +305,7 @@ class Activity(models.Model):
         if 'objectType' not in self.canonical_data:
             ret['objectType'] = 'Activity'
         if 'definition' in self.canonical_data:
-            if 'name' in ret['definition'] and ret['definition'].items():
+            if 'name' in ret['definition'] and ret['definition']['name'].items():
                 ret['definition']['name'] = get_lang(
                     ret['definition']['name'], lang)
             if 'description' in ret['definition'] and ret['definition']['description'].items():

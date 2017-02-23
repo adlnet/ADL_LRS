@@ -268,15 +268,16 @@ def parse_signature_attachments(r_dict, part_dict):
     # statements (there should only be one)
     signed_stmts = []
     unsigned_stmts = []
+    stmt_attachment_pairs = []
     if isinstance(r_dict['body'], list):
-        stmt_attachment_pairs = []
         for stmt in r_dict['body']:
             if 'attachments' in stmt:
                 stmt_attachment_pairs.append((stmt, [a.get('sha2', None) for a in stmt['attachments']
                                 if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"]))
     else:        
-        stmt_attachment_pairs = [(r_dict['body'], [a.get('sha2', None) for a in r_dict['body']['attachments']
-                         if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"])]
+        if 'attachments' in r_dict['body']:
+            stmt_attachment_pairs = [(r_dict['body'], [a.get('sha2', None) for a in r_dict['body']['attachments']
+                             if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"])]
     signed_stmts = [sap for sap in stmt_attachment_pairs if sap[1]]
     unsigned_stmts = [sap for sap in stmt_attachment_pairs if not sap[1]]
 
