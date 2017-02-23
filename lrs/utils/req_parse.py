@@ -1,7 +1,6 @@
 import ast
 import base64
 import email
-import urllib
 import json
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
@@ -204,7 +203,6 @@ def parse_cors_request(request, r_dict):
     # all that should be left are params for the request, we add them to the
     # params object
     r_dict['params'].update(body)
-    set_agent_param(r_dict)
 
 
 def parse_normal_request(request, r_dict):
@@ -216,7 +214,6 @@ def parse_normal_request(request, r_dict):
             r_dict['params'].update(ast.literal_eval(request.body))
     r_dict['params'].update(request.GET.dict())
     r_dict['method'] = request.method
-    set_agent_param(r_dict)
 
 
 def parse_attachment(request, r_dict):
@@ -477,13 +474,3 @@ def get_headers(headers):
         header_dict[
             'X-Experience-API-Version'] = headers.pop('X-Experience-API-Version')
     return header_dict
-
-
-def set_agent_param(r_dict):
-    # Convert agent to dict if get param for statements
-    if 'agent' in r_dict['params'] and r_dict['auth']['endpoint'] == '/statements':
-        try:
-            r_dict['params']['agent'] = convert_to_datatype(
-                r_dict['params']['agent'])
-        except Exception:
-            raise BadRequest("Agent param was not a valid JSON structure")

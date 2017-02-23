@@ -1,4 +1,3 @@
-import json
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
 import uuid
@@ -166,6 +165,16 @@ def statements_get(req_dict):
         raise ParamError(
             "The get statements request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
+    validator = StatementValidator()
+    if 'agent' in req_dict['params']:
+        try:
+            agent = convert_to_datatype(req_dict['params']['agent'])
+            req_dict['params']['agent'] = agent
+        except Exception:
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param")    
+
     formats = ['exact', 'canonical', 'ids']
     if 'format' in req_dict['params']:
         if req_dict['params']['format'] not in formats:
@@ -183,54 +192,78 @@ def statements_get(req_dict):
             parse_datetime(req_dict['params']['since'])
         except (Exception, ISO8601Error):
             raise ParamError(
-                "Since parameter was not a valid ISO8601 timestamp")
+                "since parameter was not a valid ISO8601 timestamp")
 
     if 'until' in req_dict['params']:
         try:
             parse_datetime(req_dict['params']['until'])
         except (Exception, ISO8601Error):
             raise ParamError(
-                "Until parameter was not a valid ISO8601 timestamp")
+                "until parameter was not a valid ISO8601 timestamp")
 
     if 'ascending' in req_dict['params']:
         if req_dict['params']['ascending'].lower() == 'true':
             req_dict['params']['ascending'] = True
-        else:
+        elif req_dict['params']['ascending'].lower() == 'false':
             req_dict['params']['ascending'] = False
+        else:
+            raise ParamError(
+                "ascending parameter was not a boolean value")
     else:
         req_dict['params']['ascending'] = False
 
     if 'related_agents' in req_dict['params']:
         if req_dict['params']['related_agents'].lower() == 'true':
             req_dict['params']['related_agents'] = True
-        else:
+        elif req_dict['params']['related_agents'].lower() == 'false':
             req_dict['params']['related_agents'] = False
+        else:
+            raise ParamError(
+                "related_agents parameter was not a boolean value")
     else:
         req_dict['params']['related_agents'] = False
 
     if 'related_activities' in req_dict['params']:
         if req_dict['params']['related_activities'].lower() == 'true':
             req_dict['params']['related_activities'] = True
-        else:
+        elif req_dict['params']['related_activities'].lower() == 'false':
             req_dict['params']['related_activities'] = False
+        else:
+            raise ParamError(
+                "related_activities parameter was not a boolean value")
     else:
         req_dict['params']['related_activities'] = False
-
-    if 'limit' in req_dict['params']:
-        try:
-            req_dict['params']['limit'] = int(req_dict['params']['limit'])
-        except Exception, e:
-            req_dict['params']['limit'] = 0
-    else:
-        req_dict['params']['limit'] = 0
 
     if 'attachments' in req_dict['params']:
         if req_dict['params']['attachments'].lower() == 'true':
             req_dict['params']['attachments'] = True
-        else:
+        elif req_dict['params']['attachments'].lower() == 'false':
             req_dict['params']['attachments'] = False
+        else:
+            raise ParamError(
+                "attachments parameter was not a boolean value")
     else:
         req_dict['params']['attachments'] = False
+
+    if 'limit' in req_dict['params']:
+        try:
+            req_dict['params']['limit'] = int(req_dict['params']['limit'])
+        except Exception:
+            raise ParamError(
+                "limit parameter was not a non-negative integer")
+        else:
+            if req_dict['params']['limit'] < 0:
+                raise ParamError(
+                    "limit parameter was not a non-negative integer")                
+    else:
+        req_dict['params']['limit'] = 0
+
+    if 'registration' in req_dict['params']:
+        validator.validate_uuid(req_dict['params']['registration'], "Registration param")          
+
+    if 'verb' in req_dict['params']:
+        validator.validate_iri(
+                    req_dict['params']['verb'], "verb param")
     return req_dict
 
 
@@ -332,11 +365,12 @@ def activity_state_post(req_dict):
 
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for activity state is not valid")
-        validator.validate_agent(agent, "Activity state agent param")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param")        
     else:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict[
             'method']
@@ -418,11 +452,12 @@ def activity_state_put(req_dict):
 
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for activity state is not valid")
-        validator.validate_agent(agent, "Activity state agent param")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict[
             'method']
@@ -465,11 +500,12 @@ def activity_state_get(req_dict):
 
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for activity state is not valid")
-        validator.validate_agent(agent, "Activity state agent param")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict[
             'method']
@@ -511,11 +547,12 @@ def activity_state_delete(req_dict):
 
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for activity state is not valid")
-        validator.validate_agent(agent, "Activity state agent param")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- activity_state - method = %s, but agent parameter is missing.." % req_dict[
             'method']
@@ -670,12 +707,16 @@ def activities_get(req_dict):
         raise ParamError(
             "The get activities request contained unexpected parameters: %s" % ", ".join(rogueparams))
 
+    validator = StatementValidator()
     try:
         activity_id = req_dict['params']['activityId']
     except KeyError:
         err_msg = "Error -- activities - method = %s, but activityId parameter is missing" % req_dict[
             'method']
         raise ParamError(err_msg)
+    else:
+        validator.validate_iri(
+            activity_id, "activityId param")
 
     # Try to retrieve activity, if DNE then return empty else return activity
     # info
@@ -698,11 +739,12 @@ def agent_profile_post(req_dict):
     validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for agent profile is not valid")
-        validator.validate_agent(agent, "agent param for agent profile")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict[
             'method']
@@ -762,11 +804,12 @@ def agent_profile_put(req_dict):
     validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for agent profile is not valid")
-        validator.validate_agent(agent, "agent param for agent profile")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict[
             'method']
@@ -800,11 +843,12 @@ def agent_profile_get(req_dict):
     validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for agent profile is not valid")
-        validator.validate_agent(agent, "agent param for agent profile")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict[
             'method']
@@ -833,11 +877,12 @@ def agent_profile_delete(req_dict):
     validator = StatementValidator()
     if 'agent' in req_dict['params']:
         try:
-            agent = json.loads(req_dict['params']['agent'])
+            agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param for agent profile is not valid")
-        validator.validate_agent(agent, "agent param for agent profile")
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing.." % req_dict[
             'method']
@@ -868,11 +913,13 @@ def agents_get(req_dict):
         raise ParamError(err_msg)
 
     validator = StatementValidator()
-    try:
-        agent = json.loads(req_dict['params']['agent'])
-    except Exception:
-        raise ParamError("agent param for agent resource is not valid")
-    validator.validate_agent(agent, "agent param for agent resource")
+    if 'agent' in req_dict['params']:
+        try:
+            agent = convert_to_datatype(req_dict['params']['agent'])
+        except Exception:
+            raise ParamError("agent param %s is not valid" % \
+                req_dict['params']['agent'])
+        validator.validate_agent(agent, "Agent param") 
 
     params = get_agent_ifp(agent)
     if not Agent.objects.filter(**params).exists():

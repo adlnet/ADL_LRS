@@ -270,14 +270,14 @@ class AgentProfileTests(TestCase):
                             "profileId": self.testprofileId1, "agent": "wrong"}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(
-            r.content, "agent param for agent profile is not valid")
+            r.content, "agent param wrong is not valid")
 
     def test_get_invalid_agent(self):
         r = self.client.get(reverse('lrs:agent_profile'), {"profileId": self.testprofileId1, "agent": {
                             "mbox": "foo"}}, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(
-            r.content, "agent param for agent profile is not valid")
+            r.content, "mbox value foo did not start with mailto:")
 
     def test_get(self):
         r = self.client.get(reverse('lrs:agent_profile'), self.testparams1,
