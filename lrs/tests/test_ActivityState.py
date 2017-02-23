@@ -501,7 +501,7 @@ class ActivityStateTests(TestCase):
         r = self.client.get(
             self.url, params, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 400)
-        self.assertIn('agent param for activity state is not valid', r.content)
+        self.assertIn('agent param blahagent is not valid', r.content)
 
     def test_get_invalid_agent(self):
         params = {"stateId": self.stateId,
@@ -509,7 +509,7 @@ class ActivityStateTests(TestCase):
         r = self.client.get(
             self.url, params, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 400)
-        self.assertIn('agent param for activity state is not valid', r.content)
+        self.assertIn('mbox value blahagent did not start with mailto:', r.content)
 
     def test_get_invalid_activityid(self):
         params = {"stateId": self.stateId,

@@ -5,7 +5,7 @@ from django.core.files.base import ContentFile
 from django.utils.timezone import utc
 
 from ..models import ActivityState
-from ..exceptions import IDNotFoundError, ParamError
+from ..exceptions import IDNotFoundError
 from ..utils import etag
 
 
