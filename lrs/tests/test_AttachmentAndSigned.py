@@ -141,7 +141,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
         returned_ids = json.loads(r.content)
@@ -198,7 +198,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -254,7 +254,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -353,7 +353,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata21)
         message.attach(textdata22)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -409,7 +409,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(stmtdata)
         message.attach(textdata)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(r.status_code, 400)
@@ -456,7 +456,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -503,7 +503,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
         message.attach(textdata2)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
@@ -705,7 +705,7 @@ class AttachmentAndSignedTests(TestCase):
 
         param = {"statementId": stmt_id}
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
-        r = self.client.put(path, message.as_string(), content_type="multipart/mixed", Authorization=self.auth,
+        r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth,
                             X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(r.status_code, 204)
@@ -742,7 +742,7 @@ class AttachmentAndSignedTests(TestCase):
 
         param = {"statementId": stmt_id}
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
-        r = self.client.put(path, message.as_string(), content_type="multipart/mixed",
+        r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(r.status_code, 400)
@@ -793,7 +793,7 @@ class AttachmentAndSignedTests(TestCase):
 
         param = {"statementId": stmt_id}
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
-        r = self.client.put(path, message.as_string(), content_type="multipart/mixed", Authorization=self.auth,
+        r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth,
                             X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 204)
 
@@ -844,7 +844,7 @@ class AttachmentAndSignedTests(TestCase):
 
         param = {"statementId": stmt_id}
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
-        r = self.client.put(path, message.as_string(), content_type="multipart/mixed",
+        r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertIn("Could not find attachment payload with sha", r.content)
@@ -992,7 +992,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(imgdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
         param = {"attachments": True}
@@ -1030,7 +1030,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1042,7 +1042,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
     def test_example_multiple_signed_statement(self):
@@ -1072,7 +1072,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2_2 = hashlib.sha256(signature2).hexdigest()
         payload['attachments'][1]["sha2"] = sha2_2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata1 = MIMEApplication(signature1, _subtype="octet-stream")
@@ -1092,7 +1092,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata2)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
     def test_example_signed_statement_batch(self):
@@ -1103,7 +1103,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             [payload]), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1115,7 +1115,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
 
@@ -1255,7 +1255,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2      
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1267,7 +1267,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.content, "Invalid JSON serialization of signature payload")
 
@@ -1280,7 +1280,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1292,7 +1292,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         # should still save as regular attachment
         self.assertEqual(r.status_code, 200)
 
@@ -1305,7 +1305,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1317,7 +1317,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.content, "JWS signature must be calculated with SHA-256, SHA-384 or" \
                     "SHA-512 algorithms")
@@ -1330,7 +1330,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="foobar")
@@ -1342,7 +1342,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.content, "Signature attachment must have Content-Type of 'application/octet-stream'")
 
@@ -1356,7 +1356,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha384(signature).hexdigest()
         stmt['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(
             exstmt, _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1368,7 +1368,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertIn(
             "Could not find attachment payload with sha:", r.content)
@@ -1386,7 +1386,7 @@ class AttachmentAndSignedTests(TestCase):
         good_stmt = json.loads(exstmt)
         good_stmt['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             good_stmt), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1398,7 +1398,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(
             r.content, 'The JWS is not valid - payload and body statements do not match')
@@ -1412,7 +1412,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1424,7 +1424,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
     def test_example_signed_statement_with_x509_cert_wrong(self):
@@ -1436,7 +1436,7 @@ class AttachmentAndSignedTests(TestCase):
         sha2 = hashlib.sha256(signature).hexdigest()
         payload['attachments'][0]["sha2"] = sha2
 
-        message = MIMEMultipart()
+        message = MIMEMultipart(boundary="myboundary")
         stmtdata = MIMEApplication(json.dumps(
             payload), _subtype="json", _encoder=json.JSONEncoder)
         jwsdata = MIMEApplication(signature, _subtype="octet-stream")
@@ -1448,7 +1448,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(jwsdata)
 
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
-                             content_type='multipart/mixed', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
+                             content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(
             r.content, 'The JWS is not valid: Signature verification failed.')

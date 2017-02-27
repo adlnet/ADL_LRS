@@ -2519,7 +2519,7 @@ class StatementFilterTests(TestCase):
         message.attach(textdata21)
         message.attach(textdata22)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -2575,7 +2575,7 @@ class StatementFilterTests(TestCase):
 
         put_param = {"statementId": st_id}
         put_path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(put_param))
-        r = self.client.put(put_path, message.as_string(), content_type="multipart/mixed",
+        r = self.client.put(put_path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 204)
 
@@ -2704,7 +2704,7 @@ class StatementFilterTests(TestCase):
 
         param = {"statementId": stmt_id}
         path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
-        response = self.client.put(path, message.as_string(), content_type="multipart/mixed",
+        response = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
 
@@ -2906,7 +2906,7 @@ class StatementFilterTests(TestCase):
         message.attach(textdata3)
         message.attach(textdata4)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 
@@ -3066,7 +3066,7 @@ class StatementFilterTests(TestCase):
         message.attach(textdata3)
         message.attach(textdata4)
 
-        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type="multipart/mixed",
+        r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 200)
 

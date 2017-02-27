@@ -388,7 +388,7 @@ def activity_state_post(req_dict):
     # Check json for incoming POSTed document
     if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
         raise ParamError(
-            "Activity state document to be posted does not has a Content-Type of 'application/json'")
+            "Activity state document to be posted does not have a Content-Type of 'application/json'")
 
     # expected to be json
     try:
@@ -592,7 +592,7 @@ def activity_profile_post(req_dict):
     # Check json for incoming POSTed document
     if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
         raise ParamError(
-            "Activity profile document to be posted does not has a Content-Type of 'application/json'")
+            "Activity profile document to be posted does not have a Content-Type of 'application/json'")
 
     # expected to be json
     try:
@@ -766,7 +766,7 @@ def agent_profile_post(req_dict):
     # Check json for incoming POSTed document
     if "application/json" not in req_dict['headers']['CONTENT_TYPE']:
         raise ParamError(
-            "Agent profile document to be posted does not has a Content-Type of 'application/json'")
+            "Agent profile document to be posted does not have a Content-Type of 'application/json'")
 
     # expected to be json
     try:
