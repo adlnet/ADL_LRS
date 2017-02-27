@@ -217,19 +217,18 @@ def parse_normal_request(request, r_dict):
 
 
 def parse_attachment(request, r_dict):
-    # Email library insists on having the multipart header in the body -
-    # workaround
     message = request.body
-    if '--' not in message:
-        raise BadRequest(
-            "Multipart boundary missing")
-    if 'boundary' not in message[:message.index("--")]:
+    # Python email parse library insists on having the multipart header in the body
+    # workaround to add it to the beginning since it will always be included in the header
+    lines = message.splitlines()
+    if not lines[0].startswith('Content-Type: multipart/mixed; boundary='):
         if 'boundary' in r_dict['headers']['CONTENT_TYPE']:
             message = "Content-Type:" + \
                 r_dict['headers']['CONTENT_TYPE'] + "\r\n" + message
         else:
             raise BadRequest(
                 "Could not find the boundary for the multipart content")
+    # end workaround
     msg = email.message_from_string(message)
     if msg.is_multipart():
         # Stmt part will always be first
