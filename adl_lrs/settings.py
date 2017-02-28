@@ -1,33 +1,38 @@
 # Django settings for adl_lrs project.
 from os import path
 from os.path import dirname, abspath
+from ConfigParser import RawConfigParser
 
 # Root of LRS
 SETTINGS_DIR = dirname(abspath(__file__))
 PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 
+config = RawConfigParser()
+config.read(SETTINGS_DIR+'/settings.ini')
+
+
 # If you want to debug
-DEBUG = True
+DEBUG = config.get('debug', 'DEBUG')
 
 # Set these email values to send the reset password link
 # If you do not want this functionality just comment out the
 # Forgot Password? link in templates/registration/login.html
-EMAIL_HOST = '<email_host>'
-EMAIL_PORT = 465
-EMAIL_HOST_USER = '<email_host_user>'
-EMAIL_HOST_PASSWORD = '<email_host_user_password>'
-EMAIL_USE_SSL = True
-EMAIL_TIMEOUT = 10
+EMAIL_HOST = config.get('email', 'EMAIL_HOST')
+EMAIL_PORT = config.get('email', 'EMAIL_PORT')
+EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
+EMAIL_USE_SSL = config.get('email', 'EMAIL_USE_SSL')
+EMAIL_TIMEOUT = config.get('email', 'EMAIL_TIMEOUT')
 
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'lrs',
-        'USER': '<db_owner_name>',
-        'PASSWORD': '<db_owner_password>',
-        'HOST': 'localhost',
-        'PORT': '',
+        'NAME': config.get('database', 'NAME'),
+        'USER': config.get('database', 'USER'),
+        'PASSWORD': config.get('database', 'PASSWORD'),
+        'HOST': config.get('database', 'HOST'),
+        'PORT': config.get('database', 'PORT'),
     }
 }
 
@@ -38,11 +43,11 @@ DATABASES = {
 # timezone as the operating system.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-TIME_ZONE = 'America/New_York'
+TIME_ZONE = config.get('preferences', 'TIME_ZONE')
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en-US'
+LANGUAGE_CODE = config.get('preferences', 'LANGUAGE_CODE')
 
 # The ID, as an integer, of the current site in the django_site database table.
 # This is used so that application data can hook into specific sites and a single database can manage
@@ -61,7 +66,7 @@ USE_L10N = True
 USE_TZ = True
 
 # Set this to True if you would like to utilize the webhooks functionality
-USE_HOOKS = False
+USE_HOOKS = config.get('hooks', 'USE_HOOKS')
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
@@ -103,11 +108,11 @@ XAPI_VERSIONS = ['1.0.0', '1.0.1', '1.0.2', XAPI_VERSION]
 LOGIN_REDIRECT_URL = '/me'
 
 # Me view has a tab of user's statements
-STMTS_PER_PAGE = 10
+STMTS_PER_PAGE = config.get('preferences', 'STMTS_PER_PAGE')
 
 # Whether HTTP auth or OAuth is enabled
-ALLOW_EMPTY_HTTP_AUTH = False
-OAUTH_ENABLED = True
+ALLOW_EMPTY_HTTP_AUTH = config.get('auth', 'ALLOW_EMPTY_HTTP_AUTH')
+OAUTH_ENABLED = config.get('auth', 'OAUTH_ENABLED')
 
 AUTH_USER_MODEL = "auth.User"
 # OAuth1 callback views
@@ -115,7 +120,8 @@ OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext', 'hmac-sha1', 'rsa-sha1']
 
-# THIS IS OAUTH2 STUFF
+# List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get
+# defaulted in oauth2/forms.py
 STATE = 1
 PROFILE = 1 << 1
 DEFINE = 1 << 2
@@ -125,8 +131,6 @@ STATEMENTS_WRITE = 1 << 5
 ALL_READ = 1 << 6
 ALL = 1 << 7
 
-# List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get
-# defaulted in oauth2/forms.py
 OAUTH_SCOPES = (
     (STATEMENTS_WRITE, 'statements/write'),
     (STATEMENTS_READ_MINE, 'statements/read/mine'),
@@ -138,6 +142,10 @@ OAUTH_SCOPES = (
     (ALL, 'all')
 )
 
+AMPQ_USERNAME = config.get('ampq', 'USERNAME')
+AMPQ_PASSWORD = config.get('ampq', 'PASSWORD')
+AMPQ_VHOST = config.get('ampq', 'VHOST')
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
@@ -145,7 +153,7 @@ CELERY_STORE_ERRORS_EVEN_IF_IGNORED = True
 CELERY_IGNORE_RESULT = True
 
 # Limit on number of statements the server will return
-SERVER_STMT_LIMIT = 100
+SERVER_STMT_LIMIT = config.get('preferences', 'SERVER_STMT_LIMIT')
 # Fifteen second timeout to all celery tasks
 CELERYD_TASK_SOFT_TIME_LIMIT = 15
 # ActivityID resolve timeout (seconds)
@@ -172,7 +180,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'v+m%^r0x)$_x8i3trn*duc6vd-yju0kx2b#9lk0sn2k^7cgyp5'
+SECRET_KEY = config.get('secrets', 'SECRET_KEY')
 
 TEMPLATES = [
     {
