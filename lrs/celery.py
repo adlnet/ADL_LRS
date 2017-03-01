@@ -12,8 +12,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'adl_lrs.settings')
 from django.conf import settings
 
 app = Celery('lrs',
-             broker='amqp://%s:%s@localhost:5672/%s' % (
+             broker='amqp://%s:%s@%s:%s/%s' % (
              	settings.AMPQ_USERNAME, settings.AMPQ_PASSWORD,
+             	settings.AMPQ_HOST, settings.AMPQ_PORT, 
              	settings.AMPQ_VHOST),
              include=['lrs.tasks'])
 
