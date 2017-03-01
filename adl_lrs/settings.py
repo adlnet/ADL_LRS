@@ -144,6 +144,8 @@ OAUTH_SCOPES = (
 
 AMPQ_USERNAME = config.get('ampq', 'USERNAME')
 AMPQ_PASSWORD = config.get('ampq', 'PASSWORD')
+AMPQ_HOST = config.get('ampq', 'HOST')
+AMPQ_PORT = config.get('ampq', 'PORT')
 AMPQ_VHOST = config.get('ampq', 'VHOST')
 
 CELERY_ACCEPT_CONTENT = ['json']
