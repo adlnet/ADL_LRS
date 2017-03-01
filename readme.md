@@ -39,35 +39,8 @@ This version is stable, but only intended to support a small amount of users as 
 
 **Set the LRS configuration**
 
+  Create a `settings.ini` file and place it in the `adl_lrs` directory. Visit the [Settings](https://github.com/adlnet/ADL_LRS/wiki/Settings) wiki page to set it up.
 
-  ```
-  ### File: ADL_LRS/adl_lrs/settings.py
-
-  # configure the database
-  DATABASES = {
-      'default': {
-          'ENGINE': 'django.db.backends.postgresql',
-          'NAME': 'lrs',
-          'USER': '<db_owner_name>',
-          'PASSWORD': '<db_owner_password>',
-          'HOST': 'localhost',
-          'PORT': '',
-      }
-  }
-
-  # Make this unique, and don't share it with anybody.
-  SECRET_KEY = 'Some long random string with numb3rs and $ymbol$'
-
-  # Set these values to send reset password emails to your users
-  # More details instructions in settings.py
-  EMAIL_HOST = '<email_host>'
-  EMAIL_PORT = 465
-  EMAIL_HOST_USER = '<email_host_user>'
-  EMAIL_HOST_PASSWORD = '<email_host_user_password>'
-  EMAIL_USE_SSL = True
-  EMAIL_TIMEOUT = 10
-
-  ```
 
 **Setup the environment**
 
