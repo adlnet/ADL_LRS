@@ -70,15 +70,16 @@ def complex_get(param_dict, limit, language, format, attachments):
             # If it is an agent and not a group, retrieve all groups it is part of
             if agent.objectType == "Agent":
                 groups = agent.member.all()
-                for g in queryset_iterator(groups):
-                    agentQ = agentQ | Q(actor=g) | Q(object_agent=g)
-                    if related:
-                        agentQ = agentQ | Q(authority=g) \
-                            | Q(context_instructor=g) | Q(context_team=g) \
-                            | Q(object_substatement__actor=g) \
-                            | Q(object_substatement__object_agent=g) \
-                            | Q(object_substatement__context_instructor=g) \
-                            | Q(object_substatement__context_team=g)
+                if groups.exists():
+                    for g in groups.iterator():
+                        agentQ = agentQ | Q(actor=g) | Q(object_agent=g)
+                        if related:
+                            agentQ = agentQ | Q(authority=g) \
+                                | Q(context_instructor=g) | Q(context_team=g) \
+                                | Q(object_substatement__actor=g) \
+                                | Q(object_substatement__object_agent=g) \
+                                | Q(object_substatement__context_instructor=g) \
+                                | Q(object_substatement__context_team=g)
 
 
     verbQ = Q()
