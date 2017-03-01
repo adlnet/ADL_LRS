@@ -17,12 +17,12 @@ DEBUG = config.get('debug', 'DEBUG')
 # Set these email values to send the reset password link
 # If you do not want this functionality just comment out the
 # Forgot Password? link in templates/registration/login.html
+EMAIL_BACKEND = config.get('email', 'EMAIL_BACKEND')
 EMAIL_HOST = config.get('email', 'EMAIL_HOST')
 EMAIL_PORT = config.get('email', 'EMAIL_PORT')
 EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config.get('email', 'EMAIL_USE_SSL')
-EMAIL_TIMEOUT = config.get('email', 'EMAIL_TIMEOUT')
 
 
 DATABASES = {
