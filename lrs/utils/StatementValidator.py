@@ -69,9 +69,11 @@ class StatementValidator():
             for st in self.data:
                 self.validate_statement(st)
             return "All Statements are valid"
-        else:
+        elif isinstance(self.data, dict):
             self.validate_statement(self.data)
             return "Statement is valid"
+        else:
+            self.return_error("There are no statements to validate")
 
     def return_error(self, err_msg):
         raise ParamError(err_msg)
