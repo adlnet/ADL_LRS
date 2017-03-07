@@ -14,12 +14,6 @@ from . import convert_to_datetime_object
 from ..models import Statement, Agent
 from ..exceptions import NotFound
 
-def queryset_iterator(queryset, chunksize=100):
-    paginator = Paginator(queryset, chunksize)
-    for page in range(1, paginator.num_pages + 1):
-        for obj in paginator.page(page).object_list:
-            yield obj
-
 
 def complex_get(param_dict, limit, language, format, attachments):
     # keep track if a filter other than time or sequence is used
