@@ -12,17 +12,17 @@ config.read(SETTINGS_DIR+'/settings.ini')
 
 
 # If you want to debug
-DEBUG = config.get('debug', 'DEBUG')
+DEBUG = config.getboolean('debug', 'DEBUG')
 
 # Set these email values to send the reset password link
 # If you do not want this functionality just comment out the
 # Forgot Password? link in templates/registration/login.html
 EMAIL_BACKEND = config.get('email', 'EMAIL_BACKEND')
 EMAIL_HOST = config.get('email', 'EMAIL_HOST')
-EMAIL_PORT = config.get('email', 'EMAIL_PORT')
+EMAIL_PORT = config.getint('email', 'EMAIL_PORT')
 EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
-EMAIL_USE_SSL = config.get('email', 'EMAIL_USE_SSL')
+EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
 
 
 DATABASES = {
@@ -32,7 +32,7 @@ DATABASES = {
         'USER': config.get('database', 'USER'),
         'PASSWORD': config.get('database', 'PASSWORD'),
         'HOST': config.get('database', 'HOST'),
-        'PORT': config.get('database', 'PORT'),
+        'PORT': config.getint('database', 'PORT'),
     }
 }
 
@@ -66,7 +66,7 @@ USE_L10N = True
 USE_TZ = True
 
 # Set this to True if you would like to utilize the webhooks functionality
-USE_HOOKS = config.get('hooks', 'USE_HOOKS')
+USE_HOOKS = config.getboolean('hooks', 'USE_HOOKS')
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
@@ -108,11 +108,11 @@ XAPI_VERSIONS = ['1.0.0', '1.0.1', '1.0.2', XAPI_VERSION]
 LOGIN_REDIRECT_URL = '/me'
 
 # Me view has a tab of user's statements
-STMTS_PER_PAGE = config.get('preferences', 'STMTS_PER_PAGE')
+STMTS_PER_PAGE = config.getint('preferences', 'STMTS_PER_PAGE')
 
 # Whether HTTP auth or OAuth is enabled
-ALLOW_EMPTY_HTTP_AUTH = config.get('auth', 'ALLOW_EMPTY_HTTP_AUTH')
-OAUTH_ENABLED = config.get('auth', 'OAUTH_ENABLED')
+ALLOW_EMPTY_HTTP_AUTH = config.getboolean('auth', 'ALLOW_EMPTY_HTTP_AUTH')
+OAUTH_ENABLED = config.getboolean('auth', 'OAUTH_ENABLED')
 
 AUTH_USER_MODEL = "auth.User"
 # OAuth1 callback views
@@ -145,7 +145,7 @@ OAUTH_SCOPES = (
 AMPQ_USERNAME = config.get('ampq', 'USERNAME')
 AMPQ_PASSWORD = config.get('ampq', 'PASSWORD')
 AMPQ_HOST = config.get('ampq', 'HOST')
-AMPQ_PORT = config.get('ampq', 'PORT')
+AMPQ_PORT = config.getint('ampq', 'PORT')
 AMPQ_VHOST = config.get('ampq', 'VHOST')
 
 CELERY_ACCEPT_CONTENT = ['json']
@@ -155,7 +155,7 @@ CELERY_STORE_ERRORS_EVEN_IF_IGNORED = True
 CELERY_IGNORE_RESULT = True
 
 # Limit on number of statements the server will return
-SERVER_STMT_LIMIT = config.get('preferences', 'SERVER_STMT_LIMIT')
+SERVER_STMT_LIMIT = config.getint('preferences', 'SERVER_STMT_LIMIT')
 # Fifteen second timeout to all celery tasks
 CELERYD_TASK_SOFT_TIME_LIMIT = 15
 # ActivityID resolve timeout (seconds)
