@@ -271,7 +271,7 @@ def build_response(stmt_result, single=False):
             string_list.append("".join(chunks) + line_feed)
 
         string_list.append("--" + boundary + "--\r\n")
-        mime_type = "multipart/mixed; boundary=" + boundary
+        mime_type = 'multipart/mixed; boundary=' + '"%s"' % boundary
         attachment_body = "".join([str(s) for s in string_list])
         return attachment_body, mime_type, len(attachment_body)
     # Has attachments but no payloads so just dump the stmt_result
