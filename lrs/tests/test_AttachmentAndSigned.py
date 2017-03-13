@@ -1001,11 +1001,11 @@ class AttachmentAndSignedTests(TestCase):
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'],
-                         'multipart/mixed; boundary=======ADL_LRS======')
+                         'multipart/mixed; boundary="======ADL_LRS======"')
         # Have to add the header to the top of the body else the email lib
         # won't parse it correctly
         msg = message_from_string(
-            "Content-Type:multipart/mixed; boundary=======ADL_LRS======" + r.content)
+            'Content-Type:multipart/mixed; boundary="======ADL_LRS======"' + r.content)
         self.assertTrue(msg.is_multipart())
 
         parts = []

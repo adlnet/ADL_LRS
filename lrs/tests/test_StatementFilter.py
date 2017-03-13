@@ -2529,7 +2529,7 @@ class StatementFilterTests(TestCase):
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'],
-                         'multipart/mixed; boundary=======ADL_LRS======')
+                         'multipart/mixed; boundary="======ADL_LRS======"')
 
     def test_attachments_with_statementId(self):
         stmt = json.dumps([{"actor": {"objectType": "Agent", "mbox": "mailto:t@t.com", "name": "bob"},
@@ -2585,7 +2585,7 @@ class StatementFilterTests(TestCase):
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'],
-                         'multipart/mixed; boundary=======ADL_LRS======')
+                         'multipart/mixed; boundary="======ADL_LRS======"')
         self.assertIn(st_id, r.content)
         self.assertNotIn(existing_id1, r.content)
         self.assertNotIn(existing_id2, r.content)
@@ -2714,7 +2714,7 @@ class StatementFilterTests(TestCase):
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'],
-                         'multipart/mixed; boundary=======ADL_LRS======')
+                         'multipart/mixed; boundary="======ADL_LRS======"')
 
     def test_more_attachments_no_payload(self):
         settings.SERVER_STMT_LIMIT = 2
@@ -2917,7 +2917,7 @@ class StatementFilterTests(TestCase):
         self.assertEqual(r.status_code, 200)
 
         self.assertEqual(r['Content-Type'],
-                         'multipart/mixed; boundary=======ADL_LRS======')
+                         'multipart/mixed; boundary="======ADL_LRS======"')
         headers_list1 = [txtsha1, txtsha2]
         headers_list2 = [txtsha3, txtsha4]
         payload_list1 = [u"This is a text attachment1",
@@ -2927,7 +2927,7 @@ class StatementFilterTests(TestCase):
 
         # Have to add header to body so email lib will parse correctly
         msg = message_from_string(
-            "Content-Type:" + "multipart/mixed; boundary=======ADL_LRS======" + r.content)
+            "Content-Type:" + 'multipart/mixed; boundary="======ADL_LRS======"' + r.content)
         self.assertTrue(msg.is_multipart())
 
         parts = []
@@ -2956,7 +2956,7 @@ class StatementFilterTests(TestCase):
 
         # Have to add header to body so email lib will parse correctly
         more_msg = message_from_string(
-            "Content-Type:" + "multipart/mixed; boundary=======ADL_LRS======" + more_get.content)
+            "Content-Type:" + 'multipart/mixed; boundary="======ADL_LRS======"' + more_get.content)
         self.assertTrue(more_msg.is_multipart())
 
         more_parts = []
