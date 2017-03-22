@@ -4,6 +4,7 @@ from functools import wraps
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 
 from ..exceptions import Unauthorized, BadRequest, Forbidden, OauthUnauthorized, OauthBadRequest
 from ..models import Agent
@@ -119,48 +120,44 @@ def get_user_from_auth(auth):
 def validate_oauth_scope(req_dict):
     method = req_dict['method']
     endpoint = req_dict['auth']['endpoint']
+    if '/statements/more' in endpoint:
+        endpoint = "%s/%s" % (reverse('lrs:statements').lower(), "more")
+    
     token = req_dict['auth']['oauth_token']
     scopes = token.scope_to_list()
 
     err_msg = "Incorrect permissions to %s at %s" % (
         str(method), str(endpoint))
 
-    validator = {'GET': {"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                         "/statements/more": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                         "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
-                         "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
-                         "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
-                         "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
-                         "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
+    validator = {'GET': {reverse('lrs:statements').lower(): True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                         reverse('lrs:statements_more_placeholder').lower(): True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                         reverse('lrs:activities').lower(): True if 'all' in scopes or 'all/read' in scopes else False,
+                         reverse('lrs:activity_profile').lower(): True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
+                         reverse('lrs:activity_state').lower(): True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
+                         reverse('lrs:agents').lower(): True if 'all' in scopes or 'all/read' in scopes else False,
+                         reverse('lrs:agent_profile').lower(): True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
                          },
-                 'HEAD': {"/statements": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                          "/statements/more": True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
-                          "/activities": True if 'all' in scopes or 'all/read' in scopes else False,
-                          "/activities/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
-                          "/activities/state": True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
-                          "/agents": True if 'all' in scopes or 'all/read' in scopes else False,
-                          "/agents/profile": True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
+                 'HEAD': {reverse('lrs:statements').lower(): True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                          reverse('lrs:statements_more_placeholder').lower(): True if 'all' in scopes or 'all/read' in scopes or 'statements/read' in scopes or 'statements/read/mine' in scopes else False,
+                          reverse('lrs:activities').lower(): True if 'all' in scopes or 'all/read' in scopes else False,
+                          reverse('lrs:activity_profile').lower(): True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False,
+                          reverse('lrs:activity_state').lower(): True if 'all' in scopes or 'all/read' in scopes or 'state' in scopes else False,
+                          reverse('lrs:agents').lower(): True if 'all' in scopes or 'all/read' in scopes else False,
+                          reverse('lrs:agent_profile').lower(): True if 'all' in scopes or 'all/read' in scopes or 'profile' in scopes else False
                           },
-                 'PUT': {"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
-                         "/activities": True if 'all' in scopes or 'define' in scopes else False,
-                         "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
-                         "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
-                         "/agents": True if 'all' in scopes or 'define' in scopes else False,
-                         "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
+                 'PUT': {reverse('lrs:statements').lower(): True if 'all' in scopes or 'statements/write' in scopes else False,
+                         reverse('lrs:activity_profile').lower(): True if 'all' in scopes or 'profile' in scopes else False,
+                         reverse('lrs:activity_state').lower(): True if 'all' in scopes or 'state' in scopes else False,
+                         reverse('lrs:agent_profile').lower(): True if 'all' in scopes or 'profile' in scopes else False
                          },
-                 'POST': {"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
-                          "/activities": True if 'all' in scopes or 'define' in scopes else False,
-                          "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
-                          "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
-                          "/agents": True if 'all' in scopes or 'define' in scopes else False,
-                          "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
+                 'POST': {reverse('lrs:statements').lower(): True if 'all' in scopes or 'statements/write' in scopes else False,
+                          reverse('lrs:activity_profile').lower(): True if 'all' in scopes or 'profile' in scopes else False,
+                          reverse('lrs:activity_state').lower(): True if 'all' in scopes or 'state' in scopes else False,
+                          reverse('lrs:agent_profile').lower(): True if 'all' in scopes or 'profile' in scopes else False
                           },
-                 'DELETE': {"/statements": True if 'all' in scopes or 'statements/write' in scopes else False,
-                            "/activities": True if 'all' in scopes or 'define' in scopes else False,
-                            "/activities/profile": True if 'all' in scopes or 'profile' in scopes else False,
-                            "/activities/state": True if 'all' in scopes or 'state' in scopes else False,
-                            "/agents": True if 'all' in scopes or 'define' in scopes else False,
-                            "/agents/profile": True if 'all' in scopes or 'profile' in scopes else False
+                 'DELETE': {reverse('lrs:activity_profile').lower(): True if 'all' in scopes or 'profile' in scopes else False,
+                            reverse('lrs:activity_state').lower(): True if 'all' in scopes or 'state' in scopes else False,
+                            reverse('lrs:agent_profile').lower(): True if 'all' in scopes or 'profile' in scopes else False
                             }
                  }
 

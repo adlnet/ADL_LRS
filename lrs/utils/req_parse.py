@@ -9,6 +9,7 @@ from jose import jws
 
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import caches
+from django.core.urlresolvers import reverse
 from django.http import QueryDict
 
 from . import convert_to_datatype, convert_post_body_to_dict
@@ -118,7 +119,7 @@ def parse_post_put_body(request, r_dict):
                 # profile/states use the raw body
                 r_dict['raw_body'] = request.body
                 # Only for statements since document APIs don't have to be JSON
-                if r_dict['auth']['endpoint'] == '/statements':
+                if r_dict['auth']['endpoint'] == reverse('lrs:statements').lower():
                     try:
                         r_dict['body'] = convert_to_datatype(request.body)
                     except Exception:
@@ -162,7 +163,7 @@ def parse_cors_request(request, r_dict):
         r_dict['raw_body'] = decoded_body
 
         # Only for statements since document API bodies don't have to be JSON (can be text)
-        if r_dict['auth']['endpoint'] == '/statements':
+        if r_dict['auth']['endpoint'] == reverse('lrs:statements').lower():
             try:
                 # Should convert to dict if data is in JSON format
                 r_dict['body'] = convert_to_datatype(decoded_body)
@@ -416,7 +417,9 @@ def cert_to_key(cert):
 
 def get_endpoint(request):
     # Used for OAuth scope
-    endpoint = request.path[5:]
+    parts = request.path.split("/")
+    parts[1] = parts[1].lower()
+    endpoint = "/".join(parts)
     # Since we accept with or without / on end
     if endpoint.endswith("/"):
         return endpoint[:-1]
