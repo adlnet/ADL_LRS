@@ -2329,7 +2329,7 @@ Lw03eHTNQghS0A==
                                 Authorization=oauth_header_resource_params, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(post.status_code, 403)
         self.assertEqual(
-            post.content, 'Incorrect permissions to POST at /statements')
+            post.content, 'Incorrect permissions to POST at /xapi/statements')
 
     def test_activity_state_put_then_wrong_scope(self):
         url = TEST_SERVER + '/XAPI/activities/state'
@@ -2403,7 +2403,7 @@ Lw03eHTNQghS0A==
                               Authorization=new_oauth_headers, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(get.status_code, 403)
         self.assertEqual(
-            get.content, 'Incorrect permissions to GET at /statements')
+            get.content, 'Incorrect permissions to GET at /xapi/statements')
 
     def stmt_get_then_wrong_profile_scope(self):
         guid = str(uuid.uuid1())
