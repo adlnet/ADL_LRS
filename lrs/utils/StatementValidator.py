@@ -60,6 +60,8 @@ class StatementValidator():
                     else:
                         data = data.replace('\r', '').replace('\n', '')
                 self.data = convert_to_datatype(data)
+            except SyntaxError as se:
+                self.return_error(str(se))
             except Exception as e:
                 self.return_error(e.message)
 
