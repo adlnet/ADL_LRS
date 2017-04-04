@@ -15,7 +15,7 @@ from ..models import Statement, Agent
 from ..exceptions import NotFound
 
 
-def complex_get(param_dict, limit, language, format, attachments):
+def complex_get(param_dict, limit, language, stmt_format, attachments):
     # keep track if a filter other than time or sequence is used
     reffilter = False
 
@@ -26,6 +26,11 @@ def complex_get(param_dict, limit, language, format, attachments):
     untilQ = Q()
     if 'until' in param_dict:
         untilQ = Q(stored__lte=convert_to_datetime_object(param_dict['until']))
+
+    # If want ordered by ascending
+    stored_param = '-stored'
+    if 'ascending' in param_dict and param_dict['ascending']:
+        stored_param = 'stored'
 
     # For statements/read/mine oauth scope
     authQ = Q()
@@ -50,7 +55,6 @@ def complex_get(param_dict, limit, language, format, attachments):
         data = param_dict['agent']
         related = 'related_agents' in param_dict and param_dict[
             'related_agents']
-
         agent = Agent.objects.retrieve(**data)
         if agent:
             agentQ = Q(actor=agent) | Q(object_agent=agent)
@@ -74,7 +78,8 @@ def complex_get(param_dict, limit, language, format, attachments):
                                 | Q(object_substatement__object_agent=g) \
                                 | Q(object_substatement__context_instructor=g) \
                                 | Q(object_substatement__context_team=g)
-
+        else:
+            return create_under_limit_stmt_result([], stored_param, language, stmt_format)
 
     verbQ = Q()
     if 'verb' in param_dict:
@@ -101,10 +106,6 @@ def complex_get(param_dict, limit, language, format, attachments):
     if 'registration' in param_dict:
         reffilter = True
         registrationQ = Q(context_registration=param_dict['registration'])
-    # If want ordered by ascending
-    stored_param = '-stored'
-    if 'ascending' in param_dict and param_dict['ascending']:
-        stored_param = 'stored'
 
     voidQ = Q(voided=False)
     stmtset = Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
@@ -128,9 +129,9 @@ def complex_get(param_dict, limit, language, format, attachments):
     # If there are more stmts than the limit, need to break it up and return
     # more id
     if actual_length > return_limit:
-        return create_over_limit_stmt_result(stmtset, stored_param, return_limit, language, format, attachments)
+        return create_over_limit_stmt_result(stmtset, stored_param, return_limit, language, stmt_format, attachments)
     else:
-        return create_under_limit_stmt_result(stmtset, stored_param, language, format)
+        return create_under_limit_stmt_result(stmtset, stored_param, language, stmt_format)
 
 
 def stmt_ref_search(stmt_list, untilQ, sinceQ, acc=[]):
@@ -148,7 +149,7 @@ def set_limit(req_limit):
     return req_limit
 
 
-def create_under_limit_stmt_result(stmt_set, stored, language, format):
+def create_under_limit_stmt_result(stmt_set, stored, language, stmt_format):
     stmt_result = {}
     if stmt_set:
         stmt_set = Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
@@ -156,7 +157,7 @@ def create_under_limit_stmt_result(stmt_set, stored, language, format):
             .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
             .filter(Q(statement_id__in=stmt_set) & Q(voided=False)).distinct()
 
-        stmt_result['statements'] = [stmt.to_dict(language, format) for stmt in
+        stmt_result['statements'] = [stmt.to_dict(language, stmt_format) for stmt in
                                      stmt_set.order_by(stored)]
         stmt_result['more'] = ""
     else:
@@ -176,7 +177,7 @@ def create_cache_key(stmt_list):
     return key
 
 
-def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, attachments):
+def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_format, attachments):
     # First time someone queries POST/GET
     result = {}
     cache_list = []
@@ -199,7 +200,7 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, at
     cache_list.append(limit)
     cache_list.append(attachments)
     cache_list.append(language)
-    cache_list.append(format)
+    cache_list.append(stmt_format)
     cache_list.append(stored)
 
     # Encode data
@@ -207,7 +208,7 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, format, at
     # Save encoded_dict in cache
     cache.set(cache_key, encoded_info)
 
-    result['statements'] = [stmt.to_dict(language, format) for stmt in
+    result['statements'] = [stmt.to_dict(language, stmt_format) for stmt in
                             Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
                                                              'object_agent', 'object_activity', 'object_substatement')
                             .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other')
