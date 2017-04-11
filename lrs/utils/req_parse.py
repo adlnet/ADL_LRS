@@ -1,6 +1,7 @@
 import ast
 import base64
 import email
+import hashlib
 import json
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
@@ -251,7 +252,9 @@ def parse_attachment(request, r_dict):
             if 'X-Experience-API-Hash' not in part:
                 raise BadRequest(
                     "X-Experience-API-Hash header was missing from attachment")
-            part_dict[part.get('X-Experience-API-Hash')] = part
+            part_hash = part.get('X-Experience-API-Hash')
+            validate_hash(part_hash, part)
+            part_dict[part_hash] = part
         r_dict['payload_sha2s'] = [p['X-Experience-API-Hash']
                          for p in msg.get_payload()]
         parse_signature_attachments(r_dict, part_dict)
@@ -262,6 +265,12 @@ def parse_attachment(request, r_dict):
     # for further processing
     temp_save_attachments(msg)
 
+
+def validate_hash(part_hash, part):
+    if part_hash != str(hashlib.sha256(get_part_payload(part)).hexdigest()):
+        raise BadRequest(
+            "Hash header %s did not match calculated hash" \
+            % part_hash)
 
 def parse_signature_attachments(r_dict, part_dict):
     # Find the signature sha2 from the list attachment values in the
@@ -294,7 +303,8 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
         atts = tup[0]['attachments']
         for att in atts:
             sha2 = att.get('sha2')
-            # Doesn't have to be there if fileUrl
+            # If there isn't a fileUrl, the sha field must match
+            # a received attachment payload
             if 'fileUrl' not in att:
                 # Should be listed in sha2s - sha2s couldn't not match
                 if sha2 not in sha2s:

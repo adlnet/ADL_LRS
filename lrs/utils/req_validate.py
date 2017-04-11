@@ -55,12 +55,12 @@ def validate_void_statement(void_id):
             err_msg = "Statement with ID: %s is a voiding statement and cannot be voided." % void_id
             raise BadRequest(err_msg)
 
-def validate_body(body, auth, payload_sha2s, content_type):
+def validate_body(body, auth, content_type):
     [server_validate_statement(
-        stmt, auth, payload_sha2s, content_type) for stmt in body]
+        stmt, auth, content_type) for stmt in body]
 
 
-def server_validate_statement(stmt, auth, payload_sha2s, content_type):
+def server_validate_statement(stmt, auth, content_type):
     if 'id' in stmt:
         statement_id = stmt['id']
         if check_for_existing_statementId(statement_id):
@@ -72,7 +72,7 @@ def server_validate_statement(stmt, auth, payload_sha2s, content_type):
 
     if 'attachments' in stmt:
         attachment_data = stmt['attachments']
-        validate_attachments(attachment_data, payload_sha2s, content_type)
+        validate_attachments(attachment_data, content_type)
 
 
 @auth
@@ -93,8 +93,7 @@ def statements_post(req_dict):
         body = [req_dict['body']]
     else:
         body = req_dict['body']
-    validate_body(body, req_dict['auth'], req_dict.get(
-        'payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])
+    validate_body(body, req_dict['auth'], req_dict['headers']['CONTENT_TYPE'])
 
     return req_dict
 
@@ -311,30 +310,20 @@ def statements_put(req_dict):
         raise BadRequest(e.message)
     except ParamError as e:
         raise ParamError(e.message)
-    validate_body([req_dict['body']], req_dict['auth'], req_dict.get(
-        'payload_sha2s', None), req_dict['headers']['CONTENT_TYPE'])
+    validate_body([req_dict['body']], req_dict['auth'], req_dict['headers']['CONTENT_TYPE'])
     return req_dict
 
 
-def validate_attachments(attachment_data, payload_sha2s, content_type):
-    if "multipart/mixed" in content_type:
-        if not payload_sha2s:
-            fileUrls = [att.get('fileUrl', None) for att in attachment_data]
-            sha2s = [att.get('sha2', None) for att in attachment_data]
-            if set(sha2s) != set(payload_sha2s):
-                raise BadRequest(
-                    "sha2 values in statement do not match sha2 headers")
-            if None in fileUrls:
-                raise BadRequest(
-                    "Missing X-Experience-API-Hash field in header")
-    elif "application/json" == content_type:
-        for attachment in attachment_data:
-            if 'fileUrl' not in attachment:
-                raise BadRequest(
-                    "When sending statements with attachments as 'application/json', you must include fileUrl field")
-    else:
-        raise BadRequest(
-            'Invalid Content-Type %s when sending statements with attachments' % content_type)
+def validate_attachments(attachment_data, content_type):
+    if "multipart/mixed" not in content_type:
+        if "application/json" == content_type:
+            for attachment in attachment_data:
+                if 'fileUrl' not in attachment:
+                    raise BadRequest(
+                        "When sending statements with attachments as 'application/json', you must include fileUrl field")
+        else:
+            raise BadRequest(
+                'Invalid Content-Type %s when sending statements with attachments' % content_type)
 
 
 @auth

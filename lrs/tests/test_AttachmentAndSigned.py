@@ -1370,8 +1370,9 @@ class AttachmentAndSignedTests(TestCase):
         r = self.client.post(reverse('lrs:statements'), message.as_string(),
                              content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
-        self.assertIn(
-            "Could not find attachment payload with sha:", r.content)
+        self.assertEqual(
+            'Hash header 983aa2ac3a15e35ddbbf031e6ea28de3d5cd55d4fc8f124e3c04ae1fc121e4bc56b676fbfa1a22ed798505615a3042e7 did not match calculated hash',
+            r.content)
 
     def test_example_signed_statement_payloads_no_match(self):
         bad_stmt = json.loads(exstmt)
@@ -1401,7 +1402,8 @@ class AttachmentAndSignedTests(TestCase):
                              content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(
-            r.content, 'The JWS is not valid - payload and body statements do not match')
+            r.content,
+            'Hash header 8edf719bc6d8efe5df037f20d9ae35ecaa2e7258a46d470385a5ce0c7cdb7ef1d95ad95b8148af7cff80e1ab6ad4b2bb9864ef5ce36e2bf7f7731eb87e619a61 did not match calculated hash')
 
     def test_example_signed_statement_with_x509_cert(self):
         payload = json.loads(exstmt)
