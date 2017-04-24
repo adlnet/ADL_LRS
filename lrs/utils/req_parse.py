@@ -242,6 +242,10 @@ def parse_attachment(request, r_dict):
             r_dict['body'] = json.loads(stmt_part.get_payload())
         except Exception:
             raise ParamError("Statement was not valid JSON")
+        if isinstance(r_dict['body'], dict):
+            stmt_sha2s = [a['sha2'] for a in r_dict['body']['attachments'] if 'attachments' in r_dict['body']]
+        else:
+            stmt_sha2s = [a['sha2'] for s in r_dict['body'] if 'attachments' in s for a in s['attachments']]
         # Each attachment in msg must have binary encoding and hash in header
         part_dict = {}
         for part in msg.get_payload():
@@ -257,6 +261,8 @@ def parse_attachment(request, r_dict):
             part_dict[part_hash] = part
         r_dict['payload_sha2s'] = [p['X-Experience-API-Hash']
                          for p in msg.get_payload()]
+        if not set(r_dict['payload_sha2s']).issubset(set(stmt_sha2s)):
+            raise BadRequest("Not all attachments match with statement payload")
         parse_signature_attachments(r_dict, part_dict)
     else:
         raise ParamError(
