@@ -413,7 +413,7 @@ class AttachmentAndSignedTests(TestCase):
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Could not find attachment payload with sha", r.content)
+        self.assertIn("Not all attachments match with statement payload", r.content)
 
     def test_multiple_multipart(self):
         stmt = {"actor": {"mbox": "mailto:tom@example.com"},
@@ -506,7 +506,7 @@ class AttachmentAndSignedTests(TestCase):
         r = self.client.post(reverse('lrs:statements'), message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                              Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Could not find attachment payload with sha", r.content)
+        self.assertIn("Not all attachments match with statement payload", r.content)
 
     def test_app_json_multipart(self):
         stmt = {"actor": {"mbox": "mailto:tom@example.com"},
@@ -746,7 +746,7 @@ class AttachmentAndSignedTests(TestCase):
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Could not find attachment payload with sha", r.content)
+        self.assertIn("Not all attachments match with statement payload", r.content)
 
     def test_multiple_multipart_put(self):
         stmt_id = str(uuid.uuid1())
@@ -847,7 +847,7 @@ class AttachmentAndSignedTests(TestCase):
         r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Could not find attachment payload with sha", r.content)
+        self.assertIn("Not all attachments match with statement payload", r.content)
 
     def test_app_json_multipart_put(self):
         stmt_id = str(uuid.uuid1())
