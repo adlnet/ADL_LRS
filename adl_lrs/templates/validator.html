@@ -25,6 +25,7 @@
 			<form class="pure-form pure-form-stacked" action="{% url 'stmt_validator' %}" method="post">
 				{% csrf_token %}
                   <fieldset>
+                  	<legend>Enter your JSON to validate:</legend>
                       {% for field in form %}
                         <label for="{{ field.auto_id }}">{{ field.label }}</label>
                         <textarea id="{{ field.auto_id }}" name="{{ field.html_name }}" rows="20" cols="150" class="pure-input-1" required>{{ clean_data }}</textarea>

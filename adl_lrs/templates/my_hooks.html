@@ -60,6 +60,7 @@
                 {{ hook_form.errors }}
             {% endif %}            
               <fieldset>
+                <legend>Information required to register a Webhook:</legend>
                   {% for field in hook_form %}
                     <label for="{{ field.auto_id }}">{{ field.label }}</label>            
                     {% if field.name == 'name' %}

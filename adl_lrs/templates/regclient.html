@@ -27,6 +27,7 @@
 		    <form class="pure-form pure-form-stacked" action="{% url 'regclient' %}" method="post">
 		      {% csrf_token %}
 		      <fieldset>
+		      	<legend>Information required for OAuth client registration:</legend>
 		          {% for field in form %}
 		            {% if field.name == 'name' %}
 		              <label for="{{ field.auto_id }}">{{ field.label }}</label>            
