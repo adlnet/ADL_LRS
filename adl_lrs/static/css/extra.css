@@ -64,7 +64,7 @@
 /*Activity State styles*/
 
 /*Colors all links light blue - no other decoration*/
-a {color:#6FBEF3;}
+a {color:#6FBEF3; background: #FFFFFF;}
 a:visited { text-decoration: none; }
 a:hover { text-decoration: none; }
 a:focus { text-decoration: none; }
