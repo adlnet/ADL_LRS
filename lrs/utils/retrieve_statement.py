@@ -1,6 +1,7 @@
 import bencode
 import hashlib
 import json
+import uuid
 from datetime import datetime
 from itertools import chain
 
@@ -166,11 +167,11 @@ def create_under_limit_stmt_result(stmt_set, stored, language, stmt_format):
     return stmt_result
 
 
-def create_cache_key(stmt_list):
+def create_cache_key():
     # Create unique hash data to use for the cache key
     hash_data = []
     hash_data.append(str(datetime.now()))
-    hash_data.append(str(stmt_list))
+    hash_data.append(str(uuid.uuid4()))
 
     # Create cache key from hashed data (always 32 digits)
     key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
@@ -192,7 +193,7 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_forma
     current_page = 1
     total_pages = stmt_pager.num_pages
     # Create cache key from hashed data (always 32 digits)
-    cache_key = create_cache_key(cache_list[0])
+    cache_key = create_cache_key()
 
     # Add data to cache
     cache_list.append(current_page)
@@ -271,7 +272,7 @@ def build_more_statement_result(more_id, **data):
     # There are more pages to display
     else:
         # Create cache key from hashed data (always 32 digits)
-        cache_key = create_cache_key(data["stmt_list"])
+        cache_key = create_cache_key()
         result['more'] = "%s/%s" % (reverse('lrs:statements_more_placeholder').lower(), cache_key)
 
         more_cache_list = []
