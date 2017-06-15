@@ -13,7 +13,7 @@
         <div class="pure-u-1-4 pure-u-md-1-4 pure-u-lg-1-4"></div>
         <div class="pure-u-1-2 pure-u-md-1-2 pure-u-lg-1-2">
             <h2>Webhooks</h2>
-            <p>Webhooks are a way to register client applications that are interested in certain sets of statements. Every webhook that is registered contains the client endpoint as well as filters that dictate what kind of statements the client wants and the LRS will send. More information  <a href="https://github.com/adlnet/ADL_LRS/wiki/Webhooks" target="_blank">here</a>.</p>
+            <p>Webhooks are a way to register client applications that are interested in certain sets of statements. Every webhook that is registered contains the client endpoint as well as filters that dictate what kind of statements the client wants and the LRS will send. For more information on this, please visit <a href="https://github.com/adlnet/ADL_LRS/wiki/Webhooks" target="_blank">ADL LRS Webhooks</a>.</p>
             <div class="email-item">
                 {% for h in user_hooks %}
                     <div class="pure-u appdiv">
@@ -60,6 +60,7 @@
                 {{ hook_form.errors }}
             {% endif %}            
               <fieldset>
+                <legend>Information required to register a Webhook:</legend>
                   {% for field in hook_form %}
                     <label for="{{ field.auto_id }}">{{ field.label }}</label>            
                     {% if field.name == 'name' %}

@@ -69,7 +69,7 @@
       <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
         <h3 class="content-subhead"><i class="fa fa-code"></i>Original GitHub Examples</h3>
         <p>
-          Visit the original GitHub prototype page to find some of the first-built prototypes. Visit <a target="_blank" href="/prototypes/">here</a> to see them in action.
+          Visit the original GitHub prototype page to find some of the first-built prototypes or <a target="_blank" href="http://adlnet.github.io/experienceapi_client_examples/">see them in action</a>.
         </p>
         <p>
           <a class="pure-button pull-right" href="https://github.com/adlnet/experienceapi_client_examples" target="_blank">Prototypes</a>
@@ -105,7 +105,7 @@
       <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-5">
         <h3 class="content-subhead"><i class="fa fa-mobile"></i>Android App</h3>
         <p>
-          Check out the LRS in action on the Google Play Store. Download the app <a target="_blank" href="https://play.google.com/store/apps/details?id=org.adl.roses&amp;hl=en">here</a>.
+          Check out the LRS in action on the Google Play Store. Download the  <a target="_blank" href="https://play.google.com/store/apps/details?id=org.adl.roses&amp;hl=en">Roses xAPI Demo</a>.
         </p>
       </div>
     </div>
@@ -137,6 +137,7 @@
               <form class="pure-form pure-form-stacked" action="{% url 'register' %}" method="post">
                   {% csrf_token %}
                   <fieldset>
+                    <legend>Information required to register for an account:</legend>
                       {% for field in form %}
                         <label for="{{ field.auto_id }}">{{ field.label }}</label>
                         {% if field.name == 'username' %}

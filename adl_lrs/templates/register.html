@@ -26,6 +26,7 @@
           <form class="pure-form pure-form-stacked" action="{% url 'register' %}" method="post">
               {% csrf_token %}
               <fieldset>
+                <legend>Information required to register for an account:</legend>
                   {% for field in form %}
                     {% if field.name == 'username' %}
                       <label for="{{ field.auto_id }}">Username</label>

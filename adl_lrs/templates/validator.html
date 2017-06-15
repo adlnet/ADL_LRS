@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}ADL LRS xAPI Statement Validator{% endblock title %}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
 {% endblock extra_css %}
@@ -7,7 +8,7 @@
 <div class="content">
     <div class="pure-g">
 	    <div class="l-box pure-u-1 pure-u-md-1 pure-u-lg-1">
-		    <h3 class="content-subhead">Enter JSON to validate</h3>
+		    <h1 class="content-subhead">xAPI Statement Validator</h1>
 		    <p>The validator will fix small JSON syntax errors as well as provide optional fields if not included</p>
 	        {% if error_message %}
 	          <ul class="errorlist">
@@ -25,6 +26,7 @@
 			<form class="pure-form pure-form-stacked" action="{% url 'stmt_validator' %}" method="post">
 				{% csrf_token %}
                   <fieldset>
+                  	<legend>Enter your JSON to validate:</legend>
                       {% for field in form %}
                         <label for="{{ field.auto_id }}">{{ field.label }}</label>
                         <textarea id="{{ field.auto_id }}" name="{{ field.html_name }}" rows="20" cols="150" class="pure-input-1" required>{{ clean_data }}</textarea>
