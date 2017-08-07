@@ -2612,11 +2612,8 @@ class StatementFilterTests(TestCase):
         r = self.client.get(
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'application/json')
-        obj_from_json = json.loads(r.content)
-        self.assertIn('statements', obj_from_json.keys())
-        self.assertIn('more', obj_from_json.keys())
-        self.assertIn('attachments', obj_from_json['statements'][0])
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary="======ADL_LRS======"')
+
 
     def test_attachments_no_payload_no_attach_param(self):
         stmt = {"actor": {"mbox": "mailto:tom@example.com"},
@@ -2670,7 +2667,7 @@ class StatementFilterTests(TestCase):
         r = self.client.get(
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r['Content-Type'], 'application/json')
+        self.assertEqual(r['Content-Type'], 'multipart/mixed; boundary="======ADL_LRS======"')
 
     def test_attachments_payload_single_stmt_get(self):
         stmt_id = str(uuid.uuid1())

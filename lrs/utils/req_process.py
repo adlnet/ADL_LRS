@@ -239,48 +239,48 @@ def build_response(stmt_result, single=False):
                         sha2s.append(
                             (att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
     # If attachments have payloads
-    if sha2s:
-        # Create multipart message and attach json message to it
-        string_list = []
-        line_feed = "\r\n"
-        boundary = "======ADL_LRS======"
-        string_list.append(line_feed + "--" + boundary + line_feed)
+    # if sha2s:
+    # Create multipart message and attach json message to it
+    string_list = []
+    line_feed = "\r\n"
+    boundary = "======ADL_LRS======"
+    string_list.append(line_feed + "--" + boundary + line_feed)
+    string_list.append(
+        "Content-Type:application/json" + line_feed + line_feed)
+    if isinstance(stmt_result, dict):
         string_list.append(
-            "Content-Type:application/json" + line_feed + line_feed)
-        if isinstance(stmt_result, dict):
-            string_list.append(
-                json.dumps(stmt_result, sort_keys=False) + line_feed)
-        else:
-            string_list.append(stmt_result + line_feed)
-
-        for sha2 in sha2s:
-            string_list.append("--" + boundary + line_feed)
-            string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
-            string_list.append("Content-Transfer-Encoding:binary" + line_feed)
-            string_list.append("X-Experience-API-Hash:" +
-                               str(sha2[0]) + line_feed + line_feed)
-
-            chunks = []
-            try:
-                # Default chunk size is 64kb
-                for chunk in sha2[1].chunks():
-                    chunks.append(chunk)
-            except OSError:
-                raise OSError(2, "No such file or directory",
-                              sha2[1].name.split("/")[1])
-            string_list.append("".join(chunks) + line_feed)
-
-        string_list.append("--" + boundary + "--\r\n")
-        mime_type = 'multipart/mixed; boundary=' + '"%s"' % boundary
-        attachment_body = "".join([str(s) for s in string_list])
-        return attachment_body, mime_type, len(attachment_body)
-    # Has attachments but no payloads so just dump the stmt_result
+            json.dumps(stmt_result, sort_keys=False) + line_feed)
     else:
-        if isinstance(stmt_result, dict):
-            res = json.dumps(stmt_result, sort_keys=False)
-            return res, mime_type, len(res)
-        else:
-            return stmt_result, mime_type, len(stmt_result)
+        string_list.append(stmt_result + line_feed)
+
+    for sha2 in sha2s:
+        string_list.append("--" + boundary + line_feed)
+        string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
+        string_list.append("Content-Transfer-Encoding:binary" + line_feed)
+        string_list.append("X-Experience-API-Hash:" +
+                           str(sha2[0]) + line_feed + line_feed)
+
+        chunks = []
+        try:
+            # Default chunk size is 64kb
+            for chunk in sha2[1].chunks():
+                chunks.append(chunk)
+        except OSError:
+            raise OSError(2, "No such file or directory",
+                          sha2[1].name.split("/")[1])
+        string_list.append("".join(chunks) + line_feed)
+
+    string_list.append("--" + boundary + "--\r\n")
+    mime_type = 'multipart/mixed; boundary=' + '"%s"' % boundary
+    attachment_body = "".join([str(s) for s in string_list])
+    return attachment_body, mime_type, len(attachment_body)
+    # Has attachments but no payloads so just dump the stmt_result
+    # else:
+    #     if isinstance(stmt_result, dict):
+    #         res = json.dumps(stmt_result, sort_keys=False)
+    #         return res, mime_type, len(res)
+    #     else:
+    #         return stmt_result, mime_type, len(stmt_result)
 
 
 def activity_state_post(req_dict):
