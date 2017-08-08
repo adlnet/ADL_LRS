@@ -8,6 +8,7 @@ from django.conf import settings
 from django.utils.timezone import utc
 
 from retrieve_statement import complex_get, parse_more_request
+from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity
 from ..managers.ActivityProfileManager import ActivityProfileManager
 from ..managers.ActivityStateManager import ActivityStateManager
@@ -238,8 +239,6 @@ def build_response(stmt_result, single=False):
                     if att.payload:
                         sha2s.append(
                             (att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
-    # If attachments have payloads
-    # if sha2s:
     # Create multipart message and attach json message to it
     string_list = []
     line_feed = "\r\n"
@@ -266,7 +265,7 @@ def build_response(stmt_result, single=False):
             for chunk in sha2[1].chunks():
                 chunks.append(chunk)
         except OSError:
-            raise OSError(2, "No such file or directory",
+            raise NotFound(2, "No such file or directory",
                           sha2[1].name.split("/")[1])
         string_list.append("".join(chunks) + line_feed)
 
@@ -274,13 +273,6 @@ def build_response(stmt_result, single=False):
     mime_type = 'multipart/mixed; boundary=' + '"%s"' % boundary
     attachment_body = "".join([str(s) for s in string_list])
     return attachment_body, mime_type, len(attachment_body)
-    # Has attachments but no payloads so just dump the stmt_result
-    # else:
-    #     if isinstance(stmt_result, dict):
-    #         res = json.dumps(stmt_result, sort_keys=False)
-    #         return res, mime_type, len(res)
-    #     else:
-    #         return stmt_result, mime_type, len(stmt_result)
 
 
 def activity_state_post(req_dict):
