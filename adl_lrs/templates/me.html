@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static from staticfiles %}
 {% load jsonify %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+<link rel="stylesheet" href="{% static "css/extra.css" %}">
 {% endblock extra_css %}
 {% block title %}{{user.username}}'s Account{% endblock title %}
 {% block heading %}{{user.username}}'s Account{% endblock heading %}
@@ -95,7 +97,7 @@
 {% endblock content %}
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-menu.js"></script>
+<script type="text/javascript" src="{% static "scripts/extra-menu.js" %}"></script>
 <script type="text/javascript">
     $(document).ready(function() {
         // These events stay inline so urls render correctly

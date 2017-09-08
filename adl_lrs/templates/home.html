@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load static from staticfiles %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 <style>
@@ -165,7 +167,7 @@
       </div>
   </div>
   <div class="footer l-box is-center">
-      <img class="brand" height="35" width="55" src="{{ STATIC_URL }}img/adllogo.png" alt="experience api logo"/> Advanced Distributed Learning
+    <img class="brand" height="35" width="55" src="{% static "img/adllogo.png" %}" alt="experience api logo"/> Advanced Distributed Learning
       <p>This is an official website of the U.S. Government &copy; Advanced Distributed Learning</p>
   </div>
 </div>
