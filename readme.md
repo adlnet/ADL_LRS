@@ -1,14 +1,14 @@
 ﻿# ADL LRS
 
 ## Jump To:
-*	[Installation (Linux)](./readme.md#Installation(Linux)) 
-* 	[Installation (Windows)](./readme.md#Installation(Windows))
+*	[Installation (Linux)](./readme.md#installation-linux) 
+* 	[Installation (Windows)](./readme.md#installation-windows)
 
 #### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
 
 This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
 
-## Installation (Linux)
+## [Installation (Linux)](#installation-linux)
 
 **Install Postgres** (The apt-get upgrade is only needed if you're running Ubuntu 14. If running 15+ you can skip to installing postgresql. Also version 9.4+ is needed)
 
@@ -74,7 +74,7 @@ given in *settings.py* are the same as those you created.
 
 <b>IMPORTANT:</b> You <b>MUST</b> setup celery for retrieving the activity metadata from the ID as well as voiding statements that might have come in out of order. Visit the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for installation instructions.
 
-## Installation (Windows)
+## [Installation (Windows)](#installation-windows)
 
 #### Installation tested Windows  7 and 8.1.  If you encounter issues, please post an Issue with your problems.
 
