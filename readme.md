@@ -161,6 +161,13 @@ def setup_env():
         local(step)
 ```
 
+Change the environment directory path in the `setup_lrs` function:
+```
+    env_dir = os.path.join(cwd, 'env/lib/site-packages')
+    if env_dir not in sys.path:
+        sys.path.append(env_dir)
+```
+
 Change the bottom of the `setup_lrs` function:
 ```
     # Create cache tables and sync the db
