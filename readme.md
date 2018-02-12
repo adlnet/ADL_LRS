@@ -97,7 +97,9 @@ Once that's finished installing, open a command window and navigate to where it 
 
 **Be sure you include the semicolon on your `CREATE DATABASE` statement**.  
 
-**Install Python**  This project uses (Python 2)[https://www.python.org/downloads/]
+**Install Python**  
+
+This project uses [Python 2](https://www.python.org/downloads/)
 
 **Install Prerequisites**
 
