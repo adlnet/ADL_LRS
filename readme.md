@@ -1,8 +1,8 @@
 ﻿# ADL LRS
 
 ## Jump To:
-*	[Installation (Linux)](./readme.md#Installation (Linux)) 
-* 	[Installation (Windows)](./readme.md#Installation (Windows))
+*	[Installation (Linux)](./readme.md#Installation(Linux)) 
+* 	[Installation (Windows)](./readme.md#Installation(Windows))
 
 #### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
 
