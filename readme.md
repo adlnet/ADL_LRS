@@ -214,7 +214,7 @@ given in *settings.py* are the same as those you created.
 
 While still in the ADL_LRS directory, run
 
-    (env)dbowner:ADL_LRS$ ./manage.py runserver
+    (env) ADL_LRS> env\scripts\python manage.py runserver
 
 This starts a lightweight development web server on the local machine. By default, the server runs on port 8000 on the IP address 127.0.0.1. You can pass in an IP address and port number explicitly. This will serve your static files without setting up Nginx but must NOT be used for production purposes. Press `CTRL + C` to stop the server
 
