@@ -1,10 +1,13 @@
 ﻿# ADL LRS
 
+## Jump To:
+*	[Installation (Linux)](./README.md#installation (Linux)) 
+
 #### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
 
 This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
 
-## Installation
+## Installation (Linux)
 
 **Install Postgres** (The apt-get upgrade is only needed if you're running Ubuntu 14. If running 15+ you can skip to installing postgresql. Also version 9.4+ is needed)
 
@@ -69,6 +72,133 @@ using the same form of authentication (*adl_lrs/settings.py* and *pg_hba.conf*) 
 given in *settings.py* are the same as those you created.
 
 <b>IMPORTANT:</b> You <b>MUST</b> setup celery for retrieving the activity metadata from the ID as well as voiding statements that might have come in out of order. Visit the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for installation instructions.
+
+## Installation (Windows)
+
+#### Installation tested Windows  7 and 8.1.  If you encounter issues, please post an Issue with your problems.
+
+**Install Postgres 9.6**  You can [download an installer here](https://www.openscg.com/bigsql/postgresql/installers.jsp/).
+
+Once that's finished installing, open a command window and navigate to where it was installed (*C:\PostgreSQL* by default).  If you chose a different path, replace the default path below with your own.
+
+```
+    > cd c:\postgresql\pg96\bin
+    c:\postgresql\pg96\bin> createuser -U postgres -P -s <db_owner_name>
+
+    Enter password for new role: <db_owner_password>
+    Enter it again: <db_owner_password>
+
+    c:\postgresql\pg96\bin> psql -U postgres template1
+
+    template1=# CREATE DATABASE lrs OWNER <db_owner_name>;
+    template1=# \q (exits shell)
+```
+
+**Be sure you include the semicolon on your `CREATE DATABASE` statement**.  
+
+**Install Python**  This project uses (Python 2)[https://www.python.org/downloads/]
+
+**Install Prerequisites**
+
+Assuming you did not add Python2 to your system's PATH variable, navigate to it with a command window (*C:\Python27* by default, but may be different depending on your version of Python).
+    
+    > cd c:\python27\scripts
+    c:\python27\scripts> easy_install pip
+    c:\python27\scripts> pip install virtualenv
+    c:\python27\scripts> pip install fabric
+
+**Clone the LRS repository**
+
+    > cd <wherever you want to put the LRS>
+    > git clone https://github.com/adlnet/ADL_LRS.git
+    > cd ADL_LRS/
+
+**Set the LRS configuration**
+
+Create a `settings.ini` file and place it in the `adl_lrs` directory. Visit the [Settings](https://github.com/adlnet/ADL_LRS/wiki/Settings) wiki page to set it up.
+
+## Windows-Specific Modifications
+
+There are a few required changes to the setup processes to run the LRS on Windows.
+
+**Replace Requirements.txt**
+
+A `pyinotify` and `pycrypto` cannot be installed on windows.  You will need to replace the contents of `requirements.txt` with the following: 
+
+```
+Django==1.9.1
+amqp==1.4.9
+bencode==1.0
+celery==3.1.19
+django-cors-headers==1.1.0
+django-jsonify==0.3.0
+importlib==1.0.3
+isodate==0.5.4
+oauth2==1.9.0.post1
+pycryptodome==3.4.11
+psycopg2==2.6.1
+python-jose==2.0.2
+pytz==2015.7
+requests==2.9.1
+rfc3987==1.3.4
+supervisor==3.2.0
+```
+
+**Modify Fabfile.py**
+
+Change the `setup_env` function:
+```
+def setup_env():
+    INSTALL_STEPS = [
+        'c:\\python27\\scripts\\virtualenv env', 
+		'env\\scripts\\activate',
+		'env\\scripts\\pip install -r requirements.txt',
+		'env\\scripts\\deactivate']
+    for step in INSTALL_STEPS:
+        local(step)
+```
+
+Change the bottom of the `setup_lrs` function:
+```
+    # Create cache tables and sync the db
+    local('env\\scripts\\python manage.py createcachetable')
+    local('env\\scripts\\python manage.py migrate')
+    local('env\\scripts\\python manage.py makemigrations adl_lrs lrs oauth_provider')
+    local('env\\scripts\\python manage.py migrate')
+    local('env\\scripts\\python manage.py createsuperuser')
+```
+
+Change the `test_lrs` function:
+```
+def test_lrs():
+    local('env\\scripts\\python manage.py test lrs.tests')
+```
+
+Once those are finished, run these from the ADL_LRS directory:
+```
+    ADL_LRS> c:\python27\scripts\fab setup_env
+    ADL_LRS> env\scripts\activate
+    (env) ADL_LRS>
+```
+
+**Setup the LRS**
+
+Assuming you do not have Python2 on your system path, navigate to the ADL_LRS folder and use the following:
+
+    (env) ADL_LRS> c:\python27\scripts\fab setup_lrs
+    ...
+    You just installed Django's auth system, which means you don't have any superusers defined.
+    Would you like to create one now? (yes/no): yes
+    Username (leave blank to use '<system_user_name>'):
+    E-mail address:
+    Password: <this can be different than your system password since this will just be for the LRS site>
+    Password (again):
+    Superuser created successfully.
+  ...
+
+If you get some sort of authentication error here, make sure that Django and PostgreSQL are both
+using the same form of authentication (*adl_lrs/settings.py* and *pg_hba.conf*) and that the credentials
+given in *settings.py* are the same as those you created.
 
 ## Starting
 
