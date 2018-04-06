@@ -147,6 +147,12 @@ rfc3987==1.3.4
 supervisor==3.2.0
 ```
 
+Once this is done, install these libraries using `pip`.  Assuming you did not add Python to your path, you will need to supply a path to pip on your system.  The default path is shown below:
+
+```
+ADL_LRS> c:\python27\scripts\pip install -r requirements.txt
+```
+
 **Modify Fabfile.py**
 
 Change the `setup_env` function:
