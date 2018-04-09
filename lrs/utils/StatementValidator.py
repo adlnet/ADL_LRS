@@ -197,6 +197,12 @@ class StatementValidator():
             timestamp = stmt['timestamp']
             try:
                 parse_datetime(timestamp)
+
+                # Reject statements that don't comply with ISO 8601 offsets
+                if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
+                    self.return_error(
+                        "Timestamp error - Statement Timestamp Illegal offset (-00, -0000, or -00:00) %s" % timestamp)
+
             except Exception as e:
                 self.return_error(
                     "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
@@ -640,6 +646,12 @@ class StatementValidator():
             timestamp = substmt['timestamp']
             try:
                 parse_datetime(timestamp)
+
+                # Reject statements that don't comply with ISO 8601 offsets
+                if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
+                    self.return_error(
+                        "Timestamp error - Substatement Timestamp Illegal offset (-00, -0000, or -00:00) %s" % timestamp)
+
             except Exception as e:
                 self.return_error(
                     "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
