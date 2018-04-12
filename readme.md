@@ -232,6 +232,8 @@ First, you must install RabbitMQ for windows.  The link below will walk you thro
  rabbitmqctl set_permissions -p my_vhost guest ".*" ".*" ".*"
  ```
  
+<b>Note:</b> If these steps produce an error with `unable to perform an operation on node`, then an installation issue occurred.  Both Erlang and RabbitMQ must be installed with administrator privileges.  If you did use administrator privileges, then the `.erland.cookie` file may be incorrect.  Copy `C:\Windows:\System32\config\systemprofile\.erlang.cookie` to your home folder (usually `C:\Users\YourUsername\`).
+ 
  With that configured, edit your `settings.ini` file's AMQP section:
  
  ```
