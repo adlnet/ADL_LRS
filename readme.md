@@ -220,6 +220,7 @@ given in *settings.py* are the same as those you created.
 
 For certain machines, there will be an error stating that the [DEBUG] section cannot be found within the `settings.ini` file.  To remedy this, you can hardcode the LRS to run in Debug mode by changing the `adl_lrs\settings.py`:
 ```
+    # if you want to debug
     DEBUG = True
 ```
 
