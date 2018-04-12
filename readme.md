@@ -224,6 +224,8 @@ For certain machines, there will be an error stating that the [DEBUG] section ca
     DEBUG = True
 ```
 
+After this, delete the [DEBUG] section from your `settings.ini` file.
+
 **Setup Celery and AMQP**
 
 Celery allows for the retrieval of activity metadata and the voiding of statements that may have come out of order. Visit the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for detailed instructions, but we will provide instructions for a basic setup.
