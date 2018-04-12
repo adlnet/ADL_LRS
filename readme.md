@@ -216,6 +216,34 @@ If you get some sort of authentication error here, make sure that Django and Pos
 using the same form of authentication (*adl_lrs/settings.py* and *pg_hba.conf*) and that the credentials
 given in *settings.py* are the same as those you created.
 
+**Setup Celery and AMQP**
+
+Celery allows for the retrieval of activity metadata and the voiding of statements that may have come out of order. Visit the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for detailed instructions, but we will provide instructions for a basic setup.
+
+<b>If you skip this step, then all POST requests will respond with `500` and a message claiming that the target machine has refused a connection. </b>
+
+First, you must install RabbitMQ for windows.  The link below will walk you through installing Erlang and RabbitMQ.
+[Installing RabbitMQ for Windows](https://www.rabbitmq.com/install-windows.html)
+ 
+ Once that's installed, it creates an account whose username and password are both `guest`.  You will need to create a `vhost` through the command line:
+ 
+ ```
+ rabbitmqctl add_vhost my_vhost
+ rabbitmqctl set_permissions -p my_vhost guest ".*" ".*" ".*"
+ ```
+ 
+ With that configured, edit your `settings.ini` file's AMQP section:
+ 
+ ```
+[ampq]
+USERNAME: guest
+PASSWORD: guest
+HOST: localhost
+PORT: 5672
+VHOST: my_vhost
+ ```
+ 
+
 ## Starting
 
 While still in the ADL_LRS directory, run
