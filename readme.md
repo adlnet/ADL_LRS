@@ -225,7 +225,7 @@ Celery allows for the retrieval of activity metadata and the voiding of statemen
 First, you must install RabbitMQ for windows.  The link below will walk you through installing Erlang and RabbitMQ.
 [Installing RabbitMQ for Windows](https://www.rabbitmq.com/install-windows.html)
  
- Once that's installed, it creates an account whose username and password are both `guest`.  You will need to create a `vhost` through the command line:
+ Once that's installed, it creates an account whose username and password are both `guest`.  You will need to create a `vhost` through the command line.  If the installation didn't add these to your system path, you will need to run these commands from their installation directory (C:\Program Files\RabbitMQ Server\rabbitmq_server-3.7.4\sbin):
  
  ```
  rabbitmqctl add_vhost my_vhost
