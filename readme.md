@@ -216,6 +216,13 @@ If you get some sort of authentication error here, make sure that Django and Pos
 using the same form of authentication (*adl_lrs/settings.py* and *pg_hba.conf*) and that the credentials
 given in *settings.py* are the same as those you created.
 
+**(Optional) Change adl_lrs\settings.py**
+
+For certain machines, there will be an error stating that the [DEBUG] section cannot be found within the `settings.ini` file.  To remedy this, you can hardcode the LRS to run in Debug mode by changing the `adl_lrs\settings.py`:
+```
+    DEBUG = True
+```
+
 **Setup Celery and AMQP**
 
 Celery allows for the retrieval of activity metadata and the voiding of statements that may have come out of order. Visit the [Using Celery](https://github.com/adlnet/ADL_LRS/wiki/Using-Celery) wiki page for detailed instructions, but we will provide instructions for a basic setup.
