@@ -3,6 +3,8 @@ from os import path
 from os.path import dirname, abspath
 from ConfigParser import RawConfigParser
 
+ALLOWED_HOSTS = ['*']
+
 # Root of LRS
 SETTINGS_DIR = dirname(abspath(__file__))
 PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
