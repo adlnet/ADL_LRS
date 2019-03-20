@@ -1,4 +1,4 @@
-Django==1.11.20
+Django==1.9.1
 amqp==1.4.9
 bencode==1.0
 celery==3.1.19
@@ -8,7 +8,7 @@ importlib==1.0.3
 isodate==0.5.4
 oauth2==1.9.0.post1
 psycopg2==2.6.1
-pycrypto==2.6.1
+pycryptodome==3.6.1
 pyinotify==0.9.6
 python-jose==0.6.1
 pytz==2015.7
