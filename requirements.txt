@@ -1,4 +1,4 @@
-Django==1.11.20
+Django==1.11.23
 amqp==1.4.9
 bencode==1.0
 celery==3.1.19
