@@ -1,0 +1,38 @@
+version: "3.4"
+
+services:
+  lrs:
+    image: adl-lrs
+    secrets:
+      - source: settings_ini
+        target: /app/adl_lrs/settings.ini
+    volumes:
+      - ./logs/:/logs/
+      - ./media/:/app/media/
+      - ./scripts/:/app/scripts/
+    depends_on:
+      - mysql
+      - rabbitmq
+    ports:
+      - "8000:8000"
+  mysql:
+    image: mariadb
+    environment: 
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_USER: test
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: lrs
+    ports:
+      - "3306:3306"
+  rabbitmq:
+    image: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_PASS: test
+      RABBITMQ_DEFAULT_USER: example
+      RABBITMQ_DEFAULT_VHOST: vh1
+    ports:
+      - "5672:5672"
+
+secrets:
+  settings_ini:
+    file: settings.ini

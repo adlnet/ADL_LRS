@@ -29,7 +29,7 @@ EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': config.get('database', 'NAME'),
         'USER': config.get('database', 'USER'),
         'PASSWORD': config.get('database', 'PASSWORD'),
@@ -340,3 +340,6 @@ LOGGING = {
         },
     }
 }
+
+# For allowing longer CharFields with unique values
+SILENCED_SYSTEM_CHECKS = ['mysql.E001', 'django_mysql.E016']

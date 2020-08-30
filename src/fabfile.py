@@ -65,7 +65,7 @@ def setup_lrs():
     if not os.path.exists(os.path.join(adldir, statement_attachments)):
         os.makedirs(os.path.join(adldir, statement_attachments))
 
-    # Create cache tables and sync the db
+    # Create cache tables and sync the  
     local('./manage.py createcachetable')
     local('./manage.py migrate')
     local('./manage.py makemigrations adl_lrs lrs oauth_provider')
