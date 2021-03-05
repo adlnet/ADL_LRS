@@ -1,5 +1,8 @@
+from datetime import datetime
+from isodate.isodates import parse_date
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
+from isodate.isotime import parse_time
 import uuid
 
 from . import get_agent_ifp, convert_to_datatype
@@ -9,6 +12,10 @@ from StatementValidator import StatementValidator
 from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile
 from ..exceptions import ParamConflict, ParamError, Forbidden, BadRequest, IDNotFoundError
 
+
+# Exception type to accommodate RFC 3339 timestamp validation.
+class RFC3339Error(ValueError):
+    pass
 
 def check_for_existing_statementId(stmtID):
     return Statement.objects.filter(statement_id=stmtID).exists()
@@ -20,7 +27,20 @@ def check_for_no_other_params_supplied(query_dict):
         supplied = False
     return supplied
 
-# Extra agent validation for state and profile
+def check_for_rfc_timestamp(time_str):
+    try:
+        parse_datetime(time_str)
+    except (Exception, ISO8601Error):
+        pass
+    try:
+        date_out, time_out = time_str.split(" ")
+    except ValueError:
+        raise RFC3339Error("Time designators 'T' or ' ' missing. Unable to parse datetime string %r." % time_str)
+    date_temp = parse_date(date_out)
+    time_temp = parse_time(time_out)
+    return datetime.combine(date_temp, time_temp)
+
+# Extra agent validation for state and profile.
 
 
 def validate_oauth_for_documents(req_dict, endpoint): 
@@ -31,7 +51,7 @@ def validate_oauth_for_documents(req_dict, endpoint):
         try:
             agent = Agent.objects.get(**ag)
         except Agent.DoesNotExist:
-            # if agent DNE, profile/state scope should still be able to create one
+            # If agent DNE, profile/state scope should still be able to create one.
             pass
         else:
             if agent not in req_dict['auth']['agent'].member.all():
@@ -40,9 +60,8 @@ def validate_oauth_for_documents(req_dict, endpoint):
 
 
 def validate_void_statement(void_id):
-    # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true else return error
-    # since you cannot unvoid a statement and should just reissue the
-    # statement under a new ID.
+    # Retrieve statement, check if the verb is 'voided' - if not then set the voided flag to true, else return error,
+    # since you cannot unvoid a statement and should just reissue the statement under a new ID.
     stmts = Statement.objects.filter(statement_id=void_id)
     if len(stmts) > 1:
         raise IDNotFoundError(

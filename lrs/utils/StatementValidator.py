@@ -168,6 +168,23 @@ class StatementValidator():
         for field in required:
             if field not in obj:
                 self.return_error("%s is missing in %s" % (field, obj_name))
+    
+    # def check_duplicate_fields(self, obj, obj_name):
+    #     def pairs(d):
+    #         for k, v in d.items():
+    #             if isinstance(v, dict):
+    #                 for pv in pairs(v):
+    #                     yield pv
+    #             else:
+    #                 yield '{}'.format(k)
+
+    #     testIDs = list(pairs(obj))
+    #     while 'id' in testIDs:
+    #         testIDs.remove('id')
+    #     testIDs_set = set(testIDs)
+    #     duplicates = len(testIDs) != len(testIDs_set)
+    #     if duplicates:
+    #         self.return_error("Duplicate field(s) found in %s" % obj_name)
 
     def validate_statement(self, stmt):
         # Ensure dict was submitted as stmt and check allowed and required

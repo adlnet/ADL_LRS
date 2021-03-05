@@ -1,0 +1,221 @@
+* Reject statements that use a property more than once
+* Reject requests with missing required properties
+* Reject requests with null values (except in extensions)
+* Reject requests using incorrect data types
+
+## LRS Communications: Conformance Changes
+
+**Content-Type:**
+
+New LRS Requirement: 
+Statements with attachments for multipart/mixed: 
+* When receiving a PUT or POST with a document type of multipart/mixed, an LRS SHALL accept batches of Statements which contain no Attachment Objects.
+* When receiving a PUT or POST with a document type of multipart/mixed, an LRS SHALL accept batches of Statements which contain only Attachment Objects with a populated fileUrl. 
+
+**Concurrency:**
+
+New LRS Requirement: 
+Regarding ETag behavior, POST and DELETE requests to the State, Agent Profile, and Activity Profile resources SHALL now behave identically to the equivalent requests for PUT. Namely: 
+* Handle If-Match as described in RFC2616 if the request contains an ETag
+* When ETag header preconditions fail:
+* Return HTTP Status 412 Precondition Failed
+* Do not modify the resource 
+
+**Error Codes:**
+
+The following requirements have been removed in the 2.0 spec:
+* The LRS SHALL be configurable to accept Attachments, Statements or documents of any reasonable size (see above).
+* The LRS SHALL be configurable to accept requests at any reasonable rate.
+ 
+**Resources:**
+
+The following requirements have been added to the resources (4.1.6) in the 2.0 Spec:
+* The LRS SHALL NOT reject documents on the basis of not having prior knowledge of the Activity and/or Agent.
+* The LRS SHALL reject Requests where parameters are:
+•	missing any required properties
+•	with any null values (except inside extensions)
+•	where the wrong data type is used (see tables), for example: 
+•	with strings where numbers are required, even if those strings contain numbers, or
+•	with strings where booleans are required, even if those strings contain booleans
+•	with any non-format-following key or value, including the empty string, where a string with a particular format (such as mailto IRI, UUID, or IRI) is required
+•	where the case of a key does not match the case specified in this specification
+•	where the case of a value restricted to enumerated values does not match an enumerated value given in this specification exactly
+•	where a key or value is not allowed by this specification
+•	containing IRL or IRI values without a scheme
+
+Resources - Statements:
+
+The following requirement has been removed from the Statement Resources (4.1.6.1) POST Statements in the 2.0 Spec: 
+* The LRS SHALL differentiate a POST to add a Statement or to list Statements based on the parameters passed. See Alternate Request Syntax for more details. 
+
+The following requirement has been added to Statement Resources (4.1.6.1) GET Statements in the 2.0 Spec:
+* When queried for Statements with a Format of exact, the LRS SHALL return the "display" property exactly as included (or omitted) within the Statement.
+
+Resources - State:
+
+The verbiage at the top was the same. They spread out the API definitions for a few minor changes to some of them. 
+
+Single Document GET Request:
+* Added the "since" parameter and made it "required" unless "stateId" is present then "not allowed"
+* Made "stateId" parameter required unless 'since' is present, then "not allowed" 
+
+Multiple Document GET Request:
+* Added the stateId parameter and made is required unless "since" is present then "Not Allowed"
+* Made "since" optional unless "stateId" present then "Not Allowed". 
+
+Resources - Agents:
+
+2.0.0. removed some requirements for requesting permission with multiple objects and returning 409 codes but added the requirement that all Person objects should be populated with similar properties from Agents objects or interoperable.
+
+New Requirement:
+All array properties SHALL be populated with members with the same definition as the similarly named property from Agent Objects.
+
+Resources – Activity Profile: 
+
+An LRS SHALL now process the merging of Activity Profiles during a POST request when both the new and existing profile record are both stored as JSON.
+•	Check if Document already exists within LRS
+•	Merges TOP-LEVEL properties (not nested properties)
+•	New document properties overwrite existing ones
+•	LRS MUST respond with 400 Bad Request if non-JSON doc exists
+•	LRS MUST respond with 204 No Content if merger successful
+
+Resources – Agent Profile:
+
+Identical to the change made for the Activity Profile resource, an LRS SHALL now process the merging of Agent Profiles during a POST request when both the new and existing profile record are both stored as JSON.
+•	Check if Document already exists within LRS
+•	Merges TOP-LEVEL properties (not nested properties)
+•	New document properties overwrite existing ones
+•	LRS MUST respond with 400 Bad Request if non-JSON doc exists
+•	LRS MUST respond with 204 No Content if merger successful 
+
+Resources - About:
+Removed LRS Requirement: 
+Spec no longer prohibits (in-writing) that other properties be present on the About object outside of its extensions map. This is still probably implied, but no longer a conformance requirement.
+
+Versioning:
+
+Versioning restrictions got a little simpler and more restrictive. It only accepts xAPI versions from the 2.0.0 to 2.1.0. Version 1.0.3 used to allow a little deviation in version for version conversion and forwarding to appropriate LRS. xAPI version 2 has no such capability requirement.
+The client, version conversion, and version forwarding requirements were all removed. Now it only must accept statements within its version and return 400 with appropriate response for all the rest.
+
+LRS Requirements:
+•	The LRS SHALL include the "X-Experience-API-Version" header in every response.
+•	The LRS SHALL set this header to the latest patch version.
+•	The LRS SHALL accept requests with a version header of 2.0 as if the version header were 2.0.0.
+•	The LRS SHALL reject requests with version header prior to version 2.0.0 unless such requests are routed to a fully conformant implementation of a prior version specified in the header.
+•	The LRS SHALL reject requests with a version header of 2.1.0 or greater.
+•	The LRS SHALL make these rejects by responding with a 400 Bad Request error including a short description of the problem.
+
+Authentication:
+
+2.0 has less requirements than 1.0.3. It used to require either OAuth 1.0 (RFC 5849), HTTP Basic Authentication, or Common Access Cards. Now we can do whatever works. 
+•	Rationale: In order to support the varying security requirements of different environments, a specific authentication mechanism is not defined.
+•	Requirements: The LRS shall handle making, or delegating, decisions on the validity of Statements, and determining what operations might be performed based on the credentials used (or lack thereof).
+ 
+Security:
+
+2.0 has less requirements than 1.0.3. It used to require either OAuth 1.0 (RFC 5849), HTTP Basic Authentication, or Common Access Cards. Now we can do whatever as long as it works.
+•	Rationale: In order to support the varying security requirements of different environments, a specific authentication mechanism is not defined.
+•	Requirements: The LRS shall handle making, or delegating, decisions on the validity of Statements, and determining what operations might be performed based on the credentials used (or lack thereof).
+
+
+## LRS Communications: Clarifications & Pruning
+Error Codes:
+The following requirements have been removed in the 2.0 spec:
+•	A Learning Record Provider SHOULD send an "Accept" header with requests to enable content negotiation.
+•	The LRS SHOULD* reject any request with 400 Bad Request status where the content type header does not match the content included in the request or where the structure of the request does not match the structure outlined in this specification for a particular content type. For example, if the content of the request is formatted as JSON, the content type is expected to be application/json. If the content type is application/x-www-form-urlencoded it is expected that the request will include a method parameter as outlined in Alternate Request Syntax.
+•	The LRS SHOULD be configurable not to reject any requests from a particular set of credentials on the basis of permissions. This set of credentials SHOULD be used for conformance testing but MAY be deleted/deactivated on live systems.
+
+Resources:
+
+The following recommendations have been added to the resources (4.1.6) in the 2.0 Spec:
+•	A Learning Record Provider MAY send documents to any of the Document Resources for Activities and Agents that the LRS does not have prior knowledge of.
+
+Resources - Statements:
+
+The following recommendations have been removed from Statement Resources (4.1.6.1) PUT Statements in the 2.0 Spec:
+	If the LRS receives a batch of Statements containing two or more Statements with the same id, it SHOULD* reject the batch and return 400 Bad Request.
+	Learning Record Provider Requirements
+	Learning Record Providers SHOULD POST Statements including the Statement "id" property instead of using PUT.
+	When PUTing Statements, the "id" property of the Statement SHOULD be used.
+	Where provided, the "id" property of the Statement MUST match the "statementId" parameter of the request. 
+
+The following requirements have been removed from the Statement Resources (4.1.6.1) POST Statements in the 2.0 Spec: 
+	GET Statements MAY be called using POST and form parameters if necessary, as query strings have limits. See Alternate Request Syntax for more details.
+
+
+## LRS Data Requirements: Conformance Changes
+
+Table Guidelines
+xAPI 2.0 has new conditions for rejecting incoming statements. Specifically, it SHALL reject statements that:
+•	Fail to conform to the “Type” field
+•	Contain additional properties other than extensions in the locations where extensions are allowed
+•	Contain invalid IRIs
+•	Use a property more than once
+
+Statement Table
+New LRS Data Types: Context Agents and Context Groups
+xAPI 2.0 has added “contextAgents” and “contextGroups” as new Object types within the “context” property of a statement. They are defined as follows:
+A single Statement may require the inclusion of many contextually relevant Agent(s) and/or Group(s) in order to properly describe an experience. When this is the case, the relationship between the Agent(s) and/or Group(s) and the Statement itself needs to be represented in a structured manner. The context properties contextAgents and contextGroups serve as this structure. 
+•	Inclusion of contextAgents within a Statement establishes that a relationship exists between said Statement and one or more Agent(s) 
+•	Inclusion of contextGroups within a Statement establishes that a relationship exists between said Statement and one or more Group(s) 
+•	Zero or more Activity Types are used to categorize each Statement specific relationship 
+•	Each Statement specific relationship corresponds to an individual contextAgents or contextGroups Object
+The relationship established by each contextAgents and contextGroups Object is limited in scope to the Statement in which the Object is found. In general, an Agent many have permanent characteristics, characteristics which are consistent across experiences, but these kinds of Agent specific properties should be captured in an Agent Profile
+All Objects found within the contextAgents and/or contextGroups array(s) are independent of one another.
+
+
+Context Agents:
+Each contextAgent Object found within a contextAgents array has the following properties:
+Property	Type	Description	Required
+objectType	String	contextAgent	Required
+agent	Agent Object	A single Agent Object for which a Statement specific relationship is being defined	Required
+relevantTypes	Array of Activity “type” IRIs	A collection of 1 or more Activity Type(s) used to characterize the relationship between the Statement and the Agent. If not provided, only a generic relationship is intended (not recommended)	Optional
+
+•	Any and All valid Agent Objects can be used as the agent within a contextAgent Object.
+•	An Agent Object does not need to be found within any other Statement property in order to be included as the agent property within a contextAgent Object.
+•	Any and All valid Activity Type IRIs can be included within the relevantTypes array of a contextAgent Object.
+•	An Activity Type IRI does not need to be found within any other Statement property in order to be included within the relevantTypes property of a contextAgent Object.
+
+
+Context Groups:
+Each contextGroup Object found within a contextAgents array has the following properties:
+Property	Type	Description	Required
+objectType	String	contextGroup	Required
+Group	Group (Follow requirements in linked section to specify Group type and description)	A single Group Object for which a Statement specific relationship is being defined. 	Required
+relevantTypes	Array of Activity “type” IRIs	A collection of 1 or more Activity Type(s) used to characterize the relationship between the Statement and the Agent. If not provided, only a generic relationship is intended (not recommended)	Optional
+
+•	Any and All valid Group Objects can be used as the group within a contextGroup Object.
+•	A Group Object does not need to be found within any other Statement property in order to be included as the group property within a contextGroup Object.
+•	Any and All valid Activity Type IRIs can be included within the relevantTypes array of a contextAgent Object.
+•	An Activity Type IRI does not need to be found within any other Statement property in order to be included within the relevantTypes property of a contextAgent Object.
+
+Processing of Data:
+xAPI 2.0 has added the following conformance requirements for processing data:
+•	The LRS SHALL NOT reject a Statement that uses the voided verb if it cannot find the “id” of the Object of that Statement (nor does the LRS have to try to find it)
+•	(Changed from SHOULD NOT) The LRS SHALL NOT reject statements with a timestamp having a greater value than the current time, within an acceptable margin of error
+•	The LRS SHALL NOT return a different serialization of any properties that is not specified in the LRS Data Requirements of the specification
+
+Statement Signing:
+xAPI 2.0 has the following requirement for statement signing:
+•	(Changed from SHOULD) JWS Compact Serialization SHALL be used to create the JSON web signature. Use of JWS JSON Serialization is strongly discouraged, is unlikely to be interoperable with other systems, and will be forbidden in a future version of this specification.
+
+Additional Requirements for Data Types:
+xAPI 2.0 has the following additional requirements for data types:
+•	Language maps SHALL have valid RFC 5646 language tags; statements without them will be rejected
+o	Keys of language maps SHALL be sent with valid RFC 5646 language tags for similar reasons
+•	Language maps SHALL at least validate that the sequence of token lengths for language map keys matches the RFC 5646 standard
+•	Timestamps SHALL be converted to UTC rather than being rejected for not being sent in UTC form
+
+
+## LRS Data Requirements: Clarifications
+Processing of Data:
+xAPI 2.0 has the following additional recommendations for data processing:
+•	The LRS SHOULD reject entire batches of Statements if sent from an unauthorized source
+•	The LRS SHOULD NOT reject a Statement based on size of individual properties
+•	The LRS MAY reject a Statement if the overall size is too large, contains information not permissible to the environment, or is thought to be malicious
+•	The LRS MAY choose to not validate IRIs/UUIDs; an LRS is responsible for data format, not values
+•	The LRS MAY NOT reject a statement solely based on the order of properties
+
+Additional Requirements for Data Types:
+xAPI 2.0 has the following additional recommendation for data types:
+•	Timestamps MAY be truncated or round a Timestamp to a precision of at least 3 decimal digits for seconds
