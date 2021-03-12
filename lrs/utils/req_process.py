@@ -200,7 +200,7 @@ def statements_get(req_dict):
     stmt_result = {}
     mime_type = "application/json"
     # If statementId is in req_dict then it is a single get - can still include attachments
-    # or have a different format
+    # or have a different format.
     if 'statementId' in req_dict:
         st = Statement.objects.get(statement_id=req_dict['statementId'])
         stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
@@ -229,7 +229,7 @@ def build_response(stmt_result, single=False):
         statements = [stmt_result]
     else:
         statements = stmt_result['statements']
-    # Iterate through each attachment in each statement
+    # Iterate through each attachment in each statement.
     for stmt in statements:
         if 'attachments' in stmt:
             st_atts = Statement.objects.get(
@@ -239,7 +239,7 @@ def build_response(stmt_result, single=False):
                     if att.payload:
                         sha2s.append(
                             (att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
-    # Create multipart message and attach json message to it
+    # Create multipart message and attach JSON message to it.
     string_list = []
     line_feed = "\r\n"
     boundary = "======ADL_LRS======"

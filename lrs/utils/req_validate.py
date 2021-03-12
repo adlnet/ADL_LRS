@@ -27,18 +27,23 @@ def check_for_no_other_params_supplied(query_dict):
         supplied = False
     return supplied
 
+
 def check_for_rfc_timestamp(time_str):
+    time_ret = None
+
     try:
-        parse_datetime(time_str)
+        time_ret = parse_datetime(time_str)
     except (Exception, ISO8601Error):
-        pass
-    try:
-        date_out, time_out = time_str.split(" ")
-    except ValueError:
-        raise RFC3339Error("Time designators 'T' or ' ' missing. Unable to parse datetime string %r." % time_str)
-    date_temp = parse_date(date_out)
-    time_temp = parse_time(time_out)
-    return datetime.combine(date_temp, time_temp)
+        try:
+            date_out, time_out = time_str.split(" ")
+        except ValueError:
+            raise RFC3339Error("Time designators 'T' or ' ' missing. Unable to parse datetime string %r." % time_str)
+        else:
+            date_temp = parse_date(date_out)
+            time_temp = parse_time(time_out)
+            time_ret = datetime.combine(date_temp, time_temp)
+    
+    return time_ret
 
 # Extra agent validation for state and profile.
 
@@ -207,17 +212,17 @@ def statements_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error):
+            check_for_rfc_timestamp(req_dict['params']['since'])
+        except (Exception, RFC3339Error):
             raise ParamError(
-                "since parameter was not a valid ISO8601 timestamp")
+                "since parameter was not a valid RFC3339 timestamp")
 
     if 'until' in req_dict['params']:
         try:
-            parse_datetime(req_dict['params']['until'])
-        except (Exception, ISO8601Error):
+            check_for_rfc_timestamp(req_dict['params']['until'])
+        except (Exception, RFC3339Error):
             raise ParamError(
-                "until parameter was not a valid ISO8601 timestamp")
+                "until parameter was not a valid RFC3339 timestamp")
 
     if 'ascending' in req_dict['params']:
         if req_dict['params']['ascending'].lower() == 'true':
@@ -521,10 +526,10 @@ def activity_state_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error):
+            check_for_rfc_timestamp(req_dict['params']['since'])
+        except (Exception, RFC3339Error):
             raise ParamError(
-                "Since parameter was not a valid ISO8601 timestamp")
+                "Since parameter was not a valid RFC3339 timestamp")
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
@@ -676,10 +681,10 @@ def activity_profile_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error):
+            check_for_rfc_timestamp(req_dict['params']['since'])
+        except (Exception, RFC3339Error):
             raise ParamError(
-                "Since parameter was not a valid ISO8601 timestamp")
+                "Since parameter was not a valid RFC3339 timestamp")
 
     return req_dict
 
@@ -864,10 +869,10 @@ def agent_profile_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            parse_datetime(req_dict['params']['since'])
-        except (Exception, ISO8601Error):
+            check_for_rfc_timestamp(req_dict['params']['since'])
+        except (Exception, RFC3339Error):
             raise ParamError(
-                "Since parameter was not a valid ISO8601 timestamp")
+                "Since parameter was not a valid RFC3339 timestamp")
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
