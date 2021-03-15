@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load static from staticfiles %}
+
 {% block title %}ADL LRS Registration{% endblock title %}
 {% block heading %}ADL LRS Registration{% endblock heading %}
 {% block extra_css %}
-<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+<link rel="stylesheet" href="{% static "css/extra.css" %}">
 {% endblock extra_css %}
 {% block content %}
 <br>
