@@ -94,40 +94,40 @@ def process_complex_get(req_dict):
         else:
             language = [settings.LANGUAGE_CODE]
 
-    # If auth is in req dict, add it to param dict
+    # If auth is in req dict, add it to param dict.
     if 'auth' in req_dict:
         param_dict['auth'] = req_dict['auth']
 
-    # Get limit if one
+    # Get limit if one.
     limit = None
     if 'params' in req_dict and 'limit' in req_dict['params']:
         limit = int(req_dict['params']['limit'])
     elif 'body' in req_dict and 'limit' in req_dict['body']:
         limit = int(req_dict['body']['limit'])
 
-    # See if attachments should be included
+    # See if attachments should be included.
     try:
         attachments = req_dict['params']['attachments']
     except Exception:
         attachments = False
 
-    # Create returned stmt list from the req dict
+    # Create returned stmt list from the req dict.
     stmt_result = complex_get(param_dict, limit, language, format, attachments)
 
     # Get the length of the response - make sure in string format to count
-    # every character
+    # every character.
     if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))
     else:
         content_length = len(stmt_result)
 
     # If attachments=True in req_dict then include the attachment payload and
-    # return different mime type
+    # return different mime type.
     if attachments:
         stmt_result, mime_type, content_length = build_response(stmt_result)
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # Else attachments are false for the complex get so just dump the
-    # stmt_result
+    # stmt_result.
     else:
         if isinstance(stmt_result, dict):
             stmt_result = json.dumps(stmt_result)
@@ -137,7 +137,7 @@ def process_complex_get(req_dict):
 
 def statements_post(req_dict):
     auth = req_dict['auth']
-    # If single statement, put in list
+    # If single statement, put in list.
     if isinstance(req_dict['body'], dict):
         body = [req_dict['body']]
     else:
@@ -157,7 +157,7 @@ def statements_post(req_dict):
 
 def statements_put(req_dict):
     auth = req_dict['auth']
-    # Since it is single stmt put in list
+    # Since it is single stmt put in list.
     stmt_responses = process_body([req_dict['body']], auth, req_dict.get('payload_sha2s', None))
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
     stmts_to_void = [str(stmt_tup[1])

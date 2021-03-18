@@ -6,6 +6,7 @@ import hmac
 import requests
 import uuid
 from hashlib import sha1
+from datetime import datetime
 
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -14,6 +15,7 @@ from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django.utils.timezone import utc
 
 from .utils.StatementValidator import StatementValidator
 
@@ -30,6 +32,7 @@ def check_activity_metadata(stmts):
 
 @shared_task
 def check_statement_hooks(stmt_ids):
+    currentTime = datetime.utcnow().replace(tzinfo=utc).isoformat()
     try:
         from .models import Statement
         from adl_lrs.models import Hook
@@ -56,6 +59,7 @@ def check_statement_hooks(stmt_ids):
                         headers[
                             'X-LRS-Signature'] = hmac.new(str(secret), str(data), sha1).hexdigest()
                     headers['Connection'] = 'close'
+                    headers['Last-Modified'] = currentTime
                     celery_logger.info(
                         "Sending statements to hook endpoint %s" % str(config['endpoint']))
                     resp = requests.post(
@@ -66,7 +70,7 @@ def check_statement_hooks(stmt_ids):
                     celery_logger.exception("Could not send statements to hook %s: %s" % (
                         str(config['endpoint']), e.message))
     except SoftTimeLimitExceeded:
-        celery_logger.exception("Statement hook task timed out")
+        celery_logger.exception("Statement hook task timed out.")
 
 
 def parse_filter(filters, filterQ):
