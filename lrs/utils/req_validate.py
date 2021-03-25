@@ -3,6 +3,7 @@ from isodate.isodates import parse_date
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
 from isodate.isotime import parse_time
+import json
 import uuid
 
 from . import get_agent_ifp, convert_to_datatype
@@ -731,13 +732,14 @@ def activities_get(req_dict):
         validator.validate_iri(
             activity_id, "activityId param")
 
-    # Try to retrieve activity, if DNE then return empty else return activity
-    # info
+    # Try to retrieve activity; if DNE return an object with only the "activityId" property, else return activity info.
     try:
         Activity.objects.get(activity_id=activity_id, authority__isnull=False)
     except Activity.DoesNotExist:
-        err_msg = "No activity found with ID %s" % activity_id
-        raise IDNotFoundError(err_msg)
+        dummyActivity = json.dumps({ "activityId": 'http://www.example.com/non/existent/activity' })
+        return dummyActivity
+        # err_msg = "No activity found with ID %s" % activity_id
+        # raise IDNotFoundError(err_msg)
 
     return req_dict
 
