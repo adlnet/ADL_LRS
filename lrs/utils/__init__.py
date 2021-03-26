@@ -41,11 +41,11 @@ def convert_to_datetime_object(timestr):
 
 def convert_to_datatype(incoming_data):
     data = {}
-    # GET data will be non JSON string-have to try literal_eval
+    # GET data will be non-JSON string - have to try literal_eval.
     if isinstance(incoming_data, dict) or isinstance(incoming_data, list):
         return incoming_data
-    # could get weird values that json lib will parse
-    # ex: '"this is not json but would not fail"'
+    # Could get weird values that JSON lib will parse.
+    # EX: '"This is not JSON but would not fail"'
     if incoming_data.startswith('"'):
         incoming_data = incoming_data[1:-1]
     try:
@@ -62,7 +62,7 @@ def convert_post_body_to_dict(incoming_data):
     encoded = True
     pairs = [s2 for s1 in incoming_data.split('&') for s2 in s1.split(';')]
     for p in pairs:
-        # this is checked for cors requests
+        # This is checked for cors requests.
         if p.startswith('content='):
             if p == urllib.unquote_plus(p):
                 encoded = False

@@ -42,17 +42,18 @@ def parse(request, more_id=None):
     else:
         raise BadRequest("Request has no authorization")
 
-    # Init query params
+    # Init query params.
     r_dict['params'] = {}
-    # lookin for weird IE CORS stuff.. it'll be a post with a 'method' url
-    # param
+    # Looking for weird IE CORS stuff. It'll be a post with a 'method' URL param.
+    # In xAPI 2.0 this is no longer supported, so return 400.
     if request.method == 'POST' and 'method' in request.GET:
-        parse_cors_request(request, r_dict)
-    # Just parse body for all non IE CORS stuff
+        raise BadRequest("Alternate request syntax not supported")
+        # parse_cors_request(request, r_dict)
+    # Just parse body for all non-IE CORS stuff.
     else:
         parse_normal_request(request, r_dict)
 
-    # Set if someone is hitting the statements/more endpoint
+    # Set if someone is hitting the statements/more endpoint.
     if more_id:
         r_dict['more_id'] = more_id
 
@@ -62,7 +63,7 @@ def parse(request, more_id=None):
 
 
 def set_cors_authorization(request, r_dict):
-    # Not allowed to set request body so this is just a copy
+    # Not allowed to set request body so this is just a copy.
     body, encoded = convert_post_body_to_dict(request.body)
     if 'HTTP_AUTHORIZATION' not in r_dict['headers'] and 'HTTP_AUTHORIZATION' not in r_dict['headers']:
         if 'HTTP_AUTHORIZATION' in body:
@@ -77,11 +78,11 @@ def set_cors_authorization(request, r_dict):
 
 def set_normal_authorization(request, r_dict):
     auth_params = r_dict['headers']['Authorization']
-    # OAuth1 and basic http auth come in as string
+    # OAuth1 and Basic HTTP auth come in as string.
     r_dict['auth']['endpoint'] = get_endpoint(request)
     if auth_params[:6] == 'OAuth ':
         oauth_request = get_oauth_request(request)
-        # Returns HttpBadRequest if missing any params
+        # Returns HttpBadRequest if missing any params.
         missing = require_params(oauth_request)
         if missing:
             raise missing
@@ -93,7 +94,7 @@ def set_normal_authorization(request, r_dict):
                 raise OauthUnauthorized(error)
             else:
                 raise OauthBadRequest(error)
-        # Consumer and token should be clean by now
+        # Consumer and token should be clean by now.
         consumer = store.get_consumer(
             request, oauth_request, oauth_request['oauth_consumer_key'])
         token = store.get_access_token(
@@ -144,7 +145,7 @@ def parse_post_put_body(request, r_dict):
 
 
 def parse_cors_request(request, r_dict):
-    # Query string must only have method param
+    # Query string must only have method param.
     try:
         r_dict['method'] = request.GET['method'].upper()
     except Exception:
@@ -152,10 +153,10 @@ def parse_cors_request(request, r_dict):
     if len(request.GET.keys()) > 1:
         raise BadRequest("CORS must only include method in query string parameters") 
 
-    # Convert body to dict
+    # Convert body to dict.
     body, encoded = convert_post_body_to_dict(request.body)
     if not encoded:
-        raise BadRequest("content in CORS was not URL encoded")
+        raise BadRequest("Content in CORS was not URL encoded")
 
     # 'content' is in body for the IE cors POST
     if 'content' in body:
@@ -163,7 +164,7 @@ def parse_cors_request(request, r_dict):
         decoded_body = body.pop('content')
         r_dict['raw_body'] = decoded_body
 
-        # Only for statements since document API bodies don't have to be JSON (can be text)
+        # Only for statements since document API bodies don't have to be JSON (can be text).
         if r_dict['auth']['endpoint'] == reverse('lrs:statements').lower():
             try:
                 # Should convert to dict if data is in JSON format
