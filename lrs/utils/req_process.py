@@ -27,8 +27,18 @@ def process_statement(stmt, auth, payload_sha2s):
     if 'version' not in stmt:
         stmt['version'] = settings.XAPI_VERSIONS[0]
 
-    # Check for result -> duration and truncate if needed.
-    # if 'result' in stmt and 'duration' in stmt['result']:
+    # Check for result -> duration and truncate seconds if needed.
+    if 'result' in stmt and 'duration' in stmt['result']:
+        stmt_dur = stmt['result']['duration']
+        sec_as_str = re.findall("\d+(?:\.\d+)?S", stmt_dur)[0]
+        sec_as_num = float(sec_as_str.replace('S', ''))
+
+        if not sec_as_num.is_integer():
+            sec_trunc = round(sec_as_num, 2)
+        else:
+            sec_trunc = int(sec_as_num)
+
+        stmt['result']['duration'] = stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S')
         
 
     # Convert context activities to list if dict.
