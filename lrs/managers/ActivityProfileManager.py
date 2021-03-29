@@ -40,6 +40,7 @@ class ActivityProfileManager():
         # If incoming profile is application/json and if a profile didn't
         # already exist with the same activityId and profileId
         if created:
+            etag.check_preconditions(request_dict, p, created)
             p.json_profile = post_profile
             p.content_type = "application/json"
             p.etag = etag.create_tag(post_profile)
@@ -114,10 +115,10 @@ class ActivityProfileManager():
     def get_profile_ids(self, activity_id, since=None):
         ids = []
 
-        # If there is a since param return all profileIds since then
+        # If there is a since param, return all profileIds since then.
         if since:
             try:
-                # this expects iso6801 date/time format
+                # This expects ISO 8601 date/time format.
                 # "2013-02-15T12:00:00+00:00"
                 profs = ActivityProfile.objects.filter(
                     updated__gte=since, activity_id=activity_id)
@@ -127,17 +128,17 @@ class ActivityProfileManager():
             ids = [p.profile_id for p in profs]
         else:
             # Return all IDs of profiles associated with this activity b/c
-            # there is no since param
+            # there is no since param.
             ids = ActivityProfile.objects.filter(
                 activity_id=activity_id).values_list('profile_id', flat=True)
         return ids
 
     def delete_profile(self, request_dict):
-        # Get profile and delete it
+        # Get profile and delete it.
         try:
             self.get_profile(request_dict['params']['profileId'], request_dict[
                              'params']['activityId']).delete()
-        # we don't want it anyway
+        # We don't want it anyway.
         except ActivityProfile.DoesNotExist:
             pass
         except IDNotFoundError:

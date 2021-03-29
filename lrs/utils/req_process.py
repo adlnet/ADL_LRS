@@ -196,8 +196,10 @@ def statements_more_get(req_dict):
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
     resp['Content-Length'] = str(content_length)
-    # if 'stored' in stmt_result:
-    #     resp['Last-Modified'] = stmt_result['stored']
+    
+    stmt_dict = json.loads(stmt_result)
+    if 'stored' in stmt_result:
+        resp['Last-Modified'] = stmt_dict['stored']
 
     return resp
 
