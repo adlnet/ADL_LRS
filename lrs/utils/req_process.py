@@ -224,7 +224,7 @@ def statements_get(req_dict):
     else:
         resp, content_length = process_complex_get(req_dict)
     resp['Content-Length'] = str(content_length)
-    print(stmt_result)
+    print(stmt_result["stored"])
     # if 'stored' in stmt_result:
     #     resp['Last-Modified'] = stmt_result['stored']
 
