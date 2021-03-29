@@ -1,6 +1,7 @@
 import json
 import uuid
 import copy
+import re
 from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
@@ -18,35 +19,39 @@ from ..tasks import check_activity_metadata, check_statement_hooks
 
 
 def process_statement(stmt, auth, payload_sha2s):
-    # Add id to statement if not present
+    # Add id to statement if not present.
     if 'id' not in stmt:
         stmt['id'] = str(uuid.uuid4())
 
-    # Add version to statement if not present
+    # Add version to statement if not present.
     if 'version' not in stmt:
         stmt['version'] = settings.XAPI_VERSIONS[0]
 
-    # Convert context activities to list if dict
+    # Check for result -> duration and truncate if needed.
+    # if 'result' in stmt and 'duration' in stmt['result']:
+        
+
+    # Convert context activities to list if dict.
     if 'context' in stmt and 'contextActivities' in stmt['context']:
         for k, v in stmt['context']['contextActivities'].items():
             if isinstance(v, dict):
                 stmt['context']['contextActivities'][k] = [v]
 
-    # Convert context activities to list if dict (for substatements)
+    # Convert context activities to list if dict (for substatements).
     if 'objectType' in stmt['object'] and stmt['object']['objectType'] == 'SubStatement':
         if 'context' in stmt['object'] and 'contextActivities' in stmt['object']['context']:
             for k, v in stmt['object']['context']['contextActivities'].items():
                 if isinstance(v, dict):
                     stmt['object']['context']['contextActivities'][k] = [v]
 
-    # Add stored time
+    # Add stored time.
     stmt['stored'] = datetime.utcnow().replace(tzinfo=utc).isoformat()
 
-    # Add stored as timestamp if timestamp not present
+    # Add stored as timestamp if timestamp not present.
     if 'timestamp' not in stmt:
         stmt['timestamp'] = stmt['stored']
 
-    # Copy full statement and send off to StatementManager to save
+    # Copy full statement and send off to StatementManager to save.
     stmt['full_statement'] = copy.deepcopy(stmt)
     st = StatementManager(stmt, auth, payload_sha2s).model_object
 
@@ -61,17 +66,16 @@ def process_body(stmts, auth, payload_sha2s):
 
 def process_complex_get(req_dict):
     mime_type = "application/json"
-    # Parse out params into single dict-GET data not in body
+    # Parse out params into single dict - GET data not in body.
     param_dict = {}
     try:
         param_dict = req_dict['body']
     except KeyError:
-        pass  # no params in the body
+        pass  # No params in the body.
     param_dict.update(req_dict['params'])
     format = param_dict['format']
 
-    # Set language if one pull from req_dict since language is from a header,
-    # not an arg
+    # Set language if one pull from req_dict since language is from a header, not an arg.
     language = None
     if 'headers' in req_dict and ('format' in param_dict and param_dict['format'] == "canonical"):
         if 'language' in req_dict['headers']:
@@ -179,11 +183,11 @@ def statements_more_get(req_dict):
         content_length = len(stmt_result)
     mime_type = "application/json"
 
-    # If there are attachments, include them in the payload
+    # If there are attachments, include them in the payload.
     if attachments:
         stmt_result, mime_type, content_length = build_response(stmt_result)
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
-    # If not, just dump the stmt_result
+    # If not, just dump the stmt_result.
     else:
         if isinstance(stmt_result, basestring):
             resp = HttpResponse(
@@ -192,6 +196,8 @@ def statements_more_get(req_dict):
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
     resp['Content-Length'] = str(content_length)
+    if 'stored' in stmt_result:
+        resp['Last-Modified'] = stmt_result['stored']
 
     return resp
 
@@ -218,6 +224,8 @@ def statements_get(req_dict):
     else:
         resp, content_length = process_complex_get(req_dict)
     resp['Content-Length'] = str(content_length)
+    if 'stored' in stmt_result:
+        resp['Last-Modified'] = stmt_result['stored']
 
     return resp
 
@@ -276,7 +284,7 @@ def build_response(stmt_result, single=False):
 
 
 def activity_state_post(req_dict):
-    # test ETag for concurrency
+    # Test ETag for concurrency.
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]
     actstate = ActivityStateManager(a)
@@ -285,7 +293,7 @@ def activity_state_post(req_dict):
 
 
 def activity_state_put(req_dict):
-    # test ETag for concurrency
+    # Test ETag for concurrency.
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]
     actstate = ActivityStateManager(a)
@@ -294,7 +302,7 @@ def activity_state_put(req_dict):
 
 
 def activity_state_get(req_dict):
-    # add ETag for concurrency
+    # Add ETag for concurrency.
     state_id = req_dict['params'].get('stateId', None)
     activity_id = req_dict['params']['activityId']
     agent = req_dict['params']['agent']
@@ -304,7 +312,7 @@ def activity_state_get(req_dict):
     else:
         registration = req_dict['params'].get('registration', None)
         actstate = ActivityStateManager(a)
-        # state id means we want only 1 item
+        # state_id means we want only 1 item.
         if state_id:
             resource = actstate.get_state(activity_id, registration, state_id)
             if resource.state:
@@ -314,7 +322,7 @@ def activity_state_get(req_dict):
                 response = HttpResponse(
                     resource.json_state, content_type=resource.content_type)
             response['ETag'] = '"%s"' % resource.etag
-        # no state id means we want an array of state ids
+        # No state_id means we want an array of state_ids.
         else:
             since = req_dict['params'].get('since', None)
             resource = actstate.get_state_ids(activity_id, registration, since)

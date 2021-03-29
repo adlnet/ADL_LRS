@@ -79,14 +79,14 @@ class StatementManager():
 
     def build_statement(self, auth_info, stmt_data):
         stmt_data['stored'] = convert_to_datetime_object(stmt_data['stored'])
-        # Pop off any context activities
+        # Pop off any context activities.
         con_act_data = stmt_data.pop('context_contextActivities', {})
         stmt_data['user'] = auth_info['user']
-        # Name of id field in models is statement_id
+        # Name of id field in models is statement_id.
         if 'id' in stmt_data:
             stmt_data['statement_id'] = stmt_data['id']
             del stmt_data['id']
-        # Try to create statement
+        # Try to create statement.
         stmt = Statement.objects.create(**stmt_data)
         if con_act_data:
             self.build_context_activities(stmt, auth_info, con_act_data)

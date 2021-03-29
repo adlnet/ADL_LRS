@@ -25,18 +25,18 @@ att_cache = caches['attachment_cache']
 
 
 def parse(request, more_id=None):
-    # Parse request into body, headers, and params
+    # Parse request into body, headers, and params.
     r_dict = {}
-    # Start building headers from request.META (cors headers get added later)
+    # Start building headers from request.META (cors headers get added later).
     r_dict['headers'] = get_headers(request.META)
-    # Traditional authorization should be passed in headers
+    # Traditional authorization should be passed in headers.
     r_dict['auth'] = {}
     if 'Authorization' in r_dict['headers']:
-        # OAuth will always be dict, not http auth. Set required fields for
-        # oauth module and type for authentication module
+        # OAuth will always be dict, not HTTP auth. Set required fields for
+        # OAuth module and type for authentication module.
         set_normal_authorization(request, r_dict)
     elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
-        # Authorization could be passed into body if cross origin request
+        # Authorization could be passed into body if cross origin request.
         # CORS OAuth not currently supported...
         set_cors_authorization(request, r_dict)
     else:
@@ -158,27 +158,27 @@ def parse_cors_request(request, r_dict):
     if not encoded:
         raise BadRequest("Content in CORS was not URL encoded")
 
-    # 'content' is in body for the IE cors POST
+    # 'content' is in body for the IE cors POST.
     if 'content' in body:
-        # Grab what the normal body would be since it's in content
+        # Grab what the normal body would be since it's in content.
         decoded_body = body.pop('content')
         r_dict['raw_body'] = decoded_body
 
         # Only for statements since document API bodies don't have to be JSON (can be text).
         if r_dict['auth']['endpoint'] == reverse('lrs:statements').lower():
             try:
-                # Should convert to dict if data is in JSON format
+                # Should convert to dict if data is in JSON format.
                 r_dict['body'] = convert_to_datatype(decoded_body)
             except Exception:
                 try:
-                    # Convert to dict if data is in form format (foo=bar)
+                    # Convert to dict if data is in form format (foo=bar).
                     r_dict['body'] = QueryDict(decoded_body).dict()
                 except Exception:
                     raise BadRequest(
                         "Could not parse request body in CORS request")
                 else:
                     # QueryDict will create {'foo':''} key for any string -
-                    # does not care if valid query string or not
+                    # does not care if valid query string or not.
                     for k, v in r_dict['body'].items():
                         if not v:
                             raise BadRequest(
@@ -186,11 +186,11 @@ def parse_cors_request(request, r_dict):
         else:
             r_dict['body'] = decoded_body
     else:
-        # If it is a CORS PUT OR POST make sure it has content
+        # If it is a CORS PUT or POST make sure it has content.
         if (r_dict['method'] == 'PUT' or r_dict['method'] == 'POST'):
-            raise BadRequest("content form parameter required when sending content via CORS")
+            raise BadRequest("Content form parameter required when sending content via CORS")
 
-    # treat these form params as headers
+    # Treat these form params as headers.
     header_list = ['X-Experience-API-Version', 'Content-Type', 'If-Match', \
         'If-None-Match', 'Authorization', 'Content-Length']
     header_dict = {k:body[k] for k in body if k in header_list}
@@ -199,12 +199,12 @@ def parse_cors_request(request, r_dict):
         r_dict['headers']['ETAG']['HTTP_IF_MATCH'] = r_dict['headers']['If-Match']
     if 'If-None-Match' in r_dict['headers']:
         r_dict['headers']['ETAG']['HTTP_IF_NONE_MATCH'] = r_dict['headers']['If-None-Match']
-    # pop these headers out of body
+    # Pop these headers out of body.
     for h in header_list:
         body.pop(h, None)
 
-    # all that should be left are params for the request, we add them to the
-    # params object
+    # All that should be left are params for the request, we add them to the
+    # params object.
     r_dict['params'].update(body)
 
 
@@ -212,7 +212,7 @@ def parse_normal_request(request, r_dict):
     if request.method == 'POST' or request.method == 'PUT':
         r_dict = parse_post_put_body(request, r_dict)
     elif request.method == 'DELETE':
-        # Delete can have data which will be in parameter or get params
+        # Delete can have data which will be in parameter or get params.
         if request.body != '':
             r_dict['params'].update(ast.literal_eval(request.body))
     r_dict['params'].update(request.GET.dict())

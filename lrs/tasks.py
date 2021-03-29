@@ -32,7 +32,6 @@ def check_activity_metadata(stmts):
 
 @shared_task
 def check_statement_hooks(stmt_ids):
-    currentTime = datetime.utcnow().replace(tzinfo=utc).isoformat()
     try:
         from .models import Statement
         from adl_lrs.models import Hook
@@ -59,7 +58,6 @@ def check_statement_hooks(stmt_ids):
                         headers[
                             'X-LRS-Signature'] = hmac.new(str(secret), str(data), sha1).hexdigest()
                     headers['Connection'] = 'close'
-                    headers['Last-Modified'] = currentTime
                     celery_logger.info(
                         "Sending statements to hook endpoint %s" % str(config['endpoint']))
                     resp = requests.post(
@@ -231,13 +229,13 @@ def get_activity_metadata(act_id):
 @transaction.atomic
 def update_activity_definition(act):
     from .models import Activity
-    # Try to get activity by id
+    # Try to get activity by id.
     try:
         activity = Activity.objects.get(activity_id=act['id'])
     except Activity.DoesNotExist:
-        # Could not exist yet
+        # Could not exist yet.
         pass
-    # If the activity already exists in the db
+    # If the activity already exists in the DB.
     else:
         activity.canonical_data = dict(
             activity.canonical_data.items() + act.items())

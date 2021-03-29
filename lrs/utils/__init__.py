@@ -87,10 +87,10 @@ def get_lang(langdict, lang):
                 try:
                     return {la: langdict[la]}
                 except KeyError:
-                    # if the language header does match any exactly, then if it is only a 2 character
-                    # header, try matching it against the keys again ('en' would match 'en-US')
+                    # If the language header does match any exactly, then if it is only a 2 character
+                    # header, try matching it against the keys again ('en' would match 'en-US').
                     if not '-' in la:
-                        # get all keys from langdict...get all first parts of them..if la is in it, return it
+                        # Get all keys from langdict... Get all first parts of them... If la is in it, return it.
                         for k in langdict.keys():
                             if '-' in k:
                                 if la == k.split('-')[0]:

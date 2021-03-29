@@ -187,8 +187,7 @@ class StatementValidator():
     #         self.return_error("Duplicate field(s) found in %s" % obj_name)
 
     def validate_statement(self, stmt):
-        # Ensure dict was submitted as stmt and check allowed and required
-        # fields
+        # Ensure dict was submitted as stmt and check allowed and required fields.
         self.check_if_dict(stmt, "Statement")
         self.check_allowed_fields(statement_allowed_fields, stmt, "Statement")
         self.check_required_fields(

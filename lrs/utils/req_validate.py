@@ -47,8 +47,6 @@ def check_for_rfc_timestamp(time_str):
     return time_ret
 
 # Extra agent validation for state and profile.
-
-
 def validate_oauth_for_documents(req_dict, endpoint): 
     ag = req_dict['params']['agent']
     token = req_dict['auth']['oauth_token']
