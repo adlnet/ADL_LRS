@@ -29,7 +29,7 @@ def check_for_no_other_params_supplied(query_dict):
     return supplied
 
 
-def check_for_rfc_timestamp(time_str):
+def validate_timestamp(time_str):
     time_ret = None
 
     try:
@@ -42,9 +42,13 @@ def check_for_rfc_timestamp(time_str):
         else:
             date_temp = parse_date(date_out)
             time_temp = parse_time(time_out)
-            time_ret = datetime.combine(date_temp, time_temp)
+            time_ret = datetime.combine(date_temp, time_temp, tzinfo=datetime.utcoffset())
     
-    return time_ret
+    if time_ret is not None:
+        rfc_tz = pytz.utc
+        rfc_ret = rfc_tz.localize(time_ret)
+    
+    return rfc_ret
 
 # Extra agent validation for state and profile.
 def validate_oauth_for_documents(req_dict, endpoint): 
@@ -211,14 +215,14 @@ def statements_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            check_for_rfc_timestamp(req_dict['params']['since'])
+            validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
             raise ParamError(
                 "since parameter was not a valid RFC3339 timestamp")
 
     if 'until' in req_dict['params']:
         try:
-            check_for_rfc_timestamp(req_dict['params']['until'])
+            validate_timestamp(req_dict['params']['until'])
         except (Exception, RFC3339Error):
             raise ParamError(
                 "until parameter was not a valid RFC3339 timestamp")
@@ -525,7 +529,7 @@ def activity_state_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            check_for_rfc_timestamp(req_dict['params']['since'])
+            validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
             raise ParamError(
                 "Since parameter was not a valid RFC3339 timestamp")
@@ -680,7 +684,7 @@ def activity_profile_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            check_for_rfc_timestamp(req_dict['params']['since'])
+            validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
             raise ParamError(
                 "Since parameter was not a valid RFC3339 timestamp")
@@ -869,7 +873,7 @@ def agent_profile_get(req_dict):
 
     if 'since' in req_dict['params']:
         try:
-            check_for_rfc_timestamp(req_dict['params']['since'])
+            validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
             raise ParamError(
                 "Since parameter was not a valid RFC3339 timestamp")

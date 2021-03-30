@@ -20,7 +20,7 @@ ACTIVITY_STATE_UPLOAD_TO = "activity_state"
 ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
 STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
-# Called when a user is created, saved, or logging in
+# Called when a user is created, saved, or logging in.
 
 
 def attach_user(sender, **kwargs):
@@ -380,7 +380,7 @@ class SubStatement(models.Model):
         Activity, related_name="sub_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="sub_context_ca_other")
-    # context also has a stmt field which is a statementref
+    # Context also has a stmt field which is a statementref.
     context_statement = models.CharField(max_length=40, blank=True)
 
     def to_dict(self, lang=None, ids_only=False):
@@ -537,7 +537,7 @@ class Statement(models.Model):
         Activity, related_name="stmt_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="stmt_context_ca_other")
-    # context also has a stmt field which is a statementref
+    # Context also has a stmt field which is a statementref.
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7)
     # Used in views

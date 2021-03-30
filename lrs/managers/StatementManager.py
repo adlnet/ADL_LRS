@@ -41,7 +41,7 @@ class StatementManager():
 
     def build_context_activities(self, stmt, auth_info, con_act_data):
         for con_act_group in con_act_data.items():
-            # Incoming contextActivities can either be a list or dict
+            # Incoming contextActivities can either be a list or dict.
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
                     act = ActivityManager(con_act, auth=auth_info[
@@ -66,6 +66,64 @@ class StatementManager():
                 else:
                     stmt.context_ca_other.add(act)
         stmt.save()
+
+    def build_context_agents(self, stmt, auth_info, con_agt_data):
+        pass
+        # for con_act_group in con_act_data.items():
+        #     # Incoming contextActivities can either be a list or dict
+        #     if isinstance(con_act_group[1], list):
+        #         for con_act in con_act_group[1]:
+        #             act = ActivityManager(con_act, auth=auth_info[
+        #                                   'agent'], define=auth_info['define']).activity
+        #             if con_act_group[0] == 'parent':
+        #                 stmt.context_ca_parent.add(act)
+        #             elif con_act_group[0] == 'grouping':
+        #                 stmt.context_ca_grouping.add(act)
+        #             elif con_act_group[0] == 'category':
+        #                 stmt.context_ca_category.add(act)
+        #             else:
+        #                 stmt.context_ca_other.add(act)
+        #     else:
+        #         act = ActivityManager(con_act_group[1], auth=auth_info[
+        #                               'agent'], define=auth_info['define']).activity
+        #         if con_act_group[0] == 'parent':
+        #             stmt.context_ca_parent.add(act)
+        #         elif con_act_group[0] == 'grouping':
+        #             stmt.context_ca_grouping.add(act)
+        #         elif con_act_group[0] == 'category':
+        #             stmt.context_ca_category.add(act)
+        #         else:
+        #             stmt.context_ca_other.add(act)
+        # stmt.save()
+    
+    def build_context_groups(self, stmt, auth_info, con_grp_data):
+        pass
+        # for con_act_group in con_act_data.items():
+        #     # Incoming contextActivities can either be a list or dict
+        #     if isinstance(con_act_group[1], list):
+        #         for con_act in con_act_group[1]:
+        #             act = ActivityManager(con_act, auth=auth_info[
+        #                                   'agent'], define=auth_info['define']).activity
+        #             if con_act_group[0] == 'parent':
+        #                 stmt.context_ca_parent.add(act)
+        #             elif con_act_group[0] == 'grouping':
+        #                 stmt.context_ca_grouping.add(act)
+        #             elif con_act_group[0] == 'category':
+        #                 stmt.context_ca_category.add(act)
+        #             else:
+        #                 stmt.context_ca_other.add(act)
+        #     else:
+        #         act = ActivityManager(con_act_group[1], auth=auth_info[
+        #                               'agent'], define=auth_info['define']).activity
+        #         if con_act_group[0] == 'parent':
+        #             stmt.context_ca_parent.add(act)
+        #         elif con_act_group[0] == 'grouping':
+        #             stmt.context_ca_grouping.add(act)
+        #         elif con_act_group[0] == 'category':
+        #             stmt.context_ca_category.add(act)
+        #         else:
+        #             stmt.context_ca_other.add(act)
+        # stmt.save()
 
     def build_substatement(self, auth_info, stmt_data):
         # Pop off any context activities
