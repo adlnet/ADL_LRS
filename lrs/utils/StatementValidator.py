@@ -66,8 +66,17 @@ class StatementValidator():
                 self.return_error(e.message)
 
     def validate(self):
-        # If list, validate each stmt inside
+        # If list, validate each stmt inside.
         if isinstance(self.data, list):
+            # First check if list has duplicate stmt IDs.
+            set_ids = set()
+            for st in self.data:
+                if 'id' in st:
+                    if st['id'] in set_ids:
+                        self.return_error("Statement batch contains duplicate IDs")
+                    else:
+                        set_ids.add(st['id'])
+                        
             for st in self.data:
                 self.validate_statement(st)
             return "All Statements are valid"
@@ -194,7 +203,7 @@ class StatementValidator():
             statement_required_fields, stmt, "Statement")
 
         # If version included in stmt (usually in header instead) make sure it
-        # is 1.0.0 +
+        # is at least 1.0.0.
         if 'version' in stmt:
             if isinstance(stmt['version'], basestring):
                 version_regex = re.compile("^1\.0(\.\d+)?$")
@@ -204,11 +213,11 @@ class StatementValidator():
             else:
                 self.return_error("Version must be a string")
 
-        # If id included, make sure it is a valid UUID
+        # If id included, make sure it is a valid UUID.
         if 'id' in stmt:
             self.validate_uuid(stmt['id'], 'Statement id')
 
-        # If timestamp included, make sure a valid date can be parsed from it
+        # If timestamp included, make sure a valid date can be parsed from it.
         if 'timestamp' in stmt:
             timestamp = stmt['timestamp']
             try:
@@ -223,7 +232,7 @@ class StatementValidator():
                 self.return_error(
                     "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
-        # If stored included, make sure a valid date can be parsed from it
+        # If stored included, make sure a valid date can be parsed from it.
         if 'stored' in stmt:
             stored = stmt['stored']
             try:
@@ -232,33 +241,33 @@ class StatementValidator():
                 self.return_error(
                     "Stored error - There was an error while parsing the date from %s -- Error: %s" % (stored, e.message))
 
-        # Validate the actor and verb
+        # Validate the actor and verb.
         self.validate_agent(stmt['actor'], 'actor')
         self.validate_verb(stmt['verb'], stmt['object'])
 
-        # Validate the object
+        # Validate the object.
         stmt_object = stmt['object']
         self.validate_object(stmt_object)
 
-        # If the object is validated and has no objectType, set to Activity
+        # If the object is validated and has no objectType, set to Activity.
         if 'objectType' not in stmt_object:
             stmt['object']['objectType'] = 'Activity'
 
-        # If result is included, validate it
+        # If result is included, validate it.
         if 'result' in stmt:
             self.validate_result(stmt['result'])
 
-        # If context is included, validate it
+        # If context is included, validate it.
         if 'context' in stmt:
             self.validate_context(stmt['context'], stmt_object)
 
-        # If authority is included, validate it
+        # If authority is included, validate it.
         if 'authority' in stmt:
             self.validate_agent(stmt['authority'], 'authority')
             if 'objectType' in stmt['authority'] and stmt['authority']['objectType'] == 'Group':
                 self.validate_authority_group(stmt['authority'])
 
-        # If attachments is included, validate it
+        # If attachments is included, validate it.
         if 'attachments' in stmt:
             self.validate_attachments(stmt['attachments'])
 
