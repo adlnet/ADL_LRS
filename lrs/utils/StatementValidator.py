@@ -1,5 +1,9 @@
 import re
+from datetime import datetime
+from isodate.isodates import parse_date
 from isodate.isodatetime import parse_datetime
+from isodate.isoerror import ISO8601Error
+from isodate.isotime import parse_time
 from rfc3987 import parse as iriparse
 from uuid import UUID
 
@@ -43,6 +47,27 @@ score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities',
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
+
+def validate_timestamp(time_str):
+    time_ret = None
+
+    try:
+        time_ret = parse_datetime(time_str)
+    except (Exception, ISO8601Error):
+        try:
+            date_out, time_out = time_str.split(" ")
+        except ValueError:
+            raise RFC3339Error("Time designators 'T' or ' ' missing. Unable to parse datetime string %r." % time_str)
+        else:
+            date_temp = parse_date(date_out)
+            time_temp = parse_time(time_out)
+            time_ret = datetime.combine(date_temp, time_temp, tzinfo=datetime.utcoffset())
+    
+    if time_ret is not None:
+        rfc_tz = pytz.utc
+        rfc_ret = rfc_tz.localize(time_ret)
+    
+    return rfc_ret
 
 
 class StatementValidator():
@@ -221,7 +246,7 @@ class StatementValidator():
         if 'timestamp' in stmt:
             timestamp = stmt['timestamp']
             try:
-                parse_datetime(timestamp)
+                validate_timestamp(timestamp)
 
                 # Reject statements that don't comply with ISO 8601 offsets
                 if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
@@ -236,7 +261,7 @@ class StatementValidator():
         if 'stored' in stmt:
             stored = stmt['stored']
             try:
-                parse_datetime(stored)
+                validate_timestamp(stored)
             except Exception as e:
                 self.return_error(
                     "Stored error - There was an error while parsing the date from %s -- Error: %s" % (stored, e.message))
@@ -670,7 +695,7 @@ class StatementValidator():
         if 'timestamp' in substmt:
             timestamp = substmt['timestamp']
             try:
-                parse_datetime(timestamp)
+                validate_timestamp(timestamp)
 
                 # Reject statements that don't comply with ISO 8601 offsets
                 if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
