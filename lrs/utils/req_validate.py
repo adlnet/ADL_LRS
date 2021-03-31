@@ -42,11 +42,14 @@ def validate_timestamp(time_str):
         else:
             date_temp = parse_date(date_out)
             time_temp = parse_time(time_out)
-            time_ret = datetime.combine(date_temp, time_temp, tzinfo=datetime.utcoffset())
+            time_ret = datetime.combine(date_temp, time_temp)
     
     if time_ret is not None:
-        rfc_tz = pytz.utc
-        rfc_ret = rfc_tz.localize(time_ret)
+        rfc_ret = None
+        try:
+            rfc_ret = time_ret.replace(tzinfo=utc)
+        except ValueError:
+            rfc_ret = time_ret
     
     return rfc_ret
 
