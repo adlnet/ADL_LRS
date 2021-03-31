@@ -1,6 +1,5 @@
 import json
 import uuid
-import time, pytz
 
 from datetime import datetime
 from isodate.isodates import parse_date

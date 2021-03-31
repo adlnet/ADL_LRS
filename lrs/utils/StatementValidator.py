@@ -1,5 +1,4 @@
 import re
-import time, pytz
 
 from datetime import datetime
 from isodate.isodates import parse_date
@@ -255,7 +254,7 @@ class StatementValidator():
             try:
                 validate_timestamp(timestamp)
 
-                # Reject statements that don't comply with ISO 8601 offsets
+                # Reject statements that don't comply with ISO 8601 offsets.
                 if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
                     self.return_error(
                         "Timestamp error - Statement Timestamp Illegal offset (-00, -0000, or -00:00) %s" % timestamp)

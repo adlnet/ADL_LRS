@@ -3,6 +3,7 @@ import base64
 import email
 import hashlib
 import json
+
 from isodate.isoerror import ISO8601Error
 from isodate.isodatetime import parse_datetime
 from Crypto.PublicKey import RSA
@@ -12,6 +13,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import caches
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
+from django.utils.timezone import utc
 
 from . import convert_to_datatype, convert_post_body_to_dict
 from etag import get_etag_info
@@ -22,6 +24,31 @@ from oauth_provider.decorators import CheckOauth
 from oauth_provider.store import store
 
 att_cache = caches['attachment_cache']
+
+
+def validate_timestamp(time_str):
+    time_ret = None
+
+    try:
+        time_ret = parse_datetime(time_str)
+    except (Exception, ISO8601Error):
+        try:
+            date_out, time_out = time_str.split(" ")
+        except ValueError:
+            raise RFC3339Error("Time designators 'T' or ' ' missing. Unable to parse datetime string %r." % time_str)
+        else:
+            date_temp = parse_date(date_out)
+            time_temp = parse_time(time_out)
+            time_ret = datetime.combine(date_temp, time_temp)
+    
+    if time_ret is not None:
+        rfc_ret = None
+        try:
+            rfc_ret = time_ret.replace(tzinfo=utc)
+        except ValueError:
+            rfc_ret = time_ret
+    
+    return rfc_ret
 
 
 def parse(request, more_id=None):
@@ -448,14 +475,14 @@ def get_headers(headers):
     # Get updated header
     if 'HTTP_UPDATED' in headers:
         try:
-            header_dict['updated'] = parse_datetime(
+            header_dict['updated'] = validate_timestamp(
                 headers.pop('HTTP_UPDATED'))
         except (Exception, ISO8601Error):
             raise ParamError(
                 "Updated header was not a valid ISO8601 timestamp")
     elif 'updated' in headers:
         try:
-            header_dict['updated'] = parse_datetime(headers.pop('updated'))
+            header_dict['updated'] = validate_timestamp(headers.pop('updated'))
         except (Exception, ISO8601Error):
             raise ParamError(
                 "Updated header was not a valid ISO8601 timestamp")
