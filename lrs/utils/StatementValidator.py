@@ -51,6 +51,11 @@ context_allowed_fields = ['registration', 'instructor', 'team', 'contextActiviti
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
 
+# Exception type to accommodate RFC 3339 timestamp validation.
+class RFC3339Error(ValueError):
+    pass
+
+
 def validate_timestamp(time_str):
     time_ret = None
 

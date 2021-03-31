@@ -21,6 +21,7 @@ from ..exceptions import ParamConflict, ParamError, Forbidden, BadRequest, IDNot
 class RFC3339Error(ValueError):
     pass
 
+
 def check_for_existing_statementId(stmtID):
     return Statement.objects.filter(statement_id=stmtID).exists()
 
