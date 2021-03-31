@@ -228,7 +228,7 @@ def parse_cors_request(request, r_dict):
 
     # Treat these form params as headers.
     header_list = ['X-Experience-API-Version', 'Content-Type', 'If-Match', \
-        'If-None-Match', 'Authorization', 'Content-Length']
+        'If-None-Match', 'Authorization', 'Content-Length', 'Last-Modified']
     header_dict = {k:body[k] for k in body if k in header_list}
     r_dict['headers'].update(header_dict)
     if 'If-Match' in r_dict['headers']:
@@ -481,7 +481,7 @@ def get_endpoint(request):
 
 def get_headers(headers):
     header_dict = {}
-    # Get updated header
+    # Get updated header.
     if 'HTTP_UPDATED' in headers:
         try:
             header_dict['updated'] = validate_timestamp(
@@ -496,7 +496,7 @@ def get_headers(headers):
             raise ParamError(
                 "Updated header was not a valid ISO8601 timestamp")
 
-    # Get content type header
+    # Get content type header.
     header_dict['CONTENT_TYPE'] = headers.pop('CONTENT_TYPE', None)
     if not header_dict['CONTENT_TYPE'] and 'Content-Type' in headers:
         header_dict['CONTENT_TYPE'] = headers.pop('Content-Type')
@@ -508,16 +508,16 @@ def get_headers(headers):
             header_dict['CONTENT_TYPE'] = header_dict['CONTENT_TYPE'].split(';')[
                 0]
 
-    # Get etag
+    # Get ETag.
     header_dict['ETAG'] = get_etag_info(headers)
 
-    # Get authorization - don't pop off - needed for setting authorization
+    # Get authorization - don't pop off - needed for setting authorization.
     if 'HTTP_AUTHORIZATION' in headers:
         header_dict['Authorization'] = headers.get('HTTP_AUTHORIZATION')
     elif 'Authorization' in headers:
         header_dict['Authorization'] = headers.get('Authorization')
 
-    # Get language
+    # Get language.
     if 'Accept_Language' in headers:
         header_dict['language'] = headers.pop('Accept_Language')
     elif 'Accept-Language' in headers:
@@ -525,7 +525,7 @@ def get_headers(headers):
     elif 'HTTP_ACCEPT_LANGUAGE' in headers:
         header_dict['language'] = headers.pop('HTTP_ACCEPT_LANGUAGE')
 
-    # Get xapi version
+    # Get xAPI version.
     if 'X-Experience-API-Version' in headers:
         header_dict[
             'X-Experience-API-Version'] = headers.pop('X-Experience-API-Version')

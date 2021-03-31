@@ -426,6 +426,10 @@ def activities_get(req_dict):
         return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
 
+    act_dict = json.loads(return_act)
+    if 'stored' in return_act:
+        resp['Last-Modified'] = act_dict['stored']
+
     return resp
 
 
@@ -497,5 +501,9 @@ def agents_get(req_dict):
     resp = HttpResponse(
         agent_data, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(agent_data))
+
+    agent_dict = json.loads(agent_data)
+    if 'stored' in agent_data:
+        resp['Last-Modified'] = agent_dict['stored']
 
     return resp
