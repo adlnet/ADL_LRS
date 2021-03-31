@@ -1,5 +1,5 @@
-import pytz
 import re
+import time, pytz
 
 from datetime import datetime
 from isodate.isodates import parse_date
@@ -8,6 +8,8 @@ from isodate.isoerror import ISO8601Error
 from isodate.isotime import parse_time
 from rfc3987 import parse as iriparse
 from uuid import UUID
+
+from django.utils.timezone import utc
 
 from . import convert_to_datatype
 from ..exceptions import ParamError

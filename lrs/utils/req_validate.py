@@ -1,12 +1,14 @@
 import json
-import pytz
 import uuid
+import time, pytz
 
 from datetime import datetime
 from isodate.isodates import parse_date
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
 from isodate.isotime import parse_time
+
+from django.utils.timezone import utc
 
 from . import get_agent_ifp, convert_to_datatype
 from authorization import auth
