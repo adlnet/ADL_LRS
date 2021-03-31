@@ -4,8 +4,11 @@ import email
 import hashlib
 import json
 
-from isodate.isoerror import ISO8601Error
+from isodate.isodates import parse_date
 from isodate.isodatetime import parse_datetime
+from isodate.isoerror import ISO8601Error
+from isodate.isotime import parse_time
+
 from Crypto.PublicKey import RSA
 from jose import jws
 
