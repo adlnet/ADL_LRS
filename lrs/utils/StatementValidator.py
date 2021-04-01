@@ -48,6 +48,7 @@ result_allowed_fields = ['score', 'success',
 score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities',
+                          'contextAgents', 'contextGroups',
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
 
@@ -203,7 +204,7 @@ class StatementValidator():
             self.return_error("%s is not a properly formatted array" % field)
 
     def check_allowed_fields(self, allowed, obj, obj_name):
-        # Check for fields that aren't in spec
+        # Check for fields that aren't in spec.
         failed_list = [x for x in obj.keys() if x not in allowed]
         if failed_list:
             self.return_error("Invalid field(s) found in %s - %s" %
@@ -213,23 +214,6 @@ class StatementValidator():
         for field in required:
             if field not in obj:
                 self.return_error("%s is missing in %s" % (field, obj_name))
-    
-    # def check_duplicate_fields(self, obj, obj_name):
-    #     def pairs(d):
-    #         for k, v in d.items():
-    #             if isinstance(v, dict):
-    #                 for pv in pairs(v):
-    #                     yield pv
-    #             else:
-    #                 yield '{}'.format(k)
-
-    #     testIDs = list(pairs(obj))
-    #     while 'id' in testIDs:
-    #         testIDs.remove('id')
-    #     testIDs_set = set(testIDs)
-    #     duplicates = len(testIDs) != len(testIDs_set)
-    #     if duplicates:
-    #         self.return_error("Duplicate field(s) found in %s" % obj_name)
 
     def validate_statement(self, stmt):
         # Ensure dict was submitted as stmt and check allowed and required fields.
@@ -818,15 +802,15 @@ class StatementValidator():
                     "Score scaled value in statement result must be between -1 and 1")
 
     def validate_context(self, context, stmt_object):
-        # Ensure incoming context is a dict and check allowed fields
+        # Ensure incoming context is a dict and check allowed fields.
         self.check_if_dict(context, "Context")
         self.check_allowed_fields(context_allowed_fields, context, "Context")
 
-        # If registration included, ensure it is valid UUID
+        # If registration included, ensure it is valid UUID.
         if 'registration' in context:
             self.validate_uuid(context['registration'], 'Context registration')
 
-        # If instructor or team included, ensure they are valid agents
+        # If instructor or team included, ensure they are valid agents.
         if 'instructor' in context:
             self.validate_agent(context['instructor'], 'Context instructor')
         if 'team' in context:
@@ -835,11 +819,11 @@ class StatementValidator():
                 self.return_error("Team in context must be a group")
 
         # If objectType of object in stmt is Agent/Group, context cannot have
-        # revision or platform fields
+        # revision or platform fields.
         object_type = stmt_object['objectType']
 
         if 'revision' in context:
-            # Check revision is string
+            # Check revision is string.
             if not isinstance(context['revision'], basestring):
                 self.return_error("Context revision must be a string")
 
@@ -848,7 +832,7 @@ class StatementValidator():
                     "Revision is not allowed in context if statement object is not an Activity")
 
         if 'platform' in context:
-            # Check platform is string
+            # Check platform is string.
             if not isinstance(context['platform'], basestring):
                 self.return_error("Context platform must be a string")
 
@@ -856,35 +840,43 @@ class StatementValidator():
                 self.return_error(
                     "Platform is not allowed in context if statement object is not an Activity")
 
-        # If language given, ensure it is string
+        # If language given, ensure it is string.
         if 'language' in context:
             if not isinstance(context['language'], basestring):
                 self.return_error("Context language must be a string")
             else:
-                self.validate_language(context['language'], "context language")
+                self.validate_language(context['language'], "Context language")
 
-        # If statement given, ensure it is a valid StatementRef
+        # If statement given, ensure it is a valid StatementRef.
         if 'statement' in context:
             self.validate_statementref(context['statement'])
 
-        # If contextActivities given, ensure they are valid contextActivities
+        # If contextActivities given, ensure they are valid contextActivities.
         if 'contextActivities' in context:
             self.validate_context_activities(context['contextActivities'])
+
+        # # If contextAgents given, ensure they are valid contextAgents.
+        # if 'contextAgents' in context:
+        #     self.validate_context_agents(context['contextAgents'])
+
+        # # If contextGroups given, ensure they are valid contextGroups.
+        # if 'contextGroups' in context:
+        #     self.validate_context_groups(context['contextGroups'])
 
         # If extensions, validate
         if 'extensions' in context:
             self.validate_extensions(context['extensions'], 'context extensions')
 
     def validate_context_activities(self, conacts):
-        # Ensure incoming conact is dict
+        # Ensure incoming conact is dict.
         self.check_if_dict(conacts, "Context activity")
         context_activity_types = ['parent', 'grouping', 'category', 'other']
         for conact in conacts.items():
-            # Check if conact is a valid type
+            # Check if conact is a valid type.
             if not conact[0] in context_activity_types:
                 self.return_error("Context activity type is not valid - %s - must be %s" %
                                   (conact[0], ', '.join(context_activity_types)))
-            # Ensure conact is a list or dict
+            # Ensure conact is a list or dict.
             if isinstance(conact[1], list):
                 for act in conact[1]:
                     self.validate_activity(act)
@@ -892,4 +884,32 @@ class StatementValidator():
                 self.validate_activity(conact[1])
             else:
                 self.return_error(
-                    "contextActivities is not formatted correctly")
+                    "contextActivities is not formatted correctly.")
+    
+    # def validate_context_agents(self, conags):
+    #     # Ensure incoming conag is dict.
+    #     self.check_if_dict(conags, "Context agents")
+    #     for conag in conags.items():
+    #         # Ensure conag is a list or dict.
+    #         if isinstance(conag[1], list):
+    #             for ag in conag[1]:
+    #                 self.validate_context_agent(ag)
+    #         elif isinstance(conag[1], dict):
+    #             self.validate_context_agent(conag[1])
+    #         else:
+    #             self.return_error(
+    #                 "contextAgents is not formatted correctly.")
+
+    # def validate_context_groups(self, congrps):
+    #     # Ensure incoming congrp is dict.
+    #     self.check_if_dict(congrps, "Context groups")
+    #     for congrp in congrps.items():
+    #         # Ensure congrp is a list or dict.
+    #         if isinstance(congrp[1], list):
+    #             for grp in congrp[1]:
+    #                 self.validate_context_group(grp)
+    #         elif isinstance(congrp[1], dict):
+    #             self.validate_context_group(congrp[1])
+    #         else:
+    #             self.return_error(
+    #                 "contextGroups is not formatted correctly.")
