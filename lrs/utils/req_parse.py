@@ -486,15 +486,15 @@ def get_headers(headers):
         try:
             header_dict['updated'] = validate_timestamp(
                 headers.pop('HTTP_UPDATED'))
-        except (Exception, ISO8601Error):
+        except (Exception, RFC3339Error):
             raise ParamError(
-                "Updated header was not a valid ISO8601 timestamp")
+                "Updated header was not a valid RFC 3339 timestamp")
     elif 'updated' in headers:
         try:
             header_dict['updated'] = validate_timestamp(headers.pop('updated'))
-        except (Exception, ISO8601Error):
+        except (Exception, RFC3339Error):
             raise ParamError(
-                "Updated header was not a valid ISO8601 timestamp")
+                "Updated header was not a valid RFC 3339 timestamp")
 
     # Get content type header.
     header_dict['CONTENT_TYPE'] = headers.pop('CONTENT_TYPE', None)
@@ -529,4 +529,9 @@ def get_headers(headers):
     if 'X-Experience-API-Version' in headers:
         header_dict[
             'X-Experience-API-Version'] = headers.pop('X-Experience-API-Version')
+
+    # Get last modified header.
+    if 'Last-Modified' in headers:
+        header_dict['Last-Modified'] = headers.pop('Last-Modified')
+
     return header_dict

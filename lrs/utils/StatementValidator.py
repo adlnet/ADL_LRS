@@ -695,14 +695,14 @@ class StatementValidator():
                 "Interaction activities shared the same id(s) (%s) which is not allowed" % ' '.join(dups))
 
     def validate_substatement(self, substmt):
-        # Ensure incoming substmt is a dict and check allowed and required
+        # Ensure incoming substmt is a dict and check allowed and required.
         # fields
         self.check_if_dict(substmt, "SubStatement")
         self.check_allowed_fields(sub_allowed_fields, substmt, "SubStatement")
         self.check_required_fields(
             sub_required_fields, substmt, "SubStatement")
 
-        # If timestamp is included, ensure a valid time can be parsed
+        # If timestamp is included, ensure a valid time can be parsed.
         if 'timestamp' in substmt:
             timestamp = substmt['timestamp']
             try:
@@ -717,8 +717,7 @@ class StatementValidator():
                 self.return_error(
                     "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
 
-        # Can't next substmts in other substmts - if not supplied it is an
-        # Activity
+        # Can't next substmts in other substmts - if not supplied it is an Activity.
         if 'objectType' in substmt['object']:
             if substmt['object']['objectType'] == 'SubStatement':
                 self.return_error(
@@ -740,7 +739,7 @@ class StatementValidator():
             self.validate_context(substmt['context'], substmt['object'])
 
     def validate_result(self, result):
-        # Ensure incoming result is dict and check allowed fields
+        # Ensure incoming result is dict and check allowed fields.
         self.check_if_dict(result, "Result")
         self.check_allowed_fields(result_allowed_fields, result, "Result")
         duration_re = re.compile(
@@ -749,9 +748,9 @@ class StatementValidator():
         if 'duration' in result:
             if not duration_re.match(result['duration']):
                 self.return_error(
-                    "Error with result duration")
+                    "Error with result duration.")
 
-        # If success or completion included, ensure they are boolean
+        # If success or completion included, ensure they are boolean.
         if 'success' in result:
             if not isinstance(result['success'], bool):
                 self.return_error("Result success must be a boolean value")

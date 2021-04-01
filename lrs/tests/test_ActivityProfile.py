@@ -306,6 +306,7 @@ class ActivityProfileTests(TestCase):
         response = self.client.get(reverse('lrs:activity_profile'), {'activityId': self.test_activityId1, 'profileId': self.testprofileId1},
                                    X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(response.status_code, 200)
+        print(response.content)
         robj = ast.literal_eval(response.content)
         self.assertEqual(robj['test'], self.testprofile1['test'])
         self.assertEqual(robj['obj']['activity'],
