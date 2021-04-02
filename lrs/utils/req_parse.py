@@ -500,13 +500,12 @@ def get_headers(headers):
     header_dict['CONTENT_TYPE'] = headers.pop('CONTENT_TYPE', None)
     if not header_dict['CONTENT_TYPE'] and 'Content-Type' in headers:
         header_dict['CONTENT_TYPE'] = headers.pop('Content-Type')
-    # Could not exist with deletes
+    # Could not exist with deletes.
     if header_dict['CONTENT_TYPE']:
         # FireFox automatically adds ;charset=foo to the end of headers. This
-        # will strip it out
+        # will strip it out.
         if ';' in header_dict['CONTENT_TYPE'] and 'boundary' not in header_dict['CONTENT_TYPE']:
-            header_dict['CONTENT_TYPE'] = header_dict['CONTENT_TYPE'].split(';')[
-                0]
+            header_dict['CONTENT_TYPE'] = header_dict['CONTENT_TYPE'].split(';')[0]
 
     # Get ETag.
     header_dict['ETAG'] = get_etag_info(headers)
@@ -531,7 +530,7 @@ def get_headers(headers):
             'X-Experience-API-Version'] = headers.pop('X-Experience-API-Version')
 
     # Get last modified header.
-    if 'Last-Modified' in headers:
-        header_dict['Last-Modified'] = headers.pop('Last-Modified')
+    # if 'Last-Modified' in headers:
+    #     header_dict['Last-Modified'] = headers.pop('Last-Modified')
 
     return header_dict
