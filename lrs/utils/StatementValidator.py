@@ -51,6 +51,10 @@ context_allowed_fields = ['registration', 'instructor', 'team', 'contextActiviti
                           'contextAgents', 'contextGroups',
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
+context_agent_allowed_fields = ['objectType', 'agent', 'relevantTypes']
+
+context_group_allowed_fields = ['objectType', 'group', 'relevantTypes']
+
 
 # Exception type to accommodate RFC 3339 timestamp validation.
 class RFC3339Error(ValueError):
@@ -856,12 +860,12 @@ class StatementValidator():
             self.validate_context_activities(context['contextActivities'])
 
         # # If contextAgents given, ensure they are valid contextAgents.
-        # if 'contextAgents' in context:
-        #     self.validate_context_agents(context['contextAgents'])
+        if 'contextAgents' in context:
+            self.validate_context_agents(context['contextAgents'])
 
         # # If contextGroups given, ensure they are valid contextGroups.
-        # if 'contextGroups' in context:
-        #     self.validate_context_groups(context['contextGroups'])
+        if 'contextGroups' in context:
+            self.validate_context_groups(context['contextGroups'])
 
         # If extensions, validate
         if 'extensions' in context:
@@ -886,30 +890,43 @@ class StatementValidator():
                 self.return_error(
                     "contextActivities is not formatted correctly.")
     
-    # def validate_context_agents(self, conags):
-    #     # Ensure incoming conag is dict.
-    #     self.check_if_dict(conags, "Context agents")
-    #     for conag in conags.items():
-    #         # Ensure conag is a list or dict.
-    #         if isinstance(conag[1], list):
-    #             for ag in conag[1]:
-    #                 self.validate_context_agent(ag)
-    #         elif isinstance(conag[1], dict):
-    #             self.validate_context_agent(conag[1])
-    #         else:
-    #             self.return_error(
-    #                 "contextAgents is not formatted correctly.")
+    def validate_context_agents(self, conags):
+        # Ensure incoming conags is list.
+        self.check_if_list(conags, "Context agents")
 
-    # def validate_context_groups(self, congrps):
-    #     # Ensure incoming congrp is dict.
-    #     self.check_if_dict(congrps, "Context groups")
-    #     for congrp in congrps.items():
-    #         # Ensure congrp is a list or dict.
-    #         if isinstance(congrp[1], list):
-    #             for grp in congrp[1]:
-    #                 self.validate_context_group(grp)
-    #         elif isinstance(congrp[1], dict):
-    #             self.validate_context_group(congrp[1])
-    #         else:
-    #             self.return_error(
-    #                 "contextGroups is not formatted correctly.")
+        for conag in conags:
+            # Ensure conag is dict.
+            self.check_if_dict(conag, "Context agent")
+            self.check_allowed_fields(context_agent_allowed_fields, conag, "Context agent")
+
+            if conag['objectType'] != "contextAgent"
+                self.return_error("Context agent type is not valid - %s - must be %s" %
+                                  (conag['objectType'], 'contextAgent'))
+
+            self.validate_agent(conag['agent'], 'Context agent')
+
+            if 'relevantTypes' in conag:
+                self.check_if_list(conag['relevantTypes'], "Context agent relevant types")
+                for reltype in conag['relevantTypes']:
+                    self.validate_iri(reltype, 'Relevant type activity')
+
+
+    def validate_context_groups(self, congrps):
+        # Ensure incoming congrps is list.
+        self.check_if_list(congrps, "Context groups")
+
+        for congrp in congrps:
+            # Ensure congrp is dict.
+            self.check_if_dict(congrp, "Context group")
+            self.check_allowed_fields(context_group_allowed_fields, congrp, "Context group")
+
+            if congrp['objectType'] != "contextGroup"
+                self.return_error("Context group type is not valid - %s - must be %s" %
+                                  (congrp['objectType'], 'contextGroup'))
+
+            self.validate_agent(congrp['group'], 'Context group')
+
+            if 'relevantTypes' in congrp:
+                self.check_if_list(congrp['relevantTypes'], "Context group relevant types")
+                for reltype in congrp['relevantTypes']:
+                    self.validate_iri(reltype, 'Relevant type activity')
