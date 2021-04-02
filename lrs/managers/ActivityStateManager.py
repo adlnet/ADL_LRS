@@ -108,7 +108,6 @@ class ActivityStateManager():
                 except:
                     post_state = ContentFile(str(request_dict['state']))
 
-            etag.check_preconditions(request_dict, s, created, False)
             # If a state already existed with the profileId and activityId
             if not created:
                 if s.state:

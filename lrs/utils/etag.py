@@ -49,8 +49,8 @@ def check_preconditions(request, contents, created, required=True):
         else:
             # If there are both, if none match takes precendence 
             if request_etag[IF_NONE_MATCH]:
-                # only check if the content already exists. if it did not
-                # already exist it should pass
+                # Only check if the content already exists. if it did not
+                # already exist it should pass.
                 if exists:
                     if request_etag[IF_NONE_MATCH] == "*":
                         raise EtagPreconditionFail("Resource detected")

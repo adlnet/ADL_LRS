@@ -36,14 +36,14 @@ class AgentProfileManager():
 
         post_profile = request_dict['profile']
         # If incoming profile is application/json and if a profile didn't
-        # already exist with the same agent and profileId
+        # already exist with the same agent and profileId.
         if created:
             etag.check_preconditions(request_dict, p, created)
             p.json_profile = post_profile
             p.content_type = "application/json"
             p.etag = etag.create_tag(post_profile)
         # If incoming profile is application/json and if a profile already
-        # existed with the same agent and profileId
+        # existed with the same agent and profileId.
         else:
             orig_prof = json.loads(p.json_profile)
             post_profile = json.loads(post_profile)
@@ -60,11 +60,11 @@ class AgentProfileManager():
         p.save()
 
     def put_profile(self, request_dict):
-        # get/create profile
+        # Get/create profile.
         p, created = AgentProfile.objects.get_or_create(
             profile_id=request_dict['params']['profileId'], agent=self.Agent)
 
-        # Profile being PUT is not json
+        # Profile being PUT is not JSON.
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 profile = ContentFile(request_dict['profile'].read())
@@ -74,13 +74,12 @@ class AgentProfileManager():
                 except:
                     profile = ContentFile(str(request_dict['profile']))
 
-            etag.check_preconditions(request_dict, p, created)
-            # If it already exists delete it
+            # If it already exists delete it.
             if p.profile:
                 try:
                     p.profile.delete()
                 except OSError:
-                    # probably was json before
+                    # Probably was JSON before
                     p.json_profile = {}
             self.save_non_json_profile(p, profile, request_dict)
         # Profile being PUT is json
@@ -125,7 +124,7 @@ class AgentProfileManager():
     def delete_profile(self, profile_id):
         try:
             self.get_profile(profile_id).delete()
-        # we don't want it anyway
+        # We don't want it anyway.
         except AgentProfile.DoesNotExist:
             pass
         except IDNotFoundError:

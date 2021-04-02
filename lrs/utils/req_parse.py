@@ -529,8 +529,4 @@ def get_headers(headers):
         header_dict[
             'X-Experience-API-Version'] = headers.pop('X-Experience-API-Version')
 
-    # Get last modified header.
-    # if 'Last-Modified' in headers:
-    #     header_dict['Last-Modified'] = headers.pop('Last-Modified')
-
     return header_dict

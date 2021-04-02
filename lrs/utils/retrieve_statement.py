@@ -124,11 +124,10 @@ def complex_get(param_dict, limit, language, stmt_format, attachments):
     else:
         actual_length = len(stmtset)
 
-    # Calculate limit of stmts to return
+    # Calculate limit of stmts to return.
     return_limit = set_limit(limit)
 
-    # If there are more stmts than the limit, need to break it up and return
-    # more id
+    # If there are more stmts than the limit, need to break it up and return more ID.
     if actual_length > return_limit:
         return create_over_limit_stmt_result(stmtset, stored_param, return_limit, language, stmt_format, attachments)
     else:
@@ -179,7 +178,7 @@ def create_cache_key():
 
 
 def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_format, attachments):
-    # First time someone queries POST/GET
+    # First time someone queries POST/GET.
     result = {}
     cache_list = []
 
@@ -189,13 +188,13 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_forma
         stored).values_list('id', flat=True)])
     stmt_pager = Paginator(cache_list[0], limit)
 
-    # Always start on first page
+    # Always start on first page.
     current_page = 1
     total_pages = stmt_pager.num_pages
-    # Create cache key from hashed data (always 32 digits)
+    # Create cache key from hashed data (always 32 digits).
     cache_key = create_cache_key()
 
-    # Add data to cache
+    # Add data to cache.
     cache_list.append(current_page)
     cache_list.append(total_pages)
     cache_list.append(limit)
@@ -204,9 +203,9 @@ def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_forma
     cache_list.append(stmt_format)
     cache_list.append(stored)
 
-    # Encode data
+    # Encode data.
     encoded_info = json.dumps(cache_list)
-    # Save encoded_dict in cache
+    # Save encoded_dict in cache.
     cache.set(cache_key, encoded_info)
 
     result['statements'] = [stmt.to_dict(language, stmt_format) for stmt in

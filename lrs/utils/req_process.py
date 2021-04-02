@@ -10,6 +10,8 @@ from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
+from wsgiref.handlers import format_date_time
+
 from retrieve_statement import complex_get, parse_more_request
 from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity
@@ -191,8 +193,10 @@ def statements_more_get(req_dict):
 
     if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))
+        last_modified = None
     else:
         content_length = len(stmt_result)
+        last_modified = stmt_result['stored'] if stmt_result['stored'] else None
     mime_type = "application/json"
 
     # If there are attachments, include them in the payload.
@@ -208,10 +212,8 @@ def statements_more_get(req_dict):
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
     resp['Content-Length'] = str(content_length)
-    
-    # stmt_dict = json.loads(stmt_result)
-    # if 'stored' in stmt_result:
-    #     resp['Last-Modified'] = stmt_dict['stored']
+    if last_modified is not None:    
+        resp['Last-Modified'] = last_modified
 
     return resp
 
@@ -234,14 +236,14 @@ def statements_get(req_dict):
             resp = HttpResponse(
                 stmt_result, content_type=mime_type, status=200)
             content_length = len(stmt_result)
+            last_modified = stmt_result['stored'] if stmt_result['stored'] else None
     # Complex GET
     else:
         resp, content_length = process_complex_get(req_dict)
+        last_modified = None
     resp['Content-Length'] = str(content_length)
-    
-    # stmt_dict = json.loads(stmt_result)
-    # if 'stored' in stmt_result:
-    #     resp['Last-Modified'] = stmt_dict['stored']
+    if last_modified is not None:    
+        resp['Last-Modified'] = last_modified
 
     return resp
 
@@ -428,10 +430,6 @@ def activities_get(req_dict):
         return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
 
-    # act_dict = json.loads(return_act)
-    # if 'stored' in return_act:
-    #     resp['Last-Modified'] = act_dict['stored']
-
     return resp
 
 
@@ -503,9 +501,5 @@ def agents_get(req_dict):
     resp = HttpResponse(
         agent_data, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(agent_data))
-
-    # agent_dict = json.loads(agent_data)
-    # if 'stored' in agent_data:
-    #     resp['Last-Modified'] = agent_dict['stored']
 
     return resp

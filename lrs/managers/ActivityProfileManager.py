@@ -76,7 +76,6 @@ class ActivityProfileManager():
                 except:
                     profile = ContentFile(str(request_dict['profile']))
 
-            etag.check_preconditions(request_dict, p, created)
             # If a profile already existed with the profileId and activityId
             if not created:
                 if p.profile:
