@@ -21,8 +21,6 @@ ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
 STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
 # Called when a user is created, saved, or logging in.
-
-
 def attach_user(sender, **kwargs):
     user = kwargs["instance"]
     if kwargs["created"]:
@@ -121,7 +119,7 @@ class AgentManager(models.Manager):
                 try:
                     agent = Agent.objects.create(**kwargs)
                     created = True
-                except IntegrityError, ValidationError:
+                except (IntegrityError, ValidationError):
                     # Try getting agent by IFP in ifp_dict
                     agent = Agent.objects.filter(**ifp_dict)[0]
                     created = False
@@ -155,7 +153,7 @@ class AgentManager(models.Manager):
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
-                    except IntegrityError, ValidationError:
+                    except (IntegrityError, ValidationError):
                         agent = Agent.objects.get(
                             oauth_identifier=created_oauth_identifier)
                         created = False
@@ -171,7 +169,7 @@ class AgentManager(models.Manager):
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
-                    except IntegrityError, ValidationError:
+                    except (IntegrityError, ValidationError):
                         agent = Agent.objects.get(
                             oauth_identifier=created_oauth_identifier)
                         created = False
@@ -380,6 +378,14 @@ class SubStatement(models.Model):
         Activity, related_name="sub_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="sub_context_ca_other")
+    context_contextAgent = models.ForeignKey(
+        Agent, related_name="sub_context_contextAgent", null=True, on_delete=models.SET_NULL, db_index=True)
+    context_contextAgent_relevantType = models.CharField(
+        max_length=MAX_URL_LENGTH, db_index=True, unique=True)
+    context_contextGroup = models.ForeignKey(
+        Agent, related_name="sub_context_contextGroup", null=True, on_delete=models.SET_NULL, db_index=True)
+    context_contextGroup_relevantType = models.CharField(
+        max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     # Context also has a stmt field which is a statementref.
     context_statement = models.CharField(max_length=40, blank=True)
 
@@ -463,6 +469,20 @@ class SubStatement(models.Model):
         if not ret['context']:
             del ret['context']
 
+        ret['context']['contextAgents'] = OrderedDict()
+        ret['context']['contextAgents']['objectType'] = "contextAgent"
+        if self.context_contextAgent:
+            ret['context']['contextAgents']['agent'] = self.context_contextAgent
+        if self.context_contextAgent_relevantType:
+            ret['context']['contextAgents']['relevantTypes'] = self.context_contextAgent_relevantType
+
+        ret['context']['contextGroups'] = OrderedDict()
+        ret['context']['contextGroups']['objectType'] = "contextGroup"
+        if self.context_contextGroup:
+            ret['context']['contextGroups']['group'] = self.context_contextGroup
+        if self.context_contextGroup_relevantType:
+            ret['context']['contextGroups']['relevantTypes'] = self.context_contextGroup_relevantType
+
         if self.timestamp:
             ret['timestamp'] = self.timestamp.isoformat()
         ret['objectType'] = "SubStatement"
@@ -537,6 +557,14 @@ class Statement(models.Model):
         Activity, related_name="stmt_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="stmt_context_ca_other")
+    context_contextAgent = models.ForeignKey(
+        Agent, related_name="stmt_context_contextAgent", null=True, on_delete=models.SET_NULL, db_index=True)
+    context_contextAgent_relevantType = models.CharField(
+        max_length=MAX_URL_LENGTH, db_index=True, unique=True)
+    context_contextGroup = models.ForeignKey(
+        Agent, related_name="stmt_context_contextGroup", null=True, on_delete=models.SET_NULL, db_index=True)
+    context_contextGroup_relevantType = models.CharField(
+        max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     # Context also has a stmt field which is a statementref.
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7)
@@ -628,6 +656,25 @@ class Statement(models.Model):
             ret['context']['extensions'] = self.context_extensions
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
+
+        ret['context']['contextAgents'] = OrderedDict()
+        ret['context']['contextAgents']['objectType'] = "contextAgent"
+        if self.context_contextAgent:
+            ret['context']['contextAgents']['agent'] = self.context_contextAgent
+        if self.context_contextAgent_relevantType:
+            ret['context']['contextAgents']['relevantTypes'] = self.context_contextAgent_relevantType
+        if not ret['context']['contextAgents']:
+            del ret['context']['contextAgents']
+
+        ret['context']['contextGroups'] = OrderedDict()
+        ret['context']['contextGroups']['objectType'] = "contextGroup"
+        if self.context_contextGroup:
+            ret['context']['contextGroups']['group'] = self.context_contextGroup
+        if self.context_contextGroup_relevantType:
+            ret['context']['contextGroups']['relevantTypes'] = self.context_contextGroup_relevantType
+        if not ret['context']['contextGroups']:
+            del ret['context']['contextGroups']
+        
         if not ret['context']:
             del ret['context']
 

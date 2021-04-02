@@ -68,68 +68,34 @@ class StatementManager():
         stmt.save()
 
     def build_context_agents(self, stmt, auth_info, con_agt_data):
-        pass
-        # for con_act_group in con_act_data.items():
-        #     # Incoming contextActivities can either be a list or dict
-        #     if isinstance(con_act_group[1], list):
-        #         for con_act in con_act_group[1]:
-        #             act = ActivityManager(con_act, auth=auth_info[
-        #                                   'agent'], define=auth_info['define']).activity
-        #             if con_act_group[0] == 'parent':
-        #                 stmt.context_ca_parent.add(act)
-        #             elif con_act_group[0] == 'grouping':
-        #                 stmt.context_ca_grouping.add(act)
-        #             elif con_act_group[0] == 'category':
-        #                 stmt.context_ca_category.add(act)
-        #             else:
-        #                 stmt.context_ca_other.add(act)
-        #     else:
-        #         act = ActivityManager(con_act_group[1], auth=auth_info[
-        #                               'agent'], define=auth_info['define']).activity
-        #         if con_act_group[0] == 'parent':
-        #             stmt.context_ca_parent.add(act)
-        #         elif con_act_group[0] == 'grouping':
-        #             stmt.context_ca_grouping.add(act)
-        #         elif con_act_group[0] == 'category':
-        #             stmt.context_ca_category.add(act)
-        #         else:
-        #             stmt.context_ca_other.add(act)
-        # stmt.save()
+        # Incoming contextAgents should be a list.
+        for con_ag in con_ag_data:
+            ag = Agent.objects.retrieve_or_create(
+                    **con_ag['agent'])[0]
+            stmt.context_contextAgent.add(ag)
+            if 'relevantTypes' in con_ag:
+                for reltype in con_ag['relevantTypes']:
+                    stmt.context_contextAgent_relevantType.add(reltype)
+
+        stmt.save()
     
     def build_context_groups(self, stmt, auth_info, con_grp_data):
-        pass
-        # for con_act_group in con_act_data.items():
-        #     # Incoming contextActivities can either be a list or dict
-        #     if isinstance(con_act_group[1], list):
-        #         for con_act in con_act_group[1]:
-        #             act = ActivityManager(con_act, auth=auth_info[
-        #                                   'agent'], define=auth_info['define']).activity
-        #             if con_act_group[0] == 'parent':
-        #                 stmt.context_ca_parent.add(act)
-        #             elif con_act_group[0] == 'grouping':
-        #                 stmt.context_ca_grouping.add(act)
-        #             elif con_act_group[0] == 'category':
-        #                 stmt.context_ca_category.add(act)
-        #             else:
-        #                 stmt.context_ca_other.add(act)
-        #     else:
-        #         act = ActivityManager(con_act_group[1], auth=auth_info[
-        #                               'agent'], define=auth_info['define']).activity
-        #         if con_act_group[0] == 'parent':
-        #             stmt.context_ca_parent.add(act)
-        #         elif con_act_group[0] == 'grouping':
-        #             stmt.context_ca_grouping.add(act)
-        #         elif con_act_group[0] == 'category':
-        #             stmt.context_ca_category.add(act)
-        #         else:
-        #             stmt.context_ca_other.add(act)
-        # stmt.save()
+        # Incoming contextAgents should be a list.
+        for con_grp in con_grp_data:
+            grp = Agent.objects.retrieve_or_create(
+                    **con_grp['group'])[0]
+            stmt.context_contextGroup.add(grp)
+            if 'relevantTypes' in con_grp:
+                for reltype in con_grp['relevantTypes']:
+                    stmt.context_contextGroup_relevantType.add(reltype)
+
+        stmt.save()
 
     def build_substatement(self, auth_info, stmt_data):
-        # Pop off any context activities.
+        # Pop off any context activities/agents/groups.
         con_act_data = stmt_data.pop('context_contextActivities', {})
-        # con_ag_data = stmt_data.pop('context_contextAgents', {})
-        # con_grp_data = stmt_data.pop('context_contextGroups', {})
+        con_ag_data = stmt_data.pop('context_contextAgents', {})
+        con_grp_data = stmt_data.pop('context_contextGroups', {})
 
         # Delete objectType since it is not a field in the model.
         del stmt_data['objectType']
@@ -138,18 +104,19 @@ class StatementManager():
         if con_act_data:
             self.build_context_activities(stmt, auth_info, con_act_data)
         # if con_ag_data:
-        #     self.build_context_agents(stmt, auth_info, con_ag_data)
-        # if con_grp_data:
-        #     self.build_context_groups(stmt, auth_info, con_grp_data)
+            self.build_context_agents(stmt, auth_info, con_ag_data)
+        if con_grp_data:
+            self.build_context_groups(stmt, auth_info, con_grp_data)
 
         return sub
 
     def build_statement(self, auth_info, stmt_data):
         stmt_data['stored'] = convert_to_datetime_object(stmt_data['stored'])
+        
         # Pop off any context activities/agents/groups.
         con_act_data = stmt_data.pop('context_contextActivities', {})
-        # con_ag_data = stmt_data.pop('context_contextAgents', {})
-        # con_grp_data = stmt_data.pop('context_contextGroups', {})
+        con_ag_data = stmt_data.pop('context_contextAgents', {})
+        con_grp_data = stmt_data.pop('context_contextGroups', {})
 
         stmt_data['user'] = auth_info['user']
         # Name of id field in models is statement_id.
@@ -161,10 +128,10 @@ class StatementManager():
 
         if con_act_data:
             self.build_context_activities(stmt, auth_info, con_act_data)
-        # if con_ag_data:
-        #     self.build_context_agents(stmt, auth_info, con_ag_data)
-        # if con_grp_data:
-        #     self.build_context_groups(stmt, auth_info, con_grp_data)
+        if con_ag_data:
+            self.build_context_agents(stmt, auth_info, con_ag_data)
+        if con_grp_data:
+            self.build_context_groups(stmt, auth_info, con_grp_data)
         
         return stmt
 
