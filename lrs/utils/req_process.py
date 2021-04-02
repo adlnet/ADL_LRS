@@ -1,7 +1,9 @@
-import json
-import uuid
 import copy
+import json
 import re
+import unicodedata
+import uuid
+
 from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
@@ -38,7 +40,7 @@ def process_statement(stmt, auth, payload_sha2s):
         else:
             sec_trunc = int(sec_as_num)
 
-        stmt['result']['duration'] = stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S')
+        stmt['result']['duration'] = unicodedata.normalize(stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
         
 
     # Convert context activities to list if dict.

@@ -380,7 +380,7 @@ class ActivityProfileTests(TestCase):
                                    'activityId': actid, 'since': since}, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content,
-                         "Since parameter was not a valid ISO8601 timestamp")
+                         "since parameter was not a valid RFC3339 timestamp.")
 
         params = {"activityId": actid, "profileId": profid}
         self.client.delete(reverse('lrs:activity_profile'), params,

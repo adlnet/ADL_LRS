@@ -126,19 +126,31 @@ class StatementManager():
         # stmt.save()
 
     def build_substatement(self, auth_info, stmt_data):
-        # Pop off any context activities
+        # Pop off any context activities.
         con_act_data = stmt_data.pop('context_contextActivities', {})
-        # Delete objectType since it is not a field in the model
+        # con_ag_data = stmt_data.pop('context_contextAgents', {})
+        # con_grp_data = stmt_data.pop('context_contextGroups', {})
+
+        # Delete objectType since it is not a field in the model.
         del stmt_data['objectType']
         sub = SubStatement.objects.create(**stmt_data)
+
         if con_act_data:
-            self.build_context_activities(sub, auth_info, con_act_data)
+            self.build_context_activities(stmt, auth_info, con_act_data)
+        # if con_ag_data:
+        #     self.build_context_agents(stmt, auth_info, con_ag_data)
+        # if con_grp_data:
+        #     self.build_context_groups(stmt, auth_info, con_grp_data)
+
         return sub
 
     def build_statement(self, auth_info, stmt_data):
         stmt_data['stored'] = convert_to_datetime_object(stmt_data['stored'])
-        # Pop off any context activities.
+        # Pop off any context activities/agents/groups.
         con_act_data = stmt_data.pop('context_contextActivities', {})
+        # con_ag_data = stmt_data.pop('context_contextAgents', {})
+        # con_grp_data = stmt_data.pop('context_contextGroups', {})
+
         stmt_data['user'] = auth_info['user']
         # Name of id field in models is statement_id.
         if 'id' in stmt_data:
@@ -146,8 +158,14 @@ class StatementManager():
             del stmt_data['id']
         # Try to create statement.
         stmt = Statement.objects.create(**stmt_data)
+
         if con_act_data:
             self.build_context_activities(stmt, auth_info, con_act_data)
+        # if con_ag_data:
+        #     self.build_context_agents(stmt, auth_info, con_ag_data)
+        # if con_grp_data:
+        #     self.build_context_groups(stmt, auth_info, con_grp_data)
+        
         return stmt
 
     def build_result(self, stmt_data):
