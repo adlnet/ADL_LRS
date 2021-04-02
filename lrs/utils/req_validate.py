@@ -225,14 +225,14 @@ def statements_get(req_dict):
             validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
             raise ParamError(
-                "since parameter was not a valid RFC3339 timestamp")
+                "since parameter was not a valid RFC3339 timestamp.")
 
     if 'until' in req_dict['params']:
         try:
             validate_timestamp(req_dict['params']['until'])
         except (Exception, RFC3339Error):
             raise ParamError(
-                "until parameter was not a valid RFC3339 timestamp")
+                "until parameter was not a valid RFC3339 timestamp.")
 
     if 'ascending' in req_dict['params']:
         if req_dict['params']['ascending'].lower() == 'true':
@@ -539,7 +539,7 @@ def activity_state_get(req_dict):
             validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
             raise ParamError(
-                "since parameter was not a valid RFC3339 timestamp")
+                "since parameter was not a valid RFC3339 timestamp.")
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
@@ -599,12 +599,12 @@ def activity_profile_post(req_dict):
         validator.validate_iri(
             req_dict['params']['activityId'], "activityId param for activity profile")
     else:
-        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict[
+        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
     if 'profileId' not in req_dict['params']:
-        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict[
+        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
@@ -653,12 +653,12 @@ def activity_profile_put(req_dict):
         validator.validate_iri(
             req_dict['params']['activityId'], "activityId param for activity profile")
     else:
-        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict[
+        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
     if 'profileId' not in req_dict['params']:
-        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict[
+        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
@@ -693,7 +693,7 @@ def activity_profile_get(req_dict):
         try:
             validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
-            raise ParamError("Since parameter was not a valid RFC 3339 timestamp")
+            raise ParamError("since parameter was not a valid RFC3339 timestamp.")
 
     return req_dict
 
@@ -710,12 +710,12 @@ def activity_profile_delete(req_dict):
         validator.validate_iri(
             req_dict['params']['activityId'], "activityId param for activity profile")
     else:
-        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing.." % req_dict[
+        err_msg = "Error -- activity_profile - method = %s, but activityId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
     if 'profileId' not in req_dict['params']:
-        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing.." % req_dict[
+        err_msg = "Error -- activity_profile - method = %s, but profileId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
@@ -774,7 +774,7 @@ def agent_profile_post(req_dict):
         raise ParamError(err_msg)
 
     if 'profileId' not in req_dict['params']:
-        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict[
+        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
@@ -839,7 +839,7 @@ def agent_profile_put(req_dict):
         raise ParamError(err_msg)
 
     if 'profileId' not in req_dict['params']:
-        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict[
+        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 
@@ -882,7 +882,7 @@ def agent_profile_get(req_dict):
             validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
             raise ParamError(
-                "Since parameter was not a valid RFC3339 timestamp")
+                "since parameter was not a valid RFC3339 timestamp.")
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
@@ -912,7 +912,7 @@ def agent_profile_delete(req_dict):
         raise ParamError(err_msg)
 
     if 'profileId' not in req_dict['params']:
-        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing.." % req_dict[
+        err_msg = "Error -- agent_profile - method = %s, but profileId parameter missing." % req_dict[
             'method']
         raise ParamError(err_msg)
 

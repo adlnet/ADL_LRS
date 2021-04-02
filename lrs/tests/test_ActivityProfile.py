@@ -140,13 +140,13 @@ class ActivityProfileTests(TestCase):
         put = self.client.put(reverse('lrs:activity_profile'), content_type=self.content_type,
                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEquals(
-            put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
+            put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing.')
 
     def test_put_no_activityId(self):
         put = self.client.put(reverse('lrs:activity_profile'), {
                               'profileId': '10'}, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEquals(
-            put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
+            put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing.')
 
     def test_put_no_profileId(self):
         testparams = {'activityId': 'act:act:act'}
@@ -155,7 +155,7 @@ class ActivityProfileTests(TestCase):
         put = self.client.put(path, content_type=self.content_type,
                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEquals(
-            put.content, 'Error -- activity_profile - method = PUT, but profileId parameter missing..')
+            put.content, 'Error -- activity_profile - method = PUT, but profileId parameter missing.')
 
     def test_put_etag_missing_on_change(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
@@ -391,7 +391,7 @@ class ActivityProfileTests(TestCase):
                                    'profileId': self.testprofileId3}, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.content, 'Error -- activity_profile - method = GET, but activityId parameter missing..')
+            response.content, 'Error -- activity_profile - method = GET, but activityId parameter missing.')
 
     def test_get_no_activityId_with_since(self):
         since = "2012-07-01T13:30:00+04:00"
@@ -399,7 +399,7 @@ class ActivityProfileTests(TestCase):
                                    'since': since}, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.content, 'Error -- activity_profile - method = GET, but activityId parameter missing..')
+            response.content, 'Error -- activity_profile - method = GET, but activityId parameter missing.')
 
     def test_delete(self):
         response = self.client.delete(reverse('lrs:activity_profile'), {
