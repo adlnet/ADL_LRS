@@ -230,7 +230,7 @@ class StatementValidator():
         # is at least 1.0.0.
         if 'version' in stmt:
             if isinstance(stmt['version'], basestring):
-                version_regex = re.compile("^1\.0(\.\d+)?$")
+                version_regex = re.compile("^(1|2)\.0(\.\d+)?$")
                 if not version_regex.match(stmt['version']):
                     self.return_error(
                         "%s is not a supported version" % stmt['version'])
