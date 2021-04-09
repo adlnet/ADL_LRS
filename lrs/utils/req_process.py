@@ -212,8 +212,8 @@ def statements_more_get(req_dict):
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
     resp['Content-Length'] = str(content_length)
-    if last_modified is not None:    
-        resp['Last-Modified'] = last_modified
+    # if last_modified is not None:    
+    #     resp['Last-Modified'] = last_modified
 
     return resp
 
@@ -242,8 +242,8 @@ def statements_get(req_dict):
         resp, content_length = process_complex_get(req_dict)
         last_modified = None
     resp['Content-Length'] = str(content_length)
-    if last_modified is not None:    
-        resp['Last-Modified'] = last_modified
+    # if last_modified is not None:    
+    #     resp['Last-Modified'] = last_modified
 
     return resp
 
