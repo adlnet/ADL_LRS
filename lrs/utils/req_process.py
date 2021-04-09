@@ -42,7 +42,7 @@ def process_statement(stmt, auth, payload_sha2s):
         else:
             sec_trunc = int(sec_as_num)
 
-        stmt['result']['duration'] = unicodedata.normalize(stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
+        stmt['result']['duration'] = unicodedata.normalize("NFKD", stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
         
 
     # Convert context activities to list if dict.
