@@ -20,11 +20,10 @@ class StatementManager():
         self.populate(auth_info, stmt_data, payload_sha2s)
 
     def set_authority(self, auth_info, stmt_data):
-        # Could still have no authority in stmt if HTTP_AUTH and OAUTH are disabled
-        # Have to set auth in kwarg dict for Agent auth object to be saved in statement
-        # Also have to save auth in full_statement kwargs for when returning exact statements
-        # Set object auth as well for when creating other objects in a
-        # substatement
+        # Could still have no authority in stmt if HTTP_AUTH and OAUTH are disabled.
+        # Have to set auth in kwarg dict for Agent auth object to be saved in statement.
+        # Also have to save auth in full_statement kwargs for when returning exact statements.
+        # Set object auth as well for when creating other objects in a substatement.
         if auth_info['agent']:
             stmt_data['authority'] = auth_info['agent']
             stmt_data['full_statement'][

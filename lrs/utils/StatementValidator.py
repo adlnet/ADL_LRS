@@ -899,7 +899,7 @@ class StatementValidator():
             self.check_if_dict(conag, "Context agent")
             self.check_allowed_fields(context_agent_allowed_fields, conag, "Context agent")
 
-            if conag['objectType'] != "contextAgent"
+            if conag['objectType'] != "contextAgent":
                 self.return_error("Context agent type is not valid - %s - must be %s" %
                                   (conag['objectType'], 'contextAgent'))
 
@@ -920,7 +920,7 @@ class StatementValidator():
             self.check_if_dict(congrp, "Context group")
             self.check_allowed_fields(context_group_allowed_fields, congrp, "Context group")
 
-            if congrp['objectType'] != "contextGroup"
+            if congrp['objectType'] != "contextGroup":
                 self.return_error("Context group type is not valid - %s - must be %s" %
                                   (congrp['objectType'], 'contextGroup'))
 
