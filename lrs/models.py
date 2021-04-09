@@ -383,13 +383,13 @@ class SubStatement(models.Model):
     # context_contextAgent = models.ForeignKey(
     #     Agent, related_name="sub_context_contextAgent", null=True, on_delete=models.SET_NULL, db_index=True)
     context_contextAgent_relevantType = models.CharField(
-        max_length=MAX_URL_LENGTH, blank=True db_index=True)
+        max_length=MAX_URL_LENGTH, blank=True, db_index=True)
     context_contextGroup = models.ForeignKey(Agent, blank=True, null=True, on_delete=models.SET_NULL,
         db_index=True, related_name='sub_context_contextGroup')
     # context_contextGroup = models.ForeignKey(
     #     Agent, related_name="sub_context_contextGroup", null=True, on_delete=models.SET_NULL, db_index=True)
     context_contextGroup_relevantType = models.CharField(
-        max_length=MAX_URL_LENGTH, blank=True db_index=True)
+        max_length=MAX_URL_LENGTH, blank=True, db_index=True)
     # Context also has a stmt field which is a statementref.
     context_statement = models.CharField(max_length=40, blank=True)
 
