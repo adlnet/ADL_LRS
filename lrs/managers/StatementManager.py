@@ -66,7 +66,7 @@ class StatementManager():
                     stmt.context_ca_other.add(act)
         stmt.save()
 
-    def build_context_agents(self, stmt, auth_info, con_agt_data):
+    def build_context_agents(self, stmt, auth_info, con_ag_data):
         # Incoming contextAgents should be a list.
         for con_ag in con_ag_data:
             ag = Agent.objects.retrieve_or_create(
