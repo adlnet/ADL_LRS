@@ -466,8 +466,6 @@ class SubStatement(models.Model):
             ret['context']['extensions'] = self.context_extensions
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
-        if not ret['context']:
-            del ret['context']
 
         ret['context']['contextAgents'] = OrderedDict()
         ret['context']['contextAgents']['objectType'] = "contextAgent"
@@ -475,6 +473,8 @@ class SubStatement(models.Model):
             ret['context']['contextAgents']['agent'] = self.context_contextAgent
         if self.context_contextAgent_relevantType:
             ret['context']['contextAgents']['relevantTypes'] = self.context_contextAgent_relevantType
+        if not ret['context']['contextAgents']:
+            del ret['context']['contextAgents']
 
         ret['context']['contextGroups'] = OrderedDict()
         ret['context']['contextGroups']['objectType'] = "contextGroup"
@@ -482,6 +482,11 @@ class SubStatement(models.Model):
             ret['context']['contextGroups']['group'] = self.context_contextGroup
         if self.context_contextGroup_relevantType:
             ret['context']['contextGroups']['relevantTypes'] = self.context_contextGroup_relevantType
+        if not ret['context']['contextGroups']:
+            del ret['context']['contextGroups']
+
+        if not ret['context']:
+            del ret['context']
 
         if self.timestamp:
             ret['timestamp'] = self.timestamp.isoformat()
