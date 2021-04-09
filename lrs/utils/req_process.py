@@ -35,15 +35,17 @@ def process_statement(stmt, auth, payload_sha2s):
     if 'result' in stmt:
         if 'duration' in stmt['result']:
             stmt_dur = stmt['result']['duration']
-            sec_as_str = re.findall("\d+(?:\.\d+)?S", stmt_dur)[0]
-            sec_as_num = float(sec_as_str.replace('S', ''))
+            sec_split = re.findall("\d+(?:\.\d+)?S", stmt_dur)
+            if sec_split:
+                sec_as_str = sec_split[0]
+                sec_as_num = float(sec_as_str.replace('S', ''))
 
-            if not sec_as_num.is_integer():
-                sec_trunc = round(sec_as_num, 2)
-            else:
-                sec_trunc = int(sec_as_num)
+                if not sec_as_num.is_integer():
+                    sec_trunc = round(sec_as_num, 2)
+                else:
+                    sec_trunc = int(sec_as_num)
 
-            stmt['result']['duration'] = unicodedata.normalize("NFKD", stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
+                stmt['result']['duration'] = unicodedata.normalize("NFKD", stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
         
 
     # Convert context activities to list if dict.
