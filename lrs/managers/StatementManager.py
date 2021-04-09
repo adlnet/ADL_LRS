@@ -101,11 +101,11 @@ class StatementManager():
         sub = SubStatement.objects.create(**stmt_data)
 
         if con_act_data:
-            self.build_context_activities(stmt, auth_info, con_act_data)
+            self.build_context_activities(sub, auth_info, con_act_data)
         # if con_ag_data:
-            self.build_context_agents(stmt, auth_info, con_ag_data)
+            self.build_context_agents(sub, auth_info, con_ag_data)
         if con_grp_data:
-            self.build_context_groups(stmt, auth_info, con_grp_data)
+            self.build_context_groups(sub, auth_info, con_grp_data)
 
         return sub
 
