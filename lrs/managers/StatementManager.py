@@ -70,10 +70,10 @@ class StatementManager():
         # Incoming contextAgents should be a list.
         for con_ag in con_ag_data:
             ag = Agent.objects.retrieve_or_create(
-                    **con_ag['agent'])[0]
+                    **con_ag[1])[0]
             stmt.context_contextAgent.add(ag)
             if 'relevantTypes' in con_ag:
-                for reltype in con_ag['relevantTypes']:
+                for reltype in con_ag[2]:
                     stmt.context_contextAgent_relevantType.add(reltype)
 
         stmt.save()
@@ -82,10 +82,10 @@ class StatementManager():
         # Incoming contextAgents should be a list.
         for con_grp in con_grp_data:
             grp = Agent.objects.retrieve_or_create(
-                    **con_grp['group'])[0]
+                    **con_grp[1])[0]
             stmt.context_contextGroup.add(grp)
             if 'relevantTypes' in con_grp:
-                for reltype in con_grp['relevantTypes']:
+                for reltype in con_grp[2]:
                     stmt.context_contextGroup_relevantType.add(reltype)
 
         stmt.save()

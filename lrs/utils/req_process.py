@@ -193,10 +193,10 @@ def statements_more_get(req_dict):
 
     if isinstance(stmt_result, dict):
         content_length = len(json.dumps(stmt_result))
-        last_modified = None
+        # last_modified = None
     else:
         content_length = len(stmt_result)
-        last_modified = stmt_result['stored'] if stmt_result['stored'] else None
+        # last_modified = stmt_result['stored'] if stmt_result['stored'] else None
     mime_type = "application/json"
 
     # If there are attachments, include them in the payload.
@@ -236,11 +236,11 @@ def statements_get(req_dict):
             resp = HttpResponse(
                 stmt_result, content_type=mime_type, status=200)
             content_length = len(stmt_result)
-            last_modified = stmt_result['stored'] if stmt_result['stored'] else None
+            # last_modified = stmt_result['stored'] if stmt_result['stored'] else None
     # Complex GET
     else:
         resp, content_length = process_complex_get(req_dict)
-        last_modified = None
+        # last_modified = None
     resp['Content-Length'] = str(content_length)
     # if last_modified is not None:    
     #     resp['Last-Modified'] = last_modified
