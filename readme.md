@@ -1,8 +1,20 @@
 ﻿# ADL LRS
 
-#### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
+#### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the 2.0.0 xAPI spec.
 
 This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
+
+## xAPI 2.0 Update
+
+This LRS has been updated to support new features introduced in the xAPI 2.0 IEEE spec. Some of the more notable changes include:
+- New database models and validation logic added to support Context Agents and Context Groups, new Object types used by the `context` property
+- Now accepts 2.0.x as valid `version` property
+- Support RFC 3339 timestamps as opposed to strict ISO 8601
+- Statements with timestamps not formatted to UTC are no longer rejected; instead, the LRS will attempt to convert timestamps without time zone info before storing them
+- Durations included in `result` properties are rounded to two places for seconds if necessary, allowing for less strict comparison operations
+- Alternate Request Syntax is no longer supported and has been removed
+- LRS responses now include `Last-Modified` headers
+- Now supports ETag headers for additional request types
 
 ## Installation
 
