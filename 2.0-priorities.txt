@@ -1,8 +1,3 @@
-* Reject statements that use a property more than once
-* Reject requests with missing required properties
-* Reject requests with null values (except in extensions)
-* Reject requests using incorrect data types
-
 ## LRS Communications: Conformance Changes
 
 **Content-Type:**
