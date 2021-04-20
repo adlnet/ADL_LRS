@@ -179,8 +179,8 @@ def set_object_agent_query(q, agent, or_operand):
                     Q(object_substatement__actor=agent) |
                     Q(object_substatement__object_agent=agent) |
                     Q(object_substatement__context_instructor=agent) |
-                    Q(object_substatement__context_team=agent)) |
-                    Q(object_substatement__context_contextAgent=agent)) |
+                    Q(object_substatement__context_team=agent) |
+                    Q(object_substatement__context_contextAgent=agent) |
                     Q(object_substatement__context_contextGroup=agent))
 
     return q & (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) |
@@ -189,8 +189,8 @@ def set_object_agent_query(q, agent, or_operand):
                 Q(object_substatement__actor=agent) |
                 Q(object_substatement__object_agent=agent) |
                 Q(object_substatement__context_instructor=agent) |
-                Q(object_substatement__context_team=agent)) |
-                Q(object_substatement__context_contextAgent=agent)) |
+                Q(object_substatement__context_team=agent) |
+                Q(object_substatement__context_contextAgent=agent) |
                 Q(object_substatement__context_contextGroup=agent))
 
 # Retrieve JSON data from ID
