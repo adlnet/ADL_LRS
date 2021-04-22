@@ -478,7 +478,7 @@ class SubStatement(models.Model):
         if self.context_contextAgent.all():
             ret['context']['contextAgents']['agent'] = [conag.context_contextAgent.to_dict(ids_only) for conag in self.context_contextAgent.all()]
         if self.context_contextAgent_relevantType:
-            ret['context']['contextAgents']['relevantTypes'] = self.context_contextAgent_relevantType
+            ret['context']['contextAgents']['relevantTypes'] = [reltype.context_contextAgent_relevantType for reltype in self.context_contextAgent_relevantType.all()]
         if not ret['context']['contextAgents']:
             del ret['context']['contextAgents']
 
@@ -489,7 +489,7 @@ class SubStatement(models.Model):
         if self.context_contextGroup.all():
             ret['context']['contextGroups']['agent'] = [congrp.context_contextGroup.to_dict(ids_only) for congrp in self.context_contextGroup.all()]
         if self.context_contextGroup_relevantType:
-            ret['context']['contextGroups']['relevantTypes'] = self.context_contextGroup_relevantType
+            ret['context']['contextGroups']['relevantTypes'] = [reltype.context_contextGroup_relevantType for reltype in self.context_contextGroup_relevantType.all()]
         if not ret['context']['contextGroups']:
             del ret['context']['contextGroups']
 
