@@ -471,7 +471,7 @@ class SubStatement(models.Model):
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
 
-        ret['context']['contextAgents'] = OrderedDict()
+        ret['context']['contextAgents'] = []
         ret['context']['contextAgents']['objectType'] = "contextAgent"
         # if self.context_contextAgent:
         #     ret['context']['contextAgents']['agent'] = self.context_contextAgent
@@ -482,7 +482,7 @@ class SubStatement(models.Model):
         if not ret['context']['contextAgents']:
             del ret['context']['contextAgents']
 
-        ret['context']['contextGroups'] = OrderedDict()
+        ret['context']['contextGroups'] = []
         ret['context']['contextGroups']['objectType'] = "contextGroup"
         # if self.context_contextGroup:
         #     ret['context']['contextGroups']['group'] = self.context_contextGroup
