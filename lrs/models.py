@@ -298,7 +298,7 @@ class ContextAgent(models.Model):
     objectType = models.CharField(max_length=14, blank=True, default="contextAgent")
     agent = models.ForeignKey(
         Agent, related_name="conag_agent", on_delete=models.SET_NULL, blank=True, db_index=True, null=True)
-    relevantType = models.ManyToManyField(RelevantType, related_name="conag_relevantType")
+    relevantType = models.ManyToManyField(RelevantType, blank=True, related_name="conag_relevantType")
 
     def to_dict(self, ids_only=False):
         ret = OrderedDict()
