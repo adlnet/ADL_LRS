@@ -290,6 +290,46 @@ class Agent(models.Model):
         return json.dumps(self.to_dict(), sort_keys=False)
 
 
+class RelevantType(models.Model):
+    relevantType = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
+
+
+class ContextAgent(models.Model):
+    objectType = models.CharField(max_length=14, blank=True, default="contextAgent")
+    agent = models.ForeignKey(
+        Agent, related_name="conag_agent", on_delete=models.SET_NULL, blank=True, db_index=True, null=True)
+    relevantType = models.ManyToManyField(RelevantType, related_name="conag_relevantType")
+
+    def to_dict(self, ids_only=False):
+        ret = OrderedDict()
+        if self.agent:
+            ret['agent'] = self.agent.to_dict(ids_only)
+        if self.relevantType.all():
+            ret['relevantType'] = [relType.relevantType for relType in self.relevantType.all()]
+
+        ret['objectType'] = self.objectType
+
+        return ret
+
+
+class ContextGroup(models.Model):
+    objectType = models.CharField(max_length=14, blank=True, default="contextGroup")
+    group = models.ForeignKey(
+        Agent, related_name="congrp_group", on_delete=models.SET_NULL, blank=True, db_index=True, null=True)
+    relevantType = models.ManyToManyField(RelevantType, related_name="congrp_relevantType")
+
+    def to_dict(self, ids_only=False):
+        ret = OrderedDict()
+        if self.group:
+            ret['group'] = self.group.to_dict(ids_only)
+        if self.relevantType.all():
+            ret['relevantType'] = [relType.relevantType for relType in self.relevantType.all()]
+
+        ret['objectType'] = self.objectType
+
+        return ret
+
+
 class Activity(models.Model):
     activity_id = models.CharField(
         max_length=MAX_URL_LENGTH, db_index=True, unique=True)
@@ -471,7 +511,7 @@ class SubStatement(models.Model):
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
 
-        ret['context']['contextAgents'] = []
+        ret['context']['contextAgents'] = OrderedDict()
         ret['context']['contextAgents']['objectType'] = "contextAgent"
         # if self.context_contextAgent:
         #     ret['context']['contextAgents']['agent'] = self.context_contextAgent
@@ -482,7 +522,7 @@ class SubStatement(models.Model):
         if not ret['context']['contextAgents']:
             del ret['context']['contextAgents']
 
-        ret['context']['contextGroups'] = []
+        ret['context']['contextGroups'] = OrderedDict()
         ret['context']['contextGroups']['objectType'] = "contextGroup"
         # if self.context_contextGroup:
         #     ret['context']['contextGroups']['group'] = self.context_contextGroup
