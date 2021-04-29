@@ -175,23 +175,23 @@ def set_object_agent_query(q, agent, or_operand):
     if or_operand:
         return q | (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) |
                     Q(context_instructor=agent) | Q(context_team=agent) |
-                    Q(context_contextAgent=agent) | Q(context_contextGroup=agent) |
+                    Q(context_contextAgents=agent) | Q(context_contextGroups=agent) |
                     Q(object_substatement__actor=agent) |
                     Q(object_substatement__object_agent=agent) |
                     Q(object_substatement__context_instructor=agent) |
                     Q(object_substatement__context_team=agent) |
-                    Q(object_substatement__context_contextAgent=agent) |
-                    Q(object_substatement__context_contextGroup=agent))
+                    Q(object_substatement__context_contextAgents=agent) |
+                    Q(object_substatement__context_contextGroups=agent))
 
     return q & (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) |
                 Q(context_instructor=agent) | Q(context_team=agent) |
-                Q(context_contextAgent=agent) | Q(context_contextGroup=agent) |
+                Q(context_contextAgents=agent) | Q(context_contextGroups=agent) |
                 Q(object_substatement__actor=agent) |
                 Q(object_substatement__object_agent=agent) |
                 Q(object_substatement__context_instructor=agent) |
                 Q(object_substatement__context_team=agent) |
-                Q(object_substatement__context_contextAgent=agent) |
-                Q(object_substatement__context_contextGroup=agent))
+                Q(object_substatement__context_contextAgents=agent) |
+                Q(object_substatement__context_contextGroups=agent))
 
 # Retrieve JSON data from ID
 

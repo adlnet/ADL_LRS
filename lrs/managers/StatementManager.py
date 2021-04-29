@@ -71,10 +71,10 @@ class StatementManager():
         for con_ag in con_ag_data:
             ag = Agent.objects.retrieve_or_create(
                     **con_ag[1])[0]
-            stmt.context_contextAgent.add(ag)
-            if 'relevantTypes' in con_ag:
-                for reltype in con_ag[2]:
-                    stmt.context_contextAgent_relevantType.add(reltype)
+            stmt.context_contextAgents.add(ag)
+            # if 'relevantTypes' in con_ag:
+            #     for reltype in con_ag[2]:
+            #         stmt.context_contextAgent_relevantType.add(reltype)
 
         stmt.save()
     
@@ -84,9 +84,9 @@ class StatementManager():
             grp = Agent.objects.retrieve_or_create(
                     **con_grp[1])[0]
             stmt.context_contextGroup.add(grp)
-            if 'relevantTypes' in con_grp:
-                for reltype in con_grp[2]:
-                    stmt.context_contextGroup_relevantType.add(reltype)
+            # if 'relevantTypes' in con_grp:
+            #     for reltype in con_grp[2]:
+            #         stmt.context_contextGroup_relevantType.add(reltype)
 
         stmt.save()
 
