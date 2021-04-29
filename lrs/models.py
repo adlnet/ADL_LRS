@@ -419,9 +419,9 @@ class SubStatement(models.Model):
     context_ca_other = models.ManyToManyField(
         Activity, related_name="sub_context_ca_other")
     context_contextAgents = models.ManyToManyField(
-        ContextAgent, related_name="sub_context_contextAgent")
+        ContextAgent, related_name="sub_context_contextAgents")
     context_contextGroups = models.ManyToManyField(
-        ContextGroup, related_name="sub_context_contextGroup")
+        ContextGroup, related_name="sub_context_contextGroups")
         
     # Context also has a stmt field which is a StatementRef.
     context_statement = models.CharField(max_length=40, blank=True)
@@ -594,9 +594,9 @@ class Statement(models.Model):
     context_ca_other = models.ManyToManyField(
         Activity, related_name="stmt_context_ca_other")
     context_contextAgent = models.ManyToManyField(
-        ContextAgent, related_name="sub_context_contextAgent")
+        ContextAgent, related_name="stmt_context_contextAgents")
     context_contextGroup = models.ManyToManyField(
-        ContextGroup, related_name="sub_context_contextGroup")
+        ContextGroup, related_name="stmt_context_contextGroup")
 
     # Context also has a stmt field which is a StatementRef.
     context_statement = models.CharField(max_length=40, blank=True)
