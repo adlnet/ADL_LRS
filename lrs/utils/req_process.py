@@ -49,10 +49,12 @@ def process_statement(stmt, auth, payload_sha2s):
         
 
     # Convert context activities to list if dict.
-    if 'context' in stmt and 'contextActivities' in stmt['context']:
-        for k, v in stmt['context']['contextActivities'].items():
-            if isinstance(v, dict):
-                stmt['context']['contextActivities'][k] = [v]
+    if 'context' in stmt:
+        
+        if 'contextActivities' in stmt['context']:
+            for k, v in stmt['context']['contextActivities'].items():
+                if isinstance(v, dict):
+                    stmt['context']['contextActivities'][k] = [v]
 
         # We keep these as stringified JSON in the model, so we need to parse these
         # out here to prevent any weirdness down the line.  
