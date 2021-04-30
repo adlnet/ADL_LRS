@@ -54,6 +54,12 @@ def process_statement(stmt, auth, payload_sha2s):
             if isinstance(v, dict):
                 stmt['context']['contextActivities'][k] = [v]
 
+        if 'contextAgents' in stmt['context']:
+            stmt['context']['contextAgents'] = json.dumps(stmt['context']['contextAgents'])
+            
+        if 'contextGroups' in stmt['context']:
+            stmt['context']['contextGroups'] = json.dumps(stmt['context']['contextGroups'])
+
     # Convert context activities to list if dict (for substatements).
     if 'objectType' in stmt['object'] and stmt['object']['objectType'] == 'SubStatement':
         if 'context' in stmt['object'] and 'contextActivities' in stmt['object']['context']:
@@ -165,9 +171,11 @@ def statements_post(req_dict):
         body = req_dict['body']
 
     stmt_responses = process_body(body, auth, req_dict.get('payload_sha2s', None))
+
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
     stmts_to_void = [str(stmt_tup[1])
                      for stmt_tup in stmt_responses if stmt_tup[1]]
+
     check_activity_metadata.delay(stmt_ids)
     if stmts_to_void:
         Statement.objects.filter(statement_id__in=stmts_to_void).update(voided=True)
