@@ -418,10 +418,8 @@ class SubStatement(models.Model):
         Activity, related_name="sub_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="sub_context_ca_other")
-    context_contextAgents = models.ManyToManyField(
-        ContextAgent, related_name="sub_context_contextAgents")
-    context_contextGroups = models.ManyToManyField(
-        ContextGroup, related_name="sub_context_contextGroups")
+    context_contextAgents = models.TextField(blank=True, default="")
+    context_contextGroups = models.TextField(blank=True, default="")
         
     # Context also has a stmt field which is a StatementRef.
     context_statement = models.CharField(max_length=40, blank=True)
@@ -504,17 +502,22 @@ class SubStatement(models.Model):
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
 
-        ret['context']['contextAgents'] = []
-        if self.context_contextAgents.all():
-            ret['context']['contextAgents'] = [conag.context_contextAgents.to_dict(ids_only) for conag in self.context_contextAgents.all()]
-        if not ret['context']['contextAgents']:
-            del ret['context']['contextAgents']
+        if self.context_contextAgents:
+            ret['context']['contextAgents'] = self.context_contextAgents
+        if self.context_contextGroups:
+            ret['context']['contextGroups'] = self.context_contextGroups
 
-        ret['context']['contextGroups'] = []
-        if self.context_contextGroups.all():
-            ret['context']['contextGroups'] = [congrp.context_contextGroups.to_dict(ids_only) for congrp in self.context_contextGroups.all()]
-        if not ret['context']['contextGroups']:
-            del ret['context']['contextGroups']
+        # ret['context']['contextAgents'] = []
+        # if self.context_contextAgents.all():
+        #     ret['context']['contextAgents'] = [conag.context_contextAgents.to_dict(ids_only) for conag in self.context_contextAgents.all()]
+        # if not ret['context']['contextAgents']:
+        #     del ret['context']['contextAgents']
+
+        # ret['context']['contextGroups'] = []
+        # if self.context_contextGroups.all():
+        #     ret['context']['contextGroups'] = [congrp.context_contextGroups.to_dict(ids_only) for congrp in self.context_contextGroups.all()]
+        # if not ret['context']['contextGroups']:
+        #     del ret['context']['contextGroups']
 
         if not ret['context']:
             del ret['context']
@@ -593,10 +596,8 @@ class Statement(models.Model):
         Activity, related_name="stmt_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="stmt_context_ca_other")
-    context_contextAgent = models.ManyToManyField(
-        ContextAgent, related_name="stmt_context_contextAgents")
-    context_contextGroup = models.ManyToManyField(
-        ContextGroup, related_name="stmt_context_contextGroup")
+    context_contextAgents = models.TextField(blank=True, default="")
+    context_contextGroups = models.TextField(blank=True, default="")
 
     # Context also has a stmt field which is a StatementRef.
     context_statement = models.CharField(max_length=40, blank=True)
@@ -690,17 +691,22 @@ class Statement(models.Model):
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
 
-        ret['context']['contextAgents'] = []
-        if self.context_contextAgents.all():
-            ret['context']['contextAgents'] = [conag.context_contextAgents.to_dict(ids_only) for conag in self.context_contextAgents.all()]
-        if not ret['context']['contextAgents']:
-            del ret['context']['contextAgents']
+        if self.context_contextAgents:
+            ret['context']['contextAgents'] = self.context_contextAgents
+        if self.context_contextGroups:
+            ret['context']['contextGroups'] = self.context_contextGroups
 
-        ret['context']['contextGroups'] = []
-        if self.context_contextGroups.all():
-            ret['context']['contextGroups'] = [congrp.context_contextGroups.to_dict(ids_only) for congrp in self.context_contextGroups.all()]
-        if not ret['context']['contextGroups']:
-            del ret['context']['contextGroups']
+        # ret['context']['contextAgents'] = []
+        # if self.context_contextAgents.all():
+        #     ret['context']['contextAgents'] = [conag.context_contextAgents.to_dict(ids_only) for conag in self.context_contextAgents.all()]
+        # if not ret['context']['contextAgents']:
+        #     del ret['context']['contextAgents']
+
+        # ret['context']['contextGroups'] = []
+        # if self.context_contextGroups.all():
+        #     ret['context']['contextGroups'] = [congrp.context_contextGroups.to_dict(ids_only) for congrp in self.context_contextGroups.all()]
+        # if not ret['context']['contextGroups']:
+        #     del ret['context']['contextGroups']
         
         if not ret['context']:
             del ret['context']
