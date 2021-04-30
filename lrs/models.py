@@ -503,9 +503,9 @@ class SubStatement(models.Model):
             del ret['context']['contextActivities']
 
         if self.context_contextAgents:
-            ret['context']['contextAgents'] = self.context_contextAgents
+            ret['context']['contextAgents'] = json.loads(self.context_contextAgents)
         if self.context_contextGroups:
-            ret['context']['contextGroups'] = self.context_contextGroups
+            ret['context']['contextGroups'] = json.loads(self.context_contextGroups)
 
         # ret['context']['contextAgents'] = []
         # if self.context_contextAgents.all():
@@ -692,9 +692,9 @@ class Statement(models.Model):
             del ret['context']['contextActivities']
 
         if self.context_contextAgents:
-            ret['context']['contextAgents'] = self.context_contextAgents
+            ret['context']['contextAgents'] = json.loads(self.context_contextAgents)
         if self.context_contextGroups:
-            ret['context']['contextGroups'] = self.context_contextGroups
+            ret['context']['contextGroups'] = json.loads(self.context_contextGroups)
 
         # ret['context']['contextAgents'] = []
         # if self.context_contextAgents.all():
