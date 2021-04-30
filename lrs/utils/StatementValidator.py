@@ -8,6 +8,7 @@ from isodate.isotime import parse_time
 from rfc3987 import parse as iriparse
 from uuid import UUID
 
+from django.core.exceptions import ValidationError
 from django.utils.timezone import utc
 
 from . import convert_to_datatype
