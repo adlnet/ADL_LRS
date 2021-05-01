@@ -418,8 +418,9 @@ class SubStatement(models.Model):
         Activity, related_name="sub_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="sub_context_ca_other")
-    context_contextAgents = models.TextField(blank=True, default="")
-    context_contextGroups = models.TextField(blank=True, default="")
+        
+    context_contextAgents = JSONField(default=list, blank=True)
+    context_contextGroups = JSONField(default=list, blank=True) 
         
     # Context also has a stmt field which is a StatementRef.
     context_statement = models.CharField(max_length=40, blank=True)
@@ -503,9 +504,9 @@ class SubStatement(models.Model):
             del ret['context']['contextActivities']
 
         if self.context_contextAgents:
-            ret['context']['contextAgents'] = json.loads(self.context_contextAgents)
+            ret['context']['contextAgents'] = self.context_contextAgents
         if self.context_contextGroups:
-            ret['context']['contextGroups'] = json.loads(self.context_contextGroups)
+            ret['context']['contextGroups'] = self.context_contextGroups
 
         # ret['context']['contextAgents'] = []
         # if self.context_contextAgents.all():
@@ -596,8 +597,8 @@ class Statement(models.Model):
         Activity, related_name="stmt_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="stmt_context_ca_other")
-    context_contextAgents = models.TextField(blank=True, default="")
-    context_contextGroups = models.TextField(blank=True, default="")
+    context_contextAgents = JSONField(default=list, blank=True)
+    context_contextGroups = JSONField(default=list, blank=True) 
 
     # Context also has a stmt field which is a StatementRef.
     context_statement = models.CharField(max_length=40, blank=True)
@@ -692,9 +693,9 @@ class Statement(models.Model):
             del ret['context']['contextActivities']
 
         if self.context_contextAgents:
-            ret['context']['contextAgents'] = json.loads(self.context_contextAgents)
+            ret['context']['contextAgents'] = self.context_contextAgents
         if self.context_contextGroups:
-            ret['context']['contextGroups'] = json.loads(self.context_contextGroups)
+            ret['context']['contextGroups'] = self.context_contextGroups
 
         # ret['context']['contextAgents'] = []
         # if self.context_contextAgents.all():

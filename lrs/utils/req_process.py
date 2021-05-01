@@ -50,22 +50,10 @@ def process_statement(stmt, auth, payload_sha2s):
 
     # Convert context activities to list if dict.
     if 'context' in stmt:
-        
         if 'contextActivities' in stmt['context']:
             for k, v in stmt['context']['contextActivities'].items():
                 if isinstance(v, dict):
                     stmt['context']['contextActivities'][k] = [v]
-
-        # We keep these as stringified JSON in the model, so we need to parse these
-        # out here to prevent any weirdness down the line.  
-        # 
-        # By this point, the validation has already acknowledged that these are either 
-        # empty or spec-compliant, so we can skip those checks.
-        if 'contextAgents' in stmt['context']:
-            stmt['context']['contextAgents'] = json.dumps(stmt['context']['contextAgents'])
-
-        if 'contextGroups' in stmt['context']:
-            stmt['context']['contextGroups'] = json.dumps(stmt['context']['contextGroups'])
 
     # Convert context activities to list if dict (for substatements).
     if 'objectType' in stmt['object'] and stmt['object']['objectType'] == 'SubStatement':

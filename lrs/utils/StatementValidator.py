@@ -893,15 +893,10 @@ class StatementValidator():
                     "contextActivities is not formatted correctly.")
     
     def validate_context_agents(self, conags):
-        arr = None
-        try:
-            arr = json.dumps(conags)
-        except ValidationError("contextAgents was not valid JSON."):
-            raise ValidationError("")
-    
-        if not isinstance(arr, list):
+
+        if not isinstance(conags, list):
             raise ValidationError("contextAgents was not an array.")
-        for sub in arr:
+        for sub in conags:
             if sub["objectType"] != "contextAgent":
                 raise ValidationError("[objectType] for Context Agent entries must be 'contextAgent'")
 
@@ -910,36 +905,11 @@ class StatementValidator():
 
             self.validate_agent(sub["agent"], 'Context agent')
 
-        # # Ensure incoming conags is list.
-        # self.check_if_list(conags, "Context agents")
-
-        # for conag in conags:
-        #     # Ensure conag is dict.
-        #     self.check_if_dict(conag, "Context agent")
-        #     self.check_allowed_fields(context_agent_allowed_fields, conag, "Context agent")
-
-        #     if conag['objectType'] != "contextAgent":
-        #         self.return_error("Context agent type is not valid - %s - must be %s" %
-        #                           (conag['objectType'], 'contextAgent'))
-
-        #     self.validate_agent(conag['agent'], 'Context agent')
-
-        #     if 'relevantTypes' in conag:
-        #         self.check_if_list(conag['relevantTypes'], "Context agent relevant types")
-        #         for reltype in conag['relevantTypes']:
-        #             self.validate_iri(reltype, 'Relevant type activity')
-
-
     def validate_context_groups(self, congrps):
-        arr = None
-        try:
-            arr = json.dumps(congrps)
-        except ValidationError("contextGroups was not valid JSON."):
-            raise ValidationError("")
-    
-        if not isinstance(arr, list):
+
+        if not isinstance(congrps, list):
             raise ValidationError("contextGroups was not an array.")
-        for sub in arr:
+        for sub in congrps:
             if sub["objectType"] != "contextGroup":
                 raise ValidationError("[objectType] for Context Group entries must be 'contextGroup'")
 
@@ -947,22 +917,3 @@ class StatementValidator():
                 raise ValidationError("[relevantTypes] for Context Group entries must be a list")
 
             self.validate_agent(sub["group"], 'Context group')
-
-        # # Ensure incoming congrps is list.
-        # self.check_if_list(congrps, "Context groups")
-
-        # for congrp in congrps:
-        #     # Ensure congrp is dict.
-        #     self.check_if_dict(congrp, "Context group")
-        #     self.check_allowed_fields(context_group_allowed_fields, congrp, "Context group")
-
-        #     if congrp['objectType'] != "contextGroup":
-        #         self.return_error("Context group type is not valid - %s - must be %s" %
-        #                           (congrp['objectType'], 'contextGroup'))
-
-        #     self.validate_agent(congrp['group'], 'Context group')
-
-        #     if 'relevantTypes' in congrp:
-        #         self.check_if_list(congrp['relevantTypes'], "Context group relevant types")
-        #         for reltype in congrp['relevantTypes']:
-        #             self.validate_iri(reltype, 'Relevant type activity')
