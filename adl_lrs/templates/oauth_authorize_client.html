@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load static from staticfiles %}
+
 {% block title %}Application Access Approval{% endblock title %}
 {% block heading %}Application Access Approval{% endblock heading %}
 {% block extra_css %}
-<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+<link rel="stylesheet" href="{% static "css/extra.css" %}">
 {% endblock extra_css %}
 {% block content %}
 <br>
@@ -54,5 +56,5 @@
         });
     });
 </script>
-<script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-forms.js"></script>
+<script type="text/javascript" src="{% static "scripts/extra-forms.js" %}"></script>
 {% endblock extra_js %}

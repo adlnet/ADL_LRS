@@ -8,6 +8,7 @@ ALLOWED_HOSTS = ['*']
 # Root of LRS
 SETTINGS_DIR = dirname(abspath(__file__))
 PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
+BASE_DIR = path.join(SETTINGS_DIR, '..')
 
 config = RawConfigParser()
 config.read(SETTINGS_DIR+'/settings.ini')
@@ -88,7 +89,7 @@ MEDIA_URL = '/media/'
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = ''
+STATIC_ROOT = path.join(BASE_DIR, 'staticfiles')
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
@@ -183,6 +184,8 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = config.get('secrets', 'SECRET_KEY')
 
@@ -240,6 +243,7 @@ CORS_EXPOSE_HEADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -263,6 +267,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'adl_lrs',
     'lrs',

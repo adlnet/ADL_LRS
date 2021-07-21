@@ -1,6 +1,8 @@
 {% extends "base.html" %}
+{% load static from staticfiles %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{{ STATIC_URL }}css/extra.css">
+<link rel="stylesheet" href="{% static "css/extra.css" %}">
 <style>
     pre {
         white-space: pre-wrap;       /* CSS 3 */
@@ -114,5 +116,5 @@
         });
     }
 </script>
-<script type="text/javascript" src="{{ STATIC_URL }}scripts/extra-data.js"></script>
+<script type="text/javascript" src="{% static "scripts/extra-data.js" %}"></script>
 {% endblock extra_js %}
